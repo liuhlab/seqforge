@@ -1,3 +1,5 @@
+# ============================== project ==============================
+
 [project]
 name = "seqforge"
 description = "Compile arbitrary FASTQ + messy metadata into a validated, machine-independent sequencing library manifest and a runnable Snakemake config."
@@ -20,6 +22,7 @@ classifiers = [
 ]
 # CalVer YYYY.M.PATCH, mirrored in CHANGELOG.md.
 version = "2026.7.1"
+
 dependencies = [
     "pydantic>=2.7",
     "typer>=0.12",
@@ -28,26 +31,21 @@ dependencies = [
     "pooch>=1.8",
     "requests>=2.31",
     "tqdm>=4",
-    # Publishing a fingerprint package to the benchmark corpus, and nothing else. READING one needs
-    # neither this nor a token — a public dataset repo serves every file to an anonymous GET, which
-    # pooch already does. Writing is an authenticated commit, so the producer half needs the SDK.
-    "huggingface_hub>=0.25",
-    # The document readers are hard dependencies, not extras: `read_document` advertises these
-    # formats and a paper is the normal shape of the prose seqforge is handed.
+    "huggingface_hub>=0.25",  # publishing a fingerprint package; reading one needs no token
+    # Document readers are hard deps, not extras: a paper is the normal shape of the prose we are handed.
     "pypdf>=4",
     "PyMuPDF>=1.24",     # default PDF backend; AGPL-3.0, the one non-permissive dep
     "pdfplumber>=0.11",  # in-text tables -> markdown, so a table cell greps back
     "openpyxl>=3.1",     # supplementary .xlsx sample tables
     "anndata>=0.10",     # the pilot's deliverable format
-    "pysam>=0.22",       # read/write BAM for the plate-assay UMI path; a plain dep, no image needed
-    "gffutils>=0.13",    # reads the annotation database liulab-genome BUILT — we never build one
-    # `harvest extract` is the one stage that touches an LLM; both clients are lazy-imported, and
-    # `run --no-llm` drives the whole compiler without them.
+    "pysam>=0.22",       # BAM read/write for the plate-assay UMI path
+    "gffutils>=0.13",    # reads the annotation database liulab-genome built
+    # The LLM clients are lazy-imported; `run --no-llm` drives the compiler without them.
     "anthropic>=0.40",
     "openai>=1.40",      # any OpenAI-compatible endpoint (DeepSeek, vLLM, Ollama, ...)
-    # liulab-genome and liulab-data are deliberately absent: PyPI rejects a distribution whose
-    # metadata carries a `git+https` reference. They are declared in the pixi tables below, which
-    # never fold into the wheel. A PyPI user who wants the lab-only features installs them from git:
+    # liulab-genome and liulab-data are absent on purpose: PyPI rejects metadata carrying a
+    # `git+https` reference. They are declared in the pixi tables, which never fold into the wheel.
+    # A PyPI user who wants those features installs them from git:
     #     pip install "liulab-genome @ git+https://github.com/liuhlab/liulab-genome.git" \
     #                  "liulab-data   @ git+https://github.com/liuhlab/liulab-data.git"
 ]
@@ -60,20 +58,21 @@ Changelog = "https://github.com/liuhlab/seqforge/blob/main/CHANGELOG.md"
 [project.scripts]
 seqforge = "seqforge.cli:app"
 
+# ============================== build ==============================
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-# No `force-include`: this already carries every non-Python file under the tree (onlists, .smk
-# modules, KB specs, report assets), and adding one is a hard build error. Verified by
-# `test_the_wheel_ships_the_data_the_package_cannot_work_without`.
+# Carries every non-Python file under the tree already (onlists, .smk modules, KB specs, report
+# assets); a `force-include` on top of it is a hard build error.
 packages = ["src/seqforge"]
 
 # No `[tool.hatch.metadata] allow-direct-references`, on purpose: its absence is a tripwire, so
 # re-adding a git dependency above fails the build rather than a later PyPI upload.
 
-# -------- pixi --------
+# ============================== pixi ==============================
 
 [tool.pixi.workspace]
 channels = ["conda-forge", "bioconda"]
@@ -81,10 +80,8 @@ platforms = ["osx-arm64", "linux-64", "osx-64"]
 
 [tool.pixi.pypi-dependencies]
 seqforge = { path = ".", editable = true }
-# Consumers, not a parallel universe. `rule genome_index` resolves the STAR index in a `run:`
-# directive and `kb e2e` uses it to find a reference; `io/archive.py` calls labdata's
-# `experiments_for` for the accession -> SRA-experiments hop. Both ship in liulab-runtime's `lab`
-# feature, so this adds no environment the cluster lacks.
+# Consumed, never redefined: `rule genome_index` resolves the STAR index and `io/archive.py` calls
+# labdata's `experiments_for`. Both ship in liulab-runtime's `lab` feature.
 liulab-genome = { git = "https://github.com/liuhlab/liulab-genome.git" }
 liulab-data = { git = "https://github.com/liuhlab/liulab-data.git" }
 
@@ -104,28 +101,21 @@ anthropic = ">=0.40"
 openai = ">=1.40"
 pymupdf = ">=1.28.0,<2"
 pdfplumber = ">=0.11.10,<0.12"
-# `pysam` is deliberately NOT here, and it is the one dependency this table does not mirror.
-# bioconda's package carries no PyPI purl, so pixi cannot tell it is the same distribution as the
-# `pysam` the editable install asks for: it resolves both, and the wheel lands on top of the conda
-# package's own files ("PyPI package files will overwrite files installed by conda"). The wheel is
-# self-contained (it vendors htslib) and exists for every platform this workspace declares, so one
-# source is both sufficient and the only one that installs cleanly. Do not add it back.
-#
-# gffutils used to sit in the block below as one of liulab-genome's transitive needs. The UMI
-# counter now imports it directly to READ the annotation database liulab-genome built, so it is
-# ours as well; the block below may only claim what nothing here imports. It maps to its PyPI
-# distribution correctly, so mirroring it here is right.
 gffutils = ">=0.13"
-# liulab-genome's transitive needs, mirrored from liulab-runtime's `lab` feature. A missing one is
-# an ImportError at `import genome`, not a wrong number.
+# `pysam` is deliberately NOT mirrored here. bioconda's package carries no PyPI purl, so pixi cannot
+# tell it is the same distribution the editable install asks for: it resolves both and the wheel
+# overwrites the conda package's files. The wheel vendors htslib and exists for every platform
+# declared above, so PyPI alone is sufficient. Do not add it back.
+#
+# liulab-genome's transitive needs, mirrored from liulab-runtime's `lab` feature. A missing one is an
+# ImportError at `import genome`, not a wrong number.
 pandas = ">=2.1,<3"
 ucsc-fatotwobit = "*"
 ucsc-twobitinfo = "*"
 
-# The DAG builder, so compose's wiring gate actually runs rather than skipping green. `minimal`
-# because no executor plugin is wanted — submitting jobs is the user's. STAR and samtools are in no
-# table a user's environment composes; the one feature that carries them is `external` below, which
-# exists so that a test can run and which exactly one environment includes.
+# The DAG builder, so compose's wiring gate runs rather than skipping green. `minimal` because
+# submitting jobs is the user's. STAR and samtools belong to liulab-runtime, which the rules name;
+# no environment a user builds carries them. `external` below is the one exception, and it is a test.
 [tool.pixi.feature.wf.dependencies]
 snakemake-minimal = ">=8"
 
@@ -164,21 +154,10 @@ pytest = "*"
 pytest-cov = "*"
 pytest-xdist = "*"
 
-# One thread per worker. A process sizes its BLAS/OpenMP pools to the whole machine the first time
-# the numeric stack is imported, and every worker is its own process — so twelve workers each opened
-# a pool wide enough for the box and then fought each other for it, burning CPU on the contention and
-# making the wall time swing between repeats. Three names because three libraries are underneath and
-# each reads its own in preference; pinning one leaves the other two sizing themselves to the box.
-#
-# On the FEATURE's environment, not on a task: the suite is invoked five ways (the parallel verb,
-# the fast verb, a narrowed run, the gate, CI), and a task-level spelling would hold for one of
-# them. `test_the_test_environment_pins_its_thread_pools` asserts both this declaration and that a
-# running test can see it, because a declaration that never reaches the workers looks identical to
-# success from here.
-#
-# `default` composes this feature, so the pin lands there too -- which is required, since the gate
-# runs the suite from `default`. The cost is that everything else in that environment is
-# single-threaded as well; nothing here is a numeric workload, so that buys and loses nothing.
+# One thread per worker: every xdist worker is its own process and each would otherwise size a BLAS/
+# OpenMP pool to the whole box, then fight the others for it. Three names because three libraries are
+# underneath. On the FEATURE, not on a task, so all five ways of invoking the suite inherit it;
+# `test_the_test_environment_pins_its_thread_pools` asserts both the declaration and its arrival.
 [tool.pixi.feature.test.activation.env]
 OMP_NUM_THREADS = "1"
 OPENBLAS_NUM_THREADS = "1"
@@ -212,30 +191,23 @@ test-external = { features = ["py313", "test", "wf", "external"] }
 lint      = "ruff check ."
 fmt       = "ruff format ."
 fmt-check = "ruff format --check ."
-# Bare on purpose: `[tool.mypy] files` owns the scope, so the editor's checker and this one cannot
-# disagree about what is checked. Naming trees here would be the second copy.
+# Bare: `[tool.mypy] files` owns the scope, so the editor's checker cannot disagree with this one.
 typecheck = "mypy"
-# `auto` capped at 12: bare `auto` is slower on a big box (48 workers lose to 12), a bare number is
-# wrong on a 2-core runner. `loadgroup` behaves like the default for unmarked tests and groups only
-# those carrying `xdist_group`. Measurements: docs/agents/testing.md.
+# `auto` capped at 12: bare `auto` is slower on a big box, a bare number is wrong on a 2-core runner.
+# `loadgroup` groups only tests carrying `xdist_group`. Measurements: docs/agents/testing.md.
 test      = "pytest -n auto --maxprocesses 12 --dist=loadgroup"
-# Drops what needs a binary we do not own and what checks the repo. Not a rung of the ladder — it is
-# what you want on a machine with no snakemake.
+# Drops what needs a binary we do not own and what checks the repo — for a machine with no snakemake.
 test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 --dist=loadgroup -q"
-# The complement, and it needs `-e test-external` — that is the one environment where STAR, samtools
-# and bgzip/tabix are on PATH, so anywhere else these tests skip themselves and this verb reports
-# green having run nothing. Parallel like the other two: the selection is small but every test in it
-# spawns a real tool, so the wall is spawn-bound rather than interpreter-bound.
+# The complement, and it needs `-e test-external`: anywhere else these tests skip themselves and this
+# verb reports green having run nothing.
 test-external = "pytest -m external -n auto --maxprocesses 12 --dist=loadgroup"
-# Serial on purpose: 12 workers to re-run three tests costs more than it saves, and `-x` is
-# unreliable under xdist.
+# Serial on purpose: `-x` is unreliable under xdist, and 12 workers to re-run three tests loses.
 test-failed = "pytest --lf --new-first -x -q"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
-# The networked validation benchmark, not part of `check`. Exits 3 on any false-accept; an
-# unreachable benchmark package skips. Invoked by the opt-in benchmark workflow.
+# The networked validation benchmark, not part of `check`. Exits 3 on any false-accept.
 eval      = "seqforge eval run"
-# Not `depends-on`: pixi runs those sequentially and the four checks share no inputs. `check.sh`
-# runs them concurrently and prints each one's output whole, in a fixed order.
+# Not `depends-on`: pixi runs those sequentially. `check.sh` runs the four concurrently and prints
+# each one's output whole, in a fixed order.
 check     = "bash scripts/check.sh lint fmt-check typecheck test"
 build     = "python -m build"
 # Runs in the CI `build` job, where the wheel already exists — as a test it built a second one.
@@ -244,7 +216,7 @@ install-skills = "python skills/install.py --user"
 docs      = "mkdocs serve"
 docs-build = "mkdocs build --strict"
 
-# -------- tool config --------
+# ============================== ruff ==============================
 
 [tool.ruff]
 line-length = 100
@@ -262,42 +234,27 @@ ignore = ["E501", "UP046", "UP047"]
 # Typer uses call expressions as parameter defaults by design.
 extend-immutable-calls = ["typer.Argument", "typer.Option"]
 
+# ============================== mypy ==============================
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
-# The scope, here rather than in the `typecheck` task: only what RUNS the task reaches that string,
-# and an editor's language server does not. `test_nothing_tracked_escapes_the_type_checker` holds it
-# open at both ends.
+# The scope lives here, not in the `typecheck` task: an editor's language server never reads a task
+# string. `test_nothing_tracked_escapes_the_type_checker` holds it open at both ends.
 files = ["src", "tests", "scripts", "skills"]
-# The gitignored scratch harnesses, and nothing else -- the guard above fails if an exclusion ever
-# hides a file git is tracking, so this list cannot grow to bury code that will not check.
+# The gitignored scratch harnesses, and nothing else — that guard fails if an exclusion ever hides a
+# file git is tracking.
 exclude = ['^tests/_[^/]*_test\.py$', '^tests/_test_[^/]*\.py$']
 
-# scipy ships no type information, and the type of `csr_matrix` is not what protects the
-# deliverable — `test_the_matrix_is_transposed_to_cells_by_genes` is.
+# Untyped third parties. In each case what protects the deliverable is a test, not the stub: the
+# transpose assertion for scipy, the registry checksum for pooch, the synthetic BAM + annotation for
+# pysam/gffutils, and one thin guarded function per PDF engine in `harvest/normalize.py`.
 [[tool.mypy.overrides]]
-module = ["scipy.*"]
+module = ["scipy.*", "pooch", "pooch.*", "pysam", "pysam.*", "gffutils", "gffutils.*"]
 ignore_missing_imports = true
 
-# pooch ships no `py.typed`. It is the download/cache layer under the onlist registry, reached
-# through `retrieve()` in three places, and what protects the deliverable there is the checksum the
-# registry asserts on the fetched file — not the type of the fetcher.
-[[tool.mypy.overrides]]
-module = ["pooch", "pooch.*"]
-ignore_missing_imports = true
-
-# pysam is a C extension over htslib and gffutils is plain-Python SQLite; neither ships type
-# information. What protects the counter is not their types — it is the synthetic annotation and BAM
-# in `tests/test_workflows.py`, where every read's fate is known by construction, so a wrong flag or
-# a wrong coordinate convention shows up as a wrong count rather than as a missing annotation.
-[[tool.mypy.overrides]]
-module = ["pysam", "pysam.*", "gffutils", "gffutils.*"]
-ignore_missing_imports = true
-
-# Both PDF engines are incompletely typed, and we call each through one thin guarded function in
-# `harvest/normalize.py`.
 [[tool.mypy.overrides]]
 module = ["pymupdf", "pymupdf.*", "pdfplumber", "pdfplumber.*"]
 ignore_missing_imports = true
@@ -309,18 +266,19 @@ init_typed = true
 warn_required_dynamic_aliases = true
 
 # Pylance does not type-check; mypy does, and the editor runs mypy. Here rather than in `.vscode/` so
-# any pyright-based language server honours it, not one editor. Hover, completion, go-to-definition,
-# symbol search and unresolved imports are unaffected.
+# any pyright-based server honours it. Hover, completion and go-to-definition are unaffected.
 [tool.pyright]
 typeCheckingMode = "off"
 
+# ============================== pytest ==============================
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# Pinned: the default also collects `*_test.py`, which nothing here is named, so an untracked
-# scratch file was collected locally and absent in CI.
+# Pinned: the default also collects `*_test.py`, so an untracked scratch file was collected locally
+# and absent in CI.
 python_files = ["test_*.py"]
-# `zarr` and `anyio` arrive transitively (anndata, httpx) and each registers a `pytest11` entry
-# point every worker imports at startup, though no test here uses either.
+# `zarr` and `anyio` arrive transitively (anndata, httpx) and each registers a `pytest11` entry point
+# every worker imports at startup, though no test here uses either.
 addopts = [
   "-ra",
   "--strict-markers",
