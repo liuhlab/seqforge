@@ -20,6 +20,7 @@ symlink will not do.
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import sys
 from pathlib import Path
@@ -41,12 +42,28 @@ def discover() -> list[Path]:
     return sorted(p.parent for p in SKILLS_DIR.glob("*/SKILL.md"))
 
 
-def install_one(skill: Path, dest_root: Path, *, copy: bool, dry_run: bool) -> str:
+def install_one(
+    skill: Path, dest_root: Path, *, copy: bool, dry_run: bool, relative: bool = False
+) -> str:
+    """Put one skill at its discovery path.
+
+    ``relative`` is what makes a project-local install committable. `.agents/skills` is the
+    vendor-neutral path, so those links are the ones that land in the repo — and an ABSOLUTE one
+    names a directory that exists on exactly one machine, so every other clone and CI resolve it to
+    nothing while ``git status`` stays clean, because the link itself is intact. Written relative,
+    the same link is correct in every checkout.
+
+    A ``--user`` install gets an absolute link, which is right precisely because it is never
+    committed: ``~/.agents/skills`` and the repo are unrelated trees, and a path computed between
+    them would break the moment either moved.
+    """
     dest = dest_root / skill.name
     action = "copy" if copy else "link"
     if dry_run:
         return f"[dry-run] {action} {skill.name} -> {dest}"
     dest_root.mkdir(parents=True, exist_ok=True)
+    # `is_symlink()` first and on its own: a link pointing at a directory answers `is_dir()` too, so
+    # taking the `rmtree` branch would delete the skill it points AT rather than the link.
     if dest.is_symlink() or dest.is_file():
         dest.unlink()
     elif dest.is_dir():
@@ -54,7 +71,8 @@ def install_one(skill: Path, dest_root: Path, *, copy: bool, dry_run: bool) -> s
     if copy:
         shutil.copytree(skill, dest)
     else:
-        dest.symlink_to(skill, target_is_directory=True)
+        target = Path(os.path.relpath(skill, dest.parent)) if relative else skill
+        dest.symlink_to(target, target_is_directory=True)
     return f"{action}ed {skill.name} -> {dest}"
 
 
@@ -88,7 +106,15 @@ def main(argv: list[str] | None = None) -> int:
         project_dir, user_dir = TARGETS[target]
         dest_root = base / (user_dir if args.user else project_dir)
         for skill in skills:
-            print(install_one(skill, dest_root, copy=args.copy, dry_run=args.dry_run))
+            print(
+                install_one(
+                    skill,
+                    dest_root,
+                    copy=args.copy,
+                    dry_run=args.dry_run,
+                    relative=not args.user,
+                )
+            )
     if not args.dry_run:
         print(f"\n{len(skills)} skill(s) installed for: {', '.join(targets)}")
         print(
