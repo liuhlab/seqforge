@@ -41,7 +41,13 @@
 # declaration and the rule that produces it cannot come apart.
 from seqforge.workflows import PLATE_H5AD
 from seqforge.workflows.h5ad import STAR_BAM
-from seqforge.workflows.memory import PLATE_RETRIES, bam_sort_ram, fan_in_mem_mb, per_cell_mem_mb
+from seqforge.workflows.memory import (
+    PLATE_RETRIES,
+    bam_sort_ram,
+    fan_in_mem_mb,
+    index_mem_mb,
+    per_cell_mem_mb,
+)
 from seqforge.workflows.units import load_units, ordered_fastqs
 from seqforge.workflows.units import mate_role as units_mate_role
 
@@ -240,6 +246,10 @@ rule load_genome:
         touch(LOADED_FLAG),
     container: config["container"]
     threads: config["threads"]
+    resources:
+        # The one rule that holds the genome segment, and it asked for nothing until now -- so a
+        # scheduler packed jobs beside the largest allocation on the node without knowing it existed.
+        mem_mb=lambda wildcards, attempt: index_mem_mb(config["mem_mb"], attempt),
     params:
         prefix=LOAD_PREFIX,
     shell:

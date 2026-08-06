@@ -4773,3 +4773,44 @@ def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Pat
     aligned = _records(tmp_path / "star_Aligned.out.bam")
     assert aligned, "STAR aligned nothing, so the tag question was never asked"
     assert all(record.get_tag("UB") == "ACGTACGT" for record in aligned)
+
+
+def test_the_shared_index_load_asks_the_scheduler_for_the_residency_it_holds() -> None:
+    """`load_genome` is the job that materializes the genome segment, and it declared no memory.
+
+    Every other rule in `map/star-umi` derives a request carefully; the one holding the largest
+    single allocation on the node asked for zero, so a scheduler would pack jobs beside it knowing
+    nothing about it. This goes red if `index_mem_mb` stops covering a per-cell request -- which is
+    the bound that makes it safe to ask for once per node rather than per cell.
+
+    It does NOT assert the rule wiring: a `.smk` is not importable, and compose's wiring gate already
+    evaluates every `resources:` callable when it runs `snakemake -n`, so a broken expression there
+    fails the gate rather than this test.
+    """
+    from seqforge.workflows.memory import PLATE_RETRIES, index_mem_mb, per_cell_mem_mb
+
+    # An upper bound on what a mapping job needs, because a mapping job is this residency plus a
+    # sort buffer. Asking for less on the rule that runs once per node is what costs the node.
+    for attempt in range(1, PLATE_RETRIES + 2):
+        assert index_mem_mb(_DEFAULT_MEM_MB, attempt) >= per_cell_mem_mb(_DEFAULT_MEM_MB, attempt)
+    assert index_mem_mb(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
+
+
+def test_the_sort_budget_is_what_the_recipe_figure_is_actually_sized_by() -> None:
+    """The figure reads as an index budget and is a sort budget -- the trap this module now names.
+
+    `bam_sort_ram` takes three quarters of the per-cell request, and the default moved 32 -> 48 GB so
+    a 215M-read sample's ~32 GB sort would fit. So shrinking the figure because a genome's index is
+    small (ce11's is 1.3 GB against a human 25 GB) shrinks `--limitBAMsortRAM` with it and STAR
+    FATALs on a deep sample. This pins the coupling that makes that true, so a future "the index is
+    tiny, drop the default" goes red here instead of in a 20-hour run.
+    """
+    from seqforge.workflows.memory import bam_sort_ram, per_cell_mem_mb
+
+    mib = 1024 * 1024
+    # The 215M-read sample the default was moved for: ~160 B/record ~= 32 GB of sort.
+    needed_bytes = 32 * 1024 * mib
+    assert bam_sort_ram(per_cell_mem_mb(_DEFAULT_MEM_MB, 1)) >= needed_bytes
+
+    # Halving the recipe figure -- the tempting "small genome" edit -- stops covering it.
+    assert bam_sort_ram(per_cell_mem_mb(_DEFAULT_MEM_MB // 2, 1)) < needed_bytes
