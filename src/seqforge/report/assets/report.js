@@ -93,6 +93,97 @@
     });
   }
 
+  // ---- samples table paging ---------------------------------------------------------------------
+  // A plate of ninety-six samples was five thousand pixels of table, and a reader who wanted sample 40
+  // scrolled past thirty-nine to reach it. This shows one page of rows at a time.
+  //
+  // It HIDES, it never drops: every row is in the HTML whatever page is showing, so the file is as
+  // complete offline as it was, "Rows: All" is one click, and a browser find that lands on a hidden
+  // row still has the row to land on once the reader shows it. The bar itself is `hidden` in the
+  // markup and unhidden here, so a page opened without this script is the page as it always was.
+  function initSamplePagers() {
+    document.querySelectorAll("[data-pager]").forEach(function (bar) {
+      var body = document.getElementById(bar.getAttribute("data-pager"));
+      if (!body) return;
+
+      // One sample is a PAIR of rows — the summary and its files drawer — and only the first carries
+      // `data-smp`. Grouping as "a marked row plus everything after it until the next" means the two
+      // move together and the pager never counts rows.
+      var groups = [];
+      [].forEach.call(body.rows, function (tr) {
+        if (tr.hasAttribute("data-smp")) groups.push([tr]);
+        else if (groups.length) groups[groups.length - 1].push(tr);
+      });
+      if (!groups.length) return;
+
+      var status = bar.querySelector("[data-pager-status]");
+      var nav = bar.querySelector("[data-pager-nav]");
+      var at = bar.querySelector("[data-pager-at]");
+      var picker = bar.querySelector("[data-pager-size]");
+      var steps = bar.querySelectorAll("[data-pager-step]");
+      var page = 0;
+
+      function perPage() {
+        var n = parseInt(picker.value, 10);
+        return n > 0 ? n : groups.length; // "All" is 0 in the markup, and every row here
+      }
+
+      function apply() {
+        var per = perPage();
+        var pages = Math.ceil(groups.length / per);
+        page = Math.min(Math.max(page, 0), pages - 1);
+        var first = page * per;
+        var last = Math.min(first + per, groups.length);
+        groups.forEach(function (rows, i) {
+          var off = i < first || i >= last;
+          rows.forEach(function (tr) { tr.classList.toggle("smp-off", off); });
+        });
+        // `.smp-off` and not the `hidden` attribute: `hidden` is the drawer's own state on the second
+        // row of every pair, and one attribute meaning two things would close a reader's open drawer
+        // every time they paged past it and back.
+        status.textContent =
+          "Showing " + (first + 1) + "–" + last + " of " + groups.length + " samples";
+        at.textContent = "Page " + (page + 1) + " of " + pages;
+        nav.hidden = pages < 2; // "Page 1 of 1" beside two dead arrows says nothing
+        steps.forEach(function (btn) {
+          var to = page + parseInt(btn.getAttribute("data-pager-step"), 10);
+          btn.disabled = to < 0 || to >= pages;
+        });
+        closeProvenance(); // it is pinned beside a cell that may not be on this page any more
+      }
+
+      // The top of the table, landed under the sticky band rather than beneath it: a reader who
+      // pressed Next at the bottom of one page is asking for the top of the next. The band's height
+      // is MEASURED and never assumed — the whole reason the header and the tab bar are one sticky
+      // element is that no number for it can be written down and stay true.
+      function toTop() {
+        var region = body.closest(".sf-scroll-x") || body;
+        var band = document.querySelector("[data-sticky-band]");
+        var top =
+          region.getBoundingClientRect().top +
+          window.scrollY -
+          (band ? band.getBoundingClientRect().height : 0) -
+          8;
+        window.scrollTo(0, Math.max(0, top));
+      }
+
+      steps.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          page += parseInt(btn.getAttribute("data-pager-step"), 10);
+          apply();
+          toTop();
+        });
+      });
+      picker.addEventListener("change", function () {
+        page = 0; // 25→100 keeps the rows you were looking at; anything else lands you nowhere
+        apply();
+      });
+
+      bar.hidden = false;
+      apply();
+    });
+  }
+
   // ---- provenance popover -----------------------------------------------------------------------
   // A native title="" tooltip is transient and can't be selected or copied. Instead, a click pins a
   // small card next to the cell with the provenance as real, selectable text plus a Copy button. It
@@ -104,6 +195,11 @@
   // (.metric-head) carries what the number means — on the header, not the cell, because the hint
   // describes the metric and is stored once per column instead of once per sample.
   var CELL_SEL = ".basis-cell, .mx-cell, .metric-head";
+
+  // The one handle out of the popover's closure. Turning a sample table's page can take the cell a
+  // popover is pinned beside off the page, and a card left floating beside nothing is worse than no
+  // card; `initProvPopover` assigns the real closer over this the moment it runs.
+  var closeProvenance = function () {};
 
   // Whether a cell has anything to say. Formerly `!cell.classList.contains("empty")`, which made a
   // presentation class into a behaviour switch: an empty attribute cell had to keep wearing `.empty`
@@ -122,6 +218,7 @@
       if (pop) { pop.remove(); pop = null; }
       if (openCell) { openCell.removeAttribute("aria-expanded"); openCell = null; }
     }
+    closeProvenance = close;
 
     function fallbackCopy(text) {
       var ta = document.createElement("textarea");
@@ -246,7 +343,8 @@
     initTheme();
     initTabs();
     initRowToggles();
-    initProvPopover();
+    initProvPopover(); // before the pagers: it is what gives them a popover to close
+    initSamplePagers();
   }
 
   if (document.readyState === "loading") {

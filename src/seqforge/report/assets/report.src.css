@@ -683,6 +683,13 @@
     text-decoration: underline;
     text-underline-offset: 2px;
   }
+  /* Not on this page of the table. `report.js` sets it, so — like `.tab.active` — there is no markup
+   * carrying the state and it cannot be a utility. It is deliberately not the `hidden` ATTRIBUTE:
+   * that is the files drawer's own state on the second row of every pair, and one attribute meaning
+   * two things would close a reader's open drawer every time they paged past it and back. */
+  .smp-off {
+    display: none;
+  }
 
   /* ---- the evidence matrix ----------------------------------------------------------------------
    * `mx-{status}` is the cell's tagged state, and all three render something: a number on a wash of

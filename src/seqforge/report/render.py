@@ -112,7 +112,10 @@ def render_html(report: ProjectReport) -> str:
         f"<title>seqforge report — {esc(report.workspace_name)}</title>\n"
         f"{styles}\n"
         "</head>\n<body>\n"
-        '<div class="sticky top-0 z-30 border-b border-line bg-surface/90 '
+        # `data-sticky-band` is the only way anything can ask how tall this is. The band exists as ONE
+        # element precisely so no number for its height is ever written down; a script that scrolls
+        # something to just below it therefore has to measure, and this is what it measures.
+        '<div data-sticky-band class="sticky top-0 z-30 border-b border-line bg-surface/90 '
         f'backdrop-blur-sm backdrop-saturate-150">{header}\n{tab_bar(report)}</div>\n'
         f'<main class="sf-page pt-6 pb-10">{sections}</main>\n'
         f"{footer}\n"

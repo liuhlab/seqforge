@@ -275,13 +275,17 @@ def test_the_page_frame_is_one_reading_column_under_one_sticky_band(workspace: P
     places. And the tab bar stuck at a hardcoded ``top: 56px``, a number that had to equal the
     header's *rendered* height: nothing could check it and any change to what the header holds
     falsified it. Wrapping both in one sticky element deletes the number rather than re-tuning it.
+
+    ``data-sticky-band`` is the other half of deleting that number: the samples pager scrolls the top
+    of its table to just below this element, so it has to ask how tall the band is at runtime. The
+    attribute is the handle it asks through, and it is on the band and on nothing else.
     """
     page = render_html(collect_report(workspace)).split("</style>")[-1]
 
     # the header row, the tab row, <main> and the footer — and nothing else
     assert page.count('class="sf-page') == 4
 
-    band = '<div class="sticky top-0'
+    band = '<div data-sticky-band class="sticky top-0'
     assert page.count(band) == 1, "one sticky element, not a header and a tab bar racing each other"
     inside = page[page.index(band) : page.index("<main")]
     assert "<header" in inside and "<nav>" in inside
@@ -870,14 +874,29 @@ def _rich_assay() -> AssayReport:
 _FORBIDDEN_REASON = "read 2 is 91 bp and this kit's barcode block needs a fixed 28 bp read"
 
 
-def _rich_page() -> str:
+def _rich_page(n_samples: int = 0) -> str:
+    """The whole page from that model — optionally with its first sample multiplied out to a plate.
+
+    ``n_samples`` exists for the paging test and changes nothing else: the samples are copies of the
+    one that carries every basis, so a long table is the same table with more rows in it.
+    """
     from seqforge.report.model import ProjectReport
 
+    assay = _rich_assay()
+    if n_samples:
+        first = assay.samples[0]
+        assay = assay.model_copy(
+            update={
+                "samples": [
+                    first.model_copy(update={"sample_id": f"SRS{i:06d}"}) for i in range(n_samples)
+                ]
+            }
+        )
     return render_html(
         ProjectReport(
             workspace_name="PRJNA1027859",
             report_version="0.0.0",
-            assays=[_rich_assay()],
+            assays=[assay],
         )
     )
 
@@ -951,6 +970,45 @@ def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> No
     assert 'copyBtn.textContent = "Copy"' in script
     assert 'e.key === "Escape"' in script
     assert "mouseover" not in script and "mouseenter" not in script
+
+
+def test_a_long_sample_table_pages_and_a_short_one_does_not_and_neither_loses_a_row() -> None:
+    """A plate of ninety-six samples was the whole height of the page; one page of it is a screenful.
+
+    The load-bearing half is that paging **hides and never drops**. This page is a self-contained
+    artifact — a sample table that rendered 25 of 96 rows would disagree with the manifest beside it,
+    and ``Rows: All`` would have nothing to put back. So the rendered row count is asserted against
+    the SAMPLE count and never against the page size, in both directions of the threshold.
+
+    Both ends of the render→script seam, together, for the reason the popover test above gives: the
+    markup alone cannot show that anything drives the bar, and the script alone cannot show that
+    anything emits it. Nothing in this suite runs the page's JS, so what is checked on that side is
+    the shared vocabulary — the two attributes and the one class both files have to spell the same
+    way — and a rename on either side of it is exactly the silent break this catches.
+
+    The bar ships ``hidden`` because it is a lie without the script that drives it: a page opened with
+    JS off shows every row and no controls, which is the page as it was before paging existed.
+    """
+    from seqforge.report.panels import _SAMPLE_PAGE_SIZES
+
+    per = _SAMPLE_PAGE_SIZES[0]
+    script = (_ASSETS / "report.js").read_text()
+
+    short = _pane(_rich_page(), "samples")
+    assert short.count("<tr data-smp>") == 2
+    assert "data-pager" not in short, "a table that fits on one page renders no pager"
+
+    long_table = _pane(_rich_page(per + 1), "samples")
+    assert long_table.count("<tr data-smp>") == per + 1, "a paged table still ships every row"
+    bar = re.search(r"<nav[^>]*data-pager=\"([^\"]+)\"[^>]*>", long_table)
+    assert bar is not None, "a table past one page renders no pager"
+    assert "hidden" in bar.group(0), "the bar must arrive hidden, for the script to unhide"
+    assert f'<tbody id="{bar.group(1)}">' in long_table, "the bar names rows that are not there"
+    # …and the way back to the whole table is on the page, in the count that says why it is offered.
+    assert f'<option value="0">All {per + 1}</option>' in long_table
+
+    for hook in ("[data-pager]", "[data-pager-size]", "data-smp", "smp-off"):
+        assert hook in script, f"the pager's {hook} is emitted and nothing reads it"
 
 
 def test_both_grids_scroll_in_their_own_region_with_the_row_identifier_pinned() -> None:

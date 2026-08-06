@@ -368,6 +368,25 @@ def _basis_legend() -> str:
     )
 
 
+#: The page sizes the samples table offers, smallest first — and the first one is the default, so
+#: there is one number here and not two. Twenty-five dense rows is about a screen and a half at the
+#: viewport this page is written for; a plate of ninety-six is five thousand pixels of scroll, which
+#: is the length that made the reader who wants sample 40 travel past thirty-nine.
+#:
+#: **Why a threshold over the sample count is admissible here** when ``_STRIP_MAX_SAMPLES`` was not,
+#: which is the same question :data:`_FOLD_MIN_COLUMNS` answers for its own: ``assay.samples`` is read
+#: out of the **manifest**, which is immutable and content-addressed — the count is fixed the moment
+#: the dataset compiles and cannot move afterwards. The threshold that had to go keyed off how many
+#: QC artifacts a *running pipeline* had landed, so the same page reread an hour later was a different
+#: page. A threshold over what the data IS is a design; one over how a run is going is a bug.
+#:
+#: Paging is a **view**, never a truncation: every row still ships in the HTML, the script hides the
+#: ones that are not on the current page, and ``All`` puts the table back the way it was. That is what
+#: makes it admissible at all — a page that dropped rows would be a page whose sample table disagreed
+#: with the manifest beside it.
+_SAMPLE_PAGE_SIZES = (25, 50, 100)
+
+
 def samples_pane(assay: AssayReport, index: int) -> str:
     if not assay.samples:
         return _panel("Samples", '<p class="sf-empty">no samples resolved for this assay.</p>')
@@ -387,15 +406,56 @@ def samples_pane(assay: AssayReport, index: int) -> str:
     # `w-auto min-w-full`: fill the panel when a dataset declares three attributes, and grow past it —
     # letting the region, never the page, scroll — once it declares fifteen. The minimum width that
     # forces that is stated once, on `.basis-cell`, so it cannot drift column to column.
+    body_id = f"samples-{index}"
     table = (
         '<div class="sf-scroll-x"><table class="w-auto min-w-full text-sm">'
-        f"{header}<tbody>{rows}</tbody></table></div>"
+        f'{header}<tbody id="{esc(body_id)}">{rows}</tbody></table></div>'
     )
     return _panel(
         "Samples",
-        _basis_legend() + table,
+        _basis_legend() + table + _sample_pager(body_id, assay.n_samples),
         sub=f"{assay.n_samples} sample(s). Click any value to see — and copy — what supports it; open "
         "a row (▸) for its files, their read structure, and the exact quotes.",
+    )
+
+
+def _sample_pager(body_id: str, n_samples: int) -> str:
+    """The bar under the samples table: which rows are showing, how many at a time, and prev/next.
+
+    Rendered **hidden**, and ``report.js`` is what unhides it. A control that pages a table is a lie
+    without the script that pages it, so a page opened with JS off shows every row and no bar — which
+    is the page exactly as it was before paging existed. Nothing here is a fallback; it is the same
+    contract ``.tab``/``.pane`` already have with that file.
+
+    No new component: the two steppers are the header's own ``.sf-icon-btn`` and the size picker its
+    ``.sf-select``, so the table's chrome is drawn in the vocabulary the page's chrome already uses.
+    The script finds every part by ``data-*`` and never by a class, so restyling the bar cannot
+    silently unhook it.
+    """
+    if n_samples <= _SAMPLE_PAGE_SIZES[0]:
+        return ""
+    sizes = "".join(
+        f'<option value="{n}">{n}</option>' for n in _SAMPLE_PAGE_SIZES if n < n_samples
+    )
+    return (
+        '<nav class="mt-3 flex flex-wrap items-center gap-3 text-sm text-dim" hidden '
+        f'data-pager="{esc(body_id)}" aria-label="Sample table pages">'
+        # `role="status"` and not `aria-live` alone: a reader who cannot see the table change still
+        # hears which rows are now under them.
+        '<span role="status" data-pager-status></span>'
+        '<span class="flex-1"></span>'
+        '<label class="flex items-center gap-2">Rows'
+        f'<select class="sf-select" data-pager-size>{sizes}'
+        f'<option value="0">All {n_samples}</option></select></label>'
+        '<span class="flex items-center gap-2" data-pager-nav>'
+        '<button type="button" class="sf-icon-btn disabled:cursor-default disabled:opacity-40" '
+        'data-pager-step="-1" '
+        'aria-label="Previous page of samples">‹</button>'
+        '<span class="tabular-nums" data-pager-at></span>'
+        '<button type="button" class="sf-icon-btn disabled:cursor-default disabled:opacity-40" '
+        'data-pager-step="1" '
+        'aria-label="Next page of samples">›</button>'
+        "</span></nav>"
     )
 
 
@@ -430,8 +490,12 @@ def _sample_rows(
     )
 
     cells = "".join(_attr_cell(by_key.get(k)) for k in columns)
+    # `data-smp` marks where a sample STARTS, which is all the pager needs to know: it takes the
+    # marked row plus every row after it up to the next mark, so a sample that one day renders three
+    # rows pages as one thing without the pager learning a second number.
     summary = (
-        f'<tr>{sample_cell}{cells}<td class="text-right tabular-nums">{sample.n_files}</td></tr>'
+        f"<tr data-smp>{sample_cell}{cells}"
+        f'<td class="text-right tabular-nums">{sample.n_files}</td></tr>'
     )
 
     n_cols = len(columns) + 2

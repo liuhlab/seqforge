@@ -67,6 +67,14 @@ node_modules/
 package-lock.json
 package.json
 
+# Browser-automation leavings. The Playwright MCP server writes screenshots, page snapshots and
+# console logs to `<repo>/.playwright-mcp/`, and it refuses to write outside the repo root -- so a
+# session that looks at a rendered `report.html` cannot put them in a scratch directory instead. They
+# are one session's evidence, not anyone's deliverable, and a PNG in git is a binary nobody can
+# review. The directory is listed rather than `*.png`: the same run drops `.yml` and `.log` beside
+# the images, and ignoring one extension leaves the next stray sweepable by a broad `git add`.
+/.playwright-mcp/
+
 # Agent worktrees. Claude Code puts an isolated checkout here, INSIDE the repo, so every root-level
 # tool walks into it: ruff lints another session's half-finished file and fails your gate, and
 # `ruff format .` / `--fix` rewrites their working tree from under them. Ignoring it fixes both
