@@ -989,7 +989,7 @@ def test_a_plates_whole_extraction_geometry_arrives_as_one_derived_key(
     assert param_block_key(_plate_spec()) == "umi"  # type: ignore[arg-type]
     assert config["umi"] == {"read_structure": "R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22"}
     # ...and it is owned by the ELEMENTS, not by the KB and not by the recipe. A plate recipe carries
-    # no counting key at all: the counter writes all four matrices in one pass.
+    # no counting key at all: the counter writes every matrix in one pass.
     assert param_owners(_plate_spec(), processing) == {"read_structure": "derived"}  # type: ignore[arg-type]
 
 

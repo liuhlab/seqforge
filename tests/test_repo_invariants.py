@@ -1,10 +1,12 @@
 """Repo-wide invariants — checks about the shape of the tree, not about what any function returns.
 
-Seven families live here, and none of them composes anything:
+Eight families live here, and none of them composes anything:
 
 - **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
   environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
-  ``liulab-genome`` attribute it calls really exists on the imported class. AST/attribute guards.
+  ``liulab-genome`` attribute it calls really exists on the imported class. AST/attribute guards,
+  plus a read of every pixi dependency table — the AST half was here first and watched only the
+  *source*, so a feature declaring ``star`` walked straight past it.
 - **Prose that stays true.** No comment points at a governing document by number, because a number
   is a mutable label: renumber the document and the comment lies, silently, forever.
 - **One owner for a compiled pipeline's layout.** No module outside the two that own those names
@@ -19,6 +21,9 @@ Seven families live here, and none of them composes anything:
 - **The gate reports what it ran.** The pre-PR gate's own runner is exercised as a runner: a step
   that fails has to reach a non-zero exit and a printed verdict, and an interrupted gate has to
   leave nothing of itself running.
+- **The schema describes the whole machine surface.** No exportable model emits a key that
+  ``schema export`` does not declare, because that schema is the contract (R1) and a stdout object
+  it cannot describe is one a consumer would be right to reject.
 
 The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.py``.
 """
@@ -38,6 +43,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic import BaseModel, computed_field
 
 from conftest import SrcTrees, _src_root
 from seqforge.pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME
@@ -170,6 +176,58 @@ def test_seqforge_defines_no_aligner_environments() -> None:
     assert set(get_args(RuntimeEnv)) == {"align-rna", "align-dna", "ml", "ml-gpu"}
     found = [str(p) for name in _ENV_DEFINITION_FILES for p in _src_root().rglob(name)]
     assert not found, f"seqforge is defining an aligner environment: {found}"
+
+
+@pytest.mark.repo
+def test_no_dependency_table_declares_an_aligner() -> None:
+    """...and the same rule read where it was actually broken: the project configuration.
+
+    Four shipped files say this repo declares no aligner — ``workflows/__init__.py`` ("no conda YAML,
+    no Dockerfile, and no aligner in any dependency table"), ``workflows/cram.py``, ``starsolo.smk``,
+    ``chromap.smk`` — and consumer-not-parallel-universe says it once for the whole project: an
+    alignment environment is liulab-runtime's to define and this repo's only to name. All four
+    statements were true and none was
+    enforced: the guard above reads the *source tree* for a conda YAML or a Dockerfile, and a pixi
+    feature carrying ``star = "*"`` is neither. So one was added, four comments became false, and
+    every check stayed green (#336, reverted in #338).
+
+    The cost was not only the broken rule. That table declared an aligner that **cannot be solved on
+    ``osx-arm64``** — bioconda's only Apple-silicon STAR needs a ``libdeflate`` older than this
+    project's PDF stack — so it had to be pinned to ``linux-64``, which left the maintainer's own
+    machine unable to build the environment its tests needed. A boundary violation and a broken
+    developer setup, from one line nothing was watching.
+
+    The tests that need those binaries still run, and this is what makes their absence here safe to
+    assert: liulab-runtime's ``align-rna`` environment already pins ``star``, ``samtools`` and
+    ``htslib``, and putting its ``bin`` on PATH passes the whole ``external`` set from the plain
+    ``test`` environment. Borrowing the owner's environment costs no table; owning a second copy cost
+    a platform.
+    """
+    offenders = {
+        table: sorted(hits)
+        for table, packages in _declared_packages().items()
+        if (hits := {p for p in packages if p.lower() in _RUNTIME_OWNED})
+    }
+    assert not offenders, (
+        f"a pixi dependency table declares a tool liulab-runtime owns: {offenders}.\n"
+        f"consumer-not-parallel-universe, and four shipped comments, say this repo declares no "
+        f"aligner -- it NAMES an env liulab-runtime defines. If an `external` test needs the "
+        f"binary, borrow the owner's "
+        f"environment instead: `PATH=<liulab-runtime>/.pixi/envs/align-rna/bin:$PATH pixi run -e "
+        f"test test-external`, which is what CI does."
+    )
+
+    # ...and the guard discriminates, against the exact table that was here and is not any more.
+    assert {p for p in ["star", "samtools", "htslib"] if p in _RUNTIME_OWNED} == {
+        "star",
+        "samtools",
+        "htslib",
+    }
+    # ...while leaving what this project legitimately declares alone. `snakemake-minimal` builds the
+    # DAG for compose's wiring gate and is not an alignment tool; the aligner check must not creep
+    # into forbidding it, or the wiring gate goes back to skipping green.
+    assert "snakemake-minimal" not in _RUNTIME_OWNED
+    assert "snakemake-minimal" in _declared_packages()["tool.pixi.feature.wf.dependencies"]
 
 
 #: The section sign (U+00A7), spelled as a codepoint so this file does not contain the character it
@@ -549,8 +607,54 @@ _REPO = Path(__file__).resolve().parent.parent
 
 
 def _pyproject() -> dict[str, Any]:
-    """The project configuration, parsed. Two guards here read declarations out of it."""
+    """The project configuration, parsed. Three guards here read declarations out of it."""
     return tomllib.loads((_REPO / "pyproject.toml").read_text(encoding="utf-8"))
+
+
+#: Tools ``liulab-runtime`` owns: the aligners this project's modules name, and the read/BAM
+#: toolchain that ships beside them. Not a catalogue of bioinformatics — a package here means the
+#: consumer boundary has been crossed, and every name is one a contributor plausibly reaches for while
+#: trying to make an ``external`` test run.
+_RUNTIME_OWNED = frozenset(
+    {
+        "star",
+        "chromap",
+        "bwa",
+        "bwa-mem2",
+        "bowtie2",
+        "hisat2",
+        "minimap2",
+        "salmon",
+        "kallisto",
+        "samtools",
+        "htslib",
+        "sambamba",
+        "bedtools",
+        "fastp",
+        "fastqc",
+        "multiqc",
+        "sra-tools",
+    }
+)
+
+
+def _declared_packages() -> dict[str, list[str]]:
+    """Every package name this project declares, keyed by the table that declares it.
+
+    Both the workspace tables and every feature's, conda and PyPI alike — a feature is exactly how
+    the reverted attempt smuggled an aligner in, so scanning only ``[tool.pixi.dependencies]`` would
+    police the one table nobody was going to use.
+    """
+    pixi = _pyproject()["tool"]["pixi"]
+    tables: dict[str, list[str]] = {}
+    for key in ("dependencies", "pypi-dependencies"):
+        if key in pixi:
+            tables[f"tool.pixi.{key}"] = list(pixi[key])
+    for name, feature in pixi.get("feature", {}).items():
+        for key in ("dependencies", "pypi-dependencies"):
+            if key in feature:
+                tables[f"tool.pixi.feature.{name}.{key}"] = list(feature[key])
+    return tables
 
 
 def _mypy_scope() -> tuple[list[str], list[str]]:
@@ -1083,3 +1187,52 @@ def test_the_gate_runner_stays_within_the_bash_macos_ships() -> None:
 
     # ...and the guard discriminates, on the line this was actually reported for.
     assert [line for line in ["declare -A status"] if _BASH_4_ONLY[0].search(line)]
+
+
+@pytest.mark.repo
+def test_no_exported_model_emits_a_key_its_schema_does_not_declare() -> None:
+    """``schema export`` is the schema (R1), so no stdout object may hold a key it does not describe.
+
+    ``export_schema`` calls ``model_json_schema()``, which is pydantic's **validation** schema. A
+    ``computed_field`` lands in ``model_dump`` and in the **serialization** schema only — so adopting
+    one puts a key on a machine surface the exported schema never mentions, and a consumer validating
+    seqforge's own stdout against ``schema export`` would be right to reject a document seqforge
+    wrote. Nothing raises on the way: the dump succeeds, the schema exports, both look healthy, and
+    only a validator downstream ever finds out.
+
+    The rule is not *never derive a field*. It is that a derived value is either serialised **and**
+    exported, or neither. :attr:`~seqforge.models.resolve.ComposeResult.kb_moved` takes the second
+    road deliberately — a plain ``property``, so Python callers get one spelling of the comparison
+    while the JSON surface carries the two versions it is read off, both exported and both required.
+    This is the check that stops the first road being taken by accident, since taking it is a
+    one-word decorator and its cost appears nowhere near it.
+    """
+    from seqforge.models import SCHEMA_MODELS
+
+    offenders = {
+        name: sorted(undeclared)
+        for name, model in SCHEMA_MODELS.items()
+        if (
+            undeclared := set(model.model_json_schema(mode="serialization").get("properties", {}))
+            - set(model.model_json_schema().get("properties", {}))
+        )
+    }
+    assert not offenders, (
+        f"these exportable models emit keys `schema export` does not declare: {offenders}.\n"
+        f"A `computed_field` serialises but exports only in serialization mode, so the contract and "
+        f"the object disagree with nothing raising. Make it a plain `property` (derived, not "
+        f"serialised) and let the JSON carry the fields it is computed from."
+    )
+
+    # ...and the guard discriminates, against a model shaped like the mistake it exists to catch.
+    class _Computed(BaseModel):
+        a: int
+
+        @computed_field  # type: ignore[prop-decorator]
+        @property
+        def b(self) -> int:
+            return self.a
+
+    assert set(_Computed.model_json_schema(mode="serialization")["properties"]) - set(
+        _Computed.model_json_schema()["properties"]
+    ) == {"b"}

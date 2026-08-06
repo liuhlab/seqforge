@@ -345,7 +345,7 @@ def processing_params(quant: Quantification) -> dict[str, object]:
         return {"quantMode": quant.mode}
     # AtacQuant and UmiQuant: neither has a counting knob to render, for two different reasons that
     # land in the same place. ATAC's deliverable is a fragments file, so there is nothing to count;
-    # the plate counter writes all four matrices in one pass, so there is nothing to choose. The
+    # the plate counter writes every matrix in one pass, so there is nothing to choose. The
     # empty dict keeps `param_owners`/`params_gate` correct — each of those two config blocks is
     # exactly its own keys, with no processing-owned counting key to reconcile.
     return {}

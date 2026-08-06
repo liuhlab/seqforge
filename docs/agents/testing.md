@@ -31,7 +31,7 @@ A `check-fast` step between the targeted run and the full gate was measured *slo
 was a cheap substitute for*, and checked less, so it was deleted. `test-fast` survives as a verb
 rather than a step — `-m 'not external and not repo'` is what you want on a machine with no
 `snakemake` — and `test-external` is its complement, the same marker on the other side of the `-m`,
-run in the one environment that can satisfy it.
+run with the binaries that satisfy it on `PATH`.
 
 **Step 1 is where you live.** A single file with `-k` is a second or two; a whole test file is a few.
 Nothing about a one-line change is learned by running the whole suite that a targeted run does not
@@ -43,8 +43,9 @@ job, `test` as a job of its own, all invoked directly and never through `scripts
 them again locally re-proves what CI is already proving. Read the run. CI also runs **four things the
 gate does not**: `docs-build` (`mkdocs build --strict`, a fourth step of that `lint` job),
 the `markdown` job (markdownlint on its own Node runner), the `build` job (`build` + `check-wheel`),
-and `test (external binaries)` — `test-external` in its own environment, and the job that made the
-marker below stop meaning three things at once. A green `pixi run check` is not a green CI.
+and `test (external binaries)` — `test-external` with liulab-runtime's aligner environment on
+`PATH`, and the job that made the marker below stop meaning three things at once. A green
+`pixi run check` is not a green CI.
 
 **The runner itself is tested, because it can fail in ways no step can.** `pixi run check` is a
 script that once collected no status, printed no verdict and **exited 0** on macOS's bash 3.2 — green,
@@ -103,20 +104,39 @@ is the honest state of things: the subprocess cost that used to dominate is gone
 mostly real work, and it deselects a small fraction of the suite. Both it and `test` run under
 `pytest-xdist` — see below.
 
-**`external` has an environment and a job that satisfy it end to end.** It used to mean three things
-at once, and one of them meant "runs nowhere": the STAR-gated tests — including the end-to-end proof
-that a UMI tag survives into the aligner's own output — ran on **no host this project's CI could
-reach**, for the life of the repo, and a skip is green, so nothing was ever red about it (#333).
+**`external` has a job that satisfies it end to end, and seqforge declares none of the binaries.** It
+used to mean three things at once, and one of them meant "runs nowhere": the STAR-gated tests —
+including the end-to-end proof that a UMI tag survives into the aligner's own output — ran on **no
+host this project's CI could reach**, for the life of the repo, and a skip is green, so nothing was
+ever red about it (#333).
 
 | | |
 | --- | --- |
-| the feature | `external` in `pyproject.toml`: `star`, `samtools` and `htslib` from bioconda, test-only |
-| the environment | `test-external` — `test` + `wf` + `external`, linux-64, in **no solve group**, so `test`'s own solve and download are byte-identical to what they were |
-| the verb | `pixi run -e test-external test-external`, which is `pytest -m external` under xdist |
-| the CI job | `test (external binaries)`, beside `test` rather than inside it |
+| the binaries | liulab-runtime's `align-rna` environment: `star` 2.7.11b, `samtools` 1.23.1, `htslib` 1.23.1, already pinned by the repo that owns them |
+| the environment | `test`. The same one the main job builds — the only difference between the two jobs is what is on `PATH` |
+| the verb | `PATH="<liulab-runtime>/.pixi/envs/align-rna/bin:$PATH" pixi run -e test test-external` |
+| the CI job | `test (external binaries)`, which checks out `liuhlab/liulab-runtime` and `pixi install -e align-rna` from its lock |
 
-`test-external` is the only verb that runs the aligner-gated tests, and running it in any other
-environment reports green having skipped them. That is what the `-e` in the verb is for.
+Measured (2026-08-05): the selection is 25 tests, all 25 pass, ~28s at 12 workers — with STAR 2.7.11b,
+the version the aligner test's docstring records measuring under. Nothing skips. Without those binaries
+on `PATH` the same selection skips the three STAR-gated tests on every host, and the bgzip/tabix one
+wherever htslib is absent — which is the CI runner, and is not the developer box this was first
+measured on, and that difference is the whole reason a skip was never noticed.
+
+**There was a `test-external` environment carrying `star`/`samtools`/`htslib`, and it was reverted
+(#338).** Declaring them here made this repo an owner of an alignment environment, which four shipped
+files say it is not and which the consumer rule forbids. It also could not be solved on `osx-arm64` —
+bioconda's only Apple-silicon STAR needs a `libdeflate` older than this project's PDF stack — so it
+was pinned to `linux-64`, and the maintainer's own machine could not build the environment its tests
+needed. Borrowing the owner's already-locked environment costs one checkout and no table;
+`test_no_dependency_table_declares_an_aligner` is what keeps it that way.
+
+The job **re-runs** the snakemake-gated externals the `test` job already ran; that duplication is the
+price of leaving the main job's selection alone, and it is the right way round — the job everyone
+reads should not change shape because a second job exists.
+
+The binaries are what run these tests, not the environment: `pixi run -e test test-external` on a host
+without them reports green having skipped them. That is what the `PATH` prefix is for.
 
 **The marker is applied per test, not per file**, and `external` is applied by mechanism:
 `tests/conftest.py`'s `pytest_collection_modifyitems` marks anything requesting a fixture that
@@ -140,7 +160,7 @@ pixi run test-failed                                    # --lf --new-first -x: r
 pixi run check                                          # step 2: lint + fmt-check + typecheck + the full suite
 pixi run test                                           # the suite alone, 12 workers
 pixi run test-fast                                      # the suite minus what needs a binary we do not own
-pixi run -e test-external test-external                 # ONLY that complement, in the env that carries STAR/samtools/htslib
+PATH="$LR/.pixi/envs/align-rna/bin:$PATH" pixi run -e test test-external   # ONLY that complement; $LR is a liulab-runtime checkout
 ```
 
 ## Parallelism: `-n auto --maxprocesses 12 --dist=loadgroup`

@@ -4,14 +4,17 @@ This is the fan-in: one counting job over all N per-cell BAMs, not N counting jo
 re-implements what ``umite``'s ``umicount`` decided, and deliberately not how it decided it — the
 mechanism is where the reference costs the most and is wrong in the most places.
 
-**It writes the ``.h5ad`` directly, with no TSV in between.** 1440 cells x ~55 000 genes x 5
-matrices is ~79M values each, almost all zero: roughly 790 MB of dense text to produce a sparse
-object several times smaller. Writing a sample column to join back on would also rebuild, for
-ourselves, the exact trap the reference had to warn about — its rows are labelled with the BAM's
-*basename*, suffix and all. This counter is handed each cell's sample id along with its BAM, so
-there is nothing to join and nothing to strip.
+**It writes the ``.h5ad`` directly, with no TSV in between.** A plate is thousands of cells against
+tens of thousands of genes in every matrix below, almost all of it zero — hundreds of megabytes of
+dense text to produce a sparse object several times smaller. Writing a sample column to join back on
+would also rebuild, for ourselves, the exact trap the reference had to warn about — its rows are
+labelled with the BAM's *basename*, suffix and all. This counter is handed each cell's sample id
+along with its BAM, so there is nothing to join and nothing to strip.
 
-The object is five matrices and one row per cell:
+The object is one row per cell and the matrices this table lists — which is the **only** place that
+says how many there are. A count spelled again in prose is the copy that goes stale, and one did:
+three sentences claimed four matrices for a release that shipped five, in a file a user reads. Add a
+row here and the number follows; there is nothing else to remember.
 
 | in the object | is | the reference's column |
 | --- | --- | --- |
@@ -117,7 +120,7 @@ HITS_TAG = "NH"
 HAMMING_THRESHOLD = 1
 COUNT_RATIO_THRESHOLD = 2
 
-#: What ``X`` is, and what the other four matrices are called. The reference's names for these are
+#: What ``X`` is, and what the other matrices are called. The reference's names for these are
 #: ``UE``/``UI``/``RE``/``RI``; these say the same thing to somebody who has never read it.
 #:
 #: ``umi_combined`` follows that same rule and is this repo's own word rather than either tool's:
@@ -570,7 +573,7 @@ def _combined_umis(counts: CellCounts) -> dict[int, int]:
 
 
 def deduplicate(counts: CellCounts) -> dict[str, dict[int, int]]:
-    """The five matrices' non-zero entries for one cell, as ``matrix -> gene -> value``.
+    """Every matrix's non-zero entries for one cell, as ``matrix -> gene -> value``.
 
     **Each UMI bucket is deduplicated on its own**, which is the second trap this port reproduces
     rather than re-derives: one UMI seen both exonically and intronically on the same gene counts
@@ -824,7 +827,7 @@ def read_plate_stats(path: Path, samples: Sequence[str]) -> dict[str, SampleStat
     deposit, so it is opened once and every cell's row comes out of that one read; a per-sample
     reader would open a 1440-row object 1440 times to take one row out of each.
 
-    ``backed="r"``: ``obs`` is what the report wants and the five matrices are what the file mostly
+    ``backed="r"``: ``obs`` is what the report wants and the matrices are what the file mostly
     IS, so they stay on disk. Reading the object eagerly would pull ~400M sparse entries into a
     process whose whole job is to render five columns per cell.
 

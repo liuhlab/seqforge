@@ -115,36 +115,36 @@ ucsc-twobitinfo = "*"
 
 # The DAG builder, so compose's wiring gate runs rather than skipping green. `minimal` because
 # submitting jobs is the user's. STAR and samtools belong to liulab-runtime, which the rules name;
-# no environment a user builds carries them. `external` below is the one exception, and it is a test.
+# NO table here declares one, and that has no exceptions -- see below.
 [tool.pixi.feature.wf.dependencies]
 snakemake-minimal = ">=8"
 
-# TEST-ONLY, and the only place this repository names an aligner at all.
+# NO ALIGNER IS DECLARED HERE, and the tests that need one still run. Both halves matter.
 #
-# `external` marks a test that needs a binary seqforge does not own, and it meant three different
-# things at once. `snakemake-minimal` is a dependency above, so the snakemake-gated tests always ran;
-# the bgzip/tabix ones ran only on a developer box that happened to carry htslib in /usr/bin; and the
-# STAR one — the end-to-end proof that a UMI tag put on a read survives into the aligner's own output,
-# which is the claim the uBAM route rests on — had never executed automatically on any host this
-# project's CI can reach, for the life of the repo. A test that cannot run is not a weaker test, it is
-# a claim with nothing behind it, and a skip is green.
+# `external` marks a test needing a binary seqforge does not own. Those tests are real coverage --
+# the STAR one is the end-to-end proof that a UMI tag put on a read survives into the aligner's own
+# output, which is the claim the uBAM route rests on -- and a test that cannot run is not a weaker
+# test but a claim with nothing behind it, because a skip is green.
 #
-# This does not make seqforge an owner of alignment environments, and the boundary is unmoved: the
-# shipped rules still name liulab-runtime's image, nothing here decides what a USER's alignment runs
-# in, and no environment a user builds — nor the one the main test job builds — includes this feature.
-# `test-external` is its only consumer, and its only purpose is to let a dark test execute.
+# The tempting fix was a pixi feature carrying `star`/`samtools`/`htslib`, and it was taken and
+# reverted (#338). It made this repo declare an aligner, which four shipped comments say it does not
+# (`workflows/__init__.py`, `workflows/cram.py`, `starsolo.smk`, `chromap.smk`) and which the
+# consumer-not-parallel-universe rule forbids outright: an alignment environment is liulab-runtime's
+# to define and this project's only to name. It also declared an aligner that could not be solved on
+# `osx-arm64`, where the maintainer works,
+# because bioconda's only Apple-silicon STAR needs a `libdeflate` older than this project's PDF stack.
+# Pinning the feature to `linux-64` bought a table nobody could build against a rule nobody should
+# have written.
 #
-# The cost, stated plainly: `star` is now declared in two repositories. Both spell it `star = "*"`
-# against one channel, so neither pins a version and there is nothing that can drift between them. If
-# a pin is ever needed it belongs to liulab-runtime, whose image is what actually runs a user's
-# alignment, and this table follows it rather than the other way round.
-[tool.pixi.feature.external]
-platforms = ["linux-64"]
-
-[tool.pixi.feature.external.dependencies]
-star = "*"      # the aligner the uBAM tag test runs, and the plate end-to-ends
-samtools = "*"  # those same tests read the aligner's BAM back out
-htslib = "*"    # bgzip and tabix, for the fragment-file tests that until now skipped in CI
+# What replaces it costs no table at all: liulab-runtime's `align-rna` environment already pins
+# `star` 2.7.11b, `samtools` 1.23.1 and `htslib` 1.23.1, and putting its `bin` on PATH lets the whole
+# `external` set pass from the plain `test` environment. That is what CI does (`.github/workflows/
+# ci.yml`), and it is what a developer does locally:
+#
+#     PATH="$(path to liulab-runtime)/.pixi/envs/align-rna/bin:$PATH" pixi run -e test test-external
+#
+# `test_no_dependency_table_declares_an_aligner` is what keeps this true, because the comment above
+# was already there when the feature was added and comments do not fail a build.
 
 [tool.pixi.feature.py313.dependencies]
 python = "3.13.*"
@@ -180,12 +180,9 @@ mkdocs-material = "*"
 default = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
 test    = { features = ["py313", "test", "wf"], solve-group = "default" }
 docs    = { features = ["py313", "docs"], solve-group = "default" }
-# The one environment that carries `external`, and deliberately in NO solve group. A solve group
-# resolves its members together, so joining `default`'s would let an aligner's own dependencies
-# constrain the packages the lint, test and build jobs resolve and download — three green jobs made to
-# move for a feature none of them installs. Solving alone costs a longer lock file and nothing else,
-# and it is what keeps `test` byte-identical to what it was before this environment existed.
-test-external = { features = ["py313", "test", "wf", "external"] }
+# There is no `test-external` environment. The `external` tests run from `test`, with liulab-runtime's
+# `align-rna/bin` on PATH -- an environment that had to be pinned to one platform and left the
+# maintainer's own machine unable to build it is not what "seqforge does not own aligners" looks like.
 
 [tool.pixi.tasks]
 lint      = "ruff check ."
@@ -199,8 +196,9 @@ typecheck = "mypy"
 test      = "pytest -n auto --maxprocesses 12 --dist=loadgroup"
 # Drops what needs a binary we do not own and what checks the repo — for a machine with no snakemake.
 test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 --dist=loadgroup -q"
-# The complement, and it needs `-e test-external`: anywhere else these tests skip themselves and this
-# verb reports green having run nothing.
+# The complement. It runs from `test` like everything else and needs the BINARIES on PATH, not a
+# different environment: without them these tests skip themselves and this verb reports green having
+# run nothing. `PATH="<liulab-runtime>/.pixi/envs/align-rna/bin:$PATH" pixi run -e test test-external`.
 test-external = "pytest -m external -n auto --maxprocesses 12 --dist=loadgroup"
 # Serial on purpose: `-x` is unreliable under xdist, and 12 workers to re-run three tests loses.
 test-failed = "pytest --lf --new-first -x -q"

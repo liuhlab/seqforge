@@ -4063,7 +4063,7 @@ def test_a_cell_the_counter_measured_is_reported_even_with_no_alignment_log_of_i
 
     An intersection is the tempting shape — merge the fan-in into the rows that landed — and it
     silently shortens the plate: a cell whose `Log.final.out` was lost to a preemption still has a
-    row in the object, a fragment count and a column in five matrices, and reporting it as absent
+    row in the object, a fragment count and a column in every matrix, and reporting it as absent
     would say the counter never saw it. `n_found` is how many cells one source or the other answered
     for, which is what "how much landed" means once landing can happen twice.
     """
