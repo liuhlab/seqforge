@@ -119,21 +119,44 @@ def test_a_user_set_carrying_attributes_is_refused_and_the_same_set_without_them
     assert caught.value.report.blockers == caught.value.blockers
 
 
-def test_free_text_is_refused_for_the_same_reason_attributes_are(tmp_path: Path) -> None:
-    """Prose is the other half of a record, and it is refused too — for a different reason.
+def test_prose_is_admitted_where_a_typed_fact_is_not(tmp_path: Path) -> None:
+    """The two halves of a record part company here, and the split is the whole of ADR-0047.
 
-    An attribute would be read as a declaration; free text would be *harvested*, which sounds
-    harmless until you notice the quote would grep back against a file the author wrote to be
-    grepped. Harvest's own gate is `has_prose`, so a set with free text is visible to it: the
-    exclusion has to happen here or not at all.
+    `attributes` is believed for WHERE it sits — `_positions_for` copies a typed slot straight into
+    an `asserted` position — so it arrives with no origin and stays refused. Prose is believed for
+    nothing: it becomes a document, and a claim leaves it only carrying a quote. Both halves in one
+    test because the decision is the contrast, not either clause: a reader who sees only the refusal
+    relearns ADR-0034 and misses that the remedy now has a per-sample form.
     """
     payload = _two_runs()
     payload["records"][1]["free_text"] = [{"label": "note", "text": "daf-2 replicate 3"}]
+    loaded = load_record_set(_write(tmp_path, payload))
+    assert loaded.at("run")[1].free_text[0].text == "daf-2 replicate 3"
+
+    payload["records"][1]["attributes"] = [{"name": "genotype", "value": "daf-2"}]
     with pytest.raises(RecordSetError) as caught:
         load_record_set(_write(tmp_path, payload))
 
     (blocker,) = caught.value.blockers
-    assert "free_text" in blocker.evidence
+    assert blocker.evidence == ["attributes"]
+    assert blocker.remedy
+
+
+def test_prose_without_a_label_is_refused(tmp_path: Path) -> None:
+    """`label` is optional on an archive record and required here, because nobody is upstream.
+
+    On a fetched record the archive's own field name fills it. A hand-written one has no such author,
+    and after harvest a value carries only its quote — which does not say where its document came
+    from. So a manifest reader could not tell a filename convention from a bench measurement, and
+    ADR-0047 buys its `asserted` grade partly on being able to.
+    """
+    payload = _two_runs()
+    payload["records"][1]["free_text"] = [{"text": "daf-2 replicate 3"}]
+    with pytest.raises(RecordSetError) as caught:
+        load_record_set(_write(tmp_path, payload))
+
+    (blocker,) = caught.value.blockers
+    assert "label" in blocker.evidence
     assert blocker.remedy
 
 
