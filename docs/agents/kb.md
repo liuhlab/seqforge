@@ -282,17 +282,14 @@ hand-maintained truth table.
    behind them, are in
    [`support-normalizer-asymmetry.md`](../research/support-normalizer-asymmetry.md) (2026-08-05).
 
-   **And outranking is not sufficient either, because the guard's danger is "would pick one and never
-   ask".** A read set that ORPHANS the file the incumbent seats as its barcode read does not get to
-   anchor the tie band, so the resolver raises a divergent-tie question on that pair rather than
-   deciding it — the guard reads `seats_a_file_the_fallback_dropped`, the same predicate `escalate`
-   acts on, so a proxy for a runtime behaviour cannot drift from the behaviour. Without the exemption
-   `bulk-rnaseq`'s single-end set would demand an edge to all seven of the 28 bp-barcode leaves at
-   +0.09, which is that "edge to almost the whole KB" arriving by another route. The exemption is
-   scoped to a **proper-subset** read set, so it retires nothing that predates read sets:
-   `bulk-rnaseq` → `10x-multiome-atac` orphans a barcode read from its maximal set and still derives.
-   `test_the_orphan_exemption_is_not_a_blanket_one` strips bulk's edges and pins exactly which six
-   come back flagged — an exemption nobody has watched fail may be swallowing everything.
+   **Outranking is not sufficient either**, because the guard's danger is *"would pick one and never
+   ask"*, and a read set that orphans the file the incumbent seats as its barcode read makes the
+   resolver ask. Those pairs are exempt, and the exemption reads the same predicate `escalate` acts on
+   so the two cannot drift apart:
+   [ADR-0044](../adr/0044-an-orphaned-file-is-evidence-the-fallback-cannot-see.md), which also carries
+   why the alternative — demand the edge anyway — is the "edge to almost the whole KB" arriving by
+   another route. `test_the_orphan_exemption_is_not_a_blanket_one` pins exactly which six of bulk's
+   edges come back flagged when the exemption is stripped.
 2. **Do their onlists separate them? — declared, and not derived.** Nothing computes a cross-hit rate
    between two specs' whitelists, so a `distinguishable_by` naming `onlist` is taken at its word: the
    pair-level check that runs, `test_a_confusable_pair_declares_how_it_is_decided`, asserts only that

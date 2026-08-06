@@ -143,40 +143,15 @@ enters neither the numerator nor its normalizer, which is already how a nonexist
 winning set is recorded on the `Candidate` — the resolve artifacts, where "how this was decided" lives —
 and **not** on the manifest, whose read layout already lists exactly that set's reads.
 
-**Two consequences worth carrying.** The leftover penalty is what makes a smaller set lose when it
-should: a one-role set on a two-file deposit pays `λ/1` for the mate it declined to explain, and loses
-to a barcoded incumbent whose whitelist hit by ~0.22 (measured over every single-cell leaf,
-`tests/test_kb.py`). But the penalty alone is *not* enough when the incumbent's whitelist MISSES — so
-`escalate` will not let a barcodeless top anchor the tie when its **proper-subset** read set orphaned a
-file a valid barcoded candidate seats as its **barcode role**. A deposit holding a read the winning
-chemistry cannot seat at all is not that chemistry's deposit, and that is evidence living in the other
-file, which no gate on the fallback's own read could see. The barcoded candidate then anchors the band,
-so it is inside it whatever the fallback scored, and the pair becomes a divergent tie: the resolver
-**asks** instead of deciding.
-
-That last sentence is also why the CI under-declaration guard reads the same predicate
-(`confuse.seats_a_file_the_fallback_dropped`, which is where it lives so both can). The guard's whole
-danger is *"the resolver would pick one and never ask"*, and on those pairs that is now false; a guard
-that demanded a `confusable_with` edge anyway would be requiring a declaration for a danger the
-resolver averts. Scoping the rule to a proper subset is what keeps its blast radius equal to the
-feature that introduced it — every pair that predates read sets scores, ranks and escalates
-byte-identically.
-
-**The orphan rule has a degenerate twin, and it needs its own condition.** When the deposit is ONE
-cDNA file the fallback orphans nothing — it explains the single read it was handed, and what is
-missing was never deposited at all, so no other file carries the evidence
-`seats_a_file_the_fallback_dropped` looks for. The only witness left is the **assertion**: a
-barcodeless top on a proper-subset read set, while the asserted chemistry's barcode role is unfillable
-and its cDNA role fillable, is `Blocker(MISSING_TECHNICAL_READ)` and not a question. That is the same
-condition `_no_candidate_blocker` has always refused on, reached by a second entrance — before read
-sets, one file made every spec invalid and the dataset fell into that branch; `bulk-rnaseq`'s `se` set
-made one candidate valid and the refusal degraded into a question offering `bulk-rnaseq`
-(#309, GSE208154). Two things follow. Descent must keep the asserted chemistry in the scored pool even
-when `length_feasible` drops it — its evaluation is the only thing that can answer *why* it could not
-be seated, and it used to be scored only by the accident of `pool = [...] or runnable` firing on an
-empty pool. And the rule stays scoped to a PROPER subset: a maximal-set bulk winner over an asserted
-single-cell chemistry explained every file, so it stays `_single_cell_collapse_conflict`'s open
-Conflict at exit 4, where a human is shown a disagreement rather than a dead end.
+**The leftover penalty is what makes a smaller set lose when it should**: a one-role set on a two-file
+deposit pays `λ/1` for the mate it declined to explain, and loses to a barcoded incumbent whose
+whitelist hit by ~0.22 (measured over every single-cell leaf, `tests/test_kb.py`). The penalty alone is
+*not* enough when the incumbent's whitelist MISSES, and what happens then —
+`confuse.seats_a_file_the_fallback_dropped`, read by both `escalate` and the CI sweep, so the band's
+anchor moves and the pair becomes a divergent tie the resolver **asks** about — is
+[ADR-0044](../adr/0044-an-orphaned-file-is-evidence-the-fallback-cannot-see.md), including the
+one-file deposit where nothing is orphaned and the answer is `Blocker(MISSING_TECHNICAL_READ)` rather
+than a question.
 
 **The filename prior is sub-threshold by construction.** `β · prior(r, f)` is 1 when the file's
 `_1`/`_2` token matches the role's conventional slot and 0 otherwise, with `β` far below the smallest
@@ -196,36 +171,17 @@ Building the matrix across all techs is dominated by the onlist scan.
 
 Every spec in the pool is scored, and the threaded path pre-warms every available onlist across the
 whole pool before scoring starts — nothing is evaluated first and nothing stops early. So `score`
-takes an optional span-verified hypothesis with **zero evidential effects**, and exactly three
-control-flow ones:
+takes an optional span-verified hypothesis with **zero evidential effects** and exactly three
+control-flow ones: it widens the scored pool, it breaks a processing-divergent tie through the
+escalation function, and it is the asserted side of conflict detection. It never enters the matrix,
+never un-gates a forbidden cell, and never wins a `Conflict`.
 
-1. **it keeps the asserted spec in the scored pool** when `length_feasible` descent would drop it —
-   the pool only ever widens — so the `MISSING_TECHNICAL_READ` branch has an evaluation to answer
-   *why* that chemistry could not be seated;
-2. **it breaks a processing-divergent tie**, and only there, through the escalation function;
-3. **it is the asserted side of conflict detection** — the three detectors and the
-   barcodeless-subset blocker read it, and none of them lets it decide.
-
-It never enters the matrix, never un-gates a forbidden cell, and never wins a `Conflict`.
-
-**Where one comes from: `chemistry_hypothesis`, and it is agreement-or-nothing.** A dataset's
-verified assertions reduce to at most one hypothesis, and only when every `library.chemistry` claim
-among them says the same thing — two experiments describing two protocols is a real dataset, and one
-dataset-level hypothesis would steer both, half of them wrongly. `None` is the ordinary outcome and
-costs only a hint. It lives in `engine.py` beside `Hypothesis` because it has **two** callers:
-`manifest fill` and the eval harness that measures `manifest fill`. Those two used to reduce the
-same list differently (the harness took the last document to claim one), so the benchmark could
-steer a scorer the compiler would have left unsteered — #188's "the harness fails differently from
-production". An operator's `--assert-chemistry` is the other source and outranks this one.
-
-**A record may withhold a hint, and that is its whole authority.** `chemistry_hypothesis` also reads
-the deposit's own `library_source`: a record declaring a single-cell library standing over a **bulk**
-hint makes that hint non-credible, so the hint is dropped. It may never name a chemistry, never move
-a score, and never raise anything — the worst it can do is decline to offer one, and the bytes decide
-either way. Deliberately **not** a `Conflict`: most single-cell deposits carry a bare
-`TRANSCRIPTOMIC`, so absence carries no information whatever, and reading the pair as two comparable
-claims would false-block correct datasets. An operator's `--assert-chemistry` is out of reach by
-construction — that branch builds its `Hypothesis` inline and never calls this function.
+Where one comes from is `chemistry_hypothesis` (`engine.py`), which is agreement-or-nothing across a
+dataset's verified assertions and may be *withheld* by a record whose `library_source` contradicts it —
+never raised by one. An operator's `--assert-chemistry` is the other source and outranks it. The
+argument for all of that, including why a weight in the matrix is the one thing it may not have and
+why the withholding is deliberately not a `Conflict`, is
+[ADR-0043](../adr/0043-a-hypothesis-is-not-evidence.md).
 
 **What the string NAMES is a separate question from whether it disagrees**, and `kb.match`
 answers it: `resolve_chemistry(value) -> Spec | None` matches a node when one of its curated forms is
@@ -237,15 +193,9 @@ claims. `harvest verify` rejects a chemistry draft that resolves to `None`; the 
 matcher — not the rejection — is what closes them.
 [ADR-0020](../adr/0020-a-family-term-narrows-it-does-not-conflict.md).
 
-**The determinism argument.** For a fixed observation, the validity and finite score of any candidate
-that gets computed is a pure function of the bytes. The hypothesis changes only *which* candidates are
-computed. So the same observation with the same hypothesis gives identical output, and the same
-observation with a *different* hypothesis gives an **identical winner whenever the bytes are
-decisive** — a wrong hypothesis simply fails its own gates and forces the ladder down. Only where the
-bytes are genuinely non-decisive, which means a processing-divergent pair, may it break the tie — and
-then only through the escalation function, never merged into the observed value. What the artifact
-**records** of such a tie — and which of the two ways the hypothesis reached it — is the ladder's
-rung-0 row below.
+What the artifact **records** of a tie the prose broke — and which of the two ways the hypothesis
+reached it — is the ladder's rung-0 row below
+([ADR-0040](../adr/0040-a-tie-the-prose-broke-is-recorded-as-one.md)).
 
 ## The escalation ladder
 

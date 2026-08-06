@@ -57,12 +57,12 @@ Numbers only; the table below carries the links.
 | `src/seqforge/fingerprint/` | 0001 |
 | `src/seqforge/harvest/` | 0008, 0009, 0020, 0021, 0028, 0030, 0031 |
 | `src/seqforge/io/` | 0001, 0007, 0015, 0018, 0033 |
-| `src/seqforge/kb/` | 0011, 0012, 0020, 0022, 0028, 0029, 0032, 0035 |
+| `src/seqforge/kb/` | 0011, 0012, 0020, 0022, 0028, 0029, 0032, 0035, 0044 |
 | `src/seqforge/manifest/` | 0003, 0004, 0005, 0012, 0030, 0033, 0037 |
 | `src/seqforge/models/` | 0004, 0006, 0007, 0008, 0011, 0012, 0013, 0014, 0023, 0030, 0033, 0034 |
 | `src/seqforge/probe/` | 0001 |
 | `src/seqforge/report/` | 0024, 0025, 0026 |
-| `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021, 0027, 0028, 0029, 0030, 0032, 0033, 0034, 0040 |
+| `src/seqforge/resolve/` | 0006, 0007, 0010, 0014, 0020, 0021, 0027, 0028, 0029, 0030, 0032, 0033, 0034, 0040, 0043, 0044 |
 | `src/seqforge/workflows/` | 0015, 0022, 0023, 0025, 0026, 0027, 0029, 0035, 0036 |
 | `pipeline.py`, `workspace.py`, `e2e.py` — the compiled pipeline's layout | 0005, 0024, 0032, 0037 |
 | `recordset.py` — one loader for both record-set dialects, and the draft | 0034 |
@@ -119,6 +119,8 @@ Numbers only; the table below carries the links.
 | [0039](0039-the-anti-restatement-gate-is-not-widened.md) | The anti-restatement gate stays scoped to one page, because widening it was measured and does not work | Four widenings scored the pre-cleanup tree no worse than the cleaned one; restatement is held by review, and the overlap sweep survives as a reading tool | `tests/test_docs.py`, `docs/agents/` |
 | [0041](0041-four-layers-and-none-is-published.md) | The agent-facing material is four layers, and none of them is published | Router, reference, record and measurement answer four different questions on three different lifetimes; the site is the human layer on top, and the policy is stated here rather than in five config comments | `mkdocs.yml`, `.markdownlint-cli2.yaml`, `docs/agents/`, `docs/adr/`, `docs/research/` |
 | [0042](0042-a-reference-page-declares-what-it-covers.md) | A reference page declares what it covers, and a module with no page says so | A `**Covers.**` block binds a page to the paths it describes; eleven modules with no page are declared as such with a reason, in the shape `MODULES_WITHOUT_STATS` established | `docs/agents/`, `AGENTS.md`, `tests/test_docs.py` |
+| [0043](0043-a-hypothesis-is-not-evidence.md) | A hypothesis steers which candidates are computed, and never what they score | Zero evidential effects and exactly three control-flow ones; a weight above zero destroys the property that lets a rung say whether the data decided or the paperwork did | `resolve/engine.py`, `resolve/scoring.py`, `resolve/escalate.py`, `models/resolve.py` |
+| [0044](0044-an-orphaned-file-is-evidence-the-fallback-cannot-see.md) | A read set that orphans the incumbent's barcode read does not anchor the tie band | One predicate in `confuse.py` read by both `escalate` and the CI sweep, scoped to a proper-subset read set; a one-file deposit orphans nothing and refuses instead | `resolve/confuse.py`, `resolve/escalate.py`, `kb/specs/bulk-rnaseq/` |
 
 ## 0019 was never issued
 
