@@ -4,7 +4,9 @@ Seven families live here, and none of them composes anything:
 
 - **Consumer, not parallel universe.** seqforge defines no genome machinery and no aligner
   environments of its own (those belong to ``liulab-genome`` / ``liulab-runtime``), and every
-  ``liulab-genome`` attribute it calls really exists on the imported class. AST/attribute guards.
+  ``liulab-genome`` attribute it calls really exists on the imported class. AST/attribute guards,
+  plus a read of every pixi dependency table — the AST half was here first and watched only the
+  *source*, so a feature declaring ``star`` walked straight past it.
 - **Prose that stays true.** No comment points at a governing document by number, because a number
   is a mutable label: renumber the document and the comment lies, silently, forever.
 - **One owner for a compiled pipeline's layout.** No module outside the two that own those names
@@ -170,6 +172,58 @@ def test_seqforge_defines_no_aligner_environments() -> None:
     assert set(get_args(RuntimeEnv)) == {"align-rna", "align-dna", "ml", "ml-gpu"}
     found = [str(p) for name in _ENV_DEFINITION_FILES for p in _src_root().rglob(name)]
     assert not found, f"seqforge is defining an aligner environment: {found}"
+
+
+@pytest.mark.repo
+def test_no_dependency_table_declares_an_aligner() -> None:
+    """...and the same rule read where it was actually broken: the project configuration.
+
+    Four shipped files say this repo declares no aligner — ``workflows/__init__.py`` ("no conda YAML,
+    no Dockerfile, and no aligner in any dependency table"), ``workflows/cram.py``, ``starsolo.smk``,
+    ``chromap.smk`` — and consumer-not-parallel-universe says it once for the whole project: an
+    alignment environment is liulab-runtime's to define and this repo's only to name. All four
+    statements were true and none was
+    enforced: the guard above reads the *source tree* for a conda YAML or a Dockerfile, and a pixi
+    feature carrying ``star = "*"`` is neither. So one was added, four comments became false, and
+    every check stayed green (#336, reverted in #338).
+
+    The cost was not only the broken rule. That table declared an aligner that **cannot be solved on
+    ``osx-arm64``** — bioconda's only Apple-silicon STAR needs a ``libdeflate`` older than this
+    project's PDF stack — so it had to be pinned to ``linux-64``, which left the maintainer's own
+    machine unable to build the environment its tests needed. A boundary violation and a broken
+    developer setup, from one line nothing was watching.
+
+    The tests that need those binaries still run, and this is what makes their absence here safe to
+    assert: liulab-runtime's ``align-rna`` environment already pins ``star``, ``samtools`` and
+    ``htslib``, and putting its ``bin`` on PATH passes the whole ``external`` set from the plain
+    ``test`` environment. Borrowing the owner's environment costs no table; owning a second copy cost
+    a platform.
+    """
+    offenders = {
+        table: sorted(hits)
+        for table, packages in _declared_packages().items()
+        if (hits := {p for p in packages if p.lower() in _RUNTIME_OWNED})
+    }
+    assert not offenders, (
+        f"a pixi dependency table declares a tool liulab-runtime owns: {offenders}.\n"
+        f"consumer-not-parallel-universe, and four shipped comments, say this repo declares no "
+        f"aligner -- it NAMES an env liulab-runtime defines. If an `external` test needs the "
+        f"binary, borrow the owner's "
+        f"environment instead: `PATH=<liulab-runtime>/.pixi/envs/align-rna/bin:$PATH pixi run -e "
+        f"test test-external`, which is what CI does."
+    )
+
+    # ...and the guard discriminates, against the exact table that was here and is not any more.
+    assert {p for p in ["star", "samtools", "htslib"] if p in _RUNTIME_OWNED} == {
+        "star",
+        "samtools",
+        "htslib",
+    }
+    # ...while leaving what this project legitimately declares alone. `snakemake-minimal` builds the
+    # DAG for compose's wiring gate and is not an alignment tool; the aligner check must not creep
+    # into forbidding it, or the wiring gate goes back to skipping green.
+    assert "snakemake-minimal" not in _RUNTIME_OWNED
+    assert "snakemake-minimal" in _declared_packages()["tool.pixi.feature.wf.dependencies"]
 
 
 #: The section sign (U+00A7), spelled as a codepoint so this file does not contain the character it
@@ -549,8 +603,54 @@ _REPO = Path(__file__).resolve().parent.parent
 
 
 def _pyproject() -> dict[str, Any]:
-    """The project configuration, parsed. Two guards here read declarations out of it."""
+    """The project configuration, parsed. Three guards here read declarations out of it."""
     return tomllib.loads((_REPO / "pyproject.toml").read_text(encoding="utf-8"))
+
+
+#: Tools ``liulab-runtime`` owns: the aligners this project's modules name, and the read/BAM
+#: toolchain that ships beside them. Not a catalogue of bioinformatics — a package here means the
+#: consumer boundary has been crossed, and every name is one a contributor plausibly reaches for while
+#: trying to make an ``external`` test run.
+_RUNTIME_OWNED = frozenset(
+    {
+        "star",
+        "chromap",
+        "bwa",
+        "bwa-mem2",
+        "bowtie2",
+        "hisat2",
+        "minimap2",
+        "salmon",
+        "kallisto",
+        "samtools",
+        "htslib",
+        "sambamba",
+        "bedtools",
+        "fastp",
+        "fastqc",
+        "multiqc",
+        "sra-tools",
+    }
+)
+
+
+def _declared_packages() -> dict[str, list[str]]:
+    """Every package name this project declares, keyed by the table that declares it.
+
+    Both the workspace tables and every feature's, conda and PyPI alike — a feature is exactly how
+    the reverted attempt smuggled an aligner in, so scanning only ``[tool.pixi.dependencies]`` would
+    police the one table nobody was going to use.
+    """
+    pixi = _pyproject()["tool"]["pixi"]
+    tables: dict[str, list[str]] = {}
+    for key in ("dependencies", "pypi-dependencies"):
+        if key in pixi:
+            tables[f"tool.pixi.{key}"] = list(pixi[key])
+    for name, feature in pixi.get("feature", {}).items():
+        for key in ("dependencies", "pypi-dependencies"):
+            if key in feature:
+                tables[f"tool.pixi.feature.{name}.{key}"] = list(feature[key])
+    return tables
 
 
 def _mypy_scope() -> tuple[list[str], list[str]]:

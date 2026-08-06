@@ -75,31 +75,55 @@ jobs:
       - name: pytest
         run: pixi run -e test test
 
-  # The `external` tests, in the one environment where the binaries they need exist. Until this job
-  # existed the marker meant three different things: snakemake is a dependency, so those ran in the
-  # job above; bgzip/tabix are not, so the fragments test skipped here and passed only on a developer
-  # box that happened to carry htslib; and the STAR test -- the end-to-end proof that a UMI tag put on
-  # a read survives into the aligner's own output -- ran on no host this project's CI can reach, ever.
-  # A skip is green, so nothing was ever red about a claim nothing was checking. See #333.
+  # The `external` tests -- the ones needing a binary seqforge does not own. Until this job existed
+  # the marker meant three different things: snakemake is a dependency, so those ran in the job above;
+  # bgzip/tabix are not, so the fragments test skipped here and passed only on a developer box that
+  # happened to carry htslib; and the STAR test -- the end-to-end proof that a UMI tag put on a read
+  # survives into the aligner's own output -- ran on no host this project's CI can reach, ever. A skip
+  # is green, so nothing was ever red about a claim nothing was checking. See #333.
   #
-  # This DOES re-run the snakemake-gated externals the `test` job already ran, and that duplication is
-  # deliberate: the alternative is deselecting them here or excluding them there, and either one makes
-  # the main job's selection a function of what this job happens to cover. Paying ~20s of runner time
-  # to keep `test` exactly the run it was is the better trade -- the whole point of a separate
-  # environment is that the job everyone reads does not grow a solve, a download or a new failure mode.
+  # The binaries come from LIULAB-RUNTIME, which owns them, and seqforge declares none of them: an
+  # alignment environment is the runtime's to define and this project's only to name.
+  # The first attempt at this job declared `star`/`samtools`/`htslib` in a pixi feature of our own; it
+  # falsified four shipped comments, and it could not be solved on `osx-arm64` at all, so it had to be
+  # pinned to one platform and the maintainer could not build it. Checking out the owner's repo and
+  # borrowing its already-locked `align-rna` environment costs one clone and needs no table here. See
+  # #338.
   #
-  # Its environment is linux-64 only (pyproject's `external` feature), which is what this runner is.
+  # `test` is the environment, exactly as the job above builds it -- the only difference between the
+  # two jobs is what is on PATH. So this DOES re-run the snakemake-gated externals the `test` job
+  # already ran, and that duplication is deliberate: deselecting them here or excluding them there
+  # would make the main job's selection a function of what this job happens to cover.
+  #
+  # `liulab-runtime` is public, so no token; `--filter=blob:none` because only pyproject.toml and
+  # pixi.lock are read. Pinned to `main` and not a SHA on purpose -- the point is to track what the
+  # owner actually ships, and a pin here would be this repo deciding an aligner version by the back
+  # door, which is the whole thing being undone.
   test-external:
     name: test (external binaries)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: check out liulab-runtime (the owner of the aligner environment)
+        uses: actions/checkout@v5
+        with:
+          repository: liuhlab/liulab-runtime
+          ref: main
+          path: .liulab-runtime
+          filter: blob:none
       - uses: prefix-dev/setup-pixi@v0.10.0
         with:
-          environments: test-external
+          environments: test
           locked: true
+      - name: build liulab-runtime's align-rna environment
+        run: pixi install -e align-rna --locked --manifest-path .liulab-runtime/pyproject.toml
       - name: pytest -m external
-        run: pixi run -e test-external test-external
+        # The binaries on PATH, the Python from `test`. `pixi run` prepends its own prefix and
+        # inherits the rest of PATH, so STAR/samtools/bgzip/tabix stay reachable from inside it.
+        run: |
+          export PATH="$PWD/.liulab-runtime/.pixi/envs/align-rna/bin:$PATH"
+          STAR --version && samtools --version | head -1 && bgzip --version | head -1
+          pixi run -e test test-external
 
   build:
     name: build wheel + sdist
