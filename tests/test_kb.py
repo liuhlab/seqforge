@@ -1841,6 +1841,41 @@ def test_a_read_floor_of_zero_is_a_gate_that_cannot_fire() -> None:
         Spec.model_validate({**raw, "min_input_reads": 0})
 
 
+def test_a_read_through_needs_a_sequence_and_a_read_that_could_reach_it() -> None:
+    """The mosaic end is declared ONCE per chemistry, and only where a read can reach it.
+
+    Two refusals at LOAD, because each describes a block that could not mean anything. A value
+    outside `ACGT` is not a molecule an aligner could match, so it would clip nothing while reading
+    as a decision somebody made; and a chemistry whose reads carry no genomic span has nothing to
+    read THROUGH, so the block would state a fact with no consumer — the shape `decidable_by` was
+    deleted for.
+
+    The positive case is the entry that motivated it. Tagmentation cuts at random, so a fragment
+    shorter than the read runs off the end of its own cDNA and into the mosaic end; everything
+    behind that match is non-genomic too, which is why the value is terminal rather than a span.
+    """
+    from seqforge.kb.loader import SPECS_DIR
+
+    raw = yaml.safe_load((SPECS_DIR / "smartseq3" / "spec.yaml").read_text())
+    assert Spec.model_validate(raw).read_through == "CTGTCTCTTATACACATCT"
+
+    for bad in ["ctgtctcttatacacatct", "CTGTCTCTTATACACAT?T", ""]:
+        with pytest.raises(ValidationError, match="read_through"):
+            Spec.model_validate({**raw, "read_through": bad})
+
+    # The same entry with every genomic span taken out of its reads: tag, UMI and the motif that
+    # closes the tag are all the layout has left, and none of them is a span a fragment can run past.
+    no_cdna = {
+        **raw,
+        "reads": [
+            {**r, "elements": [e for e in r["elements"] if e["type"] not in ("cdna", "gdna")]}
+            for r in raw["reads"]
+        ],
+    }
+    with pytest.raises(ValidationError, match="no read carries cdna or gdna"):
+        Spec.model_validate(no_cdna)
+
+
 def test_decidable_by_is_derived_from_the_confusables_not_typed_beside_them() -> None:
     """It was a hand-typed field on every spec, read by nothing, with a comment claiming CI computed it.
 

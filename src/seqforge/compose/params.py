@@ -83,7 +83,14 @@ declaring one would be a contract we have not established — the same "must not
 """
 
 DERIVED_PARAM_KEYS: frozenset[str] = frozenset(
-    {"soloCBposition", "soloUMIposition", "soloAdapterSequence", "read_format", "read_structure"}
+    {
+        "soloCBposition",
+        "soloUMIposition",
+        "soloAdapterSequence",
+        "read_format",
+        "read_structure",
+        "read_through",
+    }
 )
 """Params computed from the element model rather than declared by anyone.
 
@@ -114,6 +121,16 @@ the extractor needs SIX numbers and every one of them is already in the element 
 rather than six, exactly as ``read_format`` renders chromap's barcode placement — six travelling
 separately is five that arrive and one that is dropped, and five correct numbers still cut *a* span
 out of *a* read at exit 0.
+
+``read_through`` is the odd one, and deliberately: it is the only key here whose VALUE the chemistry
+states outright rather than one computed from coordinates. What is derived is everything else — that
+this pipeline can clip at all, and the arity its aligner demands. That split is the point. The
+sequence is a fact about the molecule and belongs to the entry, while how a particular aligner is
+told about it belongs to the module, so the entry says it once and every consumer works out its own
+flag (ADR-0048). Declaring it obliges the pipeline to honour it: a chemistry naming an adapter
+nothing clips is worse off than one naming none, because the adapter then sits inside STAR's
+length-relative filter and is counted against the read it is not part of. :func:`params_gate`
+refuses that pairing.
 """
 
 
@@ -147,7 +164,7 @@ def derived_params(spec: Spec) -> dict[str, str]:
     if block == "chromap":
         return _chromap_read_format(spec)
     if block == "umi":
-        return _umi_read_structure(spec)
+        return _umi_read_structure(spec) | _read_through(spec)
     if backend.params.get("soloType") != "CB_UMI_Complex":
         return {}
 
@@ -234,6 +251,23 @@ def _umi_read_structure(spec: Spec) -> dict[str, str]:
     except UmiExtractError:
         return {}
     return {"read_structure": geometry.render()}
+
+
+def _read_through(spec: Spec) -> dict[str, str]:
+    """The adapter a short fragment runs off the end of its cDNA into, for a pipeline that clips it.
+
+    Emitted only from the branch of :func:`derived_params` whose pipeline can actually perform the
+    clip, which is what makes "declared but unhonoured" visible to the gate rather than silent: the
+    key's absence from a chemistry that declares one IS the refusal. No pipeline carries a list of
+    the sections it honours — such a list is a second statement of what its own composer emits, free
+    to drift from it, and the drift would read as a chemistry being clipped when it is not.
+
+    The sequence passes through verbatim, because unlike every other derived key there is no
+    coordinate to compute it from. What keeps the clip off a read that must not have it is the ROLE
+    placement this same gate already checks: the aligner is handed the reads compose placed as cDNA,
+    and a barcode read is never among them.
+    """
+    return {"read_through": spec.read_through} if spec.read_through else {}
 
 
 def _whitelist_aliases(whitelist: object) -> list[str]:
@@ -449,6 +483,16 @@ def params_gate(
     stray = sorted(set(params) - parse_keys_for(backend.module))
     if stray:
         problems.append(f"KB declares non-parse key(s) {stray}")
+    if spec.read_through and "read_through" not in from_derived:
+        # Not "the pipeline forgot a key": the pipeline never offered to clip, and the entry said it
+        # would be clipped. Left standing, the adapter stays inside STAR's length-relative filter and
+        # is counted against a read it is no part of, so every cell loses the same fraction it lost
+        # before while the chemistry now reads as handled. A wrong number at exit 0, refused here.
+        problems.append(
+            f"KB declares read_through={spec.read_through!r}, which pipeline {backend.module!r} "
+            f"cannot clip. A declared adapter nothing removes is worse than none: it still costs "
+            f"reads to the aligner's length-relative filter, and now nothing says so"
+        )
     redeclared = sorted(set(params) & DERIVED_PARAM_KEYS)
     if redeclared:
         problems.append(

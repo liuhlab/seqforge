@@ -40,7 +40,7 @@ from conftest import (
 )
 from seqforge import kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
-from seqforge.compose.params import param_block_key, param_owners
+from seqforge.compose.params import derived_params, param_block_key, param_owners
 from seqforge.io import OnlistRegistry
 from seqforge.manifest.hash import dataset_content_hash
 from seqforge.models.dataset import DatasetManifest
@@ -994,6 +994,72 @@ def test_a_plates_whole_extraction_geometry_arrives_as_one_derived_key(
     assert param_owners(_plate_spec(), processing) == {"read_structure": "derived"}  # type: ignore[arg-type]
 
 
+def test_a_declared_read_through_becomes_the_clip_and_an_undeclared_one_becomes_nothing(
+    plate: Callable[..., tuple[DatasetManifest, ProcessingManifest]],
+    synth_bulk_pe: SynthDataset,
+) -> None:
+    """The chemistry states the adapter once; what reaches the aligner is derived from it.
+
+    The synthetic plate chemistry driving this file declares no read-through, and that is the half
+    worth asserting first: absence must render as ABSENCE. A key emitted empty would sit in the
+    config looking like a decision, and the module would hand STAR a flag matching nothing — which
+    costs reads rather than saving them, because the adapter then stays inside a length-relative
+    filter that is computed over it.
+
+    Declared, it is owned by the chemistry alone and arrives verbatim. It is NOT extraction geometry
+    and does not join `read_structure`: the geometry says where the tag ends and this says where the
+    molecule does.
+    """
+    from seqforge.kb.schema import Spec
+
+    manifest, processing = plate()
+    spec = _plate_spec()
+    assert isinstance(spec, Spec)
+    config = plan(manifest, processing, registry=synth_bulk_pe.registry).config
+    umi = config["umi"]
+    assert isinstance(umi, dict)
+
+    assert spec.read_through is None
+    assert "read_through" not in umi
+    assert params_gate(manifest, processing, spec, config) == ("pass", [])
+
+    clipped = spec.model_copy(update={"read_through": "CTGTCTCTTATACACATCT"})
+    assert derived_params(clipped)["read_through"] == "CTGTCTCTTATACACATCT"
+    assert param_owners(clipped, processing)["read_through"] == "derived"
+
+
+def test_a_chemistry_whose_pipeline_cannot_clip_is_refused_rather_than_quietly_unclipped(
+    synth_bulk_pe: SynthDataset,
+) -> None:
+    """A read-through nothing performs is worse than none, so declaring one obliges the pipeline.
+
+    The adapter does not stop costing reads because the entry mentioned it. Left undone it sits
+    inside STAR's length-relative filter and is counted against the read it is not part of, so the
+    chemistry would be recorded as clipped while every cell still loses the same fraction — a wrong
+    number reached at exit 0, which is the class this gate exists to convert into a refusal.
+
+    Derived rather than declared: no pipeline carries a list of the sections it honours. The question
+    asked is what this one's composer actually emitted for this chemistry, so a pipeline that gains
+    the ability to clip needs nothing added here, and one that loses it cannot keep the entry passing.
+
+    `map/starsolo` is the pipeline this will meet next (#355): it passes `--clipAdapterType
+    CellRanger4` unconditionally, which STAR refuses to combine with a three-prime adapter at all, so
+    its chemistries have no way to honour a read-through until that literal is resolved.
+    """
+    manifest = synth_bulk_pe.manifest
+    processing = _processing(manifest)
+    spec = kb.load_spec(manifest.library.chemistry.value[0])
+    config = plan(manifest, processing, registry=synth_bulk_pe.registry).config
+    assert params_gate(manifest, processing, spec, config) == ("pass", []), (
+        "the chemistry declaring nothing must pass"
+    )
+
+    clipped = spec.model_copy(update={"read_through": "CTGTCTCTTATACACATCT"})
+    status, problems = params_gate(manifest, processing, clipped, config)
+    assert status == "fail"
+    assert any("cannot clip" in p for p in problems), problems
+
+
 def test_the_params_gate_refuses_a_plate_wired_to_the_untagged_mate(
     plate: Callable[..., tuple[DatasetManifest, ProcessingManifest]],
     synth_bulk_pe: SynthDataset,
@@ -1190,6 +1256,18 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     maps = rendered["star_umi_map"]
     assert len(maps) == PLATE_CELL_COUNT
     assert all("--genomeLoad LoadAndKeep" in cmd for cmd in maps.values())
+    # The chemistry's read-through, all the way to argv: the entry states the mosaic end once, and
+    # every paired cell is handed it twice because STAR takes the clip per mate and refuses a run
+    # whose two clip flags disagree in arity. Read off the rendered command rather than the config,
+    # because a helper regressing to `return ""` passes every assertion that stops at the config.
+    assert all(
+        "--clip3pAdapterSeq CTGTCTCTTATACACATCT CTGTCTCTTATACACATCT --clip3pAdapterMMp 0.1 0.1"
+        in cmd
+        for cmd in maps.values()
+    )
+    # ...and never before extraction: the tag and UMI are the first bases of the tagged read, so a
+    # clip reaching the extractor would take the UMI with it.
+    assert not any("clip3p" in cmd for cmd in rendered["umi_extract"].values())
 
     # ...and the release runs on BOTH paths. A dry run fires no handler and this suite owns no
     # scheduler to kill a job on, so the two handlers are read off the module compose EMITTED —
@@ -1270,11 +1348,17 @@ def test_the_composed_plate_derives_the_offsets_the_protocol_published(
         "a plate chemistry that declares a parse key has taken ownership of a derived one"
     )
     assert param_block_key(spec) == "umi"
-    assert param_owners(spec, composed_plate.processing) == {"read_structure": "derived"}
+    assert param_owners(spec, composed_plate.processing) == {
+        "read_structure": "derived",
+        "read_through": "derived",
+    }
 
     umi = composed_plate.config["umi"]
     assert isinstance(umi, dict)
-    assert set(umi) == {"read_structure"}, "the whole extraction geometry is ONE key, or it is six"
+    assert set(umi) == {"read_structure", "read_through"}, (
+        "the whole extraction geometry is ONE key, or it is six — and the clip is not part of it: "
+        "the geometry says where the tag ends, the read-through says where the molecule does"
+    )
     geometry = TagGeometry.parse(str(umi["read_structure"]))
 
     def one_based(offset: int) -> int:
@@ -1839,6 +1923,13 @@ def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_c
     # 104 out of a container, which is a legible failure only if something says what it should have
     # been. The value is derived per dataset (ADR-0035), so this is where the derivation is paid.
     assert all("--readFilesType SAM SE" in rendered["star_umi_map"][cell] for cell in cells)
+    # The same chemistry, the other configuration, and the clip has to follow the mate count with it:
+    # the two values a paired cell takes are STAR exit 101 on this one.
+    assert all(
+        "--clip3pAdapterSeq CTGTCTCTTATACACATCT --clip3pAdapterMMp 0.1"
+        in rendered["star_umi_map"][cell]
+        for cell in cells
+    )
 
     try:
         _e2e_shell(rendered["load_genome"][""], work)

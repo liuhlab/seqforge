@@ -46,6 +46,14 @@ match mode). Decided by bytes and never instructable; what to *count* belongs to
 the two key sets are disjoint.
 _Avoid_: settings, options, aligner flags
 
+**Read-through**:
+The sequence past which a read has stopped being genomic — the adapter a fragment shorter than the
+read runs off the end of its own cDNA into. **Terminal**, so the whole tail goes, which is what makes
+it a fact about the molecule and therefore a **Spec**'s rather than a **Recipe**'s: a trim is a
+choice with alternatives, a read-through is where the fragment ended (ADR-0048). Declared once per
+chemistry, and every pipeline derives its own flag from it.
+_Avoid_: trim, adapter trimming; *clip* is what a pipeline does with one, not the thing itself
+
 **Onlist**:
 A barcode whitelist, identified by the *set* of barcodes it holds rather than by the file carrying
 them. A pipeline builds one by rule and deletes it, never storing it expanded.

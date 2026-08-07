@@ -22,6 +22,28 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.9 — `rule star_umi_map` clips the chemistry's read-through, per mate (#356). The KB states
+#: the adapter once and this module renders the flag, so `map/star-umi` becomes the first pipeline
+#: that honours a `read_through`; a chemistry declaring one whose pipeline does not is refused at
+#: compose rather than composed unclipped, because an adapter nothing removes still costs the reads
+#: it sat inside and now nothing says so.
+#: **Per MATE, and STAR counts.** Measured against 2.7.11b at parameter init: `--clip3pAdapterSeq`
+#: takes one value per mate, and `--clip3pAdapterMMp` must match its arity or the run is refused
+#: outright — so both are rendered from `mate_count`, the fact `--readFilesType` was already derived
+#: from, and `read_files_type` now reads it too rather than asking the layout a second time. This
+#: module's mate count is per SAMPLE, so a flag rendered once for the run would be fatal on every
+#: cell of the other kind; one plate legally mixes both. `--clip3pAdapterMMp 0.1` is STAR's own
+#: default restated at the arity the paired form demands, and a module literal because it varies with
+#: nothing.
+#: The clip rides the ALIGNER and never the extractor, which is what puts it after UMI extraction by
+#: construction: the tag and UMI are the first bases of the tagged read, so anything trimming that
+#: read earlier destroys the UMI. The uBAM is the edge between the two rules and the ordering is not
+#: a convention anybody has to remember. Every record it reaches is cDNA for a reason that is also
+#: not this module's: compose places the mate by ROLE and the params gate re-checks the placement.
+#: **What it buys is NOT yet measured.** That the clip collapses `unmapped: too short` is the
+#: expected signature and needs a Linux run to confirm, because STAR on macOS reads zero reads from
+#: any input (#345, and the defect is not confined to the osx-64 build). Baseline, method and the
+#: arity table above: `docs/research/smartseq3-tn5-read-through.md`.
 #: 2026.8.8 — `rule umi_count`'s docstring stops counting the matrices it writes (#338, from #333).
 #: **Prose only: no rule, no param, no output changes, and a pipeline recompiled under this version
 #: produces byte-identical config and units.** The bump is unavoidable anyway — `run_id =
@@ -214,7 +236,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.8"
+WORKFLOW_VERSION = "2026.8.9"
 
 _MODULE_DIR = Path(__file__).parent
 

@@ -90,6 +90,25 @@ reads:
 read_sets:
   se: [R1]
 
+# The Tn5 mosaic end. Tagmentation cuts at random, so any fragment shorter than the read runs off the
+# end of its own cDNA and into it -- and everything behind the match (rc(s5), rc(i5), P5) is
+# non-genomic too, which is why the value is TERMINAL and not a span to excise. That terminality is
+# what makes it chemistry rather than a recipe's trimming knob (ADR-0048).
+#
+# The cost of not declaring it is a DENOMINATOR, not a mapping failure: an unclipped library of this
+# chemistry loses about a third of its reads to STAR's length-relative filters, measured on the first
+# production plate and consistent with the published figure. Numbers, method and the STAR arity table
+# the flag has to satisfy: `docs/research/smartseq3-tn5-read-through.md` (#356). Both reference
+# pipelines clip exactly this sequence (`docs/research/smartseq3-analysis-practice.md`).
+#
+# Note this is the SAME sequence `excludes` below deliberately refuses to carry, and the two are not in
+# tension: recognizing a chemistry and processing it are separate questions. Its abundance is what
+# makes it useless for the first and necessary for the second.
+#
+# Stated once and never per read -- the entry owes the sequence and each pipeline works out its own
+# flag, so both mates are clipped here without this file saying so twice.
+read_through: "CTGTCTCTTATACACATCT"
+
 onlists: {}   # no whitelist exists: the cell barcode is the FILE (`identity.sample_is_cell`).
 
 signature:
@@ -139,7 +158,9 @@ signature:
     # Deliberately empty. In particular NOT the Tn5 mosaic end `CTGTCTCTTATACACATCT`: #230 measured it
     # in 6.5-79.5% of SS3's own R1 (read-through), so excluding it would reject the chemistry. #234
     # measured it is abundant but NON-POSITIONAL (rate@0 <= 0.75%), which is why it does not confound an
-    # anchored test.
+    # anchored test. The same sequence IS declared above, as `read_through`, and that is the whole
+    # distinction: how to recognize this chemistry and how to process it are different questions, and
+    # the abundance that disqualifies the motif from the first is what makes it necessary to the second.
 
 backend:
   module: map/star-umi              # #256 decision 3. env align-rna; it reads the `umi:` config block.

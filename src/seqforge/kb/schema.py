@@ -436,6 +436,23 @@ class Spec(_Forbid):
     #: extrapolation, so a threshold set there would be compared against an estimate and would move
     #: with ``--max-reads``. ``None`` — every shipped spec — admits everything. (#253 decisions 5, 7)
     min_input_reads: int | None = Field(default=None, gt=0)
+    #: The sequence past which a read has stopped being genomic — the adapter a fragment shorter than
+    #: the read runs off the end of its own cDNA and into. **Terminal, not a span**: everything behind
+    #: the match is adapter, index and flowcell primer too, so the whole tail goes. That is exactly
+    #: what an aligner's clip does, and it is why this is not a trimming knob — it states a fact about
+    #: the MOLECULE, which makes it chemistry and puts it here rather than in a recipe (ADR-0048).
+    #:
+    #: Stated ONCE for the chemistry and never per read. What the entry owes is the sequence; every
+    #: pipeline works out its own flag from it, which is the same division that keeps the barcode
+    #: geometry from being written twice. A read the clip must not reach is kept away from it by ROLE
+    #: placement, not by a list here: the aligner is handed the reads compose placed as cDNA, and the
+    #: params gate re-checks that placement.
+    #:
+    #: ``None`` — every other shipped spec — clips nothing, which is also every aligner's own
+    #: default. Declaring it obliges the backend's pipeline to consume it; a pipeline that cannot is
+    #: refused at compose, where what each one derives is known. Measurements, and the STAR arity
+    #: table the flag has to satisfy: ``docs/research/smartseq3-tn5-read-through.md``.
+    read_through: str | None = Field(default=None, pattern=r"^[ACGT]+$")
 
     def require_backend(self) -> Backend:
         """The runnable backend, or a clear error if this is an abstract family node.
@@ -565,6 +582,25 @@ class Spec(_Forbid):
 
         if self.backend is not None:
             self.backend.check_tokens(aliases)
+        return self
+
+    @model_validator(mode="after")
+    def _read_through_is_reachable(self) -> Spec:
+        """A declared read-through needs a read that could reach it, or it names nothing.
+
+        The block asserts that a fragment ran PAST the genomic part of its read, so a layout with no
+        genomic part cannot produce one — and the composer, which hands the sequence to an aligner
+        on the strength of this declaration, would emit a clip no read could match and record the
+        chemistry as handled when it is not. Refused at load, where every other mistake in this DSL
+        dies, rather than surviving as a config key that quietly clips nothing.
+        """
+        if self.read_through is None:
+            return self
+        if not any(el.type in ("cdna", "gdna") for r in self.reads for el in r.elements):
+            raise ValueError(
+                f"{self.identity.id!r}: read_through is declared but no read carries cdna or gdna "
+                f"for a fragment to run off the end of"
+            )
         return self
 
     @model_validator(mode="after")

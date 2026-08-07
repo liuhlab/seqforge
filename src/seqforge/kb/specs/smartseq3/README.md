@@ -52,6 +52,28 @@ Two things are deliberately absent, and both would break the entry:
   read-through, so anti-gating it would reject Smart-seq3 itself. It is also non-positional, so it
   cannot confound an anchored test.
 
+That second one is about *recognizing* the chemistry, and the same sequence answers the separate
+question of how to *process* it — see below.
+
+## The read-through, and why it is chemistry
+
+Tagmentation cuts at random, so any fragment shorter than the read runs off the end of its own cDNA
+into the Tn5 mosaic end `CTGTCTCTTATACACATCT`, and everything behind that match is adapter, index and
+flowcell primer too. The entry declares it as `read_through`, and what that costs to omit is a
+**denominator rather than a mapping failure**: STAR's `outFilterScoreMinOverLread` and
+`outFilterMatchNminOverLread` default to 0.66 *of the read length*, and a clipped base leaves that
+length while a soft-clipped one does not — so a read half of which is adapter cannot clear 66% of
+itself however cleanly its genomic half aligns. STAR places it correctly and then discards it as
+`unmapped: too short`. An unclipped library of this chemistry loses about a third of its reads that
+way, measured on the first production plate and consistent with the published figure; both reference
+pipelines clip exactly this sequence. Numbers, method, and what is still unmeasured — that clipping
+recovers those reads — are in
+[`smartseq3-tn5-read-through.md`](../../../../../docs/research/smartseq3-tn5-read-through.md).
+
+The value is stated once and never per read: the entry owes the sequence and each pipeline works out
+its own flag, so both mates are clipped without this entry saying so twice. Terminality is what makes
+it chemistry rather than a recipe's trimming knob (ADR-0048).
+
 Against the generic paired-end fallback the acceptance is one-directional: Smart-seq3 rejects bulk's
 reads outright, while bulk accepts a Smart-seq3 pair on read count and length alone. Both entries
 therefore declare the other, and the tie is broken by **metadata** — there is no whitelist on either

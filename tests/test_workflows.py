@@ -1011,7 +1011,11 @@ _PLATE_GEOMETRY = "R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22"
 
 
 def _plate_run_dir(
-    directory: Path, samples: Sequence[str], *, mate: bool | None = True
+    directory: Path,
+    samples: Sequence[str],
+    *,
+    mate: bool | None = True,
+    read_through: str | None = None,
 ) -> dict[str, object]:
     """Write a runnable plate pipeline directory by hand, and return the config it carries.
 
@@ -1030,6 +1034,10 @@ def _plate_run_dir(
     one that can pull the module's two branches apart: the layout *declares* a ``cdna`` role while
     units.tsv stages no file for it. It exists because the module used to render each branch from a
     different fact, and this directory is what told the two apart.
+
+    ``read_through`` writes the adapter compose derives for a chemistry that declares one. Absent by
+    default, because that is the shape every other assertion in this file is about and because an
+    absent key is what the module's ``.get`` exists to serve.
     """
     module = get_module("map/star-umi")
     config: dict[str, object] = {
@@ -1041,7 +1049,8 @@ def _plate_run_dir(
         if mate is not False
         else {"umi_cdna": "R1"},
         "threads": 4,
-        "umi": {"read_structure": _PLATE_GEOMETRY},
+        "umi": {"read_structure": _PLATE_GEOMETRY}
+        | ({"read_through": read_through} if read_through else {}),
         "units_tsv": "units.tsv",
     }
     rows = ["\t".join(("sample_id", "run", "lane", "read_id", "path"))]
@@ -1114,6 +1123,55 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     assert re.search(r"--units \S*units\.tsv --sample \S+", plan), plan
     assert not re.search(r"--r1\b|--r2\b", plan), plan
     assert "--readFilesType SAM PE" in plan
+
+
+def test_the_three_prime_clip_takes_its_arity_from_the_same_fact_the_read_type_does(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """Per mate, and STAR counts. A clip rendered for the run rather than for the cell is a FATAL.
+
+    Measured against STAR 2.7.11b, the pinned binary, at parameter init: `--clip3pAdapterSeq` must
+    carry one value PER MATE, and `--clip3pAdapterMMp` must match its arity or STAR refuses the run
+    outright. This module's mate count is per SAMPLE — one plate legally mixes cells sequenced both
+    ways — so two values rendered once for the whole run would FATAL on every single-end cell, and
+    one value would FATAL on every paired one. Hence the arity comes off `mate_count`, the same
+    single fact `--readFilesType` renders, rather than off a second reading of the layout.
+
+    `--clip3pAdapterMMp 0.1` is STAR's own default restated at the arity the paired form demands. It
+    varies with nothing and so is a module literal, not a chemistry's to choose.
+
+    The ordering hazard, asserted rather than assumed: the UMI lives in the first 19 bp of the tagged
+    read, so anything clipping that read before extraction destroys it. Clipping inside the ALIGNER
+    puts it after extraction by construction — the two are different rules and the uBAM is the edge
+    between them — and the one-for-one count below is what says so without reading the source.
+    """
+    seq = "CTGTCTCTTATACACATCT"
+    paired = tmp_path / "paired"
+    paired.mkdir()
+    _plate_run_dir(paired, ["cell_a", "cell_b"], read_through=seq)
+    plan = dry_run(paired)
+    assert f"--clip3pAdapterSeq {seq} {seq} --clip3pAdapterMMp 0.1 0.1" in plan, plan
+    assert "--readFilesType SAM PE" in plan
+    # One clip per aligner job and not one per cell-touching job: the extractor runs first, over the
+    # untouched read, and never sees the flag.
+    assert plan.count("--clip3pAdapterSeq") == plan.count("--readFilesType") == 2, plan
+
+    single = tmp_path / "single"
+    single.mkdir()
+    _plate_run_dir(single, ["cell_a"], mate=False, read_through=seq)
+    plan_se = dry_run(single)
+    assert f"--clip3pAdapterSeq {seq} --clip3pAdapterMMp 0.1" in plan_se, plan_se
+    assert "--readFilesType SAM SE" in plan_se
+    assert f"{seq} {seq}" not in plan_se, "two values on a single-end cell is STAR exit 101"
+
+    # ...and a chemistry that declares no adapter renders NO flag, rather than an empty one STAR
+    # would match against every read. The module reads the key with `.get`, so it is also not a key
+    # every plate is obliged to emit — a subscript here would oblige each one to name an adapter.
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    _plate_run_dir(bare, ["cell_a"])
+    assert "clip3p" not in dry_run(bare)
+    assert "umi.read_through" not in get_module("map/star-umi").required_config
 
 
 def test_the_extractors_mate_and_the_aligners_read_type_come_from_one_fact(

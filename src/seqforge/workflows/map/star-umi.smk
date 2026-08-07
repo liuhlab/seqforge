@@ -115,8 +115,8 @@ def mate_fastqs(sample):
     bulk mate, for the same reason: snakemake takes an empty list happily, while a name resolving to
     nothing still claims a mate is there.
 
-    **This is the module's single statement of whether this cell has a mate, and it is read by the
-    aligner's `--readFilesType` and by nothing else here** -- the extractor is handed units.tsv and
+    **This is the module's single statement of whether this cell has a mate, and every flag whose
+    shape depends on that reaches it through `mate_count`** -- the extractor is handed units.tsv and
     resolves its own (ADR-0036). It is per SAMPLE and not per dataset because that is the granularity
     a staged list has, and because the one state that pulls the branches apart is per sample: a
     `cdna` role declared for the layout that stages no file for THIS cell.
@@ -152,6 +152,52 @@ def mate_fastqs(sample):
     return staged
 
 
+def mate_count(sample):
+    """How many mates this cell's uBAM carries: 2 or 1.
+
+    The one number every per-mate flag below is rendered from. STAR takes several of those, each
+    fatal at the wrong arity, and they must agree with each other and with the records the extractor
+    actually wrote -- so they share a derivation rather than each asking the layout again.
+    """
+    return 2 if mate_fastqs(sample) else 1
+
+
+def read_through_clip(sample):
+    """The chemistry's read-through, as the flags STAR takes -- or NOTHING where it declares none.
+
+    A tagmented library cuts at random, so a fragment shorter than the read runs off the end of its
+    own cDNA and into the adapter -- and the cost of leaving that in place is a DENOMINATOR, not a
+    mapping failure. `outFilterScoreMinOverLread`/`outFilterMatchNminOverLread` are 0.66 OF THE READ
+    LENGTH, and a clipped base leaves that length where a soft-clipped one does not, so a read half
+    of which is adapter cannot clear 66% of itself however cleanly its genomic half aligns: STAR
+    places it and then discards it as `unmapped: too short`.
+
+    **Per MATE, and STAR counts.** Measured against 2.7.11b at parameter init: `--clip3pAdapterSeq`
+    must carry one value per mate, and `--clip3pAdapterMMp` must match its arity or the run is
+    refused outright. So the arity comes off `mate_count` -- the same fact `--readFilesType` renders
+    -- because this module's mate count is per SAMPLE, and a flag rendered once for the whole run
+    would be fatal on every cell of the other kind. Table: `docs/research/smartseq3-tn5-read-through.md`.
+
+    `--clip3pAdapterMMp 0.1` is STAR's own default, restated at the arity the paired form demands. It
+    varies with nothing and so is a module literal rather than a chemistry's to choose.
+
+    Read with `.get`, not a subscript, for the reason `mate_role` states: a subscript would oblige
+    every plate chemistry to name an adapter, and the params gate would then refuse the ones that
+    have none. Absence renders as ABSENCE -- an empty flag would match every read.
+
+    Every record it reaches is cDNA, and that is compose's doing rather than this rule's: the uBAM
+    holds the tagged read's cDNA span and the mate compose placed by the `cdna` ROLE, which the
+    params gate re-checks. Nothing is clipped before EXTRACTION either -- the tag and UMI occupy the
+    first bases of the tagged read, so anything trimming it earlier destroys the UMI, and this flag
+    rides the aligner, which reads the uBAM the extractor already wrote.
+    """
+    sequence = UMI.get("read_through")
+    if not sequence:
+        return ""
+    per_mate = lambda value: " ".join([value] * mate_count(sample))
+    return f"--clip3pAdapterSeq {per_mate(sequence)} --clip3pAdapterMMp {per_mate('0.1')}"
+
+
 def read_files_type(sample):
     """STAR's `--readFilesType`: `SAM PE` over interleaved pairs, `SAM SE` over one record a read.
 
@@ -166,7 +212,7 @@ def read_files_type(sample):
     literal. Two derivations of one fact is how a module comes to contradict itself for exactly one
     dataset shape, and the shape here is the one this module was widened to run.
     """
-    return "SAM PE" if mate_fastqs(sample) else "SAM SE"
+    return "SAM PE" if mate_count(sample) == 2 else "SAM SE"
 
 
 rule all:
@@ -366,6 +412,7 @@ rule star_umi_map:
     params:
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         read_files_type=lambda wc: read_files_type(wc.sample),
+        read_through_clip=lambda wc: read_through_clip(wc.sample),
     shell:
         # `--outSAMmultNmax 1` is a module literal for the same reason it is one in starsolo.smk: its
         # value varies with nothing. It writes only a top-scoring alignment, which is exactly the
@@ -379,6 +426,7 @@ rule star_umi_map:
              --genomeLoad LoadAndKeep \
              --readFilesIn {input.ubam} --readFilesType {params.read_files_type} \
              --readFilesCommand samtools view --readFilesSAMattrKeep All \
+             {params.read_through_clip} \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM SortedByCoordinate \
              --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
