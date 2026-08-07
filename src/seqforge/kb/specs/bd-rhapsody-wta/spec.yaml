@@ -140,6 +140,23 @@ backend:
     # soloFeatures is NOT here: it says what to COUNT (cells vs nuclei is sample prep, not chemistry),
     # and lives in the processing manifest where a user may instruct it.
 
+# THE POLY-A BD ITSELF CLIPS, and it is a stated literal rather than a generated run: a fixed 38-base
+# A-string, byte-identical across BD's pipeline 2.2.1 / 2.3 / 2.4b / 3.0. STAR's `polyA` KEYWORD is a
+# different and more aggressive clip — a run as long as the read — and is explicitly NOT what BD
+# passes. The three WTA leaves are identical on the cDNA read, so this one answer covers all three.
+#
+# It is a read-through by the terminality test and not a trimming preference (ADR-0048): a poly-dT
+# bead primes off the mRNA poly(A), so a fragment shorter than R2 runs off its own cDNA into the tail
+# it was captured by, and behind that tail is the bead oligo — UMI, cell label, adapter. Everything
+# past the match has stopped being genomic, so the whole tail goes and no recipe could rationally
+# keep it. Left in place it is not a mapping failure but a DENOMINATOR: STAR's length-relative
+# filters are computed over the read the A-run is still part of.
+#
+# Never hand-typed — a miscounted run of A's is invisible on review and wrong at exit 0. The value is
+# generated and its length is asserted (`tests/test_kb.py`). `clipAdapterType: Hamming` above is what
+# makes it renderable at all: `CellRanger4` refuses a three-prime adapter outright.
+read_through: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
 # The combinatorial CLS geometry + the two fixed linkers separate this from 10x / SPLiT-seq (different
 # linker sequences and positions). What it does NOT separate itself from is the generic paired-end
 # fallback, which forbids so little it accepts these two files at rungs 0-2 — the confusion runs in

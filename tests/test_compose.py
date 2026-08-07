@@ -168,6 +168,17 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     assert "--clipAdapterType Hamming " in planned
     assert planned.count("--clipAdapterType") == 1
     assert "--clip5pAdapterSeq" not in planned, "Hamming takes no five-prime override"
+    # ...and the clip that trimmer is here to permit. BD's own poly-A, stated once by the entry and
+    # rendered as ONE value: `--readFilesIn` hands STAR two files, but solo peels the barcode read off
+    # and only the cDNA read is a mate, so a second value — even `-`, the no-clip sentinel — is a
+    # FATAL (measured, 2.7.11b, both soloTypes). Asserted as one adjacent string with the trimmer
+    # because the module builds them together, so a regression that emptied the sequence, doubled the
+    # flag, or restored `CellRanger4` beside it passes every config-level check in this file.
+    assert f"--clipAdapterType Hamming --clip3pAdapterSeq {'A' * 38}" in planned, planned
+    assert planned.count("--clip3pAdapterSeq") == 1
+    # `--clip3pAdapterMMp` is absent on purpose: STAR's default is a single 0.1, which already matches
+    # an arity of one, so restating it would be a flag that reads as a decision and is the default.
+    assert "--clip3pAdapterMMp" not in planned
     # neither chemistry declares it, and the module reads it with `SOLO.get(...)` so its absence must
     # render as absence, not as a KeyError or an empty flag
     assert "--soloBarcodeReadLength" not in planned
@@ -511,10 +522,14 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
     # one, changes what is trimmed off R2 while every config-level check stays green.
     assert "--clipAdapterType CellRanger4" in planned
     assert planned.count("--clipAdapterType") == 1
-    # ...and the five-prime override renders as ABSENCE for a chemistry that declares none. An empty
-    # `--clip5pAdapterSeq` is a flag STAR takes and matches against every read, and the module builds
-    # the two flags as one string, so a regression to an unconditional token shows up only here.
+    # ...and BOTH clips render as ABSENCE for a chemistry that declares neither. An empty
+    # `--clip5pAdapterSeq` or `--clip3pAdapterSeq` is a flag STAR takes and matches against every
+    # read, and the module builds the three flags as one string, so a regression to an unconditional
+    # token shows up only here. This is also where the byte-identical claim is actually paid: these
+    # five chemistries' command line was not allowed to move, and every token this key added to the
+    # module has to be missing from it.
     assert "--clip5pAdapterSeq" not in planned
+    assert "clip3p" not in planned
     # ...and the one scRecounter flag we REJECTED. 87% of the multi-gene signal on the measured
     # library was the tandem rDNA array, and all four multimapper matrices are fractional, which
     # breaks pseudobulk. An absence is only a decision if something notices it being reversed.
@@ -1097,9 +1112,11 @@ def test_a_chemistry_whose_pipeline_cannot_clip_is_refused_rather_than_quietly_u
     asked is what this one's composer actually emitted for this chemistry, so a pipeline that gains
     the ability to clip needs nothing added here, and one that loses it cannot keep the entry passing.
 
-    `map/starsolo` is the pipeline this will meet next (#355): it passes `--clipAdapterType
-    CellRanger4` unconditionally, which STAR refuses to combine with a three-prime adapter at all, so
-    its chemistries have no way to honour a read-through until that literal is resolved.
+    The pipeline exercised is the BULK one, and it is the one still standing: two of the four ship a
+    clip now (`map/star-umi`, then `map/starsolo` under #355), and `map/star` derives no such key, so
+    a bulk chemistry that declared a read-through would compose unclipped and silently. That the
+    example moved while not one assertion did is the mechanism working — nothing here names a
+    pipeline, and the refusal follows whichever composer stayed silent.
     """
     manifest = synth_bulk_pe.manifest
     processing = _processing(manifest)

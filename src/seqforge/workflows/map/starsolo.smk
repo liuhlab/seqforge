@@ -125,17 +125,52 @@ def barcode_read_length():
     return f"--soloBarcodeReadLength {value}" if value is not None else ""
 
 
-def clip_adapter():
-    """--clipAdapterType, plus the 5' override for a chemistry that supplies its own TSO.
+def read_through_clip():
+    """The chemistry's read-through, as the flag STAR takes -- or NOTHING where it declares none.
 
-    ONE fragment for two flags, because STAR makes them one decision. `CellRanger4` builds two fixed
-    adapters -- the 10x three-prime TSO off the cDNA read's 5' end and poly-A off its 3' -- and a
+    **ONE value, because STARsolo aligns ONE mate.** `--readFilesIn` hands this module two files, cDNA
+    first and then the barcode read, but the barcode read is not a mate: solo peels it off and only
+    the cDNA read reaches the aligner. Measured against the pinned 2.7.11b at parameter init, under
+    BOTH soloTypes, a second value -- even `-`, STAR's per-mate no-clip sentinel -- is the hard
+    `--clip3pAdapterSeq has to contain 1 values to match the number of mates`. So this module's arity
+    is a fixed 1 where `map/star-umi`'s is its cell's mate count, and the two land on opposite answers
+    from the same rule. It is also what puts the clip out of the barcode read's reach STRUCTURALLY:
+    there is no mate to aim at it, hence no sentinel to get wrong and no way to trim a CB or a UMI.
+
+    `--clip3pAdapterMMp` is deliberately NOT restated, and that is the same measurement: STAR's own
+    default is a single 0.1, which already matches this arity, so naming it would be a flag that reads
+    as a decision and is the default. `map/star-umi` restates it because its paired form makes the
+    default's arity WRONG, never because the number was worth saying.
+
+    Read with `.get`, so absence renders as ABSENCE -- an empty flag is one STAR takes and matches
+    against every read -- and so the key stays one only the chemistry that has it emits: a subscript
+    would make `keys_read_by` (see `workflows/__init__.py`) oblige all eleven specs to name an
+    adapter, and the params gate would then refuse the ones that have none.
+
+    Every base it reaches is cDNA by compose's doing rather than this rule's: `--readFilesIn` is
+    ordered by ROLE and the params gate re-checks that placement.
+    """
+    sequence = SOLO.get("read_through")
+    return f"--clip3pAdapterSeq {sequence}" if sequence else ""
+
+
+def clip_adapter():
+    """--clipAdapterType, plus whichever clip the chemistry declares at the end that trimmer takes.
+
+    ONE fragment for up to three flags, because STAR makes them one decision. `CellRanger4` builds two
+    fixed adapters -- the 10x three-prime TSO off the cDNA read's 5' end and poly-A off its 3' -- and a
     supplied `--clip5pAdapterSeq` REPLACES the first rather than adding to it: the hardcoded value is
     a default-fill guarded by `if (in[0].adSeq[0]=="-")`, `ClipMate` holds one scalar `adSeq`, and
     there is a single `opalAlign` call site. So a chemistry whose protocol clips a DIFFERENT TSO says
     so once and gets its own sequence clipped, under the only mode where the override is legal at all.
-    Rendering them separately would also cost the three-prime 10x chemistries their byte-identical
-    command line: a second token leaves an empty continuation on every chemistry that declares none.
+    The other mode is the mirror: `Hamming` takes no five-prime sequence and is the only one that
+    accepts a three-prime one, which is why a `read_through` and an override are never both here --
+    the schema refuses the pairing at spec load, where one rule covers both directions.
+
+    Rendering them as separate tokens would cost the three-prime 10x chemistries their byte-identical
+    command line: each extra token leaves an empty continuation on every chemistry that declares none.
+    Joined, a chemistry that declares neither renders exactly `--clipAdapterType <mode>` and nothing
+    else, which is what those five reached STAR with before either key existed.
 
     The trimmer is the KB's now and not this module's (#355), by the `soloCBmatchWLtype` argument
     rather than the read-through one -- `CellRanger4` names which trimmer RUNS, not a sequence past
@@ -145,15 +180,19 @@ def clip_adapter():
     default and a no-op, which is exactly what those vendors do; this module used to hand all eleven
     chemistries `CellRanger4` and clip a 10x TSO off four reads that never carried one.
 
-    `SOLO['clipAdapterType']` is a SUBSCRIPT and the override is `.get`, and that difference is the
+    `SOLO['clipAdapterType']` is a SUBSCRIPT and both clips are `.get`, and that difference is the
     whole mechanism: the subscript makes `keys_read_by` (see `workflows/__init__.py`) mark the key
-    REQUIRED, so all eleven specs owe a value and none is defined by silence, while the override stays
-    a key only the chemistry that has one emits and the params gate polices. Absence renders as
-    ABSENCE -- an empty `--clip5pAdapterSeq` is a flag STAR would take and match against every read.
+    REQUIRED, so all eleven specs owe a value and none is defined by silence, while a clip stays a key
+    only the chemistry that has one emits and the params gate polices.
     """
-    flags = f"--clipAdapterType {SOLO['clipAdapterType']}"
+    flags = [f"--clipAdapterType {SOLO['clipAdapterType']}"]
     override = SOLO.get("clip5pAdapterSeq")
-    return f"{flags} --clip5pAdapterSeq {override}" if override else flags
+    if override:
+        flags.append(f"--clip5pAdapterSeq {override}")
+    three_prime = read_through_clip()
+    if three_prime:
+        flags.append(three_prime)
+    return " ".join(flags)
 
 
 def adapter_sequence():

@@ -165,8 +165,22 @@ def derived_params(spec: Spec) -> dict[str, str]:
         return _chromap_read_format(spec)
     if block == "umi":
         return _umi_read_structure(spec) | _read_through(spec)
-    if backend.params.get("soloType") != "CB_UMI_Complex":
+    if block != "solo":
+        # The bulk block, named rather than reached as the fall-through. It derives NOTHING — no
+        # barcode to locate and no clip, since `map/star` renders no such flag — and leaving it
+        # implicit is how the read-through below silently became a key that pipeline would be judged
+        # on: emitted here, absent from its command line, and the gate's refusal replaced by a
+        # coverage complaint naming the config.
         return {}
+    # The read-through is ORTHOGONAL to the barcode geometry below and is derived for every chemistry
+    # on this block, not only the combinatorial ones the quadruple machinery serves: it is a fact
+    # about the cDNA read, and where the barcodes sit says nothing about where the molecule ended. So
+    # it seeds the result and each return of this branch carries it, rather than being merged at the
+    # end — a chemistry whose geometry could not be derived would otherwise be reported as one whose
+    # pipeline cannot clip, which is a true sentence about the wrong defect.
+    out: dict[str, str] = _read_through(spec)
+    if backend.params.get("soloType") != "CB_UMI_Complex":
+        return out
 
     by_onlist: dict[str, Element] = {}
     umi: Element | None = None
@@ -180,12 +194,11 @@ def derived_params(spec: Spec) -> dict[str, str]:
                 umi = el
 
     aliases = _whitelist_aliases(backend.params.get("soloCBwhitelist"))
-    out: dict[str, str] = {}
 
     if bc_read is not None and any(el.anchor is not None for el in bc_read.elements):
         frame = _adapter_frame(bc_read)
         if frame is None:
-            return {}  # no linker anchor to hang the adapter on — nothing safe to derive
+            return out  # no linker anchor to hang the adapter on — nothing safe to derive
         adapter_seq, quad = frame
         out["soloAdapterSequence"] = adapter_seq
     else:
@@ -254,9 +267,9 @@ def _umi_read_structure(spec: Spec) -> dict[str, str]:
 
 
 def _read_through(spec: Spec) -> dict[str, str]:
-    """The adapter a short fragment runs off the end of its cDNA into, for a pipeline that clips it.
+    """The non-genomic tail a short fragment runs off the end of its cDNA into, where a pipeline clips it.
 
-    Emitted only from the branch of :func:`derived_params` whose pipeline can actually perform the
+    Emitted only from the branches of :func:`derived_params` whose pipeline can actually perform the
     clip, which is what makes "declared but unhonoured" visible to the gate rather than silent: the
     key's absence from a chemistry that declares one IS the refusal. No pipeline carries a list of
     the sections it honours — such a list is a second statement of what its own composer emits, free

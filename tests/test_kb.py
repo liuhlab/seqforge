@@ -1977,6 +1977,35 @@ def test_a_declared_clip_must_sit_at_an_end_its_declared_trimmer_takes(
         Spec.model_validate(candidate)
 
 
+def test_bd_rhapsody_declares_the_poly_a_run_its_own_pipeline_clips() -> None:
+    """Three entries, one sequence, and its LENGTH is the thing a reviewer cannot check by eye.
+
+    BD hands STAR a literal fixed run of A's, byte-identical across its pipeline 2.2.1 / 2.3 / 2.4b /
+    3.0, and the three WTA leaves are identical on the cDNA read — so one answer covers three specs
+    and any drift between them is this sweep's to catch. The expected value is GENERATED here for the
+    same reason it was generated into the files: a miscounted run of A's is invisible on review and
+    wrong at exit 0, since STAR would clip a shorter tail than the molecule carries and every cell
+    would keep paying the remainder inside the length-relative filter.
+
+    STAR's ``polyA`` *keyword* is a different and more aggressive clip — a run as long as the read —
+    and is explicitly not what BD passes, which is why this is a sequence and not a mode.
+
+    Collected from the loader rather than from a roster, so a fourth BD leaf is covered because it
+    exists; the sweep asserts it found entries at all, because a renamed id would otherwise empty it
+    and pass.
+    """
+    expected = "A" * 38
+    found = [t for t in kb.runnable_spec_ids() if t.startswith("bd-rhapsody")]
+    assert found, "the BD sweep matched no entry, so it proves nothing about the sequence below"
+    for tech in found:
+        declared = kb.load_spec(tech).read_through
+        assert declared == expected, (
+            f"{tech}: read_through is {declared!r}, not BD's own {len(expected)}-base poly-A. A run "
+            f"of A's one base short reads identically and clips a shorter tail than the molecule "
+            f"carries, at exit 0"
+        )
+
+
 def test_decidable_by_is_derived_from_the_confusables_not_typed_beside_them() -> None:
     """It was a hand-typed field on every spec, read by nothing, with a comment claiming CI computed it.
 

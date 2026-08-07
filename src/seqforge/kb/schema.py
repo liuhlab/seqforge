@@ -454,11 +454,12 @@ class Spec(_Forbid):
     #: extrapolation, so a threshold set there would be compared against an estimate and would move
     #: with ``--max-reads``. ``None`` — every shipped spec — admits everything. (#253 decisions 5, 7)
     min_input_reads: int | None = Field(default=None, gt=0)
-    #: The sequence past which a read has stopped being genomic — the adapter a fragment shorter than
-    #: the read runs off the end of its own cDNA and into. **Terminal, not a span**: everything behind
-    #: the match is adapter, index and flowcell primer too, so the whole tail goes. That is exactly
-    #: what an aligner's clip does, and it is why this is not a trimming knob — it states a fact about
-    #: the MOLECULE, which makes it chemistry and puts it here rather than in a recipe (ADR-0048).
+    #: The sequence past which a read has stopped being genomic — the non-genomic tail a fragment
+    #: shorter than the read runs off the end of its own cDNA into, whatever that construction puts
+    #: there (a tagmentation adapter, a capture poly-A). **Terminal, not a span**: everything behind
+    #: the match has stopped being genomic too, so the whole tail goes. That is exactly what an
+    #: aligner's clip does, and it is why this is not a trimming knob — it states a fact about the
+    #: MOLECULE, which makes it chemistry and puts it here rather than in a recipe (ADR-0048).
     #:
     #: Stated ONCE for the chemistry and never per read. What the entry owes is the sequence; every
     #: pipeline works out its own flag from it, which is the same division that keeps the barcode

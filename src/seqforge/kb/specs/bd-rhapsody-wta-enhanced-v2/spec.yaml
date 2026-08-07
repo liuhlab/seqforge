@@ -85,4 +85,8 @@ backend:
     soloStrand: Forward
     # soloAdapterSequence / soloCBposition / soloUMIposition DERIVED from the anchored elements (see -96).
 
+# BD's own fixed 38-base poly-A, identical to the v1 leaf's as the whole cDNA side is; full note in
+# `bd-rhapsody-wta`. Generated, never hand-typed: length asserted in the tests.
+read_through: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
 confusable_with: []
