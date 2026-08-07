@@ -40,10 +40,13 @@ if TYPE_CHECKING:
 #: read earlier destroys the UMI. The uBAM is the edge between the two rules and the ordering is not
 #: a convention anybody has to remember. Every record it reaches is cDNA for a reason that is also
 #: not this module's: compose places the mate by ROLE and the params gate re-checks the placement.
-#: **What it buys is NOT yet measured.** That the clip collapses `unmapped: too short` is the
-#: expected signature and needs a Linux run to confirm, because STAR on macOS reads zero reads from
-#: any input (#345, and the defect is not confined to the osx-64 build). Baseline, method and the
-#: arity table above: `docs/research/smartseq3-tn5-read-through.md`.
+#: **What it buys, measured** (#358, four published GSE207085 cells, one flag the only difference):
+#: `unmapped: too short` 54.43% -> 22.75% and uniquely mapped 42.39% -> 63.59%, with the mismatch rate
+#: flat, so the recovered alignments are not junk waved through. About seven in ten freed reads become
+#: uniquely mapped; the rest were almost entirely adapter and become stubs too short to seed, which
+#: clipping reveals rather than causes. Same run settles the one thing a dry run cannot: the clip DOES
+#: apply to SAM/BAM input read through `--readFilesCommand`, which is the only form this module uses.
+#: Full tables: `docs/research/smartseq3-tn5-read-through.md`.
 #: 2026.8.8 — `rule umi_count`'s docstring stops counting the matrices it writes (#338, from #333).
 #: **Prose only: no rule, no param, no output changes, and a pipeline recompiled under this version
 #: produces byte-identical config and units.** The bump is unavoidable anyway — `run_id =

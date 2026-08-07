@@ -65,9 +65,10 @@ flowcell primer too. The entry declares it as `read_through`, and what that cost
 length while a soft-clipped one does not — so a read half of which is adapter cannot clear 66% of
 itself however cleanly its genomic half aligns. STAR places it correctly and then discards it as
 `unmapped: too short`. An unclipped library of this chemistry loses about a third of its reads that
-way, measured on the first production plate and consistent with the published figure; both reference
-pipelines clip exactly this sequence. Numbers, method, and what is still unmeasured — that clipping
-recovers those reads — are in
+way, measured on the first production plate and reproduced independently on a published deposit;
+both reference pipelines clip exactly this sequence. Clipping it recovers most of them — a
+controlled before/after on four published cells moved uniquely mapped from 42.4% to 63.6% and `too
+short` from 54.4% to 22.8%, with the mismatch rate flat. Numbers and method:
 [`smartseq3-tn5-read-through.md`](../../../../../docs/research/smartseq3-tn5-read-through.md).
 
 The value is stated once and never per read: the entry owes the sequence and each pipeline works out

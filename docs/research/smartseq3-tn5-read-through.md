@@ -1,14 +1,17 @@
 # The Tn5 read-through: what it costs, what STAR demands of the flag, and what is still unmeasured
 
-Measured 2026-08-07 for [#356](https://github.com/liuhlab/seqforge/issues/356), decided in ADR-0048.
-Three separate things, and only the first two are settled: what an unclipped Smart-seq3 library loses
-at the aligner, what STAR requires of the flag that would fix it, and whether the fix actually
-recovers those reads — which is **not** answered here.
+Measured 2026-08-07 for [#356](https://github.com/liuhlab/seqforge/issues/356) and
+[#358](https://github.com/liuhlab/seqforge/issues/358), decided in ADR-0048. Three things: what an
+unclipped Smart-seq3 library loses at the aligner, what STAR requires of the flag that fixes it, and
+whether the fix actually recovers those reads. **All three are settled — the third by a controlled
+before/after on real reads in §3.**
 
 ## The one-sentence answer
 
 **Under 42% of a Smart-seq3 plate's reads map uniquely, the largest single category is reads
-discarded for length, and the mechanism is a denominator rather than a mapping failure.** STAR's
+discarded for length, the mechanism is a denominator rather than a mapping failure, and clipping the
+mosaic end recovers most of them** — measured at +21 points of unique mapping across four cells.
+STAR's
 `--outFilterScoreMinOverLread` and `--outFilterMatchNminOverLread` default to `0.66` *of the read
 length*; a clipped base leaves that length while a soft-clipped one does not, so a read half of which
 is adapter cannot clear 66% of itself however cleanly its genomic half aligns. STAR places it and
@@ -64,15 +67,63 @@ Two consequences the implementation rests on:
   resolved. Note STAR's own `SOLUTION:` line on that error names the wrong family ("do not use
   `--clip5pAdapter*`") — three-prime is what is forbidden.
 
-## 3. What is NOT measured here
+## 3. The clip recovers the reads — measured
 
-**That clipping recovers the reads.** The expected signature is `unmapped: too short` collapsing and
-`Uniquely mapped reads %` rising by most of the difference; if uniquely-mapped does *not* rise, the
-reads were not the clean-but-short population §1 assumes and the diagnosis is wrong. Re-run a handful
-of samples against the baseline table above and compare `Log.final.out`.
+Run 2026-08-07 on `GPU71FM` (chimera), four published Smart-seq3 cells from GSE207085 / PRJNA853582
+(mouse, 150 bp paired-end), `mm10` + `star_gencode_vM23`. **The two conditions differ in one thing:
+the presence of `--clip3pAdapterSeq CTGTCTCTTATACACATCT ... --clip3pAdapterMMp 0.1 0.1`.** Same
+uBAM, produced by seqforge's own `io umi-extract` at the geometry the entry derives; same index,
+same shared-memory load, every other flag identical to the shipped rule.
 
-It was attempted locally on 2026-08-07 and **cannot be done on macOS**: STAR reads **0 input reads**
-from any input there — FASTQ or uBAM, 30/75/150 bp, x86-64 under Rosetta *and* the native osx-arm64
+| cell | reads | uniquely mapped % | multi % | `too short` % | mismatch/base % |
+|---|---|---|---|---|---|
+| SRR19884905 | 63,647 | 46.34 → **69.52** | 3.52 → 7.86 | 49.96 → **18.87** | 0.43 → 0.41 |
+| SRR19884906 | 59,557 | 57.53 → **72.63** | 4.11 → 7.04 | 38.26 → **17.85** | 0.44 → 0.44 |
+| SRR19884907 | 44,022 | 38.56 → **65.13** | 2.28 → 6.25 | 58.97 → **22.25** | 0.48 → 0.45 |
+| SRR19884909 | 12,857 | 27.11 → **47.09** | 2.33 → 10.94 | 70.53 → **32.02** | 0.91 → 0.85 |
+| **mean** | | **42.39 → 63.59** (+21.21) | 3.06 → 8.02 | **54.43 → 22.75** (−31.68) | 0.57 → 0.54 |
+
+**The unclipped arm independently reproduces §1.** These are different worms in no sense at all —
+different lab, different species, different tissue, published rather than in-house — and left
+unclipped they land on **42.39% uniquely mapped** against the in-house plate's 42.0% median, with an
+even worse `too short` (54.43% vs 38.25%). Two independent deposits of this chemistry, the same
+pathology. That is what makes this dataset a fair stand-in for the plate rather than a separate
+question, and it rules out the reading that the in-house run was mis-prepared.
+
+**The predicted signature is what happened, in all four cells: `too short` collapses and uniquely
+mapped rises by most of the difference.** 58% of the `too short` category is eliminated, and the
+mismatch rate does not rise — so the recovered alignments are not junk being waved through.
+
+Where the freed reads go, in full, for SRR19884907 (the columns sum exactly, so nothing is
+unaccounted for):
+
+| fate | Δ points | share of the 36.72 freed |
+|---|---|---|
+| uniquely mapped | +26.57 | **72.4%** |
+| multi-mapped | +3.97 | 10.8% |
+| too many loci | +1.27 | 3.5% |
+| unmapped: other | +4.91 | 13.4% |
+
+That last row is the honest limit: `other` rises from 0.05% to 4.96% because a read that was almost
+entirely adapter becomes a stub too short to seed. **Those reads were never recoverable** — clipping
+reveals that, it does not cause it. About seven in ten freed reads become uniquely mapped.
+
+The mechanism is directly visible in the read lengths STAR reports, and it is dose-dependent:
+SRR19884907 lost 294 → 198 bp per fragment and gained +26.57 points of unique mapping, while
+SRR19884905 lost 293 → 213 bp and gained +23.18. More adapter removed, more reads recovered.
+
+This also settles the question §2 could not: **`--clip3pAdapterSeq` does apply to SAM/BAM input**
+read through `--readFilesType SAM PE` with `--readFilesCommand samtools view`, which is the only
+form `map/star-umi` uses.
+
+Not answered here: the effect on the 784-worm plate specifically. Its baseline (38.25% `too short`)
+is milder than these cells' 54.43%, so expect a smaller absolute gain. Reproduction:
+`/scratch/zhoulab/hanliu/SS3_dev/GSE207085-clip-check/` on chimera (`clip_check.sh` beside it).
+
+## 4. A macOS aside, recorded because it cost a day
+
+This was attempted locally first and **cannot be done on macOS**: STAR reads **0 input reads** from
+any input there — FASTQ or uBAM, 30/75/150 bp, x86-64 under Rosetta *and* the native osx-arm64
 build. `Log.out` reports `end of input stream, nextChar=-1` before read #1, while malformed input
 still errors correctly (`wrong read ID line format`), so the stream opens and delivers nothing. This
 widens [#345](https://github.com/liuhlab/seqforge/issues/345), which recorded the defect as
@@ -83,9 +134,3 @@ One genuinely separate macOS defect was isolated on the way: `--sysShell /bin/ba
 `Failed spawning readFilesCommand` error entirely (exit 102 → 0), and the 0-reads behaviour survives
 it. So the two are independent, and neither is worth working around in a shipped rule —
 `map/star-umi` runs on Linux.
-
-The portable reproduction (reference, reads, both indexes, `make_data.py`, `run4.sh`) should produce
-the real table unchanged on Linux;
-[`smartseq3-single-end-configuration.md`](smartseq3-single-end-configuration.md) is the precedent for
-where such a run belongs — inside `liulab-runtime_align-rna.sif` with `STAR-avx2`, with positive and
-negative controls.
