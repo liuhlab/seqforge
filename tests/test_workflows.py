@@ -1548,8 +1548,9 @@ def test_the_parse_namespace_is_per_pipeline_not_one_global_set() -> None:
     # tautological, since `parse_keys_for` IS `get_module(module).parse_keys`. The behavioural claims
     # below stay.
     assert "soloType" in parse_keys_for("map/starsolo")
-    # 12 since `soloCBmatchWLtype` moved out of starsolo.smk's `soloType` branch and into the KB.
-    assert len(parse_keys_for("map/starsolo")) == 12
+    # 14 since `clipAdapterType` and its five-prime override followed `soloCBmatchWLtype` out of
+    # starsolo.smk and into the KB — the same move for the same reason, one release later.
+    assert len(parse_keys_for("map/starsolo")) == 14
     # A bulk pipeline declares no parse params — empty, not degenerate (no barcode/UMI/whitelist).
     assert parse_keys_for("map/star") == frozenset()
     # The plate pipeline's is empty for the opposite reason: it needs six numbers and every one of

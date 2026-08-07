@@ -277,13 +277,15 @@ class Backend(_Forbid):
     """A data template mapping to a workflow module. Only ``{onlist:<alias>}`` interpolation is legal.
 
     ``params`` is the chemistry-defining MINIMUM: the keys whose value varies with the chemistry, and
-    no others. Ownership is decided by what a value varies with, never by what it is for. A
-    CellRanger-parity knob — ``soloUMIdedup 1MM_CR``, ``clipAdapterType CellRanger4``,
-    ``soloCellFilter EmptyDrops_CR`` — is for parity but varies with *nothing*, so it is a literal in
+    no others. Ownership is decided by what a value varies with, never by what it is for — and
+    "chosen for CellRanger parity" is a reason to pick a VALUE, never evidence about who owns the key.
+    That one set of knobs splits both ways. ``soloUMIdedup 1MM_CR`` and ``soloCellFilter
+    EmptyDrops_CR`` are the same string for every chemistry there will ever be, so they are literals in
     the workflow module's own shell block: not this file's, and (being unconditional) not the recipe's
-    either. ``soloCBmatchWLtype`` is the edge case that shows the rule is the right one: it was chosen
-    for parity exactly like those, and it still belongs here, because its value does move from one
-    chemistry to the next.
+    either. ``soloCBmatchWLtype`` and ``clipAdapterType`` are not — the first tracks whichever barcode
+    correction the vendor's reference pipeline ships, the second which read trimmer it runs, and a
+    five-prime kit runs none of the three-prime one's — so each is declared here, one row per
+    chemistry. Sorting them by what they are FOR files all four together and is wrong about half.
 
     Two spellings of one geometry is one spelling too many, so ``soloCBposition`` / ``soloUMIposition``
     are omitted here and derived from the element coordinates at compose time rather than hand-typed.

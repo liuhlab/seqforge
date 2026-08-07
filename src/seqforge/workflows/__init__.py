@@ -22,6 +22,27 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.10 — `rule starsolo_count` asks the chemistry which trimmer to run instead of telling it
+#: (#355). `--clipAdapterType` was a module literal, `CellRanger4` for all eleven starsolo
+#: chemistries; it is a required KB parse key now, and `--clip5pAdapterSeq` joins it as the optional
+#: five-prime override one chemistry declares.
+#: **WHICH OUTPUT MOVES.** The five three-prime 10x chemistries (`10x-3p-gex-v2`, `-v3`, `-v3.1`,
+#: `10x-gemx-3p-v4`, `10x-multiome-gex`) declare `CellRanger4` and emit a BYTE-IDENTICAL command
+#: line — verified by diffing the rendered `starsolo_count` shell block across the change, not
+#: assumed from the value. Their counts are unchanged and stay comparable to a published CellRanger
+#: matrix, which is the whole reason the value is what it is. The other six change: the two
+#: five-prime 10x entries and the three BD Rhapsody ones take `Hamming` and stop having a
+#: three-prime kit's TSO clipped off a read their own vendor pipeline never trims, and SPLiT-seq
+#: keeps the clip with its OWN 30 nt TSO in place of the 10x one it differs from at two positions.
+#: Both flags render from ONE helper rather than two tokens, because STAR makes them one decision:
+#: the override REPLACES `CellRanger4`'s hardcoded sequence instead of adding to it, and
+#: `CellRanger4` is the only mode where a five-prime override is legal at all. Fusing them is also
+#: what makes the three-prime rendering byte-identical rather than merely argv-equivalent — a second
+#: token would have left an empty continuation on every chemistry that declares no override.
+#: The trimmer belongs to the entry by the `soloCBmatchWLtype` argument and not the read-through one:
+#: `CellRanger4` names which trimmer RUNS, never a sequence past which a molecule ended (ADR-0048's
+#: test does not decide it on its own). What decides it is that the right value moves from one
+#: chemistry to the next. Sources: `docs/research/starsolo-read-preprocessing-per-family.md`.
 #: 2026.8.9 — `rule star_umi_map` clips the chemistry's read-through, per mate (#356). The KB states
 #: the adapter once and this module renders the flag, so `map/star-umi` becomes the first pipeline
 #: that honours a `read_through`; a chemistry declaring one whose pipeline does not is refused at
@@ -346,6 +367,23 @@ _STARSOLO_PARSE_KEYS: frozenset[str] = frozenset(
         # vs `1MM`). Three answers, so it moves to the artifact that has one row per chemistry. Which
         # values are legal depends on the soloType (compose's params gate enforces the pairing).
         "soloCBmatchWLtype",
+        # Which read-preprocessing STAR runs before alignment, by the SAME test and with the same
+        # history: a module literal (`CellRanger4`, always) until #355, because "chosen for CellRanger
+        # parity" was read as evidence about ownership. It is not — it is a reason to pick a value.
+        # The correct value moves between chemistries: Cell Ranger builds its two fixed adapters only
+        # for a three-prime kit and hard-disables both for a five-prime one, and BD's own command line
+        # passes no clip type at all, so four of the eleven were being handed a TSO their protocol
+        # never used. REQUIRED of all eleven rather than optional-with-a-default, deliberately:
+        # whichever group stayed silent would be defined by silence, and a new spec would join it by
+        # accident.
+        "clipAdapterType",
+        # The five-prime override, and only `CellRanger4` takes one — it REPLACES that mode's
+        # hardcoded 10x TSO rather than adding to it, which is what lets a chemistry with its own TSO
+        # keep the clip and fix the sequence. Declared by SPLiT-seq alone today. A parse key beside
+        # its trimmer rather than a top-level term, because a top-level term is what a fact TWO
+        # pipelines consume earns (`read_through`); a five-prime override is starsolo-only until a
+        # second module can honour one, and promoting it early would be a term with one reader.
+        "clip5pAdapterSeq",
     }
 )
 

@@ -646,6 +646,57 @@ def test_every_starsolo_spec_declares_a_cb_match_type_its_solotype_accepts() -> 
     )
 
 
+def test_every_starsolo_spec_declares_the_read_preprocessing_its_own_protocol_runs() -> None:
+    """``clipAdapterType`` is REQUIRED of all of them, and silence is what that forbids.
+
+    The module dereferences the key with a subscript, so a spec that omits it is a ``KeyError`` on a
+    compute node. Optional-with-a-default was rejected for a second reason this test is the guard
+    for: whichever group stayed silent would be *defined* by silence, and a new entry would join it
+    by accident — which is exactly how four chemistries came to be handed a three-prime 10x TSO.
+
+    Collected from the loader rather than from a roster of the eleven, so the twelfth is covered
+    because it exists. Both values must be exercised by a real spec: the whole point of the move is
+    that the right answer differs between chemistries, and a sweep in which every entry says
+    ``CellRanger4`` is indistinguishable from the module literal this replaced.
+
+    The pairing is asserted the way STAR enforces it — by the END a declared clip sits at. Only
+    ``CellRanger4`` builds a five-prime adapter for an override to replace, so a ``clip5pAdapterSeq``
+    beside anything else is a flag nothing reads, and the chemistry silently keeps whatever that mode
+    trims instead.
+    """
+    seen: dict[str, set[str]] = {}
+    for tech in kb.runnable_spec_ids():
+        backend = kb.load_spec(tech).require_backend()
+        if backend.module != "map/starsolo":
+            continue
+        declared = backend.params.get("clipAdapterType")
+        assert isinstance(declared, str), (
+            f"{tech}: declares no clipAdapterType. The module subscripts the key, so saying nothing "
+            f"is a KeyError after the queue wait — and a default would file this entry by silence"
+        )
+        seen.setdefault(declared, set()).add(tech)
+        override = backend.params.get("clip5pAdapterSeq")
+        assert override is None or declared == "CellRanger4", (
+            f"{tech}: declares a five-prime override under {declared!r}, which builds no five-prime "
+            f"adapter for it to replace — the sequence would be read by nothing"
+        )
+
+    assert set(seen) == {"CellRanger4", "Hamming"}, (
+        f"the sweep found {sorted(seen)}; a knowledge base in which every chemistry names the same "
+        f"trimmer is the module literal this key replaced, wearing a spec's clothes"
+    )
+    # The five three-prime 10x entries, by name and as a set, because their command line is the one
+    # thing this change was not allowed to move: they are what a published CellRanger matrix is
+    # comparable to, and a corpus of counts already exists under exactly this value.
+    assert seen["CellRanger4"] >= {
+        "10x-3p-gex-v2",
+        "10x-3p-gex-v3",
+        "10x-3p-gex-v3.1",
+        "10x-gemx-3p-v4",
+        "10x-multiome-gex",
+    }
+
+
 def test_the_kb_cannot_even_express_a_count_key() -> None:
     """Not a convention — a validator. It fires in load_spec, kb lint, and every test that loads."""
     backend = kb.load_spec("10x-3p-gex-v3").require_backend()
@@ -1802,9 +1853,13 @@ def test_a_backend_on_the_plate_module_may_declare_no_parse_key_at_all() -> None
     DERIVED into one config key rather than declared. That makes "a user instruction contradicts the
     observed bytes" inexpressible for this pipeline by construction: there is nothing to write.
 
-    The refused key below is a *valid* key of another pipeline, which is the case that matters — the
-    namespace is per pipeline, so a plausible-looking `solo*` knob copied from a neighbouring spec
-    must not quietly become this backend's.
+    The refused keys below are *valid* keys of another pipeline, which is the case that matters — the
+    namespace is per pipeline, so a plausible-looking knob copied from a neighbouring spec must not
+    quietly become this backend's. `clip5pAdapterSeq` is the one worth naming beside a `solo*` offset:
+    it states a fact about the MOLECULE rather than about STARsolo's geometry, so it is the key a
+    plate entry would most reasonably reach for, and it stays starsolo-only until a second module can
+    honour a five-prime override. The shape that DID earn a reader in two modules, `read_through`, is
+    a top-level field rather than a param for exactly that reason.
     """
     from seqforge.kb.loader import SPECS_DIR
 
@@ -1814,8 +1869,9 @@ def test_a_backend_on_the_plate_module_may_declare_no_parse_key_at_all() -> None
         "identity": {**raw["identity"], "sample_is_cell": True},
         "backend": {"module": "map/star-umi", "params": {"soloUMIlen": 8}},
     }
-    with pytest.raises(ValidationError, match=r"does not parse"):
-        Spec.model_validate(plate)
+    for params in ({"soloUMIlen": 8}, {"clip5pAdapterSeq": "AAGCAGTGGTATCAACGCAGAGTGAATGGG"}):
+        with pytest.raises(ValidationError, match=r"does not parse"):
+            Spec.model_validate({**plate, "backend": {"module": "map/star-umi", "params": params}})
 
     # Nor may it declare the derived key itself, which is the same refusal reached from the other
     # side: `read_structure` is not in this pipeline's parse namespace either, because it is not

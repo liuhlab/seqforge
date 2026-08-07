@@ -104,6 +104,17 @@ backend:
     # `1MM_multi*` mode); full note in `10x-3p-gex-v3`. Identical to 3' v2's, which keeps soloStrand
     # the whole of the difference.
     soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
+    # `Hamming` is STAR's own default and, with no adapter declared, a NO-OP — which is precisely what
+    # Cell Ranger does on a 5' kit. Trimming there is hard-disabled in its source
+    # (`trim_polya_min_score: None, trim_tso_min_score: None` under `WhichEnd::FivePrime`, identical at
+    # 9.0.1 and 10.0.0, with a TODO calling a 5' trimmer a *potential future* feature), and
+    # `SC5P-R2`/`SC5P-R2-v3` declare `rna: {read_type: R2, offset: 0, length: null}` — the cDNA read is
+    # taken whole. So `Hamming` reproduces the vendor rather than departing from it.
+    # This entry used to be handed `CellRanger4` by the module, which clipped the 3' kits' TSO and
+    # poly-A off a read whose own pipeline never touches either — a departure from parity that read as
+    # parity. NOT the 41/43 bp figure sometimes quoted as a 5' clip: that is `rna.offset` on the
+    # BARCODE read, and only for the SC5P-R1 and V(D)J configurations this KB does not model.
+    clipAdapterType: Hamming
     # soloStrand Reverse. DERIVED FROM THE KIT'S OWN OLIGOS, not recalled and not inferred from
     # community practice — strand is the value where being wrong is quietest, so it is derived here in
     # full and the derivation is reproducible from the cited pages:

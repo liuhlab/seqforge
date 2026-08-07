@@ -89,6 +89,11 @@ backend:
     # for CB_UMI_Simple only; full note in `10x-3p-gex-v3`. Identical to v3's, so this key is not one
     # of the ways v4 diverges — the whitelist is still the only one.
     soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
+    # Cell Ranger's own TSO + poly-A trimming. SC3Pv4-* declares `three_prime` with
+    # `rna: R2/offset 0/length null` exactly as SC3Pv3-* does, so GEM-X trims on the same branch and
+    # this key is not one of the ways v4 diverges — the whitelist is still the only one. Full note in
+    # `10x-3p-gex-v3`.
+    clipAdapterType: CellRanger4
     soloStrand: Forward
     soloBarcodeReadLength: 0
     # soloFeatures is NOT here, for the same reason it is absent from every other entry: it says what

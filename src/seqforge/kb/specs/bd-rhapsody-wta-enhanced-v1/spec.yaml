@@ -83,6 +83,10 @@ backend:
     # FATALs on the default alone, on a compute node after the genome has loaded. Confirmed against
     # real reads of this bead (seqforge #43); full note in `bd-rhapsody-wta`.
     soloCBmatchWLtype: 1MM
+    # `Hamming` — STAR's default, and what BD runs on by passing no clip-type flag at all. The Enhanced
+    # bead differs from the original only on the BARCODE read, so its cDNA read gets the same answer;
+    # full note in `bd-rhapsody-wta`, including why `CellRanger4` was wrong here and what it clipped.
+    clipAdapterType: Hamming
     # soloStrand Forward: the bead oligo ends in poly(dT) priming off the mRNA poly(A), so R2 is sense to
     # the transcript — a 3' poly-dT capture library like the original bead (STAR #1607 sets Forward).
     soloStrand: Forward

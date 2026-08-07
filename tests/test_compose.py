@@ -109,11 +109,13 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     `return ""` passes both the config assertion and a grep of the shipped source — only the argv
     STAR would actually receive can tell.
 
-    It also stands in for the SPLiT-seq dry run that used to exist alongside it, which is safe only
-    while bd's emitted `solo` keys are a SUPERSET of splitseq's — so that is asserted, not assumed.
-    Both take the `CB_UMI_Complex` branch, both carry three whitelists, and neither declares
-    `soloBarcodeReadLength`; the day a spec gives SPLiT-seq a derived key bd lacks, the config-level
-    sweep would stay green and the rendering axis would silently go uncovered.
+    It also stands in for the SPLiT-seq dry run for every `solo` key the two share, which is safe only
+    while the keys SPLiT-seq emits and bd does not are keys some other dry run renders — so that is
+    asserted, not assumed. Both take the `CB_UMI_Complex` branch, both carry three whitelists, and
+    neither declares `soloBarcodeReadLength`; the day a spec gives SPLiT-seq a key bd lacks and
+    nothing renders, the config-level sweep would stay green and the rendering axis would silently go
+    uncovered. That day arrived once already, with `clip5pAdapterSeq` (#355), and the answer was to
+    give SPLiT-seq back the dry run this one replaced rather than to widen the exception.
     """
     manifest, reg = _build(tmp_path, "bd-rhapsody-wta-enhanced-v1")
     processing = _processing(manifest)
@@ -136,9 +138,11 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     ss = synth_splitseq.manifest
     ss_solo = plan(ss, _processing(ss), registry=synth_splitseq.registry).config["solo"]
     assert isinstance(ss_solo, dict)
-    assert set(solo) >= set(ss_solo), (
+    assert set(ss_solo) - set(solo) == {"clip5pAdapterSeq"}, (
         "SPLiT-seq emits a solo key bd-enhanced does not, so bd's plan text no longer covers it; "
-        f"give SPLiT-seq its own dry run. Missing: {sorted(set(ss_solo) - set(solo))}"
+        "give SPLiT-seq its own dry run, as `clip5pAdapterSeq` has in "
+        "`test_splitseq_clips_its_own_tso_and_not_the_one_the_module_used_to_impose`. Uncovered: "
+        f"{sorted(set(ss_solo) - set(solo) - {'clip5pAdapterSeq'})}"
     )
 
     # ...and what STAR is actually handed. `-p` renders every shell block while planning.
@@ -155,9 +159,48 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     # two values and honouring the last.
     assert "--soloCBmatchWLtype 1MM " in planned
     assert planned.count("--soloCBmatchWLtype") == 1
+    # The trimmer BD's own command line runs on, and the half of #355 that is a REMOVAL: `Hamming` is
+    # STAR's default and a no-op with nothing declared, which is what BD does by passing no clip-type
+    # flag at all — while this module used to hand every chemistry `CellRanger4` and clip a 30 nt 10x
+    # TSO off a read BD never put one on. It is the opposite value from the 10x dry run's, in the
+    # opposite direction from the module's old literal, so the pair is what proves the flag is read
+    # per chemistry rather than defaulted.
+    assert "--clipAdapterType Hamming " in planned
+    assert planned.count("--clipAdapterType") == 1
+    assert "--clip5pAdapterSeq" not in planned, "Hamming takes no five-prime override"
     # neither chemistry declares it, and the module reads it with `SOLO.get(...)` so its absence must
     # render as absence, not as a KeyError or an empty flag
     assert "--soloBarcodeReadLength" not in planned
+
+
+def test_splitseq_clips_its_own_tso_and_not_the_one_the_module_used_to_impose(
+    tmp_path: Path, synth_splitseq: SynthDataset, dry_run: DryRun
+) -> None:
+    """The one chemistry that supplies a five-prime override, and the only place argv can show it.
+
+    SPLiT-seq's TSO differs from 10x's at two of thirty positions, so the clip the module used to
+    apply unconditionally FIRED here with the wrong sequence — a wrong number at exit 0, on a 66 bp
+    cDNA read where a 30 nt TSO is ~45% of the molecule. The fix is not to stop clipping: it is to
+    hand STAR this chemistry's own sequence, which `--clip5pAdapterSeq` does by REPLACING
+    `CellRanger4`'s hardcoded default rather than adding to it. So the mode stays `CellRanger4` — the
+    only one where the override is legal at all — and the sequence changes.
+
+    A dry run, and it costs a spawn for the reason `soloAdapterSequence` costs one next door: the
+    module builds both flags in a single helper, so a regression that dropped the override, emptied
+    it, or left the 10x default in place beside it passes the config assertions and a grep of the
+    shipped source alike. Only what STAR is actually handed can tell them apart, which is also why
+    the two flags are asserted as ONE adjacent string rather than as two independent substrings.
+    """
+    manifest, reg = synth_splitseq.manifest, synth_splitseq.registry
+    processing = _processing(manifest)
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    planned = dry_run(
+        (tmp_path / result.config_path).parent, plan(manifest, processing, registry=reg)
+    )
+    assert (
+        "--clipAdapterType CellRanger4 --clip5pAdapterSeq AAGCAGTGGTATCAACGCAGAGTGAATGGG" in planned
+    ), planned
+    assert planned.count("--clip5pAdapterSeq") == 1
 
 
 def test_the_composer_records_the_run_each_unit_came_from(built_v3: Built) -> None:
@@ -453,13 +496,25 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
     # into the command. Without them we emit STARsolo-default counts, which are not comparable to
     # published CellRanger matrices; the whole point of the corpus is that they are.
     for flag in (
-        "--clipAdapterType CellRanger4",
         "--outFilterScoreMin 30",
         "--soloUMIfiltering MultiGeneUMI_CR",
         "--soloUMIdedup 1MM_CR",
         "--soloCellFilter EmptyDrops_CR",
     ):
         assert flag in planned, f"{flag} does not reach STAR"
+
+    # The fifth member of that set left it (#355) and this is where it is checked instead, because
+    # its acceptance criterion is exactly a rendering one: a three-prime 10x chemistry must reach STAR
+    # with the command line it reached before the value became the entry's, or every 10x matrix this
+    # corpus already holds stops being comparable to the ones it produces next. The trimmer now comes
+    # from `solo.clipAdapterType`, so a spec that dropped the key, or a module that started defaulting
+    # one, changes what is trimmed off R2 while every config-level check stays green.
+    assert "--clipAdapterType CellRanger4" in planned
+    assert planned.count("--clipAdapterType") == 1
+    # ...and the five-prime override renders as ABSENCE for a chemistry that declares none. An empty
+    # `--clip5pAdapterSeq` is a flag STAR takes and matches against every read, and the module builds
+    # the two flags as one string, so a regression to an unconditional token shows up only here.
+    assert "--clip5pAdapterSeq" not in planned
     # ...and the one scRecounter flag we REJECTED. 87% of the multi-gene signal on the measured
     # library was the tandem rDNA array, and all four multimapper matrices are fractional, which
     # breaks pseudobulk. An absence is only a decision if something notices it being reversed.

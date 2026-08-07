@@ -125,6 +125,37 @@ def barcode_read_length():
     return f"--soloBarcodeReadLength {value}" if value is not None else ""
 
 
+def clip_adapter():
+    """--clipAdapterType, plus the 5' override for a chemistry that supplies its own TSO.
+
+    ONE fragment for two flags, because STAR makes them one decision. `CellRanger4` builds two fixed
+    adapters -- the 10x three-prime TSO off the cDNA read's 5' end and poly-A off its 3' -- and a
+    supplied `--clip5pAdapterSeq` REPLACES the first rather than adding to it: the hardcoded value is
+    a default-fill guarded by `if (in[0].adSeq[0]=="-")`, `ClipMate` holds one scalar `adSeq`, and
+    there is a single `opalAlign` call site. So a chemistry whose protocol clips a DIFFERENT TSO says
+    so once and gets its own sequence clipped, under the only mode where the override is legal at all.
+    Rendering them separately would also cost the three-prime 10x chemistries their byte-identical
+    command line: a second token leaves an empty continuation on every chemistry that declares none.
+
+    The trimmer is the KB's now and not this module's (#355), by the `soloCBmatchWLtype` argument
+    rather than the read-through one -- `CellRanger4` names which trimmer RUNS, not a sequence past
+    which a molecule ended. What decides it is that its correct value MOVES: Cell Ranger builds those
+    two adapters under one predicate, the kit's endedness, so a five-prime kit runs no trimmer at all,
+    and BD's own command line passes no clip type either. `Hamming` with nothing declared is STAR's
+    default and a no-op, which is exactly what those vendors do; this module used to hand all eleven
+    chemistries `CellRanger4` and clip a 10x TSO off four reads that never carried one.
+
+    `SOLO['clipAdapterType']` is a SUBSCRIPT and the override is `.get`, and that difference is the
+    whole mechanism: the subscript makes `keys_read_by` (see `workflows/__init__.py`) mark the key
+    REQUIRED, so all eleven specs owe a value and none is defined by silence, while the override stays
+    a key only the chemistry that has one emits and the params gate polices. Absence renders as
+    ABSENCE -- an empty `--clip5pAdapterSeq` is a flag STAR would take and match against every read.
+    """
+    flags = f"--clipAdapterType {SOLO['clipAdapterType']}"
+    override = SOLO.get("clip5pAdapterSeq")
+    return f"{flags} --clip5pAdapterSeq {override}" if override else flags
+
+
 def adapter_sequence():
     """--soloAdapterSequence, and ONLY when the chemistry declares it (an ANCHORED bead).
 
@@ -307,6 +338,7 @@ rule starsolo_count:
         geometry=cb_umi_geometry(),
         barcode_read_length=barcode_read_length(),
         adapter=adapter_sequence(),
+        clip=clip_adapter(),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         # cDNA mate first, then barcode mate (order asserted by the params gate); each mate is its
         # runs and lanes comma-joined, so a pooled sample maps in one STAR pass. See readfilesin().
@@ -318,25 +350,27 @@ rule starsolo_count:
         # {params.barcode_read_length} is `--soloBarcodeReadLength 0` for 10x (over-length R1) and empty
         # for a chemistry that does not declare it -- an empty token is a valid line continuation.
         #
-        # EXACTLY FIVE OF THE LITERALS BELOW ARE THE CELLRANGER-PARITY SET (#198) -- `--clipAdapterType
-        # CellRanger4`, `--outFilterScoreMin 30`, `--soloUMIfiltering MultiGeneUMI_CR`,
-        # `--soloUMIdedup 1MM_CR` and `--soloCellFilter EmptyDrops_CR`, and no others. They are the
-        # documented "CellRanger >=4 equivalent" set (Kaminow, Yunusov & Dobin 2021); without them we
-        # emit STARsolo-DEFAULT counts, which are not comparable to published CellRanger matrices -- a
-        # real problem for a corpus whose point is comparability. The SAM/BAM write-path literals at
-        # the bottom of the block (`--outSAMtype`, `--limitBAMsortRAM`, `--outSAMattributes`,
-        # `--outSAMmultNmax`) are hardcoded for the same OWNERSHIP reason and are NOT part of that
-        # set: they shape the alignment we retain, not the counts, and naming them as CellRanger
-        # parity would be a claim nobody measured.
+        # FOUR OF THE LITERALS BELOW ARE THE CELLRANGER-PARITY SET (#198) -- `--outFilterScoreMin 30`,
+        # `--soloUMIfiltering MultiGeneUMI_CR`, `--soloUMIdedup 1MM_CR` and `--soloCellFilter
+        # EmptyDrops_CR`, and no others. They are the documented "CellRanger >=4 equivalent" set
+        # (Kaminow, Yunusov & Dobin 2021); without them we emit STARsolo-DEFAULT counts, which are not
+        # comparable to published CellRanger matrices -- a real problem for a corpus whose point is
+        # comparability. The SAM/BAM write-path literals at the bottom of the block (`--outSAMtype`,
+        # `--limitBAMsortRAM`, `--outSAMattributes`, `--outSAMmultNmax`) are hardcoded for the same
+        # OWNERSHIP reason and are NOT part of that set: they shape the alignment we retain, not the
+        # counts, and naming them as CellRanger parity would be a claim nobody measured.
         #
-        # The shared reason is ADR-0011's: none of these varies by chemistry, so none belongs to the
-        # KB, and a literal is the only rendering that says so -- the params gate requires the emitted
-        # key set to be EXACTLY union(KB keys, processing keys), and `required_config` is COMPUTED
-        # from this source, so a `params.solo[clipAdapterType]` subscript would silently oblige all 11
-        # starsolo specs to declare a value that is the same in all 11. `--outSAMtype` has always been
-        # hardcoded here for the same reason. Verified against the STAR 2.7.11b binary that every one
-        # is accepted for CB_UMI_Simple AND CB_UMI_Complex -- this is the class of change that passes
-        # a 10x-only suite and breaks the four Complex specs.
+        # The shared reason is ADR-0011's, and it is about what a value VARIES WITH rather than what
+        # it is for: none of these differs between two chemistries, so none belongs to the KB, and a
+        # literal is the only rendering that says so -- the params gate requires the emitted key set
+        # to be EXACTLY union(KB keys, processing keys), and `required_config` is COMPUTED from this
+        # source, so a `params.solo[...]` subscript OBLIGES all 11 starsolo specs to declare the key.
+        # `--clipAdapterType` was in this set until #355 and is exactly why the test has to be
+        # "varies with what" and not "chosen for what": it was picked for parity like the four above,
+        # and its right value still moves from one chemistry to the next, so it is a subscript now and
+        # the specs carry it. Verified against the STAR 2.7.11b binary that every literal here is
+        # accepted for CB_UMI_Simple AND CB_UMI_Complex -- this is the class of change that passes a
+        # 10x-only suite and breaks the four Complex specs.
         #
         # `--outSAMmultNmax 1` is the newest of the write-path literals (#205), and it earns its own
         # paragraph because it is the only one that changes WHICH RECORDS come out rather than what
@@ -388,7 +422,7 @@ rule starsolo_count:
              --soloCBmatchWLtype {params.solo[soloCBmatchWLtype]} \
              --soloStrand {params.solo[soloStrand]} \
              --soloFeatures {params.solo[soloFeatures]} \
-             --clipAdapterType CellRanger4 \
+             {params.clip} \
              --outFilterScoreMin 30 \
              --soloUMIfiltering MultiGeneUMI_CR \
              --soloUMIdedup 1MM_CR \

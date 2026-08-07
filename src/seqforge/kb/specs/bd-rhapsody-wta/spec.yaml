@@ -113,6 +113,16 @@ backend:
     # takes `EditDist_2`, its own pipeline's value. A yes/no branch on soloType yields two answers
     # where three are already needed, and the third one has nowhere to be said.
     soloCBmatchWLtype: 1MM
+    # `Hamming` is STAR's own default, and BD's WTA path passes no clip-type flag at all — there is
+    # not one `clip*Type` in its whole CWL — so this reproduces BD's command line rather than
+    # departing from it. It is also the mode that CAN take a three-prime adapter, which BD's own
+    # poly-A is; `CellRanger4` cannot, and refuses the pairing before the genome loads.
+    # `CellRanger4` is what the module handed all eleven chemistries until the key moved to the KB,
+    # and on this read it clipped a 30 nt 10x TSO off a molecule that never carried one. The three
+    # "R2 adapters" in BD's own docs are real BD sequences but sit on the 5'-capture / TCR-BCR oligo —
+    # the bead table lists the WTA handle as `None` for both WTA beads — so nothing on this path is a
+    # 5' adapter either. All three BD leaves are identical on the cDNA read, so one answer covers them.
+    clipAdapterType: Hamming
     # soloStrand: DERIVED, not pattern-matched (a wrong strand leaves most reads unassigned while
     # STARsolo exits 0 and emits a matrix that merely looks thin — neither gate can catch it).
     # DERIVATION: the bead oligo terminates in (dT)18 at its 3' end; that poly(dT) primes reverse

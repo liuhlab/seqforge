@@ -105,6 +105,11 @@ backend:
     # for CB_UMI_Simple only; full note in `10x-3p-gex-v3`. Identical to 3' v3's, so the two params
     # this entry diverges in are still soloCBwhitelist and soloStrand.
     soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
+    # `Hamming` — STAR's default, and a no-op with no adapter declared, which is what Cell Ranger runs
+    # on a 5' kit: trimming is hard-disabled for `WhichEnd::FivePrime` and `SC5P-R2-v3` takes the cDNA
+    # read whole. Identical to the v1/v2 sibling's, so the two params this entry diverges from 3' v3 in
+    # are still soloCBwhitelist and soloStrand. Full note in `10x-5p-gex-v2/spec.yaml`.
+    clipAdapterType: Hamming
     # soloStrand Reverse — derived from the kit's own oligos, in full, in the sibling entry
     # `10x-5p-gex-v2/spec.yaml`. In one line: the 5' gel-bead primer ends in the template-switch tail
     # rGrGrG rather than poly(dT) (10x CG000733 p.99), so the barcode is appended to the antisense
