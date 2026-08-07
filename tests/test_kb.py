@@ -659,10 +659,10 @@ def test_every_starsolo_spec_declares_the_read_preprocessing_its_own_protocol_ru
     that the right answer differs between chemistries, and a sweep in which every entry says
     ``CellRanger4`` is indistinguishable from the module literal this replaced.
 
-    The pairing is asserted the way STAR enforces it — by the END a declared clip sits at. Only
-    ``CellRanger4`` builds a five-prime adapter for an override to replace, so a ``clip5pAdapterSeq``
-    beside anything else is a flag nothing reads, and the chemistry silently keeps whatever that mode
-    trims instead.
+    Which clip each trimmer will TAKE is not asserted here, and was: it is a property of the DSL now
+    (``Spec._clip_end_matches_the_trimmer``), so a shipped entry that got it wrong could not reach
+    the assertion — ``load_spec`` on the line above refuses it first, and would refuse it for every
+    other test in this file too.
     """
     seen: dict[str, set[str]] = {}
     for tech in kb.runnable_spec_ids():
@@ -675,11 +675,6 @@ def test_every_starsolo_spec_declares_the_read_preprocessing_its_own_protocol_ru
             f"is a KeyError after the queue wait — and a default would file this entry by silence"
         )
         seen.setdefault(declared, set()).add(tech)
-        override = backend.params.get("clip5pAdapterSeq")
-        assert override is None or declared == "CellRanger4", (
-            f"{tech}: declares a five-prime override under {declared!r}, which builds no five-prime "
-            f"adapter for it to replace — the sequence would be read by nothing"
-        )
 
     assert set(seen) == {"CellRanger4", "Hamming"}, (
         f"the sweep found {sorted(seen)}; a knowledge base in which every chemistry names the same "
@@ -1930,6 +1925,56 @@ def test_a_read_through_needs_a_sequence_and_a_read_that_could_reach_it() -> Non
     }
     with pytest.raises(ValidationError, match="no read carries cdna or gdna"):
         Spec.model_validate(no_cdna)
+
+
+@pytest.mark.parametrize(
+    ("trimmer", "read_through", "five_prime_override", "refused"),
+    [
+        ("CellRanger4", "CTGTCTCTTATACACATCT", None, "three-prime clip"),
+        ("Hamming", "CTGTCTCTTATACACATCT", None, None),
+        ("Hamming", None, "AAGCAGTGGTATCAACGCAGAGTGAATGGG", "five-prime clip"),
+        ("CellRanger4", None, "AAGCAGTGGTATCAACGCAGAGTGAATGGG", None),
+        ("None", None, None, "knows no end for"),
+    ],
+)
+def test_a_declared_clip_must_sit_at_an_end_its_declared_trimmer_takes(
+    trimmer: str,
+    read_through: str | None,
+    five_prime_override: str | None,
+    refused: str | None,
+) -> None:
+    """The trimmer a chemistry names decides which END of a read a clip may be declared at.
+
+    Not a preference and not a wasted flag: the trimmer that will not take an adapter at that end
+    refuses the whole run at parameter initialization, before the genome is loaded, so a spec pairing
+    them wrong kills every sample of the deposit after its queue wait, over a flag nobody typed. That
+    is why the pairing is refused at LOAD — and why it is refused *here*, since one half of it is a
+    backend param and the other is top level, and the spec is the only thing that sees both.
+
+    Both refusals are exercised, and so are both legal pairings, because the two modes are exactly
+    complementary: a rule that refused every clip would pass the refusal rows on its own and be
+    indistinguishable from this one. The last row is the trimmer nobody can check — STAR's shipped
+    help still advertises an option its code rejects — and it is refused rather than skipped, since
+    skipping would turn the rule off for exactly the entry that got the trimmer wrong.
+    """
+    from seqforge.kb.loader import SPECS_DIR
+
+    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
+    params = {**raw["backend"]["params"], "clipAdapterType": trimmer}
+    if five_prime_override is not None:
+        params["clip5pAdapterSeq"] = five_prime_override
+    candidate = {
+        **raw,
+        "backend": {**raw["backend"], "params": params},
+        "read_through": read_through,
+    }
+    if refused is None:
+        legal = Spec.model_validate(candidate)
+        assert legal.read_through == read_through
+        assert legal.require_backend().params.get("clip5pAdapterSeq") == five_prime_override
+        return
+    with pytest.raises(ValidationError, match=refused):
+        Spec.model_validate(candidate)
 
 
 def test_decidable_by_is_derived_from_the_confusables_not_typed_beside_them() -> None:

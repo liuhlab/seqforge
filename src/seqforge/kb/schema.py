@@ -397,6 +397,22 @@ class Identity(_Forbid):
     sample_is_cell: bool = False
 
 
+#: Which END of a read each read trimmer will take a declared adapter for. The modes are exactly
+#: COMPLEMENTARY, and that is what makes a clip's legality one rule rather than a table of illegal
+#: pairs: ``CellRanger4`` builds its own fixed three-prime poly-A and refuses to be handed a second
+#: one, while taking a five-prime sequence in place of the TSO it hardcodes; ``Hamming``, the default,
+#: is the reverse and rejects a five-prime adapter outright. Measured against the pinned STAR binary
+#: at parameter initialization and never read off its help, which is stale relative to its own code —
+#: it still advertises a third mode that fails to parse, which is why a value absent from here is
+#: refused rather than assumed harmless. Adding a mode is the same deliberate act as adding an
+#: ``ElementType``, and the measurement belongs beside the rest of the arity table in
+#: ``docs/research/smartseq3-tn5-read-through.md``.
+_CLIP_END_A_TRIMMER_TAKES: Final[dict[str, str]] = {
+    "CellRanger4": "five-prime",
+    "Hamming": "three-prime",
+}
+
+
 class Spec(_Forbid):
     """A complete, self-validating technology specification (one node in the KB tree)."""
 
@@ -602,6 +618,62 @@ class Spec(_Forbid):
             raise ValueError(
                 f"{self.identity.id!r}: read_through is declared but no read carries cdna or gdna "
                 f"for a fragment to run off the end of"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _clip_end_matches_the_trimmer(self) -> Spec:
+        """A declared clip must sit at an END the declared trimmer will take an adapter for.
+
+        ONE rule, and deliberately not a list of the pairs that are illegal: the trimmers are
+        complementary, so a reader who learns "the end has to be an end that trimmer takes" has
+        learned all of it, while a list of two cases is two facts to remember and a third to add
+        later. A chemistry names its trimmer in ``backend.params`` and may declare a clip at either
+        end — ``clip5pAdapterSeq`` beside it, ``read_through`` at the top level, where it is because
+        two pipelines consume it. The rule spans both halves, so this model is the only thing that
+        sees it whole.
+
+        Refused at LOAD, where every other mistake in this DSL dies, because the alternative is not a
+        wrong number: the aligner rejects the combination at parameter initialization, BEFORE the
+        genome is loaded, so a deposit's every sample fails after its queue wait over a flag nobody
+        typed and no output at all is produced.
+
+        Dispatched on what the entry DECLARES, never on the module it names — the discipline
+        :meth:`_cell_axis_matches_the_module` follows, reached here without needing the module at
+        all. A pipeline that passes no trimmer has no such key in its parse namespace, so no spec on
+        it can declare one and this is silent there: the aligner's own default governs, which is what
+        lets the plate pipeline clip a read-through today. A trimmer this schema knows no end for is
+        refused rather than skipped, because skipping would switch the rule off for precisely the
+        entry that got its trimmer wrong — the "defined by silence" shape that made the key required.
+        """
+        if self.backend is None:
+            return self
+        trimmer = self.backend.params.get("clipAdapterType")
+        if trimmer is None:
+            return self
+        takes = _CLIP_END_A_TRIMMER_TAKES.get(str(trimmer))
+        if takes is None:
+            raise ValueError(
+                f"{self.identity.id!r}: clipAdapterType {trimmer!r} is a trimmer this schema knows "
+                f"no end for, so no clip declared beside it could be checked against it — and an "
+                f"unchecked pairing is how a chemistry acquires one STAR rejects before it loads a "
+                f"genome. Known: {sorted(_CLIP_END_A_TRIMMER_TAKES)}"
+            )
+        override = self.backend.params.get("clip5pAdapterSeq")
+        declared = (
+            ("five-prime", "backend.params.clip5pAdapterSeq", override),
+            ("three-prime", "read_through", self.read_through),
+        )
+        for end, field, sequence in declared:
+            if sequence is None or end == takes:
+                continue
+            raise ValueError(
+                f"{self.identity.id!r} declares a {end} clip in {field}, beside clipAdapterType "
+                f"{trimmer!r}, which takes an adapter at the {takes} end and no other. A clip is "
+                f"performed by whichever trimmer runs, so the end it sits at has to be an end that "
+                f"trimmer takes — STAR rejects this pair at parameter initialization, before the "
+                f"genome loads, so every sample of the deposit would die after its queue wait "
+                f"instead of this entry failing here"
             )
         return self
 
