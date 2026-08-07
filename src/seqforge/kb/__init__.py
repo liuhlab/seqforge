@@ -162,7 +162,30 @@ from .schema import Spec
 #: gates in `tests/test_kb.py`, and the single-end one asserts that BULK DOES NOT WIN rather than that
 #: the plate does — the asymmetry is what makes it hold at both depths, where an assertion demanding an
 #: outright win would pass on a deposit and fail on the fixture that scores it.
-KB_VERSION = "2026.8.6"
+#: 2026.8.7 — `read_through` joins the DSL, and `smartseq3` is the one entry that declares it: the Tn5
+#: mosaic end `CTGTCTCTTATACACATCT`, which nothing clipped (#356). An unclipped library of this
+#: chemistry loses about a third of its reads to STAR's length-relative filters — a DENOMINATOR rather
+#: than a mapping failure, since a clipped base leaves the length those filters are taken over and a
+#: soft-clipped one does not. Measurements and method: `docs/research/smartseq3-tn5-read-through.md`.
+#: The value is TERMINAL, not a span: past the mosaic end everything is adapter, index and flowcell
+#: primer, so the whole tail goes — which is what an aligner's clip already does, and why this is
+#: chemistry in the entry rather than configuration in a recipe. ADR-0048 records that call, which
+#: discussion #354 had reached the other way. It is the same sequence `excludes` still refuses, and
+#: deliberately so: recognizing this chemistry and processing it are different questions, and the
+#: abundance that disqualifies the motif from the first (#230: 6.5-79.5% of its own R1) is what makes
+#: it necessary to the second.
+#: Declared ONCE and never per read: the entry owes the sequence and each pipeline works out its own
+#: flag, the same division that keeps the barcode geometry from being written twice. A spec declaring
+#: it on a pipeline that cannot clip is refused at compose, where what each pipeline derives is known.
+#: The bump costs a `run_id` and nothing else, and this one is structural rather than measured:
+#: `read_through` is invisible to scoring, so no candidate moves, and it is absent from the manifest,
+#: so `dataset_hash` cannot move either. There is no observed counterpart to cross-derive against —
+#: the bytes cannot say what adapter a fragment ran into — which is exactly why it is declared
+#: knowledge and not a probe signal. What it does cost is real and was accepted: a dataset already
+#: compiled gets a new pipeline directory and its CRAMs are not reused, because the reads genuinely
+#: are processed differently now. That is why it lands before large plates are mapped rather than
+#: after.
+KB_VERSION = "2026.8.7"
 
 __all__ = [
     "KB_VERSION",
