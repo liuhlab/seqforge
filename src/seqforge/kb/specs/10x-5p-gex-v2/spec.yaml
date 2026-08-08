@@ -160,7 +160,7 @@ backend:
 # whole FASTQ downloaded:
 #     10x 5' v2  (PRJNA1415162, 4 runs)                    179,712 reads    0.094%
 #     10x 5' v3  (SRR36092078)                              20,000 reads   10.41%
-#     10x 3' negative control (5 libraries, 3 of them mouse) 496,909 reads   0.0000%
+#     10x 3' negative control (5 libraries, 3 of them mouse) 500,909 reads   0.0000%
 # It is a read-through and not biology: match offsets spread CONTINUOUSLY from 0 to read_len - 13
 # rather than sitting at one position, and in 89.8% of testable 5' v3 reads the tail behind the anchor
 # reverse-complements to that same read's OWN cell barcode from R1, followed by AGATCGGAAGAGC. So past

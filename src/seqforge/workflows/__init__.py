@@ -43,6 +43,23 @@ if TYPE_CHECKING:
 #: `CellRanger4` names which trimmer RUNS, never a sequence past which a molecule ended (ADR-0048's
 #: test does not decide it on its own). What decides it is that the right value moves from one
 #: chemistry to the next. Sources: `docs/research/starsolo-read-preprocessing-per-family.md`.
+#: **AND THIS MODULE CAN CLIP A READ-THROUGH NOW**, so `--clip3pAdapterSeq` renders here too, at
+#: arity ONE. `--readFilesIn` hands the rule two files, but solo peels the barcode read off and only
+#: the cDNA read is a mate, so a second value — `-`, STAR's own per-mate no-clip sentinel, included —
+#: is a hard FATAL at parameter init, measured under both soloTypes against the pinned 2.7.11b.
+#: `map/star-umi` renders the same flag at its cell's mate count, so the two modules land on opposite
+#: answers from one rule. It also puts the clip out of the barcode read's reach STRUCTURALLY: there is
+#: no mate to aim at it, hence no sentinel to get wrong and no way to trim a CB or a UMI.
+#: `--clip3pAdapterMMp` is NOT restated here, unlike there — STAR's default is a single 0.1, which
+#: already matches this arity, and a flag that reads as a decision and is the default is worse than
+#: silence. This is what lets the three BD Rhapsody entries declare BD's own 38-base poly-A and both
+#: five-prime 10x entries the 5' TSO's reverse complement, and it is why the params gate stops
+#: refusing a `read_through` on this pipeline.
+#: **EVERY DATASET RE-KEYS, not only the eleven chemistries this module serves**, because `run_id`
+#: folds one global stamp per axis rather than a hash of the module or the spec that decided this
+#: config: a Smart-seq3 plate on `map/star-umi` and a bulk deposit on `map/star` each get a new
+#: pipeline directory though nothing about their processing moved. That coupling is #361 and is
+#: deliberately not addressed in this release.
 #: 2026.8.9 — `rule star_umi_map` clips the chemistry's read-through, per mate (#356). The KB states
 #: the adapter once and this module renders the flag, so `map/star-umi` becomes the first pipeline
 #: that honours a `read_through`; a chemistry declaring one whose pipeline does not is refused at
@@ -260,7 +277,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.9"
+WORKFLOW_VERSION = "2026.8.10"
 
 _MODULE_DIR = Path(__file__).parent
 

@@ -67,7 +67,7 @@ whole FASTQ downloaded:
 | --- | --- | --- |
 | 5′ v2 (PRJNA1415162, 4 runs) | 179 712 | 0.094 % |
 | 5′ v3 (SRR36092078) | 20 000 | **10.41 %** |
-| 3′ negative control (5 libraries, 3 mouse) | 496 909 | **0.0000 %** |
+| 3′ negative control (5 libraries, 3 mouse) | 500 909 | **0.0000 %** |
 
 It is a read-through and not biology: match offsets spread **continuously** from 0 to `read_len − 13`
 rather than sitting at one position, and in 89.8 % of testable 5′ v3 reads the tail behind the anchor
