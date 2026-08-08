@@ -150,8 +150,21 @@ snakemake-minimal = ">=8"
 # alignment environment a RULE names is still liulab-runtime's alone.
 # `test_the_aligner_is_confined_to_the_test_only_environment` is what keeps that true, because the
 # comments saying it do not fail a build.
+#
+# STAR IS PINNED AND THE TWO BESIDE IT ARE NOT. The knowledge base now encodes which of this binary's
+# flag combinations are legal -- which `clipAdapterType` values exist, which end a clip may be
+# declared at, and what arity a clip takes under `--soloType`. Every one of those was established by
+# RUNNING this version, because STAR's shipped help is stale against its shipped code: it still
+# advertises a `clipAdapterType` mode the binary refuses outright. A lock file alone pinned nothing --
+# both repositories declared `*`, so a `pixi update` in either moved the aligner silently and nothing
+# went red when the suite's STAR and production's STAR drifted apart. The version is part of the
+# contract, so it is declared. liulab-runtime's `align-rna` carries the same pin, and it is the one
+# that matters more: that is where a composed rule's STAR comes from.
+#
+# `samtools` and `htslib` stay floating deliberately. They encode nothing, and constraining them is
+# exactly what reopens the `libdeflate` collision above.
 [tool.pixi.feature.star.dependencies]
-star = "*"
+star = "2.7.11b.*"
 samtools = "*"
 htslib = "*"
 
