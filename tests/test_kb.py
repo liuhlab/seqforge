@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from conftest import KbProbes, registry_for, write_fastq_gz
 from seqforge import kb
-from seqforge.io import OnlistRegistry
+from seqforge.io import OnlistRegistry, revcomp
 from seqforge.kb.schema import Identity, MotifPresent, Read, Spec
 from seqforge.models.observation import ConstantSegment
 from seqforge.probe import probe_file
@@ -1977,32 +1977,49 @@ def test_a_declared_clip_must_sit_at_an_end_its_declared_trimmer_takes(
         Spec.model_validate(candidate)
 
 
-def test_bd_rhapsody_declares_the_poly_a_run_its_own_pipeline_clips() -> None:
-    """Three entries, one sequence, and its LENGTH is the thing a reviewer cannot check by eye.
+@pytest.mark.parametrize(
+    ("family", "expected"),
+    [
+        ("bd-rhapsody", "A" * 38),
+        ("10x-5p-gex", revcomp("TTTCTTATATGGG")),
+    ],
+)
+def test_leaves_that_share_a_cdna_read_share_one_derivable_read_through(
+    family: str, expected: str
+) -> None:
+    """One sequence per family, and in neither case can a reviewer check the literal by eye.
 
-    BD hands STAR a literal fixed run of A's, byte-identical across its pipeline 2.2.1 / 2.3 / 2.4b /
-    3.0, and the three WTA leaves are identical on the cDNA read — so one answer covers three specs
-    and any drift between them is this sweep's to catch. The expected value is GENERATED here for the
-    same reason it was generated into the files: a miscounted run of A's is invisible on review and
-    wrong at exit 0, since STAR would clip a shorter tail than the molecule carries and every cell
-    would keep paying the remainder inside the length-relative filter.
+    A family whose leaves are identical on the cDNA read gets one answer for all of them, so any
+    drift between siblings is this sweep's to catch. What makes it worth its lines is that the
+    expected value is DERIVED here rather than copied off the entry — the same reason neither value
+    was hand-typed into the files:
 
-    STAR's ``polyA`` *keyword* is a different and more aggressive clip — a run as long as the read —
-    and is explicitly not what BD passes, which is why this is a sequence and not a mode.
+    * BD hands STAR a fixed run of A's, byte-identical across its pipeline 2.2.1 / 2.3 / 2.4b / 3.0.
+      A run one base short reads identically and is wrong at exit 0: STAR clips a shorter tail than
+      the molecule carries, and every cell keeps paying the remainder inside the length-relative
+      filter. STAR's ``polyA`` *keyword* is a different and more aggressive clip — a run as long as
+      the read — and is explicitly not what BD passes, which is why this is a sequence and not a mode.
+    * The 10x 5' anchor is the REVERSE COMPLEMENT of the template-switch tail the gel-bead primer
+      ends in, and that relationship is the claim. The entry derives the primer in full for its
+      strand call and deliberately does not restate the anchor beside it, so the two are written
+      down once each and joined here; transcribing a complement by eye is exactly the error this
+      catches. Both 5' leaves declare it because prevalence is a property of a LIBRARY rather than of
+      a kit — measured from 0.094% to 10.41% across five 5' libraries against 0.0000% on 3' — so
+      declaring it only where it happened to be common would file a library property as a chemistry
+      one.
 
-    Collected from the loader rather than from a roster, so a fourth BD leaf is covered because it
-    exists; the sweep asserts it found entries at all, because a renamed id would otherwise empty it
-    and pass.
+    Collected from the loader rather than from a roster, so a new leaf of either family is covered
+    because it exists; each row asserts it matched something, because a renamed id would otherwise
+    empty the sweep and pass.
     """
-    expected = "A" * 38
-    found = [t for t in kb.runnable_spec_ids() if t.startswith("bd-rhapsody")]
-    assert found, "the BD sweep matched no entry, so it proves nothing about the sequence below"
+    found = [t for t in kb.runnable_spec_ids() if t.startswith(family)]
+    assert found, f"the {family} sweep matched no entry, so it proves nothing about the value below"
     for tech in found:
         declared = kb.load_spec(tech).read_through
         assert declared == expected, (
-            f"{tech}: read_through is {declared!r}, not BD's own {len(expected)}-base poly-A. A run "
-            f"of A's one base short reads identically and clips a shorter tail than the molecule "
-            f"carries, at exit 0"
+            f"{tech}: read_through is {declared!r}, not the {expected!r} this family's cDNA read "
+            f"runs into. The expected value is derived here and never copied from the entry, so a "
+            f"hand-edited literal that reads plausibly is what goes red"
         )
 
 

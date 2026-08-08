@@ -214,6 +214,53 @@ def test_splitseq_clips_its_own_tso_and_not_the_one_the_module_used_to_impose(
     assert planned.count("--clip5pAdapterSeq") == 1
 
 
+def test_a_simple_chemistrys_read_through_reaches_star_as_one_value(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """The 5' clip, on the geometry branch nothing else composes, at the arity STAR demands.
+
+    Two causes, and the two assertions below are one apiece — which is also why the gate line is not
+    decoration.
+
+    **The branch, and it is caught at the GATE.** `derived_params` seeds the read-through BEFORE
+    forking on `soloType`, so every solo chemistry that declares one gets it; move that seed one line
+    down and `CB_UMI_Complex` keeps it while `CB_UMI_Simple` silently drops it. The params gate then
+    refuses this dataset — a chemistry declaring a clip its composer emits nothing for is exactly what
+    it is there to catch — so the failure arrives as a refusal and not as a missing flag. What is new
+    here is only the SUBJECT: this is the KB's one Simple entry that declares a clip, so it is the one
+    dataset on which that refusal can fire, and bd-enhanced (Complex) stays green through it.
+
+    **The arity, and it needs the spawn.** `--readFilesIn` hands the module two files, but solo peels
+    the barcode read off and only the cDNA read is a mate, so STAR takes exactly ONE value — a second,
+    even `-`, its own per-mate no-clip sentinel, is a hard FATAL at parameter initialization. The
+    bd-enhanced dry run cannot see that: it matches a substring and counts flag occurrences, and a
+    trailing sentinel changes neither. So the rendered fragment is split into TOKENS and compared
+    whole, which is the only form that fails on a second value — or on a five-prime override
+    reappearing beside a trimmer that refuses one.
+
+    `10x-5p-gex-v3` rather than its sibling because its own whitelist separates it from the 28 bp 3'
+    cohort outright, while the 26 bp entry is read-undecidable against 3' v2 and would resolve on a
+    supplied claim. Both declare the same anchor and take the same branch, and that they agree is the
+    KB sweep's to assert, not this one's.
+    """
+    manifest, reg = _build(tmp_path, "10x-5p-gex-v3")
+    processing = _processing(manifest)
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    assert result.gate["params"].status == "pass", result.gate["params"].reason
+
+    planned = dry_run(
+        (tmp_path / result.config_path).parent, plan(manifest, processing, registry=reg)
+    )
+    rendered = [ln for ln in planned.splitlines() if "--clipAdapterType" in ln]
+    assert len(rendered) == 1, planned
+    assert rendered[0].strip().rstrip("\\").split() == [
+        "--clipAdapterType",
+        "Hamming",
+        "--clip3pAdapterSeq",
+        "CCCATATAAGAAA",
+    ], planned
+
+
 def test_the_composer_records_the_run_each_unit_came_from(built_v3: Built) -> None:
     """units.tsv carries ``run`` and ``lane``, from the two functions in `resolve.group` that own them.
 
