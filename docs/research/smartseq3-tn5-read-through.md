@@ -55,16 +55,27 @@ STAR 2.7.11b, parameter initialization only (no alignment). These are hard `FATA
 | SE, one of each | accepted |
 | `--clipAdapterType CellRanger4` + `--clip3pAdapterSeq` | **FATAL** — mutually exclusive |
 | `--clipAdapterType CellRanger4` + `--clip5pAdapterSeq` | accepted |
+| **under `--soloType`**, one `--clip3pAdapterSeq` value, no `--clip3pAdapterMMp` | accepted |
+| **under `--soloType`**, `SEQ -` | **FATAL** — *"has to contain 1 values to match the number of mates"* |
 
-Two consequences the implementation rests on:
+Three consequences the implementation rests on:
 
 - **The arity is per mate, and `map/star-umi`'s mate count is per SAMPLE** (`SAM PE` where the cell
   has a mate, `SAM SE` where it does not — one plate legally mixes both). A flag rendered once for
   the whole run is fatal on every cell of the other kind, which is why both flags are rendered from
   the single `mate_count` fact `--readFilesType` already used.
-- **`CellRanger4` and a 3′ adapter cannot coexist**, which is what blocks `map/starsolo` from
-  honouring a `read_through` at all until [#355](https://github.com/liuhlab/seqforge/issues/355) is
-  resolved. Note STAR's own `SOLUTION:` line on that error names the wrong family ("do not use
+- **Under `--soloType` the mate count is 1, not 2**, so the two rows above are not the paired rows.
+  The PE/SE rows were measured for this module's **non-solo** invocation and stay true for it;
+  STARsolo peels the barcode read off the mate count (`readNmates = readNends - 1`), so a two-file
+  solo run has one mate: `SEQ -` is a FATAL there, a single value is correct, and `--clip3pAdapterMMp`
+  can be left at its scalar default. Measured on the same pin, 2026-08-07, for
+  [#355](https://github.com/liuhlab/seqforge/issues/355). Two modules, one fact, two arities.
+- **`CellRanger4` and a 3′ adapter cannot coexist.** *Historical, and kept because it records why the
+  work happened:* this is what blocked `map/starsolo` from honouring a `read_through` at all. #355
+  resolved it by making `clipAdapterType` a per-chemistry knowledge-base key, so a chemistry that
+  declares a read-through declares `Hamming` and the pair never arises; the full per-family evidence
+  is in [`starsolo-read-preprocessing-per-family.md`](starsolo-read-preprocessing-per-family.md).
+  Note STAR's own `SOLUTION:` line on that error names the wrong family ("do not use
   `--clip5pAdapter*`") — three-prime is what is forbidden.
 
 ## 3. The clip recovers the reads — measured
