@@ -113,6 +113,16 @@ backend:
     # takes `EditDist_2`, its own pipeline's value. A yes/no branch on soloType yields two answers
     # where three are already needed, and the third one has nowhere to be said.
     soloCBmatchWLtype: 1MM
+    # `Hamming` is STAR's own default, and BD's WTA path passes no clip-type flag at all — there is
+    # not one `clip*Type` in its whole CWL — so this reproduces BD's command line rather than
+    # departing from it. It is also the mode that CAN take a three-prime adapter, which BD's own
+    # poly-A is; `CellRanger4` cannot, and refuses the pairing before the genome loads.
+    # `CellRanger4` is what the module handed all eleven chemistries until the key moved to the KB,
+    # and on this read it clipped a 30 nt 10x TSO off a molecule that never carried one. The three
+    # "R2 adapters" in BD's own docs are real BD sequences but sit on the 5'-capture / TCR-BCR oligo —
+    # the bead table lists the WTA handle as `None` for both WTA beads — so nothing on this path is a
+    # 5' adapter either. All three BD leaves are identical on the cDNA read, so one answer covers them.
+    clipAdapterType: Hamming
     # soloStrand: DERIVED, not pattern-matched (a wrong strand leaves most reads unassigned while
     # STARsolo exits 0 and emits a matrix that merely looks thin — neither gate can catch it).
     # DERIVATION: the bead oligo terminates in (dT)18 at its 3' end; that poly(dT) primes reverse
@@ -129,6 +139,23 @@ backend:
     # on issue #1111, which is an independent cross-check on the geometry above. Never hand-enter it.
     # soloFeatures is NOT here: it says what to COUNT (cells vs nuclei is sample prep, not chemistry),
     # and lives in the processing manifest where a user may instruct it.
+
+# THE POLY-A BD ITSELF CLIPS, and it is a stated literal rather than a generated run: a fixed 38-base
+# A-string, byte-identical across BD's pipeline 2.2.1 / 2.3 / 2.4b / 3.0. STAR's `polyA` KEYWORD is a
+# different and more aggressive clip — a run as long as the read — and is explicitly NOT what BD
+# passes. The three WTA leaves are identical on the cDNA read, so this one answer covers all three.
+#
+# It is a read-through by the terminality test and not a trimming preference (ADR-0048): a poly-dT
+# bead primes off the mRNA poly(A), so a fragment shorter than R2 runs off its own cDNA into the tail
+# it was captured by, and behind that tail is the bead oligo — UMI, cell label, adapter. Everything
+# past the match has stopped being genomic, so the whole tail goes and no recipe could rationally
+# keep it. Left in place it is not a mapping failure but a DENOMINATOR: STAR's length-relative
+# filters are computed over the read the A-run is still part of.
+#
+# Never hand-typed — a miscounted run of A's is invisible on review and wrong at exit 0. The value is
+# generated and its length is asserted (`tests/test_kb.py`). `clipAdapterType: Hamming` above is what
+# makes it renderable at all: `CellRanger4` refuses a three-prime adapter outright.
+read_through: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 # The combinatorial CLS geometry + the two fixed linkers separate this from 10x / SPLiT-seq (different
 # linker sequences and positions). What it does NOT separate itself from is the generic paired-end

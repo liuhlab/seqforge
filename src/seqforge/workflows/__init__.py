@@ -22,6 +22,42 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.10 — `rule starsolo_count` asks the chemistry which trimmer to run instead of telling it
+#: (#355). `--clipAdapterType` was a module literal, `CellRanger4` for all eleven starsolo
+#: chemistries; it is a required KB parse key now, and `--clip5pAdapterSeq` joins it as the optional
+#: five-prime override one chemistry declares.
+#: **WHICH OUTPUT MOVES.** The five three-prime 10x chemistries (`10x-3p-gex-v2`, `-v3`, `-v3.1`,
+#: `10x-gemx-3p-v4`, `10x-multiome-gex`) declare `CellRanger4` and emit a BYTE-IDENTICAL command
+#: line — verified by diffing the rendered `starsolo_count` shell block across the change, not
+#: assumed from the value. Their counts are unchanged and stay comparable to a published CellRanger
+#: matrix, which is the whole reason the value is what it is. The other six change: the two
+#: five-prime 10x entries and the three BD Rhapsody ones take `Hamming` and stop having a
+#: three-prime kit's TSO clipped off a read their own vendor pipeline never trims, and SPLiT-seq
+#: keeps the clip with its OWN 30 nt TSO in place of the 10x one it differs from at two positions.
+#: Both flags render from ONE helper rather than two tokens, because STAR makes them one decision:
+#: the override REPLACES `CellRanger4`'s hardcoded sequence instead of adding to it, and
+#: `CellRanger4` is the only mode where a five-prime override is legal at all. Fusing them is also
+#: what makes the three-prime rendering byte-identical rather than merely argv-equivalent — a second
+#: token would have left an empty continuation on every chemistry that declares no override.
+#: The trimmer belongs to the entry and not to this module because its right value MOVES from one
+#: chemistry to the next — the ownership test stated on `Backend` in `kb/schema.py`, resting on the
+#: per-vendor review in `docs/research/starsolo-read-preprocessing-per-family.md`.
+#: **AND THIS MODULE CAN CLIP A READ-THROUGH NOW**, so `--clip3pAdapterSeq` renders here too, at
+#: arity ONE. `--readFilesIn` hands the rule two files, but solo peels the barcode read off and only
+#: the cDNA read is a mate, so a second value — `-`, STAR's own per-mate no-clip sentinel, included —
+#: is a hard FATAL at parameter init, measured under both soloTypes against the pinned 2.7.11b.
+#: `map/star-umi` renders the same flag at its cell's mate count, so the two modules land on opposite
+#: answers from one rule. It also puts the clip out of the barcode read's reach STRUCTURALLY: there is
+#: no mate to aim at it, hence no sentinel to get wrong and no way to trim a CB or a UMI.
+#: `--clip3pAdapterMMp` is NOT restated here, unlike there — STAR's default is a single 0.1, which
+#: already matches this arity, and a flag that reads as a decision and is the default is worse than
+#: silence. This is what lets the three BD Rhapsody entries declare BD's own 38-base poly-A and both
+#: five-prime 10x entries the 5' TSO's reverse complement, and it is why the params gate stops
+#: refusing a `read_through` on this pipeline.
+#: **EVERY DATASET RE-KEYS, not only the eleven chemistries this module serves** — a Smart-seq3 plate
+#: on `map/star-umi` and a bulk deposit on `map/star` each get a new pipeline directory though nothing
+#: about their processing moved. Why a stamp does that, and the coupling that owns it (#361): the
+#: `KB_VERSION` note in `kb/__init__.py` for the release that moved eleven chemistries.
 #: 2026.8.9 — `rule star_umi_map` clips the chemistry's read-through, per mate (#356). The KB states
 #: the adapter once and this module renders the flag, so `map/star-umi` becomes the first pipeline
 #: that honours a `read_through`; a chemistry declaring one whose pipeline does not is refused at
@@ -239,7 +275,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.9"
+WORKFLOW_VERSION = "2026.8.10"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -346,6 +382,22 @@ _STARSOLO_PARSE_KEYS: frozenset[str] = frozenset(
         # vs `1MM`). Three answers, so it moves to the artifact that has one row per chemistry. Which
         # values are legal depends on the soloType (compose's params gate enforces the pairing).
         "soloCBmatchWLtype",
+        # Which read-preprocessing STAR runs before alignment, by the SAME test as the key above and
+        # with the same history: a module literal (`CellRanger4`, always) until #355, because "chosen
+        # for CellRanger parity" was read as evidence about ownership. It is not — it is a reason to
+        # pick a value, and the correct value moves between chemistries — the argument is stated on
+        # `Backend` in `kb/schema.py` and the per-vendor evidence in
+        # `docs/research/starsolo-read-preprocessing-per-family.md`. REQUIRED of all eleven rather
+        # than optional-with-a-default, deliberately: whichever group stayed silent would be defined
+        # by silence, and a new spec would join it by accident.
+        "clipAdapterType",
+        # The five-prime override, and only `CellRanger4` takes one — it REPLACES that mode's
+        # hardcoded 10x TSO rather than adding to it, which is what lets a chemistry with its own TSO
+        # keep the clip and fix the sequence. Declared by SPLiT-seq alone today. A parse key beside
+        # its trimmer rather than a top-level term, because a top-level term is what a fact TWO
+        # pipelines consume earns (`read_through`); a five-prime override is starsolo-only until a
+        # second module can honour one, and promoting it early would be a term with one reader.
+        "clip5pAdapterSeq",
     }
 )
 

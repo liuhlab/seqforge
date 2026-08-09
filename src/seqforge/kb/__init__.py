@@ -162,11 +162,14 @@ from .schema import Spec
 #: gates in `tests/test_kb.py`, and the single-end one asserts that BULK DOES NOT WIN rather than that
 #: the plate does — the asymmetry is what makes it hold at both depths, where an assertion demanding an
 #: outright win would pass on a deposit and fail on the fixture that scores it.
-#: 2026.8.7 — `read_through` joins the DSL, and `smartseq3` is the one entry that declares it: the Tn5
-#: mosaic end `CTGTCTCTTATACACATCT`, which nothing clipped (#356). An unclipped library of this
-#: chemistry loses about a third of its reads to STAR's length-relative filters — a DENOMINATOR rather
-#: than a mapping failure, since a clipped base leaves the length those filters are taken over and a
-#: soft-clipped one does not. Measurements and method: `docs/research/smartseq3-tn5-read-through.md`.
+#: 2026.8.7 — `read_through` joins the DSL, and `smartseq3` declares the first one: the Tn5 mosaic
+#: end `CTGTCTCTTATACACATCT`, which nothing clipped (#356). It is the only entry declaring a
+#: read-through at THIS release; the three BD Rhapsody leaves and both 10x 5' entries join it at
+#: 2026.8.8, so read this as where the key started and not as where it stayed. An unclipped library
+#: of this chemistry loses about a third of its reads to STAR's length-relative filters — a
+#: DENOMINATOR rather than a mapping failure, since a clipped base leaves the length those filters
+#: are taken over and a soft-clipped one does not. Measurements and method:
+#: `docs/research/smartseq3-tn5-read-through.md`.
 #: The value is TERMINAL, not a span: past the mosaic end everything is adapter, index and flowcell
 #: primer, so the whole tail goes — which is what an aligner's clip already does, and why this is
 #: chemistry in the entry rather than configuration in a recipe. ADR-0048 records that call, which
@@ -185,7 +188,50 @@ from .schema import Spec
 #: compiled gets a new pipeline directory and its CRAMs are not reused, because the reads genuinely
 #: are processed differently now. That is why it lands before large plates are mapped rather than
 #: after.
-KB_VERSION = "2026.8.7"
+#: 2026.8.8 — the read preprocessing STAR runs before it aligns is the CHEMISTRY's to name (#355).
+#: `clipAdapterType` becomes a parse key REQUIRED of all eleven starsolo entries, `clip5pAdapterSeq`
+#: an optional one beside it that SPLiT-seq alone declares, and five more entries declare a
+#: `read_through`. It was a literal in `starsolo.smk` — `CellRanger4`, for all eleven — filed there
+#: because it was chosen for CellRanger parity, which is a reason to pick a VALUE and never evidence
+#: about who OWNS the key; what moved it here is that its right value moves from one chemistry to the
+#: next, the test `Backend`'s docstring in `kb/schema.py` states. Required rather than
+#: optional-with-a-default, deliberately — whichever group stayed silent would be defined by silence
+#: and a new spec would join it by accident. The per-vendor primary-source review it rests on:
+#: `docs/research/starsolo-read-preprocessing-per-family.md`.
+#: **SIX ENTRIES' OUTPUT CHANGES.** `10x-5p-gex-v2` and `-v3` take `Hamming` plus
+#: `read_through: CCCATATAAGAAA`, the 5' TSO's reverse complement. Dropping `CellRanger4` restores
+#: parity — Cell Ranger hard-disables both its trimmers on a 5' kit — and clipping the read-through
+#: then EXCEEDS the vendor, a departure taken on a measurement rather than an argument: the anchor is
+#: in every 5' library measured and in no 3' control, at rates spanning two orders of magnitude
+#: BETWEEN LIBRARIES of one kit — which is why BOTH entries declare it and not only the one whose
+#: library carried it most. Rates and method: `docs/research/10x-5p-tso-read-through.md`. The three
+#: `bd-rhapsody-wta*` entries take `Hamming` plus BD's own fixed 38-base poly-A run, the literal BD's
+#: command line passes, in place of a 10x TSO their WTA protocol never used; BD leaves the clip type
+#: unset entirely, so `CellRanger4` would FATAL on their own invocation. `splitseq` KEEPS
+#: `CellRanger4` and fixes the sequence: its own 30 nt TSO differs from 10x's at two of thirty
+#: positions, so the clip was already firing here with the wrong string on a 66 bp cDNA read, and the
+#: override REPLACES the hardcoded one.
+#: **FIVE ARE UNTOUCHED, and that is the acceptance criterion.** `10x-3p-gex-v2`, `-v3`, `-v3.1`,
+#: `10x-gemx-3p-v4` and `10x-multiome-gex` declare `CellRanger4` and emit a BYTE-IDENTICAL STAR
+#: command line — diffed before and after by three separate steps rather than inferred from the value
+#: — so the counts a published CellRanger matrix is comparable to do not move. Cell Ranger builds its
+#: two fixed adapters under ONE predicate, the kit's endedness, and all five 3' chemistries take that
+#: branch, so one answer is correct for all of them.
+#: An illegal pairing is refused at spec LOAD by one rule — the end a declared clip sits at must be an
+#: end its declared trimmer takes — and not by a list of the two pairs that are illegal. STAR refuses
+#: the pair at parameter initialization, BEFORE the genome loads, so what this replaces is every
+#: sample of a deposit failing after its queue wait over a flag nobody typed.
+#: **EVERY DATASET RE-KEYS, including the ones nothing here touches.** `run_id` folds the global
+#: `KB_VERSION` string rather than a hash of the spec that decided this dataset, so a Smart-seq3 plate
+#: or a bulk deposit gets a new pipeline directory and no reuse of the BAMs in the old one, though not
+#: one byte of its processing changed. That is understood and not overlooked: the coupling is #361,
+#: and it is deliberately NOT fixed here, because what `run_id` folds is its own decision about
+#: identity and does not belong inside the release that moves eleven entries.
+#: `dataset_hash` does not move and no stored manifest is REGENERATED. Backend params live in the KB
+#: and never in a manifest, `read_through` is absent from it too, and nothing scoring reads — reads,
+#: elements, signature, confusable edges — changed, so every candidate is still selected at the value
+#: it always had and a stored manifest recompiles rather than being rebuilt from the bytes.
+KB_VERSION = "2026.8.8"
 
 __all__ = [
     "KB_VERSION",

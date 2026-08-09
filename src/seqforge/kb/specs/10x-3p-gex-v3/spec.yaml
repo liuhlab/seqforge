@@ -96,6 +96,22 @@ backend:
     # (soloType, soloCBmatchWLtype) pair is gated at compose, where an illegal one is a named refusal,
     # instead of a STAR FATAL on a compute node after the genome has loaded.
     soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
+    # Which read-preprocessing STAR runs before it aligns, and the value that keeps these counts
+    # comparable to a published CellRanger matrix. `CellRanger4` reproduces Cell Ranger's own two
+    # fixed adapters — the TSO off the cDNA read's 5' end and poly-A off its 3', each gated at min
+    # score 20 with a 10% error cap — and STAR's reimplementation is faithful (its poly-A rule is
+    # algebraically identical). Cell Ranger builds them under ONE predicate, the kit's endedness, and
+    # every 3' chemistry takes that branch: SC3Pv2, SC3Pv3-*, SC3Pv4-* and ARC-v1 all declare
+    # `three_prime` with `rna: R2/offset 0/length null`, so GEM-X v4, Multiome GEX and v2 trim exactly
+    # as this entry does. Nothing is left past the poly-A that a fixed adapter could express anyway —
+    # what follows is UMI-rc then barcode-rc, per-read variable, and Cell Ranger does not trim it
+    # either.
+    # A per-chemistry PARSE fact rather than a module literal, because the right value MOVES — the 5'
+    # kits run no trimmer at all and BD passes no clip type on its own command line, so the four
+    # entries that used to inherit this one had a 10x TSO clipped off reads that never carried it.
+    # The ownership test itself is stated once, on `Backend` in `kb/schema.py`; the per-vendor sources
+    # are in `docs/research/starsolo-read-preprocessing-per-family.md`.
+    clipAdapterType: CellRanger4
     soloStrand: Forward
     # 0 disables STARsolo's barcode-read-length check, which by default (1) FATALs when the barcode
     # read is longer than CB+UMI. An over-sequenced R1 (150 bp) needs this; CB/UMI are still read from

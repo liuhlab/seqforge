@@ -89,7 +89,7 @@ signature:
 
 backend:
   module: map/starsolo
-  params:                       # identical to 3' v2's EXCEPT soloStrand — which is the whole difference
+  params:                       # identical to 3' v2's EXCEPT soloStrand and the trimmer it names
     soloType: CB_UMI_Simple
     soloCBstart: 1
     soloCBlen: 16
@@ -101,9 +101,22 @@ backend:
     # comparable to a published CellRanger matrix, which STARsolo's `1MM_multi` default is not. A parse
     # fact and a per-chemistry one: the value tracks the vendor's reference pipeline, and 5' is a
     # CellRanger kit like the 3' ones. Legal for CB_UMI_Simple only (Complex rejects every
-    # `1MM_multi*` mode); full note in `10x-3p-gex-v3`. Identical to 3' v2's, which keeps soloStrand
-    # the whole of the difference.
+    # `1MM_multi*` mode); full note in `10x-3p-gex-v3`. Identical to 3' v2's: the barcode correction is
+    # not where this entry diverges from its 3' twin.
     soloCBmatchWLtype: 1MM_multi_Nbase_pseudocounts
+    # `Hamming` is STAR's own default, and it is here as the trimmer that TAKES a three-prime sequence
+    # — `CellRanger4` refuses one outright, so this value is what makes the `read_through` below
+    # renderable at all. With nothing declared it is a no-op, which is what Cell Ranger does on a 5'
+    # kit: its two trimmers are hard-disabled by the kit's endedness and the cDNA read is taken whole
+    # — source lines in `docs/research/starsolo-read-preprocessing-per-family.md`, which is where the
+    # per-vendor review lives. This entry DOES declare a clip, so it departs from the vendor
+    # deliberately and on a measurement; the argument is beside `read_through` below.
+    # What the value is not: `CellRanger4`, which this entry used to be handed by the module, clipping
+    # the 3' kits' TSO and poly-A off a read whose own pipeline never touches either — a departure from
+    # parity that read as parity. NOT the 41/43 bp figure sometimes quoted as a 5' clip either: that is
+    # `rna.offset` on the BARCODE read, and only for the SC5P-R1 and V(D)J configurations this KB does
+    # not model.
+    clipAdapterType: Hamming
     # soloStrand Reverse. DERIVED FROM THE KIT'S OWN OLIGOS, not recalled and not inferred from
     # community practice — strand is the value where being wrong is quietest, so it is derived here in
     # full and the derivation is reproducible from the cited pages:
@@ -134,6 +147,37 @@ backend:
     soloBarcodeReadLength: 0
     # soloFeatures is NOT here, for the same reason it is absent from every other entry: it says what
     # to COUNT, and counting belongs to the processing manifest where a user may instruct it.
+
+# THE 5' TSO, SEEN FROM THE OTHER END. The bead primer derived above ends in the template-switch tail
+# TTTCTTATATrGrGrG, so the barcoded top strand reads [R1 handle][CB][UMI][TSO][insert] and a fragment
+# shorter than R2 runs off its own cDNA into the TSO's REVERSE COMPLEMENT — the first fixed sequence a
+# short 5' fragment's R2 can reach. That relationship is what the tests assert; the string is not
+# restated beside the primer it is derived from.
+#
+# ESTABLISHED AT THE READ LEVEL rather than inferred from the construct, on bounded head-reads with no
+# whole FASTQ downloaded: the anchor is in every 5' library measured and in none of the 3' controls.
+# It is a read-through and not biology — the match offsets spread CONTINUOUSLY instead of sitting at
+# one position, and the tail behind the anchor reverse-complements to that same read's OWN cell
+# barcode from R1, followed by the TruSeq adapter. So past the match lies UMI, barcode and flowcell
+# adapter — terminal, the whole tail goes, and no recipe could rationally keep it. Left in place it is
+# a DENOMINATOR rather than a mapping failure: STAR's length-relative filters are computed over the
+# read the adapter is still part of. Cohorts, rates and method:
+# `docs/research/10x-5p-tso-read-through.md`.
+#
+# PREVALENCE IS A LIBRARY PROPERTY, NOT A CHEMISTRY ONE, and that is why BOTH 5' entries declare this
+# and not only the library that carried the anchor most heavily. The measured rates span two orders of
+# magnitude between libraries of the same kit, tracking insert size and read length; v2 and v3 share
+# the same TSO and byte-identical cDNA handling, so the gap sits between those libraries and not
+# between those chemistries. Declaring it only where it happened to be common would file a library
+# property as a chemistry one — the exact category error this key exists to correct. Where the anchor
+# is rare the clip is a no-op, and a no-op costs nothing.
+#
+# THIS EXCEEDS CELL RANGER, deliberately and not by oversight. 10x runs no trimmer at all on a 5' kit
+# (hard-disabled in source — see `clipAdapterType` above), so it does not clip this either; these two
+# entries are where this KB departs from vendor parity on a measurement rather than following it. The
+# `Hamming` above is what makes the clip renderable at all: `CellRanger4` refuses a three-prime adapter
+# outright.
+read_through: "CCCATATAAGAAA"
 
 # A child of the 10x-5p-gex family. The v3 sibling edge (over-length whitelist split) lives in the
 # parent's `children_decided_by: [onlist]`, so it is not repeated here — the tree declares it once.

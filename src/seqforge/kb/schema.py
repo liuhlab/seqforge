@@ -277,13 +277,17 @@ class Backend(_Forbid):
     """A data template mapping to a workflow module. Only ``{onlist:<alias>}`` interpolation is legal.
 
     ``params`` is the chemistry-defining MINIMUM: the keys whose value varies with the chemistry, and
-    no others. Ownership is decided by what a value varies with, never by what it is for. A
-    CellRanger-parity knob — ``soloUMIdedup 1MM_CR``, ``clipAdapterType CellRanger4``,
-    ``soloCellFilter EmptyDrops_CR`` — is for parity but varies with *nothing*, so it is a literal in
+    no others. Ownership is decided by what a value varies with, never by what it is for — and
+    "chosen for CellRanger parity" is a reason to pick a VALUE, never evidence about who owns the key.
+    That one set of knobs splits both ways. ``soloUMIdedup 1MM_CR`` and ``soloCellFilter
+    EmptyDrops_CR`` are the same string for every chemistry there will ever be, so they are literals in
     the workflow module's own shell block: not this file's, and (being unconditional) not the recipe's
-    either. ``soloCBmatchWLtype`` is the edge case that shows the rule is the right one: it was chosen
-    for parity exactly like those, and it still belongs here, because its value does move from one
-    chemistry to the next.
+    either. ``soloCBmatchWLtype`` and ``clipAdapterType`` are not — the first tracks whichever barcode
+    correction the vendor's reference pipeline ships, the second which read trimmer it runs, and a
+    five-prime kit runs none of the three-prime one's — so each is declared here, one row per
+    chemistry. Sorting them by what they are FOR files all four together and is wrong about half.
+    Every entry that names a trimmer points back at this paragraph; the per-vendor evidence it rests
+    on is ``docs/research/starsolo-read-preprocessing-per-family.md``.
 
     Two spellings of one geometry is one spelling too many, so ``soloCBposition`` / ``soloUMIposition``
     are omitted here and derived from the element coordinates at compose time rather than hand-typed.
@@ -395,6 +399,22 @@ class Identity(_Forbid):
     sample_is_cell: bool = False
 
 
+#: Which END of a read each read trimmer will take a declared adapter for. The modes are exactly
+#: COMPLEMENTARY, and that is what makes a clip's legality one rule rather than a table of illegal
+#: pairs: ``CellRanger4`` builds its own fixed three-prime poly-A and refuses to be handed a second
+#: one, while taking a five-prime sequence in place of the TSO it hardcodes; ``Hamming``, the default,
+#: is the reverse and rejects a five-prime adapter outright. Measured against the pinned STAR binary
+#: at parameter initialization and never read off its help, which is stale relative to its own code —
+#: it still advertises a third mode that fails to parse, which is why a value absent from here is
+#: refused rather than assumed harmless. Adding a mode is the same deliberate act as adding an
+#: ``ElementType``, and the measurement belongs beside the rest of the arity table in
+#: ``docs/research/smartseq3-tn5-read-through.md``.
+_CLIP_END_A_TRIMMER_TAKES: Final[dict[str, str]] = {
+    "CellRanger4": "five-prime",
+    "Hamming": "three-prime",
+}
+
+
 class Spec(_Forbid):
     """A complete, self-validating technology specification (one node in the KB tree)."""
 
@@ -436,11 +456,12 @@ class Spec(_Forbid):
     #: extrapolation, so a threshold set there would be compared against an estimate and would move
     #: with ``--max-reads``. ``None`` — every shipped spec — admits everything. (#253 decisions 5, 7)
     min_input_reads: int | None = Field(default=None, gt=0)
-    #: The sequence past which a read has stopped being genomic — the adapter a fragment shorter than
-    #: the read runs off the end of its own cDNA and into. **Terminal, not a span**: everything behind
-    #: the match is adapter, index and flowcell primer too, so the whole tail goes. That is exactly
-    #: what an aligner's clip does, and it is why this is not a trimming knob — it states a fact about
-    #: the MOLECULE, which makes it chemistry and puts it here rather than in a recipe (ADR-0048).
+    #: The sequence past which a read has stopped being genomic — the non-genomic tail a fragment
+    #: shorter than the read runs off the end of its own cDNA into, whatever that construction puts
+    #: there (a tagmentation adapter, a capture poly-A). **Terminal, not a span**: everything behind
+    #: the match has stopped being genomic too, so the whole tail goes. That is exactly what an
+    #: aligner's clip does, and it is why this is not a trimming knob — it states a fact about the
+    #: MOLECULE, which makes it chemistry and puts it here rather than in a recipe (ADR-0048).
     #:
     #: Stated ONCE for the chemistry and never per read. What the entry owes is the sequence; every
     #: pipeline works out its own flag from it, which is the same division that keeps the barcode
@@ -600,6 +621,62 @@ class Spec(_Forbid):
             raise ValueError(
                 f"{self.identity.id!r}: read_through is declared but no read carries cdna or gdna "
                 f"for a fragment to run off the end of"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _clip_end_matches_the_trimmer(self) -> Spec:
+        """A declared clip must sit at an END the declared trimmer will take an adapter for.
+
+        ONE rule, and deliberately not a list of the pairs that are illegal: the trimmers are
+        complementary, so a reader who learns "the end has to be an end that trimmer takes" has
+        learned all of it, while a list of two cases is two facts to remember and a third to add
+        later. A chemistry names its trimmer in ``backend.params`` and may declare a clip at either
+        end — ``clip5pAdapterSeq`` beside it, ``read_through`` at the top level, where it is because
+        two pipelines consume it. The rule spans both halves, so this model is the only thing that
+        sees it whole.
+
+        Refused at LOAD, where every other mistake in this DSL dies, because the alternative is not a
+        wrong number: the aligner rejects the combination at parameter initialization, BEFORE the
+        genome is loaded, so a deposit's every sample fails after its queue wait over a flag nobody
+        typed and no output at all is produced.
+
+        Dispatched on what the entry DECLARES, never on the module it names — the discipline
+        :meth:`_cell_axis_matches_the_module` follows, reached here without needing the module at
+        all. A pipeline that passes no trimmer has no such key in its parse namespace, so no spec on
+        it can declare one and this is silent there: the aligner's own default governs, which is what
+        lets the plate pipeline clip a read-through today. A trimmer this schema knows no end for is
+        refused rather than skipped, because skipping would switch the rule off for precisely the
+        entry that got its trimmer wrong — the "defined by silence" shape that made the key required.
+        """
+        if self.backend is None:
+            return self
+        trimmer = self.backend.params.get("clipAdapterType")
+        if trimmer is None:
+            return self
+        takes = _CLIP_END_A_TRIMMER_TAKES.get(str(trimmer))
+        if takes is None:
+            raise ValueError(
+                f"{self.identity.id!r}: clipAdapterType {trimmer!r} is a trimmer this schema knows "
+                f"no end for, so no clip declared beside it could be checked against it — and an "
+                f"unchecked pairing is how a chemistry acquires one STAR rejects before it loads a "
+                f"genome. Known: {sorted(_CLIP_END_A_TRIMMER_TAKES)}"
+            )
+        override = self.backend.params.get("clip5pAdapterSeq")
+        declared = (
+            ("five-prime", "backend.params.clip5pAdapterSeq", override),
+            ("three-prime", "read_through", self.read_through),
+        )
+        for end, field, sequence in declared:
+            if sequence is None or end == takes:
+                continue
+            raise ValueError(
+                f"{self.identity.id!r} declares a {end} clip in {field}, beside clipAdapterType "
+                f"{trimmer!r}, which takes an adapter at the {takes} end and no other. A clip is "
+                f"performed by whichever trimmer runs, so the end it sits at has to be an end that "
+                f"trimmer takes — STAR rejects this pair at parameter initialization, before the "
+                f"genome loads, so every sample of the deposit would die after its queue wait "
+                f"instead of this entry failing here"
             )
         return self
 

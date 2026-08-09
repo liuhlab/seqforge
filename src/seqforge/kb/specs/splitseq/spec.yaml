@@ -147,6 +147,23 @@ backend:
     # the same soloType, which is exactly why the key belongs to the KB and not to a soloType branch in
     # the module. Full note in `bd-rhapsody-wta`.
     soloCBmatchWLtype: 1MM
+    # The clip STAYS ON and the SEQUENCE changes. SPLiT-seq's own TSO is
+    # AAGCAGTGGTATCAACGCAGAGTGAATGGG, verbatim from the paper's oligo table (BC_0127), and the authors'
+    # own pipeline finds it at the START of read 1 and trims it (see the soloStrand derivation below,
+    # which reads the same fact off the same code). It differs from 10x's at exactly two of thirty
+    # positions, so the clip this module used to apply unconditionally FIRED here — with the wrong
+    # sequence. Removing it would regress further than fixing it: this cDNA read is 66 bp, so a 30 nt
+    # TSO is ~45% of it.
+    # A supplied clip5pAdapterSeq REPLACES CellRanger4's hardcoded 10x TSO rather than adding to it —
+    # read off STAR's own source, with the lines, in
+    # `docs/research/starsolo-read-preprocessing-per-family.md` — and CellRanger4 is the only mode in
+    # which the 5' override is legal at all, which is why the mode stays rather than becoming
+    # `Hamming` like the entries that clip nothing.
+    # ACCEPTED DIVERGENCE: CellRanger4 also forces a 3' poly-A clip the authors do not perform. It
+    # cannot be separated from the TSO fix, and SPLiT-seq is poly-A primed, so the divergence is from
+    # their pipeline rather than from the biology.
+    clipAdapterType: CellRanger4
+    clip5pAdapterSeq: AAGCAGTGGTATCAACGCAGAGTGAATGGG
     # soloStrand: DERIVED (FLAG closed). Was the most dangerous value in this file — a wrong strand
     # leaves most reads unassigned while STARsolo exits 0 and emits a matrix that merely looks like a
     # thin dataset. Neither gate can catch it: the params gate only proves the value survives compose

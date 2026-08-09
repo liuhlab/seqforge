@@ -79,7 +79,14 @@ backend:
     # on the default alone. Identical to `bd-rhapsody-wta-enhanced-v1`'s, as the whole read layout is —
     # the CLS pools are the only difference between the two leaves. Full note in `bd-rhapsody-wta`.
     soloCBmatchWLtype: 1MM
+    # `Hamming` — STAR's default, and what BD runs on by passing no clip-type flag. Identical to the
+    # v1 leaf's, as the whole cDNA side is; full note in `bd-rhapsody-wta`.
+    clipAdapterType: Hamming
     soloStrand: Forward
     # soloAdapterSequence / soloCBposition / soloUMIposition DERIVED from the anchored elements (see -96).
+
+# BD's own fixed 38-base poly-A, identical to the v1 leaf's as the whole cDNA side is; full note in
+# `bd-rhapsody-wta`. Generated, never hand-typed: length asserted in the tests.
+read_through: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 confusable_with: []

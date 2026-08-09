@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from conftest import KbProbes, registry_for, write_fastq_gz
 from seqforge import kb
-from seqforge.io import OnlistRegistry
+from seqforge.io import OnlistRegistry, revcomp
 from seqforge.kb.schema import Identity, MotifPresent, Read, Spec
 from seqforge.models.observation import ConstantSegment
 from seqforge.probe import probe_file
@@ -644,6 +644,52 @@ def test_every_starsolo_spec_declares_a_cb_match_type_its_solotype_accepts() -> 
         f"the sweep covered soloTypes {sorted(seen_types)}, not {sorted(CB_MATCH_WL_TYPES)}; every "
         f"wrong answer about soloCBmatchWLtype breaks the Complex specs and leaves the 10x ones green"
     )
+
+
+def test_every_starsolo_spec_declares_the_read_preprocessing_its_own_protocol_runs() -> None:
+    """``clipAdapterType`` is REQUIRED of all of them, and silence is what that forbids.
+
+    The module dereferences the key with a subscript, so a spec that omits it is a ``KeyError`` on a
+    compute node. Optional-with-a-default was rejected for a second reason this test is the guard
+    for: whichever group stayed silent would be *defined* by silence, and a new entry would join it
+    by accident — which is exactly how four chemistries came to be handed a three-prime 10x TSO.
+
+    Collected from the loader rather than from a roster of the eleven, so the twelfth is covered
+    because it exists. Both values must be exercised by a real spec: the whole point of the move is
+    that the right answer differs between chemistries, and a sweep in which every entry says
+    ``CellRanger4`` is indistinguishable from the module literal this replaced.
+
+    Which clip each trimmer will TAKE is not asserted here, and was: it is a property of the DSL now
+    (``Spec._clip_end_matches_the_trimmer``), so a shipped entry that got it wrong could not reach
+    the assertion — ``load_spec`` on the line above refuses it first, and would refuse it for every
+    other test in this file too.
+    """
+    seen: dict[str, set[str]] = {}
+    for tech in kb.runnable_spec_ids():
+        backend = kb.load_spec(tech).require_backend()
+        if backend.module != "map/starsolo":
+            continue
+        declared = backend.params.get("clipAdapterType")
+        assert isinstance(declared, str), (
+            f"{tech}: declares no clipAdapterType. The module subscripts the key, so saying nothing "
+            f"is a KeyError after the queue wait — and a default would file this entry by silence"
+        )
+        seen.setdefault(declared, set()).add(tech)
+
+    assert set(seen) == {"CellRanger4", "Hamming"}, (
+        f"the sweep found {sorted(seen)}; a knowledge base in which every chemistry names the same "
+        f"trimmer is the module literal this key replaced, wearing a spec's clothes"
+    )
+    # The five three-prime 10x entries, by name and as a set, because their command line is the one
+    # thing this change was not allowed to move: they are what a published CellRanger matrix is
+    # comparable to, and a corpus of counts already exists under exactly this value.
+    assert seen["CellRanger4"] >= {
+        "10x-3p-gex-v2",
+        "10x-3p-gex-v3",
+        "10x-3p-gex-v3.1",
+        "10x-gemx-3p-v4",
+        "10x-multiome-gex",
+    }
 
 
 def test_the_kb_cannot_even_express_a_count_key() -> None:
@@ -1802,9 +1848,13 @@ def test_a_backend_on_the_plate_module_may_declare_no_parse_key_at_all() -> None
     DERIVED into one config key rather than declared. That makes "a user instruction contradicts the
     observed bytes" inexpressible for this pipeline by construction: there is nothing to write.
 
-    The refused key below is a *valid* key of another pipeline, which is the case that matters — the
-    namespace is per pipeline, so a plausible-looking `solo*` knob copied from a neighbouring spec
-    must not quietly become this backend's.
+    The refused keys below are *valid* keys of another pipeline, which is the case that matters — the
+    namespace is per pipeline, so a plausible-looking knob copied from a neighbouring spec must not
+    quietly become this backend's. `clip5pAdapterSeq` is the one worth naming beside a `solo*` offset:
+    it states a fact about the MOLECULE rather than about STARsolo's geometry, so it is the key a
+    plate entry would most reasonably reach for, and it stays starsolo-only until a second module can
+    honour a five-prime override. The shape that DID earn a reader in two modules, `read_through`, is
+    a top-level field rather than a param for exactly that reason.
     """
     from seqforge.kb.loader import SPECS_DIR
 
@@ -1814,8 +1864,9 @@ def test_a_backend_on_the_plate_module_may_declare_no_parse_key_at_all() -> None
         "identity": {**raw["identity"], "sample_is_cell": True},
         "backend": {"module": "map/star-umi", "params": {"soloUMIlen": 8}},
     }
-    with pytest.raises(ValidationError, match=r"does not parse"):
-        Spec.model_validate(plate)
+    for params in ({"soloUMIlen": 8}, {"clip5pAdapterSeq": "AAGCAGTGGTATCAACGCAGAGTGAATGGG"}):
+        with pytest.raises(ValidationError, match=r"does not parse"):
+            Spec.model_validate({**plate, "backend": {"module": "map/star-umi", "params": params}})
 
     # Nor may it declare the derived key itself, which is the same refusal reached from the other
     # side: `read_structure` is not in this pipeline's parse namespace either, because it is not
@@ -1874,6 +1925,102 @@ def test_a_read_through_needs_a_sequence_and_a_read_that_could_reach_it() -> Non
     }
     with pytest.raises(ValidationError, match="no read carries cdna or gdna"):
         Spec.model_validate(no_cdna)
+
+
+@pytest.mark.parametrize(
+    ("trimmer", "read_through", "five_prime_override", "refused"),
+    [
+        ("CellRanger4", "CTGTCTCTTATACACATCT", None, "three-prime clip"),
+        ("Hamming", "CTGTCTCTTATACACATCT", None, None),
+        ("Hamming", None, "AAGCAGTGGTATCAACGCAGAGTGAATGGG", "five-prime clip"),
+        ("CellRanger4", None, "AAGCAGTGGTATCAACGCAGAGTGAATGGG", None),
+        ("None", None, None, "knows no end for"),
+    ],
+)
+def test_a_declared_clip_must_sit_at_an_end_its_declared_trimmer_takes(
+    trimmer: str,
+    read_through: str | None,
+    five_prime_override: str | None,
+    refused: str | None,
+) -> None:
+    """The trimmer a chemistry names decides which END of a read a clip may be declared at.
+
+    Not a preference and not a wasted flag: the trimmer that will not take an adapter at that end
+    refuses the whole run at parameter initialization, before the genome is loaded, so a spec pairing
+    them wrong kills every sample of the deposit after its queue wait, over a flag nobody typed. That
+    is why the pairing is refused at LOAD — and why it is refused *here*, since one half of it is a
+    backend param and the other is top level, and the spec is the only thing that sees both.
+
+    Both refusals are exercised, and so are both legal pairings, because the two modes are exactly
+    complementary: a rule that refused every clip would pass the refusal rows on its own and be
+    indistinguishable from this one. The last row is the trimmer nobody can check — STAR's shipped
+    help still advertises an option its code rejects — and it is refused rather than skipped, since
+    skipping would turn the rule off for exactly the entry that got the trimmer wrong.
+    """
+    from seqforge.kb.loader import SPECS_DIR
+
+    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
+    params = {**raw["backend"]["params"], "clipAdapterType": trimmer}
+    if five_prime_override is not None:
+        params["clip5pAdapterSeq"] = five_prime_override
+    candidate = {
+        **raw,
+        "backend": {**raw["backend"], "params": params},
+        "read_through": read_through,
+    }
+    if refused is None:
+        legal = Spec.model_validate(candidate)
+        assert legal.read_through == read_through
+        assert legal.require_backend().params.get("clip5pAdapterSeq") == five_prime_override
+        return
+    with pytest.raises(ValidationError, match=refused):
+        Spec.model_validate(candidate)
+
+
+@pytest.mark.parametrize(
+    ("family", "expected"),
+    [
+        ("bd-rhapsody", "A" * 38),
+        ("10x-5p-gex", revcomp("TTTCTTATATGGG")),
+    ],
+)
+def test_leaves_that_share_a_cdna_read_share_one_derivable_read_through(
+    family: str, expected: str
+) -> None:
+    """One sequence per family, and in neither case can a reviewer check the literal by eye.
+
+    A family whose leaves are identical on the cDNA read gets one answer for all of them, so any
+    drift between siblings is this sweep's to catch. What makes it worth its lines is that the
+    expected value is DERIVED here rather than copied off the entry — the same reason neither value
+    was hand-typed into the files:
+
+    * BD hands STAR a fixed run of A's, byte-identical across its pipeline 2.2.1 / 2.3 / 2.4b / 3.0.
+      A run one base short reads identically and is wrong at exit 0: STAR clips a shorter tail than
+      the molecule carries, and every cell keeps paying the remainder inside the length-relative
+      filter. STAR's ``polyA`` *keyword* is a different and more aggressive clip — a run as long as
+      the read — and is explicitly not what BD passes, which is why this is a sequence and not a mode.
+    * The 10x 5' anchor is the REVERSE COMPLEMENT of the template-switch tail the gel-bead primer
+      ends in, and that relationship is the claim. The entry derives the primer in full for its
+      strand call and deliberately does not restate the anchor beside it, so the two are written
+      down once each and joined here; transcribing a complement by eye is exactly the error this
+      catches. Both 5' leaves declare it because prevalence is a property of a LIBRARY rather than of
+      a kit — measured from 0.094% to 10.41% across five 5' libraries against 0.0000% on 3' — so
+      declaring it only where it happened to be common would file a library property as a chemistry
+      one.
+
+    Collected from the loader rather than from a roster, so a new leaf of either family is covered
+    because it exists; each row asserts it matched something, because a renamed id would otherwise
+    empty the sweep and pass.
+    """
+    found = [t for t in kb.runnable_spec_ids() if t.startswith(family)]
+    assert found, f"the {family} sweep matched no entry, so it proves nothing about the value below"
+    for tech in found:
+        declared = kb.load_spec(tech).read_through
+        assert declared == expected, (
+            f"{tech}: read_through is {declared!r}, not the {expected!r} this family's cDNA read "
+            f"runs into. The expected value is derived here and never copied from the entry, so a "
+            f"hand-edited literal that reads plausibly is what goes red"
+        )
 
 
 def test_decidable_by_is_derived_from_the_confusables_not_typed_beside_them() -> None:

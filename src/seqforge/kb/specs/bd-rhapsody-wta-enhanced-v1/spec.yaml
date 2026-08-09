@@ -83,6 +83,10 @@ backend:
     # FATALs on the default alone, on a compute node after the genome has loaded. Confirmed against
     # real reads of this bead (seqforge #43); full note in `bd-rhapsody-wta`.
     soloCBmatchWLtype: 1MM
+    # `Hamming` — STAR's default, and what BD runs on by passing no clip-type flag at all. The Enhanced
+    # bead differs from the original only on the BARCODE read, so its cDNA read gets the same answer;
+    # full note in `bd-rhapsody-wta`, including why `CellRanger4` was wrong here and what it clipped.
+    clipAdapterType: Hamming
     # soloStrand Forward: the bead oligo ends in poly(dT) priming off the mRNA poly(A), so R2 is sense to
     # the transcript — a 3' poly-dT capture library like the original bead (STAR #1607 sets Forward).
     soloStrand: Forward
@@ -90,6 +94,12 @@ backend:
     # compose time (compose/params.py) -> "NNNNNNNNNGTGANNNNNNNNNGACA" + "2_0_2_8 2_13_2_21 3_1_3_9" +
     # "3_10_3_17", byte-identical to the maintainer-endorsed STARsolo string on issue #1607. Never
     # hand-entered: the adapter anchor is where STARsolo absorbs the variable diversity insert.
+
+# BD's own fixed 38-base poly-A, unchanged across its pipeline 2.2.1 / 2.3 / 2.4b / 3.0. The Enhanced
+# bead differs from the original only on the BARCODE read, so its cDNA read gets the same answer;
+# full note in `bd-rhapsody-wta`, including why this is a read-through rather than a trimming knob
+# and why STAR's `polyA` keyword is not it. Generated, never hand-typed: length asserted in the tests.
+read_through: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 # Siblings under the family are decided by onlist (parent.children_decided_by), so no per-sibling edge.
 # Nothing else is confusable: the GTGA...GACA `requires` motif rejects the original bead, 10x and bulk
