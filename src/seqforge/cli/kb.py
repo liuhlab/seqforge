@@ -8,8 +8,8 @@ from pathlib import Path
 import typer
 from pydantic import ValidationError
 
-from ..e2e import SHIPPED_OUT_SAM_TYPE
 from ..kb import list_spec_ids, load_spec, run_roundtrip
+from ..workflows.starsolo_args import SHIPPED_OUT_SAM_TYPE
 from ._common import _parse_quantify
 from .root import kb_app
 

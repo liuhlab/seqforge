@@ -41,6 +41,14 @@ maintainer decision of 2026-07-15 rather than a measurement.
 
 ## `kb e2e-cost` — hg38, peak memory at corpus scale
 
+> **Both figures are FLOORS, and have been since 2026-08-08.** They were measured with an argv that
+> omitted nine flags the shipped module runs — the whole CellRanger-parity set, the SAM attributes,
+> and `--limitBAMsortRAM`, which is the flag that bounds STAR's sort. The instrument renders the
+> module's command line now (#348), so what it runs does strictly more work than what produced these
+> numbers. **Sizing derived from them below 250 M reads may therefore be low.** Re-run on arc and
+> replace them; until then the 128 GB provisioning above 250 M is the safe direction of the error, and
+> the slope is the part that was never in question.
+
 **34.7 GB at 100 M reads and 44.1 GB at 250 M**, so the flat regime ends between them and peak RSS is
 roughly a genome-sized intercept plus a slope in reads. The ce11 fixture cannot answer this — peak RSS
 moved only 2.804 to 2.809 GB across a 500× read increase, because 2.8 GB *is* the ce11 index and the

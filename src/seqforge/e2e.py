@@ -59,10 +59,16 @@ from .manifest import (
 )
 from .models.dataset import DatasetManifest, SampleGroup
 from .models.evidenced import EvidencedTaxid
-from .models.processing import ProcessingManifest
+from .models.processing import ProcessingManifest, ResourceHints
 from .pipeline import CompiledPipeline
 from .probe import probe_file
 from .resolve import resolve_dataset
+from .workflows.memory import bam_sort_ram
+from .workflows.starsolo_args import (
+    CELLRANGER_PARITY,
+    SHIPPED_OUT_SAM_TYPE,
+    starsolo_argv,
+)
 
 _GENE_ID = re.compile(r'gene_id "([^"]+)"')
 #: Ensembl and WormBase spell it ``gene_biotype``; GENCODE spells it ``gene_type``. Match both.
@@ -79,36 +85,24 @@ _COMPLEMENT = str.maketrans("ACGTN", "TGCAN")
 #: The pilot's e2e chemistry: 16 bp CB + 12 bp UMI on R1, cDNA on R2, soloStrand Forward.
 E2E_TECH = "10x-3p-gex-v3"
 
-#: What ``starsolo.smk`` hardcodes for ``--outSAMtype``: the value the SHIPPED pipeline really runs.
+#: What ``--soloCellFilter`` runs — **read out of the parity set, never restated beside it.**
 #:
-#: The gates and the cost sweep both default to ``None`` — they want a count matrix, and a BAM they
-#: never read is pure cost — so this is the other half of ``kb e2e-cost --out-sam-type``, which exists
-#: to price the gap between the command the instrument runs and the command users run. That makes it
-#: a claim about *another file*, and it was written out as a literal in four of them: the argv comment
-#: in :func:`run_starsolo`, :func:`run_composed`'s docstring, ``--out-sam-type``'s help text, and the
-#: resume-fingerprint test. Four copies of one fact is four chances to leave the cost arm pricing a
-#: command nobody runs. ``tests/test_e2e.py`` reads the module's own shell block back and asserts it
-#: equals this, so the one copy that remains cannot drift either.
+#: `workflows.starsolo_args.CELLRANGER_PARITY` is the one place the cell caller is named; this reads
+#: the value it gives that flag. It was a second literal until #348, kept honest by a test that
+#: matched substrings against the Snakefile's text — and the failure it was written for had already
+#: happened once in the other direction: a determinism guard that quietly fell back to
+#: ``CellRanger2.2``, a closed-form knee that could not be nondeterministic if it tried, would have
+#: gone green forever while the Monte-Carlo caller we ship went unchecked.
 #:
-#: **Coordinate-sorted rather than unsorted, and that is not tidiness.** STAR refuses to put ``CB``
-#: and ``UB`` in anything but the sorted BAM, so this is what lets the retained CRAM carry a barcode
-#: at all — and a CRAM without one can be recounted under no other GTF and joined back to no cell.
-SHIPPED_OUT_SAM_TYPE: tuple[str, ...] = ("BAM", "SortedByCoordinate")
-
-#: What ``starsolo.smk`` hardcodes for ``--soloCellFilter``: CellRanger >=3's cell caller.
-#:
-#: Adopted with the rest of the CellRanger-equivalence set (#198), and it is the only member of that
-#: set whose correctness argument had a hole in it: ``EmptyDrops_CR`` is **Monte-Carlo** (10 000
-#: ambient simulations by default). A nondeterministic QC bundle would be a genuine problem for a
-#: content-addressed compiler, so it was measured before it was adopted — bit-identical across
-#: repeats, thread counts and RNG seeds on a real 6.79M-barcode matrix.
-#:
-#: That measurement is what :func:`run_cell_filter_determinism` exists to keep true. Seed-independence
-#: is *stronger* than the theory predicts, and the benign explanation — that no candidate sat near the
-#: FDR boundary on that one sample, so simulation noise had nothing to flip — cannot be ruled out from
-#: one dataset. So the property is asserted on every gate run rather than believed, which also covers
-#: the case nobody would otherwise notice: a future ``align-rna`` bumping STAR under it.
-SHIPPED_CELL_FILTER = "EmptyDrops_CR"
+#: That is what :func:`run_cell_filter_determinism` exists to prevent, and why it takes the value from
+#: here rather than naming one: ``EmptyDrops_CR`` is Monte-Carlo (10 000 ambient simulations by
+#: default), it was measured bit-identical across repeats, thread counts and RNG seeds on a real
+#: 6.79M-barcode matrix before it was adopted, and seed-independence is *stronger* than the theory
+#: predicts. The benign explanation — that no candidate sat near the FDR boundary on that one sample,
+#: so simulation noise had nothing to flip — cannot be ruled out from one dataset. So the property is
+#: asserted on every gate run rather than believed, which also covers the case nobody would otherwise
+#: notice: a future ``align-rna`` bumping STAR under it.
+SHIPPED_CELL_FILTER = CELLRANGER_PARITY[CELLRANGER_PARITY.index("--soloCellFilter") + 1]
 
 
 class E2EUnavailable(RuntimeError):
@@ -554,12 +548,13 @@ def run_starsolo(
     threads: int = 8,
     cost: dict[str, object] | None = None,
     timeout: int = 1800,
-    out_sam_type: tuple[str, ...] = ("None",),
+    out_sam_type: tuple[str, ...] = SHIPPED_OUT_SAM_TYPE,
+    mem_mb: int = ResourceHints().mem_gb * 1024,
     extra_args: tuple[str, ...] = (),
 ) -> Path:
     """Invoke STAR **directly**, with the composed params. The MEMORY INSTRUMENT — not a gate.
 
-    Only `kb e2e-cost` uses this now, and the distinction is the whole point:
+    Only `kb e2e-cost` uses this, and the distinction is the whole point:
 
     - a **gate** asks "is the artifact we ship correct?", so it must run the artifact we ship. Both
       correctness arms do that via `run_composed`, which runs the emitted Snakefile.
@@ -568,65 +563,52 @@ def run_starsolo(
       turns an exact number into an approximate one — and this file already carries the scar of a
       memory reading that was silently a `max()` over several children.
 
-    This function used to back the gates too, and its docstring said running STAR with the composed
-    params "is what makes the gate test the compiler". That was true of the *params* and false of
-    everything else: it meant STARsolo's command line was rendered twice, by hand, in two places that
-    could not see each other — here, and in `starsolo.smk`, which nothing had ever executed. They had
-    already drifted: the argv below hardcodes `--soloCBstart/CBlen/UMIstart/UMIlen`, so it cannot run
-    a `CB_UMI_Complex` chemistry at all, while the module branches on `soloType` to handle one.
+    **It runs the command the module ships, and did not until #348.** The argv used to be rendered
+    here by hand, and had drifted twice over: it named the four `soloCB`/`soloUMI` start/len flags
+    directly — so it could not run a `CB_UMI_Complex` chemistry at all, while the module branched on
+    `soloType` and could — and it omitted NINE shipped flags, among them `--limitBAMsortRAM`, which is
+    to say the memory instrument left out the flag that bounds STAR's memory. Neither omission was
+    anyone's decision; the argv was written once and the module grew past it.
 
-    Keep that in mind before adding a flag here: this is a measuring device pointed at STAR, and it is
-    NOT evidence about the pipeline. If you want a claim about what users run, put it in `run_composed`.
+    `workflows.starsolo_args.starsolo_argv` renders both now, so the only differences left are the
+    ones a measurement physically forces, and they are the three arguments below:
+
+    - ``out_sam_type`` is the swept axis, and the reason it is a parameter rather than a constant:
+      the gates want a count matrix, so a BAM they never read is pure cost, but the module ships
+      :data:`SHIPPED_OUT_SAM_TYPE` — a cost arm that only ever priced `None` would price a command
+      nobody runs. `kb e2e-cost --out-sam-type` measures that gap instead of estimating it.
+    - ``mem_mb`` sizes the sort cap through the module's own `bam_sort_ram`, so the cap the sweep runs
+      under is the cap a recipe of that size would run under. It defaults to the recipe default.
+    - ``extra_args`` is what a measurement adds to itself, and is never a claim about what ships.
+
+    Keep that in mind before adding an argument here: this is a measuring device pointed at STAR, and
+    it is NOT evidence about the pipeline. If you want a claim about what users run, put it in
+    `run_composed` — or, now, in the renderer both of them share.
 
     ``cost``, if given, is populated with this STAR run's wall-clock and peak RSS.
     """
     outdir.mkdir(parents=True, exist_ok=True)
     cmd = [
         assets.star_bin,
-        "--runMode",
-        "alignReads",
-        "--genomeDir",
-        str(assets.star_index),
-        "--runThreadN",
-        str(threads),
-        # --readFilesIn takes the cDNA read FIRST, then the barcode read. Each mate may be a
-        # comma-separated LIST, which is what lets sharded generation skip a merge step entirely.
-        "--readFilesIn",
-        _fq_arg(cdna_fq),
-        _fq_arg(barcode_fq),
-        "--readFilesCommand",
-        "zcat",
-        # STAR runs the reader from a shebang-less script it writes itself, which execs only where
-        # libc retries through /bin/sh -- glibc does, macOS does not. This names the shell, so the
-        # script gets a `#!`. See `NO_STAR_ALIGNMENT_ON_MACOS` in tests/conftest.py for the measurement.
-        "--sysShell",
-        "/bin/bash",
-        "--soloType",
-        str(solo["soloType"]),
-        "--soloCBstart",
-        str(solo["soloCBstart"]),
-        "--soloCBlen",
-        str(solo["soloCBlen"]),
-        "--soloUMIstart",
-        str(solo["soloUMIstart"]),
-        "--soloUMIlen",
-        str(solo["soloUMIlen"]),
-        "--soloCBwhitelist",
-        str(whitelist),
-        "--soloStrand",
-        str(solo["soloStrand"]),
-        # --soloFeatures takes N space-separated values; STAR writes one Solo.out/<feature>/ per value.
-        *("--soloFeatures", *_feature_list(solo["soloFeatures"])),
-        "--outFileNamePrefix",
-        f"{outdir}/",
-        # `None` by default: the gates want a count matrix, not alignments, and writing a BAM they
-        # never read would be pure cost. But the SHIPPED module runs `SHIPPED_OUT_SAM_TYPE`, so a
-        # cost arm that only ever prices `None` prices a command nobody runs -- which is why this is
-        # a parameter rather than a constant, and why `kb e2e-cost --out-sam-type` exists to measure
-        # the gap instead of estimating it in a docstring.
-        "--outSAMtype",
-        *out_sam_type,
-        *extra_args,
+        *starsolo_argv(
+            solo,
+            genome_dir=assets.star_index,
+            # --readFilesIn takes the cDNA read FIRST, then the barcode read. Each mate may be a
+            # comma-separated LIST, which is what lets sharded generation skip a merge step entirely.
+            cdna=_fq_arg(cdna_fq),
+            barcode=_fq_arg(barcode_fq),
+            whitelist=whitelist,
+            out_prefix=f"{outdir}/",
+            threads=threads,
+            bam_sort_ram_bytes=bam_sort_ram(mem_mb),
+            out_sam_type=out_sam_type,
+            # STAR runs the reader from a shebang-less script it writes itself, which execs only where
+            # libc retries through /bin/sh -- glibc does, macOS does not. This names the shell, so the
+            # script gets a `#!`. See `NO_STAR_ALIGNMENT_ON_MACOS` in tests/conftest.py for the
+            # measurement. Under snakemake the job already has a shell, so the module names none.
+            sys_shell="/bin/bash",
+            extra=extra_args,
+        ),
     ]
     code, elapsed, maxrss_kib, err_tail = _run_measured(cmd, outdir=outdir, timeout=timeout)
     if code != 0:
@@ -757,12 +739,14 @@ def run_composed(
     STAR argv. That tested the params — its docstring said so, and it was true — and it never touched
     `starsolo.smk`. So the command line was rendered twice, by hand, in two places that could not see
     each other: once in the module we ship to users, once in the test we trust. Nothing ever ran the
-    first one. The two had already drifted — the test's copy hardcodes `--soloCBstart/CBlen/UMIstart/
-    UMIlen` and so cannot run a `CB_UMI_Complex` chemistry at all, while the module branches on
-    `soloType` to handle exactly that.
+    first one, and the two had drifted twice over — the instrument's copy could not run a
+    `CB_UMI_Complex` chemistry at all, and it omitted nine of the module's flags.
 
-    Now there is one rendering, in the module, and the ground-truth assertion — *the matrix equals the
-    barcodes and UMIs we injected* — covers the artifact a user actually submits.
+    Two fixes, and they are different fixes. This one made the gate run the emitted Snakefile, so the
+    ground-truth assertion — *the matrix equals the barcodes and UMIs we injected* — covers the
+    artifact a user actually submits. The second (#348) removed the second rendering itself:
+    `workflows.starsolo_args` now renders the argv for the module AND for the instrument that still
+    has to reap STAR directly, so "rendered twice by hand" is no longer a thing that can recur.
 
     Two consequences worth naming rather than discovering:
 
