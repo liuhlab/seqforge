@@ -784,6 +784,22 @@ def _outranking(found: list[_Position]) -> list[_Position]:
     2. **Declared, within ONE source.** A value the submitter TYPED into a slot for this attribute
        beats a model's reading of that same source's prose — whatever the reading says.
 
+    **There is no third level, and there cannot be one here.** This returned
+    ``sorted(kept, key=lambda p: not p.declared)`` until #348, to put the submitter's own spelling at
+    the head for `_decide` to store — ``Colon`` over ``colon``. It never ordered anything. Where a
+    declared position survives the two levels above it survives ALONE, by construction rather than by
+    luck: ``declared`` is set only on a record attribute, which is ``asserted`` with source
+    ``_ARCHIVE_SOURCE``; a non-declared position is either ``asserted``, which :func:`_source_of` also
+    reports as ``_ARCHIVE_SOURCE`` so level 2 filters it, or ``inferred``, which loses on rank and
+    never reaches ``top``. Both arms exhausted, nothing left to sort — verified by asserting across
+    the whole suite that ``kept`` never holds a declared position beside another, which never fired.
+
+    So the spelling is decided by level 2, and
+    ``test_a_prose_reading_never_outranks_the_slot_the_submitter_typed`` is what pins it. Restoring a
+    sort here would need a reachable state where two survivors disagree only on spelling, which means
+    changing :func:`_source_of` or :func:`_basis_for` first — and that change, not this line, is what
+    would owe a rule.
+
     Level 2 is what makes level 1 safe to state at all. GSE282765's BioSample types
     ``treatment = "Citrobacter rodentium infection"`` and a model reading that same submission's
     experiment title asserts ``treatment = "Citrobacter rodentium"`` — correct, span-verified,
@@ -814,10 +830,7 @@ def _outranking(found: list[_Position]) -> list[_Position]:
     rank = max(_BASIS_RANK[p.basis] for p in found)
     top = [p for p in found if _BASIS_RANK[p.basis] == rank]
     typed = {p.source for p in top if p.declared}
-    kept = [p for p in top if p.declared or p.source not in typed]
-    # Declared first, so the stored value is the submitter's own string rather than whichever
-    # position happened to be built first.
-    return sorted(kept, key=lambda p: not p.declared)
+    return [p for p in top if p.declared or p.source not in typed]
 
 
 #: Joiners a submitter uses where another types a space. It fixes no failing case on its own —
