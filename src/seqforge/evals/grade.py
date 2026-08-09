@@ -35,6 +35,7 @@ Three cells deserve their reasoning stated, because each is a judgement call:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -280,6 +281,26 @@ def _extract_field(
         sha = top.role_assignment.assignment.get(role)
         return labels.get(sha or "", sha)
     return f"<unsupported field {path}>"
+
+
+def grade_experiment_fields(
+    expected: Mapping[str, Any], resolution: MetadataResolution | None
+) -> list[FieldCheck]:
+    """Grade the ``experiment.*`` half of a pre-registration against one resolution.
+
+    The public seam onto the extractor and the comparison the report itself grades with, so a proof
+    that a committed transcript still carries what its case grades reaches for those rather than for
+    a second pair that could agree with the report while both are wrong. Paths that are not
+    ``experiment.*`` are skipped — the rest of the surface grades off bytes and needs a
+    ``ResolveResult``, which is :func:`grade_case`'s job.
+    """
+    checks: list[FieldCheck] = []
+    for path, want in sorted(expected.items()):
+        if not path.startswith("experiment."):
+            continue
+        actual = _extract_experiment_field(path, resolution)
+        checks.append(FieldCheck(path, want, actual, _equal(want, actual)))
+    return checks
 
 
 def _extract_experiment_field(path: str, metadata: MetadataResolution | None) -> Any:

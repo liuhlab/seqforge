@@ -1072,23 +1072,23 @@ def test_the_pilots_pre_registered_sample_facts_are_checkable_and_hold() -> None
     pilot case is `kind: local` and skips wherever the 220 GB is not mounted — everywhere but one
     laptop — and sample facts come from records.
     """
-    from seqforge.evals import discover_cases
-    from seqforge.evals.grade import _equal, _extract_experiment_field
+    from seqforge.evals import discover_cases, grade_experiment_fields
 
     case = next(c for c in discover_cases() if c.id == "PRJNA1027859")
     assert case.records is not None, "the pilot's archive records ship with the case"
     out = resolve_metadata(files=_pilot_files(), records=case.records)
 
-    claims = {k: v for k, v in case.expected.fields.items() if k.startswith("experiment.")}
-    assert claims, "the pre-registration's sample facts are in `fields:`, not in prose"
+    checks = grade_experiment_fields(case.expected.fields, out)
+    assert checks, "the pre-registration's sample facts are in `fields:`, not in prose"
     # At least one claim names a specific sample (`experiment.samples.SAMN...`), not just the `*`
     # multiset: the `*` form asserts what the dataset CONTAINS, the named form asserts the join put a
     # fact on the RIGHT sample, so a shuffled join would fail this rather than grade clean (folded from
     # `test_a_named_sample_pins_the_join_not_just_the_multiset`).
-    assert any(k.startswith("experiment.samples.SAMN") for k in claims), "no named-sample claim"
-    for path, want in sorted(claims.items()):
-        got = _extract_experiment_field(path, out)
-        assert _equal(want, got), f"{path}: expected {want!r}, got {got!r}"
+    assert any(c.path.startswith("experiment.samples.SAMN") for c in checks), (
+        "no named-sample claim"
+    )
+    for check in checks:
+        assert check.ok, f"{check.path}: expected {check.expected!r}, got {check.actual!r}"
 
 
 # ================================================================================================

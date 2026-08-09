@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..io import HitResult, Orientation, PackedOnlist, onlist_hit_rate
-from ..io.onlist import _STRANDS_SCANNED, pack_barcode, revcomp
+from ..io.onlist import STRANDS_SCANNED, pack_barcode, revcomp
 from ..kb.anchor import element_bases, resolve_windows
 from ..kb.schema import MotifWhere, Read
 from ..models.observation import CycleComposition, Observation
@@ -98,7 +98,7 @@ class WindowProbe:
         # it is one untyped caller away, and a wrong orientation costs a thin matrix rather than an
         # error. Sharing the mapping is what stops the two sites drifting: a fourth orientation now
         # fails loudly at both, instead of silently meaning "either" at one of them.
-        strands = _STRANDS_SCANNED[orientation]
+        strands = STRANDS_SCANNED[orientation]
         best = HitResult(
             hit_rate=0.0, orientation="forward", offset=0, n_tested=0, floor=onlist.floor
         )

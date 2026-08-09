@@ -186,7 +186,7 @@ def post_tool_use_targets(payload: dict[str, Any]) -> str | None:
 
 
 def questions_outstanding(workspace: Path) -> list[Path]:
-    """Every non-empty ``questions.md`` under ``.seqforge/`` — the open-ambiguity ledger."""
+    """Every non-empty ``questions.md`` under ``seqforge/`` — the open-ambiguity ledger."""
     state = state_dir(workspace)
     if not state.is_dir():
         return []

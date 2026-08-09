@@ -8,8 +8,10 @@ there is no profile-indirection layer to invent here.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from ..harvest.prep import normalize_prep_type as _normalize_prep_type
 from ..kb.schema import Spec
@@ -248,6 +250,25 @@ def prep_type_from_assertions(assertions: Sequence[Assertion]) -> str | None:
         if norm is not None:
             values.add(norm)
     return next(iter(values)) if len(values) == 1 else None
+
+
+def prep_type_from_assertions_file(path: Path | None) -> str | None:
+    """:func:`prep_type_from_assertions`, reading ``harvest extract``'s artifact off disk.
+
+    Public because two command groups read the prep this way — ``processing new`` and ``run`` — so the
+    only path by which a single-nucleus paper reaches :func:`resolve_features` had no seam a test could
+    name. ``None`` when no path was given, so a caller can pass its optional flag straight through.
+    """
+    if path is None:
+        return None
+    payload = json.loads(path.read_text())
+    if isinstance(payload, list):
+        # A pre-2026.7 bare list: it cannot say which documents were `--instruction`, and the caller's
+        # instruction read refuses it by name. Silent here so ONE refusal reaches the user, not two.
+        return None
+    return prep_type_from_assertions(
+        [Assertion.model_validate(a) for a in payload.get("assertions", ())]
+    )
 
 
 def resolve_features(

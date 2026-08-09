@@ -25,6 +25,7 @@ from ..manifest import (
     ProcessingInputs,
     exit_code_for_report,
     fill_processing,
+    prep_type_from_assertions_file,
     validate_processing,
 )
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
@@ -32,7 +33,7 @@ from ..workspace import logs_dir, readable, records_dir, state_dir
 from ._common import _auto_cpus, _load_manifest
 from .harvest import PdfBackendChoice, _harvest_extract_pipeline
 from .manifest import _fill_manifest_pipeline
-from .processing import _instructions_from, _prep_type_from
+from .processing import _instructions_from
 from .root import app
 
 if TYPE_CHECKING:
@@ -204,7 +205,7 @@ def _process_and_compose(
     summary: dict[str, object] = {}
     try:
         instructions = _instructions_from(assertions_path)
-        prep_type = _prep_type_from(assertions_path)
+        prep_type = prep_type_from_assertions_file(assertions_path)
     except (OSError, ValueError, ValidationError) as exc:
         return {"processing": {"error": str(exc)}}, 2
     try:

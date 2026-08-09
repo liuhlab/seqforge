@@ -2451,8 +2451,8 @@ def test_the_field_narrowed_transcript_still_resolves_every_value_its_case_grade
     a new graded path that is neither `library.chemistry` nor `experiment.*` fails here, so it cannot
     slip past unproven.
     """
+    from seqforge.evals import grade_experiment_fields
     from seqforge.evals.case import _records_the_package_reaches
-    from seqforge.evals.grade import _extract_experiment_field
     from seqforge.models.observation import FileIdentity
     from seqforge.resolve.records import resolve_metadata
 
@@ -2480,17 +2480,11 @@ def test_the_field_narrowed_transcript_still_resolves_every_value_its_case_grade
     )
 
     metadata = resolve_metadata(files=files, records=narrowed, assertions=(), subjects=())
-    for path, expected in sorted(graded.items()):
-        if path == "library.chemistry":
-            continue
-        actual = _extract_experiment_field(path, metadata)
-        if isinstance(expected, list):
-            assert sorted(map(str, actual)) == sorted(map(str, expected)), (
-                f"{case.id}: {path} resolved to {len(actual)} value(s), not {len(expected)} — the "
-                f"transcript no longer carries what the pre-registration grades"
-            )
-        else:
-            assert actual == expected, f"{case.id}: {path} resolved to {actual!r}, not {expected!r}"
+    for check in grade_experiment_fields(graded, metadata):
+        assert check.ok, (
+            f"{case.id}: {check.path} resolved to {check.actual!r}, not {check.expected!r} — the "
+            f"transcript no longer carries what the pre-registration grades"
+        )
 
 
 def test_the_field_narrowed_transcript_carries_exactly_the_fields_its_script_declares() -> None:
