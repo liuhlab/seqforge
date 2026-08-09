@@ -155,9 +155,9 @@ backend:
     # sequence. Removing it would regress further than fixing it: this cDNA read is 66 bp, so a 30 nt
     # TSO is ~45% of it.
     # A supplied clip5pAdapterSeq REPLACES CellRanger4's hardcoded 10x TSO rather than adding to it —
-    # the hardcoded value is a default-fill guarded by `if (in[0].adSeq[0]=="-")`, `ClipMate` holds one
-    # scalar `adSeq`, and there is a single `opalAlign` call site — and CellRanger4 is the only mode
-    # in which the 5' override is legal at all, which is why the mode stays rather than becoming
+    # read off STAR's own source, with the lines, in
+    # `docs/research/starsolo-read-preprocessing-per-family.md` — and CellRanger4 is the only mode in
+    # which the 5' override is legal at all, which is why the mode stays rather than becoming
     # `Hamming` like the entries that clip nothing.
     # ACCEPTED DIVERGENCE: CellRanger4 also forces a 3' poly-A clip the authors do not perform. It
     # cannot be separated from the TSO fix, and SPLiT-seq is poly-A primed, so the divergence is from

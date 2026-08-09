@@ -106,11 +106,11 @@ backend:
     # as this entry does. Nothing is left past the poly-A that a fixed adapter could express anyway —
     # what follows is UMI-rc then barcode-rc, per-read variable, and Cell Ranger does not trim it
     # either.
-    # A per-chemistry PARSE fact rather than a module literal, and by the `soloCBmatchWLtype` test
-    # rather than the read-through one: `CellRanger4` names which trimmer RUNS, never a sequence past
-    # which the molecule ended. What settles it is that the right value MOVES — the 5' kits run no
-    # trimmer at all and BD passes no clip type on its own command line, so the four entries that used
-    # to inherit this one had a 10x TSO clipped off reads that never carried it.
+    # A per-chemistry PARSE fact rather than a module literal, because the right value MOVES — the 5'
+    # kits run no trimmer at all and BD passes no clip type on its own command line, so the four
+    # entries that used to inherit this one had a 10x TSO clipped off reads that never carried it.
+    # The ownership test itself is stated once, on `Backend` in `kb/schema.py`; the per-vendor sources
+    # are in `docs/research/starsolo-read-preprocessing-per-family.md`.
     clipAdapterType: CellRanger4
     soloStrand: Forward
     # 0 disables STARsolo's barcode-read-length check, which by default (1) FATALs when the barcode

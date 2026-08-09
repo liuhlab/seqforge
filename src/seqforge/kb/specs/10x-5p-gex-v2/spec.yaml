@@ -107,12 +107,10 @@ backend:
     # `Hamming` is STAR's own default, and it is here as the trimmer that TAKES a three-prime sequence
     # — `CellRanger4` refuses one outright, so this value is what makes the `read_through` below
     # renderable at all. With nothing declared it is a no-op, which is what Cell Ranger does on a 5'
-    # kit: trimming is hard-disabled in its source (`trim_polya_min_score: None, trim_tso_min_score:
-    # None` under `WhichEnd::FivePrime`, identical at 9.0.1 and 10.0.0, with a TODO calling a 5'
-    # trimmer a *potential future* feature), and `SC5P-R2`/`SC5P-R2-v3` declare
-    # `rna: {read_type: R2, offset: 0, length: null}` — the cDNA read is taken whole. This entry
-    # DOES declare one, so it departs from the vendor deliberately and on a measurement; the argument
-    # is beside `read_through` below and is not restated here.
+    # kit: its two trimmers are hard-disabled by the kit's endedness and the cDNA read is taken whole
+    # — source lines in `docs/research/starsolo-read-preprocessing-per-family.md`, which is where the
+    # per-vendor review lives. This entry DOES declare a clip, so it departs from the vendor
+    # deliberately and on a measurement; the argument is beside `read_through` below.
     # What the value is not: `CellRanger4`, which this entry used to be handed by the module, clipping
     # the 3' kits' TSO and poly-A off a read whose own pipeline never touches either — a departure from
     # parity that read as parity. NOT the 41/43 bp figure sometimes quoted as a 5' clip either: that is
@@ -157,24 +155,22 @@ backend:
 # restated beside the primer it is derived from.
 #
 # ESTABLISHED AT THE READ LEVEL rather than inferred from the construct, on bounded head-reads with no
-# whole FASTQ downloaded:
-#     10x 5' v2  (PRJNA1415162, 4 runs)                    179,712 reads    0.094%
-#     10x 5' v3  (SRR36092078)                              20,000 reads   10.41%
-#     10x 3' negative control (5 libraries, 3 of them mouse) 500,909 reads   0.0000%
-# It is a read-through and not biology: match offsets spread CONTINUOUSLY from 0 to read_len - 13
-# rather than sitting at one position, and in 89.8% of testable 5' v3 reads the tail behind the anchor
-# reverse-complements to that same read's OWN cell barcode from R1, followed by AGATCGGAAGAGC. So past
-# the match lies UMI, barcode and flowcell adapter — terminal, the whole tail goes, and no recipe could
-# rationally keep it. Left in place it is a DENOMINATOR rather than a mapping failure: STAR's
-# length-relative filters are computed over the read the adapter is still part of.
+# whole FASTQ downloaded: the anchor is in every 5' library measured and in none of the 3' controls.
+# It is a read-through and not biology — the match offsets spread CONTINUOUSLY instead of sitting at
+# one position, and the tail behind the anchor reverse-complements to that same read's OWN cell
+# barcode from R1, followed by the TruSeq adapter. So past the match lies UMI, barcode and flowcell
+# adapter — terminal, the whole tail goes, and no recipe could rationally keep it. Left in place it is
+# a DENOMINATOR rather than a mapping failure: STAR's length-relative filters are computed over the
+# read the adapter is still part of. Cohorts, rates and method:
+# `docs/research/10x-5p-tso-read-through.md`.
 #
 # PREVALENCE IS A LIBRARY PROPERTY, NOT A CHEMISTRY ONE, and that is why BOTH 5' entries declare this
-# and not only the one that measured 10%. Three further 5' libraries measured 0.30%, 0.89% and 1.86%,
-# tracking insert size and read length; v2 and v3 share the same TSO and byte-identical cDNA handling,
-# so the hundred-fold gap sits between those libraries and not between those chemistries. Declaring it
-# only where it happened to be common would file a library property as a chemistry one — the exact
-# category error this key exists to correct. Where the anchor is rare the clip is a no-op, and a no-op
-# costs nothing.
+# and not only the library that carried the anchor most heavily. The measured rates span two orders of
+# magnitude between libraries of the same kit, tracking insert size and read length; v2 and v3 share
+# the same TSO and byte-identical cDNA handling, so the gap sits between those libraries and not
+# between those chemistries. Declaring it only where it happened to be common would file a library
+# property as a chemistry one — the exact category error this key exists to correct. Where the anchor
+# is rare the clip is a no-op, and a no-op costs nothing.
 #
 # THIS EXCEEDS CELL RANGER, deliberately and not by oversight. 10x runs no trimmer at all on a 5' kit
 # (hard-disabled in source — see `clipAdapterType` above), so it does not clip this either; these two

@@ -126,12 +126,11 @@ backend:
 
 # The 5' TSO's reverse complement — the same value the v1/v2 sibling declares, because the two kits
 # carry the same TSO and handle the cDNA read identically. Full derivation, the measurement and the
-# departure from Cell Ranger it accepts: `10x-5p-gex-v2/spec.yaml`. The high number belongs to a
-# library of THIS chemistry (SRR36092078: 10.41% of 20,000 head reads carry the anchor, against
-# 0.0000% across five 10x 3' libraries), and that is precisely what it must not be read as — 5' v2
-# libraries measured 0.094% to 1.86% off the same construct, so prevalence tracks insert size and read
-# length, not kit generation. Declaring it on one entry would encode a library property as a chemistry
-# one; where the anchor is rare the clip is a no-op.
+# departure from Cell Ranger it accepts: `10x-5p-gex-v2/spec.yaml`. The library that carried the
+# anchor most heavily is one of THIS chemistry, and that is precisely what it must not be read as: the
+# 5' libraries measured off this same construct spread far apart from each other, so prevalence tracks
+# insert size and read length, not kit generation. Declaring it on one entry would encode a library
+# property as a chemistry one; where the anchor is rare the clip is a no-op.
 read_through: "CCCATATAAGAAA"
 
 # A child of the 10x-5p-gex family: it shares the 16 bp CB geometry with the v1/v2 sibling and is told

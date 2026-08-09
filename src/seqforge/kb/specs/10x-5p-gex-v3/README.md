@@ -70,18 +70,19 @@ of that TSO** — the first fixed sequence a short 5′ fragment's R2 can reach.
 `read_through`; the sequence is never restated beside the primer it comes from, and the tests assert
 the relationship instead.
 
-Measured at the read level on bounded head-reads, never a whole downloaded FASTQ: **10.41 %** of 20 000
-reads of a library of this chemistry (SRR36092078) carry the anchor, against **0.0000 %** across five
-10x 3′ libraries. It is a read-through and not biology — offsets spread continuously rather than
-sitting at one position, and in 89.8 % of testable reads the tail behind the anchor reverse-complements
-to that read's own cell barcode, followed by `AGATCGGAAGAGC`. So past the match lies UMI, barcode and
-flowcell adapter: terminal, the whole tail goes.
+Measured at the read level on bounded head-reads, never a whole downloaded FASTQ: the library that
+carried the anchor most heavily is one of this chemistry, and no 10x 3′ control carries it at all. It
+is a read-through and not biology — offsets spread continuously rather than sitting at one position,
+and the tail behind the anchor reverse-complements to that read's own cell barcode. So past the match
+lies UMI, barcode and flowcell adapter: terminal, the whole tail goes. Cohorts, rates and method:
+[`10x-5p-tso-read-through.md`](../../../../../docs/research/10x-5p-tso-read-through.md).
 
 **Prevalence is a property of a library, not of a kit**, which is why the 26 bp
 [sibling](../10x-5p-gex-v2/README.md#the-read-through-and-why-it-is-chemistry) declares the same value
-even though its measured libraries ran 0.094 %–1.86 %. The two kits carry the same TSO and handle the
-cDNA read identically, so declaring it only where it happened to be common would file a library
-property as a chemistry one. Where the anchor is rare the clip is a no-op, and a no-op costs nothing.
+even though its measured libraries carried the anchor far more rarely. The two kits carry the same TSO
+and handle the cDNA read identically, so declaring it only where it happened to be common would file a
+library property as a chemistry one. Where the anchor is rare the clip is a no-op, and a no-op costs
+nothing.
 
 This **exceeds Cell Ranger**, deliberately: 10x runs no trimmer at all on a 5′ kit, so it does not clip
 this either. `clipAdapterType: Hamming` is what makes the clip renderable — `CellRanger4` refuses a

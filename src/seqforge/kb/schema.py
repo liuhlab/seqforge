@@ -286,6 +286,8 @@ class Backend(_Forbid):
     correction the vendor's reference pipeline ships, the second which read trimmer it runs, and a
     five-prime kit runs none of the three-prime one's — so each is declared here, one row per
     chemistry. Sorting them by what they are FOR files all four together and is wrong about half.
+    Every entry that names a trimmer points back at this paragraph; the per-vendor evidence it rests
+    on is ``docs/research/starsolo-read-preprocessing-per-family.md``.
 
     Two spellings of one geometry is one spelling too many, so ``soloCBposition`` / ``soloUMIposition``
     are omitted here and derived from the element coordinates at compose time rather than hand-typed.

@@ -192,24 +192,25 @@ from .schema import Spec
 #: `clipAdapterType` becomes a parse key REQUIRED of all eleven starsolo entries, `clip5pAdapterSeq`
 #: an optional one beside it that SPLiT-seq alone declares, and five more entries declare a
 #: `read_through`. It was a literal in `starsolo.smk` — `CellRanger4`, for all eleven — filed there
-#: because it was chosen for CellRanger parity, and parity is a reason to pick a VALUE and never
-#: evidence about who OWNS the key. What settles ownership is that the right value moves from one
-#: chemistry to the next: the `soloCBmatchWLtype` argument and not ADR-0048's terminality one, since
-#: `CellRanger4` names which trimmer RUNS rather than a sequence past which a molecule ended.
-#: Required rather than optional-with-a-default, deliberately — whichever group stayed silent would
-#: be defined by silence and a new spec would join it by accident. The per-vendor primary-source
-#: review it rests on: `docs/research/starsolo-read-preprocessing-per-family.md`.
+#: because it was chosen for CellRanger parity, which is a reason to pick a VALUE and never evidence
+#: about who OWNS the key; what moved it here is that its right value moves from one chemistry to the
+#: next, the test `Backend`'s docstring in `kb/schema.py` states. Required rather than
+#: optional-with-a-default, deliberately — whichever group stayed silent would be defined by silence
+#: and a new spec would join it by accident. The per-vendor primary-source review it rests on:
+#: `docs/research/starsolo-read-preprocessing-per-family.md`.
 #: **SIX ENTRIES' OUTPUT CHANGES.** `10x-5p-gex-v2` and `-v3` take `Hamming` plus
 #: `read_through: CCCATATAAGAAA`, the 5' TSO's reverse complement. Dropping `CellRanger4` restores
 #: parity — Cell Ranger hard-disables both its trimmers on a 5' kit — and clipping the read-through
 #: then EXCEEDS the vendor, a departure taken on a measurement rather than an argument: the anchor is
-#: 0.094% to 10.41% of R2 across five 5' libraries and 0 of 500,909 reads across a five-library 3'
-#: control (`docs/research/10x-5p-tso-read-through.md`). The three `bd-rhapsody-wta*` entries take
-#: `Hamming` plus BD's own fixed 38-base poly-A run, the literal BD's command line passes, in place of
-#: a 10x TSO their WTA protocol never used; BD leaves the clip type unset entirely, so `CellRanger4`
-#: would FATAL on their own invocation. `splitseq` KEEPS `CellRanger4` and fixes the sequence: its own
-#: 30 nt TSO differs from 10x's at two of thirty positions, so the clip was already firing here with
-#: the wrong string on a 66 bp cDNA read, and the override REPLACES the hardcoded one.
+#: in every 5' library measured and in no 3' control, at rates spanning two orders of magnitude
+#: BETWEEN LIBRARIES of one kit — which is why BOTH entries declare it and not only the one whose
+#: library carried it most. Rates and method: `docs/research/10x-5p-tso-read-through.md`. The three
+#: `bd-rhapsody-wta*` entries take `Hamming` plus BD's own fixed 38-base poly-A run, the literal BD's
+#: command line passes, in place of a 10x TSO their WTA protocol never used; BD leaves the clip type
+#: unset entirely, so `CellRanger4` would FATAL on their own invocation. `splitseq` KEEPS
+#: `CellRanger4` and fixes the sequence: its own 30 nt TSO differs from 10x's at two of thirty
+#: positions, so the clip was already firing here with the wrong string on a 66 bp cDNA read, and the
+#: override REPLACES the hardcoded one.
 #: **FIVE ARE UNTOUCHED, and that is the acceptance criterion.** `10x-3p-gex-v2`, `-v3`, `-v3.1`,
 #: `10x-gemx-3p-v4` and `10x-multiome-gex` declare `CellRanger4` and emit a BYTE-IDENTICAL STAR
 #: command line — diffed before and after by three separate steps rather than inferred from the value

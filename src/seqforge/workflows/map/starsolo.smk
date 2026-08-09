@@ -159,26 +159,23 @@ def clip_adapter():
 
     ONE fragment for up to three flags, because STAR makes them one decision. `CellRanger4` builds two
     fixed adapters -- the 10x three-prime TSO off the cDNA read's 5' end and poly-A off its 3' -- and a
-    supplied `--clip5pAdapterSeq` REPLACES the first rather than adding to it: the hardcoded value is
-    a default-fill guarded by `if (in[0].adSeq[0]=="-")`, `ClipMate` holds one scalar `adSeq`, and
-    there is a single `opalAlign` call site. So a chemistry whose protocol clips a DIFFERENT TSO says
-    so once and gets its own sequence clipped, under the only mode where the override is legal at all.
-    The other mode is the mirror: `Hamming` takes no five-prime sequence and is the only one that
-    accepts a three-prime one, which is why a `read_through` and an override are never both here --
-    the schema refuses the pairing at spec load, where one rule covers both directions.
+    supplied `--clip5pAdapterSeq` REPLACES the first rather than adding to it, read off STAR's own
+    source in `docs/research/starsolo-read-preprocessing-per-family.md`. So a chemistry whose protocol
+    clips a DIFFERENT TSO says so once and gets its own sequence clipped, under the only mode where
+    the override is legal at all. The other mode is the mirror: `Hamming` takes no five-prime sequence
+    and is the only one that accepts a three-prime one, which is why a `read_through` and an override
+    are never both here -- the schema refuses the pairing at spec load, one rule for both directions.
 
     Rendering them as separate tokens would cost the three-prime 10x chemistries their byte-identical
     command line: each extra token leaves an empty continuation on every chemistry that declares none.
     Joined, a chemistry that declares neither renders exactly `--clipAdapterType <mode>` and nothing
     else, which is what those five reached STAR with before either key existed.
 
-    The trimmer is the KB's now and not this module's (#355), by the `soloCBmatchWLtype` argument
-    rather than the read-through one -- `CellRanger4` names which trimmer RUNS, not a sequence past
-    which a molecule ended. What decides it is that its correct value MOVES: Cell Ranger builds those
-    two adapters under one predicate, the kit's endedness, so a five-prime kit runs no trimmer at all,
-    and BD's own command line passes no clip type either. `Hamming` with nothing declared is STAR's
-    default and a no-op, which is exactly what those vendors do; this module used to hand all eleven
-    chemistries `CellRanger4` and clip a 10x TSO off four reads that never carried one.
+    The trimmer is the KB's now and not this module's (#355), because its correct value MOVES from one
+    chemistry to the next -- the ownership argument is on `Backend` in `kb/schema.py`, the per-vendor
+    evidence in the research file above. `Hamming` with nothing declared is STAR's default and a
+    no-op, which is exactly what the 5' and BD vendors do to a cDNA read; this module used to hand all
+    eleven chemistries `CellRanger4` and clip a 10x TSO off four reads that never carried one.
 
     `SOLO['clipAdapterType']` is a SUBSCRIPT and both clips are `.get`, and that difference is the
     whole mechanism: the subscript makes `keys_read_by` (see `workflows/__init__.py`) mark the key
