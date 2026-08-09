@@ -101,3 +101,11 @@ A `sha256`-shaped **name** for a file: stable for the same file, distinct across
 hash of the file's contents. Derived from a provider md5, a bounded local key, or whole-run SRA
 metadata.
 _Avoid_: checksum, file hash, digest — all three imply the whole file was read
+
+**Address basis**:
+Which of those derivations named a file, and the condition that chose it — the hosted-byte identity a
+provider md5 gives, or a synthetic one over whole-run metadata. A reason and not a verdict: it
+distinguishes a run no mirror ever held from a mirror found defective, and an identity we checked from
+one we adopted without being able to.
+_Avoid_: verified, validated, trusted — the address is a **name**, so there is nothing to verify it
+against; and never a quality judgement about the reads

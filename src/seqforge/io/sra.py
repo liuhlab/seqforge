@@ -25,7 +25,7 @@ import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from ..fingerprint.build import FingerprintResult, assemble_package
 from ..fingerprint.subsample import records_to_gz_bytes
@@ -62,15 +62,80 @@ _TRANSIENT_LABDATA = re.compile(
 )
 
 
+#: Which branch chose a mate's content address, and **why** — see :func:`_address_basis`.
+#:
+#: An ``ena`` prefix means the hosted-byte identity was adopted (``sha256`` from the provider md5, the
+#: ENA filename, the ENA size), so a stream and a download of that file get the same address. An
+#: ``sra`` prefix means a synthetic address over stable whole-run metadata: portable across probe
+#: budgets, but not the identity of any hosted bytes.
+AddressBasis = Literal[
+    "ena",
+    "ena-loss-unknown",
+    "sra-not-mirrored",
+    "sra-file-count",
+    "sra-technical-read",
+    "sra-reads-lost",
+]
+
+#: The bases on which the ENA identity is adopted. ``ena-loss-unknown`` is here on purpose and it is
+#: the uncomfortable one: see :func:`_address_basis`.
+_ENA_ADOPTED: frozenset[str] = frozenset({"ena", "ena-loss-unknown"})
+
+
+def _address_basis(
+    run: dict[str, str],
+    *,
+    ena_targets: Sequence[Any],
+    mates: Sequence[int],
+    table: Any,
+) -> AddressBasis:
+    """Which content address this run's mates take, and the condition that decided it.
+
+    Four conditions, in order, and they are not interchangeable — the first three say the ENA copy is
+    not the thing we streamed, the fourth says it is but something was lost on the way out:
+
+    - **not mirrored** — ENA lists no FASTQ. An ``ERR``/``DRR`` original, a BAM deposit, or a mirror
+      that has not released. The *expected* case for much of SRA, and the one a bare ``False`` used to
+      make look like a defect.
+    - **file count** — ENA's file count differs from the streamed mate count, so there is no
+      one-to-one to adopt even where both are real.
+    - **technical read** — the mirror dropped a technical read. The barcode read is technical for
+      every chemistry we care about, so this is a mirror that cannot answer the question we ask.
+    - **reads lost** — the streamed read table disagrees with what the run row claims.
+
+    **The abstain adopts, and that is the uncomfortable part.** When the stream holds no average to
+    answer with, `dropped_reads` declines rather than accuses, and we take the ENA identity anyway —
+    ``ena-loss-unknown``. That is the pre-existing behaviour and it is deliberately unchanged here:
+    tightening it would re-address runs that verify today, and a content address is permanent, so
+    manifests already computed would stop reproducing. What changes is that it is no longer invisible.
+    ADR-0050 records the trade and what tightening it would cost.
+    """
+    if not ena_targets:
+        return "sra-not-mirrored"
+    if len(ena_targets) != len(mates):
+        return "sra-file-count"
+    if run.get("technical_read_dropped"):
+        return "sra-technical-read"
+    if table is None:
+        return "ena-loss-unknown"
+    return "ena" if dropped_reads(run, table) is None else "sra-reads-lost"
+
+
 @dataclass(frozen=True)
 class SraMateProbe:
     """One mate (within-spot read index) of an SRA run, fingerprinted from a bounded stream.
 
     Carries both what a probe produces (the role-free :class:`Observation` and its sampled ``seqs``,
     for ``resolve``) and the raw 4-line ``records`` the slice is written from (for a fingerprint
-    package). ``ena_verified`` records which content-address branch chose the identity: ``True`` means
-    the ENA ``fastq_md5`` was adopted (the address matches the hosted bytes), ``False`` means a
-    synthetic SRA-derived address (portable across probe budgets, but not the hosted-byte identity).
+    package). ``address_basis`` records which content-address branch chose the identity, and which of
+    the four conditions decided it.
+
+    **It was a bool named ``ena_verified`` until #348.** Four materially different conditions collapsed
+    into one ``False`` — never mirrored, a file-count mismatch, a mirror that dropped a technical read,
+    and a stream that found bases missing — so a reader could not tell the expected case (this run was
+    never on ENA) from a real mirror defect worth reporting. Worse in the other direction: it also
+    read ``True`` when the stream could not check, so the field's name claimed more than the predicate
+    delivered, on a value that decides a permanent address.
     """
 
     read_index: int
@@ -78,7 +143,17 @@ class SraMateProbe:
     seqs: list[str]
     records: list[Record]
     basename: str
-    ena_verified: bool
+    address_basis: AddressBasis
+
+    @property
+    def ena_adopted(self) -> bool:
+        """Did this mate take the hosted-byte identity? The old ``ena_verified``, minus the claim.
+
+        Kept as a derived property because the *branch* is genuinely binary — `sra_whole_file` either
+        gets an ENA target or does not — while the *reason* is not, and only the reason belongs in an
+        output somebody reads.
+        """
+        return self.address_basis in _ENA_ADOPTED
 
 
 def _stream_run(run_accession: str, *, n_spots: int) -> Any:
@@ -236,12 +311,8 @@ def probe_sra(
     # stream answers it for free rather than costing a request per run — or declines to, when its
     # lengths vary and it holds no average to answer with, which is an abstain and not an accusation.
     table = _streamed_read_table(run_accession, preview, mates, spot_count)
-    verified = (
-        bool(ena_targets)
-        and len(ena_targets) == len(mates)
-        and not run.get("technical_read_dropped")
-        and (table is None or dropped_reads(run, table) is None)
-    )
+    basis = _address_basis(run, ena_targets=ena_targets, mates=mates, table=table)
+    verified = basis in _ENA_ADOPTED
 
     probes: list[SraMateProbe] = []
     for pos, index in enumerate(mates):
@@ -264,7 +335,7 @@ def probe_sra(
                 seqs=seqs,
                 records=records,
                 basename=file.basename,
-                ena_verified=verified,
+                address_basis=basis,
             )
         )
     return probes
