@@ -4747,3 +4747,218 @@ def test_the_sort_budget_is_what_the_recipe_figure_is_actually_sized_by() -> Non
 
     # Halving the recipe figure -- the tempting "small genome" edit -- stops covering it.
     assert bam_sort_ram(per_cell_mem_mb(_DEFAULT_MEM_MB // 2, 1)) < needed_bytes
+
+
+# ================================================================================================
+# the clip flags, judged by the binary that has to accept them rather than by the binary's own help
+# ================================================================================================
+#
+# STAR's shipped help is stale relative to STAR's shipped code, in BOTH directions, and this project
+# relied on both halves. `parametersDefault` still advertises a `clipAdapterType None` mode the code
+# rejects outright, and it still carries an "under development, do not use" banner over
+# `clip5pAdapterSeq` that the CellRanger4 carve-out made wrong years ago. Reading the manual would
+# have produced a wrong knowledge base twice, so every value in these entries was settled by running
+# the binary instead -- and that measurement then lived only in a dated research file. Nobody re-runs
+# a document. These two tests are the same measurement, re-taken by CI's external lane on every pull
+# request, so a STAR that changes what it accepts goes red here rather than on a compute node.
+#
+# They cost nothing. `--genomeDir` names a path that does not exist, and STAR validates its whole
+# parameter set BEFORE it opens a genome, so a combination it accepts dies on the missing
+# `genomeParameters.txt` and one it refuses dies on a parameter error instead. No index, no
+# alignment, ~8 ms an invocation.
+
+
+#: The verdict line a run reaches when every parameter was legal: it got as far as the genome that is
+#: not there. Classified on that line ALONE and never on the whole output -- STAR echoes every
+#: parameter it was handed back into stdout, so a naive match over the output finds the echo of the
+#: flag rather than the judgement on it.
+_STAR_REACHED_THE_GENOME = "could not open genome file"
+
+#: ...and how STAR names the other outcome, on the same line.
+_STAR_REFUSED_THE_PARAMETERS = "fatal PARAMETER error"
+
+#: An emitted config key -> the STAR flag `map/starsolo` renders it as. Two of the three are the same
+#: word, because a starsolo parse key IS its flag; `read_through` is the one deliberate rename, and it
+#: is what the split between the entry and the module looks like: the chemistry states the sequence
+#: once as a fact about the molecule, and each pipeline works out its own flag from it -- which is why
+#: the plate module spells the same value at its cell's mate count and this one at a fixed 1.
+_CLIP_FLAG_OF_KEY: dict[str, str] = {
+    "clipAdapterType": "--clipAdapterType",
+    "clip5pAdapterSeq": "--clip5pAdapterSeq",
+    "read_through": "--clip3pAdapterSeq",
+}
+
+
+def _rendered_clip_flags(spec: kb.Spec) -> list[str]:
+    """The clip argv one chemistry reaches STAR with, built from the sources the composer builds it from.
+
+    Never a roster of chemistries and never a hand-typed flag string. The KB's own backend params and
+    `derived_params` are the two halves `compose` merges into the block `rule starsolo_count`
+    subscripts, so what goes in front of the binary below is what a run would go in front of it with,
+    and a twelfth entry is covered because it exists rather than because someone remembered it here.
+    """
+    from seqforge.compose.params import derived_params
+
+    params: dict[str, object] = {**spec.require_backend().params, **derived_params(spec)}
+    flags: list[str] = []
+    for key, flag in _CLIP_FLAG_OF_KEY.items():
+        value = params.get(key)
+        if value is not None:
+            flags += [flag, str(value)]
+
+    unclaimed = {k for k in params if "clip" in k.lower() or k == "read_through"} - set(
+        _CLIP_FLAG_OF_KEY
+    )
+    assert not unclaimed, (
+        f"{spec.identity.id} emits {sorted(unclaimed)}, which this sweep knows no STAR flag for, so "
+        f"the binary is never asked about it and the entry rests on the help text again. A new clip "
+        f"key belongs here with the flag it renders as"
+    )
+    return flags
+
+
+def _star_parameter_verdict(star: str, workdir: Path, flags: Sequence[str]) -> str:
+    """STAR's own one-line verdict on `flags`, taken at parameter initialization and no further.
+
+    The two read files are what make the mate count real rather than assumed: STARsolo peels the
+    barcode read off, so a two-file `--readFilesIn` is ONE mate and `--clip3pAdapterSeq` takes one
+    value -- the arity `map/starsolo` renders at, and the reason a second value is a hard refusal even
+    when it is `-`, STAR's own per-mate no-clip sentinel. `--soloType CB_UMI_Simple` with
+    `--soloCBwhitelist None` is the cheapest way to reach that peel and is scaffolding: the clip
+    validation consults the trimmer and the mate count and nothing else, and every clip flag under
+    test comes from the caller.
+    """
+    cdna, barcode = workdir / "cdna.fastq", workdir / "barcode.fastq"
+    for path in (cdna, barcode):
+        path.write_text("@read\n" + "ACGT" * 10 + "\n+\n" + "I" * 40 + "\n")
+    proc = subprocess.run(
+        [star, "--genomeDir", str(workdir / "no-such-genome"),
+         "--outFileNamePrefix", f"{workdir}/star_",
+         "--readFilesIn", str(cdna), str(barcode),
+         "--soloType", "CB_UMI_Simple", "--soloCBwhitelist", "None", *flags],
+        capture_output=True, text=True, timeout=120,
+    )  # fmt: skip
+    verdicts = [
+        line for line in (proc.stdout + proc.stderr).splitlines() if "EXITING because of" in line
+    ]
+    assert verdicts, (
+        f"STAR neither reached the genome nor refused the parameters, so nothing was measured:\n"
+        f"{proc.stdout}\n{proc.stderr}"
+    )
+    return verdicts[0]
+
+
+@pytest.mark.external
+def test_every_clip_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_accepts(
+    tmp_path: Path,
+) -> None:
+    """The entries say which trimmer runs; only the binary can say the combination is legal.
+
+    STAR's shipped help is wrong about this in both directions -- it advertises a `clipAdapterType`
+    mode its code rejects, and it warns off a five-prime override its code supports beside
+    `CellRanger4` -- so reading the manual would have produced a wrong knowledge base twice. What
+    settled every value here was running the binary, and the record of that was a dated research
+    file: true when written, re-run by nobody. This is that measurement as something CI takes again
+    on every pull request.
+
+    Derived, never enumerated. The chemistries come from the loader and the flags from the two
+    sources the composer merges, so this covers the twelfth entry the day it lands. What it goes red
+    for is a real thing the code can do: an entry pairing a trimmer with a clip at an end that trimmer
+    will not take is refused at parameter initialization, BEFORE the genome loads, which is every
+    sample of a deposit dying after its queue wait over a flag nobody typed.
+    """
+    star = shutil.which("STAR")
+    if star is None:
+        pytest.skip("needs STAR on PATH; the `test-star` environment carries the pinned build")
+
+    ends_exercised: set[str] = set()
+    for tech in kb.runnable_spec_ids():
+        spec = kb.load_spec(tech)
+        if spec.require_backend().module != "map/starsolo":
+            continue
+        flags = _rendered_clip_flags(spec)
+        assert "--clipAdapterType" in flags, (
+            f"{tech}: renders no trimmer at all, so the rule's subscript is a KeyError on a compute "
+            f"node and this invocation would prove nothing about the chemistry"
+        )
+        ends_exercised |= {f for f in flags if f.startswith("--clip") and f != "--clipAdapterType"}
+
+        verdict = _star_parameter_verdict(star, tmp_path, flags)
+        assert _STAR_REACHED_THE_GENOME in verdict, (
+            f"{tech}: STAR refuses the clip flags this chemistry renders -- {' '.join(flags)} -- so "
+            f"every sample of a deposit on it would fail at parameter initialization, before a "
+            f"genome is even opened. STAR said: {verdict}"
+        )
+
+    assert ends_exercised == {"--clip5pAdapterSeq", "--clip3pAdapterSeq"}, (
+        f"the sweep put {sorted(ends_exercised)} in front of the binary; a knowledge base in which "
+        f"no chemistry declares a clip asks STAR the one question it already answers by default, and "
+        f"this test would then pass while measuring nothing"
+    )
+
+
+@pytest.mark.external
+@pytest.mark.parametrize(
+    ("flags", "refusal"),
+    [
+        pytest.param(
+            ["--clipAdapterType", "CellRanger4", "--clip3pAdapterSeq", "CTGTCTCTTATACACATCT"],
+            "uses fixed sequences",
+            id="three-prime-clip-beside-the-trimmer-that-builds-its-own",
+        ),
+        pytest.param(
+            [
+                "--clipAdapterType",
+                "Hamming",
+                "--clip5pAdapterSeq",
+                "AAGCAGTGGTATCAACGCAGAGTGAATGGG",
+            ],
+            "not supported yet",
+            id="five-prime-override-beside-the-trimmer-that-takes-none",
+        ),
+        pytest.param(
+            ["--clipAdapterType", "None"],
+            "not a valid option",
+            id="the-mode-the-shipped-help-still-advertises",
+        ),
+        pytest.param(
+            ["--clipAdapterType", "Hamming", "--clip3pAdapterSeq", "AAAAAAAA", "-"],
+            "match the number of mates",
+            id="a-second-clip-value-for-a-mate-solo-already-peeled-off",
+        ),
+    ],
+)
+def test_the_clip_pairings_no_shipped_spec_can_produce_are_fatal_in_the_binary(
+    tmp_path: Path, flags: list[str], refusal: str
+) -> None:
+    """What the load-time rule and the module's fixed arity are worth, priced by the aligner.
+
+    An explicit table is the honest shape here and the derived sweep above is not, for one reason:
+    no shipped entry can produce any of these. The schema refuses the first two at spec load -- a
+    declared clip must sit at an end its declared trimmer takes -- and refuses the third as a trimmer
+    it knows no end for, while the module renders the fourth structurally impossible by emitting one
+    clip value and never a per-mate list. So the only way to ask STAR whether those rules are earning
+    their place is to hand it the combinations by hand.
+
+    Each row is a FATAL at parameter initialization, which is what makes the rules worth having
+    rather than folklore: the run dies before the genome is opened, so a deposit produces no output
+    at all and the failure names a flag nobody typed. The third row is the one the manual gets wrong
+    -- `clipAdapterType None` is documented and does not exist -- and is why a value this schema does
+    not recognise is refused outright rather than assumed harmless.
+
+    The fourth is the arity claim the sweep above depends on. `--readFilesIn` hands the rule two
+    files, solo peels the barcode read off, and one mate takes exactly one clip value: a second one
+    is fatal even when it is `-`, STAR's own no-clip sentinel. `map/star-umi` renders the same flag at
+    its cell's mate count, so the two modules reach opposite answers from one rule and the wrong one
+    is a FATAL rather than a wrong number.
+    """
+    star = shutil.which("STAR")
+    if star is None:
+        pytest.skip("needs STAR on PATH; the `test-star` environment carries the pinned build")
+
+    verdict = _star_parameter_verdict(star, tmp_path, flags)
+    assert _STAR_REFUSED_THE_PARAMETERS in verdict and refusal in verdict, (
+        f"STAR accepted {' '.join(flags)}, which nothing may ship and the knowledge base refuses at "
+        f"load. Either the binary's rules moved -- in which case the schema's rule is now the wrong "
+        f"shape -- or this row stopped asking the question. STAR said: {verdict}"
+    )
