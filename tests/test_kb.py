@@ -654,10 +654,14 @@ def test_every_starsolo_spec_declares_the_read_preprocessing_its_own_protocol_ru
     for: whichever group stayed silent would be *defined* by silence, and a new entry would join it
     by accident — which is exactly how four chemistries came to be handed a three-prime 10x TSO.
 
-    Collected from the loader rather than from a roster of the eleven, so the twelfth is covered
-    because it exists. Both values must be exercised by a real spec: the whole point of the move is
-    that the right answer differs between chemistries, and a sweep in which every entry says
+    The sweep is collected from the loader rather than from a roster of the eleven, so the twelfth is
+    covered because it exists. Both values must be exercised by a real spec: the whole point of the
+    move is that the right answer differs between chemistries, and a sweep in which every entry says
     ``CellRanger4`` is indistinguishable from the module literal this replaced.
+
+    The five 10x names below are typed out on purpose, which is not the same thing as mirroring the
+    data: they pin a decision rather than restate the specs, so the assertion is *meant* to go red
+    when one of them changes. Derived from the specs it checks, it would pass whatever they said.
 
     Which clip each trimmer will TAKE is not asserted here, and was: it is a property of the DSL now
     (``Spec._clip_end_matches_the_trimmer``), so a shipped entry that got it wrong could not reach

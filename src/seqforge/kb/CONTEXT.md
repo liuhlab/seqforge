@@ -41,9 +41,10 @@ _Avoid_: config, definition, rule, profile; the *schema* is what validates a spe
 itself
 
 **Backend params**:
-A spec's parse half — how to *read* reads (`soloType`, CB/UMI offsets, whitelist, strand, barcode
-match mode). Decided by bytes and never instructable; what to *count* belongs to the **Recipe**, and
-the two key sets are disjoint.
+A spec's parse half — every key whose answer the library's construction already fixed, so an aligner
+can tell the cell, the molecule and the genomic part of a read apart (where the barcode and UMI sit,
+which onlist, which strand, where the read stopped being genomic). Decided by bytes and never
+instructable; what to *count* belongs to the **Recipe**, and the two key sets are disjoint.
 _Avoid_: settings, options, aligner flags
 
 **Read-through**:
