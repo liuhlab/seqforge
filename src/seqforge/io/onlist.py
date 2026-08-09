@@ -267,7 +267,7 @@ def _pack_window(mat: np.ndarray, s: int, width: int, *, rc: bool) -> tuple[np.n
 #: Adding an orientation therefore means editing this too, and mypy will NOT say so — it does not
 #: check a dict literal against its key `Literal` (measured). `test_every_orientation_has_a_scan_plan`
 #: is what does; without it a fourth value would pass `as_orientation` and `KeyError` here instead.
-_STRANDS_SCANNED: dict[Orientation, tuple[Strand, ...]] = {
+STRANDS_SCANNED: dict[Orientation, tuple[Strand, ...]] = {
     "forward": ("forward",),
     "revcomp": ("revcomp",),
     "either": ("forward", "revcomp"),
@@ -304,7 +304,7 @@ _STRANDS_SCANNED: dict[Orientation, tuple[Strand, ...]] = {
 #
 # The precedent is already in the tree: the anchored twin (`resolve.window.anchored_onlist_hit`) has
 # always let a read whose frame did not resolve simply not contribute. Both twins now apply one policy,
-# which is the point — a denominator that differs between them is the drift `_STRANDS_SCANNED` exists to
+# which is the point — a denominator that differs between them is the drift `STRANDS_SCANNED` exists to
 # prevent one level down.
 #
 # Degenerate case, stated so it is not rediscovered as a bug: if EVERY window is unreadable, `n_tested`
@@ -326,7 +326,7 @@ def onlist_hit_rate(
     ``[-offset_scan, +offset_scan]`` and returns the winning ``(orientation, offset, hit_rate)``.
     Bounded by ``max_reads``: the sample is already head-limited, and this caps the work again. An
     ``orientation`` outside the vocabulary raises rather than scanning both — see
-    :data:`_STRANDS_SCANNED`.
+    :data:`STRANDS_SCANNED`.
 
     Vectorized: the sample is encoded once into a base-code matrix, and each window is a slice + a
     ``searchsorted`` against the onlist's sorted codes. ``n_tested`` counts reads long enough to hold
@@ -336,7 +336,7 @@ def onlist_hit_rate(
     takes the opposite policy on purpose.
     """
     width = onlist.width
-    strands = _STRANDS_SCANNED[as_orientation(orientation)]
+    strands = STRANDS_SCANNED[as_orientation(orientation)]
 
     sample = seqs[:max_reads]
     best = HitResult(hit_rate=0.0, orientation="forward", offset=0, n_tested=0, floor=onlist.floor)

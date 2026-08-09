@@ -120,6 +120,30 @@ def test_onlist_hit_rate_random_reads_near_floor() -> None:
     assert hit.hit_rate < 0.05  # ~ floor: random barcodes essentially never hit
 
 
+def test_onlist_hit_rate_stops_at_its_own_read_cap() -> None:
+    """A work cap over an already-bounded sample — no FASTQ is read here, and none is re-read.
+
+    The caller's sample is already head-limited, so this cap is invisible until a caller hands over
+    more reads than it asks to have scanned — and then it decides which reads the answer is about.
+    Pinned by a list whose tail disagrees with its head: the cap is why the tail is not in the verdict.
+    """
+    rng = random.Random(11)
+    pool = _pool(rng, 64, 16)
+    onlist = PackedOnlist.from_barcodes(pool)
+    miss = "T" * 16
+    assert miss not in pool, "the tail must be barcodes the whitelist does not hold"
+    reads = [pool[i % 64] + "ACGT" * 4 for i in range(50_000)]
+    reads += [miss + "ACGT" * 4 for _ in range(2_000)]
+
+    capped = onlist_hit_rate(reads, 0, onlist, orientation="forward")
+    assert capped.n_tested == 50_000, "the default cap is 50 000 reads, and it is what was read"
+    assert capped.hit_rate == 1.0, "the 2 000 misses past the cap are not in the verdict"
+
+    # An explicit cap is the caller's, and it truncates the same way.
+    asked = onlist_hit_rate(reads, 0, onlist, orientation="forward", max_reads=100)
+    assert asked.n_tested == 100 and asked.hit_rate == 1.0
+
+
 def _naive_hit_rate(
     seqs: list[str],
     start: int,
@@ -372,9 +396,9 @@ def test_every_orientation_has_a_scan_plan() -> None:
     """
     from typing import get_args
 
-    from seqforge.io.onlist import _STRANDS_SCANNED, Orientation
+    from seqforge.io.onlist import STRANDS_SCANNED, Orientation
 
-    assert set(_STRANDS_SCANNED) == set(get_args(Orientation))
+    assert set(STRANDS_SCANNED) == set(get_args(Orientation))
 
 
 def test_an_unknown_orientation_is_refused_before_it_can_reach_the_index(

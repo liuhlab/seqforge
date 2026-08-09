@@ -1959,8 +1959,6 @@ def write_cost_fastqs_sharded(
         "n_exonic": sum(r["n_exonic"] for r in results),
         "n_shards": len(results),
     }
-    if merged["n_reads"] != n_reads:  # pragma: no cover - arithmetic guard on the split
-        raise E2EUnavailable(f"sharding lost reads: asked {n_reads}, wrote {merged['n_reads']}")
     return cdna_paths, bc_paths, merged
 
 

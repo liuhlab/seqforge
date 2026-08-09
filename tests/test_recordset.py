@@ -172,16 +172,38 @@ def test_a_dangling_parent_is_refused_by_the_id_it_names(tmp_path: Path) -> None
     assert "plateA" in blocker.evidence
 
 
-def test_a_run_parented_to_another_run_is_refused(tmp_path: Path) -> None:
-    """`parent` names a sample. Pointed at a run it resolves, and then resolves to no sample."""
-    payload = _two_runs()
+def _parent_on_a_run(payload: dict[str, Any]) -> None:
     payload["records"][1]["parent"] = "plateA_S1"
+
+
+def _parent_on_a_sample(payload: dict[str, Any]) -> None:
+    payload["records"].append({"level": "sample", "id": "plateA", "parent": "plateB"})
+
+
+@pytest.mark.parametrize(
+    ("mutate", "expected"),
+    [
+        pytest.param(_parent_on_a_run, "a run and not a sample", id="run-parented-to-a-run"),
+        pytest.param(_parent_on_a_sample, "one hop deep", id="sample-declares-a-parent"),
+    ],
+)
+def test_a_parent_that_is_not_a_sample_above_it_is_refused(
+    tmp_path: Path, mutate: Any, expected: str
+) -> None:
+    """`parent` names a sample, and only a run has one — the hierarchy is one hop deep.
+
+    Pointed at a run, `parent` resolves and then resolves to no sample; typed on a sample there is
+    nothing above it to point at. Both raise the same blocker id as the dangling-parent arm above,
+    so the message is the only thing that says which of the three mistakes was made.
+    """
+    payload = _two_runs()
+    mutate(payload)
     with pytest.raises(RecordSetError) as caught:
         load_record_set(_write(tmp_path, payload))
 
     (blocker,) = caught.value.blockers
     assert blocker.id == "blk-record-set-parent"
-    assert "a run and not a sample" in blocker.message
+    assert expected in blocker.message
 
 
 def test_a_duplicate_id_is_refused(tmp_path: Path) -> None:
@@ -509,6 +531,21 @@ def test_the_draft_names_the_decision_it_will_not_take(
     comments = " ".join(_comment_lines(draft_record_set(tmp_path / "fastq")))
 
     assert all(want in comments for want in expected), comments
+
+
+def test_a_path_that_is_not_a_directory_is_refused_as_such(tmp_path: Path) -> None:
+    """`records new <a file>` is a typed path, not an empty dataset. Both arms raise the same blocker
+    id, so the message is the only thing that says which of the two mistakes the caller made."""
+    not_a_dir = tmp_path / "plateA_S1_L001_R1_001.fastq.gz"
+    not_a_dir.write_bytes(b"")
+
+    with pytest.raises(RecordSetError) as caught:
+        draft_record_set(not_a_dir)
+
+    (blocker,) = caught.value.blockers
+    assert blocker.id == "blk-record-set-no-fastq"
+    assert "is not a directory" in blocker.message
+    assert "the directory holding this dataset's FASTQ files" in blocker.remedy
 
 
 def test_a_directory_whose_run_keys_could_not_be_sample_ids_refuses_too(tmp_path: Path) -> None:

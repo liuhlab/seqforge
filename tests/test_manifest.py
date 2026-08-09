@@ -8,6 +8,7 @@ build helpers (``built_v3``, ``_build``, ``_manifest_from``, ``_processing`` …
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -598,6 +599,31 @@ def test_prep_type_from_assertions_ignores_unverified_and_refuses_a_disagreement
     disagree = [_assertion(_PREP, "single nuclei"), _assertion(_PREP, "single-cell")]
     assert prep_type_from_assertions(disagree) is None
     assert prep_type_from_assertions([]) is None  # nothing to say
+
+
+def test_prep_type_read_off_harvests_artifact(tmp_path: Path) -> None:
+    """The only path by which a paper's biology reaches `resolve_features`: both `processing new` and
+    `run` read the prep out of `assertions.json` through here, so the reader is the seam, not the
+    normalizer above. A pre-2026.7 bare list stays silent — the instruction read refuses that file by
+    name, and one refusal is what the user should see.
+    """
+    from seqforge.manifest import prep_type_from_assertions_file
+
+    path = tmp_path / "assertions.json"
+    path.write_text(
+        json.dumps(
+            {
+                "instruction_docs": [],
+                "assertions": [_assertion(_PREP, "single nuclei").model_dump(mode="json")],
+            }
+        )
+    )
+    assert prep_type_from_assertions_file(path) == "single-nucleus"
+    assert prep_type_from_assertions_file(None) is None, "no --assertions is not an error"
+
+    legacy = tmp_path / "legacy.json"
+    legacy.write_text(json.dumps([_assertion(_PREP, "single nuclei").model_dump(mode="json")]))
+    assert prep_type_from_assertions_file(legacy) is None
 
 
 def test_two_instructions_disagreeing_is_a_conflict() -> None:
