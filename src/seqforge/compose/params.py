@@ -166,11 +166,13 @@ def derived_params(spec: Spec) -> dict[str, str]:
     if block == "umi":
         return _umi_read_structure(spec) | _read_through(spec)
     if block != "solo":
-        # The bulk block, named rather than reached as the fall-through. It derives NOTHING — no
-        # barcode to locate and no clip, since `map/star` renders no such flag — and leaving it
-        # implicit is how the read-through below silently became a key that pipeline would be judged
-        # on: emitted here, absent from its command line, and the gate's refusal replaced by a
-        # coverage complaint naming the config.
+        # Bulk, with a branch of its own rather than the silence at the end of this function — and a
+        # negation on purpose: `param_block` returns one of solo/bulk/chromap/umi and raises
+        # otherwise, so bulk is all that reaches here, while comparing on the name would hand a fifth
+        # block the solo derivation below. It derives NOTHING — no barcode to locate and no clip,
+        # since `map/star` renders no such flag — and leaving that implicit is how the read-through
+        # below silently became a key that pipeline would be judged on: emitted here, absent from its
+        # command line, and the gate's refusal replaced by a coverage complaint naming the config.
         return {}
     # The read-through is ORTHOGONAL to the barcode geometry below and is derived for every chemistry
     # on this block, not only the combinatorial ones the quadruple machinery serves: it is a fact
