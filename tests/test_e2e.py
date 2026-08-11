@@ -13,6 +13,7 @@ import json
 import random
 import resource
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -135,7 +136,8 @@ def test_the_correctness_arms_run_the_composed_snakefile() -> None:
     Snakefile -- the rules, the wiring, the outputs snakemake declares -- and reaping STAR directly
     skips all of it however correct the argv is. So the correctness arms must reach `run_composed`,
     and only the cost sweep may reach `run_starsolo`, because it is the memory instrument: under
-    snakemake, `ru_maxrss` folds in descendants and turns an exact reading into an approximate one.
+    snakemake the peak belongs to whichever job was biggest, which turns an exact reading into an
+    approximate one.
 
     The arms need a cluster, so nothing here executes them -- which is why the call graph is read
     statically.
@@ -365,20 +367,23 @@ def _measure_mb(tmp_path: Path, mb: int, name: str) -> int:
     """
     from seqforge.e2e import _run_measured
 
-    code, _wall, kib, _err = _run_measured(
-        [
-            sys.executable,
-            "-c",
-            f"x = bytearray({mb} * 1024 * 1024)\n"
-            f"for i in range(0, len(x), 4096): x[i] = 1\n"
-            f"import time; time.sleep({_HOLD_PEAK_RESIDENT_S})\n"
-            f"print(len(x))",
-        ],
+    run = _run_measured(
+        [sys.executable, "-c", _hog_source(mb)],
         outdir=tmp_path / name,
         timeout=120,
     )
-    assert code == 0
-    return kib
+    assert run.code == 0
+    return run.peak_rss_kib
+
+
+def _hog_source(mb: int) -> str:
+    """Python that makes ``mb`` MB genuinely resident and then holds that peak long enough to poll."""
+    return (
+        f"x = bytearray({mb} * 1024 * 1024)\n"
+        f"for i in range(0, len(x), 4096): x[i] = 1\n"
+        f"import time; time.sleep({_HOLD_PEAK_RESIDENT_S})\n"
+        f"print(len(x))"
+    )
 
 
 def test_peak_rss_is_attributed_to_one_child_not_accumulated(tmp_path: Path) -> None:
@@ -432,16 +437,123 @@ def test_peak_rss_does_not_inherit_the_measuring_process_own_memory(tmp_path: Pa
         del ballast
 
 
+#: The subtree walk reads `/proc`, so the two guards below are Linux's. On macOS `_run_measured` has
+#: no `/proc` and falls back to `wait4`, whose rusage folds in descendants the child reaped -- so a
+#: launcher measures *right there for the wrong reason*, and both tests would be green on code that
+#: is broken everywhere a measurement is actually taken. That asymmetry is how the previous bug in
+#: this loop survived: green locally, wrong on arc.
+_NEEDS_PROC = pytest.mark.skipif(
+    not Path("/proc/self/status").exists(), reason="the subtree walk is /proc's; macOS has none"
+)
+
+
+def _launcher(tmp_path: Path, child_source: str) -> Path:
+    """A shell script that RUNS ``child_source`` as a child and does **not** `exec` it.
+
+    This is bioconda's `bin/STAR` in two lines: a 456-byte bash script that greps `/proc/cpuinfo`,
+    picks `STAR-avx2` and runs it one level down. The dispatch is the reason the wrapper exists -- it
+    is a per-node choice nobody wants to make by hand -- so the instrument has to see through it.
+    """
+    hog = tmp_path / "hog.py"
+    hog.write_text(child_source)
+    script = tmp_path / "launcher.sh"
+    script.write_text(f'#!/bin/sh\n"{sys.executable}" "{hog}"\n')
+    script.chmod(0o755)
+    return script
+
+
+def _dies_within(pid: int, seconds: float = 5.0) -> bool:
+    """Whether ``pid`` stops being a live process within ``seconds``.
+
+    Bounded rather than instantaneous because a signal is *delivered* synchronously and *applied*
+    when the kernel gets to it; the assertion is that the process does not survive the run, not that
+    it dies inside one scheduling quantum. A zombie counts as dead: it has been killed and is merely
+    unreaped, which is what an orphan looks like until whatever inherited it gets around to it.
+    """
+    deadline = time.monotonic() + seconds
+    while True:
+        try:
+            stat = Path(f"/proc/{pid}/stat").read_text()
+        except OSError:
+            return True
+        if stat.rsplit(") ", 1)[1].split()[0] == "Z":
+            return True
+        if time.monotonic() > deadline:
+            return False
+        time.sleep(0.05)
+
+
+@_NEEDS_PROC
+def test_peak_rss_sees_past_a_launcher_that_runs_the_program_instead_of_execing_it(
+    tmp_path: Path,
+) -> None:
+    """The measured program may be one level below the process we spawned.
+
+    `VmHWM` of the direct child fixed the two bugs above and was still wrong wherever that child is a
+    launcher -- which the STAR that `liulab-runtime`'s align-rna env puts on PATH is. Measured on arc
+    2026-08-11, same reads and same params: `bin/STAR` reported **0.003 GB** at every depth and exited
+    0, while `bin/STAR-avx2` reported **31.126 GB**. Four orders of magnitude, shaped like a plausible
+    small number rather than an error, and the `or ru_maxrss` fallback cannot catch it because 3488 is
+    perfectly truthy.
+
+    So the reading must be the largest `VmHWM` in the child's process TREE, and it must say whose it
+    is: a number nobody can attribute to a program is what made this bug invisible for a month.
+    """
+    from seqforge.e2e import _run_measured
+
+    run = _run_measured([str(_launcher(tmp_path, _hog_source(400)))], outdir=tmp_path, timeout=120)
+
+    assert run.code == 0
+    assert run.peak_rss_kib > 300 * 1024, (
+        f"measured {run.peak_rss_kib} KiB for a tree holding 400 MB -- the reading stopped at the "
+        "launcher and never saw the program it launched"
+    )
+    assert "python" in run.peak_process, (
+        f"the peak is attributed to {run.peak_process!r}, which is not the program that allocated it"
+    )
+
+
+@_NEEDS_PROC
+def test_an_overrun_kills_the_tree_and_not_just_the_launcher(tmp_path: Path) -> None:
+    """A timeout that kills only the direct child leaks the program that child launched.
+
+    Same wrong assumption as the reading, with a worse consequence: the sweep catches the timeout and
+    goes on to the next depth, so a 31 GB aligner nobody is waiting for is still resident while the
+    point after it is measured. The instrument would then be measuring a node it has quietly made
+    smaller, and the number would be wrong in the direction that looks like a result.
+    """
+    from seqforge.e2e import E2EUnavailable, _run_measured
+
+    pidfile = tmp_path / "child.pid"
+    launcher = _launcher(
+        tmp_path,
+        f"import os, time; open({str(pidfile)!r}, 'w').write(str(os.getpid()))\ntime.sleep(300)\n",
+    )
+    # Long enough that the launched program is certainly up (interpreter start is ~100 ms even on a
+    # loaded runner), short enough that waiting out a deliberate timeout costs the suite ~3 s.
+    with pytest.raises(E2EUnavailable, match="budget"):
+        _run_measured([str(launcher)], outdir=tmp_path, timeout=3)
+
+    # If this is missing the runner never got the program up inside the budget, which is a statement
+    # about the machine and not about the code -- so it says so rather than raising a FileNotFoundError
+    # from the line that was supposed to be the assertion.
+    assert pidfile.exists(), "the launched program never started, so nothing was leaked to detect"
+    child = int(pidfile.read_text())
+    assert _dies_within(child), (
+        f"the launched program (pid {child}) outlived the run that timed out"
+    )
+
+
 def test_a_measured_run_surfaces_a_failure_and_kills_an_overrun(tmp_path: Path) -> None:
     from seqforge.e2e import E2EUnavailable, _run_measured
 
-    code, _wall, _kib, err = _run_measured(
+    run = _run_measured(
         [sys.executable, "-c", "import sys; sys.stderr.write('boom'); sys.exit(3)"],
         outdir=tmp_path / "fail",
         timeout=120,
     )
-    assert code == 3
-    assert "boom" in err
+    assert run.code == 3
+    assert "boom" in run.stderr_tail
 
     with pytest.raises(E2EUnavailable, match="budget"):
         _run_measured(
@@ -694,13 +806,16 @@ def test_the_cell_filter_fixture_plants_cells_inside_an_ambient_background(tmp_p
     )
 
 
-def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(tmp_path: Path) -> None:
+def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Change any one of them and the fingerprint must change; change none and it must not.
 
     Pinned per-field rather than as one blob, because the failure mode is a knob QUIETLY missing from
     the key -- and a test that only checks "same args => same hash" would pass with every field
     dropped. Each case below is a measurement that would be silently reused as another's.
     """
+    import seqforge.e2e
     from seqforge.e2e import _cost_fingerprint
 
     base = dict(
@@ -744,6 +859,15 @@ def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(tmp_pat
             f"{field} changes the measured peak but not the resume key -- a run that varied it "
             f"would silently reuse points measured under the old value"
         )
+
+    # The instrument is the one term that is not an argument, and it moves the number harder than any
+    # of them: the points this repo's arc workdirs hold from before the launcher fix are off by four
+    # orders of magnitude. The partial file is never deleted, so without this in the key a re-run
+    # resumes them into the curve that fixed them and reports the blend as one line.
+    monkeypatch.setattr(seqforge.e2e, "INSTRUMENT_VERSION", "1999.1.1")
+    assert _cost_fingerprint(**base) != ref, (  # type: ignore[arg-type]
+        "a peak measured by a DIFFERENT instrument resumes as if this one had taken it"
+    )
 
 
 def test_partial_state_is_written_atomically(tmp_path: Path) -> None:
