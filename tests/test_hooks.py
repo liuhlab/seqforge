@@ -11,6 +11,8 @@ stop, and the neighbouring thing it must not.
 
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
 
 import pytest
@@ -210,3 +212,169 @@ def test_stop_yields_once_the_runtime_says_it_has_blocked_enough(tmp_path: Path)
 
 # `_sync_questions`, the `questions.md` writer, lives in `cli/manifest.py` -- its tests are in
 # tests/test_cli.py (#113), asserting THROUGH `questions_outstanding`, the reader used above.
+
+
+# ------------------------------------------------------------------------------------------------
+# `hook check` -- the verb whose job is to demonstrate the guards, and which could not fail (#348)
+# ------------------------------------------------------------------------------------------------
+#
+# These drive the verb against a FAKE shim rather than the real one. The real shim starts a
+# `pixi run`, so a test of it would be slow, `external`-marked, and would prove the environment as
+# much as the code. A fake is not a weaker substitute here: the claim under test is that `hook check`
+# renders a correct VERDICT on whatever the installation does, and a fake is the only way to install
+# a deliberately broken one. What the fakes below stand in for is measured, not invented -- the real
+# shim ends in `|| exit 0` with stderr to /dev/null, so "fails open, silently" is its documented
+# behaviour under every error, not a hypothetical.
+
+_DENY = '{"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": "no"}}'
+
+
+def _install_fake_shim(workspace: Path, script: str) -> None:
+    """A `.claude/` that `hook check` accepts as installed, routing at a shim we control."""
+    import json as _json
+    import stat
+
+    hooks = workspace / ".claude" / "hooks"
+    hooks.mkdir(parents=True, exist_ok=True)
+    shim = hooks / "seqforge-hook.sh"
+    shim.write_text(script)
+    shim.chmod(shim.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+    (workspace / ".claude" / "settings.json").write_text(
+        _json.dumps(
+            {
+                "hooks": {
+                    "PreToolUse": [
+                        {
+                            "matcher": "Bash",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/seqforge-hook.sh pre-tool-use",
+                                }
+                            ],
+                        }
+                    ]
+                }
+            }
+        )
+    )
+
+
+def test_hook_check_refuses_a_workspace_where_the_hooks_are_not_installed(tmp_path: Path) -> None:
+    """Exit 2, not a pass. "No hooks here" and "hooks that allow everything" look identical to an
+    agent, and reporting the first as success is how a checkout runs unguarded for a week.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+
+    result = CliRunner().invoke(app, ["hook", "check", "-C", str(tmp_path)])
+
+    assert result.exit_code == 2, result.stdout
+    assert "hook install" in result.stderr
+
+
+def test_hook_check_fails_when_the_installed_shim_silently_allows_everything(
+    tmp_path: Path,
+) -> None:
+    """THE failure this verb exists for, and the one it could not previously report.
+
+    The shipped shim ends `|| exit 0` with stderr discarded, deliberately -- a broken hook must not
+    wedge the agent. So every way it can break (no pixi, an env that cannot import seqforge, a
+    corrupted settings file) produces exactly this: exit 0, no output, every tool call permitted. In
+    process, `pre_tool_use` would answer correctly and this verb would report a clean bill of health
+    for an installation that is guarding nothing.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+
+    _install_fake_shim(tmp_path, "#!/usr/bin/env bash\nexit 0\n")
+
+    result = CliRunner().invoke(app, ["hook", "check", "-C", str(tmp_path)])
+
+    assert result.exit_code == 1, result.stdout
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    failed = [c for c in payload["checks"] if not c["ok"]]
+    assert [c["expected"] for c in failed] == ["deny", "deny"], (
+        "both deny-cases must be reported as unguarded; the allow-cases pass for the wrong reason "
+        "and that is exactly why an all-allow shim needs the expectations to be caught"
+    )
+
+
+def test_hook_check_fails_when_the_installed_shim_denies_what_it_must_permit(
+    tmp_path: Path,
+) -> None:
+    """The other half, and the reason two of the four cases are allow-cases.
+
+    A guard that denies everything is as broken as one that denies nothing, and it is worse to live
+    with: the bounded read (`| head -n 400`) and the `seqforge` verb are the two things the rule
+    exists to permit, so a hook refusing them stops the work it was installed to make safe.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+
+    _install_fake_shim(tmp_path, f"#!/usr/bin/env bash\ncat >/dev/null\necho '{_DENY}'\n")
+
+    result = CliRunner().invoke(app, ["hook", "check", "-C", str(tmp_path)])
+
+    assert result.exit_code == 1, result.stdout
+    failed = [c for c in json.loads(result.stdout)["checks"] if not c["ok"]]
+    assert [c["expected"] for c in failed] == ["allow", "allow"]
+
+
+def test_hook_check_passes_against_an_installation_that_answers_correctly(tmp_path: Path) -> None:
+    """The green path, driven by a shim that routes to the REAL guard the way the shipped one does.
+
+    `python -m seqforge.cli hook` rather than `pixi run -- python -m seqforge.cli hook`: the pixi
+    prefix is what makes the shipped shim slow and environment-dependent, and it is not what is under
+    test here -- the routing is. That this verb reports a correct installation as correct is the claim
+    the three failure tests above are calibrated against.
+    """
+    import sys
+
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+
+    _install_fake_shim(
+        tmp_path,
+        f'#!/usr/bin/env bash\nexec {sys.executable} -m seqforge.cli hook "$@"\n',
+    )
+
+    result = CliRunner().invoke(app, ["hook", "check", "-C", str(tmp_path)])
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is True and payload["installed"] is True
+    assert [c["got"] for c in payload["checks"]] == ["deny", "allow", "allow", "deny"]
+
+
+def test_hook_install_writes_hooks_that_hook_check_then_accepts(tmp_path: Path) -> None:
+    """The two verbs are one contract: what `install` writes is what `check` looks for.
+
+    Neither had a test of any kind before #348. This pins the seam rather than either half -- an
+    install that stopped writing the shim, or a check that started looking somewhere else, breaks the
+    pair and not the piece. It stops short of running the shim, which is `pixi`'s to answer for.
+    """
+    from typer.testing import CliRunner
+
+    from seqforge.cli import app
+
+    result = CliRunner().invoke(app, ["hook", "install", "-C", str(tmp_path)])
+    assert result.exit_code == 0, result.stdout + result.stderr
+
+    installed = json.loads(result.stdout)
+    assert installed["ok"] is True
+    assert sorted(installed["events"]) == ["PostToolUse", "PreToolUse", "Stop"]
+
+    from seqforge.cli.hook import _hooks_declared
+
+    shim = Path(installed["shim"])
+    assert shim.is_file() and os.access(shim, os.X_OK), "the shim must be executable to be a hook"
+    assert _hooks_declared(Path(installed["settings"])), (
+        "`hook check` reads settings.json to decide the hooks are installed; `hook install` just "
+        "wrote it, so it must satisfy that reader"
+    )
