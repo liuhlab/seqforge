@@ -205,8 +205,8 @@ def test_probe_sra_adopts_the_ena_identity_and_builds_real_chemistry_observation
     """One faithful-mirror stream, observed whole: the ENA md5 identity AND the chemistry signals.
 
     When the ENA mirror is faithful (two paired files, aligned md5/bytes), each mate adopts its file's
-    provider md5 as the content-address (``ena_verified``), keeps its size and basename, and the stream
-    is asked for ``n_reads`` spots WITH technical reads. The same observation also carries the real
+    provider md5 as the content-address (``address_basis: ena``), keeps its size and basename, and the
+    stream is asked for ``n_reads`` spots WITH technical reads. The same observation also carries the real
     chemistry the resolver reads — read-length mode, the sampled count, the sequences — with no local
     path, because a stream has none.
     """
@@ -217,7 +217,7 @@ def test_probe_sra_adopts_the_ena_identity_and_builds_real_chemistry_observation
 
     # Identity: read index 1 -> the _1 file (both sort ascending); its md5 IS the content-address.
     assert [m.read_index for m in mates] == [1, 2]
-    assert all(m.ena_verified for m in mates)
+    assert [m.address_basis for m in mates] == ["ena", "ena"]
     assert mates[0].observation.file.sha256 == content_key_from_md5(MD5_1)
     assert mates[0].observation.file.size_bytes == 111
     assert mates[0].basename == f"{SRR}_1.fastq.gz"
@@ -237,7 +237,7 @@ def test_probe_sra_adopts_the_ena_identity_and_builds_real_chemistry_observation
 #: The synthetic address of mate 1 for every fallback row below (28-base read, 1000 whole-run spots).
 SYNTHETIC_1 = content_key_from_sra(SRR, 1, spot_count=1000, read_length=28)
 
-#: ``(preview, run, verified)``. The ENA md5 is adopted only when the mirror is a file per streamed
+#: ``(preview, run, basis)``. The ENA md5 is adopted only when the mirror is a file per streamed
 #: mate, unflagged, and published every base the stream holds; otherwise the address is the synthetic
 #: SRA one. That verdict is read off the stream already taken, so NO row may cost a per-run
 #: ``run_statistics`` request — and where the streamed lengths vary there is no average to compare
@@ -247,45 +247,45 @@ CONTENT_ADDRESS = [
     pytest.param(
         _preview(SRR, {1: 28, 2: 94}),
         _ena_run(base_count="122000"),
-        True,
+        "ena",
         id="fixed-lengths-agree-with-the-published-bases",
     ),
     pytest.param(
         _trimmed_preview(SRR, {1: 150, 2: 150}, short=10),
         _ena_run(base_count="280000"),
-        True,
+        "ena-loss-unknown",
         id="variable-lengths-abstain-rather-than-accuse",
     ),
     pytest.param(
         _preview(SRR, {1: 28, 2: 94}),
         _ena_run(base_count="94000"),
-        False,
+        "sra-reads-lost",
         id="published-fewer-bases-than-the-stream-holds",
     ),
     pytest.param(
         _preview(SRR, {1: 28, 2: 94}),
         _ena_run(technical_read_dropped=True),
-        False,
+        "sra-technical-read",
         id="a-flagged-technical-read-drop",
     ),
     pytest.param(
         _preview(SRR, {1: 28, 2: 94}),
         _ena_run(fastq_ftp=f"host/{SRR}.fastq.gz", fastq_md5=MD5_1, fastq_bytes="111"),
-        False,
+        "sra-file-count",
         id="one-mirrored-file-for-two-streamed-mates",
     ),
     pytest.param(
         _preview(SRR, {1: 28, 2: 94}),
         {"run_accession": SRR, "read_count": "1000"},
-        False,
+        "sra-not-mirrored",
         id="ena-never-mirrored-the-run",
     ),
 ]
 
 
-@pytest.mark.parametrize("preview, run, verified", CONTENT_ADDRESS)
+@pytest.mark.parametrize("preview, run, basis", CONTENT_ADDRESS)
 def test_probe_sra_addresses_a_mate_by_the_fidelity_of_the_mirror(
-    monkeypatch: pytest.MonkeyPatch, preview: _Preview, run: dict[str, object], verified: bool
+    monkeypatch: pytest.MonkeyPatch, preview: _Preview, run: dict[str, object], basis: str
 ) -> None:
     _patch_stream(monkeypatch, _FakeStream(preview))
     stats_calls: list[str] = []
@@ -293,9 +293,15 @@ def test_probe_sra_addresses_a_mate_by_the_fidelity_of_the_mirror(
 
     mates = sra.probe_sra(run, n_reads=50)
 
-    assert [m.ena_verified for m in mates] == [verified, verified]
+    # The REASON, not a bool. Six rows, six conditions, and each names the one that decided it --
+    # `ena_verified` collapsed four of them into one `False`, so a row that meant to pin the
+    # technical-read flag could only assert "not adopted, for one of four reasons". The two `ena*`
+    # rows are the other half of that: both adopt, and only one of them CHECKED (#348).
+    assert [m.address_basis for m in mates] == [basis, basis]
+    adopted = basis.startswith("ena")
+    assert [m.ena_adopted for m in mates] == [adopted, adopted]
     assert mates[0].observation.file.sha256 == (
-        content_key_from_md5(MD5_1) if verified else SYNTHETIC_1
+        content_key_from_md5(MD5_1) if adopted else SYNTHETIC_1
     )
     assert mates[0].basename == f"{SRR}_1.fastq.gz"  # ENA's filename, or the sra-tools split layout
     assert stats_calls == []
@@ -455,7 +461,9 @@ def test_io_probe_sra_emits_one_observation_per_mate(monkeypatch: pytest.MonkeyP
     payload = json.loads(result.stdout)
     assert payload["n_mates"] == 2
     assert {m["read_index"] for m in payload["mates"]} == {1, 2}
-    assert all(m["ena_verified"] for m in payload["mates"])
+    # The verb emits the REASON the address was chosen, so a `sra-*` run says which condition
+    # sent it to the synthetic address rather than reporting a bare `false` for four causes.
+    assert [m["address_basis"] for m in payload["mates"]] == ["ena", "ena"]
 
 
 def test_preflight_accession_builds_a_streamed_package(

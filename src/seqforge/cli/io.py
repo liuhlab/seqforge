@@ -525,7 +525,7 @@ def io_probe_sra(
                 "run": run.get("run_accession"),
                 "read_index": mate.read_index,
                 "basename": mate.basename,
-                "ena_verified": mate.ena_verified,
+                "address_basis": mate.address_basis,
                 "observation": mate.observation.model_dump(mode="json"),
             }
             for run in runs
