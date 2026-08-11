@@ -14,16 +14,24 @@ import random
 import resource
 import sys
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 
 from seqforge.e2e import (
     SHIPPED_CELL_FILTER,
-    SHIPPED_OUT_SAM_TYPE,
     _compare,
     simulate,
     star_stats,
+)
+from seqforge.workflows.starsolo_args import (
+    CELLRANGER_PARITY,
+    SAM_WRITE_PATH,
+    SHIPPED_OUT_SAM_TYPE,
+    SORT_CAP_SHELL,
+    starsolo_argv,
+    starsolo_shell_args,
 )
 
 _GENES = [("GENE_A", "ACGT" * 200), ("GENE_B", "TTGCA" * 160)]
@@ -117,11 +125,20 @@ def test_the_correctness_arms_run_the_composed_snakefile() -> None:
     """The ground-truth gates must drive `starsolo.smk`, never a second hand-written STAR argv.
 
     `kb e2e` used to build the composed config and then assemble its **own** STAR command line, so
-    STARsolo's argv existed twice by hand and had already drifted: `run_starsolo` hardcodes the four
-    `soloCB/UMI` start/len flags and cannot run a `CB_UMI_Complex` chemistry, while `starsolo.smk`
-    branches on `soloType` to handle one. The arms need a cluster, so nothing here executes them --
-    which is why the call graph is read statically. Only the cost sweep may still call
-    `run_starsolo`: it is the memory instrument.
+    STARsolo's argv existed twice by hand and had already drifted -- the copy here could not run a
+    `CB_UMI_Complex` chemistry at all, and it omitted nine of the module's flags. That second
+    rendering is gone (#348): `workflows/starsolo_args.py` renders both, so `run_starsolo` runs the
+    shipped command line rather than a lookalike.
+
+    **This guard is not redundant now, and the distinction is the reason it survives.** One renderer
+    settles what the arms RUN; it says nothing about what they DRIVE. A gate must exercise the emitted
+    Snakefile -- the rules, the wiring, the outputs snakemake declares -- and reaping STAR directly
+    skips all of it however correct the argv is. So the correctness arms must reach `run_composed`,
+    and only the cost sweep may reach `run_starsolo`, because it is the memory instrument: under
+    snakemake, `ru_maxrss` folds in descendants and turns an exact reading into an approximate one.
+
+    The arms need a cluster, so nothing here executes them -- which is why the call graph is read
+    statically.
     """
     import ast
     import inspect
@@ -531,27 +548,111 @@ def test_resume_reloads_a_measured_point_but_only_under_an_identical_fingerprint
     assert _load_resumable_points(tmp_path / "absent.json", "abc123") == {}
 
 
-@pytest.mark.parametrize(
-    "flag",
-    ["--outSAMtype " + " ".join(SHIPPED_OUT_SAM_TYPE), f"--soloCellFilter {SHIPPED_CELL_FILTER}"],
-    ids=["out_sam_type", "cell_filter"],
-)
-def test_a_shipped_constant_names_the_argv_the_module_actually_runs(flag: str) -> None:
-    """Each constant prices or guards a command `kb e2e-cost` does not run: a claim about ANOTHER FILE.
+_SIMPLE_SOLO = {
+    "soloType": "CB_UMI_Simple",
+    "soloCBstart": 1,
+    "soloCBlen": 16,
+    "soloUMIstart": 17,
+    "soloUMIlen": 12,
+    "soloCBmatchWLtype": "1MM_multi_Nbase_pseudocounts",
+    "soloStrand": "Forward",
+    "soloFeatures": "Gene GeneFull",
+    "clipAdapterType": "CellRanger4",
+}
+_COMPLEX_SOLO = {
+    **_SIMPLE_SOLO,
+    "soloType": "CB_UMI_Complex",
+    "soloCBposition": "0_0_2_-1 0_21_2_-1 0_43_2_-1",
+    "soloUMIposition": "3_10_3_21",
+    "soloCBmatchWLtype": "1MM",
+}
+_RENDER: dict[str, Any] = {
+    "genome_dir": "idx",
+    "cdna": "a.fq.gz",
+    "barcode": "b.fq.gz",
+    "whitelist": "wl.txt",
+    "out_prefix": "out/",
+    "threads": 4,
+}
 
-    Spelled by hand, that claim goes stale silently. `BAM Unsorted` survived in four places after
-    `starsolo.smk` moved to a coordinate-sorted BAM to get `CB`/`UB` into the CRAM; and a determinism
-    guard that quietly fell back to `CellRanger2.2` -- a closed-form knee that could not be
-    nondeterministic if it tried -- would go green forever while the Monte-Carlo caller we ship went
-    unchecked. Whitespace-normalized: how the shell block wraps is not what is under test.
+
+def test_the_shipped_flag_sets_reach_star_as_data_not_as_a_string_match() -> None:
+    """The parity set and the SAM write path are rendered whole, in order, into the real argv.
+
+    This replaces a whitespace-normalised substring search over `starsolo.smk`'s text. That search was
+    the only expression available while STARsolo's command line was rendered twice — once here by
+    hand, once in a `shell:` block nothing could import — and it could only ever check that the two
+    copies still agreed. There is one copy now, so the claim worth making is the direct one: what the
+    renderer emits IS the set, contiguously, rather than a substring of some prose that mentions it.
+
+    The failure this exists for is not hypothetical in either direction. `BAM Unsorted` survived in
+    four places after the module moved to a coordinate-sorted BAM to get `CB`/`UB` into the CRAM; and
+    a determinism guard that quietly fell back to `CellRanger2.2` — a closed-form knee that could not
+    be nondeterministic if it tried — would have gone green forever while the Monte-Carlo caller we
+    ship went unchecked.
     """
-    from seqforge.workflows import get_module
+    argv = starsolo_argv(_SIMPLE_SOLO, bam_sort_ram_bytes=None, **_RENDER)
 
-    source = " ".join(get_module("map/starsolo").snakefile.read_text().split())
-    assert flag in source, (
-        f"starsolo.smk does not run `{flag}`, so the constant naming it prices or guards a command "
-        f"nobody ships"
+    for shipped in (CELLRANGER_PARITY, SAM_WRITE_PATH):
+        start = argv.index(shipped[0])
+        assert argv[start : start + len(shipped)] == shipped, (
+            f"{shipped[0]} is rendered, but not with the rest of its set beside it"
+        )
+
+    # The constant the determinism instrument guards is READ from the set, so it cannot name a caller
+    # the pipeline does not run -- there is no second literal left to disagree with.
+    assert SHIPPED_CELL_FILTER in CELLRANGER_PARITY
+
+    # The SAM type is the module's by default and the sweep's only by asking, which is the whole of
+    # `kb e2e-cost --out-sam-type`: an arm that only ever priced `None` priced a command nobody runs.
+    sam_type = argv.index("--outSAMtype") + 1
+    assert argv[sam_type : sam_type + len(SHIPPED_OUT_SAM_TYPE)] == SHIPPED_OUT_SAM_TYPE
+    counted = starsolo_argv(
+        _SIMPLE_SOLO, bam_sort_ram_bytes=None, out_sam_type=("None",), **_RENDER
     )
+    assert counted[counted.index("--outSAMtype") + 1] == "None"
+
+
+def test_a_complex_chemistry_renders_positions_and_the_instrument_can_therefore_run_one() -> None:
+    """The divergence that made `run_starsolo` unable to run half the KB (#348).
+
+    STARsolo spells barcode geometry two ways, and passing `--soloCBstart` to a `CB_UMI_Complex`
+    chemistry is an error rather than a preference. The module branched on `soloType` and the
+    instrument named the four simple-geometry flags directly, so a Complex chemistry was not merely
+    unmeasured by the cost sweep — it was unrunnable by it. Both call this now.
+
+    `soloCBposition` is asserted to reach STAR as N SEPARATE tokens, which is the half a substring
+    match cannot see: compose emits the quadruples space-joined, and handed over whole they would be
+    one quoted argument naming a barcode geometry STAR cannot parse.
+    """
+    argv = starsolo_argv(_COMPLEX_SOLO, bam_sort_ram_bytes=None, **_RENDER)
+
+    assert "--soloCBstart" not in argv, "a Complex chemistry has no start/length to give"
+    positions = argv.index("--soloCBposition")
+    assert argv[positions + 1 : positions + 4] == ("0_0_2_-1", "0_21_2_-1", "0_43_2_-1")
+    assert argv[argv.index("--soloUMIposition") + 1] == "3_10_3_21"
+
+    simple = starsolo_argv(_SIMPLE_SOLO, bam_sort_ram_bytes=None, **_RENDER)
+    assert "--soloCBposition" not in simple and "--soloCBstart" in simple
+
+
+def test_only_the_instrument_carries_the_sort_cap_in_its_argv() -> None:
+    """The one flag the Snakefile may not receive through the renderer, and why it is not an omission.
+
+    `--limitBAMsortRAM` must escalate with the retry attempt, and snakemake re-expands `resources:`
+    per attempt but NOT `params:`. So the module takes it as `SORT_CAP_SHELL`, concatenated into its
+    shell template where snakemake formats it, and the renderer emits nothing. An instrument passes
+    the number — and omitting it is precisely what left the memory instrument running without the flag
+    that bounds STAR's memory.
+    """
+    assert "--limitBAMsortRAM" not in starsolo_argv(
+        _SIMPLE_SOLO, bam_sort_ram_bytes=None, **_RENDER
+    )
+    assert "--limitBAMsortRAM" not in starsolo_shell_args(_SIMPLE_SOLO, **_RENDER)
+    assert "{resources.bam_sort_ram_bytes}" in SORT_CAP_SHELL
+
+    metered = starsolo_argv(_SIMPLE_SOLO, bam_sort_ram_bytes=1234, **_RENDER)
+    assert metered[metered.index("--limitBAMsortRAM") + 1] == "1234"
 
 
 def test_the_cell_filter_fixture_plants_cells_inside_an_ambient_background(tmp_path: Path) -> None:
@@ -600,7 +701,7 @@ def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(tmp_pat
     the key -- and a test that only checks "same args => same hash" would pass with every field
     dropped. Each case below is a measurement that would be silently reused as another's.
     """
-    from seqforge.e2e import SHIPPED_OUT_SAM_TYPE, _cost_fingerprint
+    from seqforge.e2e import _cost_fingerprint
 
     base = dict(
         feature_list=["Gene", "Velocyto"],

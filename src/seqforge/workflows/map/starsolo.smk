@@ -33,6 +33,7 @@ from seqforge.workflows.h5ad import (
 )
 from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
 from seqforge.workflows.qc import QC_SUFFIX
+from seqforge.workflows.starsolo_args import SORT_CAP_SHELL, starsolo_shell_args
 from seqforge.workflows.units import ordered_fastqs
 
 
@@ -75,135 +76,20 @@ def whitelists():
     return SOLO["soloCBwhitelist"].split()
 
 
-def cb_umi_geometry():
-    """Where the CB and UMI live -- and STARsolo spells this two different ways.
-
-    A simple chemistry (10x) has one contiguous barcode, so a start/length pair locates it. A
-    combinatorial one (SPLiT-seq, BD Rhapsody) has barcodes scattered between linkers, so each needs a
-    position quadruple and no start/length exists to give. This is not a preference: passing
-    --soloCBstart to CB_UMI_Complex is an error, and the keys are absent from the config precisely
-    because the chemistry has no such value. Compose emits whichever set the soloType implies (the
-    params gate proves the block is exactly what its owners declared), so the branch here reads what is
-    there.
-
-    GEOMETRY ONLY. This branch used to also pin ``--soloCBmatchWLtype 1MM`` on the Complex side; that
-    key is now the KB's (#198) and is emitted once, from the shell block, for BOTH branches. The pin
-    was load-bearing and its reason survives in the specs that inherited it -- STAR REJECTS its own
-    global default ``1MM_multi`` for CB_UMI_Complex, so a Complex chemistry naming no match type
-    FATALs on the default alone -- but it could only ever state one value per soloType, and Parse
-    Evercode (``EditDist_2``) and BD Rhapsody (``1MM``) are both Complex and disagree. A branch that
-    yields two answers cannot serve three chemistries; a per-chemistry file can.
-    """
-    if SOLO["soloType"] == "CB_UMI_Complex":
-        return (
-            f"--soloCBposition {SOLO['soloCBposition']} "
-            f"--soloUMIposition {SOLO['soloUMIposition']}"
-        )
-    return (
-        f"--soloCBstart {SOLO['soloCBstart']} --soloCBlen {SOLO['soloCBlen']} "
-        f"--soloUMIstart {SOLO['soloUMIstart']} --soloUMIlen {SOLO['soloUMIlen']}"
-    )
-
-
-def barcode_read_length():
-    """--soloBarcodeReadLength, and ONLY when the chemistry declares it.
-
-    STARsolo's default (1) FATALs unless the barcode read is exactly CB+UMI long. 10x v2/v3/v3.1 R1 is
-    routinely sequenced longer than the 26/28 nt the barcode occupies (a 150 nt R1 is common), so their
-    specs set `soloBarcodeReadLength: 0` to disable that check and read CB/UMI from the fixed offsets.
-    A chemistry that does not set the key (SPLiT-seq, ...) keeps STAR's default, so the flag is emitted
-    iff it is present -- the same "render whatever the chemistry put in the block" contract as the
-    geometry above.
-
-    `SOLO.get(...)`, deliberately NOT `SOLO["..."]`: a subscript would make `keys_read_by` (see
-    `workflows/__init__.py`) mark `solo.soloBarcodeReadLength` a REQUIRED config key, and the composer
-    would then be obliged to emit it for every starsolo chemistry -- including SPLiT-seq, whose params
-    gate forbids emitting a key it does not own. `.get` is the honest "optional read" the scanner
-    correctly leaves out of `required_config`.
-    """
-    value = SOLO.get("soloBarcodeReadLength")
-    return f"--soloBarcodeReadLength {value}" if value is not None else ""
-
-
-def read_through_clip():
-    """The chemistry's read-through, as the flag STAR takes -- or NOTHING where it declares none.
-
-    **ONE value, because STARsolo aligns ONE mate.** `--readFilesIn` hands this module two files, cDNA
-    first and then the barcode read, but the barcode read is not a mate: solo peels it off and only
-    the cDNA read reaches the aligner. Measured against the pinned 2.7.11b at parameter init, under
-    BOTH soloTypes, a second value -- even `-`, STAR's per-mate no-clip sentinel -- is the hard
-    `--clip3pAdapterSeq has to contain 1 values to match the number of mates`. So this module's arity
-    is a fixed 1 where `map/star-umi`'s is its cell's mate count, and the two land on opposite answers
-    from the same rule. It is also what puts the clip out of the barcode read's reach STRUCTURALLY:
-    there is no mate to aim at it, hence no sentinel to get wrong and no way to trim a CB or a UMI.
-
-    `--clip3pAdapterMMp` is deliberately NOT restated, and that is the same measurement: STAR's own
-    default is a single 0.1, which already matches this arity, so naming it would be a flag that reads
-    as a decision and is the default. `map/star-umi` restates it because its paired form makes the
-    default's arity WRONG, never because the number was worth saying.
-
-    Read with `.get`, so absence renders as ABSENCE -- an empty flag is one STAR takes and matches
-    against every read -- and so the key stays one only the chemistry that has it emits: a subscript
-    would make `keys_read_by` (see `workflows/__init__.py`) oblige all eleven specs to name an
-    adapter, and the params gate would then refuse the ones that have none.
-
-    Every base it reaches is cDNA by compose's doing rather than this rule's: `--readFilesIn` is
-    ordered by ROLE and the params gate re-checks that placement.
-    """
-    sequence = SOLO.get("read_through")
-    return f"--clip3pAdapterSeq {sequence}" if sequence else ""
-
-
-def clip_adapter():
-    """--clipAdapterType, plus whichever clip the chemistry declares at the end that trimmer takes.
-
-    ONE fragment for up to three flags, because STAR makes them one decision. `CellRanger4` builds two
-    fixed adapters -- the 10x three-prime TSO off the cDNA read's 5' end and poly-A off its 3' -- and a
-    supplied `--clip5pAdapterSeq` REPLACES the first rather than adding to it, read off STAR's own
-    source in `docs/research/starsolo-read-preprocessing-per-family.md`. So a chemistry whose protocol
-    clips a DIFFERENT TSO says so once and gets its own sequence clipped, under the only mode where
-    the override is legal at all. The other mode is the mirror: `Hamming` takes no five-prime sequence
-    and is the only one that accepts a three-prime one, which is why a `read_through` and an override
-    are never both here -- the schema refuses the pairing at spec load, one rule for both directions.
-
-    Rendering them as separate tokens would cost the three-prime 10x chemistries their byte-identical
-    command line: each extra token leaves an empty continuation on every chemistry that declares none.
-    Joined, a chemistry that declares neither renders exactly `--clipAdapterType <mode>` and nothing
-    else, which is what those five reached STAR with before either key existed.
-
-    The trimmer is the KB's now and not this module's (#355), because its correct value MOVES from one
-    chemistry to the next -- the ownership argument is on `Backend` in `kb/schema.py`, the per-vendor
-    evidence in the research file above. `Hamming` with nothing declared is STAR's default and a
-    no-op, which is exactly what the 5' and BD vendors do to a cDNA read; this module used to hand all
-    eleven chemistries `CellRanger4` and clip a 10x TSO off four reads that never carried one.
-
-    `SOLO['clipAdapterType']` is a SUBSCRIPT and both clips are `.get`, and that difference is the
-    whole mechanism: the subscript makes `keys_read_by` (see `workflows/__init__.py`) mark the key
-    REQUIRED, so all eleven specs owe a value and none is defined by silence, while a clip stays a key
-    only the chemistry that has one emits and the params gate polices.
-    """
-    flags = [f"--clipAdapterType {SOLO['clipAdapterType']}"]
-    override = SOLO.get("clip5pAdapterSeq")
-    if override:
-        flags.append(f"--clip5pAdapterSeq {override}")
-    three_prime = read_through_clip()
-    if three_prime:
-        flags.append(three_prime)
-    return " ".join(flags)
-
-
-def adapter_sequence():
-    """--soloAdapterSequence, and ONLY when the chemistry declares it (an ANCHORED bead).
-
-    BD Rhapsody Enhanced prepends a variable 0-3 bp diversity insert to the barcode read, so the CB/UMI
-    offsets float. STARsolo absorbs the stagger by anchoring to this adapter (`NNN...GTGANNN...GACA`):
-    it finds the adapter in each read and reads the barcodes at the anchor-2/anchor-3 positions
-    `cb_umi_geometry()` emits. Derived from the linker elements at compose time (compose/params.py) and
-    present in `config["solo"]` only for such a chemistry -- `.get`, so a fixed-offset chemistry (10x,
-    the original BD bead) neither declares it nor has the scanner mark it a required key.
-    """
-    value = SOLO.get("soloAdapterSequence")
-    return f"--soloAdapterSequence {value}" if value is not None else ""
+# STAR's command line -- geometry, clips, the anchored-bead adapter, the CellRanger-parity set and
+# the SAM write path -- is rendered by `workflows/starsolo_args.py` and reaches the shell block below
+# as ONE token. Five closures used to live here, reading a module-level `SOLO`, and they were the
+# reason `e2e.run_starsolo` could not run a `CB_UMI_Complex` chemistry: it named the four simple
+# geometry flags by hand because the branch that chooses them was in a file nothing can import. The
+# instrument now calls the same renderer, and it omitted NINE shipped flags until it did (#348).
+#
+# It is the move this file's header already argues for `h5ad`, `memory`, `QC_SUFFIX` and
+# `ordered_fastqs`: a Snakefile is not importable, so a closure written inside one can never be
+# unit-tested, only run. Every one of those five now has a test.
+#
+# `required_config` follows the reads rather than the file: `workflows/__init__.py::argv_keys_read_by`
+# walks the renderer's AST for the `solo[...]` subscripts that used to be scanned out of this source,
+# which sees BOTH geometry branches where a scan could only ever see the one it took.
 
 
 # Every raw matrix/axis file this run's --soloFeatures must produce, per sample -- declared
@@ -370,105 +256,37 @@ rule starsolo_count:
             escalated_mem_mb(config["mem_mb"], attempt)
         ),
     params:
-        solo=SOLO,
-        geometry=cb_umi_geometry(),
-        barcode_read_length=barcode_read_length(),
-        adapter=adapter_sequence(),
-        clip=clip_adapter(),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
-        # cDNA mate first, then barcode mate (order asserted by the params gate); each mate is its
-        # runs and lanes comma-joined, so a pooled sample maps in one STAR pass. See readfilesin().
-        reads=lambda wc: readfilesin(
-            wc.sample, config["read_files_in"]["cdna"], config["read_files_in"]["barcode"]
+        # The whole command line, quoted, as ONE token. cDNA mate first, then barcode mate (order
+        # asserted by the params gate); each mate is its runs and lanes comma-joined, so a pooled
+        # sample maps in one STAR pass. See readfilesin().
+        #
+        # A `params:` callable is expanded ONCE, on attempt 1 -- the same measurement that makes the
+        # sort cap a `resources:` entry. So the cap is NOT in here: it reaches the shell template as
+        # `SORT_CAP_SHELL`, below, where snakemake re-expands it per attempt. Nothing else about the
+        # command line varies with the attempt, so nothing else needs to escape this token.
+        argv=lambda wc, input, threads: starsolo_shell_args(
+            SOLO,
+            genome_dir=input.index,
+            cdna=readfilesin(wc.sample, config["read_files_in"]["cdna"]),
+            barcode=readfilesin(wc.sample, config["read_files_in"]["barcode"]),
+            whitelist=input.whitelist,
+            out_prefix=f"{OUTDIR}/{wc.sample}/",
+            threads=threads,
         ),
     shell:
-        # --readFilesIn takes the cDNA read FIRST, then the barcode read (asserted by the params gate).
-        # {params.barcode_read_length} is `--soloBarcodeReadLength 0` for 10x (over-length R1) and empty
-        # for a chemistry that does not declare it -- an empty token is a valid line continuation.
+        # STAR's whole command line is `workflows/starsolo_args.py`'s. Every literal that used to be
+        # spelled out here -- the CellRanger-parity set, the SAM write path, the geometry branch, the
+        # clips -- lives beside the reasoning that chose it and the verification against the pinned
+        # 2.7.11b, and reaches this block already rendered and quoted. There is nothing left to spell,
+        # which is the point: the instrument that renders STARsolo's OTHER command line omitted nine
+        # of these flags, and a block with no flags in it cannot be the half that drifts (#348).
         #
-        # FOUR OF THE LITERALS BELOW ARE THE CELLRANGER-PARITY SET (#198) -- `--outFilterScoreMin 30`,
-        # `--soloUMIfiltering MultiGeneUMI_CR`, `--soloUMIdedup 1MM_CR` and `--soloCellFilter
-        # EmptyDrops_CR`, and no others. They are the documented "CellRanger >=4 equivalent" set
-        # (Kaminow, Yunusov & Dobin 2021); without them we emit STARsolo-DEFAULT counts, which are not
-        # comparable to published CellRanger matrices -- a real problem for a corpus whose point is
-        # comparability. The SAM/BAM write-path literals at the bottom of the block (`--outSAMtype`,
-        # `--limitBAMsortRAM`, `--outSAMattributes`, `--outSAMmultNmax`) are hardcoded for the same
-        # OWNERSHIP reason and are NOT part of that set: they shape the alignment we retain, not the
-        # counts, and naming them as CellRanger parity would be a claim nobody measured.
-        #
-        # The shared reason is ADR-0011's, and it is about what a value VARIES WITH rather than what
-        # it is for: none of these differs between two chemistries, so none belongs to the KB, and a
-        # literal is the only rendering that says so -- the params gate requires the emitted key set
-        # to be EXACTLY union(KB keys, processing keys), and `required_config` is COMPUTED from this
-        # source, so a `params.solo[...]` subscript OBLIGES all 11 starsolo specs to declare the key.
-        # `--clipAdapterType` was in this set until #355 and is exactly why the test has to be
-        # "varies with what" and not "chosen for what": it was picked for parity like the four above,
-        # and its right value still moves from one chemistry to the next, so it is a subscript now and
-        # the specs carry it. Verified against the STAR 2.7.11b binary that every literal here is
-        # accepted for CB_UMI_Simple AND CB_UMI_Complex -- this is the class of change that passes a
-        # 10x-only suite and breaks the four Complex specs.
-        #
-        # `--outSAMmultNmax 1` is the newest of the write-path literals (#205), and it earns its own
-        # paragraph because it is the only one that changes WHICH RECORDS come out rather than what
-        # each record carries or where it goes. STAR emits every alignment of a multi-mapping
-        # read and coordinate-sorts them all; `seqforge io cram` then discards the secondaries with
-        # `-F 0x100`. On the measured sample that was 198.8M records sorted against 162.9M retained --
-        # ~18% of the sort spent producing bytes the very next rule deletes, paid in both the sort
-        # budget above and in wall-clock. `nTrOutWrite = min(P.outSAMmultNmax, nTrOutSAM)` writes only
-        # a top-scoring alignment, which is the record the CRAM filter keeps.
-        #
-        # THE COUNTS ARE UNTOUCHED AND THE CRAM IS NOT BYTE-IDENTICAL, which is the opposite of what
-        # #205 claimed and was checked against the STAR 2.7.11b source rather than its manual. Counts:
-        # the flag appears ONLY in the SAM/BAM write path and the alignment-ordering code, in NO Solo
-        # counting file; `SoloFeature_addBAMtags` keys CB/UB on the read index alone and the gene
-        # assignment is an order-independent set union. The CRAM: for a read with `NH > 1`,
-        # `outSAMmultNmax != -1` is itself the trigger in `ReadAlign_multMapSelect.cpp` for
-        # partitioning `trMult` so max-score alignments come first AND for marking `trMult[0]` primary
-        # instead of `trBest` -- and `HI` is an OUTPUT-ORDER index (`iTrOut + outSAMattrIHstart`,
-        # `ReadAlign_alignBAM.cpp`), so a multimapper's retained record now always carries `HI:i:1`.
-        # Where several loci tie on score it can also be a DIFFERENT one of them: `trBest` breaks the
-        # tie on the shorter genomic span (`gLength`), the partition takes the first in window order.
-        # Both are top-scoring, so this changes the tie-break and not the quality; `NH` still counts
-        # every locus (computed from `nTrOutSAM`, not from the truncated write count) and a uniquely
-        # mapping read is bit-for-bit untouched. It is affordable precisely because the
-        # `WORKFLOW_VERSION` bump already obliges reprocessing. The name is real, verified against the
-        # pinned 2.7.11b binary (a bogus parameter name FATALs with "unrecognized parameter name";
-        # this one does not). Per ADR-0011 its value varies with NOTHING -- not the chemistry, not the
-        # user's intent, there is one correct value for every dataset seqforge will ever compile --
-        # which is precisely what makes it the module's to hardcode rather than the KB's or the
-        # recipe's. `-F 0x100` STAYS in `cram.py`, and do not "clean it up": it is now a cheap
-        # invariant rather than a load-bearing filter, and an invariant is not deleted for the crime
-        # of having stopped firing.
-        #
-        # `--soloMultiMappers` is deliberately ABSENT (it stays `Unique`): 87% of the multi-gene signal
-        # on the measured library was the tandem rDNA array, EM splits identical copies evenly and
-        # emits a large arbitrary number that reads as data, and all four multimapper matrices are
-        # FRACTIONAL, which breaks pseudobulk. The diagnostic that would justify revisiting it
-        # (`Features.stats` MultiFeature) already ships in every QC bundle.
-        r"""
-        # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)
-        rm -rf {params.prefix}_STARtmp
-        STAR --runMode alignReads --genomeDir {input.index} --runThreadN {threads} \
-             --readFilesIn {params.reads} --readFilesCommand zcat \
-             --soloType {params.solo[soloType]} \
-             {params.geometry} \
-             {params.adapter} \
-             {params.barcode_read_length} \
-             --soloCBwhitelist {input.whitelist} \
-             --soloCBmatchWLtype {params.solo[soloCBmatchWLtype]} \
-             --soloStrand {params.solo[soloStrand]} \
-             --soloFeatures {params.solo[soloFeatures]} \
-             {params.clip} \
-             --outFilterScoreMin 30 \
-             --soloUMIfiltering MultiGeneUMI_CR \
-             --soloUMIdedup 1MM_CR \
-             --soloCellFilter EmptyDrops_CR \
-             --outFileNamePrefix {params.prefix} \
-             --outSAMtype BAM SortedByCoordinate \
-             --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
-             --outSAMmultNmax 1 \
-             --outSAMattributes NH HI AS nM CB UB
-        """
+        # The sort cap is the one exception and it is not a style choice: it must re-expand per retry
+        # attempt, and a `params:` value is expanded once. `SORT_CAP_SHELL` spells the flag so this
+        # file does not.
+        "rm -rf {params.prefix}_STARtmp\n"
+        "STAR {params.argv} " + SORT_CAP_SHELL
 
 
 rule solo_to_h5ad:

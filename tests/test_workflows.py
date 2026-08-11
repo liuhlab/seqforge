@@ -50,6 +50,7 @@ from seqforge.models.processing import RuntimeEnv, SoloFeature
 from seqforge.workflows import (
     PLATE_H5AD,
     WORKFLOW_VERSION,
+    argv_keys_read_by,
     get_module,
     keys_read_by,
     list_modules,
@@ -1460,7 +1461,15 @@ def test_a_shipped_module_declares_rules_and_derives_its_own_config_contract(
     # rule reads. This identity reads as tautological but is not: it pins that `required_config` never
     # goes back to a hand-typed literal; test_the_required_config_scanner_can_catch_an_undeclared_key
     # is what proves the derivation itself is not vacuous.
-    assert set(module.required_config) == set(keys_read_by(module.snakefile))
+    #
+    # Two sources for a module whose argv renderer moved into Python — the reads moved, the rule that
+    # they are DERIVED and never declared did not. Asserting against the snakefile alone is what this
+    # line used to say, and it would now pass only by the module keeping its command line in a file
+    # that cannot be unit-tested.
+    derived = set(keys_read_by(module.snakefile))
+    if module.argv_source is not None:
+        derived |= argv_keys_read_by(module.argv_source)
+    assert set(module.required_config) == derived
     assert module.required_config == tuple(sorted(module.required_config))
 
 

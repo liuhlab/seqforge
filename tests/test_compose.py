@@ -253,12 +253,26 @@ def test_a_simple_chemistrys_read_through_reaches_star_as_one_value(
     )
     rendered = [ln for ln in planned.splitlines() if "--clipAdapterType" in ln]
     assert len(rendered) == 1, planned
-    assert rendered[0].strip().rstrip("\\").split() == [
+    # The whole STAR command is one rendered line now (`workflows/starsolo_args.py` owns it), so the
+    # clip is located within the argv rather than read off a continuation line of its own.
+    tokens = rendered[0].split()
+    start = tokens.index("--clipAdapterType")
+    assert tokens[start : start + 4] == [
         "--clipAdapterType",
         "Hamming",
         "--clip3pAdapterSeq",
         "CCCATATAAGAAA",
     ], planned
+    # The arity, which is the whole point: a SECOND value -- even `-`, STAR's own per-mate no-clip
+    # sentinel -- is a hard FATAL at parameter init, and it would be invisible to a substring match or
+    # an occurrence count. What follows the sequence must therefore be the next FLAG.
+    assert tokens[start + 4].startswith("--"), (
+        f"--clip3pAdapterSeq took a second value ({tokens[start + 4]!r}); solo peels the barcode read "
+        f"off, so STAR has exactly one mate to clip"
+    )
+    assert "--clip5pAdapterSeq" not in tokens, (
+        "a trimmer that takes a 3' clip refuses a 5' override"
+    )
 
 
 def test_the_composer_records_the_run_each_unit_came_from(built_v3: Built) -> None:

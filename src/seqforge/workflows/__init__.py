@@ -10,6 +10,7 @@ bound to the exact module source that will run it.
 
 from __future__ import annotations
 
+import ast
 import re
 from dataclasses import dataclass
 from functools import cache
@@ -353,6 +354,47 @@ def keys_read_by(snakefile: Path) -> frozenset[str]:
     return frozenset(keys)
 
 
+#: The config blocks that carry an aligner's params. One per module, and :meth:`param_block` refuses a
+#: module that reads none or several. Also the parameter names an argv renderer binds its block to,
+#: which is what lets :func:`argv_keys_read_by` find the reads without being told where to look.
+_PARAM_BLOCKS: frozenset[str] = frozenset({"solo", "bulk", "chromap", "umi"})
+
+
+def argv_keys_read_by(source: Path) -> frozenset[str]:
+    """The dotted config keys an argv renderer reads, **walked out of its AST**.
+
+    The counterpart to :func:`keys_read_by` for the half of a module's config reads that no longer
+    live in its Snakefile. `starsolo.smk` used to render STAR's whole command line itself, so
+    scanning that one file for ``SOLO["..."]`` recovered every key the composer owes; the geometry
+    and clip closures now live in `workflows.starsolo_args`, where a Snakefile scanner cannot see
+    them (#348).
+
+    **An AST rather than a second regex, and it is strictly more precise than the one it joins.** A
+    renderer is importable Python, so every branch is visible at once — the scan does not have to
+    take one. That matters here specifically: :func:`~seqforge.workflows.starsolo_args.cb_umi_geometry`
+    reads four keys on its simple arm and two on its Complex arm, and a reader that followed
+    execution would see whichever the sample happened to be.
+
+    A **subscript** is a key the composer owes; a ``.get`` is one only the chemistry that has it
+    emits, and is deliberately not returned — the same line `keys_read_by` draws, drawn exactly here
+    rather than by pattern. The block is found by parameter name (:data:`_PARAM_BLOCKS`), so a
+    renderer states which block it renders by taking it as an argument, not by declaring it twice.
+    """
+    keys: set[str] = set()
+    for node in ast.walk(ast.parse(source.read_text())):
+        if not isinstance(node, ast.Subscript):
+            continue
+        block, key = node.value, node.slice
+        if (
+            isinstance(block, ast.Name)
+            and block.id in _PARAM_BLOCKS
+            and isinstance(key, ast.Constant)
+            and isinstance(key.value, str)
+        ):
+            keys.add(f"{block.id}.{key.value}")
+    return frozenset(keys)
+
+
 #: The parse-param namespace a ``map/starsolo`` backend may declare — every key says how to **parse**
 #: reads, and each is decided by bytes. The line is parse vs. count: what to COUNT (``soloFeatures``,
 #: ``quantMode``) is *intent* and belongs to the processing manifest, where a user may instruct it and a
@@ -466,6 +508,11 @@ class WorkflowModule:
     snakefile: Path
     #: How this module wants its reads handed to the aligner — see :data:`ReadLayoutKind`.
     read_layout_kind: ReadLayoutKind
+    #: The Python module that renders this pipeline's aligner argv, where it has one. Scanned for
+    #: config reads exactly as the Snakefile is (:func:`argv_keys_read_by`), because a module whose
+    #: command line moved out of its ``shell:`` block still owes the composer the same keys — the
+    #: reads moved, the contract did not. ``None`` for a module that renders its own argv inline.
+    argv_source: Path | None = None
     #: The parse-param namespace this pipeline's KB backends may declare (byte-decided knobs). Empty for
     #: a bulk pipeline that takes no parse params. Per pipeline, so a chromap backend declares chromap's
     #: parse knobs and a starsolo backend declares ``solo*`` — each gated against its own namespace.
@@ -515,8 +562,16 @@ class WorkflowModule:
         Deriving is only safe because the module now *executes*: `kb e2e` runs this Snakefile against
         real reads and a ground-truth matrix, so a key this scanner misses fails loudly there. The two
         are complementary — `kb e2e` exercises one chemistry's branch, this covers both statically.
+
+        **Two sources, because the reads live in two files now.** A module whose argv renderer moved
+        into Python (`argv_source`) is scanned there too, and by AST rather than by regex — see
+        :func:`argv_keys_read_by`. Deriving from wherever the reads actually are is the same rule as
+        before; what changed is that "wherever" stopped being one file.
         """
-        return tuple(sorted(keys_read_by(self.snakefile)))
+        keys = keys_read_by(self.snakefile)
+        if self.argv_source is not None:
+            keys |= argv_keys_read_by(self.argv_source)
+        return tuple(sorted(keys))
 
     @property
     def param_block(self) -> str:
@@ -536,9 +591,7 @@ class WorkflowModule:
         A module that reads neither block, or both, raises. That is a module whose config contract we
         do not understand, and guessing would be how the wrong params reach an aligner.
         """
-        blocks = sorted(
-            {k.split(".")[0] for k in self.required_config} & {"solo", "bulk", "chromap", "umi"}
-        )
+        blocks = sorted({k.split(".")[0] for k in self.required_config} & _PARAM_BLOCKS)
         if len(blocks) != 1:
             raise ValueError(
                 f"{self.name} reads {blocks or 'no'} aligner-param block(s) in its config; expected "
@@ -566,6 +619,7 @@ MODULES: dict[str, WorkflowModule] = {
         env="align-rna",
         snakefile=_MODULE_DIR / "map" / "starsolo.smk",
         read_layout_kind="barcoded",
+        argv_source=Path(__file__).parent / "starsolo_args.py",
         parse_keys=_STARSOLO_PARSE_KEYS,
     ),
     "map/star": WorkflowModule(
@@ -650,6 +704,7 @@ __all__ = [
     "ReadLayoutKind",
     "WorkflowModule",
     "MODULES",
+    "argv_keys_read_by",
     "container_uri",
     "get_module",
     "keys_read_by",
