@@ -1,8 +1,9 @@
 # What the end-to-end gate runs actually measured
 
 Measured **2026-07-15** on three fixtures — sacCer3, ce11 + WS298, hg38 — moved out of
-the eval-corpus reference page on **2026-08-05**. The gate's design is `params_gate` in
-`compose/params.py`; the numbers and the boxes they were taken on live here.
+the eval-corpus reference page on **2026-08-05**. The hg38 cost sweep was **re-measured 2026-08-11**
+and its section supersedes what was here. The gate's design is `params_gate` in `compose/params.py`;
+the numbers and the boxes they were taken on live here.
 
 **Method.** `seqforge kb e2e` (sacCer3, 2 000 reads, 120 genes, 8 cells), `kb e2e-introns` (ce11 with
 WS298 annotation) and `kb e2e-cost` (hg38) — each drives reads simulated from a real transcriptome
@@ -11,11 +12,19 @@ composed params, asserting the resulting matrix against the injected truth.
 `kb e2e-cost`, or `kb e2e-introns --quantify`, is the instrument that reports wall time and peak RSS.
 Every genome index came from `liulab-genome`; none of these runs is hermetic and none runs in CI.
 
-**What they could not establish.** Anything above 250 M reads: the flat regime ends somewhere between
-100 M and 250 M and there is exactly one post-knee point, so a deep human library is extrapolation.
-Anything about SPLiT-seq, whose strand question a simulation cannot settle at all (simulating the
-reads requires assuming the strand). And anything about a chemistry other than the one each run
-resolved — these fixtures certify one chemistry's strand each.
+**Point `--star` at an aligner, not at a launcher.** bioconda installs `bin/STAR` as a bash
+SIMD-dispatch script that runs `STAR-avx2` as a *child*, so an instrument timing its own child times
+the script. The 2026-08-11 run passed `--star .../bin/STAR-avx2` explicitly for that reason; #372
+made the instrument measure the process tree and record `star_peak_rss_comm`, the name of whichever
+process the peak belongs to. **A reading whose `comm` is `bash` is a measurement of the launcher —
+discard it.**
+
+**What they could not establish.** Anything about SPLiT-seq, whose strand question a simulation
+cannot settle at all (simulating the reads requires assuming the strand). Anything about a chemistry
+other than the one each run resolved — these fixtures certify one chemistry's strand each. And
+**what a sort costs on a real library**: the cost fixture draws from 2 000 gene models, and its sort
+requirement is ~40x smaller per record than the one real-data measurement on record. See the caveat
+under `kb e2e-cost`.
 
 ## `kb e2e` — sacCer3
 
@@ -41,20 +50,54 @@ maintainer decision of 2026-07-15 rather than a measurement.
 
 ## `kb e2e-cost` — hg38, peak memory at corpus scale
 
-> **Both figures are FLOORS, and have been since 2026-08-08.** They were measured with an argv that
-> omitted nine flags the shipped module runs — the whole CellRanger-parity set, the SAM attributes,
-> and `--limitBAMsortRAM`, which is the flag that bounds STAR's sort. The instrument renders the
-> module's command line now (#348), so what it runs does strictly more work than what produced these
-> numbers. **Sizing derived from them below 250 M reads may therefore be low.** Re-run on arc and
-> replace them; until then the 128 GB provisioning above 250 M is the safe direction of the error, and
-> the slope is the part that was never in question.
+Re-measured **2026-08-11** on arc, and the answer is simpler than the figures it replaces:
+**peak RSS is the genome index, and it does not move with read depth.**
 
-**34.7 GB at 100 M reads and 44.1 GB at 250 M**, so the flat regime ends between them and peak RSS is
-roughly a genome-sized intercept plus a slope in reads. The ce11 fixture cannot answer this — peak RSS
-moved only 2.804 to 2.809 GB across a 500× read increase, because 2.8 GB *is* the ce11 index and the
-counting is a rounding error on it, so a green ce11 number would have been worse than none. **Only the
-slope generalizes off ce11**; the absolute figure needed the real hg38 index.
+| reads | peak RSS | STAR wall | STAR's "max memory needed for sorting" |
+| ---: | ---: | ---: | ---: |
+| 2 M | 31.078 GB | 26.5 s | 9.8 MB |
+| 8 M | 31.119 GB | 51.1 s | 39.3 MB |
+| 32 M | 31.124 GB | 122.6 s | 157 MB |
+| 64 M | 31.089 GB | 220.4 s | 312 MB |
+| 100 M | 31.082 GB | 325.2 s | 493 MB |
+| 250 M | 31.175 GB | 772.2 s | 1.23 GB |
+
+hg38 + `gencode_v50`, STAR 2.7.11b, 8 threads (`ResourceHints.threads`, what the rule actually
+requests), the shipped `--outSAMtype BAM SortedByCoordinate`, and the module's own argv via
+`workflows/starsolo_args.py` — `--limitBAMsortRAM` among it, at the 36 GB a default 48 GB recipe
+gives it. **97 MB of spread across a 125x read increase**, which is to say none: the 31 GB is the
+index, paid before a read is parsed, and everything the depth adds is noise against it. Wall clock is
+the thing that scales — linear, ~21 s + 3 s per million reads.
+
+**The sort is not close to being the constraint.** STAR's own reported requirement is linear at
+~4.9 B/read and reaches 1.23 GB at 250 M — against a 36 GB cap, 29x headroom. `--limitBAMsortRAM`
+is a cap and not an allocation (`workflows/memory.py`), so that headroom costs nothing.
+
+> **The figures this replaces — 34.7 GB at 100 M and 44.1 GB at 250 M — are withdrawn, along with
+> the knee between them.** There is no knee; the curve is flat from 2 M to 250 M.
+>
+> They were taken on 2026-07-15, which dates them to `os.wait4`'s `ru_maxrss` — the path
+> `_run_measured` replaced the next day, and whose defect that docstring records as measured: on
+> Linux it reports `max(parent_rss_at_fork, child_peak)`, a floor at whatever the caller weighs.
+> They also predate the argv unification, so they priced `--outSAMtype None` at the CLI's
+> then-default 16 threads rather than the shipped sorted BAM at the rule's 8.
+>
+> **Which of those produced the difference is not established, and is not worth establishing** — the
+> apparatus that produced them is gone, all three of its successors agree the curve is flat, and no
+> sizing decision now rests on the answer. Do not reopen this to reconcile the old numbers with the
+> new ones; they were produced by different code against different flags.
+
+**Caveat, and it is the reason the fixture cannot size a sort.** This simulation draws from 2 000
+gene models, and its ~4.9 B/read is ~40x smaller per record than the ~160 B/record measured on real
+data (GSE208154/SAMN29720279, recorded in `workflows/memory.py`). Take the **index intercept** from
+this table — an index is an index — and take **sort sizing from the real-data figure**, which is what
+`ResourceHints.mem_gb`'s 48 GB default and its 3/4 cap were chosen against and remain chosen against.
+
+The ce11 fixture cannot answer any of this — peak RSS moved only 2.804 to 2.809 GB across a 500x read
+increase, because 2.8 GB *is* the ce11 index. The absolute figure needed the real hg38 index.
 
 A resource request is *intent*, so the memory hint lives on the **recipe**, not on a workflow module.
-Above 250 M reads a deep human library is provisioned 128 GB until the sweep extends; an expensive
-default is not a trap here, because the recipe can override it.
+**The 128 GB provisioning note above 250 M reads is retired**: it was extrapolation from the
+withdrawn slope, and there is no slope to extrapolate. The recipe default — 48 GB, escalating to 96
+and 144 over two retries — stands unchanged, sized by the real-data sort figure rather than by this
+table, and it holds a 31 GB index with room for the sort at any depth measured here.
