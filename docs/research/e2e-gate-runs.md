@@ -49,6 +49,17 @@ maintainer decision of 2026-07-15 rather than a measurement.
 > replace them; until then the 128 GB provisioning above 250 M is the safe direction of the error, and
 > the slope is the part that was never in question.
 
+> **A reading taken between 2026-07-16 and 2026-08-11 is not one of these, and is not a number.**
+> The instrument polled the peak of the process it spawned, and the STAR that `liulab-runtime`'s
+> `align-rna` env puts on PATH is a bash script that greps `/proc/cpuinfo` and runs `STAR-avx2` one
+> level down — so the reading was the wrapper's. Measured on arc 2026-08-11, same reads and same
+> params: **0.003 GB** through `bin/STAR` against **31.126 GB** through `bin/STAR-avx2`, at every
+> depth, exit 0. The figures above predate it (2026-07-15, through an older `wait4` path that saw
+> descendants) and are unaffected; anything measured in that window is the launcher's high-water mark
+> and belongs in no curve. The instrument reads the process TREE now and names the process each peak
+> belongs to, and its version is in the sweep's resume key so those points cannot resume into a new
+> run (#372).
+
 **34.7 GB at 100 M reads and 44.1 GB at 250 M**, so the flat regime ends between them and peak RSS is
 roughly a genome-sized intercept plus a slope in reads. The ce11 fixture cannot answer this — peak RSS
 moved only 2.804 to 2.809 GB across a 500× read increase, because 2.8 GB *is* the ce11 index and the

@@ -32,15 +32,18 @@ import os
 import random
 import re
 import resource
+import signal
 import subprocess
 import sys
 import time
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor
+from contextlib import suppress
 from dataclasses import dataclass, field
 from itertools import product as _product
 from pathlib import Path
+from typing import NamedTuple
 
 import yaml
 
@@ -559,9 +562,10 @@ def run_starsolo(
     - a **gate** asks "is the artifact we ship correct?", so it must run the artifact we ship. Both
       correctness arms do that via `run_composed`, which runs the emitted Snakefile.
     - an **instrument** asks "how much memory does STAR need at depth N?", so it must reap STAR
-      itself. Under snakemake, `wait4` reaps snakemake and `ru_maxrss` folds in descendants, which
-      turns an exact number into an approximate one — and this file already carries the scar of a
-      memory reading that was silently a `max()` over several children.
+      itself. Under snakemake the process it would time is a *scheduler*, and the peak would be the
+      largest process in a tree the scheduler decides the shape of — an exact number turned into an
+      approximate one, and this file already carries the scar of a memory reading that was silently
+      a `max()` over several children.
 
     **It runs the command the module ships, and did not until #348.** The argv used to be rendered
     here by hand, and had drifted twice over: it named the four `soloCB`/`soloUMI` start/len flags
@@ -610,15 +614,21 @@ def run_starsolo(
             extra=extra_args,
         ),
     ]
-    code, elapsed, maxrss_kib, err_tail = _run_measured(cmd, outdir=outdir, timeout=timeout)
-    if code != 0:
-        raise E2EUnavailable(f"STAR failed ({code}): {err_tail}")
+    run = _run_measured(cmd, outdir=outdir, timeout=timeout)
+    if run.code != 0:
+        raise E2EUnavailable(f"STAR failed ({run.code}): {run.stderr_tail}")
     if cost is not None:
         # Linux reports ru_maxrss in KiB (macOS in bytes) — arc is Linux, and a cross-platform unit
         # guess here would be a fabricated number, so record the raw value and its unit.
-        cost["star_wall_s"] = round(elapsed, 2)
-        cost["star_peak_rss_gb"] = round(maxrss_kib / 1024 / 1024, 3)
-        cost["star_peak_rss_kib"] = maxrss_kib
+        cost["star_wall_s"] = round(run.wall_s, 2)
+        cost["star_peak_rss_gb"] = round(run.peak_rss_kib / 1024 / 1024, 3)
+        cost["star_peak_rss_kib"] = run.peak_rss_kib
+        # WHOSE peak it is, in the same JSON as the peak. The number is a maximum over the process
+        # tree because the STAR on PATH may be a SIMD-dispatch wrapper that runs the aligner one
+        # level down (see `_run_measured`); a reading that says `STAR-avx2` is a measurement of the
+        # aligner, and one that says `bash` is a measurement of the launcher. That distinction cost a
+        # month of 0.003 GB readings, so it is recorded rather than reasoned about.
+        cost["star_peak_rss_process"] = run.peak_process
         # This measuring process's own peak, recorded BESIDE the reading rather than trusted to be
         # small. `wait4`'s rusage put a silent floor under every child at exactly this number (see
         # `_run_measured`), and the reason that bug never corrupted a published figure is that STAR
@@ -635,20 +645,119 @@ def run_starsolo(
 #: second across a 30-minute run is nothing next to missing the peak.
 _POLL_S = 0.05
 
+#: What the memory instrument itself was, the day it took a reading — CalVer, and it folds into the
+#: sweep's resume key for exactly the reason every other stamp does. `kb e2e-cost` resumes from a
+#: partial file that is never deleted, so a workdir on arc holds points measured by whatever
+#: `_run_measured` was on the day they were taken. Bump this whenever the reading changes, or a
+#: re-run splices old numbers into a new curve and reports the blend as one line: the launcher-era
+#: readings (a wrapper's 3.5 MB, see `_run_measured`) would survive their own fix.
+INSTRUMENT_VERSION = "2026.8.11"
 
-def _vm_hwm_kib(pid: int) -> int | None:
-    """A running process's own peak RSS in KiB, or ``None`` if it cannot be read.
+
+class _Peak(NamedTuple):
+    """A peak RSS in KiB and the name of the process it belongs to. Never one without the other."""
+
+    process: str
+    kib: int
+
+
+def _proc_peak(pid: int) -> _Peak | None:
+    """A running process's own name and peak RSS in KiB, or ``None`` if it cannot be read.
 
     ``None`` covers both "no ``/proc``" (macOS) and "already a zombie" (no ``mm`` to report), which
     the caller treats the same way: keep whatever peak it already sampled.
+
+    The name comes from the same read as the number, because it has to be the name of the process
+    that *produced* that number and the process may be gone a moment later. It is the kernel's
+    ``comm``, so it is the executable's basename truncated to 15 characters — enough to tell
+    ``STAR-avx2`` from ``bash``, which is the distinction this exists to make.
     """
+    name = ""
     try:
         for line in Path(f"/proc/{pid}/status").read_text().splitlines():
-            if line.startswith("VmHWM:"):
-                return int(line.split()[1])
+            if line.startswith("Name:"):
+                name = line.partition(":")[2].strip()
+            elif line.startswith("VmHWM:"):
+                return _Peak(name, int(line.split()[1]))
     except (OSError, ValueError, IndexError):
         return None
     return None
+
+
+def _tree_pids(root: int) -> list[int]:
+    """``root`` and every descendant ``/proc`` will name, breadth-first, root first.
+
+    Children come from ``/proc/<pid>/task/*/children`` — per *thread*, because any thread may have
+    forked — and an unreadable or absent file contributes nothing, which is what makes this degrade
+    to ``[root]`` on a kernel without ``CONFIG_PROC_CHILDREN`` and on macOS rather than fail. Per
+    thread means STAR at 48 threads costs 48 reads of a mostly-empty procfs file per poll, which at
+    :data:`_POLL_S` is well under a percent of one core and is not worth caching a tree that changes.
+
+    There is no cap on the walk: a cap here would silently truncate a tree, and a peak that silently
+    excludes half the processes is the failure this walk exists to fix, not a cheaper version of it.
+    The tree is re-derived from scratch on every call, so nothing survives the process it belongs to.
+    """
+    pids = [root]
+    seen = {root}
+    i = 0
+    while i < len(pids):
+        try:
+            for children in sorted(Path(f"/proc/{pids[i]}/task").glob("*/children")):
+                for token in children.read_text().split():
+                    kid = int(token)
+                    if kid not in seen:
+                        seen.add(kid)
+                        pids.append(kid)
+        except (OSError, ValueError):
+            pass  # the process exited mid-walk; whatever we already have is still true
+        i += 1
+    return pids
+
+
+def _tree_peak(root: int) -> _Peak | None:
+    """The largest ``VmHWM`` anywhere in ``root``'s process tree, and the name of whose it is."""
+    best: _Peak | None = None
+    for pid in _tree_pids(root):
+        reading = _proc_peak(pid)
+        if reading is not None and (best is None or reading.kib > best.kib):
+            best = reading
+    return best
+
+
+def _kill_tree(root: int) -> None:
+    """``SIGKILL`` ``root`` and every descendant, root first.
+
+    Killing only the direct child is the same mistaken assumption as measuring only the direct
+    child, and it fails worse: a launcher dies and the aligner it spawned keeps its 30 GB, the sweep
+    catches the timeout and moves on, and the next depth is measured on a node that is quietly short
+    by an index.
+
+    The tree is enumerated **before** anything is killed, because a killed parent's children are
+    reparented to init and would vanish from the walk that is trying to find them. Root first after
+    that, since a dead root cannot fork again — a process the launcher spawns between the walk and
+    the kill is missed either way, and killing the root first is what makes that window shortest.
+    """
+    for pid in _tree_pids(root):
+        with suppress(OSError):
+            os.kill(pid, signal.SIGKILL)
+
+
+@dataclass(frozen=True)
+class _Measured:
+    """One run of a measured command: what it did, how long it took, and **whose** peak the number is.
+
+    ``peak_process`` is not decoration. The peak is a maximum over a process tree, so the reading is
+    one process's high-water mark and this says which — an unattributed number is exactly what let a
+    launcher's 3.5 MB pass for an aligner's 31 GB for a month. It is empty where nothing could be
+    attributed: no ``/proc``, or a child too short-lived to poll, both of which fall back to
+    ``wait4``.
+    """
+
+    code: int
+    wall_s: float
+    peak_rss_kib: int
+    peak_process: str
+    stderr_tail: str
 
 
 def _run_measured(
@@ -658,11 +767,11 @@ def _run_measured(
     timeout: int,
     env: dict[str, str] | None = None,
     log_prefix: str = "star",
-) -> tuple[int, float, int, str]:
-    """Run ``cmd`` to completion; return ``(exit_code, wall_s, peak_rss_kib, stderr_tail)``.
+) -> _Measured:
+    """Run ``cmd`` to completion and return what it cost — see :class:`_Measured`.
 
-    **The peak is the child's own ``VmHWM``, polled from ``/proc``, and NOT ``wait4``'s rusage.**
-    Two bugs deep, and each was found only after the previous fix:
+    **The peak is the largest ``VmHWM`` in the child's process TREE, polled from ``/proc``, and NOT
+    ``wait4``'s rusage.** Three bugs deep, and each was found only after the previous fix:
 
     1. It was ``resource.getrusage(RUSAGE_CHILDREN).ru_maxrss`` — a high-water mark over *every*
        child the process has ever reaped, so a second STAR run inherited the first one's peak and
@@ -682,11 +791,29 @@ def _run_measured(
     locally for a reason that had nothing to do with the code being right, and only went red on arc,
     under a full suite fat enough to cross the floor.
 
+    3. Polling the *direct child's* ``VmHWM`` fixed that and was **still wrong wherever that child is
+       a launcher**, which the STAR on ``align-rna``'s PATH is: bioconda ships ``bin/STAR`` as a
+       456-byte bash script that greps ``/proc/cpuinfo``, picks ``STAR-avx2`` and **runs** it — no
+       ``exec``. So the polled child was bash, faithfully reporting its own ~3.5 MB while the aligner
+       burned 31 GB one level down. Measured on arc 2026-08-11, same reads: 0.003 GB through
+       ``bin/STAR``, 31.126 GB through ``bin/STAR-avx2``. Exit 0 both times, and the ``or ru_maxrss``
+       fallback could not catch it because 3488 is perfectly truthy — a wrong number shaped like a
+       plausible small one.
+
     ``VmHWM`` is the kernel's per-process high-water mark and ``execve`` resets it with the rest of
-    the ``mm``, so it is the post-exec peak of *this* program and nothing else. Polling can in
-    principle miss a spike shorter than :data:`_POLL_S`; for the thing this measures — STAR holding a
-    30 GB index for minutes — it cannot. Where there is no ``/proc`` we fall back to ``wait4``, which
-    is right on macOS and is not where any published number comes from.
+    the ``mm``, so it is the post-exec peak of *one* program — and the program we launched need not
+    be the program we are measuring. So the reading is :func:`_tree_peak`: the largest ``VmHWM`` over
+    the child and its descendants, with the name of the process that produced it. Three things keep
+    that from being the first bug in new clothes. The tree is rooted at **this** run's child, so
+    nothing a previous run reaped can enter it. It is re-enumerated every poll rather than
+    accumulated, so the set of processes cannot outlive them. And it is a ``max`` over processes and
+    never a sum, so the number remains one process's high-water mark — ``peak_comm`` says whose, and
+    a reading nobody can attribute is what made this bug invisible for a month.
+
+    Polling can in principle miss a spike shorter than :data:`_POLL_S`, or a descendant that lives
+    entirely between two polls; for the thing this measures — STAR holding a 30 GB index for minutes
+    — it cannot. Where there is no ``/proc`` we fall back to ``wait4``, which is right on macOS and is
+    not where any published number comes from.
 
     Output goes to files rather than pipes on purpose: ``Popen.communicate`` reaps the child itself,
     which would leave ``wait4`` nothing to collect rusage from.
@@ -695,28 +822,36 @@ def _run_measured(
     err_log = outdir / f"{log_prefix}.stderr.log"
     started = time.monotonic()
     peak_kib = 0
+    peak_process = ""
     with open(outdir / f"{log_prefix}.stdout.log", "w") as out_fh, open(err_log, "w") as err_fh:
         proc = subprocess.Popen(cmd, stdout=out_fh, stderr=err_fh, env=env)
         deadline = started + timeout
         while True:
             pid, status, usage = os.wait4(proc.pid, os.WNOHANG)
-            # Read before acting on `pid`: once reaped the child is a zombie with no `mm`, so this is
-            # the last chance at its high-water mark.
-            peak_kib = max(peak_kib, _vm_hwm_kib(proc.pid) or 0)
             if pid != 0:
-                break
+                break  # reaped: `/proc/<pid>` is gone, and with it anything it could still tell us
+            # Only while it lives, and the tree is re-read every time because the program we are
+            # measuring may not have been spawned yet — a launcher's child appears after the launcher.
+            reading = _tree_peak(proc.pid)
+            if reading is not None and reading.kib > peak_kib:
+                peak_process, peak_kib = reading
             if time.monotonic() > deadline:
-                proc.kill()
+                _kill_tree(proc.pid)
                 os.wait4(proc.pid, 0)
                 proc.returncode = -9
                 raise E2EUnavailable(f"{log_prefix} exceeded its {timeout}s budget")
             time.sleep(_POLL_S)
     # Tell Popen the child is already reaped, so its own wait() does not race for an ECHILD.
     proc.returncode = os.waitstatus_to_exitcode(status)
-    elapsed = time.monotonic() - started
     # 0 means we never got a reading — no /proc (macOS), or a child too short-lived to poll. Falling
     # back is right on macOS and merely imprecise elsewhere; silently reporting 0 GB would not be.
-    return proc.returncode, elapsed, peak_kib or usage.ru_maxrss, err_log.read_text()[-2000:]
+    return _Measured(
+        code=proc.returncode,
+        wall_s=time.monotonic() - started,
+        peak_rss_kib=peak_kib or usage.ru_maxrss,
+        peak_process=peak_process,
+        stderr_tail=err_log.read_text()[-2000:],
+    )
 
 
 def run_composed(
@@ -766,10 +901,11 @@ def run_composed(
       annotation before `kb e2e` runs; the lookup then finds it and this costs nothing while covering
       a rule that had no coverage at all.
 
-    No peak-RSS is reported from this path, deliberately. `wait4` would be reaping *snakemake*, and its
-    `ru_maxrss` folds in descendants it has waited for — so the number would be "STAR's peak, probably,
-    unless snakemake's was higher". `kb e2e-cost` keeps a direct STAR invocation precisely because a
-    memory instrument may not be approximate; see `run_starsolo`.
+    No peak-RSS is reported from this path, deliberately. The measured child here is *snakemake*, so
+    the tree the poller walks is one a scheduler decides the shape of and the peak belongs to
+    whichever job happened to be the largest — attributable, but a claim about snakemake's biggest
+    process rather than about STAR at depth N. `kb e2e-cost` keeps a direct STAR invocation precisely
+    because a memory instrument may not be approximate; see `run_starsolo`.
     """
     result = compose(
         manifest,
@@ -801,7 +937,7 @@ def run_composed(
     env["PATH"] = os.pathsep.join(
         [str(Path(assets.star_bin).resolve().parent), env.get("PATH", "")]
     )
-    code, _elapsed, _rss, err_tail = _run_measured(
+    run = _run_measured(
         [
             "snakemake",
             "-s",
@@ -818,8 +954,8 @@ def run_composed(
         env=env,
         log_prefix="snakemake",
     )
-    if code != 0:
-        raise E2EUnavailable(f"the composed pipeline failed ({code}): {err_tail}")
+    if run.code != 0:
+        raise E2EUnavailable(f"the composed pipeline failed ({run.code}): {run.stderr_tail}")
 
     sample = pipeline.samples[0]
     star_prefix = pipeline.sample_dir(sample)
@@ -1277,7 +1413,7 @@ def run_intron_e2e(
         "primary_feature": composed.config.get("primary_feature"),
         # No `cost` key any more, and its absence is the honest answer rather than a regression.
         # This arm now runs the composed Snakefile, so the process it could time is *snakemake*, and
-        # `wait4`'s `ru_maxrss` folds in descendants — the number would be "STAR's peak, probably".
+        # the peak would be the biggest job in a tree a scheduler shapes — "STAR's peak, probably".
         # A memory instrument may not be approximate. `kb e2e-cost` invokes STAR directly and is the
         # instrument. This arm is a correctness gate, and a correctness gate that happens to time
         # itself reports a number nobody can defend.
@@ -1431,7 +1567,13 @@ def run_cost_sweep(
             points.append({"n_reads": n_reads, **gen, "failed": True, "error": str(exc)})
         else:
             points.append({"n_reads": n_reads, **gen, **cost, "star": star_stats(outdir)})
-            note(f"{tag}: peak RSS {cost.get('star_peak_rss_gb')} GB in {cost.get('star_wall_s')}s")
+            # The peak names the process it belongs to, on the progress line as well as in the JSON:
+            # a sweep whose every point reports `bash` is measuring a SIMD-dispatch wrapper, and the
+            # point of printing it is that a human sees that in the first minute rather than the last.
+            note(
+                f"{tag}: peak RSS {cost.get('star_peak_rss_gb')} GB "
+                f"({cost.get('star_peak_rss_process')}) in {cost.get('star_wall_s')}s"
+            )
         if not keep_reads:
             for p in (*cdna_fq, *bc_fq):
                 p.unlink(missing_ok=True)
@@ -1451,6 +1593,9 @@ def run_cost_sweep(
         "assembly": assets.assembly,
         "annotation": assets.annotation,
         "star_version": star_v,
+        # The instrument beside the aligner: a peak is a reading OF something BY something, and this
+        # curve is comparable to another only if both were taken the same way.
+        "instrument_version": INSTRUMENT_VERSION,
         "fingerprint": fingerprint,
         "decided_technology": decided,
         "soloFeatures": feature_list,
@@ -1609,9 +1754,15 @@ def _cost_fingerprint(
     what they are (shard seeds derive from ``seed``), so it cannot move a peak. ``sweep`` is absent
     too — depths are the x-axis, not a property of the curve, which is the whole reason a resumed run
     may keep points from a shorter sweep.
+
+    :data:`INSTRUMENT_VERSION` is the one term that is not an argument, because it is not the
+    caller's to vary: it is what the measuring code WAS. A peak depends on the instrument as surely
+    as on the aligner, which is not a theory — points taken before the launcher fix are off by four
+    orders of magnitude, and without this they would resume into the curve that fixed them.
     """
     payload = json.dumps(
         {
+            "instrument_version": INSTRUMENT_VERSION,
             "soloFeatures": feature_list,
             "assembly": assembly,
             "annotation": annotation,
