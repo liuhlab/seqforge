@@ -81,7 +81,9 @@ every iteration order is sorted rather than inherited from a dict.
 
 from __future__ import annotations
 
+import array
 import sqlite3
+from bisect import bisect_left, bisect_right
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from contextlib import closing
@@ -148,9 +150,9 @@ N_FRAGMENTS = "n_fragments"
 class _StepIndex:
     """One contig's intervals as a step function: segment starts, and the gene set on each segment.
 
-    This is HTSeq's ``GenomicArrayOfSets`` in two numpy arrays and a tuple. ``starts`` is ascending
-    and begins at 0, so ``searchsorted`` always lands inside it; ``set_ids[i]`` names the genes
-    covering ``[starts[i], starts[i + 1])``.
+    This is HTSeq's ``GenomicArrayOfSets`` in two flat buffers and a tuple. ``starts`` is ascending
+    and begins at 0, so a search always lands inside it; ``set_ids[i]`` names the genes covering
+    ``[starts[i], starts[i + 1])``.
 
     **The set ids are the whole reason this fits in memory.** A gencode-scale annotation has ~841 000
     exons, so a step vector over them has ~1.7M segments — and one Python ``frozenset`` per segment
@@ -158,20 +160,40 @@ class _StepIndex:
     Interning collapses that to ~60 000 distinct sets behind an int32 array, which is a few MB. The
     alternative — an interval tree per contig — is a comparable amount of code and answers a
     question we do not ask (which interval), rather than the one we do (which gene set).
+
+    ``starts`` is an ``array.array`` of int64 rather than a numpy array because :meth:`genes` is the
+    busiest path in the counter — once per fragment of every cell — and ``bisect`` over a plain
+    buffer beats ``np.searchsorted`` at byte-for-byte the same resident size. A ``list[int]`` is
+    faster still and is refused: it pays a boxed integer and a pointer per element where a buffer
+    pays eight bytes, so it costs five times the memory for the same numbers — twice over, since
+    every contig carries a body index and an exon index — to buy a fraction of a microsecond.
+    Holding a numpy array and taking ``starts.searchsorted``, the bound method, is the same two
+    lines here and the same one line below, which is what keeps that a decision the cluster can
+    still make; the measurement behind the choice is in ``docs/research/``.
     """
 
-    starts: np.ndarray
+    starts: array.array[int]
     set_ids: np.ndarray
     sets: tuple[frozenset[int], ...]
 
     def genes(self, start: int, end: int) -> frozenset[int]:
-        """Every gene covering any part of ``[start, end)``. Empty is a legal answer."""
+        """Every gene covering any part of ``[start, end)``. Empty is a legal answer.
+
+        A span that touches exactly one segment — most of them, since a fragment is far shorter than
+        the stretch between two annotation boundaries — is answered with the interned set itself
+        rather than with a copy of it. That is safe because the interned set is a ``frozenset``: the
+        caller holds the index's own object and has no way to change it.
+        """
         if end <= start:
             return frozenset()
-        first = int(np.searchsorted(self.starts, start, side="right")) - 1
-        last = int(np.searchsorted(self.starts, end, side="left"))
+        first = bisect_right(self.starts, start) - 1
+        last = bisect_left(self.starts, end)
+        if first < 0:
+            first = 0
+        if last - first == 1:
+            return self.sets[int(self.set_ids[first])]
         found: set[int] = set()
-        for i in range(max(first, 0), last):
+        for i in range(first, last):
             found |= self.sets[int(self.set_ids[i])]
         return frozenset(found)
 
@@ -209,7 +231,7 @@ def _step_index(intervals: Sequence[tuple[int, int, int]]) -> _StepIndex:
             set_ids.append(set_id)
 
     return _StepIndex(
-        starts=np.array(starts, dtype=np.int64),
+        starts=array.array("q", starts),
         set_ids=np.array(set_ids, dtype=np.int32),
         sets=tuple(sets),
     )

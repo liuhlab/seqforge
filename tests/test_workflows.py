@@ -133,6 +133,7 @@ from seqforge.workflows.umite.count import (
     N_FRAGMENTS,
     PRIMARY_MATRIX,
     UmiCountError,
+    _step_index,
     correct_umis,
     count_bam,
     count_plate,
@@ -3741,6 +3742,50 @@ def test_the_annotation_is_read_from_the_built_database_with_no_gtf_parse(tmp_pa
     # A contig with no annotated feature at all answers empty rather than raising — see the fate
     # test below for why that difference is worth a test of its own.
     assert annotation.gene_bodies("chrUn_synthetic", 50, 70) == frozenset()
+
+
+def test_the_overlap_index_answers_every_span_the_intervals_do_and_lends_out_its_interned_set() -> (
+    None
+):
+    """The step index against a brute-force sweep of the intervals it was built from.
+
+    `genes` is the busiest path in the counter — once per fragment of every cell — so it is the one
+    place where a faster search would be worth a wrong answer, and the two things it has to get
+    right are both invisible in a whole-plate fate assertion. Several features opening or closing at
+    one base collapse into a single segment, which is where an off-by-one in either bound hides; and
+    a span touching exactly one segment is handed the interned set itself rather than a copy of it,
+    which is only sound because that set is immutable. The oracle below is the intervals rather than
+    a second reading of the index, so a wrong bound fails it instead of agreeing with it.
+    """
+    intervals = [
+        (10, 40, 0),  # three features opening at the same base, two of them closing at the same one
+        (10, 40, 1),
+        (10, 25, 2),
+        (25, 60, 3),  # opens exactly where gene 2 closes: adjacent, never overlapping
+        (40, 40, 4),  # zero length, so it covers nothing and must open no segment at all
+        (70, 90, 5),
+    ]
+    index = _step_index(intervals)
+
+    def covering(start: int, end: int) -> frozenset[int]:
+        span = set(range(start, end))
+        return frozenset(gene for s, e, gene in intervals if span & set(range(s, e)))
+
+    for start in range(0, 100):
+        for end in range(start, 101):  # end == start is a span of no bases and covers nothing
+            assert index.genes(start, end) == covering(start, end), (start, end)
+
+    # The single-segment answer is the index's own object, not a rebuild of it: `frozenset(found)`
+    # would return something equal and distinct, so identity is what says the copy is gone.
+    inside = index.genes(11, 20)
+    assert inside == frozenset({0, 1, 2})
+    assert any(inside is interned for interned in index.sets)
+
+    # A contig whose features were all zero-length is a contig with none, and answers empty for
+    # every span rather than raising on an index with nothing in it.
+    empty = _step_index([(5, 5, 0)])
+    assert empty.genes(0, 1000) == frozenset()
+    assert _step_index([]).genes(0, 1000) == frozenset()
 
 
 def test_a_missing_or_unreadable_annotation_database_is_a_refusal_not_an_empty_gene_axis(

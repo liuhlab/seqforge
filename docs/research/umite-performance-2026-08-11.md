@@ -84,7 +84,78 @@ mixed lengths, against the scan written out in the test.
 
 ## The annotation lookup: `bisect` over `array.array` against `np.searchsorted`
 
-<!-- filled by #394 -->
+**`_StepIndex.genes` is 1.86x, and the index does not grow by a byte.** Apple M4 Pro, macOS 26.5.2,
+Python 3.13.14, numpy 2.5.1, one core, against a gencode-scale index — 55 000 genes, 825 000 exons,
+**1 650 001 segments** over 55 001 interned sets.
+
+The four ways to run the two searches the lookup runs, and what each structure weighs:
+
+| the two searches | µs/lookup | resident |
+| --- | --- | --- |
+| `np.searchsorted(arr, v)` — before | 1.12 | 13.2 MB |
+| `arr.searchsorted(v)` — the bound method | 0.73 | 13.2 MB |
+| `bisect` on `list[int]` | 0.53 | 65.8 MB |
+| **`bisect` on `array.array("q")`** | **0.62** | **13.2 MB** |
+
+`array.array("q")` and a numpy int64 array are the same 13.2 MB, to two decimal places: both are an
+8-byte buffer of 1 650 001 items and nothing else. A `list[int]` is that same buffer of pointers plus
+1 650 001 separate integer objects, and the +52.6 MB it costs is those objects — measured as process
+resident after the source list was freed, 114.4 MB against 61.9. It is **not free memory** for
+0.09 µs, and there are two indexes per contig.
+
+**Holding `starts` as an `array.array` also makes the index cheaper to build**, which was not
+expected: `array.array("q", starts)` is **12.3 ms** against `np.array(starts, dtype=np.int64)`'s
+21.0 ms over 1 650 001 segment starts. Nothing else in the module reads `starts` — the sweep hands
+it over as a `list[int]` either way, `set_ids` stays a numpy int32 array, and `Annotation`'s two
+lookup methods pass `genes`' answer straight out — so the structure change is four lines.
+
+Whole-lookup, which is the number that reaches a run:
+
+| `_StepIndex.genes`, one span | µs/call | |
+| --- | --- | --- |
+| before: `np.searchsorted`, no fast path | 1.69 | — |
+| `bisect`/`array.array`, no fast path | 1.02 | 1.66x |
+| bound method + fast path | 1.07 | 1.59x |
+| **`bisect`/`array.array` + fast path — shipped** | **0.91** | **1.86x** |
+
+**The single-segment fast path is worth 0.11 µs of that**, because 80.3% of spans touch exactly one
+segment: a 150 bp fragment against segments averaging ~730 bp rarely straddles a boundary. Timed on
+single-segment spans alone, against sets of one to four genes, it is 0.97 µs to 0.79 — **1.23x** for
+deleting one `set()`, one `|=` and one `frozenset()` copy. That is a floor rather than a typical
+figure: the saving is the copy, so it grows with how many genes the segment names.
+
+### What does not reproduce from [#352](https://github.com/liuhlab/seqforge/issues/352)
+
+Every ordering holds and every absolute is smaller — this machine runs the search about 3x faster
+than the one the issue was written on, so treat the ratios as the result.
+
+- **The margin between the two `bisect` forms is a third of what the issue priced.** 0.09 µs here
+  against 0.24 there. The decision gets easier, not harder: the same +52.6 MB now buys less.
+- **`list[int]` costs more than the issue's +46 MB**, at +52.6, which is what 32-byte integer
+  objects plus an 8-byte pointer come to at this scale.
+- **The bound method is 65% of the win rather than 61%**, and it remains the fallback: it is the two
+  lines in `genes` and the one line in `_step_index` that build `starts`, so the cluster ticket can
+  still take it. On this machine it loses to `bisect` by 0.16 µs a lookup.
+
+### Method
+
+`timeit`-style best-of-9 whole passes over 200 000 spans, one core, no other load. The index is
+built by `_step_index` itself from 825 000 synthetic exons — 55 000 genes of 15 exons, exon lengths
+80–300 bp and gaps 200–2 000 bp under one fixed seed — which yields 1 650 001 segments over 1.2 Gb,
+the shape the parent issue measured. Spans are 150 bp starting uniformly over the contig.
+
+Memory is one structure per process, each built the way `_step_index` builds it — from the
+`list[int]` the sweep accumulates — with that list freed and the garbage collector run before the
+reading, so the figure is the steady state an `Annotation` holds for a whole fan-in, not a peak.
+`sys.getsizeof` and process resident agree for the two buffers; only the list disagrees, by exactly
+its integer objects.
+
+Equivalence was checked before any timing: all four search forms return the same pair of bounds on
+every one of the 200 000 spans, and all five whole-lookup forms return sets equal to the previous
+implementation's on 20 000 of them. The exhaustive check is in `tests/test_workflows.py`, where the
+oracle is a brute-force sweep of the intervals rather than a second reading of the index — every
+span of a small index carrying three features that open at one base, two that close at one base, an
+adjacent pair, and a zero-length feature that must open no segment at all.
 
 ## Building an unaligned record: `fromstring` against attribute-by-attribute
 
