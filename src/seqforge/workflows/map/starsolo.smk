@@ -31,7 +31,12 @@ from seqforge.workflows.h5ad import (
     solo_raw_files,
     solo_stats_files,
 )
-from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
+from seqforge.workflows.memory import (
+    STARSOLO_RETRIES,
+    bam_sort_ram,
+    escalated_mem_mb,
+    index_mem_mb,
+)
 from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.starsolo_args import SORT_CAP_SHELL, starsolo_shell_args
 from seqforge.workflows.units import ordered_fastqs
@@ -50,6 +55,16 @@ SOLO = config["solo"]
 # STAR takes --soloFeatures as N space-separated values and writes one Solo.out/<Feature>/ per value.
 FEATURES = SOLO["soloFeatures"].split()
 PRIMARY = config["primary_feature"]
+
+# The shared genome segment is loaded once and attached by every mapping job, so the rule that loads
+# it needs a file to hang a dependency on. A flag rather than a directory: nothing reads its bytes,
+# and what a mapping job actually depends on is that the load HAPPENED. It sits BESIDE the resolved
+# index rather than inside it -- a file under another rule's directory output is a child of that
+# output, which snakemake refuses to build a DAG for at all.
+LOADED_FLAG = f"{OUTDIR}/index/{ASSEMBLY}.loaded"
+# Where STAR writes the small logs its load and unload invocations produce. Beside the index for the
+# same reason, and prefixed so they never collide with a sample's.
+LOAD_PREFIX = f"{OUTDIR}/index/_genome_{ASSEMBLY}_"
 
 
 def fastqs(sample, role):
@@ -172,6 +187,62 @@ rule genome_index:
         out.symlink_to(index)
 
 
+rule load_genome:
+    """Load the genome index into SHARED memory once, and hand every mapping job something to attach to.
+
+    **This rule exists because of concurrency arithmetic, not as a tuning preference.** STAR's index
+    is per-process and resident for the life of the job, so N samples mapping at once on one machine
+    cost N copies of it: six droplet samples against a ~31 GB human index is ~186 GB of index where
+    ~31 GB would do. A composed pipeline runs on ONE machine (ADR-0051), which is what makes one
+    segment attachable by every job at all -- and it is also what makes the multiplication real,
+    since those jobs are concurrent by construction rather than spread out by a scheduler.
+
+    `map/star-umi` reached this same rule from the other direction, and the two arguments are worth
+    keeping apart: a plate re-LOADS the index once per cell, which is I/O, while a droplet run holds
+    several copies at once, which is footprint. Either one on its own is a reason to share.
+
+    **`Remove` FIRST, defensively, and it is safe.** `shmctl(IPC_RMID)` *marks* a segment for
+    destruction: a process already attached keeps running, and the memory goes when the last one
+    detaches. It cannot yank memory out from under a concurrent job on the same index. That is worth
+    saying because the line reads dangerous and is not -- and because a stale segment left by a
+    killed run is otherwise inherited silently. `|| true` because removing a segment that is not
+    there is a STAR error and a no-op, and this rule must not fail for having nothing to clean.
+
+    The same idiom `starsolo_count` already opens with (`rm -rf ..._STARtmp`), one level up: clear
+    the stale thing you cannot otherwise reach, then do the work.
+
+    **Nothing verifies separately that the sharing happened, and that is deliberate.** If the index
+    cannot be loaded STAR exits non-zero, this rule fails and snakemake stops -- which covers a bad
+    index path and a kernel refusing the segment. A container namespacing IPC (apptainer does not by
+    default, but `--ipc` would) makes every job load privately with no error anywhere; the cost there
+    is speed rather than correctness, and the setting belongs to whoever submits the pipeline.
+    """
+    input:
+        index=rules.genome_index.output,
+    output:
+        # Not `temp()`: deleting the flag would tell snakemake the load never happened, and a rerun
+        # would reload a segment that is already resident.
+        touch(LOADED_FLAG),
+    container: config["container"]
+    threads: config["threads"]
+    resources:
+        # The one rule that holds the genome segment, so a scheduler told nothing about it packs jobs
+        # beside the largest allocation on the machine without knowing it is there. The recipe's whole
+        # figure, which is an upper bound on this residency -- see `index_mem_mb`.
+        mem_mb=lambda wildcards, attempt: index_mem_mb(config["mem_mb"], attempt),
+    params:
+        prefix=LOAD_PREFIX,
+    shell:
+        r"""
+        # Defensive: marks any stale segment for destruction. Attached jobs keep running; a segment
+        # that is not there is a no-op we must not fail on.
+        STAR --genomeDir {input.index} --genomeLoad Remove \
+             --outFileNamePrefix {params.prefix}remove_ > /dev/null 2>&1 || true
+        STAR --genomeDir {input.index} --genomeLoad LoadAndExit \
+             --outFileNamePrefix {params.prefix}
+        """
+
+
 rule starsolo_count:
     """Map one sample's cDNA + barcode reads to a per-cell count matrix, and to a BARCODED alignment.
 
@@ -197,11 +268,21 @@ rule starsolo_count:
     deliberately: at that point the answer is a recipe with a bigger `resources.mem_gb`, chosen by
     someone who looked at the sample, not a third blind doubling. The arithmetic and the measurements
     behind it live in `workflows/memory.py`.
+
+    **The index is ATTACHED, not loaded** (#379). `load_genome` put one copy in shared memory and
+    this rule depends on its flag, so N concurrent samples on the machine hold one index between them
+    rather than one apiece. `--genomeLoad LoadAndKeep` reaches STAR through
+    `workflows/starsolo_args.py` like every other flag on this command line, and it is why
+    `--limitBAMsortRAM` is required rather than merely wise: STAR's default of `0` means "reuse the
+    genome allocation", and under a shared copy there is none of its own to reuse. The memory request
+    does NOT shrink to match the sharing -- it covers a job alone on the machine (ADR-0051), which is
+    what it would be the first time one sample ran by itself.
     """
     input:
         cdna=lambda wc: fastqs(wc.sample, config["read_files_in"]["cdna"]),
         barcode=lambda wc: fastqs(wc.sample, config["read_files_in"]["barcode"]),
         index=rules.genome_index.output,
+        loaded=rules.load_genome.output,
         whitelist=whitelists(),
     output:
         # `temp()` on everything: the raw matrices are consumed by `solo_to_h5ad`, the stats +
@@ -379,3 +460,40 @@ rule qc_bundle:
              --features "{params.features}" --sample {wildcards.sample} \
              --assembly {params.assembly} --out {output}
         """
+
+
+def release_genome_segment():
+    """Mark the shared genome segment for destruction. ONE command, called by both end-of-run paths.
+
+    Cleanup is OURS, with the site as the backstop. A well-configured scheduler reclaims a killed
+    user's IPC segments, but that is site policy rather than SysV semantics -- a segment otherwise
+    persists until reboot, which is why STAR ships a `Remove` mode at all -- and seqforge emits a
+    Snakefile the USER submits, possibly somewhere else entirely. Calling this from both handlers
+    makes the guarantee ours rather than the scheduler's.
+
+    Honest about its reach: a handler runs in the environment that ran snakemake, outside the
+    container that has STAR, and it cannot run at all after a SIGKILL. The defensive `Remove` at the
+    head of `load_genome` is the half that always holds -- it runs inside the image, and it covers
+    exactly the case a handler cannot. Belt and braces, the same shape as clearing `_STARtmp` on
+    entry and declaring the outputs that replace it.
+
+    Written once because the two paths release the SAME segment the same way, and two byte-identical
+    copies is two chances to fix one of them: the prefix, the redirect and the trailing `|| true`
+    have to stay together, and the copy that lost the `|| true` would turn a finished run into a
+    failed one.
+    """
+    shell(
+        f"STAR --genomeDir {OUTDIR}/index/{ASSEMBLY} --genomeLoad Remove "
+        f"--outFileNamePrefix {LOAD_PREFIX}unload_ > /dev/null 2>&1 || true"
+    )
+
+
+onsuccess:
+    release_genome_segment()
+
+
+onerror:
+    # The same release on the failing path, and it is the one that matters more: a run that died
+    # partway through is exactly the run that leaves a ~30 GB segment resident on a machine with
+    # nothing left to detach from it.
+    release_genome_segment()

@@ -23,6 +23,36 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.12 — every STAR workflow loads ONE copy of the genome per run and shares it, instead of one
+#: workflow doing so and two loading a private copy per job (#379). `map/star` and `map/starsolo` each
+#: gain the arrangement `map/star-umi` has had since 2026.8.6: a `load_genome` rule that defensively
+#: clears a stale segment and then loads the index (`--genomeLoad LoadAndExit`), touching a flag that
+#: is deliberately NOT `temp()` — deleting it would tell snakemake the load never happened, and the
+#: rerun would reload a segment that is already resident; a dependency edge from the mapping rule onto
+#: that flag; `--genomeLoad LoadAndKeep` on the mapping invocation; and one `release_genome_segment()`
+#: helper called from BOTH `onsuccess:` and `onerror:`, because a run that died mid-way is exactly the
+#: run that strands tens of gigabytes on the machine. The clear comes BEFORE the load: marking a stale
+#: segment for destruction after loading is a load that inherits it.
+#: **WHAT IT BUYS.** STAR's index is per-process and resident for the life of the job, so N samples
+#: mapping at once cost N copies of it — six droplet samples against a ~31 GB human index is ~186 GB
+#: of index where ~31 GB would do. A composed pipeline runs on ONE machine (ADR-0051), which is both
+#: what makes one segment attachable by every job and what makes the multiplication real. The plate's
+#: own argument was different and is now stated as such: repeated LOADING (1440 per-cell loads of a
+#: ~30 GB index is ~40 TB of I/O to align 54 GB of FASTQ) is compatible with, but says nothing about,
+#: concurrent RESIDENCY. Its docstring no longer asserts the other two modules should not do this.
+#: **WHICH OUTPUT MOVES.** None. `--genomeLoad` selects where the index lives, not how it is used, and
+#: the alignments and counts are unchanged. What moves is a machine's peak footprint and a new
+#: precondition: STAR refuses `--limitBAMsortRAM 0` under a shared copy, which is why #377 (bulk's
+#: sort cap) had to land first — the refusal fires before the genome directory is read, so it would
+#: have been every bulk sample on the first attempt rather than a degradation.
+#: **THE PATTERN IS COPIED, NOT FACTORED.** A workflow file is a standalone hand-written artifact:
+#: composition copies exactly one of them into the run directory, and an `include:`d fragment would be
+#: neither copied nor eligible as the default target. Three copies of a lifecycle that must stay in
+#: step is the real cost, and the test that keeps them honest runs over the STAR-invoking modules
+#: DERIVED from this registry rather than a list typed beside it.
+#: `--genomeLoad LoadAndKeep` reaches droplet's command line through `workflows/starsolo_args.py`,
+#: which owns that argv whole; the memory instrument (`e2e.run_starsolo`) overrides it to
+#: `NoSharedMemory`, because it has no load rule to create the segment and no handler to release one.
 #: 2026.8.11 — `rule star_count` declares what it needs, which until now was NOTHING (#377): no
 #: `mem_mb`, so a bulk run's largest single allocation was invisible to whatever packs the machine,
 #: and no `--limitBAMsortRAM`, so the coordinate sort ran on STAR's default of `0` — "reuse the
@@ -292,7 +322,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.11"
+WORKFLOW_VERSION = "2026.8.12"
 
 _MODULE_DIR = Path(__file__).parent
 

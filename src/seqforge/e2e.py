@@ -575,8 +575,13 @@ def run_starsolo(
     anyone's decision; the argv was written once and the module grew past it.
 
     `workflows.starsolo_args.starsolo_argv` renders both now, so the only differences left are the
-    ones a measurement physically forces, and they are the three arguments below:
+    ones a measurement physically forces, and they are the four arguments below:
 
+    - ``genome_load`` is ``NoSharedMemory`` here and ``LoadAndKeep`` in the module. The module has a
+      `load_genome` rule that creates the segment and handlers that release it; this call has
+      neither, so a shared copy it made would outlive the measurement — and every arm of a sweep
+      after the first would attach to the first arm's copy instead of loading its own, which is a
+      different quantity reported under the same name.
     - ``out_sam_type`` is the swept axis, and the reason it is a parameter rather than a constant:
       the gates want a count matrix, so a BAM they never read is pure cost, but the module ships
       :data:`SHIPPED_OUT_SAM_TYPE` — a cost arm that only ever priced `None` would price a command
@@ -606,6 +611,14 @@ def run_starsolo(
             threads=threads,
             bam_sort_ram_bytes=bam_sort_ram(mem_mb),
             out_sam_type=out_sam_type,
+            # PRIVATE, where the module attaches to a shared copy. The module's `load_genome` rule
+            # creates the segment and its handlers release it; nothing here does either, so a shared
+            # copy this call made would outlive the measurement — and the first arm of a sweep would
+            # pay the load while every later arm attached to it, which is a different number reported
+            # under the same name. An instrument measuring STAR at depth N has to load its own.
+            # This is STAR's OWN default, stated rather than relied on, so no reading moves and no
+            # `INSTRUMENT_VERSION` bump is owed for it.
+            genome_load="NoSharedMemory",
             # STAR runs the reader from a shebang-less script it writes itself, which execs only where
             # libc retries through /bin/sh -- glibc does, macOS does not. This names the shell, so the
             # script gets a `#!`. See `NO_STAR_ALIGNMENT_ON_MACOS` in tests/conftest.py for the

@@ -260,8 +260,15 @@ rule load_genome:
     is dominated by the index, which is per-process and independent of read count -- a 901-read cell
     and a 3.1M-read cell load exactly the same thing. At a ~30 GB index, 1440 per-cell loads is on
     the order of 40 TB of I/O to align 54 GB of FASTQ: the setup exceeds the work by nearly three
-    orders of magnitude. For a dozen droplet samples that ratio is irrelevant, which is why the two
-    shipped STAR modules do not do this; for a plate it is the whole cost.
+    orders of magnitude.
+
+    That is an argument about REPEATED LOADING, and it is not the only reason to share a copy. It
+    used to end "for a dozen droplet samples that ratio is irrelevant, which is why the two shipped
+    STAR modules do not do this" -- true about I/O and silent about the other half. The other half is
+    CONCURRENT RESIDENCY: samples mapping at the same instant each hold an index, so six droplet
+    samples against a ~31 GB human index cost ~186 GB where ~31 GB would do, however few times each
+    one loaded it. `map/star` and `map/starsolo` carry this same rule for that reason (#379). One
+    workflow's case is I/O and the others' is footprint; a plate happens to have both.
 
     **`Remove` FIRST, defensively, and it is safe.** `shmctl(IPC_RMID)` *marks* a segment for
     destruction: a process already attached keeps running, and the memory goes when the last one

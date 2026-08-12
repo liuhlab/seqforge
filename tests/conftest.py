@@ -1002,6 +1002,132 @@ def _rule_blocks(snakefile: Path) -> dict[str, str]:
     return dict(zip(parts[0::2], parts[1::2], strict=True))
 
 
+def _rendered_shell(plan_text: str) -> dict[str, dict[str, str]]:
+    """``rule -> wildcard value -> the shell command snakemake rendered for it``.
+
+    `-p` is what makes this readable at all: without it a dry run never formats a `shell:` block, so
+    a param the command dereferences and the config does not carry plans clean and dies on a compute
+    node. A rule with no wildcards is keyed under the empty string.
+
+    Here rather than beside its first caller because it now has two of them — the composed-plate gate
+    in `test_compose.py` and the shared-genome sweep in `test_workflows.py` — and two readers of one
+    plan format do not disagree until they do.
+
+    **Snakemake prints the command on the SAME line where it does not begin with a newline**, which
+    is not a formatting detail: three modules open a ``r\"\"\"`` block (so the header line is bare
+    ``Shell command:``) and `starsolo.smk` concatenates plain strings, so its whole STARsolo argv
+    used to be invisible to a reader that matched the bare header alone. A ``run:`` rule prints
+    ``Shell command: None`` and is skipped — it has no command, and recording the word would make an
+    absent one readable as a present one.
+    """
+    jobs: dict[str, dict[str, str]] = {}
+    rule = wildcard = None
+    lines = plan_text.splitlines()
+    for i, line in enumerate(lines):
+        if match := re.match(r"^rule (\w+):$", line):
+            rule, wildcard = match.group(1), ""
+        elif match := re.match(r"^\s+wildcards: sample=(\S+)$", line):
+            wildcard = match.group(1)
+        elif (match := re.match(r"^Shell command:(.*)$", line)) and rule is not None:
+            head = match.group(1).strip()
+            if head == "None":  # a `run:` rule: Python in the snakemake process, no command at all
+                continue
+            body: list[str] = [head] if head else []
+            for following in lines[i + 1 :]:
+                # A `temp()` output prints its own trailer straight after the command, with no blank
+                # line in between; it belongs to the job and not to what the job would run.
+                if not following.strip() or following.startswith(("Would remove", "Removing ")):
+                    break
+                body.append(following)
+            jobs.setdefault(rule, {})[wildcard or ""] = "\n".join(body)
+    return jobs
+
+
+def planned_paths(plan_text: str, field: str) -> dict[str, set[str]]:
+    """``rule -> every path snakemake listed under ``field`` across that rule's planned jobs``.
+
+    ``field`` is ``input`` or ``output``. The companion to :func:`_rendered_shell` for the half of a
+    plan that is not a command: a DEPENDENCY EDGE shows up nowhere in a rendered `shell:` block, so
+    "the mapping job waits on the load" can only be read off the job's declared inputs.
+
+    Snakemake wraps a long list onto continuation lines, so the value runs until the next
+    ``<field>:`` line rather than to the end of the first one.
+    """
+    found: dict[str, set[str]] = {}
+    rule = None
+    lines = plan_text.splitlines()
+    for i, line in enumerate(lines):
+        if match := re.match(r"^rule (\w+):$", line):
+            rule = match.group(1)
+        elif rule is not None and (match := re.match(rf"^\s+{field}: (.*)$", line)):
+            value = [match.group(1)]
+            for following in lines[i + 1 :]:
+                if not following.strip() or re.match(r"^\s+\w+:", following):
+                    break
+                value.append(following)
+            found.setdefault(rule, set()).update(
+                path.strip() for path in " ".join(value).split(",") if path.strip()
+            )
+    return found
+
+
+def _shell_bodies(snakefile: Path) -> list[str]:
+    """Every ``shell:`` directive body a module declares, with ``#`` comments removed.
+
+    Bounded by INDENTATION rather than by a quote pair, and that is what makes it see all four
+    modules. A `shell:` block is written two ways here: three modules open a ``r\"\"\"...\"\"\"``
+    literal, and `starsolo.smk` concatenates two plain strings with a constant
+    (``"STAR {params.argv} " + SORT_CAP_SHELL``) because its sort cap has to survive snakemake's
+    per-attempt re-expansion. A regex over triple-quoted blocks reads three modules and silently
+    skips the fourth — which is exactly how
+    ``test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe`` came to sweep
+    "every module" while never once looking at droplet's.
+
+    Comments go first for the reason :func:`~seqforge.workflows.keys_read_by` strips them: a scanner
+    pointed at prose cries wolf, and then gets deleted. `star.smk`'s shell block opens with
+    ``# preemption-safe: STAR aborts a rerun ...``, so a reader that kept comments would find a STAR
+    invocation in a sentence about one.
+    """
+    bodies: list[str] = []
+    lines = snakefile.read_text().splitlines()
+    for i, line in enumerate(lines):
+        if line.strip() != "shell:":
+            continue
+        indent = len(line) - len(line.lstrip())
+        body: list[str] = []
+        for following in lines[i + 1 :]:
+            if following.strip() and len(following) - len(following.lstrip()) <= indent:
+                break
+            body.append(following.split("#")[0])
+        bodies.append("\n".join(body))
+    return bodies
+
+
+def star_modules() -> list[str]:
+    """The registered workflow modules whose rules INVOKE STAR — derived, never typed out.
+
+    The selector two seams parametrize over: the shared-genome lifecycle is owed by every workflow
+    that loads a STAR index, so the list of workflows that owe it has to be the list of workflows
+    that invoke STAR rather than a list somebody maintains beside it. A typed tuple would be a
+    mirror of the registry, and every enforcement bug this repo has found so far was one of those —
+    a fourth STAR module would then be covered on the day someone remembered it rather than the day
+    it shipped. ``map/chromap`` falls out because its `shell:` blocks invoke `chromap`, not because
+    anything exempts it.
+
+    ``\\bSTAR\\b`` on a comment-free `shell:` body, which is narrower than it looks: ``_STARtmp``
+    carries no word boundary on either side (``_`` and ``t`` are word characters) and ``STARsolo``
+    carries none on the right, so the two spellings a scan would trip over are excluded by the
+    boundary rather than by a special case.
+    """
+    from seqforge.workflows import get_module, list_modules
+
+    return sorted(
+        name
+        for name in list_modules()
+        if any(re.search(r"\bSTAR\b", body) for body in _shell_bodies(get_module(name).snakefile))
+    )
+
+
 @pytest.fixture(scope="session")
 def kb_probes(tmp_path_factory: pytest.TempPathFactory) -> KbProbes:
     """Every KB spec's own synthetic reads, probed — ``(spec id, read set) -> the probes a scorer sees``.

@@ -46,6 +46,25 @@ from typing import Any
 #: and it exists to price the gap between writing a BAM and not writing one. Nothing else may.
 SHIPPED_OUT_SAM_TYPE: tuple[str, ...] = ("BAM", "SortedByCoordinate")
 
+#: STAR's ``--genomeLoad`` as `starsolo.smk` ships it: ATTACH to the copy `rule load_genome` already
+#: put in shared memory, and leave it there for the next mapping job (#379).
+#:
+#: A CONSTANT and not a per-attempt value, which is what separates it from :data:`SORT_CAP_SHELL`
+#: below: the flag says which memory the index lives in and never how much of anything a job gets, so
+#: nothing about a retry moves it and it rides the argv like every other module literal. Without a
+#: shared copy each concurrent job loads its own — six droplet samples against a ~31 GB human index
+#: is ~186 GB of index where ~31 GB would do — and a composed pipeline runs on ONE machine (ADR-0051),
+#: which is both what makes the sharing possible and what makes the multiplication real.
+#:
+#: It is also why `--limitBAMsortRAM` stopped being optional: STAR's default of ``0`` means "reuse the
+#: genome allocation", and under this mode there is no such allocation to reuse, so the run is refused
+#: before the genome directory is read. The two flags are one decision.
+#:
+#: An INSTRUMENT overrides it, and that is the fourth axis :func:`starsolo_argv` permits — see
+#: `e2e.run_starsolo`, which reaps STAR directly with no load rule to create the segment and no
+#: handler to release one.
+SHIPPED_GENOME_LOAD = "LoadAndKeep"
+
 #: The CellRanger >=4 equivalence set, and **no others** (#198).
 #:
 #: The documented set (Kaminow, Yunusov & Dobin 2021). Without them we emit STARsolo-DEFAULT counts,
@@ -298,6 +317,7 @@ def starsolo_argv(
     threads: int,
     bam_sort_ram_bytes: int | None,
     out_sam_type: Sequence[str] = SHIPPED_OUT_SAM_TYPE,
+    genome_load: str = SHIPPED_GENOME_LOAD,
     sys_shell: str | None = None,
     extra: Sequence[str] = (),
 ) -> tuple[str, ...]:
@@ -312,10 +332,15 @@ def starsolo_argv(
     not crash (see `workflows.units`, which owns the ordering and is the only thing allowed to
     decide it). cDNA FIRST, then the barcode read — asserted by compose's params gate.
 
-    **The three parameters an instrument may differ on, and nothing else.**
+    **The four parameters an instrument may differ on, and nothing else.**
 
     - ``out_sam_type`` — the axis `kb e2e-cost --out-sam-type` sweeps, to price the gap between
       writing an alignment and not writing one.
+    - ``genome_load`` — the module ATTACHES to the copy `rule load_genome` put in shared memory
+      (:data:`SHIPPED_GENOME_LOAD`), and an instrument reaping STAR directly has neither that rule
+      nor the handler that releases the segment. Left shared, the first arm of a sweep would pay the
+      load and every later arm would attach to it, which is a different measurement under the same
+      name, and the segment would outlive the run.
     - ``sys_shell`` — STAR runs its reader from a shebang-less script it writes itself, which execs
       only where libc retries through `/bin/sh`; glibc does, macOS does not. The instrument names a
       shell so the script gets a ``#!``; under snakemake the job already has one.
@@ -341,6 +366,8 @@ def starsolo_argv(
         str(genome_dir),
         "--runThreadN",
         str(threads),
+        "--genomeLoad",
+        genome_load,
         "--readFilesIn",
         cdna,
         barcode,
@@ -390,6 +417,7 @@ def starsolo_shell_args(solo: Mapping[str, Any], **kwargs: Any) -> str:
 __all__ = [
     "CELLRANGER_PARITY",
     "SAM_WRITE_PATH",
+    "SHIPPED_GENOME_LOAD",
     "SHIPPED_OUT_SAM_TYPE",
     "SORT_CAP_SHELL",
     "adapter_sequence",
