@@ -37,6 +37,7 @@ from conftest import (
     one_run_each,
     plate_of,
     solo_block,
+    star_modules,
     write_fastq_gz,
 )
 from seqforge import kb
@@ -692,32 +693,75 @@ def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
     assert saw_cram, "no rule runs `seqforge io cram`; this test is looking at the wrong place"
 
 
-def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe() -> None:
+def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
     """A preempted STAR leaves `_STARtmp` behind and ABORTS a rerun if it already exists.
 
     On a preemptible partition every requeued alignment failed: STAR refuses to reuse `_STARtmp`, and
-    snakemake cannot clean it because it is an undeclared output. So every STAR-invoking rule removes
-    its own `_STARtmp` before invoking STAR, and it must do so *before* the STAR command or the abort
-    still fires. Both mapping modules invoke STAR (`starsolo_count`, `star_count`) and pass
-    `{params.prefix}` (= `results/<sample>/`) as `--outFileNamePrefix`, so each clears
-    `results/<sample>/_STARtmp`. Swept over every module, so a third one cannot forget.
+    snakemake cannot clean it because it is an undeclared output. So the rule that aligns removes its
+    own `_STARtmp` first — and *first* is half the claim, since after the invocation the abort has
+    already fired. Droplet is the workflow most of the corpus runs through.
+
+    **Read off the RENDERED plan rather than the module source, and that is the fix and not a
+    detail.** This swept `.smk` source for the literal `STAR --runMode alignReads`, which is how it
+    came to visit two of the three STAR workflows and never `map/starsolo`: droplet's command line
+    got one owner in `workflows/starsolo_args.py` (#366), the literal left the `.smk` with it, and a
+    sweep that matches nothing reports nothing (#384). No source-level selector repairs that. WHICH
+    rule aligns is unreadable from droplet's source at all — its argv arrives as `{params.argv}` —
+    and "the rule that runs STAR" is not the same rule: each of these modules also has `load_genome`,
+    which invokes STAR to place the shared index and correctly clears no `_STARtmp` of its own. In a
+    rendered command `--runMode alignReads` is what STAR itself receives, and there is no further
+    file it can move into.
+
+    Exact rather than approximate for the same reason: the directory that must be cleared is derived
+    from the SAME command's `--outFileNamePrefix`, so a `params.prefix` drifting from the prefix the
+    argv passes — a cleanup removing a `_STARtmp` STAR is not about to write — is red here too.
+
+    Swept over :func:`~conftest.star_modules`, DERIVED from the registry, so a fourth STAR workflow
+    is covered the day it ships rather than the day someone remembers it. `map/chromap` is absent
+    because it invokes `chromap`, not because anything here exempts it.
     """
-    seen = False
-    for name in list_modules():
-        for rule, body in _rule_blocks(get_module(name).snakefile).items():
-            star = body.find("STAR --runMode alignReads")
-            if star == -1:
-                continue
-            seen = True
-            cleanup = body.find("rm -rf {params.prefix}_STARtmp")
+    swept = []
+    for module in star_modules():
+        techs = sorted(
+            t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
+        )
+        assert techs, f"{module} invokes STAR but no spec reaches it; nothing here can be planned"
+        # one deposit per module rather than one shared: `_build` writes its reads under a fixed
+        # `s_<read id>.fastq.gz`, and the three chemistries do not name their reads the same way.
+        workdir = tmp_path / module.replace("/", "-")
+        workdir.mkdir()
+        manifest, reg = _build(workdir, techs[0])
+        processing = _processing(manifest)
+        result = compose(manifest, processing, registry=reg, workspace=workdir)
+        pipeline_dir = (workdir / result.snakefile_path).parent
+
+        plan_text = dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg))
+        aligning = {
+            rule: jobs
+            for rule, jobs in _rendered_shell(plan_text).items()
+            if any("--runMode alignReads" in cmd for cmd in jobs.values())
+        }
+        assert len(aligning) == 1, f"expected one aligning rule in {module}, got {sorted(aligning)}"
+        rule, jobs = next(iter(aligning.items()))
+        for sample, cmd in jobs.items():
+            prefixes = re.findall(r"--outFileNamePrefix (\S+)", cmd)
+            assert len(prefixes) == 1, (
+                f"{module}:{rule} ({sample}) writes under {prefixes}, so one cleanup cannot cover "
+                f"every `_STARtmp` this job leaves behind"
+            )
+            cleanup = cmd.find(f"rm -rf {prefixes[0]}_STARtmp")
             assert cleanup != -1, (
-                f"{name}:{rule} invokes STAR but never clears `_STARtmp`, so a preempted rerun aborts"
+                f"{module}:{rule} ({sample}) aligns into {prefixes[0]} but clears no "
+                f"{prefixes[0]}_STARtmp, so a preempted rerun aborts:\n{cmd}"
             )
-            assert cleanup < star, (
-                f"{name}:{rule} clears `_STARtmp` AFTER invoking STAR, which is too late — STAR "
-                f"aborts on the stale dir before the cleanup runs"
+            assert cleanup < cmd.index("--runMode alignReads"), (
+                f"{module}:{rule} ({sample}) clears `_STARtmp` AFTER invoking STAR, which is too "
+                f"late — STAR aborts on the stale dir before the cleanup runs:\n{cmd}"
             )
-    assert seen, "no module invokes STAR; this test is looking at the wrong place"
+        swept.append(f"{module}:{rule}")
+    assert swept, "no module invokes STAR; this test is looking at the wrong place"
 
 
 def test_a_prebuilt_sif_beats_the_ghcr_tag_but_only_if_it_is_really_there(tmp_path: Path) -> None:
