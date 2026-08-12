@@ -385,4 +385,73 @@ count on its own row.
 
 ## On the cluster, on a real plate
 
-<!-- filled by #398 -->
+Every section above is a laptop and a synthetic input. This one is `aging_SS3` — 784 single
+*C. elegans* worms, Smart-seq3, 150 bp paired-end, `ce11` + WormBase `WS298` — on the ircbc CPU
+cluster, and it is what the whole series is actually claiming.
+
+**The same twelve cells, counted three times: byte-identical every time, and 45.4x faster.**
+
+| | `count_plate` | against the old code | `read_annotation` |
+|---|---|---|---|
+| before the series, one core | **2 081.66 s** | — | 11.43 s |
+| after the series, one core | **189.36 s** | **11.0x** | 7.73 s |
+| after the series, twelve workers | **45.84 s** | **45.4x** | 7.53 s |
+
+All three objects are **one SHA-256**: `c28994ba…`. Not "the matrices agree" — the same file, so
+every matrix, `obs`, `var` and `uns` agree by construction, which is the emphasis
+[#353](https://github.com/liuhlab/seqforge/issues/353) earned by moving a summary figure that was
+neutral per cell. Compared semantically as well, both pairs answer
+`12 cells x 46 926 genes, X + 5 layers, obs [unmapped, multimapping, no_feature, ambiguous,
+n_fragments], uns {primary_matrix: umi_exon}`.
+
+**11x of the 45x is single-core**, which is more than any component measurement predicted and is the
+skew the laptop could only approximate: real per-gene UMI counts are far more lopsided than a
+uniform draw, and that is exactly the shape that made the old quadratic scan walk furthest before
+its early stop fired.
+
+**The pool is worth 4.13x of a possible 12, and the shortfall is not the pool.** Twelve cells over
+twelve workers means the wall clock is the *deepest single cell*: 189.36 s of work over 12 cells
+averages 15.8 s, and 45.84 s says the deepest one took about that long on its own. On the real plate
+that straggler disappears into the queue — 784 cells over a node's cores is dozens of cells per
+worker — so this figure is a floor on what the fan-out is worth, not a ceiling. Taking the full
+784-cell number needs the other 705 cells aligned first, and that is the next session's run.
+
+**`read_annotation` got 1.5x cheaper as a side effect** — 11.43 s to 7.73 — because building the
+step index now fills an `array.array("q")` where it used to fill a numpy int64 array.
+
+### The lookup form, re-decided here
+
+The choice between `bisect` over `array.array("q")` and the bound `searchsorted` method was made on
+a laptop, and `bisect` allocates a Python int per probe, so its margin is allocator-sensitive. On
+the cluster it is not close, and the laptop's choice **stands**:
+
+| the two searches `genes` runs | µs/lookup |
+|---|---|
+| `np.searchsorted(arr, v)` — before | 3.390 |
+| `arr.searchsorted(v)` — the fallback | 1.661 |
+| `bisect` on `list[int]` | 0.478 |
+| **`bisect` on `array.array("q")`** — taken | **0.923** |
+
+3.67x against the old form where the fallback would have bought 2.04x. `list[int]` is faster still
+here — 1.93x on top — and is still refused on memory: it pays 32 bytes plus a pointer per element
+where an int64 buffer pays 8, twice over, and this index is the thing every forked worker shares.
+
+Worth knowing for anyone reading the ratio: `ce11`/`WS298` is **337 569 segments over 7 contigs**
+against the gencode-scale 1 650 001 the laptop used. A worm genome understates this change, and it
+still measured larger here — a mouse or human plate is where it pays most.
+
+### Method
+
+ircbc `compute_cpu`, node `cpu02` (56 cores, 125 GB), CentOS 7, inside the lab `align-rna`
+Singularity image: Python 3.13.14, pysam 0.24.0, anndata 0.13.2, numpy 2.3.5. The twelve cells are
+the twelve smallest non-empty `Aligned.sortedByCoord.out.bam` of the 69 the plate has aligned so far
+(20 MB up), chosen so the before/after pair fits in one session; the same twelve, in the same order,
+for all three runs. `count_plate` is called directly with the annotation read once outside the
+timer's scope, so the figure is the fan-in and not the gffutils read.
+
+The before arm is `origin/main` at the commit this series branched from, the after arm is the series
+branch, both exported to their own tree and reached by `PYTHONPATH` so nothing about the image
+changed between them. The lookup sweep times four ways to run the same two searches over the same
+int64 buffer — the real `WS298` step index for contig `IV`, 79 151 segments — against 15 600
+fragment starts read out of a real counted BAM, best of nine passes, all four forms asserted to
+return the same answer first.
