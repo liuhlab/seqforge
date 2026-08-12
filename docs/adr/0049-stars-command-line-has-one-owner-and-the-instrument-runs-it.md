@@ -22,6 +22,13 @@ in full, which is also how compose's wiring gate sees it, and the reasoning for 
 sit beside the literal. And the sweep now pays for the parity set at every point, so both figures in
 [`e2e-gate-runs.md`](../research/e2e-gate-runs.md) became floors pending a re-measurement on arc.
 
+That re-measurement landed (2026-08-11, #370) and they were not floors. Peak RSS is the genome index,
+flat from 2 M reads to 250 M, and both figures are withdrawn as over-statements: `--limitBAMsortRAM`
+is a *cap*, so the flag this record was written about lowered the peak rather than raising it. What
+the record decided is unaffected — one owner for the argv, and the instrument runs it. Only the
+guess about which way the unmeasured error ran was wrong, and it is recorded here because a record
+that predicts is a record that can be checked.
+
 One flag stayed behind, measured rather than chosen: `--limitBAMsortRAM` must escalate per retry
 attempt, and snakemake re-expands `resources:` per attempt but not `params:` — nor does it expand
 braces arriving *inside* a substituted params value, since the shell template is formatted in one

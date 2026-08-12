@@ -76,80 +76,56 @@ merely looks thin — the same failure shape as a strand inversion.
 4. Following a known-good precedent that runs at scale on real public data beats our own reasoning
    here, and it is citable: ArcInstitute/scRecounter, workflows/star_full.nf.
 
-**The cost is measured (2026-07-15), and it has a KNEE.** `kb e2e-cost` on hg38 + GENCODE v50 + 10x
-3' v3, all five features, 16 threads, 5 000 cells, reads simulated from real hg38 sequence with
-barcodes drawn from the real 6 794 880-entry whitelist:
+**The cost is measured, and it is flat.** Re-measured on arc 2026-08-11 under the module's own argv:
+peak RSS is **~31 GB from 2 M reads to 250 M**, 97 MB of spread across a 125x increase, on hg38 +
+GENCODE v50 + 10x 3' v3 with these same five features, Velocyto among them. It is the genome index,
+resident before a read is parsed, and depth does not move it. The table, the box it ran on and the
+argv it ran under live in ``docs/research/e2e-gate-runs.md`` and are deliberately **not** copied
+here — a table spelled in two places is a table that gets corrected in one, which is precisely what
+happened to the figures this docstring used to carry.
 
-===========  ==========  ==================
-reads        peak RSS    delta
-===========  ==========  ==================
-10 000 000   34.570 GB   —
-40 000 000   34.600 GB   +30 MB
-100 000 000  34.659 GB   +59 MB
-250 000 000  44.055 GB   **+9.4 GB**
-===========  ==========  ==================
+**What it used to carry, because the correction is the lesson.** It reported a KNEE: flat to 100 M,
+then 44.055 GB at 250 M, explained as ``max(alignment_peak, solo_peak(reads))`` with a Solo counting
+phase that grew with depth and overtook the index. On that reading a deep human library was to be
+given 128 GB. **All of it is withdrawn.** Same features, same genome, and the curve does not bend:
+there is no ``solo_peak(reads)`` term to cross over, and the 128 GB provisioning goes with the slope
+it was extrapolated from. Sizing is the recipe's job (``ResourceHints.mem_gb``) and is chosen against
+the real-data sort figure in ``workflows/memory.py``, not against this fixture — whose 2 000 gene
+models make its sort ~33x smaller per record than real data.
 
-Read that bottom row before quoting any of the others. Up to ~100 M reads the number is the *genome
-index* (~30 GB resident before a read is parsed) and depth is irrelevant — 10x the reads cost 89 MB.
-Then it stops being flat. Peak RSS is really ``max(alignment_peak, solo_peak(reads))``: the alignment
-phase is index-bound and flat, the **Solo counting phase grows with depth**, and it overtakes the
-index somewhere between 100 M and 250 M. Watching the 250 M run live shows it directly — RSS sits at
-~17 GB early in Solo, climbs past the 34.6 GB alignment peak, and tops out at 44 GB while writing
-five matrices.
+Two lessons outlive the numbers, and both are about instruments rather than about STAR:
 
-**Provisioning, honestly:**
+1. **A residual can only falsify within the range sampled — it can never report that the range
+   itself was too narrow.** Three collinear points reported ``max_residual_gb: 0.0`` and projected
+   34.8 GB at 250 M; a fourth disagreed by 9.3 GB and the four-point fit finally said so
+   (``max_residual_gb: 2.312``), one point too late to have helped. ``_fit_line`` refusing
+   *two*-point fits comes from the same argument, and the argument survives its example: the fourth
+   point has since turned out to be the apparatus rather than STAR.
+2. **The instrument gets measured too, and this one was wrong twice.** ``wait4``'s ``ru_maxrss``
+   reports ``max(parent_rss_at_fork, child_peak)`` on Linux — measured, beside an 879 MB parent a
+   child allocating 1 MB reported the parent's RSS to the byte — so every reading had a floor at
+   whatever the caller weighed. Then bioconda's ``bin/STAR`` turned out to be a bash SIMD-dispatch
+   wrapper running ``STAR-avx2`` as a child, so the instrument timed the launcher and reported
+   0.003 GB for a month. Both are fixed: ``kb e2e-cost`` records ``harness_peak_rss_kib`` beside
+   every reading, walks the process tree for ``VmHWM``, and names the process each peak belongs to.
+   Reproducibility did not catch either one — the 40 M point reproduced to three decimals on a
+   different node through a different code path, and was biased the whole time.
 
-- ≤ 100 M reads: ~35 GB. Solid — three points.
-- 250 M reads: ~44 GB. One point.
-- **> 250 M: UNMEASURED.** If ``solo_peak`` is ~linear the crossover implies ~180-190 bytes/read,
-  putting 500 M near ~88 GB — but that is arithmetic on a single point, not a measurement, and this
-  docstring has now been wrong once for exactly that reason. Give a deep human library **128 GB**
-  until somebody measures 500 M.
+**Read every number with its configuration or not at all.** Peak RSS includes STAR's per-thread
+buffers, which is why ``kb e2e-fit`` refuses to merge runs differing in threads, cells, assembly or
+``outSAMtype``. That last axis was measured once on the withdrawn apparatus — ``None`` against
+``BAM Unsorted``, one variable changed, **+745 MB and +19 % wall-clock** at 40 M — and as a delta
+between two readings sharing one bias it is the surviving part of that run, but the module ships a
+coordinate-sorted BAM now (STAR emits ``CB``/``UB`` into no other output, so a CRAM carrying a
+barcode requires it) and nobody has re-measured the gap. Read it as a floor on writing a BAM at all.
+What ships is written down once, in :data:`seqforge.e2e.SHIPPED_OUT_SAM_TYPE`.
 
-**How this docstring was wrong for three hours, because the lesson outlives the number.** The first
-three points were fitted and reported ``max_residual_gb: 0.0`` — a perfect line — projecting 34.8 GB
-at 250 M. Reality: 44.055 GB, a **9.3 GB / 27 % under-estimate from a fit that reported zero error**.
-Earlier the same day ``_fit_line`` was fixed to refuse *two*-point fits, on the grounds that a line
-through two points fits exactly and so its residual cannot falsify anything. That was right and it was
-not enough: three *collinear* points inside one regime cannot falsify either. They were genuinely
-linear; the residual was genuinely 0.0; the model was genuinely wrong. **A residual can only falsify
-within the range sampled — it can never report that the range itself was too narrow.** The four-point
-fit does say so (``max_residual_gb: 2.312``), one point too late to have helped.
-
-The ``--outSAMtype`` gap was measured on the same principle: the sweep ran ``None``, the module then
-shipped ``BAM Unsorted``, and one variable changed gives **34.600 -> 35.345 GB (+745 MB) and
-+19 % wall-clock** at 40 M. Measured at one depth, and after the knee, "one depth" is a warning rather
-than a footnote. **The module has since moved to a coordinate-sorted BAM** — STAR emits ``CB``/``UB``
-into no other output, so a CRAM that carries a barcode requires it — and nobody has re-measured the
-gap since. So read that +745 MB as a floor on writing a BAM at all, not as today's number: a
-coordinate sort holds records back to order them, in a buffer STAR bounds with ``--limitBAMsortRAM``.
-What ships is written down once, in :data:`seqforge.e2e.SHIPPED_OUT_SAM_TYPE`, and deliberately not
-restated here.
-
-Read every number with its configuration or not at all: peak RSS includes STAR's per-thread buffers,
-so these are peaks **at 16 threads**. That is why ``kb e2e-fit`` refuses to merge runs differing in
-threads, cells, assembly or outSAMtype.
-
-Reproducibility is not assumed: the 40 M point was re-measured on a different node, through a
-different code path (32 sharded FASTQs vs one file), on *different reads*, and landed on **34.600 GB**
-again — identical to three decimals.
-
-**The instrument that produced these had a floor, found 2026-07-15 and fixed.** ``wait4``'s
-``ru_maxrss`` reports ``max(parent_rss_at_fork, child_peak)`` on Linux — a child's address space
-begins as a copy of its parent's, and ``exec`` never lowers the high-water mark. Measured: beside an
-879 MB parent, a child allocating 1 MB reported ``879260 KiB``, the parent's RSS to the byte. **Every
-number in this table stands**, because the floor was the harness (~1 GB at the very worst) and these
-readings are 34–44 GB — but that is an argument, not a check, so ``kb e2e-cost`` now records
-``harness_peak_rss_kib`` beside every reading and takes the peak from the child's own ``/proc``
-``VmHWM``, which ``exec`` resets. The lesson is the same one this docstring already carries twice: an
-instrument that cannot be wrong in a way you would notice has not been checked.
-
-**None of this changes the default.** Velocyto stays: the knee is a property of counting 250 M reads
-at all, the marginal cost of the fifth rule over the first is not what moves this number, and the
-pre-registered kill rule (">2x wall-clock or over the mem_gb hint => drop to four") is about the
-*feature set*, not the depth. What changed is the memory request, which is what the measurement was
-for. If it ever does prove pathological the default drops to four and ``--quantify`` restores it: an
-expensive default is not a trap precisely *because* the processing manifest exists to override it.
+**None of this changes the default.** Velocyto stays, and the flat curve argues it more simply than
+the knee did: the fifth counting rule is not what sizes this job, the index is. The pre-registered
+kill rule (">2x wall-clock or over the mem_gb hint => drop to four") is about the *feature set*, not
+the depth. If it ever does prove pathological the default drops to four and ``--quantify`` restores
+it: an expensive default is not a trap precisely *because* the processing manifest exists to
+override it.
 """
 
 
