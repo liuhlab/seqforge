@@ -12,18 +12,19 @@ composed params, asserting the resulting matrix against the injected truth.
 `kb e2e-cost`, or `kb e2e-introns --quantify`, is the instrument that reports wall time and peak RSS.
 Every genome index came from `liulab-genome`; none of these runs is hermetic and none runs in CI.
 
-**Point `--star` at an aligner, not at a launcher.** bioconda installs `bin/STAR` as a bash
-SIMD-dispatch script that runs `STAR-avx2` as a *child*, so an instrument timing its own child times
-the script. The 2026-08-11 run passed `--star .../bin/STAR-avx2` explicitly for that reason; #372
-made the instrument measure the process tree and record `star_peak_rss_process`, the name of whichever
-process the peak belongs to. **A reading whose `star_peak_rss_process` is `bash` is a measurement of
-the launcher — discard it.**
+**The launcher trap, and why it is now closed.** bioconda installs `bin/STAR` as a bash SIMD-dispatch
+script that runs `STAR-avx2` as a *child*, so an instrument timing only its own child times the
+script. The 2026-08-11 sweep passed `--star .../bin/STAR-avx2` explicitly to get past it. #372 has
+since made the instrument measure the whole process tree and record `star_peak_rss_process`, the name
+of whichever process the peak belongs to — so naming the wrapper is fine again, and the per-node SIMD
+choice goes back to being automatic. **A reading whose `star_peak_rss_process` is `bash` is a
+measurement of the launcher — discard it.**
 
 **What they could not establish.** Anything about SPLiT-seq, whose strand question a simulation
 cannot settle at all (simulating the reads requires assuming the strand). Anything about a chemistry
 other than the one each run resolved — these fixtures certify one chemistry's strand each. And
 **what a sort costs on a real library**: the cost fixture draws from 2 000 gene models, and its sort
-requirement is ~33x smaller per record than the one real-data measurement on record. See the caveat
+requirement comes out ~33x smaller than the one real-data measurement on record. See the caveat
 under `kb e2e-cost`.
 
 ## `kb e2e` — sacCer3
@@ -79,8 +80,9 @@ is a cap and not an allocation (`workflows/memory.py`), so that headroom costs n
 > the knee between them.** There is no knee; the curve is flat from 2 M to 250 M.
 >
 > They were taken on 2026-07-15, which dates them to `os.wait4`'s `ru_maxrss` — the path
-> `_run_measured` replaced the next day, and whose defect that docstring records as measured: on
-> Linux it reports `max(parent_rss_at_fork, child_peak)`, a floor at whatever the caller weighs.
+> `_run_measured` replaced the next day, and whose defect `DEFAULT_SOLO_FEATURES` in
+> `manifest/policy.py` records as measured: on Linux it reports `max(parent_rss_at_fork,
+> child_peak)`, a floor at whatever the caller weighs.
 > They also predate the argv unification, so they priced `--outSAMtype None` at the CLI's
 > then-default 16 threads rather than the shipped sorted BAM at the rule's 8.
 >
@@ -91,11 +93,12 @@ is a cap and not an allocation (`workflows/memory.py`), so that headroom costs n
 > wasteful.
 >
 > **Which of those produced the difference is not established, and is not worth establishing** — the
-> apparatus that produced them is gone, all three of its successors agree the curve is flat, and no
+> apparatus that produced them is gone, all six depths measured under its replacement are flat, and no
 > sizing decision now rests on the answer. Do not reopen this to reconcile the old numbers with the
 > new ones; they were produced by different code against different flags.
 
-> **A reading taken between 2026-07-16 and 2026-08-11 is not one of these, and is not a number.**
+> **A reading taken through `bin/STAR` between 2026-07-16 and 2026-08-11 is not one of these, and is
+> not a number.**
 > The instrument polled the peak of the process it spawned, and the STAR that `liulab-runtime`'s
 > `align-rna` env puts on PATH is a bash script that greps `/proc/cpuinfo` and runs `STAR-avx2` one
 > level down — so the reading was the wrapper's. Measured on arc 2026-08-11, same reads and same
@@ -108,8 +111,9 @@ is a cap and not an allocation (`workflows/memory.py`), so that headroom costs n
 > new run (#372).
 
 **Caveat, and it is the reason the fixture cannot size a sort.** This simulation draws from 2 000
-gene models, and its ~4.9 B/read is ~33x smaller per record than the ~160 B/record measured on real
-data (GSE208154/SAMN29720279, recorded in `workflows/memory.py`). Take the **index intercept** from
+gene models: STAR asks ~4.9 B per read here against the ~160 B per alignment record measured on real
+data (GSE208154/SAMN29720279, recorded in `workflows/memory.py`) — ~33x apart, and not even the same
+denominator, which is the second reason this table cannot size a sort. Take the **index intercept** from
 this table — an index is an index — and take **sort sizing from the real-data figure**, which is what
 `ResourceHints.mem_gb`'s 48 GB default and its 3/4 cap were chosen against and remain chosen against.
 

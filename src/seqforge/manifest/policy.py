@@ -91,7 +91,7 @@ given 128 GB. **All of it is withdrawn.** Same features, same genome, and the cu
 there is no ``solo_peak(reads)`` term to cross over, and the 128 GB provisioning goes with the slope
 it was extrapolated from. Sizing is the recipe's job (``ResourceHints.mem_gb``) and is chosen against
 the real-data sort figure in ``workflows/memory.py``, not against this fixture — whose 2 000 gene
-models make its sort ~33x smaller per record than real data.
+models put its sort ~33x below the real-data figure, and not even in the same denominator.
 
 Two lessons outlive the numbers, and both are about instruments rather than about STAR:
 
