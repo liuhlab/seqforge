@@ -120,6 +120,7 @@ test was considered and declined, and is the fallback if the bar drifts.
   `tests/test_repo_invariants.py` fails on one. A number is a mutable label; write the term instead.
 - **Versioning: CalVer (`YYYY.M.PATCH`), never SemVer** — including every component stamp
   (`PROBE_VERSION`, `kb_version`, `resolve_version`, `workflow_version`), precisely *because* they
-  fold into `run_id` and the content-addressed caches: a date-stamped identity, not a promise.
+  fold into the content-addressed caches — and, but for `kb_version`, into `run_id`, which folds a
+  hash of the deciding spec instead: a date-stamped identity, not a promise.
 - **Issues live on GitHub**, and the five triage labels are
   [`.github/ISSUE-CONVENTIONS.md`](.github/ISSUE-CONVENTIONS.md).

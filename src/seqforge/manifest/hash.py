@@ -77,6 +77,10 @@ def spec_content_hash(spec: Spec) -> str:
     ``confusable_with``, ``parent``, ``node_kind``, ``children_decided_by``, ``read_sets``, and the
     naming half of ``identity`` — and by the time anything asks for this hash the chemistry is already
     decided and written into a manifest, so no byte of the emitted config is a function of any of it.
+    ``schema_version`` is dropped for a different reason and is the one exclusion that belongs to
+    neither half: it describes the FILE rather than the chemistry, so a migration that rewrites every
+    entry into a new schema without changing what a single one of them says would otherwise re-key
+    the whole corpus for a format bump nothing downstream can observe.
 
     Spelled as an EXCLUSION and never as an inclusion, at the nested ``identity`` level too. A field
     added to ``Spec`` later is then hashed by default, so the cost of forgetting to classify one is a
