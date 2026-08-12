@@ -223,10 +223,11 @@ from .schema import Spec
 #: sample of a deposit failing after its queue wait over a flag nobody typed.
 #: **THE ELEVEN RE-KEY AND THE REST OF THE CORPUS DOES NOT.** `run_id` folds a content hash of the
 #: processing half of the spec that decided a dataset (ADR-0037), never this global string, so what a
-#: release re-keys is what it actually moved. All eleven starsolo entries here gain a parse key, so
-#: all eleven get a new pipeline directory and no reuse of the BAMs in the old one — six because the
-#: STAR command line genuinely changed and five because the key moved into the spec even though the
-#: command line did not. A Smart-seq3 plate, a bulk deposit, or any other chemistry this release did
+#: release re-keys is what it actually moved. All eleven starsolo entries here gain a
+#: `clipAdapterType`, which is a backend param and so is hashed, so all eleven get a new pipeline
+#: directory and no reuse of the BAMs in the old one — six because the STAR command line genuinely
+#: changed and five because the declaration arrived in the spec even though the command line it
+#: renders did not move. A Smart-seq3 plate, a bulk deposit, or any other chemistry this release did
 #: not touch keeps the directory it already has.
 #: `dataset_hash` does not move and no stored manifest is REGENERATED. Backend params live in the KB
 #: and never in a manifest, `read_through` is absent from it too, and nothing scoring reads — reads,
