@@ -31,4 +31,7 @@ pass. It reaches the shell as `SORT_CAP_SHELL`, which spells the flag so the Sna
 Snakefile is still regex-scanned (`keys_read_by`) and the renderer is AST-walked
 (`argv_keys_read_by`), which is strictly more precise — it sees both geometry branches where a scanner
 could only see the one it took, and it ignores prose, which the regex did not. That last point cost a
-key: the old scan reported a bare `solo` because a docstring mentioned `config["solo"]`.
+key: the old scan reported a bare `solo` because a docstring mentioned `config["solo"]`. **Amended
+2026-08-11 (#370):** the re-measurement landed and the two figures were not floors but ceilings —
+`--limitBAMsortRAM` is a cap, so adding it lowered the peak. The decision stands; only the guess
+about which way the unmeasured error ran was wrong.
