@@ -1229,11 +1229,11 @@ edit to the manifest. (Why they're split, and why it matters, is in
 purpose — it does not submit jobs, has no opinion about your scheduler, and won't grow one. The last
 artifact is a file you run:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>seqforge/pipeline/&lt;the-directory-Claude-made&gt;
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>snakemake<span class="w"> </span>--profile<span class="w"> </span>&lt;your-cluster-profile&gt;<span class="w"> </span>--software-deployment-method<span class="w"> </span>apptainer
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>snakemake<span class="w"> </span>--software-deployment-method<span class="w"> </span>apptainer
 </code></pre></div>
 <p>That produces one <code>.h5ad</code> count matrix per sample. The
 <a href="../step-by-step/#7-submit-it">step-by-step tutorial</a> explains that command, including why the
-<code>--software-deployment-method apptainer</code> flag matters.</p>
+<code>--software-deployment-method apptainer</code> flag matters and why a pipeline runs on one machine.</p>
 <h2 id="what-to-read-next">What to read next<a class="headerlink" href="#what-to-read-next" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../step-by-step/">Step-by-step tutorial</a> — the same pipeline, one command at a time, when you want

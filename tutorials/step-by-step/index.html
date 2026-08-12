@@ -1493,12 +1493,20 @@ directory rather than silently overwriting the first — and the dataset's own h
 </ul>
 <h2 id="7-submit-it">7. Submit it<a class="headerlink" href="#7-submit-it" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nb">cd</span><span class="w"> </span>seqforge/pipeline/default-d94c737eb677
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>snakemake<span class="w"> </span>--profile<span class="w"> </span>&lt;your-cluster-profile&gt;<span class="w"> </span>--software-deployment-method<span class="w"> </span>apptainer
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>snakemake<span class="w"> </span>--software-deployment-method<span class="w"> </span>apptainer
 </code></pre></div>
 <p><strong>This part is yours.</strong> seqforge has no opinion about your scheduler, and it will not grow one.</p>
 <p><code>--software-deployment-method apptainer</code> is what makes the alignment rule run inside the pinned
 <code>liulab-runtime</code> image. Without it snakemake ignores the <code>container:</code> directive entirely and STAR
 comes from your <code>PATH</code>: the run still works, and it is no longer pinned.</p>
+<p><strong>Run it on one machine.</strong> The pipeline loads the genome index into shared memory once and every
+mapping job attaches to that one copy, so several samples mapping at the same time cost one index
+between them rather than one apiece — on a human genome that is the difference between ~31 GB and
+~31 GB times however many jobs are running. Spreading the jobs across machines with a cluster
+profile still satisfies every dependency in the workflow and silently gives each job its own copy,
+because an edge guarantees order and never co-location. Scale comes from running many pipelines at
+once, not from fanning one out. Give the run a whole machine and let <code>--cores</code> decide how many
+samples map at a time.</p>
 <p>The default target is <code>all</code>, which demands the matrices — one <code>&lt;sample&gt;.h5ad</code> per sample, plus a
 <code>&lt;sample&gt;.velocyto.h5ad</code> — not a folder that might be empty.</p>
 <p>The 111 MB barcode whitelist is not in that directory, and should not be. A rule builds it, STAR
