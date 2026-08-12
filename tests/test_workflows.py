@@ -38,9 +38,12 @@ from conftest import (
     SrcTrees,
     _build,
     _processing,
+    _rendered_shell,
     _rule_blocks,
     _src_root,
     count_matrix,
+    planned_paths,
+    star_modules,
     write_fastq_gz,
 )
 from seqforge import kb
@@ -1013,6 +1016,88 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
 
 
+@pytest.mark.parametrize("module", star_modules())
+def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_job_to_it(
+    module: str, tmp_path: Path, dry_run: DryRun
+) -> None:
+    """One index in memory per run, for every workflow that loads one — read off the rendered plan.
+
+    STAR's index is per-process and resident for the life of the job, so N mapping jobs running at
+    once on one machine cost N copies of it. A composed pipeline runs on ONE machine (ADR-0051),
+    which is what makes a single shared segment reachable by every job — and is also what makes the
+    multiplication real, since the jobs of a run are concurrent by construction. `map/star-umi` has
+    shared a copy since 2026.8.6; the other two loaded a private copy per job until #379.
+
+    Five claims, and a dry run is the only thing that can make any of them:
+
+    1. **The load is a job.** A rule unreachable from `rule all` plans nothing, and this one is
+       reachable only through the mapping rule's inputs — there is no target naming it.
+    2. **Mapping WAITS on it**, which is a dependency edge and appears in no rendered command. Read
+       off the load rule's own planned output rather than a path rebuilt here, so a module that moved
+       the flag cannot leave this test asserting against a filename nothing produces.
+    3. **The mapping invocation ATTACHES** (`--genomeLoad LoadAndKeep`). This is a source claim
+       everywhere else — a literal in a shell block for two workflows, a constant in
+       `workflows/starsolo_args.py` for the third — and a source claim about a command is not a claim
+       about a command.
+    4. **The sort cap is stated explicitly.** Under a shared copy STAR REFUSES its own default of
+       `0` ("reuse the genome allocation"), and the refusal fires before the genome directory is
+       read: every sample on the first attempt, not a degradation. `\\d+` rather than a byte count —
+       the exact figures are pinned per workflow by the compose tests that know each one's `mem_mb`;
+       what this owns is that some number is there for every STAR workflow, including the next one.
+    5. **The flag is not `temp()`.** Snakemake announces every temporary output it would delete, so
+       the plan is where "this file survives the run" is legible. Delete it and a rerun is told the
+       load never happened, and reloads a segment that is already resident.
+
+    Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
+    copied into each workflow file rather than factored out, so a fourth STAR workflow must be
+    covered the day it ships rather than the day someone remembers to add it. `map/chromap` is absent
+    because it invokes `chromap`, not because anything here exempts it.
+    """
+    techs = sorted(
+        t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
+    )
+    assert techs, f"{module} invokes STAR but no spec reaches it; nothing here can be planned"
+    manifest, reg = _build(tmp_path, techs[0])
+    processing = _processing(manifest)
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+
+    plan_text = dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg))
+    rendered = _rendered_shell(plan_text)
+
+    assert list(rendered.get("load_genome", {})) == [""], (
+        f"{module} plans no single `load_genome` job, so every mapping job loads its own index:\n"
+        f"{sorted(rendered)}"
+    )
+    load = rendered["load_genome"][""]
+    assert load.index("--genomeLoad Remove") < load.index("--genomeLoad LoadAndExit"), load
+    assert "|| true" in load, "removing a segment that is not there is a STAR error and a no-op"
+
+    # WHICH rule maps is read off the rendered commands too, so this never has to name a rule per
+    # module: the mapping rule is the one whose command runs STAR's aligner.
+    mapping = {
+        rule: jobs
+        for rule, jobs in rendered.items()
+        if any("--runMode alignReads" in cmd for cmd in jobs.values())
+    }
+    assert len(mapping) == 1, f"expected one aligning rule in {module}, got {sorted(mapping)}"
+    jobs = next(iter(mapping.values()))
+    assert all("--genomeLoad LoadAndKeep" in cmd for cmd in jobs.values()), jobs
+    assert all(re.search(r"--limitBAMsortRAM \d+", cmd) for cmd in jobs.values()), jobs
+
+    flag = planned_paths(plan_text, "output")["load_genome"]
+    assert flag <= planned_paths(plan_text, "input")[next(iter(mapping))], (
+        f"{module}'s mapping jobs do not depend on {flag}, so they race the load rather than "
+        f"attaching to a copy that exists"
+    )
+    # ...and the flag SURVIVES the run. `temp()` here would tell a rerun that the load never
+    # happened, and it would reload a segment that is already resident.
+    assert not [path for path in flag if f"Would remove temporary output {path}" in plan_text], (
+        f"{module} declares its load flag `temp()`:\n"
+        f"{[ln for ln in plan_text.splitlines() if ln.startswith('Would remove')]}"
+    )
+
+
 #: One plate's worth of hand-written config: the three cells, the geometry compose would derive, and
 #: the two roles it would place by ROLE. Enough to plan the module and nothing more.
 _PLATE_GEOMETRY = "R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22"
@@ -1361,17 +1446,27 @@ def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_t
     ), "a tagged read reached the uBAM beside a mate from the other run"
 
 
-def test_the_plate_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one_place() -> None:
-    """The two halves the composed-plate plan cannot see.
+@pytest.mark.parametrize("module_name", star_modules())
+def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one_place(
+    module_name: str,
+) -> None:
+    """The two halves a rendered plan cannot see, for every workflow that loads a STAR index.
 
     That both handlers call `release_genome_segment()` and that the helper carries
     `--genomeLoad Remove ... || true` is read off the RENDERED command and the EMITTED module by
-    `test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard`. What no rendering
-    shows is the ORDER — marking a stale segment after the load is a load that inherits it — nor
-    that the command lives in the helper alone, where a second copy is a second chance to fix one.
+    `test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_job_to_it`. What no
+    rendering shows is the ORDER — marking a stale segment after the load is a load that inherits it
+    — nor that the command lives in the helper alone, where a second copy is a second chance to fix
+    one.
+
+    The lifecycle is COPIED into each workflow file rather than factored out, because composition
+    copies exactly one `.smk` into a run directory and an included fragment would be neither copied
+    nor eligible as the default target. Three copies that must stay in step is the real cost of that,
+    and this is what keeps them honest — so it runs over :func:`~conftest.star_modules`, derived from
+    the registry, and a fourth STAR workflow is covered the day it ships.
     """
-    source = get_module("map/star-umi").snakefile.read_text()
-    load = _rule_blocks(get_module("map/star-umi").snakefile)["load_genome"]
+    source = get_module(module_name).snakefile.read_text()
+    load = _rule_blocks(get_module(module_name).snakefile)["load_genome"]
 
     assert load.index("--genomeLoad Remove") < load.index("--genomeLoad LoadAndExit"), (
         "the stale segment must be marked for destruction BEFORE the load, or the load inherits it"

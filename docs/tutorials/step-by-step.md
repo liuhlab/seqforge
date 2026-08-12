@@ -284,7 +284,7 @@ The gates:
 
 ```bash
 cd seqforge/pipeline/default-d94c737eb677
-snakemake --profile <your-cluster-profile> --software-deployment-method apptainer
+snakemake --software-deployment-method apptainer
 ```
 
 **This part is yours.** seqforge has no opinion about your scheduler, and it will not grow one.
@@ -292,6 +292,15 @@ snakemake --profile <your-cluster-profile> --software-deployment-method apptaine
 `--software-deployment-method apptainer` is what makes the alignment rule run inside the pinned
 `liulab-runtime` image. Without it snakemake ignores the `container:` directive entirely and STAR
 comes from your `PATH`: the run still works, and it is no longer pinned.
+
+**Run it on one machine.** The pipeline loads the genome index into shared memory once and every
+mapping job attaches to that one copy, so several samples mapping at the same time cost one index
+between them rather than one apiece — on a human genome that is the difference between ~31 GB and
+~31 GB times however many jobs are running. Spreading the jobs across machines with a cluster
+profile still satisfies every dependency in the workflow and silently gives each job its own copy,
+because an edge guarantees order and never co-location. Scale comes from running many pipelines at
+once, not from fanning one out. Give the run a whole machine and let `--cores` decide how many
+samples map at a time.
 
 The default target is `all`, which demands the matrices — one `<sample>.h5ad` per sample, plus a
 `<sample>.velocyto.h5ad` — not a folder that might be empty.

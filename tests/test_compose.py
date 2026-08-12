@@ -29,6 +29,7 @@ from conftest import (
     SynthDataset,
     _build,
     _processing,
+    _rendered_shell,
     _rule_blocks,
     _src_root,
     count_matrix,
@@ -1336,31 +1337,6 @@ def _units_by_read(pipeline_dir: Path) -> dict[tuple[str, str], str]:
             (row["sample_id"], row["read_id"]): row["path"]
             for row in csv.DictReader(fh, delimiter="\t")
         }
-
-
-def _rendered_shell(plan_text: str) -> dict[str, dict[str, str]]:
-    """``rule -> wildcard value -> the shell command snakemake rendered for it``.
-
-    `-p` is what makes this readable at all: without it a dry run never formats a `shell:` block, so
-    a param the command dereferences and the config does not carry plans clean and dies on a compute
-    node. A rule with no wildcards is keyed under the empty string.
-    """
-    jobs: dict[str, dict[str, str]] = {}
-    rule = wildcard = None
-    lines = plan_text.splitlines()
-    for i, line in enumerate(lines):
-        if match := re.match(r"^rule (\w+):$", line):
-            rule, wildcard = match.group(1), ""
-        elif match := re.match(r"^\s+wildcards: sample=(\S+)$", line):
-            wildcard = match.group(1)
-        elif line.rstrip() == "Shell command:" and rule is not None:
-            body: list[str] = []
-            for following in lines[i + 1 :]:
-                if not following.strip():
-                    break
-                body.append(following)
-            jobs.setdefault(rule, {})[wildcard or ""] = "\n".join(body)
-    return jobs
 
 
 @pytest.mark.xdist_group("composed-plate")
