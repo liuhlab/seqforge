@@ -1853,9 +1853,7 @@ def test_a_starved_cell_leaves_the_manifest_whole_and_the_pipeline_short(
         "may declare says `samples`"
     )
 
-    record = render_record(
-        admission, chemistry="smartseq3", kb_version=kb.KB_VERSION, filename_derived=True
-    )
+    record = render_record(admission, chemistry="smartseq3", filename_derived=True)
     assert "| SIM_b03_S3 | 400 | 1000 |" in record
     assert "SIM_b01_S1" not in record, "the record names what was lost, not what survived"
     assert "came from filenames" in record, (

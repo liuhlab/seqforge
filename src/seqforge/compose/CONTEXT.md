@@ -50,8 +50,10 @@ filename-derived **Run** key
 
 **Compiled pipeline**:
 One `(manifest, recipe)` pairing made runnable — the directory `compose` writes (the Snakefile, its
-config, the **Units table**, and a copy of the **Workflow module**), and the execution of that
-Snakefile. One word for both, because the directory is where the execution's outputs land.
+config, the **Units table**, a copy of the **Workflow module**, and the exclusion record when a
+sample was kept out), and the execution of that Snakefile. One word for both, because the directory
+is where the execution's outputs land: what `compose` wrote is a function of the `run_id` naming it,
+and what the execution wrote is not.
 _Avoid_: **Run**, which is one *sequencing* run, and `run_id`, which names the pairing rather than
 its execution; also build, job, workflow run
 

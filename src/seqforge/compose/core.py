@@ -491,7 +491,6 @@ def _write_exclusions(
             render_record(
                 admission,
                 chemistry=manifest.library.chemistry.value[0],
-                kb_version=KB_VERSION,
                 filename_derived=all(s.accession is None for s in manifest.experiment.samples),
             )
         )
