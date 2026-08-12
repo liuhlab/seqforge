@@ -36,8 +36,10 @@ the combined UMI matrix is here and a combined *read* matrix is not: reads carry
 never deduplicated (``umicount.py:407``), so ``read_exon + read_intron`` is exact arithmetic anybody
 can do on the object, while the combined UMI figure is a *third* deduplication that neither of the
 other two contains — see :func:`deduplicate`. The reference's remaining table, ``D`` (per-gene PCR
-duplicates), is not a sixth matrix for the same rule read the other way: it is derivable from the
-observation counts, and ``n_fragments`` on ``obs`` is what makes the four fates readable as rates.
+duplicates), is dropped rather than derived — the rule above does not reach it: the object carries
+deduplicated counts and never the per-gene raw UMI observation totals ``D`` is the remainder of, and
+this verb writes nothing else, so no arithmetic on the object recovers it. ``n_fragments`` on
+``obs`` is what makes the four fates readable as rates.
 
 **The annotation comes from the database ``liulab-genome`` already built** — no HTSeq, no GTF parse,
 no per-worker copy. The reference parses the GTF into two HTSeq ``GenomicArrayOfSets`` and pickles

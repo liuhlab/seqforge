@@ -35,11 +35,17 @@ hits, **354 (4.3%) are not at offset 0**, clustering at 13, 15 and 23. A port th
 declared offset silently loses every one of them. So the declared offset is the *lower bound* of a
 search, never the match position.
 
-**The search stops at 24, and that bound is mechanistic rather than fitted.** No exact hit anywhere
-in 18,901 reads starts past offset 24 — the bound being Tn5 mosaic-end read-through, which is what
-puts anything in front of the tag at all. Capping there costs 0 exact hits, and the 113 of 8,976
-fuzzy hits it drops (-1.26%) are a purity gain: a tolerant anchor matches spurious 11-mers as deep
-as offset 133, at offsets a fixed-offset chemistry cannot produce.
+**The matcher is an exact anchor, found anywhere from its declared start to 24 bases past it, closed
+by a trailing motif tolerant of one substitution.** There is no fuzzy path: the reference's
+mismatch- and indel-tolerant fallback was priced against this fixture and refused on purity — the
+step to it fabricates a tag in 26% of the reads it adds — so this port is stricter than the
+reference on the anchor and looser only on the motif, deliberately (issue #352, Out of scope).
+
+**That 24 is mechanistic rather than fitted.** No exact hit anywhere in 18,901 reads starts past
+offset 24 — the bound being Tn5 mosaic-end read-through, which is what puts anything in front of the
+tag at all. Capping there costs 0 exact hits, and the 113 of 8,976 hits a tolerant matcher would
+find past it (-1.26%) are ones not to have: it matches spurious 11-mers as deep as offset 133, at
+offsets a fixed-offset chemistry cannot produce.
 
 **R1 and R2 are paired positionally**, as every other tool does, so the input contract stops
 depending on who produced the FASTQ. That dissolves a whole hazard class rather than guarding it:
