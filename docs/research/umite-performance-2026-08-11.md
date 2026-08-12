@@ -147,7 +147,62 @@ slice removal (4,000 random geometries x 60 reads) disagreed on nothing.
 
 ## The one FASTQ loop: where `BoundedReader`'s microseconds go
 
-<!-- filled by #396 -->
+**Everything the loop does besides inflating the bytes gets 1.5x to 2.5x cheaper, and a whole pass
+is 1.1x to 2.0x faster** — which of those two numbers you see depends entirely on how much of the
+file's cost was inflating it. Apple M4 Pro, macOS 26.5.2, Python 3.13.14, one core.
+
+| a record of | inflate alone | + bulk split | before | after | |
+| --- | --- | --- | --- | --- | --- |
+| 36 bp, flat qualities | 0.13 µs | 0.21 µs | 0.79 µs | 0.39 µs | 2.04x |
+| 100 bp | 0.60 µs | 0.74 µs | 1.27 µs | 0.91 µs | 1.40x |
+| 150 bp | 0.88 µs | 1.07 µs | 1.57 µs | 1.26 µs | 1.25x |
+| 250 bp | 1.44 µs | 1.70 µs | 2.15 µs | 1.91 µs | 1.13x |
+
+The last column is the least informative one in the table, because most of what a record costs is
+**inflating it**, and that share is a property of the file rather than of the loop. Two flat numbers
+are the finding. Before, a record cost 0.66–0.71 µs above inflating — whatever the read length —
+which is four Python-level `readline` calls, four `next`s and four `rstrip`s, none of whose cost
+depends on how long a line is. After, it costs 0.17–0.21 µs above inflate-plus-one-bulk-`split`,
+again flat: four list reads, four `len`s and the tuple. **The line handling was the constant, and it
+is what shrank; the growth left in the "after" column is the `split` itself, which allocates the
+same four line objects `readline` used to.**
+
+**What does not reproduce is [#352](https://github.com/liuhlab/seqforge/issues/352)'s pair of
+numbers**, 2.11 µs a record against a 0.9 µs floor — 2.3x headroom. No single input here gives both:
+2.15 µs a record is what a 250 bp read costs, and at 250 bp the floor is 1.70, so the headroom there
+is 1.3x; 0.9 µs total is near the 100 bp *floor*. The ratio was read off a short-read file and
+quoted as a property of the loop. What is a property of the loop is the flat 0.68 µs, and it caps
+what any rewrite could return: on a 250 bp file, inflating alone is 67% of the pass and no line
+handling can be removed from it.
+
+**Where it lands.** A probe reads 2 000 records of a file by default, so it collects under a
+millisecond; the extractor reads every record of every cell, two per fragment on a paired plate, and
+it is what this pays. The reader is not the extractor's largest line either way.
+
+**The pull size is not a knob.** Bytes arrive `io.DEFAULT_BUFFER_SIZE` at a time because that is the
+gzip line reader's own buffer size: the handle underneath is then read in exactly the steps a
+line-at-a-time read reads it in, so `compressed_bytes` — a position on that handle, and the input to
+the read-count estimate — keeps the value it had on a read that a budget stopped part-way. A 64 KiB
+pull is a further 5–10% (1.08 µs against 1.19 at 150 bp, measured) and moves that number, so it was
+not taken.
+
+### Method
+
+Best of 7 whole passes over a 200 000-record gzipped FASTQ per read length, under an unbounded
+budget, records counted and dropped. *Inflate alone* is the same `read1` loop discarding what it
+gets; *+ bulk split* adds one `split` per pull and the cross-pull carry, and is the floor this loop
+can reach. The 36 bp row uses constant `I` qualities and the rest vary them, which is why its file
+inflates ~5x cheaper per record than its length alone would suggest.
+
+Equivalence was checked field by field — the records themselves, `n_reads`, `decompressed_bytes`,
+`compressed_bytes`, `truncated`, `ok`, `abandoned`, `budget_exhausted` — between the old loop and the
+new one over **12 376 (input, budget) pairs**, 28 inputs against 442 budgets. The inputs: CRLF, no
+final newline, blank lines, lines longer than one pull, an empty member, two concatenated members,
+cuts at eight depths and one in the gzip header, a stream that was never gzip, a plain uncompressed
+FASTQ, a corrupt deflate payload, a bad CRC. The budgets include every byte budget across a buffer
+boundary and both zeroes. Then **4 000 randomised trials** of random line lengths, random
+terminators, random truncations, random bit flips and random budgets. Nothing differed on any of
+them.
 
 ## The fan-in: counting a plate on every core the rule asked for
 
