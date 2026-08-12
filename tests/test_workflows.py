@@ -4082,9 +4082,12 @@ def test_umi_correction_by_neighbour_index_answers_what_the_full_scan_answers() 
     """
     import random
 
-    from seqforge.workflows.umite.count import COUNT_RATIO_THRESHOLD, HAMMING_THRESHOLD
+    from seqforge.workflows.umite.count import COUNT_RATIO_THRESHOLD
 
-    def hamming_within(a: str, b: str, threshold: int) -> bool:
+    # One substitution, spelled here rather than imported: the source realises the distance as the
+    # shape of a masked key, so an oracle that read the same number back from it could not notice a
+    # key that stopped meaning one substitution.
+    def hamming_within(a: str, b: str, threshold: int = 1) -> bool:
         if len(a) != len(b):
             return False
         seen = 0
@@ -4106,7 +4109,7 @@ def test_umi_correction_by_neighbour_index_answers_what_the_full_scan_answers() 
                 candidate, candidate_count = remaining[i]
                 if (COUNT_RATIO_THRESHOLD * candidate_count) - 1 > seed_count:
                     break
-                if hamming_within(seed, candidate, HAMMING_THRESHOLD):
+                if hamming_within(seed, candidate):
                     corrected[seed] += candidate_count
                     remaining.pop(i)
                 i -= 1

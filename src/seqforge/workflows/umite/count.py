@@ -128,11 +128,11 @@ UMI_TAG = "UB"
 #: The tag STAR writes with the number of loci a read aligned to. Absent means one.
 HITS_TAG = "NH"
 
-#: UMI correction, as module literals rather than flags. Always on, and Hamming-1: at 3 the trailing
-#: check is vacuous and the merge manufactures UMIs that were never sequenced. The count ratio is
-#: the reference's guard — a low-count neighbour is only absorbed into a seed that is at least
-#: roughly twice as abundant, so two genuinely distinct UMIs at similar depth are never merged.
-HAMMING_THRESHOLD = 1
+#: UMI correction's count guard, a module literal rather than a flag. Correction is always on, and
+#: this is the reference's guard on it — a low-count neighbour is only absorbed into a seed at least
+#: roughly twice as abundant, so two genuinely distinct UMIs at similar depth are never merged. The
+#: *distance* has no constant beside this one: see :func:`correct_umis`, where it is the shape of a
+#: key rather than a number anything compares against.
 COUNT_RATIO_THRESHOLD = 2
 
 #: What ``X`` is, and what the other matrices are called. The reference's names for these are
@@ -429,12 +429,18 @@ def correct_umis(observations: Mapping[str, int]) -> dict[str, int]:
     """Merge each UMI into the more abundant near-neighbour that can explain it as a PCR error.
 
     The reference's rule, kept exactly: take the most abundant UMI as a seed and absorb every UMI
-    still standing that is within :data:`HAMMING_THRESHOLD` of it *and* rare enough for it to
-    explain (``COUNT_RATIO_THRESHOLD * candidate - 1 <= seed``). Repeat with what is left.
+    still standing that is one substitution away *and* rare enough for it to explain
+    (``COUNT_RATIO_THRESHOLD * candidate - 1 <= seed``). Repeat with what is left.
+
+    **One substitution, and there is no threshold constant to raise.** The distance is realised by
+    blanking exactly one position, so it is the shape of the key rather than a number compared
+    against — which is where it belongs, because it was never a knob: at 3 the trailing check is
+    vacuous and the merge manufactures UMIs that were never sequenced. Widening it means indexing a
+    different key, not editing a literal.
 
     **The neighbours are looked up, not searched for**, and that is the only difference from the
     reference — which compares the seed against every surviving UMI in the bucket, so a deep gene of
-    a deep cell costs seconds. Blanking one position of a UMI leaves a key that its Hamming-1
+    a deep cell costs seconds. Blanking one position of a UMI leaves a key that its one-substitution
     neighbours share and nothing else does, so a seed reads its neighbours out of a dict. Two
     properties make that the *same* function rather than an approximation of it. The reference stops
     its walk at the first candidate too abundant to absorb, and since it walks in count order
@@ -1031,7 +1037,6 @@ def read_plate_stats(path: Path, samples: Sequence[str]) -> dict[str, SampleStat
 __all__ = [
     "COUNT_RATIO_THRESHOLD",
     "FATES",
-    "HAMMING_THRESHOLD",
     "HITS_TAG",
     "LAYERS",
     "N_FRAGMENTS",
