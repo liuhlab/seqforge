@@ -261,12 +261,16 @@ pixi run -- seqforge compose seqforge/manifest.yaml \
 }
 ```
 
-Each gate carries its own reason beside its verdict, because a verdict alone is not actionable: a
-failing wiring gate hands back what snakemake said, and a `skip` says what it was waiting for.
-
 The directory is named for the recipe plus the first 12 characters of the run id. The run id is
 `H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, so compiling this dataset a second way gives you a second
 directory rather than silently overwriting the first — and the dataset's own hash does not move.
+
+**That hash is one run's, and it will not be yours.** `workflow` in the expression is the compiler's
+own version, so a release moves the directory name for the same dataset and the same recipe. Step 7
+therefore takes the path from your own output, never from this page.
+
+Each gate carries its own reason beside its verdict, because a verdict alone is not actionable: a
+failing wiring gate hands back what snakemake said, and a `skip` says what it was waiting for.
 
 The gates:
 
@@ -282,8 +286,11 @@ The gates:
 
 ## 7. Submit it
 
+The directory to go into is the one `compose` just printed — its `snakefile_path`, minus the
+`Snakefile` on the end:
+
 ```bash
-cd seqforge/pipeline/default-d94c737eb677
+cd seqforge/pipeline/<the-directory-compose-named>
 snakemake --software-deployment-method apptainer
 ```
 
