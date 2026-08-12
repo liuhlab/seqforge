@@ -1766,10 +1766,12 @@ def test_umi_extract_takes_one_derived_geometry_and_offers_no_way_to_declare_a_n
     """
     r1, r2 = _plate_fastqs(tmp_path)
 
+    summary = tmp_path / "cell_42.umi-extract.json"
     result = runner.invoke(
         app,
         ["io", "umi-extract", "--r1", str(r1), "--r2", str(r2), "--geometry", _plate_geometry(),
-         "--sample", "cell_42", "--out", str(tmp_path / "cell_42.bam")],
+         "--sample", "cell_42", "--out", str(tmp_path / "cell_42.bam"),
+         "--summary", str(summary)],
     )  # fmt: skip
 
     assert result.exit_code == 0, result.stdout
@@ -1779,6 +1781,13 @@ def test_umi_extract_takes_one_derived_geometry_and_offers_no_way_to_declare_a_n
     # The offset histogram is how a run reports whether the unanchored search still earns its keep.
     assert written["offsets"] == {"0": 1, "12": 1}
     assert (tmp_path / "cell_42.bam").exists()
+    # Stdout is an ADDITION's peer here, not its replacement: the same payload lands on disk, where
+    # it outlives the `temp()` uBAM, and stdout says where it went. A verb that printed and wrote
+    # two different things would be two accounts of one extraction.
+    assert written["summary"] == str(summary)
+    assert json.loads(summary.read_text()) == {
+        k: v for k, v in written.items() if k not in ("written", "summary", "read_id")
+    }
 
     from typer.main import get_command
 

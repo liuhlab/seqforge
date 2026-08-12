@@ -1508,6 +1508,10 @@ def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_pl
         # The role the verb will resolve through that table is still the TAGGED one, and the file it
         # lands on is not the plain mate — the swap that tags nothing and exits 0.
         assert units[cell, roles["umi_cdna"]] != units[cell, roles["cdna"]]
+        # The two outputs are rendered, and the durable one lands in THIS cell's directory. The uBAM
+        # is reclaimed the moment the aligner has read it, so a summary written anywhere else — or
+        # under a name shared with a neighbour — is a plate that finishes holding one cell's counts.
+        assert re.search(rf"--summary \S*{re.escape(cell)}/{re.escape(cell)}\S+", command), command
 
 
 @pytest.mark.xdist_group("composed-plate")

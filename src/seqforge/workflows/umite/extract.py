@@ -63,6 +63,17 @@ here is what it is really guarding: never write a second budget loop. So this it
 explicitly unbounded :class:`~seqforge.probe.streaming.Budget`, and takes its gzip truncation and
 corruption verdicts as input-gate refusals instead of re-deciding what a broken FASTQ is.
 
+**What the extraction MEASURED outlives the uBAM it measured, because the uBAM is ``temp()``.** The
+counts below are the per-cell readout of whether the chemistry behaved — the tagged fraction is a
+tunable protocol parameter, published across 6.9–70.5% over five libraries, so a cell at 2% and a
+cell at 28% are a bench problem and a normal run and nothing downstream can tell them apart once the
+records are gone. Printing them to stdout left the only surviving copy in whatever captured it,
+which on a cluster is a scheduler log somebody rotates. So this also writes one small JSON per cell
+beside the cell's other outputs, and the report reads it back — the same shape STAR sets by dropping
+``Log.final.out`` into a sample's directory unasked. **Stdout and the file are one payload**: every
+key stdout carried it still carries, and both gained the geometry and the version together, so the
+printed account and the durable one cannot come to say different things.
+
 ``pysam`` is a plain dependency, not a runtime one, and this module needs **no container**: it
 shells out to nothing at all. The h5ad packager draws the same line for the same reason — writing a
 file is not aligning reads.
@@ -70,8 +81,9 @@ file is not aligning reads.
 
 from __future__ import annotations
 
+import json
 import re
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import ExitStack, closing
 from dataclasses import dataclass
 from itertools import zip_longest
@@ -79,8 +91,11 @@ from pathlib import Path
 
 import pysam
 
+from ... import __version__
 from ...models.dataset import ReadDef, ReadElement, ReadLayout
 from ...probe.streaming import BoundedReader, Budget, Record
+from ..metrics import Metric, SampleStats, fraction
+from ..metrics import count as count_metric
 from ..units import load_units, paired_fastqs
 
 #: How far past its declared start the anchor may be found. Mechanistic: no exact hit anywhere in
@@ -110,6 +125,17 @@ _FLAG_UNPAIRED = 0x4
 #: reader who came here from the bounded-read rule sees the opt-out and its reason (the header
 #: docstring) rather than a missing argument.
 _UNBOUNDED = Budget(max_reads=2**62, max_bytes=2**62)
+
+#: What one cell's extraction summary is called, under that cell's own directory. **Public because it
+#: has a reader as well as a writer**, which is the line ``fragments.QC_SUFFIX`` already draws: the
+#: rule declares the file by importing this, and the pipeline-stats registry finds it by importing
+#: the same name. A second spelling anywhere is the one that fails in silence — a report that finds
+#: nothing looks exactly like a pipeline that never ran, so nothing raises and nobody is told.
+#:
+#: Plain JSON rather than gzipped, unlike the two QC bundles: this is a handful of counts and a small
+#: histogram, so compressing it would cost a reader ``zcat`` and buy a few hundred bytes. It is also
+#: the artifact somebody opens by hand at 2am when a plate looks wrong.
+EXTRACT_SUFFIX = ".umi-extract.json"
 
 
 class UmiExtractError(RuntimeError):
@@ -485,6 +511,13 @@ class ExtractStats:
     #: a measured offset distribution, so a run that reports its own is a run that can be checked
     #: against it instead of trusted — the 4.3%-not-at-zero claim is observable per cell, forever.
     offsets: dict[int, int]
+    #: The geometry this cell was extracted under, held as the value and rendered on the way out.
+    #: Carried because every number beside it is only interpretable against it: a tagged fraction of
+    #: 0 means a dead library under one geometry and the wrong read handed over under another, and
+    #: the artifact outlives the config that said which. It is also what makes the offsets readable —
+    #: the declared anchor start is in it, so "where the tag actually began" can be compared with
+    #: where the layout said it would.
+    geometry: TagGeometry
 
     @property
     def untagged(self) -> int:
@@ -492,14 +525,143 @@ class ExtractStats:
         return self.fragments - self.tagged
 
     def to_dict(self) -> dict[str, object]:
-        """The JSON the verb prints. Offsets are string-keyed because JSON object keys are strings."""
+        """The summary payload — what the verb prints AND what lands on disk, one shape.
+
+        Offsets are string-keyed because JSON object keys are strings. The seqforge version is
+        stamped here rather than passed in: it is provenance about the code that produced the
+        numbers, so it is not something a caller can hold a stale copy of.
+        """
         return {
             "sample": self.sample,
+            "seqforge": __version__,
+            "geometry": self.geometry.render(),
             "fragments": self.fragments,
             "tagged": self.tagged,
             "untagged": self.untagged,
             "offsets": {str(k): self.offsets[k] for k in sorted(self.offsets)},
         }
+
+
+def _write_summary(stats: ExtractStats, path: Path) -> None:
+    """One cell's counts, on disk, as the last act of an extraction that finished.
+
+    Last, and only on success, so the file's existence means the uBAM beside it was written whole. A
+    summary left behind by a refusal would say a cell was extracted at whatever depth the reader had
+    reached — a number indistinguishable from a shallow library, which is the failure this artifact
+    exists to make visible.
+
+    Written straight to ``path`` with no temp-and-rename, for the reason the uBAM is: it is a
+    declared rule output, snakemake deletes the outputs of a failed job, and the mechanism that owns
+    the file owns cleaning it up. Trailing newline because a human opens this one.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(stats.to_dict(), indent=2) + "\n", encoding="utf-8")
+
+
+def _counted(payload: Mapping[str, object], key: str) -> int | None:
+    """One non-negative integer out of a summary payload, or ``None`` for anything else.
+
+    Absent is absent, and so is a value of the wrong shape: a metric the artifact does not carry must
+    be missing from the page rather than rendered as a zero somebody acts on. That covers an older
+    summary written before a key existed and a hand-edited one, with the same answer for both.
+    """
+    value = payload.get(key)
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+
+def _anchor_drift(payload: Mapping[str, object], tagged: int | None) -> float | None:
+    """The share of tagged reads whose tag did NOT start where the layout declares it.
+
+    The offsets histogram compressed to the one number it is read for. The search is unanchored
+    because a measured 4.3% of exact hits are not at the declared start (clustering at 13, 15 and
+    23), so this cell's own figure is what makes that measurement checkable rather than trusted, and
+    a distribution that has shifted is a primer or trimming problem no count matrix would explain.
+
+    The declared start comes from the geometry the payload carries, parsed by the same code that
+    rendered it. A payload with no readable geometry yields ``None`` rather than a share measured
+    against a guessed origin — the histogram is still on disk, and a wrong denominator is worse than
+    a missing column. So does a histogram holding more matches than the file says were tagged: the
+    two numbers are written together and disagree only in a file somebody edited, and a share above
+    100% reads as a rendering bug rather than as the inconsistency it is.
+    """
+    offsets, geometry = payload.get("offsets"), payload.get("geometry")
+    if not tagged or not isinstance(offsets, Mapping) or not isinstance(geometry, str):
+        return None
+    try:
+        declared = TagGeometry.parse(geometry).anchor_start
+    except UmiExtractError:
+        return None
+    drifted = at_declared = 0
+    for at, seen in offsets.items():
+        if not isinstance(seen, int) or isinstance(seen, bool) or seen < 0:
+            return None
+        if str(at) == str(declared):
+            at_declared += seen
+        else:
+            drifted += seen
+    return drifted / tagged if drifted + at_declared <= tagged else None
+
+
+def extract_metrics(payload: Mapping[str, object], sample: str) -> SampleStats:
+    """One cell's summary payload -> the columns its report row shows. Pure — no file, no pysam.
+
+    **The tagged fraction is the point of this adapter** (the module docstring argues why), and it is
+    deliberately **ungraded**: a library tuned low is a choice somebody made at the bench and not a
+    fault, so inventing a bar would tint a page over a decision. The number is the contribution; a
+    threshold is a measurement nobody has made.
+
+    Fragments come along as its own denominator, and they are the extractor's count of what it READ
+    rather than the counter's of what reached the matrix. Two numbers that should agree, from two
+    artifacts, one of which exists long before the other: a plate still extracting has this column
+    and no other, and a plate that finished has both and can be checked.
+    """
+    fragments, tagged = _counted(payload, "fragments"), _counted(payload, "tagged")
+    built: list[Metric | None] = [
+        count_metric(
+            "extract_fragments",
+            "Fragments read",
+            fragments,
+            group="input",
+            exact=True,
+            hint="Fragments this cell's FASTQs held, counted by the extractor — one per read pair "
+            "on a paired plate, one per read on a single-ended one, whatever its fate.",
+        ),
+        fraction(
+            "umi_tagged",
+            "UMI-tagged",
+            tagged / fragments if tagged is not None and fragments else None,
+            group="input",
+            hint="Share of fragments carrying a template-switch tag, so the ones a UMI can "
+            "deduplicate. It is a tunable property of the tagmentation, published from 6.9% to "
+            "70.5%, and ungraded here for that reason — but a cell far below its plate's own "
+            "spread is a bench problem, and one at zero means the wrong read was extracted.",
+            headline=True,
+        ),
+        fraction(
+            "umi_anchor_drift",
+            "Anchor drift",
+            _anchor_drift(payload, tagged),
+            group="input",
+            hint="Share of tagged reads whose tag began somewhere other than where the layout "
+            "declares. A few percent is normal (4.3% measured, from mosaic-end read-through); a "
+            "shifted distribution is a primer or trimming problem, not a counting one.",
+        ),
+    ]
+    return SampleStats(sample_id=sample, metrics=[m for m in built if m is not None])
+
+
+def read_extract_summary(path: Path, sample: str) -> SampleStats:
+    """Load one ``<sample>.umi-extract.json`` and normalise it.
+
+    The thin half of the adapter, in the shape ``fragments.read_metrics`` established: loading lives
+    here so the registry hands over a path and gets metrics back, and the judgement lives in
+    :func:`extract_metrics`, which needs no file to test. Raises ``OSError``/``ValueError`` if the
+    bytes are unusable, so one bad summary costs its own columns and not the whole page.
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"{path} is not a UMI extraction summary")
+    return extract_metrics(payload, sample)
 
 
 def _header(sample: str) -> dict[str, object]:
@@ -618,6 +780,7 @@ def extract_umis(
     geometry: TagGeometry,
     *,
     sample: str,
+    summary: Path | None = None,
 ) -> ExtractStats:
     """One cell's FASTQs, and optionally its mates' -> one uBAM carrying ``UB:Z:``. Returns what it did.
 
@@ -638,6 +801,12 @@ def extract_umis(
     A tagged read loses exactly ``geometry.span`` bases from where its anchor was found; its mate is
     untouched, and an untagged read keeps every base it arrived with. Deterministic end to end:
     given the same input this writes the same bytes.
+
+    ``summary`` is where this cell's counts land, and handing over ``None`` skips it — the extraction
+    is unchanged either way, and a hand invocation still gets its numbers on stdout. It is a path and
+    not a flag because the rule DECLARES it as an output and passes what it declared: a path derived
+    here from ``out`` would be a second owner of the filename, and the owner that drifts silently is
+    always the one nothing reads back.
 
     **It writes straight to ``out``, with no temp-and-rename.** A truncated input is only knowable
     once the read has finished, so a refusal can leave a partial BAM behind — and the tempting fix
@@ -721,21 +890,29 @@ def extract_umis(
                 _checked(one, tagged_fastq)
                 if two is not None and mate_fastq is not None:
                     _checked(two, mate_fastq)
-    return ExtractStats(sample=sample, fragments=fragments, tagged=tagged, offsets=offsets)
+    stats = ExtractStats(
+        sample=sample, fragments=fragments, tagged=tagged, offsets=offsets, geometry=geometry
+    )
+    if summary is not None:
+        _write_summary(stats, summary)
+    return stats
 
 
 __all__ = [
+    "EXTRACT_SUFFIX",
     "MAX_ANCHOR_DRIFT",
     "TRAILING_MAX_MISMATCH",
     "ExtractStats",
     "TagGeometry",
     "TagMatch",
     "UmiExtractError",
+    "extract_metrics",
     "extract_umis",
     "extraction_inputs",
     "find_tag",
     "geometry_for_elements",
     "geometry_for_read",
+    "read_extract_summary",
     "tagged_geometry",
     "tagged_read_geometry",
 ]

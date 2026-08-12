@@ -23,6 +23,28 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.13 — `rule umi_extract` writes what the extraction MEASURED to disk, not only to stdout
+#: (#353). It gains a second output, `<sample>.umi-extract.json`, declared from `EXTRACT_SUFFIX` in
+#: the module that writes it and deliberately NOT `temp()`; the verb takes `--summary` and writes the
+#: same payload it already printed, plus the geometry it ran under and the seqforge version.
+#: **WHY A FILE AT ALL.** The uBAM is `temp()`, so the moment the aligner and the CRAM converter have
+#: consumed it every record is gone — and with them the only evidence of how many fragments carried a
+#: tag. That share is not incidental: the fraction of UMI-containing reads is a tunable property of
+#: the tagmentation, published across 6.9–70.5% over five libraries, so it is the single best
+#: per-cell readout of whether the chemistry behaved, and a cell at 2% and a cell at 28% are a bench
+#: problem and a normal run that nothing downstream can tell apart. Printed to stdout, the only
+#: surviving copy was whatever captured the workflow's output — on a cluster, a scheduler log
+#: somebody rotates. The offsets histogram is the same evidence one level down: where the tag
+#: actually started, so a shifted distribution is a primer or trimming problem no count matrix would
+#: explain. `seqforge report` now reads the file the way it already reads `Log.final.out`, which is
+#: what makes `map/star-umi` the first module with TWO per-sample artifacts — and the first with one
+#: that is NOT evidence a sample finished, so a `SampleArtifact` says which it is and a plate whose
+#: extraction has outrun its aligner reports "3 of 1440" rather than a green "all finished".
+#: **WHICH OUTPUT MOVES.** No FILE already produced. The uBAM is byte-identical and every alignment
+#: and count is unchanged. Stdout keeps every key it had and gains three — the geometry, the seqforge
+#: version and where the summary went — because the printed payload and the written one are one
+#: object, and two accounts of one extraction is the drift this artifact exists to end.
+#: The bump is owed by the `.smk` edit, and a `run_id` is its whole cost.
 #: 2026.8.12 — every STAR workflow loads ONE copy of the genome per run and shares it, instead of one
 #: workflow doing so and two loading a private copy per job (#379). `map/star` and `map/starsolo` each
 #: gain the arrangement `map/star-umi` has had since 2026.8.6: a `load_genome` rule that defensively
@@ -322,7 +344,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.12"
+WORKFLOW_VERSION = "2026.8.13"
 
 _MODULE_DIR = Path(__file__).parent
 
