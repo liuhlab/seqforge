@@ -1414,8 +1414,8 @@ def test_a_pipeline_that_ran_and_wrote_garbage_never_renders_as_not_run(
     assert ">Results</button>" in html
     assert "not been run yet" not in html
     assert "No readable result" in html
-    for sample in samples:  # which sample, and what kind of failure -- not just a count
-        assert f"{sample}: its QC artifact could not be read (BadGzipFile)" in html
+    for sample in samples:  # which sample, which FILE, and what kind of failure -- not just a count
+        assert f"{sample}: {sample}.qc.json.gz could not be read (BadGzipFile)" in html
     # No table, and no control offering to unfold one: a disclosure promising columns that do not
     # exist reads as a rendering bug rather than as the honest account this section is. Asserted on
     # the fold control rather than on the removed `<details>`, because the removed one can never come

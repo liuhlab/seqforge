@@ -261,12 +261,16 @@ pixi run -- seqforge compose seqforge/manifest.yaml \
 }
 ```
 
-Each gate carries its own reason beside its verdict, because a verdict alone is not actionable: a
-failing wiring gate hands back what snakemake said, and a `skip` says what it was waiting for.
-
 The directory is named for the recipe plus the first 12 characters of the run id. The run id is
 `H(dataset ⊕ processing ⊕ kb ⊕ workflow)`, so compiling this dataset a second way gives you a second
 directory rather than silently overwriting the first — and the dataset's own hash does not move.
+
+**That hash is one run's, and it will not be yours.** `workflow` in the expression is the compiler's
+own version, so a release moves the directory name for the same dataset and the same recipe. Step 7
+therefore takes the path from your own output, never from this page.
+
+Each gate carries its own reason beside its verdict, because a verdict alone is not actionable: a
+failing wiring gate hands back what snakemake said, and a `skip` says what it was waiting for.
 
 The gates:
 
@@ -282,9 +286,12 @@ The gates:
 
 ## 7. Submit it
 
+The directory to go into is the one `compose` just printed — its `snakefile_path`, minus the
+`Snakefile` on the end:
+
 ```bash
-cd seqforge/pipeline/default-d94c737eb677
-snakemake --profile <your-cluster-profile> --software-deployment-method apptainer
+cd seqforge/pipeline/<the-directory-compose-named>
+snakemake --software-deployment-method apptainer
 ```
 
 **This part is yours.** seqforge has no opinion about your scheduler, and it will not grow one.
@@ -292,6 +299,15 @@ snakemake --profile <your-cluster-profile> --software-deployment-method apptaine
 `--software-deployment-method apptainer` is what makes the alignment rule run inside the pinned
 `liulab-runtime` image. Without it snakemake ignores the `container:` directive entirely and STAR
 comes from your `PATH`: the run still works, and it is no longer pinned.
+
+**Run it on one machine.** The pipeline loads the genome index into shared memory once and every
+mapping job attaches to that one copy, so several samples mapping at the same time cost one index
+between them rather than one apiece — on a human genome that is the difference between ~31 GB and
+~31 GB times however many jobs are running. Spreading the jobs across machines with a cluster
+profile still satisfies every dependency in the workflow and silently gives each job its own copy,
+because an edge guarantees order and never co-location. Scale comes from running many pipelines at
+once, not from fanning one out. Give the run a whole machine and let `--cores` decide how many
+samples map at a time.
 
 The default target is `all`, which demands the matrices — one `<sample>.h5ad` per sample, plus a
 `<sample>.velocyto.h5ad` — not a folder that might be empty.

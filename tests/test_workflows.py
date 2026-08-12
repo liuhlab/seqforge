@@ -38,11 +38,15 @@ from conftest import (
     SrcTrees,
     _build,
     _processing,
+    _rendered_shell,
     _rule_blocks,
     _src_root,
     count_matrix,
+    planned_paths,
+    star_modules,
     write_fastq_gz,
 )
+from seqforge import __version__ as seqforge_version
 from seqforge import kb
 from seqforge.compose import compose, core
 from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
@@ -54,6 +58,7 @@ from seqforge.workflows import (
     get_module,
     keys_read_by,
     list_modules,
+    memory,
 )
 from seqforge.workflows.cram import CramError, bam_to_cram
 from seqforge.workflows.fragments import (
@@ -78,7 +83,13 @@ from seqforge.workflows.h5ad import (
     solo_stats_files,
     write_h5ad,
 )
-from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
+from seqforge.workflows.memory import (
+    BULK_RETRIES,
+    STARSOLO_RETRIES,
+    bam_sort_ram,
+    bulk_mem_mb,
+    escalated_mem_mb,
+)
 from seqforge.workflows.metrics import (
     MAX_KNEE_POINTS,
     SEVERITY_PHRASE,
@@ -132,11 +143,14 @@ from seqforge.workflows.umite.count import (
     write_umi_counts,
 )
 from seqforge.workflows.umite.extract import (
+    EXTRACT_SUFFIX,
     TagGeometry,
     UmiExtractError,
+    extract_metrics,
     extract_umis,
     find_tag,
     geometry_for_read,
+    read_extract_summary,
     tagged_read_geometry,
 )
 
@@ -1006,6 +1020,88 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
 
 
+@pytest.mark.parametrize("module", star_modules())
+def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_job_to_it(
+    module: str, tmp_path: Path, dry_run: DryRun
+) -> None:
+    """One index in memory per run, for every workflow that loads one — read off the rendered plan.
+
+    STAR's index is per-process and resident for the life of the job, so N mapping jobs running at
+    once on one machine cost N copies of it. A composed pipeline runs on ONE machine (ADR-0051),
+    which is what makes a single shared segment reachable by every job — and is also what makes the
+    multiplication real, since the jobs of a run are concurrent by construction. `map/star-umi` has
+    shared a copy since 2026.8.6; the other two loaded a private copy per job until #379.
+
+    Five claims, and a dry run is the only thing that can make any of them:
+
+    1. **The load is a job.** A rule unreachable from `rule all` plans nothing, and this one is
+       reachable only through the mapping rule's inputs — there is no target naming it.
+    2. **Mapping WAITS on it**, which is a dependency edge and appears in no rendered command. Read
+       off the load rule's own planned output rather than a path rebuilt here, so a module that moved
+       the flag cannot leave this test asserting against a filename nothing produces.
+    3. **The mapping invocation ATTACHES** (`--genomeLoad LoadAndKeep`). This is a source claim
+       everywhere else — a literal in a shell block for two workflows, a constant in
+       `workflows/starsolo_args.py` for the third — and a source claim about a command is not a claim
+       about a command.
+    4. **The sort cap is stated explicitly.** Under a shared copy STAR REFUSES its own default of
+       `0` ("reuse the genome allocation"), and the refusal fires before the genome directory is
+       read: every sample on the first attempt, not a degradation. `\\d+` rather than a byte count —
+       the exact figures are pinned per workflow by the compose tests that know each one's `mem_mb`;
+       what this owns is that some number is there for every STAR workflow, including the next one.
+    5. **The flag is not `temp()`.** Snakemake announces every temporary output it would delete, so
+       the plan is where "this file survives the run" is legible. Delete it and a rerun is told the
+       load never happened, and reloads a segment that is already resident.
+
+    Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
+    copied into each workflow file rather than factored out, so a fourth STAR workflow must be
+    covered the day it ships rather than the day someone remembers to add it. `map/chromap` is absent
+    because it invokes `chromap`, not because anything here exempts it.
+    """
+    techs = sorted(
+        t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
+    )
+    assert techs, f"{module} invokes STAR but no spec reaches it; nothing here can be planned"
+    manifest, reg = _build(tmp_path, techs[0])
+    processing = _processing(manifest)
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+
+    plan_text = dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg))
+    rendered = _rendered_shell(plan_text)
+
+    assert list(rendered.get("load_genome", {})) == [""], (
+        f"{module} plans no single `load_genome` job, so every mapping job loads its own index:\n"
+        f"{sorted(rendered)}"
+    )
+    load = rendered["load_genome"][""]
+    assert load.index("--genomeLoad Remove") < load.index("--genomeLoad LoadAndExit"), load
+    assert "|| true" in load, "removing a segment that is not there is a STAR error and a no-op"
+
+    # WHICH rule maps is read off the rendered commands too, so this never has to name a rule per
+    # module: the mapping rule is the one whose command runs STAR's aligner.
+    mapping = {
+        rule: jobs
+        for rule, jobs in rendered.items()
+        if any("--runMode alignReads" in cmd for cmd in jobs.values())
+    }
+    assert len(mapping) == 1, f"expected one aligning rule in {module}, got {sorted(mapping)}"
+    jobs = next(iter(mapping.values()))
+    assert all("--genomeLoad LoadAndKeep" in cmd for cmd in jobs.values()), jobs
+    assert all(re.search(r"--limitBAMsortRAM \d+", cmd) for cmd in jobs.values()), jobs
+
+    flag = planned_paths(plan_text, "output")["load_genome"]
+    assert flag <= planned_paths(plan_text, "input")[next(iter(mapping))], (
+        f"{module}'s mapping jobs do not depend on {flag}, so they race the load rather than "
+        f"attaching to a copy that exists"
+    )
+    # ...and the flag SURVIVES the run. `temp()` here would tell a rerun that the load never
+    # happened, and it would reload a segment that is already resident.
+    assert not [path for path in flag if f"Would remove temporary output {path}" in plan_text], (
+        f"{module} declares its load flag `temp()`:\n"
+        f"{[ln for ln in plan_text.splitlines() if ln.startswith('Would remove')]}"
+    )
+
+
 #: One plate's worth of hand-written config: the three cells, the geometry compose would derive, and
 #: the two roles it would place by ROLE. Enough to plan the module and nothing more.
 _PLATE_GEOMETRY = "R1:ATTGCGCAATG@0:umi@11+8:GGG@19:cdna@22"
@@ -1351,20 +1447,37 @@ def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_t
     assert len(records) == 2 * sum(counts.values())  # every fragment of BOTH runs, interleaved
     assert [str(r.query_sequence)[-3:] for r in records] == (
         [marks["runa"]] * 2 * counts["runa"] + [marks["runb"]] * 2 * counts["runb"]
-    ), "a tagged read reached the uBAM beside a mate from the other run"
+    ), "a tagged read beside a mate from the other run"
+    # ...and the rule's OTHER output landed beside it, from the same rendered command. The uBAM
+    # above is `temp()` and this is not, which is the only reason a finished plate can still say how
+    # much of each cell carried a tag. Asserted where the command is really run, because whether an
+    # option reaches the verb is precisely the fact a formatted `shell:` block cannot show.
+    written = json.loads((tmp_path / f"results/cell_a/cell_a{EXTRACT_SUFFIX}").read_text())
+    assert written["fragments"] == sum(counts.values())
+    assert written["tagged"] == sum(counts.values())  # every synthetic read here carries the tag
 
 
-def test_the_plate_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one_place() -> None:
-    """The two halves the composed-plate plan cannot see.
+@pytest.mark.parametrize("module_name", star_modules())
+def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one_place(
+    module_name: str,
+) -> None:
+    """The two halves a rendered plan cannot see, for every workflow that loads a STAR index.
 
     That both handlers call `release_genome_segment()` and that the helper carries
     `--genomeLoad Remove ... || true` is read off the RENDERED command and the EMITTED module by
-    `test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard`. What no rendering
-    shows is the ORDER — marking a stale segment after the load is a load that inherits it — nor
-    that the command lives in the helper alone, where a second copy is a second chance to fix one.
+    `test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_job_to_it`. What no
+    rendering shows is the ORDER — marking a stale segment after the load is a load that inherits it
+    — nor that the command lives in the helper alone, where a second copy is a second chance to fix
+    one.
+
+    The lifecycle is COPIED into each workflow file rather than factored out, because composition
+    copies exactly one `.smk` into a run directory and an included fragment would be neither copied
+    nor eligible as the default target. Three copies that must stay in step is the real cost of that,
+    and this is what keeps them honest — so it runs over :func:`~conftest.star_modules`, derived from
+    the registry, and a fourth STAR workflow is covered the day it ships.
     """
-    source = get_module("map/star-umi").snakefile.read_text()
-    load = _rule_blocks(get_module("map/star-umi").snakefile)["load_genome"]
+    source = get_module(module_name).snakefile.read_text()
+    load = _rule_blocks(get_module(module_name).snakefile)["load_genome"]
 
     assert load.index("--genomeLoad Remove") < load.index("--genomeLoad LoadAndExit"), (
         "the stale segment must be marked for destruction BEFORE the load, or the load inherits it"
@@ -1609,8 +1722,17 @@ def test_the_aligner_name_is_derived_from_the_module_id_not_a_mirror() -> None:
 _DEFAULT_MEM_MB = 48 * 1024
 
 
-def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
-    """The composed value `bam_sort_ram(escalated_mem_mb(base, attempt))` — the pair, not each half.
+@pytest.mark.parametrize(
+    ("escalate", "retries"),
+    [
+        pytest.param(escalated_mem_mb, STARSOLO_RETRIES, id="droplet"),
+        pytest.param(bulk_mem_mb, BULK_RETRIES, id="bulk"),
+    ],
+)
+def test_the_sort_budget_follows_the_escalated_memory_request(
+    escalate: Callable[[int, int], int], retries: int
+) -> None:
+    """The composed value `bam_sort_ram(escalate(base, attempt))` — the pair, not each half.
 
     This is the arithmetic behind the defect #205 removed, and the defect is a *product* of the two
     functions rather than a fault in either: a rule that escalates its memory request while handing
@@ -1620,11 +1742,19 @@ def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
     across the attempts the rule can actually reach, and it must be STRICTLY increasing — a claim
     neither function makes on its own and neither can be inspected for.
 
+    **One row per workflow that escalates, because each carries its OWN escalator and its own retry
+    count** — the counts are separate so that raising one workflow's headroom cannot silently buy
+    another workflow queue time, and separate constants are exactly the thing a test written against
+    one of them stops covering. Bulk's escalation is not droplet's for the same reason either:
+    `map/star` counts genes and demultiplexes nothing, so it holds none of the unbounded per-read
+    array droplet escalates against, and what a retry buys it is a deeper sample's coordinate sort.
+    Different reason, identical arithmetic — so it is a row here and not a neighbour.
+
     **Attempt 1 returning the request unchanged is an acceptance criterion, not an implementation
     detail.** Nearly every sample in a ~10^4-dataset corpus fits in the default request; making all of
     them more expensive to schedule in order to rescue the handful that do not is the outcome #205
-    rejected, and `escalated_mem_mb(m, 1) == m` is the whole of what "a first attempt sized as today
-    still succeeds on a normal sample" means in code.
+    rejected, and `escalate(m, 1) == m` is the whole of what "a first attempt sized as today still
+    succeeds on a normal sample" means in code.
 
     **The numbers are absolute because a test comparing these outputs only to each other would not
     catch the unit bug.** Monotonicity survives deleting the `* 1024 * 1024`; so does "attempt 2 is
@@ -1633,19 +1763,19 @@ def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
     then FATALs on *every* sample instead of on a large one — the same flag, a different bug, and a
     green suite. Only an absolute value crosses that boundary, so absolute values are what is written.
 
-    The retry count is pinned rather than parameterised away, and that is the point of importing it:
-    `STARSOLO_RETRIES` and the linear multiplier are ONE fact (`workflows/memory.py` says so), so the
-    worst case anybody reasoning about the queue actually needs is their product. Raising the count
-    without restating what the last attempt is now given should go red here.
+    The retry count is pinned rather than parameterised away, and that is the point of taking it as a
+    parameter beside the escalator: a workflow's count and its linear multiplier are ONE fact
+    (`workflows/memory.py` says so), so the worst case anybody reasoning about the queue actually
+    needs is their product. Raising a count without restating what the last attempt is now given
+    should go red here.
     """
     # Attempt 1 is today's request, byte for byte, at the shipped default and at any other size.
-    assert escalated_mem_mb(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
-    assert escalated_mem_mb(4096, 1) == 4096
+    assert escalate(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
+    assert escalate(4096, 1) == 4096
 
     # snakemake's `attempt` is 1-based, so N retries means N+1 attempts.
     budgets = [
-        bam_sort_ram(escalated_mem_mb(_DEFAULT_MEM_MB, attempt))
-        for attempt in range(1, STARSOLO_RETRIES + 2)
+        bam_sort_ram(escalate(_DEFAULT_MEM_MB, attempt)) for attempt in range(1, retries + 2)
     ]
     assert all(later > earlier for earlier, later in pairwise(budgets)), (
         f"the sort cap does not rise with the attempt, so a retry buys scheduler memory STAR is "
@@ -1654,19 +1784,32 @@ def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
 
     # Two retries, so three attempts, and 3/4 of 48 / 96 / 144 GiB IN BYTES. Read as GiB: 36, 72,
     # 108. Had the MiB->byte conversion been dropped, the first of these would read 36864.
-    assert STARSOLO_RETRIES == 2, "the shipped retry count moved; restate the last attempt's budget"
+    assert retries == 2, "the shipped retry count moved; restate the last attempt's budget"
     assert budgets == [38_654_705_664, 77_309_411_328, 115_964_116_992]
 
-    # A job whose whole request is under the 1024 MiB floor gets the WHOLE REQUEST, not the floor.
-    # The floor may not exceed the budget itself: authorising STAR to sort in more memory than the
-    # job was granted trades STAR's legible refusal ("this is how many bytes I needed") for the
-    # scheduler's OOM kill, which is the one failure mode #205 exists to remove.
-    assert bam_sort_ram(512) == 536_870_912  # 512 MiB, the whole request, not 1024
+    # A recipe whose whole request is under the 1024 MiB sort floor gets the WHOLE REQUEST as the
+    # cap, not the floor. The floor may not exceed the request it is a floor under: authorising STAR
+    # to sort in more memory than the job was granted trades STAR's legible refusal ("this is how
+    # many bytes I needed") for the scheduler's OOM kill, which is the one failure mode #205 exists
+    # to remove. Read through the escalator rather than off `bam_sort_ram` alone, because the guard
+    # has to survive the composition: an escalator that grew its own floor — the shape
+    # `fan_in_mem_mb` has and these two do not — would hand a tiny recipe a cap above its request
+    # while `bam_sort_ram` on its own stayed correct.
+    assert bam_sort_ram(escalate(512, 1)) == 536_870_912  # 512 MiB, the whole request, not 1024
     # ...and just above the floor the floor still binds: 3/4 of 1200 MiB is 900, under it.
-    assert bam_sort_ram(1200) == 1_073_741_824  # 1024 MiB, the floor
+    assert bam_sort_ram(escalate(1200, 1)) == 1_073_741_824  # 1024 MiB, the floor
 
 
-def test_the_star_rule_escalates_its_memory_on_retry() -> None:
+@pytest.mark.parametrize(
+    ("module_name", "rule_name", "retries_name"),
+    [
+        pytest.param("map/starsolo", "starsolo_count", "STARSOLO_RETRIES", id="droplet"),
+        pytest.param("map/star", "star_count", "BULK_RETRIES", id="bulk"),
+    ],
+)
+def test_the_star_rule_escalates_its_memory_on_retry(
+    module_name: str, rule_name: str, retries_name: str
+) -> None:
     """The WIRING, read off the shipped `.smk`: a `retries:`, and TWO numbers that follow `attempt`.
 
     What this reads is that the rule is *shaped* so the escalation can happen: a `retries:` directive,
@@ -1683,21 +1826,27 @@ def test_the_star_rule_escalates_its_memory_on_retry() -> None:
     `workflows/memory.py` gives for the constant existing: the retry count and the linear multiplier
     are one fact, and split across two files the count gets raised by someone who never reads the
     multiplier.
+
+    **The expected constant is named PER ROW, and that is where "its own count" is actually paid.**
+    Bulk and droplet hold the same number today and answer different failure modes — droplet's count
+    was chosen against an allocation that grows with every input read, bulk's against a coordinate
+    sort that grows with a sample's depth — so a bulk rule that reached for `STARSOLO_RETRIES`
+    because it was already imported would run, plan, and tie one workflow's headroom to a number
+    nobody chose for it. The row says which constant, so that substitution goes red.
     """
-    body = _rule_blocks(get_module("map/starsolo").snakefile)["starsolo_count"]
+    body = _rule_blocks(get_module(module_name).snakefile)[rule_name]
 
     retries = re.search(r"^\s+retries:\s*(\S+)\s*$", body, re.M)
-    assert retries, (
-        "`starsolo_count` declares no `retries:`, so a killed job is never re-run at all"
+    assert retries, f"`{rule_name}` declares no `retries:`, so a killed job is never re-run at all"
+    assert retries.group(1) == retries_name, (
+        f"`{rule_name}`'s retry count is not `workflows/memory.{retries_name}`. A literal in the "
+        f"Snakefile can disagree with the escalation rule it is half of, and another workflow's "
+        f"constant makes one workflow's escalation a function of the other's: {retries.group(1)}"
     )
-    assert retries.group(1) == "STARSOLO_RETRIES", (
-        "the retry count is a literal in the Snakefile, so it can now disagree with the escalation "
-        "rule it is half of; declare it as `workflows/memory.STARSOLO_RETRIES`"
-    )
-    assert STARSOLO_RETRIES >= 1, "a retry count of 0 makes the escalation unreachable"
+    assert getattr(memory, retries_name) >= 1, "a retry count of 0 makes the escalation unreachable"
 
     request = re.search(r"^\s+mem_mb=(.*)$", body, re.M)
-    assert request, "`starsolo_count` requests no `mem_mb`, so the scheduler gates nothing"
+    assert request, f"`{rule_name}` requests no `mem_mb`, so the scheduler gates nothing"
     assert request.group(1).startswith("lambda") and "attempt" in request.group(1), (
         f"`mem_mb` is not a function of `attempt`, so every retry re-submits the request that was "
         f"already killed: {request.group(1)}"
@@ -1706,7 +1855,7 @@ def test_the_star_rule_escalates_its_memory_on_retry() -> None:
     # The cap STAR is handed, and the `resources:` block it must be declared in. Both halves matter:
     # a `params:` entry of the identical text would satisfy the `attempt` check and still freeze.
     cap = re.search(r"^\s+bam_sort_ram_bytes=(.*?)^\s{4}\w+:", body, re.M | re.S)
-    assert cap, "`starsolo_count` computes no sort budget; STAR's default 0 reuses the genome's"
+    assert cap, f"`{rule_name}` computes no sort budget; STAR's default 0 reuses the genome's"
     assert "attempt" in cap.group(1) and "config[" in cap.group(1), (
         f"the sort cap is not a function of `attempt` over the config's base request: {cap.group(1)}"
     )
@@ -2105,12 +2254,8 @@ def _reader_for_no_module(reg: Any, mp: pytest.MonkeyPatch) -> None:
 
 
 def _spec(reg: Any, mp: pytest.MonkeyPatch, **kw: object) -> None:
-    mp.setattr(
-        reg,
-        "_SPECS",
-        {**reg._SPECS, "map/star": reg.StatsSpec(artifact="x", read=_stub_reader, **kw)},
-        raising=True,
-    )
+    kw.setdefault("artifacts", (reg.SampleArtifact("x", _stub_reader),))
+    mp.setattr(reg, "_SPECS", {**reg._SPECS, "map/star": reg.StatsSpec(**kw)}, raising=True)
 
 
 def _rules_forgotten(reg: Any, mp: pytest.MonkeyPatch) -> None:
@@ -2126,6 +2271,10 @@ def _fan_in_reader_pointed_nowhere(reg: Any, mp: pytest.MonkeyPatch) -> None:
     _spec(reg, mp, read_fan_in=_plural_reader)
 
 
+def _spec_naming_no_artifact(reg: Any, mp: pytest.MonkeyPatch) -> None:
+    _spec(reg, mp, artifacts=())
+
+
 @pytest.mark.parametrize(
     ("drift", "named"),
     [
@@ -2134,19 +2283,29 @@ def _fan_in_reader_pointed_nowhere(reg: Any, mp: pytest.MonkeyPatch) -> None:
         (_rules_forgotten, r"map/star.*declare no cross-checks"),
         (_rules_and_silence_both, "both declare cross-checks"),
         (_fan_in_reader_pointed_nowhere, "no fan_in_artifact"),
+        (_spec_naming_no_artifact, "naming no per-sample artifact"),
     ],
-    ids=["no-reader", "reader-for-no-module", "rules-forgotten", "rules-and-silence", "fan-in"],
+    ids=[
+        "no-reader",
+        "reader-for-no-module",
+        "rules-forgotten",
+        "rules-and-silence",
+        "fan-in",
+        "no-artifact",
+    ],
 )
 def test_the_registry_guard_catches_every_way_a_module_and_its_reader_can_drift(
     drift: Callable[[Any, pytest.MonkeyPatch], None],
     named: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A guard nobody has seen fail is a guard that may not be looking, and it has five ways to look.
+    """A guard nobody has seen fail is a guard that may not be looking, and it has six ways to look.
 
-    One row per way a maintainer gets this wrong. The last is the quietest: a fan-in reader for a
-    module declaring no such artifact reads nothing forever, because `read_pipeline_stats` has no
-    path to hand it one. Every registry is rebound rather than mutated.
+    One row per way a maintainer gets this wrong. The two quietest are the last: a fan-in reader for
+    a module declaring no such artifact reads nothing forever, because `read_pipeline_stats` has no
+    path to hand it one — and a spec naming no per-sample artifact at all reads nothing forever
+    while still looking, from the registry, exactly like a module that reports. Every registry is
+    rebound rather than mutated.
     """
     from seqforge.workflows import stats as stats_registry
 
@@ -2509,11 +2668,15 @@ def test_a_bug_in_a_metric_table_is_raised_and_not_filed_as_a_corrupt_artifact(
     def buggy(path: Path, sample: str) -> SampleStats:
         raise KeyError("a metric table asked for a key it never wrote")
 
-    spec = stats_registry._SPECS["map/starsolo"]
+    landed = stats_registry._SPECS["map/starsolo"].artifacts[0]
     monkeypatch.setattr(
         stats_registry,
         "_SPECS",
-        {"map/starsolo": stats_registry.StatsSpec(artifact=spec.artifact, read=buggy)},
+        {
+            "map/starsolo": stats_registry.StatsSpec(
+                artifacts=(stats_registry.SampleArtifact(landed.filename, buggy),)
+            )
+        },
         raising=True,
     )
 
@@ -3936,11 +4099,18 @@ def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the
 # a hand-built AnnData that could only ever agree with itself.
 
 
-def _plate_results(tmp_path: Path, *, logged: Sequence[str] = ("cell_a", "cell_b")) -> Path:
-    """A finished `map/star-umi` run on disk: the fan-in h5ad, plus a `Log.final.out` per cell.
+def _plate_results(
+    tmp_path: Path,
+    *,
+    logged: Sequence[str] = ("cell_a", "cell_b"),
+    extracted: Sequence[str] = (),
+) -> Path:
+    """A finished `map/star-umi` run on disk: the fan-in h5ad, plus per-cell artifacts.
 
     `logged` is which cells got as far as writing an alignment log — a preempted plate has cells the
     counter measured and STAR's per-cell log did not survive for, which is exactly the union case.
+    `extracted` is which cells kept the summary the extraction wrote a rule earlier; it defaults to
+    none so the tests about the log/fan-in join stay about two artifacts and not three.
     """
     db, cells = _plate(tmp_path)
     results = tmp_path / "results"
@@ -3949,6 +4119,20 @@ def _plate_results(tmp_path: Path, *, logged: Sequence[str] = ("cell_a", "cell_b
         _write(
             results / sample / "Log.final.out",
             "".join(f"  {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()),
+        )
+    for sample in extracted:
+        _write(
+            results / sample / f"{sample}{EXTRACT_SUFFIX}",
+            json.dumps(
+                {
+                    "sample": sample,
+                    "geometry": _PLATE_GEOMETRY,
+                    "fragments": 100,
+                    "tagged": 27,
+                    "untagged": 73,
+                    "offsets": {"0": 26, "13": 1},
+                }
+            ),
         )
     return results
 
@@ -4112,6 +4296,99 @@ def test_a_corrupt_plate_object_costs_a_note_and_never_the_cells_that_did_land(
     assert "uniquely_mapped" in _by_key(stats.samples[0])
     assert not set(FATES) & set(_by_key(stats.samples[0]))
     assert any(PLATE_H5AD in note for note in stats.notes), stats.notes
+
+
+def test_three_artifacts_are_three_chapters_of_one_row_and_never_three_rows(
+    tmp_path: Path,
+) -> None:
+    """The plate is the first module with TWO per-sample artifacts, and a cell is still one row.
+
+    Each speaks about a different step and none is a version of another: the extraction summary says
+    what the FASTQs held and how much of it carried a tag, STAR's log says what it did with the reads
+    it was then handed, and the plate object says what the counter did with the fragments. A page
+    that carried them separately would show every cell two or three times.
+
+    The tagged fraction is what the second artifact is for. It is the per-cell readout of whether the
+    chemistry behaved and no other artifact on a finished plate carries it — STAR never saw an
+    untagged read as anything but a read — so before this landed it reached the page from nowhere.
+    Columns read in pipeline order, which is the registry's declared order and not the order the
+    files happened to land in.
+    """
+    results = _plate_results(tmp_path, extracted=["cell_a", "cell_b"])
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None and stats.complete
+    assert [s.sample_id for s in stats.samples] == [
+        "cell_a",
+        "cell_b",
+    ]  # two cells, not four or six
+    cell_a = _by_key(stats.samples[0])
+    assert cell_a["umi_tagged"].value == pytest.approx(0.27)
+    assert cell_a["extract_fragments"].value == 100
+    assert cell_a["umi_anchor_drift"].value == pytest.approx(1 / 27)
+    # ...beside both other halves, on the same row.
+    assert "uniquely_mapped" in cell_a and set(FATES) <= set(cell_a)
+    keys = [key for key, _ in stats.columns]
+    assert keys.index("umi_tagged") < keys.index("uniquely_mapped") < keys.index("no_feature")
+
+
+def test_a_plate_that_has_only_extracted_is_reported_as_started_and_never_as_finished(
+    tmp_path: Path,
+) -> None:
+    """What is SHOWN and what is FINISHED are two questions, and the first mid-pipeline artifact
+    is what pulled them apart.
+
+    `n_found` feeds `PipelineStats.complete`, which the page renders as a green "all N samples
+    finished". Every artifact this registry read used to be the LAST thing its pipeline wrote, so
+    "some source answered" and "this sample is done" were the same fact and one number could serve
+    both. The extraction summary is the FIRST thing the plate writes: counting it would tint a plate
+    that has not aligned a single cell green, which is the one sentence a reader would act on
+    without checking. So its columns are on the page and its landing is not a finish.
+
+    Both halves are asserted, because either alone is satisfiable by doing the wrong thing: dropping
+    the row entirely also stops the badge going green, and it would hide the very number the artifact
+    was added for.
+    """
+    results = _plate_results(tmp_path, logged=[], extracted=["cell_a", "cell_b"])
+    (results / PLATE_H5AD).unlink()  # extraction ran; the aligner and the counter have not
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None and not stats.complete
+    assert (stats.n_found, stats.n_expected) == (0, 2)
+    assert [s.sample_id for s in stats.samples] == ["cell_a", "cell_b"]
+    assert _by_key(stats.samples[0])["umi_tagged"].value == pytest.approx(0.27)
+
+    # ...and a cell whose alignment log then lands IS finished, so the distinction is about which
+    # artifact answered and not about the summary suppressing a count.
+    _write(results / "cell_a" / "Log.final.out", "  Number of input reads |\t10\n")
+    landed = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert landed is not None and (landed.n_found, landed.n_expected) == (1, 2)
+    assert len(landed.samples) == 2, "a cell that has only extracted still has a row"
+
+
+def test_an_unreadable_summary_costs_its_own_columns_and_names_the_file_it_could_not_read(
+    tmp_path: Path,
+) -> None:
+    """Two per-sample artifacts are two ways to be unreadable, so the note has to say which.
+
+    The registry's note used to read "its QC artifact could not be read", which was total while a
+    module had one; with two it sends a reader looking through the wrong file. The rest is the rule
+    that has always held one artifact out: bad bytes cost their own columns, and this cell keeps
+    every column its alignment log and the plate object gave it.
+    """
+    results = _plate_results(tmp_path, extracted=["cell_a", "cell_b"])
+    (results / "cell_a" / f"cell_a{EXTRACT_SUFFIX}").write_text("{not json")
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None
+    cell_a, cell_b = (_by_key(s) for s in stats.samples)
+    assert "umi_tagged" not in cell_a and "umi_tagged" in cell_b
+    assert "uniquely_mapped" in cell_a and set(FATES) <= set(cell_a)
+    assert stats.notes == [f"cell_a: cell_a{EXTRACT_SUFFIX} could not be read (JSONDecodeError)"]
 
 
 def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> None:
@@ -4513,8 +4790,18 @@ def test_a_single_end_plate_writes_one_unpaired_record_per_read(tmp_path: Path) 
     # A fragment is one record here and two on a paired plate, which is why the count is not `pairs`.
     assert (stats.fragments, stats.tagged, stats.untagged) == (3, 2, 1)
     assert stats.offsets == {0: 1, 13: 1}
-    # The verb prints this object, so the rename is the only thing that may move in its key set.
-    assert set(stats.to_dict()) == {"sample", "fragments", "tagged", "untagged", "offsets"}
+    # The verb prints this object AND it is what lands on disk, so its key set is a published shape:
+    # a rename here silently costs a column on every plate's page, and the file is the only surviving
+    # account of the extraction once the uBAM is reclaimed.
+    assert set(stats.to_dict()) == {
+        "sample",
+        "seqforge",
+        "geometry",
+        "fragments",
+        "tagged",
+        "untagged",
+        "offsets",
+    }
 
 
 def test_a_tagged_single_end_read_is_trimmed_from_its_anchor_and_carries_its_umi(
@@ -4648,6 +4935,150 @@ def test_the_extractor_shells_out_to_nothing_so_its_rule_needs_no_image(
     assert "subprocess" in imported_by("workflows/cram.py")
 
 
+# ---- the summary that outlives the uBAM it measured ----------------------------------------------
+#
+# The uBAM is `temp()`, so once the aligner and the CRAM converter have consumed it every record is
+# gone -- and with them the only evidence of how many fragments carried a tag at all. That share is
+# the per-cell readout of whether the chemistry behaved (a tunable tagmentation parameter, published
+# from 6.9% to 70.5%), so a cell at 2% and a cell at 28% are a bench problem and a normal run that
+# nothing downstream can tell apart. These drive the REAL writer and the REAL reader, because the
+# failure being prevented is a rename in either: a report that finds nothing looks exactly like a
+# plate that was never extracted, so nothing raises and nobody is told.
+
+
+def _extracted(tmp_path: Path, reads: list[tuple[str, str]], *, sample: str = "cell") -> Path:
+    """Extract one cell into `<results>/<sample>/`, laid out as the rule lays it out, -> the summary."""
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, r2 = _write_pair(tmp_path, reads)
+    cell = tmp_path / "results" / sample
+    summary = cell / f"{sample}{EXTRACT_SUFFIX}"
+    extract_umis(
+        [r1], [r2], cell / f"{sample}.unaligned.bam", geometry, sample=sample, summary=summary
+    )
+    return summary
+
+
+def test_what_the_extraction_measured_is_still_on_disk_once_the_ubam_is_reclaimed(
+    tmp_path: Path,
+) -> None:
+    """The whole point of the artifact: snakemake deletes the uBAM, and the counts stay.
+
+    Asserted by deleting the BAM, which is exactly what `temp()` does the moment the mapping and the
+    CRAM jobs have consumed it. Before this landed the numbers went to stdout alone, so the only
+    surviving copy was whatever captured the workflow's output -- on a cluster, a scheduler log
+    somebody rotates -- and after the BAM was reclaimed nothing on disk could tell a dead library
+    from a normal one.
+
+    The payload is checked against what the extraction returned rather than against literals, so a
+    writer that serialises the wrong field goes red here instead of shipping a plausible file.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, r2 = _write_pair(tmp_path, [(_tagged("ACGTACGT"), _CDNA), (_CDNA, _CDNA)])
+    ubam, summary = tmp_path / "cell.unaligned.bam", tmp_path / f"cell{EXTRACT_SUFFIX}"
+
+    stats = extract_umis([r1], [r2], ubam, geometry, sample="cell", summary=summary)
+    ubam.unlink()
+
+    assert summary.is_file()
+    assert json.loads(summary.read_text()) == stats.to_dict()
+    # And every field the artifact was asked to carry is in it, by name: these are what a reader
+    # needs to judge a cell, and the geometry is what makes the rest interpretable at all.
+    written = json.loads(summary.read_text())
+    assert (written["fragments"], written["tagged"], written["untagged"]) == (2, 1, 1)
+    assert written["offsets"] == {"0": 1}
+    assert written["geometry"] == geometry.render()
+    assert written["seqforge"] == seqforge_version
+
+
+def test_no_summary_is_written_when_none_is_asked_for(tmp_path: Path) -> None:
+    """A path and not a convention: nothing is derived from `--out`, so nothing appears beside it.
+
+    The rule DECLARES the summary and passes what it declared, and a path guessed from the BAM's
+    would be a second owner of that filename -- the owner that goes stale in silence. A hand
+    invocation that asks for no summary must therefore leave the directory as it found it.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, r2 = _write_pair(tmp_path, [(_tagged("ACGTACGT"), _CDNA)])
+    out = tmp_path / "bam" / "cell.unaligned.bam"
+
+    extract_umis([r1], [r2], out, geometry, sample="cell")
+
+    assert [p.name for p in out.parent.iterdir()] == ["cell.unaligned.bam"]
+
+
+def test_the_summary_the_extractor_writes_is_the_one_the_report_reads_back(tmp_path: Path) -> None:
+    """The writer decides the payload keys and the reader looks them up -- through the real writer.
+
+    They live in one file precisely so they cannot drift, and a test that handed `extract_metrics` a
+    dict of its own could not catch a rename in the writer: the reader would keep resolving against
+    the test's dict while the page silently lost the one column this artifact exists for.
+
+    The tagged fraction is that column. It is deliberately UNGRADED -- a library tuned low is a
+    choice somebody made at the bench, and inventing a bar would tint a page over a decision rather
+    than over a fault -- so what is asserted is the number and the absence of a verdict on it.
+    """
+    summary = _extracted(
+        tmp_path,
+        [(_tagged("ACGTACGT"), _CDNA), (_tagged("TTTTGGCC", offset=13), _CDNA), (_CDNA, _CDNA)],
+    )
+
+    sample = read_extract_summary(summary, "cell")
+    got = {m.key: m for m in sample.metrics}
+
+    assert got["extract_fragments"].value == 3
+    assert got["umi_tagged"].value == pytest.approx(2 / 3)
+    assert got["umi_anchor_drift"].value == pytest.approx(1 / 2)  # one of the two tags is at 13
+    assert {m.level for m in sample.metrics} == {"none"}
+    # One headline, and it is the chemistry readout rather than a count: ten columns is past the
+    # width at which the report folds the table away, so which survives the fold is a decision.
+    assert {m.key for m in sample.metrics if m.headline} == {"umi_tagged"}
+
+
+def test_a_cell_that_held_no_fragment_reports_no_tagged_share_rather_than_zero() -> None:
+    """The one division here with no answer, and absence is what it produces.
+
+    Pure over a payload, which is the seam the loader exists to keep testable. A cell whose FASTQs
+    held nothing cannot have a share of them tagged, and a rendered `0.0%` is a number a reader acts
+    on -- the same rule `fate_metrics` keeps for a cell the counter measured nothing in. The count
+    itself is a real zero and stays: it was measured.
+    """
+    sample = extract_metrics(
+        {"fragments": 0, "tagged": 0, "offsets": {}, "geometry": _PLATE_GEOMETRY}, "cell"
+    )
+
+    got = {m.key: m for m in sample.metrics}
+    assert got["extract_fragments"].value == 0
+    assert "umi_tagged" not in got
+    assert "umi_anchor_drift" not in got
+
+
+def test_the_drift_column_is_measured_against_the_start_the_geometry_declares() -> None:
+    """The offsets histogram compressed to the number it is read for, and against the right origin.
+
+    The search is unanchored because a measured 4.3% of exact hits do not start where the layout
+    declares -- so a cell's own figure is what makes that measurement checkable rather than trusted,
+    and a distribution that has shifted is a primer or trimming problem no count matrix explains.
+    Measured against a GUESSED origin the column would be a different number that looks like this
+    one, which is why the declared start is parsed out of the geometry the payload carries and a
+    payload with no readable geometry drops the column instead of inventing a denominator.
+    """
+    counted = {"fragments": 10, "tagged": 8, "offsets": {"0": 6, "13": 1, "15": 1}}
+
+    drifted = extract_metrics({**counted, "geometry": _PLATE_GEOMETRY}, "cell")
+    assert {m.key: m.value for m in drifted.metrics}["umi_anchor_drift"] == pytest.approx(2 / 8)
+
+    # A geometry that does not round-trip is a summary this reader cannot interpret, not a crash:
+    # `TagGeometry.parse` refuses one, and the refusal is not among the exceptions the registry
+    # tolerates, so an uncaught one would cost the whole page rather than one column.
+    for unreadable in ({}, {"geometry": ""}, {"geometry": "R1:umi@0+8"}):
+        thin = extract_metrics({**counted, **unreadable}, "cell")
+        keys = {m.key for m in thin.metrics}
+        assert "umi_anchor_drift" not in keys
+        assert {"extract_fragments", "umi_tagged"} <= keys, (
+            "the counts survive an unreadable geometry"
+        )
+
+
 def _revcomp(seq: str) -> str:
     """The reverse complement, so a synthetic mate maps in the orientation a pair maps in."""
     return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
@@ -4738,14 +5169,21 @@ def test_the_shared_index_load_asks_the_scheduler_for_the_residency_it_holds() -
     assert index_mem_mb(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
 
 
-def test_the_sort_budget_is_what_the_recipe_figure_is_actually_sized_by() -> None:
-    """The figure reads as an index budget and is a sort budget -- the trap this module now names.
+def test_the_recipe_figure_buys_a_sort_and_the_ratio_is_what_a_small_genome_must_clear() -> None:
+    """One figure covers index residency AND a sort, and only the sort half constrains the recipe.
 
-    `bam_sort_ram` takes three quarters of the per-cell request, and the default moved 32 -> 48 GB so
-    a 215M-read sample's ~32 GB sort would fit. So shrinking the figure because a genome's index is
-    small (ce11's is 1.3 GB against a human 25 GB) shrinks `--limitBAMsortRAM` with it and STAR
-    FATALs on a deep sample. This pins the coupling that makes that true, so a future "the index is
-    tiny, drop the default" goes red here instead of in a 20-hour run.
+    Which term dominates a mapping job's peak is a property of the SAMPLE: a plate cell of a few
+    thousand reads is index-dominated (27.7 GB against a 25 GB index), a 215M-read droplet sample is
+    sort-dominated (~160 B/record, ~32 GB). The residency half is not this suite's to check -- it is a
+    measurement against a real index -- but the sort half is arithmetic the shipped code does, so it
+    is pinned here.
+
+    Two claims, and the second is the one a small genome runs into. First, the default figure covers
+    the sample the default was moved for, and shrinking it stops covering that sample -- so a future
+    "ce11's index is 1.3 GB, drop the default" goes red here instead of in a 20-hour run. Second, the
+    same three quarters read backwards is the floor a recipe sizing DOWN has to clear: the request
+    must be at least four thirds of the sort expected. That inequality binds on a small genome, where
+    nothing about residency argues for the default, and never on a human one.
     """
     from seqforge.workflows.memory import bam_sort_ram, per_cell_mem_mb
 
@@ -4756,6 +5194,14 @@ def test_the_sort_budget_is_what_the_recipe_figure_is_actually_sized_by() -> Non
 
     # Halving the recipe figure -- the tempting "small genome" edit -- stops covering it.
     assert bam_sort_ram(per_cell_mem_mb(_DEFAULT_MEM_MB // 2, 1)) < needed_bytes
+
+    # The four thirds, at the boundary in both directions rather than as a comfortable inequality:
+    # one MiB less than the ratio demands is one MiB of sort the sample does not get. Ceiling
+    # division, because the share floors and the recipe states whole gigabytes anyway.
+    wanted_mb = 8 * 1024
+    four_thirds_mb = -(-4 * wanted_mb // 3)
+    assert bam_sort_ram(per_cell_mem_mb(four_thirds_mb, 1)) >= wanted_mb * mib
+    assert bam_sort_ram(per_cell_mem_mb(four_thirds_mb - 1, 1)) < wanted_mb * mib
 
 
 # ================================================================================================

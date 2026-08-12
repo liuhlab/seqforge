@@ -110,12 +110,12 @@ artifact is a file you run:
 
 ```bash
 cd seqforge/pipeline/<the-directory-Claude-made>
-snakemake --profile <your-cluster-profile> --software-deployment-method apptainer
+snakemake --software-deployment-method apptainer
 ```
 
 That produces one `.h5ad` count matrix per sample. The
 [step-by-step tutorial](step-by-step.md#7-submit-it) explains that command, including why the
-`--software-deployment-method apptainer` flag matters.
+`--software-deployment-method apptainer` flag matters and why a pipeline runs on one machine.
 
 ## What to read next
 

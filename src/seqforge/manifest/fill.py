@@ -180,6 +180,7 @@ class ProcessingInputs:
     # whose membership `SoloQuant` validates at construction and nothing before it does.
     features: tuple[str, ...] | None = None  # --quantify: EXACT replacement
     threads: int | None = None
+    mem_gb: int | None = None
     environment: RuntimeEnv | None = None
 
 
@@ -329,6 +330,7 @@ def fill_processing(
             annotation_name=processing.annotation_name,
             features=processing.features,
             threads=processing.threads,
+            mem_gb=processing.mem_gb,
             environment=processing.environment,
         ),
     )

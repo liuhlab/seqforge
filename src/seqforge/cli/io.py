@@ -824,6 +824,12 @@ def io_umi_extract(
         help="Cell id: which sample to resolve out of --units, and the uBAM's read group.",
     ),
     out: Path = typer.Option(..., "--out", help="Output path for the unaligned BAM."),
+    summary: Path | None = typer.Option(
+        None,
+        "--summary",
+        help="Where to write this cell's extraction counts as JSON. Omitted, the same numbers go "
+        "to stdout only — which on a cluster means they live in a scheduler log and nowhere else.",
+    ),
     read_id: str = typer.Option(
         "R1",
         "--read-id",
@@ -872,6 +878,13 @@ def io_umi_extract(
     over the plain mate would otherwise extract nothing at exit 0. Deleting it is ADR-0036's
     explicitly deferred question, not a tidy-up (ADR-0035 treats the refusal as load-bearing).
 
+    **`--summary` is what makes the numbers outlive the run.** The uBAM is `temp()`, so the only
+    lasting account of what the extraction saw — how many fragments, how many carried a tag, and
+    where the tag actually started — used to be whatever captured this command's stdout. Given a
+    path, the SAME payload lands beside the cell's other outputs and `seqforge report` reads it back,
+    the way it already reads STAR's own per-sample log. One payload and not two: stdout keeps every
+    key it had, gains the geometry and the version the file carries, and names where the file went.
+
     Exit 3 on a Blocker-shaped refusal: an unreadable geometry, the wrong mate, a run whose mate was
     never deposited, a half-renamed FASTQ, a pair of unequal length, a truncated input.
     """
@@ -894,10 +907,11 @@ def io_umi_extract(
         tagged, mates = extraction_inputs(
             units=units, sample=sample, r1=r1, r2=r2, tagged_role=structure.read_id
         )
-        stats = extract_umis(tagged, mates, out, structure, sample=sample)
+        stats = extract_umis(tagged, mates, out, structure, sample=sample, summary=summary)
     except (UmiExtractError, UnitsError) as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc
-    typer.echo(
-        json.dumps({"written": str(out), "read_id": structure.read_id, **stats.to_dict()}, indent=2)
-    )
+    written: dict[str, object] = {"written": str(out), "read_id": structure.read_id}
+    if summary is not None:
+        written["summary"] = str(summary)
+    typer.echo(json.dumps({**written, **stats.to_dict()}, indent=2))

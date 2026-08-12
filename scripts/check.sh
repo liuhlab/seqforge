@@ -10,9 +10,18 @@
 # CI is unaffected: `.github/workflows/ci.yml` calls the individual tasks and never this script. It
 # runs `lint`, `fmt-check` and `typecheck` as three STEPS of one job (with the docs build), and gives
 # each of the three test lanes a job of its own — so the concurrency this script buys is a local-only
-# win, and CI's shape is more runners rather than more background jobs. What the two DO share is the
-# selections: the lanes named on the `check` line are the ones CI's jobs run, so a lane that is red
-# here is red there and for the same reason.
+# win, and CI's shape is more runners rather than more background jobs.
+#
+# THE GATE IS A SUBSET OF CI AND STAYS ONE. Every lane named on the `check` line is a selection CI
+# also runs, so a lane red here is red there for the same reason — but the converse does not hold,
+# and three CI jobs have no step here: markdownlint, the strict docs build, and the wheel build. That
+# is a choice and not an omission to be tidied up. Each of them answers a question a code change does
+# not ask, and this gate's whole justification is that it is cheap enough to run without thinking
+# about it. Adding a couple of seconds each is not the cost that matters; making the pre-push rung a
+# thing you weigh before running is. Whoever touched documentation runs `docs-build` and the
+# markdownlint pre-commit hook, which is the trigger those two already have — and a packaging change
+# is CI's to confirm. This paragraph exists because the prose here used to claim the gate ran CI's
+# selections outright, which drifted the moment those jobs were added and then read as a bug.
 #
 # Each step's output is captured to its own file and printed whole, in a fixed order, after every
 # step has finished. Attribution therefore gets BETTER, not worse: a failure is one contiguous

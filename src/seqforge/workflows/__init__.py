@@ -23,6 +23,74 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.13 — `rule umi_extract` writes what the extraction MEASURED to disk, not only to stdout
+#: (#353). It gains a second output, `<sample>.umi-extract.json`, declared from `EXTRACT_SUFFIX` in
+#: the module that writes it and deliberately NOT `temp()`; the verb takes `--summary` and writes the
+#: same payload it already printed, plus the geometry it ran under and the seqforge version.
+#: **WHY A FILE AT ALL.** The uBAM is `temp()`, so the moment the aligner and the CRAM converter have
+#: consumed it every record is gone — and with them the only evidence of how many fragments carried a
+#: tag. That share is not incidental: the fraction of UMI-containing reads is a tunable property of
+#: the tagmentation, published across 6.9–70.5% over five libraries, so it is the single best
+#: per-cell readout of whether the chemistry behaved, and a cell at 2% and a cell at 28% are a bench
+#: problem and a normal run that nothing downstream can tell apart. Printed to stdout, the only
+#: surviving copy was whatever captured the workflow's output — on a cluster, a scheduler log
+#: somebody rotates. The offsets histogram is the same evidence one level down: where the tag
+#: actually started, so a shifted distribution is a primer or trimming problem no count matrix would
+#: explain. `seqforge report` now reads the file the way it already reads `Log.final.out`, which is
+#: what makes `map/star-umi` the first module with TWO per-sample artifacts — and the first with one
+#: that is NOT evidence a sample finished, so a `SampleArtifact` says which it is and a plate whose
+#: extraction has outrun its aligner reports "3 of 1440" rather than a green "all finished".
+#: **WHICH OUTPUT MOVES.** No FILE already produced. The uBAM is byte-identical and every alignment
+#: and count is unchanged. Stdout keeps every key it had and gains three — the geometry, the seqforge
+#: version and where the summary went — because the printed payload and the written one are one
+#: object, and two accounts of one extraction is the drift this artifact exists to end.
+#: The bump is owed by the `.smk` edit, and a `run_id` is its whole cost.
+#: 2026.8.12 — every STAR workflow loads ONE copy of the genome per run and shares it, instead of one
+#: workflow doing so and two loading a private copy per job (#379). `map/star` and `map/starsolo` each
+#: gain the arrangement `map/star-umi` has had since 2026.8.6: a `load_genome` rule that defensively
+#: clears a stale segment and then loads the index (`--genomeLoad LoadAndExit`), touching a flag that
+#: is deliberately NOT `temp()` — deleting it would tell snakemake the load never happened, and the
+#: rerun would reload a segment that is already resident; a dependency edge from the mapping rule onto
+#: that flag; `--genomeLoad LoadAndKeep` on the mapping invocation; and one `release_genome_segment()`
+#: helper called from BOTH `onsuccess:` and `onerror:`, because a run that died mid-way is exactly the
+#: run that strands tens of gigabytes on the machine. The clear comes BEFORE the load: marking a stale
+#: segment for destruction after loading is a load that inherits it.
+#: **WHAT IT BUYS.** STAR's index is per-process and resident for the life of the job, so N samples
+#: mapping at once cost N copies of it — six droplet samples against a ~31 GB human index is ~186 GB
+#: of index where ~31 GB would do. A composed pipeline runs on ONE machine (ADR-0051), which is both
+#: what makes one segment attachable by every job and what makes the multiplication real. The plate's
+#: own argument was different and is now stated as such: repeated LOADING (1440 per-cell loads of a
+#: ~30 GB index is ~40 TB of I/O to align 54 GB of FASTQ) is compatible with, but says nothing about,
+#: concurrent RESIDENCY. Its docstring no longer asserts the other two modules should not do this.
+#: **WHICH OUTPUT MOVES.** None. `--genomeLoad` selects where the index lives, not how it is used, and
+#: the alignments and counts are unchanged. What moves is a machine's peak footprint and a new
+#: precondition: STAR refuses `--limitBAMsortRAM 0` under a shared copy, which is why #377 (bulk's
+#: sort cap) had to land first — the refusal fires before the genome directory is read, so it would
+#: have been every bulk sample on the first attempt rather than a degradation.
+#: **THE PATTERN IS COPIED, NOT FACTORED.** A workflow file is a standalone hand-written artifact:
+#: composition copies exactly one of them into the run directory, and an `include:`d fragment would be
+#: neither copied nor eligible as the default target. Three copies of a lifecycle that must stay in
+#: step is the real cost, and the test that keeps them honest runs over the STAR-invoking modules
+#: DERIVED from this registry rather than a list typed beside it.
+#: `--genomeLoad LoadAndKeep` reaches droplet's command line through `workflows/starsolo_args.py`,
+#: which owns that argv whole; the memory instrument (`e2e.run_starsolo`) overrides it to
+#: `NoSharedMemory`, because it has no load rule to create the segment and no handler to release one.
+#: 2026.8.11 — `rule star_count` declares what it needs, which until now was NOTHING (#377): no
+#: `mem_mb`, so a bulk run's largest single allocation was invisible to whatever packs the machine,
+#: and no `--limitBAMsortRAM`, so the coordinate sort ran on STAR's default of `0` — "reuse the
+#: genome allocation", a budget nobody chose that tracks the genome's size instead of the sample's
+#: depth, and the one value STAR refuses outright once a run shares a copy of the index (refused
+#: before the genome directory is read, so it would be every sample on the first attempt).
+#: It gains the arrangement `starsolo_count` already has — a request linear in `attempt`, its own
+#: retry count, and a cap derived from the memory THAT attempt was granted, declared as a `resources:`
+#: entry because a `params:` one is expanded on attempt 1 and reused by every retry. The count is its
+#: own (`BULK_RETRIES`) rather than STARsolo's, so one workflow's headroom is not a function of the
+#: other's, and the reasoning differs too: STARsolo escalates against `readInfo`, which grows with
+#: every input read, while bulk counts genes, holds no such array, and escalates for DEPTH alone.
+#: **WHICH OUTPUT MOVES.** None. `--limitBAMsortRAM` is a cap and never an allocation — STAR reports
+#: the memory the sort needed and refuses above the cap, so a sample that fits today produces the
+#: same counts and the same BAM. Only `map/star` moves; the other three modules are untouched. The
+#: bump is owed by the `.smk` edit, and a `run_id` is its whole cost.
 #: 2026.8.10 — `rule starsolo_count` asks the chemistry which trimmer to run instead of telling it
 #: (#355). `--clipAdapterType` was a module literal, `CellRanger4` for all eleven starsolo
 #: chemistries; it is a required KB parse key now, and `--clip5pAdapterSeq` joins it as the optional
@@ -276,7 +344,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.10"
+WORKFLOW_VERSION = "2026.8.13"
 
 _MODULE_DIR = Path(__file__).parent
 

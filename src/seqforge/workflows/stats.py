@@ -11,13 +11,14 @@ The seam is :class:`StatsSpec`: where one sample's artifact lives, and how to tu
     map/chromap    <sample>.fragments.qc.json.gz   gzipped JSON, written by `rule fragments_qc`
     map/star       Log.final.out                   plain text, written by STAR itself
     map/star-umi   Log.final.out                   the same, one per cell
+                   + <sample>.umi-extract.json     what the UMI extraction saw, one per cell
                    + the fan-in artifact           one h5ad over the plate, one `obs` row per cell
 
-Four artifacts, four vocabularies, and no shared column set — the ATAC summary has no
+Five artifacts, five vocabularies, and no shared column set — the ATAC summary has no
 whitelist-match rate and no per-barcode vector, so an scATAC page speaks about fragments and never
 about cells, a bulk page speaks about mapping and never about barcodes, and a plate's counting object
 speaks about fragments that reached no gene, which none of the other three measured. That divergence
-is the seam earning its keep: it is expressed as four adapters rather than as a widening union of
+is the seam earning its keep: it is expressed as five adapters rather than as a widening union of
 optional fields on one.
 
 **The spec carries a filename, not a suffix**, and the third row above is what that bought. A
@@ -34,14 +35,21 @@ a test fails if a registered module appears in neither it nor :data:`_SPECS`. Th
 ``module == "map/starsolo"`` branch in the collector — is the same silent fall-through that
 ``read_layout_kind`` and ``param_block`` already exist to prevent.
 
-**One module reads a second artifact, and what is new about it is its ARITY, not its name.**
+**A module's per-sample artifacts are PLURAL**, because a pipeline is a chain and more than one link
+of it can leave a durable account behind. ``map/star-umi`` leaves two: STAR's own alignment log, and
+the summary the UMI extraction writes a step earlier — two files, two vocabularies, and neither is a
+version of the other. They are two entries in :attr:`StatsSpec.artifacts` rather than one adapter
+that opens a sibling, so the registry still states every filename it reads and a sample missing one
+of them keeps the other. The metrics merge; the row does not split.
+
+**One module reads a THIRD artifact, and what is new about that one is its ARITY, not its name.**
 ``map/star-umi`` counts its whole plate in one job and writes one ``.h5ad`` whose ``obs`` carries
 every cell's read fates — a **fan-in artifact**: dataset-scoped as a file, sample-scoped as data. A
-per-sample reader cannot express it, since there is no sample in its path; so the spec's second
-reader is plural (:attr:`StatsSpec.read_fan_in`), handed the file and the sample list once and
-returning one :class:`SampleStats` per row, which :func:`read_pipeline_stats` merges into what the
-per-sample artifact said. Its filename is deliberately **not** a second field on the spec:
-``Workflow.fan_in_artifact`` already declares it and the rule that produces it reads that same
+per-sample reader cannot express it, since there is no sample in its path; so the spec's last
+reader is plural in the other direction (:attr:`StatsSpec.read_fan_in`), handed the file and the
+sample list once and returning one :class:`SampleStats` per row, which :func:`read_pipeline_stats`
+merges into what the per-sample artifacts said. Its filename is deliberately **not** a field on the
+spec: ``Workflow.fan_in_artifact`` already declares it and the rule that produces it reads that same
 constant, so spelling it here would be a third owner of one name — the exact drift the imports below
 exist to prevent.
 
@@ -70,6 +78,8 @@ from .qc import read_metrics as _read_starsolo
 from .qc import read_star_log as _read_star_log
 from .qc import solo_features_rule as _starsolo_solo_features_rule
 from .umite.count import read_plate_stats as _read_plate_stats
+from .umite.extract import EXTRACT_SUFFIX as _EXTRACT_SUFFIX
+from .umite.extract import read_extract_summary as _read_extract_summary
 
 #: One cross-check rule: one sample's metrics in, zero or more :class:`Finding` out. Pure by
 #: signature — there is no path, no manifest and no writer in it — which is what makes a threshold
@@ -79,14 +89,43 @@ CrossCheck = Callable[[SampleStats], list[Finding]]
 
 
 @dataclass(frozen=True)
-class StatsSpec:
-    """How one **Workflow module**'s finished artifact is found, read, and cross-checked.
+class SampleArtifact:
+    """One per-sample file a module's pipeline leaves behind, and how to turn it into metrics.
 
-    ``artifact`` is a filename under ``<results>/<sample>/``; ``{sample}`` is substituted. ``read``
-    owns loading as well as parsing, so the loop below hands over a path and gets metrics back and
-    never has to know whether the bytes were gzipped JSON or text. Each adapter keeps a **pure**
-    ``Mapping -> SampleStats`` function underneath (``qc.metrics``), which is the internal seam its
-    tests drive — no filesystem needed to check a threshold.
+    ``filename`` sits under ``<results>/<sample>/``; ``{sample}`` is substituted. ``read`` owns
+    loading as well as parsing, so the loop below hands over a path and gets metrics back and never
+    has to know whether the bytes were gzipped JSON, plain JSON or text. Each adapter keeps a
+    **pure** ``Mapping -> SampleStats`` function underneath (``qc.metrics``), which is the internal
+    seam its tests drive — no filesystem needed to check a threshold.
+
+    A pair rather than two parallel tuples on the spec, because the filename and the code that can
+    read those bytes are one fact: split across two lists they can go out of step by one, and the
+    failure is a reader handed a file it does not understand.
+
+    ``finishes`` is whether this file LANDING means the pipeline is done with this sample. True for
+    a module's terminal artifact, which is every module's only one — and false for an artifact a
+    mid-pipeline rule writes, which is evidence ABOUT a sample and not evidence that the sample is
+    finished. The distinction did not exist while every artifact was terminal, and the first
+    mid-pipeline one made it load-bearing: ``n_found`` feeds ``PipelineStats.complete``, which the
+    page renders as a green "all N samples finished", so counting an extraction summary there would
+    tint a plate that has not yet aligned a single cell. What is shown is still the union of every
+    artifact that landed; only what counts as FINISHED is narrower.
+    """
+
+    filename: str
+    read: Callable[[Path, str], SampleStats]
+    finishes: bool = True
+
+
+@dataclass(frozen=True)
+class StatsSpec:
+    """How one **Workflow module**'s finished artifacts are found, read, and cross-checked.
+
+    ``artifacts`` is every per-sample file the pipeline leaves behind, in the order their columns
+    should appear. Usually one; two for the plate module, whose extraction step writes a summary of
+    its own a whole rule before STAR writes an alignment log. A sample's metrics are the
+    concatenation of what each artifact that landed gave it, so a missing one costs its columns and
+    never the row.
 
     ``checks`` is the second half and it rides on the same spec deliberately: a rule that reads
     ``valid_barcodes`` back is a fact about the module that WROTE ``valid_barcodes``, so the metric
@@ -102,8 +141,7 @@ class StatsSpec:
     ``None`` for the three per-sample-end-to-end modules, which is the default and the common case.
     """
 
-    artifact: str
-    read: Callable[[Path, str], SampleStats]
+    artifacts: tuple[SampleArtifact, ...]
     checks: tuple[CrossCheck, ...] = ()
     read_fan_in: Callable[[Path, Sequence[str]], dict[str, SampleStats]] | None = None
 
@@ -122,33 +160,48 @@ class StatsSpec:
 #: anyone asked — which is exactly why the entry is a bare filename with no ``{sample}`` in it.
 _SPECS: dict[str, StatsSpec] = {
     "map/starsolo": StatsSpec(
-        artifact=f"{{sample}}{_STARSOLO_QC_SUFFIX}",
-        read=_read_starsolo,
+        artifacts=(SampleArtifact(f"{{sample}}{_STARSOLO_QC_SUFFIX}", _read_starsolo),),
         checks=(
             _starsolo_chemistry_rule,
             _starsolo_gene_model_rule,
             _starsolo_solo_features_rule,
         ),
     ),
-    "map/chromap": StatsSpec(artifact=f"{{sample}}{_FRAGMENTS_QC_SUFFIX}", read=_read_fragments),
-    "map/star": StatsSpec(artifact=STAR_FINAL_LOG, read=_read_star_log),
+    "map/chromap": StatsSpec(
+        artifacts=(SampleArtifact(f"{{sample}}{_FRAGMENTS_QC_SUFFIX}", _read_fragments),)
+    ),
+    "map/star": StatsSpec(artifacts=(SampleArtifact(STAR_FINAL_LOG, _read_star_log),)),
     # The plate module reports from the same file `map/star` does, and for the same reason: it runs
     # one STAR job per cell, and STAR writes `Log.final.out` into that cell's directory unasked. A
     # cell IS a sample here, so `<results>/<sample>/Log.final.out` is already this reader's shape
-    # with no new rule, no second artifact and no per-cell QC bundle to invent.
+    # with no new rule and no per-cell QC bundle to invent.
     #
-    # It is also the ONLY module with a second half, and that half is where its counting decisions
+    # Its SECOND per-sample artifact is a rule earlier and is the only account of a step the pipeline
+    # otherwise erases: the uBAM the extraction produces is `temp()`, so once the aligner has consumed
+    # it, how many fragments carried a tag at all — the per-cell readout of whether the chemistry
+    # behaved — exists nowhere but this file. STAR's log cannot say it; it never saw an untagged read
+    # as anything but a read. Ordered before the log so a page reads left to right in pipeline order.
+    #
+    # It is the module's FIRST rule, so it is also the first artifact that is not evidence a cell
+    # finished — `finishes=False`, or a plate whose extraction has outrun STAR renders as done.
+    #
+    # It is also the only module with a THIRD half, and that half is where its counting decisions
     # are: the fan-in writes every cell's read fates into the combined object's `obs`, and those say
-    # what the alignment log cannot — how many fragments reached no gene, and why. They arrive
-    # through `read_fan_in` rather than through a second `artifact` entry because that artifact has
-    # no sample in its path at all: it is one file for the deposit, holding one row per cell.
+    # what neither per-sample artifact can — how many fragments reached no gene, and why. They arrive
+    # through `read_fan_in` rather than as another `artifacts` entry because that artifact has no
+    # sample in its path at all: it is one file for the deposit, holding one row per cell.
     #
-    # The filename is STILL not spelled here, and that is the same discipline as the four above one
-    # arity out: `map/star-umi` DECLARES its deliverable as `fan_in_artifact`, `star-umi.smk` reads
-    # that constant to name its output, and `read_pipeline_stats` asks the registry rather than
-    # restating it. Three readers, one owner — a rename reaches every one of them or fails at import.
+    # The fan-in filename is STILL not spelled here, and that is the same discipline as every entry
+    # above one arity out: `map/star-umi` DECLARES its deliverable as `fan_in_artifact`,
+    # `star-umi.smk` reads that constant to name its output, and `read_pipeline_stats` asks the
+    # registry rather than restating it. Three readers, one owner — a rename reaches every one of
+    # them or fails at import.
     "map/star-umi": StatsSpec(
-        artifact=STAR_FINAL_LOG, read=_read_star_log, read_fan_in=_read_plate_stats
+        artifacts=(
+            SampleArtifact(f"{{sample}}{_EXTRACT_SUFFIX}", _read_extract_summary, finishes=False),
+            SampleArtifact(STAR_FINAL_LOG, _read_star_log),
+        ),
+        read_fan_in=_read_plate_stats,
     ),
 }
 
@@ -202,6 +255,30 @@ MODULES_WITHOUT_CROSS_CHECKS: frozenset[str] = frozenset(
 #: raises, and catching them would turn a logic error into a per-sample note that reads like bad
 #: input — one `except` doing two jobs, tolerating bad bytes (right) and tolerating bad code (wrong).
 _UNREADABLE = (OSError, EOFError, ValueError)
+
+
+def _merged(held: SampleStats | None, arriving: SampleStats) -> SampleStats:
+    """One reading of a sample folded into whatever was already held for it.
+
+    One function for every join in this file, because they are the same join: a sample's artifacts
+    are chapters of one row and not rows of their own, and a page carrying them separately would show
+    every cell two or three times. Order is arrival order, which is the registry's declared order,
+    so the column set below reads in pipeline order rather than in whatever order the files landed.
+
+    Asymmetric on purpose — ``held`` may be nothing and ``arriving`` may not. "Nothing yet, and then
+    a reading" is the ordinary first step of a fold, while "a reading of nothing" is not a thing an
+    artifact that landed can produce, so the signature says which absence is expected.
+
+    **Metrics merge and nothing else does.** The other fields of a
+    :class:`~seqforge.workflows.metrics.SampleStats` are single-valued judgements — which feature the
+    numbers came from, the knee vector, the caption — and no module has two artifacts that both speak
+    there: every reader but ``qc.read_metrics`` returns an id and a metric list. Code to arbitrate
+    between them would be code no test could turn red, which is the reason it is absent rather than
+    written and unexercised. A second speaking artifact is a design question, not a merge rule.
+    """
+    if held is None:
+        return arriving
+    return held.model_copy(update={"metrics": [*held.metrics, *arriving.metrics]})
 
 
 def _read_fan_in(
@@ -269,11 +346,16 @@ def read_pipeline_stats(
     on what landed rather than made to wait for a full plate.
 
     A module with a **fan-in artifact** is read from both, and the join is a **union**: a sample is
-    reported if EITHER source has it. A cell whose ``Log.final.out`` is missing but whose row is in
+    reported if ANY source has it. A cell whose ``Log.final.out`` is missing but whose row is in
     the plate object was counted — it has fates, a fragment count and a matrix column — and dropping
-    it would report a plate as thinner than the object on disk says it is. ``n_found`` therefore
-    counts the samples one source or the other answered for, which is what "how much landed" means
-    once landing can happen twice.
+    it would report a plate as thinner than the object on disk says it is.
+
+    **What is SHOWN and what is FINISHED are two questions**, and they came apart the first time a
+    module reported from a mid-pipeline artifact. Every source that landed puts its columns on the
+    page; only a source that ``finishes`` counts toward ``n_found``, and ``n_found`` is what
+    ``complete`` — the green "all N samples finished" — is read off. An extraction summary is a real
+    row and is not a finished cell, so a plate whose extraction has outrun its aligner shows every
+    cell's tagged fraction under an honest "3 of 1440".
     """
     spec = _SPECS.get(module)
     if spec is None or not results_dir.is_dir():
@@ -281,14 +363,23 @@ def read_pipeline_stats(
 
     per_sample: dict[str, SampleStats] = {}
     notes: list[str] = []
+    finished: set[str] = set()
     for sample in samples:
-        path = results_dir / sample / spec.artifact.format(sample=sample)
-        if not path.is_file():
-            continue
-        try:
-            per_sample[sample] = spec.read(path, sample)
-        except _UNREADABLE as exc:
-            notes.append(f"{sample}: its QC artifact could not be read ({type(exc).__name__})")
+        for artifact in spec.artifacts:
+            filename = artifact.filename.format(sample=sample)
+            path = results_dir / sample / filename
+            if not path.is_file():
+                continue
+            try:
+                read = artifact.read(path, sample)
+            except _UNREADABLE as exc:
+                # Named, because a module with two artifacts has two ways to be unreadable and "its
+                # QC artifact" would leave a reader guessing which file to go and look at.
+                notes.append(f"{sample}: {filename} could not be read ({type(exc).__name__})")
+                continue
+            per_sample[sample] = _merged(per_sample.get(sample), read)
+            if artifact.finishes:
+                finished.add(sample)
 
     # Read once, whatever the plate's size, and merged per sample below. A sample's two sources are
     # two halves of ONE row and not two rows: the alignment log says what STAR did with this cell's
@@ -297,15 +388,16 @@ def read_pipeline_stats(
     fan_in = _read_fan_in(module, spec, results_dir, samples, notes)
     found: list[SampleStats] = []
     for sample in samples:
-        landed, counted = per_sample.get(sample), fan_in.get(sample)
-        if landed is not None and counted is not None:
-            landed = landed.model_copy(update={"metrics": [*landed.metrics, *counted.metrics]})
         # Either source alone is a row. Contracted order is kept by walking `samples` rather than by
         # appending as each source answers, so a cell the fan-in alone knows about sits where it
         # belongs on the page instead of after every cell that also had a log of its own.
-        row = landed if landed is not None else counted
+        landed, counted = per_sample.get(sample), fan_in.get(sample)
+        row = landed if counted is None else _merged(landed, counted)
         if row is not None:
             found.append(row)
+        if counted is not None:
+            # The fan-in is the last thing the pipeline writes, so a row in it always means finished.
+            finished.add(sample)
 
     # Nothing found AND nothing unreadable is the only "there is nothing on disk" case. Nothing found
     # WITH notes is a pipeline that ran and wrote bytes nobody can parse — and returning `None` for it
@@ -339,7 +431,10 @@ def read_pipeline_stats(
     return PipelineStats(
         module=module,
         n_expected=len(samples),
-        n_found=len(found),
+        # How many samples the pipeline FINISHED, which is not how many rows are below: a sample
+        # whose only artifact is a mid-pipeline one has real numbers to show and is not done, and
+        # `complete` tints the whole section green off this count.
+        n_found=len(finished),
         samples=found,
         columns=columns,
         notes=notes,
@@ -375,6 +470,15 @@ def _check_registry() -> None:
         raise AssertionError(
             f"workflow module(s) {unaccounted} have no StatsSpec and are not in "
             f"MODULES_WITHOUT_STATS — add a reader, or say out loud that they report nothing"
+        )
+    # A spec that names no per-sample artifact reports nothing while looking like it reports — the
+    # same silence `MODULES_WITHOUT_STATS` exists to make somebody say out loud. Cheap to write once
+    # the field is a tuple, and a tuple is exactly what makes the empty case expressible at all.
+    unsourced = sorted(m for m, s in _SPECS.items() if not s.artifacts)
+    if unsourced:
+        raise AssertionError(
+            f"workflow module(s) {unsourced} register a StatsSpec naming no per-sample artifact; "
+            f"there is nothing for the reader to open"
         )
     unknown = sorted(
         (set(_SPECS) | MODULES_WITHOUT_STATS | MODULES_WITHOUT_CROSS_CHECKS) - set(MODULES)
@@ -423,6 +527,7 @@ __all__ = [
     "MODULES_WITHOUT_CROSS_CHECKS",
     "MODULES_WITHOUT_STATS",
     "CrossCheck",
+    "SampleArtifact",
     "StatsSpec",
     "modules_with_cross_checks",
     "modules_with_stats",

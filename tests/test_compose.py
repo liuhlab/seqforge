@@ -29,6 +29,7 @@ from conftest import (
     SynthDataset,
     _build,
     _processing,
+    _rendered_shell,
     _rule_blocks,
     _src_root,
     count_matrix,
@@ -36,6 +37,7 @@ from conftest import (
     one_run_each,
     plate_of,
     solo_block,
+    star_modules,
     write_fastq_gz,
 )
 from seqforge import kb
@@ -691,32 +693,75 @@ def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
     assert saw_cram, "no rule runs `seqforge io cram`; this test is looking at the wrong place"
 
 
-def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe() -> None:
+def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
     """A preempted STAR leaves `_STARtmp` behind and ABORTS a rerun if it already exists.
 
     On a preemptible partition every requeued alignment failed: STAR refuses to reuse `_STARtmp`, and
-    snakemake cannot clean it because it is an undeclared output. So every STAR-invoking rule removes
-    its own `_STARtmp` before invoking STAR, and it must do so *before* the STAR command or the abort
-    still fires. Both mapping modules invoke STAR (`starsolo_count`, `star_count`) and pass
-    `{params.prefix}` (= `results/<sample>/`) as `--outFileNamePrefix`, so each clears
-    `results/<sample>/_STARtmp`. Swept over every module, so a third one cannot forget.
+    snakemake cannot clean it because it is an undeclared output. So the rule that aligns removes its
+    own `_STARtmp` first — and *first* is half the claim, since after the invocation the abort has
+    already fired. Droplet is the workflow most of the corpus runs through.
+
+    **Read off the RENDERED plan rather than the module source, and that is the fix and not a
+    detail.** This swept `.smk` source for the literal `STAR --runMode alignReads`, which is how it
+    came to visit two of the three STAR workflows and never `map/starsolo`: droplet's command line
+    got one owner in `workflows/starsolo_args.py` (#366), the literal left the `.smk` with it, and a
+    sweep that matches nothing reports nothing (#384). No source-level selector repairs that. WHICH
+    rule aligns is unreadable from droplet's source at all — its argv arrives as `{params.argv}` —
+    and "the rule that runs STAR" is not the same rule: each of these modules also has `load_genome`,
+    which invokes STAR to place the shared index and correctly clears no `_STARtmp` of its own. In a
+    rendered command `--runMode alignReads` is what STAR itself receives, and there is no further
+    file it can move into.
+
+    Exact rather than approximate for the same reason: the directory that must be cleared is derived
+    from the SAME command's `--outFileNamePrefix`, so a `params.prefix` drifting from the prefix the
+    argv passes — a cleanup removing a `_STARtmp` STAR is not about to write — is red here too.
+
+    Swept over :func:`~conftest.star_modules`, DERIVED from the registry, so a fourth STAR workflow
+    is covered the day it ships rather than the day someone remembers it. `map/chromap` is absent
+    because it invokes `chromap`, not because anything here exempts it.
     """
-    seen = False
-    for name in list_modules():
-        for rule, body in _rule_blocks(get_module(name).snakefile).items():
-            star = body.find("STAR --runMode alignReads")
-            if star == -1:
-                continue
-            seen = True
-            cleanup = body.find("rm -rf {params.prefix}_STARtmp")
+    swept = []
+    for module in star_modules():
+        techs = sorted(
+            t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
+        )
+        assert techs, f"{module} invokes STAR but no spec reaches it; nothing here can be planned"
+        # one deposit per module rather than one shared: `_build` writes its reads under a fixed
+        # `s_<read id>.fastq.gz`, and the three chemistries do not name their reads the same way.
+        workdir = tmp_path / module.replace("/", "-")
+        workdir.mkdir()
+        manifest, reg = _build(workdir, techs[0])
+        processing = _processing(manifest)
+        result = compose(manifest, processing, registry=reg, workspace=workdir)
+        pipeline_dir = (workdir / result.snakefile_path).parent
+
+        plan_text = dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg))
+        aligning = {
+            rule: jobs
+            for rule, jobs in _rendered_shell(plan_text).items()
+            if any("--runMode alignReads" in cmd for cmd in jobs.values())
+        }
+        assert len(aligning) == 1, f"expected one aligning rule in {module}, got {sorted(aligning)}"
+        rule, jobs = next(iter(aligning.items()))
+        for sample, cmd in jobs.items():
+            prefixes = re.findall(r"--outFileNamePrefix (\S+)", cmd)
+            assert len(prefixes) == 1, (
+                f"{module}:{rule} ({sample}) writes under {prefixes}, so one cleanup cannot cover "
+                f"every `_STARtmp` this job leaves behind"
+            )
+            cleanup = cmd.find(f"rm -rf {prefixes[0]}_STARtmp")
             assert cleanup != -1, (
-                f"{name}:{rule} invokes STAR but never clears `_STARtmp`, so a preempted rerun aborts"
+                f"{module}:{rule} ({sample}) aligns into {prefixes[0]} but clears no "
+                f"{prefixes[0]}_STARtmp, so a preempted rerun aborts:\n{cmd}"
             )
-            assert cleanup < star, (
-                f"{name}:{rule} clears `_STARtmp` AFTER invoking STAR, which is too late — STAR "
-                f"aborts on the stale dir before the cleanup runs"
+            assert cleanup < cmd.index("--runMode alignReads"), (
+                f"{module}:{rule} ({sample}) clears `_STARtmp` AFTER invoking STAR, which is too "
+                f"late — STAR aborts on the stale dir before the cleanup runs:\n{cmd}"
             )
-    assert seen, "no module invokes STAR; this test is looking at the wrong place"
+        swept.append(f"{module}:{rule}")
+    assert swept, "no module invokes STAR; this test is looking at the wrong place"
 
 
 def test_a_prebuilt_sif_beats_the_ghcr_tag_but_only_if_it_is_really_there(tmp_path: Path) -> None:
@@ -902,7 +947,7 @@ def test_the_params_gate_refuses_a_mate_the_layout_does_not_have(
     assert any("mate2" in p for p in problems), problems
 
 
-def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_one(
+def test_the_bulk_plan_hands_star_its_mates_and_declares_the_memory_it_sorts_in(
     synth_bulk_pe: SynthDataset, tmp_path: Path, dry_run: DryRun
 ) -> None:
     """What STAR is actually handed, both ways, off one fixture — the contrast IS the claim.
@@ -916,10 +961,21 @@ def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_on
     The two-mate half is here rather than left implicit because a one-sided assertion is satisfied by
     a module that dropped `mate2` for EVERYBODY: single-end is a correct rendering of a paired-end
     library's first mate, it exits 0, and it silently maps half the data.
+
+    **The memory the job asks for and the memory STAR may sort in ride the same plan** (#377). This
+    rule used to declare NEITHER: no `mem_mb`, so the job holding the largest allocation in the run
+    was invisible to whatever packs the machine, and no `--limitBAMsortRAM`, so a coordinate sort ran
+    on STAR's default of `0` — "reuse the genome allocation", the one value STAR forbids outright
+    once a run shares one copy of the index, refused before the genome directory is even read. Both
+    are rendering claims and only a rendering can make them: the request reaches the scheduler and
+    not the command line, the cap reaches the command line and not the scheduler, and a `resources:`
+    callable that raised, fell back to a literal, or handed over MiB where STAR wants bytes would
+    plan just as cleanly under any assertion looser than the byte count.
     """
     reg = synth_bulk_pe.registry
     r1, r2 = (p.name for p in synth_bulk_pe.paths)
     planned: dict[str, str] = {}
+    config: dict[str, object] = {}
     for label, manifest in (
         ("one", _one_mate(synth_bulk_pe.manifest)),
         ("two", synth_bulk_pe.manifest),
@@ -927,6 +983,7 @@ def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_on
         processing = _processing(manifest)
         result = compose(manifest, processing, registry=reg, workspace=tmp_path)
         pipeline_dir = (tmp_path / result.snakefile_path).parent
+        config = yaml.safe_load((tmp_path / result.config_path).read_text())
         planned[label] = dry_run(pipeline_dir, plan(manifest, processing, registry=reg))
 
     def readfilesin(text: str) -> list[str]:
@@ -939,6 +996,25 @@ def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_on
     # ...and the second mate is nowhere in the one-mate plan at all: `input.mate2` resolves to EMPTY,
     # rather than to a stale file the units table no longer lists.
     assert r2 not in planned["one"], f"a one-mate layout planned the second mate's file: {r2}"
+
+    # Both numbers as LITERALS rather than a call to the arithmetic that produced them: recomputing
+    # an expectation with the shipped formula cannot fail, and it agrees with a wrong formula as
+    # readily as a right one. 48 GiB is `ResourceHints.mem_gb`'s default, so 49152 MiB is what the
+    # composer emits, what the job must ask for on attempt 1, and 36 GiB — three quarters of it, IN
+    # BYTES — is what STAR must be handed. What the plan cannot show is either number FOLLOWING the
+    # attempt, since a dry run renders attempt 1 and nothing else;
+    # `test_the_sort_budget_follows_the_escalated_memory_request` and
+    # `test_the_star_rule_escalates_its_memory_on_retry` (`tests/test_workflows.py`) own that half.
+    assert config["mem_mb"] == 48 * 1024, "the default memory request moved; restate the two below"
+    assert "mem_mb=49152" in planned["two"], (
+        "`star_count` asks the scheduler for nothing, so the job with the largest allocation in a "
+        f"bulk run is the one nothing packing the machine can see. Planned:\n{planned['two']}"
+    )
+    assert "--limitBAMsortRAM 38654705664" in planned["two"], (
+        "the bulk sort runs on STAR's default of 0 — 'reuse the genome allocation', which is what "
+        "STAR refuses under a shared index and what silently tracks the genome's size otherwise. "
+        f"Planned: {[ln for ln in planned['two'].splitlines() if 'limitBAMsortRAM' in ln]}"
+    )
 
 
 # ---- the plate pipeline: a fourth layout kind, and a geometry nobody declares --------------------
@@ -1307,31 +1383,6 @@ def _units_by_read(pipeline_dir: Path) -> dict[tuple[str, str], str]:
         }
 
 
-def _rendered_shell(plan_text: str) -> dict[str, dict[str, str]]:
-    """``rule -> wildcard value -> the shell command snakemake rendered for it``.
-
-    `-p` is what makes this readable at all: without it a dry run never formats a `shell:` block, so
-    a param the command dereferences and the config does not carry plans clean and dies on a compute
-    node. A rule with no wildcards is keyed under the empty string.
-    """
-    jobs: dict[str, dict[str, str]] = {}
-    rule = wildcard = None
-    lines = plan_text.splitlines()
-    for i, line in enumerate(lines):
-        if match := re.match(r"^rule (\w+):$", line):
-            rule, wildcard = match.group(1), ""
-        elif match := re.match(r"^\s+wildcards: sample=(\S+)$", line):
-            wildcard = match.group(1)
-        elif line.rstrip() == "Shell command:" and rule is not None:
-            body: list[str] = []
-            for following in lines[i + 1 :]:
-                if not following.strip():
-                    break
-                body.append(following)
-            jobs.setdefault(rule, {})[wildcard or ""] = "\n".join(body)
-    return jobs
-
-
 @pytest.mark.xdist_group("composed-plate")
 def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     composed_plate: ComposedPlate,
@@ -1457,6 +1508,10 @@ def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_pl
         # The role the verb will resolve through that table is still the TAGGED one, and the file it
         # lands on is not the plain mate — the swap that tags nothing and exits 0.
         assert units[cell, roles["umi_cdna"]] != units[cell, roles["cdna"]]
+        # The two outputs are rendered, and the durable one lands in THIS cell's directory. The uBAM
+        # is reclaimed the moment the aligner has read it, so a summary written anywhere else — or
+        # under a name shared with a neighbour — is a plate that finishes holding one cell's counts.
+        assert re.search(rf"--summary \S*{re.escape(cell)}/{re.escape(cell)}\S+", command), command
 
 
 @pytest.mark.xdist_group("composed-plate")

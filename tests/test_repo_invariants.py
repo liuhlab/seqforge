@@ -771,6 +771,12 @@ def _published_artifact_suffixes() -> dict[str, str]:
     module's internal spelling, offered to a rule only through a function like ``fragments_suffixes``
     — so demanding a `.smk` import it would be this file deciding another module's export surface.
     Publishing one is therefore what puts it in scope, which is the same act as making it importable.
+
+    **Every module of the package, at any depth.** ``iter_modules`` sees only the top level, which
+    made "covered the moment it does" true for a writer that happens to sit directly under
+    ``workflows`` and quietly false for one inside a sub-package — and a guard that is silently
+    partial is worse than one that is absent, because it reads as coverage. ``walk_packages``
+    imports what it walks, which is what this needs anyway to read a module's ``__all__``.
     """
     import importlib
     import pkgutil
@@ -779,7 +785,7 @@ def _published_artifact_suffixes() -> dict[str, str]:
 
     found: dict[str, str] = {}
     names = [workflows.__name__] + [
-        f"{workflows.__name__}.{info.name}" for info in pkgutil.iter_modules(workflows.__path__)
+        info.name for info in pkgutil.walk_packages(workflows.__path__, f"{workflows.__name__}.")
     ]
     for dotted in names:
         module = importlib.import_module(dotted)
@@ -833,8 +839,10 @@ def test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns() -> None
     Python, so ``ast.parse`` refuses it outright and there is no tree to walk.
     """
     suffixes = _published_artifact_suffixes()
-    assert {"qc.QC_SUFFIX", "fragments.QC_SUFFIX"} <= set(suffixes), (
-        f"the two QC artifact suffixes are no longer discovered as published constants "
+    # The third is inside a sub-package and is why the discovery walks the whole tree: named here so
+    # that a discovery narrowed back to the top level fails loudly instead of policing two of three.
+    assert {"qc.QC_SUFFIX", "fragments.QC_SUFFIX", "extract.EXTRACT_SUFFIX"} <= set(suffixes), (
+        f"the published artifact suffixes are no longer all discovered as constants "
         f"({sorted(suffixes)}); this guard would then police nothing while still passing"
     )
 

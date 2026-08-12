@@ -15,15 +15,15 @@ Every genome index came from `liulab-genome`; none of these runs is hermetic and
 **Point `--star` at an aligner, not at a launcher.** bioconda installs `bin/STAR` as a bash
 SIMD-dispatch script that runs `STAR-avx2` as a *child*, so an instrument timing its own child times
 the script. The 2026-08-11 run passed `--star .../bin/STAR-avx2` explicitly for that reason; #372
-made the instrument measure the process tree and record `star_peak_rss_comm`, the name of whichever
-process the peak belongs to. **A reading whose `comm` is `bash` is a measurement of the launcher —
-discard it.**
+made the instrument measure the process tree and record `star_peak_rss_process`, the name of whichever
+process the peak belongs to. **A reading whose `star_peak_rss_process` is `bash` is a measurement of
+the launcher — discard it.**
 
 **What they could not establish.** Anything about SPLiT-seq, whose strand question a simulation
 cannot settle at all (simulating the reads requires assuming the strand). Anything about a chemistry
 other than the one each run resolved — these fixtures certify one chemistry's strand each. And
 **what a sort costs on a real library**: the cost fixture draws from 2 000 gene models, and its sort
-requirement is ~40x smaller per record than the one real-data measurement on record. See the caveat
+requirement is ~33x smaller per record than the one real-data measurement on record. See the caveat
 under `kb e2e-cost`.
 
 ## `kb e2e` — sacCer3
@@ -65,7 +65,9 @@ Re-measured **2026-08-11** on arc, and the answer is simpler than the figures it
 hg38 + `gencode_v50`, STAR 2.7.11b, 8 threads (`ResourceHints.threads`, what the rule actually
 requests), the shipped `--outSAMtype BAM SortedByCoordinate`, and the module's own argv via
 `workflows/starsolo_args.py` — `--limitBAMsortRAM` among it, at the 36 GB a default 48 GB recipe
-gives it. **97 MB of spread across a 125x read increase**, which is to say none: the 31 GB is the
+gives it. Counting is the compiler's own all-five default, `Velocyto` among them, which is both what
+the withdrawn figures priced and the rule they claimed was the thing growing with depth.
+**97 MB of spread across a 125x read increase**, which is to say none: the 31 GB is the
 index, paid before a read is parsed, and everything the depth adds is noise against it. Wall clock is
 the thing that scales — linear, ~21 s + 3 s per million reads.
 
@@ -82,13 +84,31 @@ is a cap and not an allocation (`workflows/memory.py`), so that headroom costs n
 > They also predate the argv unification, so they priced `--outSAMtype None` at the CLI's
 > then-default 16 threads rather than the shipped sorted BAM at the rule's 8.
 >
+> **They over-state, where the prediction was that they would under-state.** #370 reasoned that the
+> unified argv does strictly more work, so the old numbers had to be floors. They are ceilings —
+> 44.1 GB against 31.2 GB at 250 M, 41 % above. `--limitBAMsortRAM` is a *cap*, and supplying one
+> lowered the peak instead of raising it. A sizing figure derived from them was never unsafe, only
+> wasteful.
+>
 > **Which of those produced the difference is not established, and is not worth establishing** — the
 > apparatus that produced them is gone, all three of its successors agree the curve is flat, and no
 > sizing decision now rests on the answer. Do not reopen this to reconcile the old numbers with the
 > new ones; they were produced by different code against different flags.
 
+> **A reading taken between 2026-07-16 and 2026-08-11 is not one of these, and is not a number.**
+> The instrument polled the peak of the process it spawned, and the STAR that `liulab-runtime`'s
+> `align-rna` env puts on PATH is a bash script that greps `/proc/cpuinfo` and runs `STAR-avx2` one
+> level down — so the reading was the wrapper's. Measured on arc 2026-08-11, same reads and same
+> params: **0.003 GB** through `bin/STAR` against **31.126 GB** through `bin/STAR-avx2`, at every
+> depth, exit 0. Neither curve on this page is such a reading — the table above went through
+> `bin/STAR-avx2`, and the withdrawn figures predate the window (2026-07-15, through an older
+> `wait4` path that saw descendants). Anything measured *inside* it is the launcher's high-water
+> mark and belongs in no curve. The instrument reads the process TREE now and names the process each
+> peak belongs to, and its version is in the sweep's resume key so those points cannot resume into a
+> new run (#372).
+
 **Caveat, and it is the reason the fixture cannot size a sort.** This simulation draws from 2 000
-gene models, and its ~4.9 B/read is ~40x smaller per record than the ~160 B/record measured on real
+gene models, and its ~4.9 B/read is ~33x smaller per record than the ~160 B/record measured on real
 data (GSE208154/SAMN29720279, recorded in `workflows/memory.py`). Take the **index intercept** from
 this table — an index is an index — and take **sort sizing from the real-data figure**, which is what
 `ResourceHints.mem_gb`'s 48 GB default and its 3/4 cap were chosen against and remain chosen against.
