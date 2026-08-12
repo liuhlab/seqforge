@@ -128,11 +128,11 @@ UMI_TAG = "UB"
 #: The tag STAR writes with the number of loci a read aligned to. Absent means one.
 HITS_TAG = "NH"
 
-#: UMI correction, as module literals rather than flags. Always on, and Hamming-1: at 3 the trailing
-#: check is vacuous and the merge manufactures UMIs that were never sequenced. The count ratio is
-#: the reference's guard — a low-count neighbour is only absorbed into a seed that is at least
-#: roughly twice as abundant, so two genuinely distinct UMIs at similar depth are never merged.
-HAMMING_THRESHOLD = 1
+#: UMI correction's count guard, a module literal rather than a flag. Correction is always on, and
+#: this is the reference's guard on it — a low-count neighbour is only absorbed into a seed at least
+#: roughly twice as abundant, so two genuinely distinct UMIs at similar depth are never merged. The
+#: *distance* has no constant beside this one: see :func:`correct_umis`, where it is the shape of a
+#: key rather than a number anything compares against.
 COUNT_RATIO_THRESHOLD = 2
 
 #: What ``X`` is, and what the other matrices are called. The reference's names for these are
@@ -429,12 +429,18 @@ def correct_umis(observations: Mapping[str, int]) -> dict[str, int]:
     """Merge each UMI into the more abundant near-neighbour that can explain it as a PCR error.
 
     The reference's rule, kept exactly: take the most abundant UMI as a seed and absorb every UMI
-    still standing that is within :data:`HAMMING_THRESHOLD` of it *and* rare enough for it to
-    explain (``COUNT_RATIO_THRESHOLD * candidate - 1 <= seed``). Repeat with what is left.
+    still standing that is one substitution away *and* rare enough for it to explain
+    (``COUNT_RATIO_THRESHOLD * candidate - 1 <= seed``). Repeat with what is left.
+
+    **One substitution, and there is no threshold constant to raise.** The distance is realised by
+    blanking exactly one position, so it is the shape of the key rather than a number compared
+    against — which is where it belongs, because it was never a knob: at 3 the trailing check is
+    vacuous and the merge manufactures UMIs that were never sequenced. Widening it means indexing a
+    different key, not editing a literal.
 
     **The neighbours are looked up, not searched for**, and that is the only difference from the
     reference — which compares the seed against every surviving UMI in the bucket, so a deep gene of
-    a deep cell costs seconds. Blanking one position of a UMI leaves a key that its Hamming-1
+    a deep cell costs seconds. Blanking one position of a UMI leaves a key that its one-substitution
     neighbours share and nothing else does, so a seed reads its neighbours out of a dict. Two
     properties make that the *same* function rather than an approximation of it. The reference stops
     its walk at the first candidate too abundant to absorb, and since it walks in count order
@@ -668,8 +674,9 @@ _FORK = "fork"
 #: has no worker running when it writes here.
 _INHERITED_ANNOTATION: Annotation | None = None
 
-#: One cell's answer: its matrices, and the raw counts they were deduplicated from.
-_Counted = tuple[dict[str, dict[int, int]], CellCounts]
+#: One cell's answer: its matrices, its four read fates, and how many fragments it was. Everything
+#: the plate object takes from a cell, and deliberately nothing else — see :func:`_count_cell`.
+_Counted = tuple[dict[str, dict[int, int]], dict[str, int], int]
 
 
 def _count_cell(bam: Path, annotation: Annotation) -> _Counted:
@@ -681,16 +688,18 @@ def _count_cell(bam: Path, annotation: Annotation) -> _Counted:
     **The deduplication happens here and not back in the parent**, which is what the fan-out buys
     beyond :func:`count_bam` itself: correcting one real cell's UMIs is measured at 0.9 s over
     200 000 fragments and 4.6 s over a million, so a parent that deduplicated the plate itself would
-    hold a serial tail the size of the whole correction pass while every worker idled. It also
-    shrinks what crosses the pipe by ~74x — the raw observations pickle to 2.5 MB where the matrices
-    are 34 kB — though that was never the binding constraint: the raw object costs 10 ms to pickle
-    against the seconds its cell took to count. Both figures are in ``docs/research/``.
+    hold a serial tail the size of the whole correction pass while every worker idled.
 
-    The raw counts travel back beside the matrices because the fates and the fragment total are read
-    off them, and because this function's caller has always handed them to ITS caller.
+    **And the raw :class:`CellCounts` dies here, in the worker that built it.** It is the largest
+    object in this module by a wide margin — a cell's every UMI observation, ~2.5 MB pickled at
+    200 000 fragments against 34 kB for the matrices deduplicated out of it, and real cells run
+    deeper than that. A plate that carried them all back would hold every cell's at once for the
+    life of the run: on the deposit this counter sizes for, gigabytes, and the term that would bind
+    the fan-in's memory request first. What survives the worker is what the object is written from
+    and nothing more — the matrices, the four fates, and the fragment total.
     """
     counts = count_bam(bam, annotation)
-    return deduplicate(counts), counts
+    return deduplicate(counts), counts.fates, counts.n_fragments
 
 
 def _count_inherited(bam: Path) -> _Counted:
@@ -787,8 +796,15 @@ def _matrix(rows: Sequence[Mapping[int, int]], n_genes: int) -> csr_matrix:
 
 def count_plate(
     cells: Sequence[tuple[str, Path]], annotation: Annotation, workers: int = 1
-) -> tuple[anndata.AnnData, list[CellCounts]]:
+) -> anndata.AnnData:
     """Every cell of a plate -> one AnnData, rows in the order the cells were given.
+
+    **The object is the whole answer, and there is no second one beside it.** This used to hand back
+    every cell's raw :class:`CellCounts` as well, which meant the plate held all of them at once for
+    no reader that wanted them: what anything actually took off that list was the four fates and the
+    fragment total, and both are ``obs`` columns here. A figure spelled twice is the copy that goes
+    stale, and this one was also the largest object in the module — see :func:`_count_cell`, which
+    is now where a cell's observations are last alive.
 
     Row order is the caller's, never a sort and never the order the filesystem answered in: the
     composer hands the cells over in its own sample order, and the h5ad row is the sample id. That
@@ -812,8 +828,7 @@ def count_plate(
         )
 
     counted = _count_cells(cells, annotation, workers)
-    entries = [entry for entry, _ in counted]
-    per_cell = [counts for _, counts in counted]
+    entries = [entry for entry, _, _ in counted]
     n_genes = len(annotation.gene_ids)
 
     adata = ad.AnnData(X=_matrix([e[PRIMARY_MATRIX] for e in entries], n_genes))
@@ -823,10 +838,10 @@ def count_plate(
     for layer in LAYERS:
         adata.layers[layer] = _matrix([e[layer] for e in entries], n_genes)
     for fate in FATES:
-        adata.obs[fate] = np.array([c.fates[fate] for c in per_cell], dtype=np.int32)
-    adata.obs[N_FRAGMENTS] = np.array([c.n_fragments for c in per_cell], dtype=np.int32)
+        adata.obs[fate] = np.array([fates[fate] for _, fates, _ in counted], dtype=np.int32)
+    adata.obs[N_FRAGMENTS] = np.array([n for _, _, n in counted], dtype=np.int32)
     adata.uns["primary_matrix"] = PRIMARY_MATRIX
-    return adata, per_cell
+    return adata
 
 
 def write_umi_counts(
@@ -843,7 +858,7 @@ def write_umi_counts(
     holds the result.
     """
     annotation = read_annotation(annotation_db)
-    adata, _ = count_plate(cells, annotation, workers)
+    adata = count_plate(cells, annotation, workers)
     out.parent.mkdir(parents=True, exist_ok=True)
     adata.write_h5ad(out)
     return out
@@ -1031,7 +1046,6 @@ def read_plate_stats(path: Path, samples: Sequence[str]) -> dict[str, SampleStat
 __all__ = [
     "COUNT_RATIO_THRESHOLD",
     "FATES",
-    "HAMMING_THRESHOLD",
     "HITS_TAG",
     "LAYERS",
     "N_FRAGMENTS",

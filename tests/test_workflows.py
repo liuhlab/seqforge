@@ -3815,11 +3815,13 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
     fixture's own comments rather than recomputed here.
     """
     db, cells = _plate(tmp_path)
-    adata, per_cell = count_plate(cells, read_annotation(db))
-    cell = per_cell[0]
+    adata = count_plate(cells, read_annotation(db))
+    # The fates and the fragment total are read off the object, which is the only place they live:
+    # the counter hands back no second copy of a cell to check them against.
+    row = _frame(adata.obs).loc["cell_a"]
 
-    assert cell.n_fragments == len(_PLATE)
-    assert cell.fates == {
+    assert int(row[N_FRAGMENTS]) == len(_PLATE)
+    assert {fate: int(row[fate]) for fate in FATES} == {
         "unmapped": 1,  # mate_never_aligned
         "multimapping": 1,  # NH == 2
         "no_feature": 2,  # the scaffold, and the intergenic fragment
@@ -3858,7 +3860,7 @@ def test_a_umi_seen_both_exonically_and_intronically_counts_once_in_each_so_inex
     depth.
     """
     db, cells = _plate(tmp_path)
-    adata, _ = count_plate(cells, read_annotation(db))
+    adata = count_plate(cells, read_annotation(db))
 
     assert _PLATE[0].umi == _PLATE[2].umi  # the same UMI, one exonic fragment and one intronic
     assert _row(adata, "cell_a", "GENE_A", "umi_intron") == 1
@@ -3938,7 +3940,7 @@ def test_two_neighbour_umis_split_across_the_buckets_merge_only_if_the_counts_me
     assert len(corrected_apart) == 2
 
     # And it is the object's number, not just `deduplicate`'s: the layer is what a reader opens.
-    adata, _ = count_plate([("one_cell", tmp_path / "split.bam")], annotation)
+    adata = count_plate([("one_cell", tmp_path / "split.bam")], annotation)
     assert _row(adata, "one_cell", "GENE_A", "umi_combined") == 1
 
 
@@ -4082,9 +4084,12 @@ def test_umi_correction_by_neighbour_index_answers_what_the_full_scan_answers() 
     """
     import random
 
-    from seqforge.workflows.umite.count import COUNT_RATIO_THRESHOLD, HAMMING_THRESHOLD
+    from seqforge.workflows.umite.count import COUNT_RATIO_THRESHOLD
 
-    def hamming_within(a: str, b: str, threshold: int) -> bool:
+    # One substitution, spelled here rather than imported: the source realises the distance as the
+    # shape of a masked key, so an oracle that read the same number back from it could not notice a
+    # key that stopped meaning one substitution.
+    def hamming_within(a: str, b: str, threshold: int = 1) -> bool:
         if len(a) != len(b):
             return False
         seen = 0
@@ -4106,7 +4111,7 @@ def test_umi_correction_by_neighbour_index_answers_what_the_full_scan_answers() 
                 candidate, candidate_count = remaining[i]
                 if (COUNT_RATIO_THRESHOLD * candidate_count) - 1 > seed_count:
                     break
-                if hamming_within(seed, candidate, HAMMING_THRESHOLD):
+                if hamming_within(seed, candidate):
                     corrected[seed] += candidate_count
                     remaining.pop(i)
                 i -= 1
@@ -4252,7 +4257,7 @@ def test_the_plate_is_counted_on_every_core_it_was_given_and_on_one_where_fork_i
     plate = [(f"cell_{i}", bam) for i, (_id, bam) in enumerate(two * 2)]
     depths = [len(_PLATE), 1, len(_PLATE), 1]
     annotation = read_annotation(db)
-    serial, _ = count_plate(plate, annotation)
+    serial = count_plate(plate, annotation)
     serial.write_h5ad(tmp_path / "serial.h5ad")
     real = counter._count_cell
 
@@ -4265,7 +4270,7 @@ def test_the_plate_is_counted_on_every_core_it_was_given_and_on_one_where_fork_i
             return counted
 
         monkeypatch.setattr(counter, "_count_cell", in_lockstep)
-        pooled, _ = count_plate(plate, annotation, workers=len(plate))
+        pooled = count_plate(plate, annotation, workers=len(plate))
         monkeypatch.undo()
 
         assert list(pooled.obs_names) == [sample for sample, _ in plate]
@@ -4281,7 +4286,7 @@ def test_the_plate_is_counted_on_every_core_it_was_given_and_on_one_where_fork_i
         return real(bam, annotation)
 
     monkeypatch.setattr(counter, "_count_cell", note_the_process)
-    unforked, _ = count_plate(plate, annotation, workers=len(plate))
+    unforked = count_plate(plate, annotation, workers=len(plate))
 
     assert counted_in == [os.getpid()] * len(plate), (
         "the counter forked where the platform offers no fork, so it would have spawned — which "
