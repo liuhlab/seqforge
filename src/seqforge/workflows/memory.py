@@ -115,6 +115,41 @@ def escalated_mem_mb(mem_mb: int, attempt: int) -> int:
     return mem_mb * attempt
 
 
+#: How many times the scheduler may re-run ``star_count`` after a failure. Its own name rather than a
+#: reuse of :data:`STARSOLO_RETRIES`, because the two counts hold the same number today while
+#: answering different failures: droplet's was chosen against an allocation that grows with every
+#: input read and that no `--limit*` flag bounds, and bulk has no such allocation — what a bulk job
+#: overruns is a coordinate sort that grows with the sample's DEPTH and then stops. Shared, a count
+#: raised to rescue one workflow's tail would spend the other workflow's queue slots on attempts
+#: nothing in its failure mode calls for, and neither raise would be visible from the other file.
+BULK_RETRIES: int = 2
+
+
+def bulk_mem_mb(mem_mb: int, attempt: int) -> int:
+    """What ONE bulk sample's mapping job asks for on ``attempt`` — the recipe's whole figure.
+
+    The figure unchanged rather than a share of it, for the reason :func:`per_cell_mem_mb` sets out
+    at length: a mapping job is index residency plus a working set plus a sort, and the recipe states
+    one number covering all three because ``resources.mem_gb`` is intent.
+
+    **The escalation here is for DEPTH alone**, which is the one way this differs from droplet's.
+    ``map/star`` demultiplexes nothing and runs plain gene counting (``--quantMode GeneCounts``), so
+    it holds NONE of the unbounded per-read ``readInfo`` array that ADR-0023 was written about — the
+    allocation ``--limitBAMsortRAM`` does not bound and the scheduler therefore kills from outside,
+    with a signal and no number. What a bulk job can still overrun is the coordinate sort, whose size
+    is linear in the sample's alignment records, and a retry buys exactly that: the same sample
+    against a sort budget one multiple of the figure larger. Do not read droplet's reasoning onto
+    this rule and do not delete the escalation for want of it.
+
+    Attempt 1 is the figure unchanged, and here that matters in a direction it does not elsewhere:
+    this rule declared no memory AT ALL before, so a first attempt asking for anything but what the
+    recipe states would newly gate every bulk dataset in the corpus on a number chosen to rescue the
+    deep ones. A sample that exhausts :data:`BULK_RETRIES` fails, deliberately — the answer then is a
+    recipe with a bigger ``resources.mem_gb``, chosen by someone who looked at the sample.
+    """
+    return escalated_mem_mb(mem_mb, attempt)
+
+
 #: How many times the scheduler may re-run one of ``map/star-umi``'s two rule classes after a
 #: failure. Its own name rather than a reuse of :data:`STARSOLO_RETRIES`, because the escalation
 #: applies to each rule class **independently**: a fan-in counter that ran out of memory has nothing
@@ -251,10 +286,12 @@ def bam_sort_ram(mem_mb: int) -> int:
 
 
 __all__ = [
+    "BULK_RETRIES",
     "PLATE_RETRIES",
     "index_mem_mb",
     "STARSOLO_RETRIES",
     "bam_sort_ram",
+    "bulk_mem_mb",
     "escalated_mem_mb",
     "fan_in_mem_mb",
     "per_cell_mem_mb",

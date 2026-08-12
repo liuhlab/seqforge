@@ -54,6 +54,7 @@ from seqforge.workflows import (
     get_module,
     keys_read_by,
     list_modules,
+    memory,
 )
 from seqforge.workflows.cram import CramError, bam_to_cram
 from seqforge.workflows.fragments import (
@@ -78,7 +79,13 @@ from seqforge.workflows.h5ad import (
     solo_stats_files,
     write_h5ad,
 )
-from seqforge.workflows.memory import STARSOLO_RETRIES, bam_sort_ram, escalated_mem_mb
+from seqforge.workflows.memory import (
+    BULK_RETRIES,
+    STARSOLO_RETRIES,
+    bam_sort_ram,
+    bulk_mem_mb,
+    escalated_mem_mb,
+)
 from seqforge.workflows.metrics import (
     MAX_KNEE_POINTS,
     SEVERITY_PHRASE,
@@ -1609,8 +1616,17 @@ def test_the_aligner_name_is_derived_from_the_module_id_not_a_mirror() -> None:
 _DEFAULT_MEM_MB = 48 * 1024
 
 
-def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
-    """The composed value `bam_sort_ram(escalated_mem_mb(base, attempt))` — the pair, not each half.
+@pytest.mark.parametrize(
+    ("escalate", "retries"),
+    [
+        pytest.param(escalated_mem_mb, STARSOLO_RETRIES, id="droplet"),
+        pytest.param(bulk_mem_mb, BULK_RETRIES, id="bulk"),
+    ],
+)
+def test_the_sort_budget_follows_the_escalated_memory_request(
+    escalate: Callable[[int, int], int], retries: int
+) -> None:
+    """The composed value `bam_sort_ram(escalate(base, attempt))` — the pair, not each half.
 
     This is the arithmetic behind the defect #205 removed, and the defect is a *product* of the two
     functions rather than a fault in either: a rule that escalates its memory request while handing
@@ -1620,11 +1636,19 @@ def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
     across the attempts the rule can actually reach, and it must be STRICTLY increasing — a claim
     neither function makes on its own and neither can be inspected for.
 
+    **One row per workflow that escalates, because each carries its OWN escalator and its own retry
+    count** — the counts are separate so that raising one workflow's headroom cannot silently buy
+    another workflow queue time, and separate constants are exactly the thing a test written against
+    one of them stops covering. Bulk's escalation is not droplet's for the same reason either:
+    `map/star` counts genes and demultiplexes nothing, so it holds none of the unbounded per-read
+    array droplet escalates against, and what a retry buys it is a deeper sample's coordinate sort.
+    Different reason, identical arithmetic — so it is a row here and not a neighbour.
+
     **Attempt 1 returning the request unchanged is an acceptance criterion, not an implementation
     detail.** Nearly every sample in a ~10^4-dataset corpus fits in the default request; making all of
     them more expensive to schedule in order to rescue the handful that do not is the outcome #205
-    rejected, and `escalated_mem_mb(m, 1) == m` is the whole of what "a first attempt sized as today
-    still succeeds on a normal sample" means in code.
+    rejected, and `escalate(m, 1) == m` is the whole of what "a first attempt sized as today still
+    succeeds on a normal sample" means in code.
 
     **The numbers are absolute because a test comparing these outputs only to each other would not
     catch the unit bug.** Monotonicity survives deleting the `* 1024 * 1024`; so does "attempt 2 is
@@ -1633,19 +1657,19 @@ def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
     then FATALs on *every* sample instead of on a large one — the same flag, a different bug, and a
     green suite. Only an absolute value crosses that boundary, so absolute values are what is written.
 
-    The retry count is pinned rather than parameterised away, and that is the point of importing it:
-    `STARSOLO_RETRIES` and the linear multiplier are ONE fact (`workflows/memory.py` says so), so the
-    worst case anybody reasoning about the queue actually needs is their product. Raising the count
-    without restating what the last attempt is now given should go red here.
+    The retry count is pinned rather than parameterised away, and that is the point of taking it as a
+    parameter beside the escalator: a workflow's count and its linear multiplier are ONE fact
+    (`workflows/memory.py` says so), so the worst case anybody reasoning about the queue actually
+    needs is their product. Raising a count without restating what the last attempt is now given
+    should go red here.
     """
     # Attempt 1 is today's request, byte for byte, at the shipped default and at any other size.
-    assert escalated_mem_mb(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
-    assert escalated_mem_mb(4096, 1) == 4096
+    assert escalate(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
+    assert escalate(4096, 1) == 4096
 
     # snakemake's `attempt` is 1-based, so N retries means N+1 attempts.
     budgets = [
-        bam_sort_ram(escalated_mem_mb(_DEFAULT_MEM_MB, attempt))
-        for attempt in range(1, STARSOLO_RETRIES + 2)
+        bam_sort_ram(escalate(_DEFAULT_MEM_MB, attempt)) for attempt in range(1, retries + 2)
     ]
     assert all(later > earlier for earlier, later in pairwise(budgets)), (
         f"the sort cap does not rise with the attempt, so a retry buys scheduler memory STAR is "
@@ -1654,19 +1678,32 @@ def test_the_sort_budget_follows_the_escalated_memory_request() -> None:
 
     # Two retries, so three attempts, and 3/4 of 48 / 96 / 144 GiB IN BYTES. Read as GiB: 36, 72,
     # 108. Had the MiB->byte conversion been dropped, the first of these would read 36864.
-    assert STARSOLO_RETRIES == 2, "the shipped retry count moved; restate the last attempt's budget"
+    assert retries == 2, "the shipped retry count moved; restate the last attempt's budget"
     assert budgets == [38_654_705_664, 77_309_411_328, 115_964_116_992]
 
-    # A job whose whole request is under the 1024 MiB floor gets the WHOLE REQUEST, not the floor.
-    # The floor may not exceed the budget itself: authorising STAR to sort in more memory than the
-    # job was granted trades STAR's legible refusal ("this is how many bytes I needed") for the
-    # scheduler's OOM kill, which is the one failure mode #205 exists to remove.
-    assert bam_sort_ram(512) == 536_870_912  # 512 MiB, the whole request, not 1024
+    # A recipe whose whole request is under the 1024 MiB sort floor gets the WHOLE REQUEST as the
+    # cap, not the floor. The floor may not exceed the request it is a floor under: authorising STAR
+    # to sort in more memory than the job was granted trades STAR's legible refusal ("this is how
+    # many bytes I needed") for the scheduler's OOM kill, which is the one failure mode #205 exists
+    # to remove. Read through the escalator rather than off `bam_sort_ram` alone, because the guard
+    # has to survive the composition: an escalator that grew its own floor — the shape
+    # `fan_in_mem_mb` has and these two do not — would hand a tiny recipe a cap above its request
+    # while `bam_sort_ram` on its own stayed correct.
+    assert bam_sort_ram(escalate(512, 1)) == 536_870_912  # 512 MiB, the whole request, not 1024
     # ...and just above the floor the floor still binds: 3/4 of 1200 MiB is 900, under it.
-    assert bam_sort_ram(1200) == 1_073_741_824  # 1024 MiB, the floor
+    assert bam_sort_ram(escalate(1200, 1)) == 1_073_741_824  # 1024 MiB, the floor
 
 
-def test_the_star_rule_escalates_its_memory_on_retry() -> None:
+@pytest.mark.parametrize(
+    ("module_name", "rule_name", "retries_name"),
+    [
+        pytest.param("map/starsolo", "starsolo_count", "STARSOLO_RETRIES", id="droplet"),
+        pytest.param("map/star", "star_count", "BULK_RETRIES", id="bulk"),
+    ],
+)
+def test_the_star_rule_escalates_its_memory_on_retry(
+    module_name: str, rule_name: str, retries_name: str
+) -> None:
     """The WIRING, read off the shipped `.smk`: a `retries:`, and TWO numbers that follow `attempt`.
 
     What this reads is that the rule is *shaped* so the escalation can happen: a `retries:` directive,
@@ -1683,21 +1720,27 @@ def test_the_star_rule_escalates_its_memory_on_retry() -> None:
     `workflows/memory.py` gives for the constant existing: the retry count and the linear multiplier
     are one fact, and split across two files the count gets raised by someone who never reads the
     multiplier.
+
+    **The expected constant is named PER ROW, and that is where "its own count" is actually paid.**
+    Bulk and droplet hold the same number today and answer different failure modes — droplet's count
+    was chosen against an allocation that grows with every input read, bulk's against a coordinate
+    sort that grows with a sample's depth — so a bulk rule that reached for `STARSOLO_RETRIES`
+    because it was already imported would run, plan, and tie one workflow's headroom to a number
+    nobody chose for it. The row says which constant, so that substitution goes red.
     """
-    body = _rule_blocks(get_module("map/starsolo").snakefile)["starsolo_count"]
+    body = _rule_blocks(get_module(module_name).snakefile)[rule_name]
 
     retries = re.search(r"^\s+retries:\s*(\S+)\s*$", body, re.M)
-    assert retries, (
-        "`starsolo_count` declares no `retries:`, so a killed job is never re-run at all"
+    assert retries, f"`{rule_name}` declares no `retries:`, so a killed job is never re-run at all"
+    assert retries.group(1) == retries_name, (
+        f"`{rule_name}`'s retry count is not `workflows/memory.{retries_name}`. A literal in the "
+        f"Snakefile can disagree with the escalation rule it is half of, and another workflow's "
+        f"constant makes one workflow's escalation a function of the other's: {retries.group(1)}"
     )
-    assert retries.group(1) == "STARSOLO_RETRIES", (
-        "the retry count is a literal in the Snakefile, so it can now disagree with the escalation "
-        "rule it is half of; declare it as `workflows/memory.STARSOLO_RETRIES`"
-    )
-    assert STARSOLO_RETRIES >= 1, "a retry count of 0 makes the escalation unreachable"
+    assert getattr(memory, retries_name) >= 1, "a retry count of 0 makes the escalation unreachable"
 
     request = re.search(r"^\s+mem_mb=(.*)$", body, re.M)
-    assert request, "`starsolo_count` requests no `mem_mb`, so the scheduler gates nothing"
+    assert request, f"`{rule_name}` requests no `mem_mb`, so the scheduler gates nothing"
     assert request.group(1).startswith("lambda") and "attempt" in request.group(1), (
         f"`mem_mb` is not a function of `attempt`, so every retry re-submits the request that was "
         f"already killed: {request.group(1)}"
@@ -1706,7 +1749,7 @@ def test_the_star_rule_escalates_its_memory_on_retry() -> None:
     # The cap STAR is handed, and the `resources:` block it must be declared in. Both halves matter:
     # a `params:` entry of the identical text would satisfy the `attempt` check and still freeze.
     cap = re.search(r"^\s+bam_sort_ram_bytes=(.*?)^\s{4}\w+:", body, re.M | re.S)
-    assert cap, "`starsolo_count` computes no sort budget; STAR's default 0 reuses the genome's"
+    assert cap, f"`{rule_name}` computes no sort budget; STAR's default 0 reuses the genome's"
     assert "attempt" in cap.group(1) and "config[" in cap.group(1), (
         f"the sort cap is not a function of `attempt` over the config's base request: {cap.group(1)}"
     )

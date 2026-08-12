@@ -11,10 +11,14 @@
 
 import csv
 
-# seqforge's own helper, imported rather than restated — the same contract starsolo.smk and
+# seqforge's own helpers, imported rather than restated — the same contract starsolo.smk and
 # chromap.smk state at greater length. `ordered_fastqs` decides the order every mate of one sample is
 # handed to the aligner in, and all three modules must agree on it exactly: a Snakefile is not
 # importable, so three copies of that rule could only ever be checked by running three pipelines.
+# `memory` is that same move applied to what this module asks the scheduler for and what it lets STAR
+# sort in: two numbers that only mean anything together, so a constant and a closure written here
+# could never be unit-tested, only run against a sample deep enough to fail.
+from seqforge.workflows.memory import BULK_RETRIES, bam_sort_ram, bulk_mem_mb
 from seqforge.workflows.units import ordered_fastqs
 
 
@@ -108,6 +112,22 @@ rule star_count:
     The shell block clears STAR's `_STARtmp` before invoking STAR, so every (re)run is
     preemption-safe: a preempted STAR leaves `results/<sample>/_STARtmp` behind, STAR ABORTS a rerun
     if it already exists, and snakemake cannot remove it (an undeclared output).
+
+    **What this job asks for, and how much of it the sort may claim.** The rule declared NEITHER
+    until #377: no `mem_mb`, so the run's largest single allocation was invisible to whatever packs
+    the machine, and no `--limitBAMsortRAM`, so a coordinate sort ran on STAR's default of `0` --
+    "reuse the genome allocation", which is a budget nobody chose and which tracks the genome's size
+    rather than the sample's depth. It is also the one value STAR refuses outright once a run shares
+    a single copy of the index, and that refusal fires before the genome directory is read, so it
+    would be every sample on the first attempt rather than a slow sample now and then.
+
+    Both numbers follow `attempt`, the arrangement `starsolo_count` already has, and the reasoning is
+    NOT the same reasoning. STARsolo escalates against `readInfo`, an allocation that grows with
+    every input read and that no `--limit*` flag bounds; bulk counts genes and demultiplexes nothing,
+    so it holds no such array. What a retry buys HERE is a deeper sample's coordinate sort against a
+    budget one multiple of the figure larger -- depth alone. The count is `BULK_RETRIES` and not
+    STARsolo's for exactly that reason: one workflow's headroom may not be a function of the other's.
+    The arithmetic and the measurements behind it live in `workflows/memory.py`.
     """
     input:
         mate1=lambda wc: fastqs(wc.sample, mates()[0]),
@@ -122,6 +142,24 @@ rule star_count:
     # artifact, not defining an env, and honoured only under `--software-deployment-method`.
     container: config["container"]
     threads: config["threads"]
+    # `retries:` and `resources:` are ONE mechanism, so they are read together. `config["mem_mb"]`
+    # appears as a literal subscript deliberately -- `workflows/__init__.py::keys_read_by` SCANS this
+    # source to compute `required_config`, and a key the scanner cannot see is a key the composer is
+    # not obliged to emit, i.e. a KeyError on a compute node long after compose exited 0.
+    #
+    # THE SORT CAP IS A `resources:` ENTRY, NOT A `params:` ONE. That is the only construct snakemake
+    # re-evaluates per attempt: `Job.attempt`'s setter clears `self._resources` and NOT `self._params`
+    # (measured on the pinned 9.23.1), so a `params:` callable is expanded once, on attempt 1, and
+    # every retry reuses it verbatim -- the request escalates and the cap stays where the first
+    # attempt died, which is worse than not retrying at all. The name carries its unit because it is
+    # the one number here that is not MiB: STAR takes `--limitBAMsortRAM` in bytes, and a resource is
+    # a bare integer with nowhere else to say so.
+    retries: BULK_RETRIES
+    resources:
+        mem_mb=lambda wildcards, attempt: bulk_mem_mb(config["mem_mb"], attempt),
+        bam_sort_ram_bytes=lambda wildcards, attempt: bam_sort_ram(
+            bulk_mem_mb(config["mem_mb"], attempt)
+        ),
     params:
         bulk=config["bulk"],
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
@@ -136,5 +174,6 @@ rule star_count:
              --readFilesIn {params.reads} --readFilesCommand zcat \
              --quantMode {params.bulk[quantMode]} \
              --outFileNamePrefix {params.prefix} \
-             --outSAMtype BAM SortedByCoordinate
+             --outSAMtype BAM SortedByCoordinate \
+             --limitBAMsortRAM {resources.bam_sort_ram_bytes}
         """
