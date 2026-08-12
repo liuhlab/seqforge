@@ -25,6 +25,14 @@ resource hints. Plural per dataset and sparse; empty is legal, and unpinned it i
 _Avoid_: config, settings, pipeline, params (`backend.params` is the disjoint parse half);
 `ProcessingManifest` is the class, "recipe" is the word
 
+**Memory figure**:
+`resources.mem_gb` in a **Recipe**: what one mapping job asks the scheduler for, covering everything
+that job needs — index residency, working set, and a BAM sort that scales with the sample — as though
+it were the only job on the machine. Self-sufficient rather than incremental, which is why it cannot
+double as a limit on how many jobs a machine admits.
+_Avoid_: memory cap (`--limitBAMsortRAM` is the cap, and is three quarters of this), RAM budget, node
+memory; and never a cost *additional* to a **Shared genome copy**
+
 **Dataset hash**:
 The sha256 over exactly the **Manifest**'s `library` and `experiment` sections. Invariant under
 every change of intent — that invariance is what lets one manifest compile many ways.
@@ -44,6 +52,14 @@ config, the **Units table**, and a copy of the **Workflow module**), and the exe
 Snakefile. One word for both, because the directory is where the execution's outputs land.
 _Avoid_: **Run**, which is one *sequencing* run, and `run_id`, which names the pairing rather than
 its execution; also build, job, workflow run
+
+**Shared genome copy**:
+The one aligner index a **Compiled pipeline** loads into shared memory at the start of a run and
+every mapping job attaches to instead of loading its own — the reason a machine holds one index and
+not one per concurrent job. It is per *machine*, and collapses to one copy per run only because a
+run never spans machines.
+_Avoid_: shared memory, segment, cached index — each names the mechanism rather than the thing; also
+genome index, which is the on-disk directory `liulab-genome` owns and is what gets loaded
 
 **Workflow module**:
 A hand-written, versioned Snakemake module under `workflows/`. `compose` selects one and copies it
