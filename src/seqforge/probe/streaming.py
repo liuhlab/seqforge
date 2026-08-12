@@ -19,6 +19,7 @@ budget consumes.
 from __future__ import annotations
 
 import gzip
+import io
 import zlib
 from collections.abc import Generator
 from dataclasses import dataclass, field
@@ -31,6 +32,13 @@ from . import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 #: Kept as bytes rather than decoded ``str`` so headers and qualities survive byte-for-byte — a
 #: fingerprint slice writes them back out, and the probe's own signals must match the original.
 Record = tuple[bytes, bytes, bytes, bytes]
+
+#: How much decompressed data one pull asks for, and it is the gzip line reader's own buffer size on
+#: purpose: the handle underneath is then walked in exactly the steps a line-at-a-time read walks it
+#: in, so ``compressed_bytes`` — a position on that handle — keeps measuring what it measured before,
+#: on the reads a budget stops part-way. A larger pull is faster and moves that number; it is not a
+#: knob.
+_PULL_BYTES = io.DEFAULT_BUFFER_SIZE
 
 
 @dataclass(frozen=True)
@@ -132,44 +140,75 @@ class BoundedReader:
         Spelled as one rather than as an `Iterator`, because a caller that stops early has to be
         able to finalise this deterministically: `contextlib.closing` around it is what decides
         whether the read ends measured or **abandoned** (see the class docstring).
+
+        Bytes arrive a buffer at a time and are cut into lines in one ``split``, rather than a line
+        at a time through the gzip module's line reader. The line reader charges four Python-level
+        ``readline`` calls a record, which is a cost per RECORD and not per byte — so it is the whole
+        of what this loop adds to inflating the bytes, and most of it goes here. The pull is
+        ``read1`` at the line reader's own buffer size, so nothing about *which* bytes are read
+        changes, only how many Python calls it takes to cut them up.
         """
         max_reads, max_bytes = self.budget.max_reads, self.budget.max_bytes
         try:
             with gzip.GzipFile(fileobj=self._fileobj) as gz:
-                line_iter = iter(gz)
+                pull = gz.read1
+                lines: list[bytes] = []
+                index = 0  # the first line of `lines` not yet handed out
+                tail = b""  # bytes past the last newline pulled: a line only once more arrives
+                spent = False  # the stream reached its end, cleanly
+                unterminated = -1  # index of a final line that carried no newline, or -1 for none
                 while self.n_reads < max_reads and self.decompressed_bytes < max_bytes:
-                    try:
-                        header = next(line_iter, None)
-                        if header is None:  # clean EOF, fewer records than the budget
+                    if len(lines) - index < 4:
+                        if spent:
+                            # Four lines is a record, so fewer than four left over is a file cut
+                            # mid-record — and none left over is the clean EOF that simply ran out
+                            # of records before the budget did.
+                            if index < len(lines):
+                                self.truncated = True
                             break
-                        seq = next(line_iter, None)
-                        plus = next(line_iter, None)
-                        qual = next(line_iter, None)
-                    except EOFError:
-                        # The bytes ran out mid-member: a truncated upload, or — the routine case —
-                        # a bounded range-read head that was never meant to reach the end.
-                        self.truncated = True
-                        break
-                    except (zlib.error, OSError):
-                        # Not readable gzip. `BadGzipFile` IS an `OSError` (bad magic, a header that
-                        # does not parse, a failed CRC); `zlib.error` is not one, and a corrupt
-                        # deflate payload raises it — uncaught, it escaped into the caller and killed
-                        # the probe instead of producing the refusal (issue #94).
-                        self.ok = False
-                        break
-                    if seq is None or plus is None or qual is None:
-                        self.truncated = True  # a partial final record => cut mid-record
-                        break
+                        if index:
+                            lines = lines[index:]  # bounded: one pull's lines, never the file's
+                            index = 0
+                        try:
+                            chunk = pull(_PULL_BYTES)
+                        except EOFError:
+                            # The bytes ran out mid-member: a truncated upload, or — the routine case —
+                            # a bounded range-read head that was never meant to reach the end.
+                            self.truncated = True
+                            break
+                        except (zlib.error, OSError):
+                            # Not readable gzip. `BadGzipFile` IS an `OSError` (bad magic, a header that
+                            # does not parse, a failed CRC); `zlib.error` is not one, and a corrupt
+                            # deflate payload raises it — uncaught, it escaped into the caller and killed
+                            # the probe instead of producing the refusal (issue #94).
+                            self.ok = False
+                            break
+                        if chunk:
+                            parts = (tail + chunk).split(b"\n")
+                            tail = parts.pop()  # no newline seen past it yet, so not a line yet
+                            lines.extend(parts)
+                        else:
+                            spent = True
+                            if tail:  # a last line the file never terminated
+                                lines.append(tail)
+                                unterminated = len(lines) - 1
+                                tail = b""
+                        continue
+                    header = lines[index]
+                    seq = lines[index + 1]
+                    plus = lines[index + 2]
+                    qual = lines[index + 3]
+                    index += 4
                     # Counted before the yield, on the RAW lines including their newlines, so the
-                    # budget check at the top of the next iteration sees this record's cost.
+                    # budget check at the top of the next iteration sees this record's cost. The
+                    # newlines went to the split, so all four are added back — unless this record
+                    # ends on the one line the file never terminated.
                     self.n_reads += 1
-                    self.decompressed_bytes += len(header) + len(seq) + len(plus) + len(qual)
-                    yield (
-                        header.rstrip(b"\n"),
-                        seq.rstrip(b"\n"),
-                        plus.rstrip(b"\n"),
-                        qual.rstrip(b"\n"),
-                    )
+                    size = len(header) + len(seq) + len(plus) + len(qual) + 4
+                    if index - 1 == unterminated:
+                        size -= 1
+                    self.decompressed_bytes += size
+                    yield (header, seq, plus, qual)
         except (zlib.error, OSError):
             self.ok = False  # the same verdict, for a stream that failed before the first record
         finally:
