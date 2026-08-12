@@ -183,12 +183,25 @@ class ResourceHints(BaseModel):
     spilling**: it reports the memory it needed and exits, where the ``samtools sort`` it replaced
     would have spilled to disk and finished.
 
-    So the default is sized against the sort, measured on GSE208154/SAMN29720279 in the pinned image:
-    the requirement is linear at **~160 B per alignment record** (1,999,909 records -> 394 MB;
-    9,844,534 -> 1,590 MB) and is **not** reduced by ``--outBAMsortingBinsN``, STAR's documented
-    remedy. At 48 GB the sort gets 36 GB, which covers ~225M alignment records — a typical sample here
-    (SAMN29720279: 215M reads, 199M records) with headroom. 32 GB gave the sort 24 GB and would have
-    FATAL'd that sample, which is why this moved.
+    **The figure covers three things at once, and which of them dominates is a property of the SAMPLE
+    rather than of the pipeline**: the genome index, resident for the life of the mapping process; the
+    aligner's working set; and the sort, which grows with alignment records. A plate cell of a few
+    thousand reads is index-dominated — 27.7 GB peak against a 25 GB index, whether the cell holds 901
+    reads or 3.1M. A 215M-read droplet sample is sort-dominated. Both are real, they are two ends of
+    one curve, and the number here has to cover whichever end a recipe is aimed at.
+
+    The default is sized against the end that moved it, which was the sort, measured on
+    GSE208154/SAMN29720279 in the pinned image: the requirement is linear at **~160 B per alignment
+    record** (1,999,909 records -> 394 MB; 9,844,534 -> 1,590 MB) and is **not** reduced by
+    ``--outBAMsortingBinsN``, STAR's documented remedy. At 48 GB the sort gets 36 GB, which covers
+    ~225M alignment records — a typical sample here (SAMN29720279: 215M reads, 199M records) with
+    headroom. 32 GB gave the sort 24 GB and would have FATAL'd that sample, which is why this moved.
+
+    Sizing it for a different end of the curve is what ``seqforge processing new --mem-gb`` is for,
+    and the inequality that decision has to clear is the same three quarters read backwards: **the
+    request must be at least four thirds of the sort expected.** Against a small genome — ce11's index
+    is 1.3 GB, so 48 GB is ~35x the residency — nothing about the index argues for the default, and
+    the four thirds is then the only floor left. ``workflows/memory.py`` derives it.
 
     **The sort was never the whole memory story**, which is why this number has to cover more than the
     arithmetic above and why the escalation exists at all. STARsolo also holds ``readInfo`` — 16 B for

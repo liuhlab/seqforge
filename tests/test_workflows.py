@@ -4738,14 +4738,21 @@ def test_the_shared_index_load_asks_the_scheduler_for_the_residency_it_holds() -
     assert index_mem_mb(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
 
 
-def test_the_sort_budget_is_what_the_recipe_figure_is_actually_sized_by() -> None:
-    """The figure reads as an index budget and is a sort budget -- the trap this module now names.
+def test_the_recipe_figure_buys_a_sort_and_the_ratio_is_what_a_small_genome_must_clear() -> None:
+    """One figure covers index residency AND a sort, and only the sort half constrains the recipe.
 
-    `bam_sort_ram` takes three quarters of the per-cell request, and the default moved 32 -> 48 GB so
-    a 215M-read sample's ~32 GB sort would fit. So shrinking the figure because a genome's index is
-    small (ce11's is 1.3 GB against a human 25 GB) shrinks `--limitBAMsortRAM` with it and STAR
-    FATALs on a deep sample. This pins the coupling that makes that true, so a future "the index is
-    tiny, drop the default" goes red here instead of in a 20-hour run.
+    Which term dominates a mapping job's peak is a property of the SAMPLE: a plate cell of a few
+    thousand reads is index-dominated (27.7 GB against a 25 GB index), a 215M-read droplet sample is
+    sort-dominated (~160 B/record, ~32 GB). The residency half is not this suite's to check -- it is a
+    measurement against a real index -- but the sort half is arithmetic the shipped code does, so it
+    is pinned here.
+
+    Two claims, and the second is the one a small genome runs into. First, the default figure covers
+    the sample the default was moved for, and shrinking it stops covering that sample -- so a future
+    "ce11's index is 1.3 GB, drop the default" goes red here instead of in a 20-hour run. Second, the
+    same three quarters read backwards is the floor a recipe sizing DOWN has to clear: the request
+    must be at least four thirds of the sort expected. That inequality binds on a small genome, where
+    nothing about residency argues for the default, and never on a human one.
     """
     from seqforge.workflows.memory import bam_sort_ram, per_cell_mem_mb
 
@@ -4756,6 +4763,14 @@ def test_the_sort_budget_is_what_the_recipe_figure_is_actually_sized_by() -> Non
 
     # Halving the recipe figure -- the tempting "small genome" edit -- stops covering it.
     assert bam_sort_ram(per_cell_mem_mb(_DEFAULT_MEM_MB // 2, 1)) < needed_bytes
+
+    # The four thirds, at the boundary in both directions rather than as a comfortable inequality:
+    # one MiB less than the ratio demands is one MiB of sort the sample does not get. Ceiling
+    # division, because the share floors and the recipe states whole gigabytes anyway.
+    wanted_mb = 8 * 1024
+    four_thirds_mb = -(-4 * wanted_mb // 3)
+    assert bam_sort_ram(per_cell_mem_mb(four_thirds_mb, 1)) >= wanted_mb * mib
+    assert bam_sort_ram(per_cell_mem_mb(four_thirds_mb - 1, 1)) < wanted_mb * mib
 
 
 # ================================================================================================
