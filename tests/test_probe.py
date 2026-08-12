@@ -464,16 +464,64 @@ def test_the_reader_pins_a_distinct_integrity_verdict_per_corruption(
         assert records == [] and reader.n_reads == 0  # nothing parsed, and the counter says so
 
 
-def test_the_reader_accounting_is_filled_once_exhausted(tmp_path: Path) -> None:
-    """The counters are outputs of the iteration: read them after the loop, and they describe it."""
-    data = _reader_fixture(tmp_path, n=200)
-    reader = BoundedReader(BytesIO(data), Budget(10_000, 1 << 30))
-    records = list(reader)
+def _gz_member(payload: bytes) -> bytes:
+    """One gzip member holding exactly these bytes — a FASTQ laid out by hand, separators and all."""
+    buf = BytesIO()
+    with gzip.GzipFile(filename="", mode="wb", fileobj=buf, mtime=0) as gz:
+        gz.write(payload)
+    return buf.getvalue()
 
-    assert len(records) == 200
+
+#: ``(n_records, read_len, terminator, final_newline)`` — the line shapes a FASTQ arrives in. A long
+#: read is longer than one decompressed pull, so a single LINE spans several of them; CRLF and a
+#: missing final newline are the two ways a file disagrees with the tidy case about where a line ends.
+READER_SHAPES = [
+    pytest.param(200, 40, b"\n", True, id="short-reads"),
+    pytest.param(3, 30_000, b"\n", True, id="a-line-longer-than-one-pull"),
+    pytest.param(200, 40, b"\n", False, id="no-final-newline"),
+    pytest.param(200, 40, b"\r\n", True, id="crlf"),
+    pytest.param(200, 40, b"\r\n", False, id="crlf-no-final-newline"),
+    pytest.param(2, 0, b"\n", True, id="empty-sequence"),
+]
+
+
+@pytest.mark.parametrize("n, read_len, eol, final_newline", READER_SHAPES)
+def test_the_reader_hands_back_the_lines_it_was_given_and_counts_every_byte(
+    n: int, read_len: int, eol: bytes, final_newline: bool
+) -> None:
+    """Same bytes in, same records out — and the accounting is the file's own size, not an estimate.
+
+    The counters are outputs of the iteration: read after the loop, they describe it. What they must
+    describe is *these* bytes, and a FASTQ is not always the tidy case — a line can be longer than
+    one decompressed pull, a file written on Windows ends its lines with a carriage return that
+    belongs to the LINE (only the feed separates one from the next), and a file can stop without a
+    final newline at all. Each shape is a way the record text and the byte count can quietly
+    disagree with the file that was read, and a fingerprint slice writes these records back out — so
+    a byte that goes missing here is a byte that goes missing from a package.
+    """
+    rng = random.Random(11)
+    records = [
+        (f"@SIM:{i}".encode(), _rand_seq(rng, read_len).encode(), b"+", b"I" * read_len)
+        for i in range(n)
+    ]
+    payload = b"".join(eol.join(record) + eol for record in records)
+    carriage = eol[:-1]  # whatever precedes the line feed stays on the line
+    expected: list[tuple[bytes, ...]] = [
+        tuple(line + carriage for line in record) for record in records
+    ]
+    if not final_newline:
+        payload = payload[: -len(eol)]
+        expected[-1] = expected[-1][:3] + (records[-1][3],)
+    data = _gz_member(payload)
+
+    reader = BoundedReader(BytesIO(data), Budget(10_000, 1 << 30))
+
+    assert list(reader) == expected
+    assert reader.n_reads == n
+    assert reader.ok and not reader.truncated
     assert not reader.budget_exhausted  # a clean EOF, not a budget stop
+    assert reader.decompressed_bytes == len(payload)  # every line and every separator, exactly
     assert 0 < reader.compressed_bytes <= len(data)
-    assert reader.decompressed_bytes > reader.compressed_bytes  # gzip actually compressed it
 
 
 def _value_stable_fixture(path: Path) -> None:
