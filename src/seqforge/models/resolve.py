@@ -265,10 +265,10 @@ class ComposeResult(BaseModel):
     #: floor, which is every dataset seqforge compiles today.
     admission: SampleAdmission | None = None
     #: The knowledge base **loaded at compile time**: what ``plan`` read for every ``backend.params``
-    #: key, for the derived keys, and for the admission floor above, and what ``run_id`` folds
-    #: (ADR-0037). On the result rather than compared inside a CLI, because ``compose`` is not the
-    #: only verb that compiles — ``run`` chains the same call, and a disclosure only the human stream
-    #: carried was one the headless path could not make.
+    #: key, for the derived keys, and for the admission floor above, and the copy of the deciding spec
+    #: that ``run_id`` hashes (ADR-0037). On the result rather than compared inside a CLI, because
+    #: ``compose`` is not the only verb that compiles — ``run`` chains the same call, and a disclosure
+    #: only the human stream carried was one the headless path could not make.
     kb_version: str
     #: The knowledge base the manifest recorded at fill — **the KB that decided this chemistry**
     #: (ADR-0037), never rewritten by a compile. Beside the live one because naming either alone says
@@ -278,6 +278,12 @@ class ComposeResult(BaseModel):
     @property
     def kb_moved(self) -> bool:
         """Did the knowledge base that decided this chemistry and the one that compiled it differ?
+
+        Whole-knowledge-base, while ``run_id`` narrowed to a content hash of one spec, because the two
+        answer questions at genuinely different scopes: ``run_id`` asks whether this config would
+        differ, which only the deciding spec's processing half can change, and this asks whether the
+        dataset would still resolve to this chemistry at all, which every spec's signature in the
+        knowledge base has a vote in.
 
         One definition of the question, so no verb spells the comparison itself. **Derived, never
         stored**: a third value kept in step by hand is the copy that goes stale, and this one would

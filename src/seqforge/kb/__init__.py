@@ -221,12 +221,13 @@ from .schema import Spec
 #: end its declared trimmer takes — and not by a list of the two pairs that are illegal. STAR refuses
 #: the pair at parameter initialization, BEFORE the genome loads, so what this replaces is every
 #: sample of a deposit failing after its queue wait over a flag nobody typed.
-#: **EVERY DATASET RE-KEYS, including the ones nothing here touches.** `run_id` folds the global
-#: `KB_VERSION` string rather than a hash of the spec that decided this dataset, so a Smart-seq3 plate
-#: or a bulk deposit gets a new pipeline directory and no reuse of the BAMs in the old one, though not
-#: one byte of its processing changed. That is understood and not overlooked: the coupling is #361,
-#: and it is deliberately NOT fixed here, because what `run_id` folds is its own decision about
-#: identity and does not belong inside the release that moves eleven entries.
+#: **THE ELEVEN RE-KEY AND THE REST OF THE CORPUS DOES NOT.** `run_id` folds a content hash of the
+#: processing half of the spec that decided a dataset (ADR-0037), never this global string, so what a
+#: release re-keys is what it actually moved. All eleven starsolo entries here gain a parse key, so
+#: all eleven get a new pipeline directory and no reuse of the BAMs in the old one — six because the
+#: STAR command line genuinely changed and five because the key moved into the spec even though the
+#: command line did not. A Smart-seq3 plate, a bulk deposit, or any other chemistry this release did
+#: not touch keeps the directory it already has.
 #: `dataset_hash` does not move and no stored manifest is REGENERATED. Backend params live in the KB
 #: and never in a manifest, `read_through` is absent from it too, and nothing scoring reads — reads,
 #: elements, signature, confusable edges — changed, so every candidate is still selected at the value
