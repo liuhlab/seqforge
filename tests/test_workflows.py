@@ -4495,12 +4495,12 @@ def _records(bam: Path) -> list[pysam.AlignedSegment]:
 
 
 def test_the_extraction_geometry_is_derived_from_the_element_model_and_not_written_down() -> None:
-    """The 46 bp window is a consequence of the layout, not a number in the source.
+    """Every number the search uses is a consequence of the layout, not a number in the source.
 
     Anchor start <= 24 -- mechanistic, not fitted: no exact hit anywhere in 18,901 reads starts past
     offset 24, that bound being Tn5 mosaic-end read-through -- plus the 22 bp one match consumes.
-    Every term comes out of the elements, so a chemistry with a longer tag gets a wider window
-    without a line changing.
+    Every term but that bound comes out of the elements, so a chemistry with a longer tag searches
+    deeper and trims further without a line changing.
     """
     geometry = geometry_for_read(_smartseq3_r1())
 
@@ -4508,7 +4508,6 @@ def test_the_extraction_geometry_is_derived_from_the_element_model_and_not_writt
     assert (geometry.anchor_start, geometry.umi_offset, geometry.umi_length) == (0, 11, 8)
     assert (geometry.trailing, geometry.trailing_offset, geometry.cdna_offset) == ("GGG", 19, 22)
     assert geometry.span == 22
-    assert geometry.window == 46
 
 
 def test_the_tagged_read_is_the_one_the_layout_says_carries_a_umi() -> None:
@@ -4741,6 +4740,30 @@ def test_the_same_pair_extracts_to_a_byte_identical_bam(tmp_path: Path) -> None:
     assert (tmp_path / "one.bam").read_bytes() == (tmp_path / "two.bam").read_bytes()
     assert first.to_dict() == second.to_dict()
     assert first.to_dict()["offsets"] == {"0": 1, "15": 1}
+
+
+def test_a_record_holds_what_it_held_however_it_was_built(tmp_path: Path) -> None:
+    """The two fields where a SAM line and a BAM record do not mean the same thing.
+
+    A record is parsed from one SAM line rather than assembled field by field, which is four times
+    cheaper and writes the same record -- except here, and neither of these shows up in a
+    run-it-twice comparison, because both constructions are deterministic. `*` is SAM's word for
+    "this read has no qualities", so a one-base read whose Phred happens to be 9 spells its whole
+    quality string that way and would come back carrying none at all. And the index bin -- which an
+    unsorted, unindexed uBAM has no use for -- is one the parse computes and the assembly leaves at
+    zero, so the file's bytes move if nobody puts it back.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1 = tmp_path / "r1.fastq.gz"
+    _fastq(r1, [("@cell:0", "A", "+", "*"), ("@cell:1", _CDNA, "+", _quals(_CDNA))])
+
+    extract_umis([r1], None, tmp_path / "cell.bam", geometry, sample="cell")
+    one_base, internal = _records(tmp_path / "cell.bam")
+
+    qualities = one_base.query_qualities
+    assert qualities is not None, "a `*` quality string is a Phred of 9, not an absent quality"
+    assert list(qualities) == [9]
+    assert (one_base.bin, internal.bin) == (0, 0)
 
 
 def test_a_truncated_input_is_refused_rather_than_extracted_up_to_the_cut(tmp_path: Path) -> None:
