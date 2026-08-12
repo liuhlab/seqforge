@@ -2958,6 +2958,65 @@ def test_the_exclusion_record_carries_each_dropped_cell_its_count_the_threshold_
     assert "cell1" not in record and "cell3" not in record
 
 
+def test_a_bare_kb_version_bump_rewrites_no_byte_of_the_directory_it_cannot_re_key(
+    built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """What `compose` wrote is a function of the `run_id` naming it — every file, not just the config.
+
+    ADR-0037 narrowed the knowledge-base term of `run_id` to a content hash of the one spec that
+    decided the config, precisely so a release leaving this chemistry's processing alone leaves this
+    pairing's directory — and every alignment already under it — where it is. That is safe only while
+    nothing compose writes carries a value the hash deliberately omits. The exclusion record
+    interpolated the live repository version into its prose, so a bare bump rewrote that sentence IN
+    PLACE inside a directory whose name had not moved, and the compiled pipeline stopped being a
+    function of its own identity. Two compiles of one manifest under one recipe, with only the
+    version string between them, must be indistinguishable on disk.
+
+    The comparison is the WHOLE directory as filename -> bytes rather than a named list of files,
+    because the regression landed in exactly the file such a list would not have named: the config
+    was already guarded and stayed byte-identical throughout. Read this way, a further artifact
+    compose starts writing later is covered the day it appears, with nobody remembering to extend an
+    enumeration. The plate is what makes any of it observable — `built_v3` declares no
+    `min_input_reads`, writes no exclusion record, and would have passed this assertion on the day
+    the bug shipped.
+    """
+    manifest, reg = built_plate
+    plate = plate_of(manifest, one_run_each({"cell1": 4000, "cell2": 400, "cell3": 4000}))
+
+    declare_read_floor(monkeypatch, plate.library.chemistry.value[0], _FLOOR)
+    first = _compose_plate(plate, reg, tmp_path)
+    directory = (tmp_path / first.config_path).parent
+
+    def on_disk() -> dict[str, bytes]:
+        """Every file the run directory holds, keyed by its path within it — no enumeration."""
+        return {
+            str(p.relative_to(directory)): p.read_bytes()
+            for p in sorted(directory.rglob("*"))
+            if p.is_file()
+        }
+
+    before = on_disk()
+    assert EXCLUSIONS_NAME in before, (
+        "the floor must have actually dropped a cell here: with no exclusion record on disk this "
+        "test says nothing about the one file the version string ever reached"
+    )
+
+    monkeypatch.setattr(core, "KB_VERSION", "2099.1.1")
+    second = _compose_plate(plate, reg, tmp_path)
+
+    assert second.kb_version != first.kb_version, (
+        "the bump moved nothing the composer can see, so nothing below it means anything"
+    )
+    assert (tmp_path / second.config_path).parent == directory, (
+        "a bare version bump may not re-key the compile — re-keyed, the two compiles would sit in "
+        "different directories and the comparison below would be of one untouched directory"
+    )
+    assert on_disk() == before, (
+        "the second compile wrote over the first under an unmoved run_id, so every byte that "
+        "differs is a value the directory's own name does not fold"
+    )
+
+
 def test_the_record_less_caveat_appears_only_when_a_drop_met_a_dataset_with_no_accession(
     built_plate: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -141,9 +141,7 @@ def admit(manifest: DatasetManifest, spec: Spec) -> Admission | None:
     )
 
 
-def render_record(
-    admission: Admission, *, chemistry: str, kb_version: str, filename_derived: bool
-) -> str:
+def render_record(admission: Admission, *, chemistry: str, filename_derived: bool) -> str:
     """The exclusion record: what was dropped, why, how much of the plate it was, and what it cost.
 
     Written into the pipeline directory because that is the deliverable a human opens, and it is the
@@ -164,13 +162,14 @@ def render_record(
         "",
         f"**{admission.summary}.**",
         "",
-        # `kb_version` is the LIVE one, which is what makes this sentence true: the floor was read
-        # from the KB loaded here, so naming the manifest's recorded version would have attributed a
-        # live-KB number to whichever KB happened to decide the chemistry. See ADR-0037.
+        # No knowledge-base version here, and the words are the whole guard. The floor is read from
+        # the KB loaded at compile time rather than the one the manifest recorded, and "loaded at
+        # compile time" says exactly that without naming a release. Naming one would put a value
+        # `run_id` deliberately does not fold inside a directory `run_id` names, so a bare version
+        # bump would rewrite this sentence in place under an unchanged id (ADR-0037).
         f"Each {unit} below carries fewer reads than the {admission.threshold}-read admission floor "
         f"`{chemistry}` declares (`min_input_reads`), read from the knowledge base loaded at compile "
-        f"time ({kb_version}). A {unit} below that floor is not analysed in any form and does not "
-        f"block the others.",
+        f"time. A {unit} below that floor is not analysed in any form and does not block the others.",
         "",
         f"The dataset manifest still carries every one of these {noun} — it is what the data IS, and "
         f"the verdict below is not part of that. Move the floor and the same bytes keep the same "
