@@ -23,6 +23,28 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.14 — `rule umi_count` uses the threads it asks the scheduler for (#397). It requested
+#: `config["threads"]` and handed the verb none of them, so a plate-wide counting job over 784 cells
+#: — or the 1440 the counter sizes for — ran on ONE core while the rest of the allocation sat idle.
+#: The rule now renders `--threads {threads}`, the verb takes it, and `count_plate` forks a worker
+#: per core over cells that are independent by construction.
+#: **WHICH OUTPUT MOVES. NONE, and that is the whole invariant** — this is one item of a performance
+#: series in which a moved count is a bug and not a result. The cells were always counted
+#: independently; what changed is how many at once. Rows are collected BY INDEX and never by
+#: completion, so the h5ad's row order is still the order this rule lists the cells in, and the same
+#: plate counted twice is still byte-identical.
+#: **FORK OR SERIAL, NEVER SPAWN.** A forked worker inherits the annotation, so nothing is
+#: serialised — which is the opposite of the 47.5 MB-per-worker pickle the counter's header declines
+#: to reproduce, not a return to it. `spawn` would re-import the module and pickle the annotation
+#: into every worker on every cell, so where a platform does not offer fork the plate is counted on
+#: one core instead: slower is a cost, a pickle per cell is a design.
+#: **THE MEMORY REQUEST IS UNCHANGED, and it was re-checked rather than assumed.** A worker's
+#: resident growth is a CEILING and not a rate — ~75 MB of copy-on-write on the interned gene sets,
+#: reached inside the first twenty thousand fragments of the first cell and flat at two million — so
+#: the default eight-wide fan-out adds ~0.6 GB against a request that floors at 8 GB. The numpy and
+#: `array.array` buffers are untouched by refcounting and stay genuinely shared. Measurements:
+#: `docs/research/umite-performance-2026-08-11.md`.
+#: The bump is owed by the `.smk` edit, and a `run_id` is its whole cost.
 #: 2026.8.13 — `rule umi_extract` writes what the extraction MEASURED to disk, not only to stdout
 #: (#353). It gains a second output, `<sample>.umi-extract.json`, declared from `EXTRACT_SUFFIX` in
 #: the module that writes it and deliberately NOT `temp()`; the verb takes `--summary` and writes the
@@ -344,7 +366,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.13"
+WORKFLOW_VERSION = "2026.8.14"
 
 _MODULE_DIR = Path(__file__).parent
 

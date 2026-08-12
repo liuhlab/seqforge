@@ -1221,6 +1221,11 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     assert re.search(r"--units \S*units\.tsv --sample \S+", plan), plan
     assert not re.search(r"--r1\b|--r2\b", plan), plan
     assert "--readFilesType SAM PE" in plan
+    # The fan-in SPENDS the threads it asks the scheduler for. It requested them and handed the verb
+    # none of them, so the one job that runs after every cell has finished counted a whole plate on
+    # one core of an allocation it was holding whole. Read off the rendered command, because a rule
+    # whose `threads:` and whose command line disagree is exactly what that looked like.
+    assert "--threads 4" in _rendered_shell(plan)["umi_count"][""]
 
 
 def test_the_three_prime_clip_takes_its_arity_from_the_same_fact_the_read_type_does(
@@ -4169,17 +4174,33 @@ def test_counting_the_same_plate_twice_gives_a_byte_identical_h5ad(tmp_path: Pat
     The reference picks an alignment with an unseeded `random.choice` when a read has several
     primary alignments. There is nothing to choose here — every tie-break is written down — and
     this is what proves it, including the iteration orders that are only accidentally stable.
+
+    **And it holds across the fan-out, which is where determinism is easiest to lose.** Counting a
+    plate on N cores makes the order cells FINISH in a property of their depth and of the machine,
+    so the two pooled files below are the ones that would differ if any row, any matrix or any
+    correction inherited that order instead of the caller's. All four are the same bytes: the width
+    is how many cells are counted at once and nothing else.
     """
     db, cells = _plate(tmp_path)
 
     first = write_umi_counts(cells, db, tmp_path / "first.h5ad")
     second = write_umi_counts(cells, db, tmp_path / "second.h5ad")
+    pooled = write_umi_counts(cells, db, tmp_path / "pooled.h5ad", workers=4)
+    again = write_umi_counts(cells, db, tmp_path / "pooled-again.h5ad", workers=4)
 
     assert first.read_bytes() == second.read_bytes()
+    assert pooled.read_bytes() == again.read_bytes()
+    assert pooled.read_bytes() == first.read_bytes()
 
 
 def test_a_plate_refuses_rather_than_writing_a_row_that_names_two_cells(tmp_path: Path) -> None:
-    """A sample id is an h5ad row, so two cells sharing one refuses instead of overwriting."""
+    """A sample id is an h5ad row, so two cells sharing one refuses instead of overwriting.
+
+    The last case is the one the fan-out newly has to keep: a cell that cannot be counted is a
+    refusal in a worker, and a worker's traceback says nothing about which of hundreds of cells it
+    belonged to. It carries the sample id here whichever way the plate ran, which is why the same
+    refusal is asserted at both widths.
+    """
     db, cells = _plate(tmp_path)
     annotation = read_annotation(db)
 
@@ -4187,8 +4208,87 @@ def test_a_plate_refuses_rather_than_writing_a_row_that_names_two_cells(tmp_path
         count_plate([("same", cells[0][1]), ("same", cells[1][1])], annotation)
     with pytest.raises(UmiCountError, match="no cells"):
         count_plate([], annotation)
-    with pytest.raises(UmiCountError, match="missing"):
-        count_plate([("gone", tmp_path / "never-aligned.bam")], annotation)
+    for workers in (1, 4):
+        with pytest.raises(UmiCountError, match="'gone'.*missing"):
+            count_plate(
+                [("counted", cells[0][1]), ("gone", tmp_path / "never-aligned.bam")],
+                annotation,
+                workers=workers,
+            )
+
+
+def test_the_plate_is_counted_on_every_core_it_was_given_and_on_one_where_fork_is_not_offered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The fan-out's two arms: what the width actually buys, and what happens where it cannot.
+
+    **The width is asserted with a barrier, because nothing weaker can tell a pool from a loop.**
+    Every cell waits for every other before it returns, so a plate handed four workers finishes only
+    if four cells really were being counted at once — a counter that quietly ran them one after
+    another blocks and the barrier breaks. It also makes the completion order genuinely
+    indeterminate, which is what puts the row-order claim under load: all four cells finish at the
+    same instant, so a plate that collected results as they arrived rather than by index would
+    scramble exactly here. The fragment counts are read back per row, because obs_names in the right
+    order over rows in the wrong one is the failure that looks correct.
+
+    **The other arm is `spawn`, which this module refuses.** Told that fork is not on offer, the
+    counter must count the plate itself rather than pickle the annotation into a worker per cell —
+    proved by every cell's pid being this process's, which a forked plate could not report — and it
+    must produce the same object it produces any other way.
+
+    `_count_cell` is where both arms hook in because it is the one thing a worker does; patching it
+    is what lets the barrier and the pid land inside the counting rather than beside it. A fork
+    inherits the patch along with everything else, which is the same property the annotation reaches
+    a worker by.
+    """
+    import multiprocessing
+    import os
+
+    from seqforge.workflows.umite import count as counter
+
+    db, two = _plate(tmp_path)
+    # Four cells of two shapes, alternating: the deep cell is 13 fragments and the shallow one is 1,
+    # so a plate collected by completion rather than by index reads back as [1, 13, 1, 13].
+    plate = [(f"cell_{i}", bam) for i, (_id, bam) in enumerate(two * 2)]
+    depths = [len(_PLATE), 1, len(_PLATE), 1]
+    annotation = read_annotation(db)
+    serial, _ = count_plate(plate, annotation)
+    serial.write_h5ad(tmp_path / "serial.h5ad")
+    real = counter._count_cell
+
+    if "fork" in multiprocessing.get_all_start_methods():
+        barrier = multiprocessing.get_context("fork").Barrier(len(plate))
+
+        def in_lockstep(bam: Path, annotation: Any) -> Any:
+            counted = real(bam, annotation)
+            barrier.wait(timeout=60)
+            return counted
+
+        monkeypatch.setattr(counter, "_count_cell", in_lockstep)
+        pooled, _ = count_plate(plate, annotation, workers=len(plate))
+        monkeypatch.undo()
+
+        assert list(pooled.obs_names) == [sample for sample, _ in plate]
+        assert [int(n) for n in _frame(pooled.obs)[N_FRAGMENTS]] == depths
+        pooled.write_h5ad(tmp_path / "pooled.h5ad")
+        assert (tmp_path / "pooled.h5ad").read_bytes() == (tmp_path / "serial.h5ad").read_bytes()
+
+    monkeypatch.setattr(multiprocessing, "get_all_start_methods", lambda: ["spawn", "forkserver"])
+    counted_in: list[int] = []
+
+    def note_the_process(bam: Path, annotation: Any) -> Any:
+        counted_in.append(os.getpid())
+        return real(bam, annotation)
+
+    monkeypatch.setattr(counter, "_count_cell", note_the_process)
+    unforked, _ = count_plate(plate, annotation, workers=len(plate))
+
+    assert counted_in == [os.getpid()] * len(plate), (
+        "the counter forked where the platform offers no fork, so it would have spawned — which "
+        "pickles the annotation into a worker for every cell of the plate"
+    )
+    unforked.write_h5ad(tmp_path / "unforked.h5ad")
+    assert (tmp_path / "unforked.h5ad").read_bytes() == (tmp_path / "serial.h5ad").read_bytes()
 
 
 def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the_filename() -> None:

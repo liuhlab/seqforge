@@ -277,7 +277,111 @@ them.
 
 ## The fan-in: counting a plate on every core the rule asked for
 
-<!-- filled by #397 -->
+**A worker costs 75 MB and buys a core, and the 75 MB is a ceiling rather than a rate.** `count_plate`
+was a list comprehension over cells while `rule umi_count` asked the scheduler for every thread it
+was configured with; it now forks a worker per thread, and each worker inherits the annotation
+instead of being sent one. Apple M4 Pro (10 performance + 4 efficiency cores), macOS 26.5.2, Python
+3.13.14, pysam 0.24.0.
+
+| workers | `count_plate` | | of which counting | of which the object |
+| --- | --- | --- | --- | --- |
+| 1 | 46.76 s | 1.00x | 45.40 s | 1.24 s |
+| 2 | 25.71 s | 1.82x | | |
+| 4 | 15.02 s | 3.11x | | |
+| 8 | 9.30 s | 5.03x | 8.38 s | 0.90 s |
+| 10 | 8.04 s | 5.82x | | |
+| 14 | 8.07 s | 5.80x | 6.65 s | 0.95 s |
+
+56 synthetic cells of 20 000 to 360 000 fragments against a gencode-scale annotation. Every width
+produced the same object — same rows in the same order, same per-row totals, same per-cell fragment
+counts. **The parent's own share is ~1 s of the 46.76**, so what stops the last column short of
+linear is the cells themselves: fourteen workers on a machine with ten fast cores and four slow ones,
+against cells whose depths span 18x. Treat 5x on eight as the shape and not as a budget — the real
+plate is the last section of this page.
+
+### Resident growth per worker, which is what chooses the width
+
+A forked child shares every page until it writes to one, and touching a Python object writes to it:
+the refcount lives in the object header. So the interned gene sets are what a worker actually copies.
+Measured as each child's **unique** resident set (USS) right after the fork and again after counting,
+against a parent holding 55 000 genes x 15 exons in both indexes — 1 760 002 segments over 110 002
+interned `frozenset`s, 22.7 MB of them by `sys.getsizeof`, in a parent of 212 MB USS.
+
+| a worker that has | USS growth |
+| --- | --- |
+| done nothing | 0.1 MB |
+| counted 20 000 fragments | 75.4 MB |
+| counted 200 000 | 75.5 MB |
+| counted 2 000 000 | **75.5 MB** |
+| 200 000, holding the cell's UMI buckets | 103.9 MB |
+| 2 000 000, holding the cell's UMI buckets | 258.3 MB |
+
+**The copy-on-write cost stops growing after the first twenty thousand fragments**, because by then
+every interned set has been touched once and there is nothing left to dirty. That is what makes the
+width free to be the thread count: it is 75 MB times the workers, not 75 MB times the workers times
+the plate. What still grows with depth is the worker's own accumulator — the cell's UMI buckets —
+and that is memory the single-core version paid too, one cell at a time instead of N.
+
+75.5 MB against 22.7 MB of frozensets is the granularity: a page is 16 KB here, and the sets were
+allocated interleaved with everything else the index build allocated, so touching one set dirties
+whatever shares its page. **The two flat buffers are untouched and stay genuinely shared** —
+`bisect` allocates a Python int per probe and never writes into the `array.array`, and reading a
+numpy element increfs the array object rather than its bytes — which is 13.2 MB per index that costs
+nothing per worker.
+
+**A garbage collection in a child costs 22 MB on its own**, and an idle worker that collects goes
+from 0.1 MB to 46.3 MB: the cyclic collector walks every tracked object and writes its header.
+Nothing here calls `gc.collect()`, and this is the measurement that says not to.
+
+### What crosses the pipe, and why the deduplication happens in the worker
+
+A worker returns two things, and the reason is not the one it looks like:
+
+| one cell's | pickled | `dumps` | `loads` | `deduplicate` |
+| --- | --- | --- | --- | --- |
+| raw counts, 200 000 fragments / 198 878 UMIs | 2.5 MB | 10.4 ms | 8.9 ms | 905 ms |
+| its five matrices + fates | 0.034 MB | 0.1 ms | 0.2 ms | — |
+| raw counts, 1 000 000 fragments | 12.5 MB | 69.1 ms | 46.4 ms | 4 622 ms |
+| its five matrices + fates | 0.158 MB | 0.4 ms | 0.9 ms | — |
+
+**The pipe was never the bottleneck** — 10 ms to send back a cell that took seconds to count. The
+correction is: left in the parent it is 0.9 to 4.6 seconds per cell of strictly serial work, which
+over a 784-cell plate is a tail on the order of ten minutes while every worker idles. So the worker
+deduplicates and sends both — the matrices, which is what the object needs, and the raw counts,
+which is what `count_plate` has always handed back. Sending only the matrices would shrink the pipe
+74x and buy nothing measurable.
+
+### Method
+
+`count_plate` timed whole, best of one run per width in one process, cells written once and reused
+across widths. The annotation is 55 000 genes of 15 exons under one fixed seed, the same shape the
+lookup section above uses; cells are coordinate-sorted BAMs of paired 100 bp records with a UMI on
+four fifths of the fragments drawn from a pool a quarter the fragment count, so correction has real
+work. Resident growth is `psutil`'s `memory_full_info().uss` inside each child, read after a fork
+from a parent that had already built the annotation, with an idle-worker control to separate the fork
+itself from what counting dirties. Pickle costs are `pickle.dumps`/`loads` at the default protocol
+over a synthetic cell whose gene bucket sizes are drawn from the skewed distribution the correction
+section describes.
+
+Equivalence is asserted in `tests/test_workflows.py` rather than measured here: the same plate
+counted at width 1 and at width 4 writes byte-identical `.h5ad` files, and a plate whose cells are
+held in lockstep by a barrier — so that all of them finish at once and the completion order is
+whatever the scheduler chose — still comes back in the caller's row order with each row's fragment
+count on its own row.
+
+### What does not reproduce from [#352](https://github.com/liuhlab/seqforge/issues/352)
+
+- **`fork` is available on macOS**, so the serial fallback is not the platform's doing. The issue
+  reads "where `fork` is unavailable — macOS, where Python now defaults to `spawn`", but
+  `multiprocessing.get_all_start_methods()` returns `['spawn', 'fork', 'forkserver']` on macOS 26.5.2
+  under Python 3.13.14: what changed on macOS is the *default*, not the availability. The counter
+  asks for the start method it wants rather than accepting the default, so it forks here too — which
+  is what let the numbers above be taken on a laptop at all. The serial arm is still reachable and
+  still tested, by asking a counter that is told fork is not on offer.
+- **The pool is not "near-linear"** on this machine past four workers. 3.11x on four and 5.03x on
+  eight, on a laptop whose fourteen cores are ten fast and four slow. A cluster node's cores are
+  uniform, which is why this is the number [#398](https://github.com/liuhlab/seqforge/issues/398)
+  re-takes.
 
 ## On the cluster, on a real plate
 
