@@ -38,7 +38,9 @@
 # this module's map from the recipe's ONE memory figure to its TWO rule classes: a Snakefile is not
 # importable, so arithmetic written here could never be unit-tested, only run. `PLATE_H5AD` is the
 # name the module registry DECLARES as this pipeline's dataset-scoped deliverable, so the
-# declaration and the rule that produces it cannot come apart.
+# declaration and the rule that produces it cannot come apart. `EXTRACT_SUFFIX` is the same contract
+# for the per-cell extraction summary: the extractor writes it, the report finds it, and this rule
+# declares it -- one owner, imported three times, never spelled twice.
 from seqforge.workflows import PLATE_H5AD
 from seqforge.workflows.h5ad import STAR_BAM
 from seqforge.workflows.memory import (
@@ -48,6 +50,7 @@ from seqforge.workflows.memory import (
     index_mem_mb,
     per_cell_mem_mb,
 )
+from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
 from seqforge.workflows.units import mate_role as units_mate_role
 
@@ -342,6 +345,12 @@ rule umi_extract:
     The FASTQs are still declared inputs: what snakemake stages and what the job depends on is this
     rule's to state, and the mate list is also what `read_files_type` reads. `units.tsv` joins them,
     because the command now opens it.
+
+    **Two outputs, and only one of them is reclaimed.** The uBAM is consumed and deleted; the summary
+    beside it is the durable account of what the extraction saw, and it is declared here rather than
+    derived by the verb so that one path is stated once and snakemake owns removing it after a failed
+    job. Nothing demands it in `rule all` and nothing needs to: this rule is upstream of every cell's
+    CRAM, so a plate that finishes has written one per cell.
     """
     input:
         units=UNITS_TSV,
@@ -351,6 +360,13 @@ rule umi_extract:
         # Consumed by exactly one rule (the mapping below), so snakemake deletes it the moment that
         # job finishes -- 1440 uBAMs never coexist with 1440 alignments.
         ubam=temp(f"{OUTDIR}/{{sample}}/{{sample}}.unaligned.bam"),
+        # And NOT `temp()`, which is the whole point of it: what the extraction measured has to
+        # outlive the records it measured. The tagged fraction is the per-cell readout of whether the
+        # chemistry behaved -- a tunable tagmentation parameter, published across 6.9-70.5% -- and
+        # once the uBAM above is reclaimed nothing on disk can tell a 2% cell from a 28% one. Printed
+        # to stdout it survived only in whatever captured the workflow's output, which on a cluster
+        # is a scheduler log somebody rotates.
+        summary=f"{OUTDIR}/{{sample}}/{{sample}}{EXTRACT_SUFFIX}",
     params:
         # The whole extraction geometry as one value, derived by compose from the element
         # coordinates: which read is tagged, the anchor and where it is declared, the UMI's offset
@@ -361,7 +377,7 @@ rule umi_extract:
         r"""
         seqforge io umi-extract --units {input.units} --sample {wildcards.sample} \
              --geometry {params.structure} --read-id {params.read_id} \
-             --out {output.ubam}
+             --out {output.ubam} --summary {output.summary}
         """
 
 

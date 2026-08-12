@@ -46,6 +46,7 @@ from conftest import (
     star_modules,
     write_fastq_gz,
 )
+from seqforge import __version__ as seqforge_version
 from seqforge import kb
 from seqforge.compose import compose, core
 from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
@@ -142,11 +143,14 @@ from seqforge.workflows.umite.count import (
     write_umi_counts,
 )
 from seqforge.workflows.umite.extract import (
+    EXTRACT_SUFFIX,
     TagGeometry,
     UmiExtractError,
+    extract_metrics,
     extract_umis,
     find_tag,
     geometry_for_read,
+    read_extract_summary,
     tagged_read_geometry,
 )
 
@@ -1443,7 +1447,14 @@ def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_t
     assert len(records) == 2 * sum(counts.values())  # every fragment of BOTH runs, interleaved
     assert [str(r.query_sequence)[-3:] for r in records] == (
         [marks["runa"]] * 2 * counts["runa"] + [marks["runb"]] * 2 * counts["runb"]
-    ), "a tagged read reached the uBAM beside a mate from the other run"
+    ), "a tagged read beside a mate from the other run"
+    # ...and the rule's OTHER output landed beside it, from the same rendered command. The uBAM
+    # above is `temp()` and this is not, which is the only reason a finished plate can still say how
+    # much of each cell carried a tag. Asserted where the command is really run, because whether an
+    # option reaches the verb is precisely the fact a formatted `shell:` block cannot show.
+    written = json.loads((tmp_path / f"results/cell_a/cell_a{EXTRACT_SUFFIX}").read_text())
+    assert written["fragments"] == sum(counts.values())
+    assert written["tagged"] == sum(counts.values())  # every synthetic read here carries the tag
 
 
 @pytest.mark.parametrize("module_name", star_modules())
@@ -2243,12 +2254,8 @@ def _reader_for_no_module(reg: Any, mp: pytest.MonkeyPatch) -> None:
 
 
 def _spec(reg: Any, mp: pytest.MonkeyPatch, **kw: object) -> None:
-    mp.setattr(
-        reg,
-        "_SPECS",
-        {**reg._SPECS, "map/star": reg.StatsSpec(artifact="x", read=_stub_reader, **kw)},
-        raising=True,
-    )
+    kw.setdefault("artifacts", (reg.SampleArtifact("x", _stub_reader),))
+    mp.setattr(reg, "_SPECS", {**reg._SPECS, "map/star": reg.StatsSpec(**kw)}, raising=True)
 
 
 def _rules_forgotten(reg: Any, mp: pytest.MonkeyPatch) -> None:
@@ -2264,6 +2271,10 @@ def _fan_in_reader_pointed_nowhere(reg: Any, mp: pytest.MonkeyPatch) -> None:
     _spec(reg, mp, read_fan_in=_plural_reader)
 
 
+def _spec_naming_no_artifact(reg: Any, mp: pytest.MonkeyPatch) -> None:
+    _spec(reg, mp, artifacts=())
+
+
 @pytest.mark.parametrize(
     ("drift", "named"),
     [
@@ -2272,19 +2283,29 @@ def _fan_in_reader_pointed_nowhere(reg: Any, mp: pytest.MonkeyPatch) -> None:
         (_rules_forgotten, r"map/star.*declare no cross-checks"),
         (_rules_and_silence_both, "both declare cross-checks"),
         (_fan_in_reader_pointed_nowhere, "no fan_in_artifact"),
+        (_spec_naming_no_artifact, "naming no per-sample artifact"),
     ],
-    ids=["no-reader", "reader-for-no-module", "rules-forgotten", "rules-and-silence", "fan-in"],
+    ids=[
+        "no-reader",
+        "reader-for-no-module",
+        "rules-forgotten",
+        "rules-and-silence",
+        "fan-in",
+        "no-artifact",
+    ],
 )
 def test_the_registry_guard_catches_every_way_a_module_and_its_reader_can_drift(
     drift: Callable[[Any, pytest.MonkeyPatch], None],
     named: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A guard nobody has seen fail is a guard that may not be looking, and it has five ways to look.
+    """A guard nobody has seen fail is a guard that may not be looking, and it has six ways to look.
 
-    One row per way a maintainer gets this wrong. The last is the quietest: a fan-in reader for a
-    module declaring no such artifact reads nothing forever, because `read_pipeline_stats` has no
-    path to hand it one. Every registry is rebound rather than mutated.
+    One row per way a maintainer gets this wrong. The two quietest are the last: a fan-in reader for
+    a module declaring no such artifact reads nothing forever, because `read_pipeline_stats` has no
+    path to hand it one — and a spec naming no per-sample artifact at all reads nothing forever
+    while still looking, from the registry, exactly like a module that reports. Every registry is
+    rebound rather than mutated.
     """
     from seqforge.workflows import stats as stats_registry
 
@@ -2647,11 +2668,15 @@ def test_a_bug_in_a_metric_table_is_raised_and_not_filed_as_a_corrupt_artifact(
     def buggy(path: Path, sample: str) -> SampleStats:
         raise KeyError("a metric table asked for a key it never wrote")
 
-    spec = stats_registry._SPECS["map/starsolo"]
+    landed = stats_registry._SPECS["map/starsolo"].artifacts[0]
     monkeypatch.setattr(
         stats_registry,
         "_SPECS",
-        {"map/starsolo": stats_registry.StatsSpec(artifact=spec.artifact, read=buggy)},
+        {
+            "map/starsolo": stats_registry.StatsSpec(
+                artifacts=(stats_registry.SampleArtifact(landed.filename, buggy),)
+            )
+        },
         raising=True,
     )
 
@@ -4074,11 +4099,18 @@ def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the
 # a hand-built AnnData that could only ever agree with itself.
 
 
-def _plate_results(tmp_path: Path, *, logged: Sequence[str] = ("cell_a", "cell_b")) -> Path:
-    """A finished `map/star-umi` run on disk: the fan-in h5ad, plus a `Log.final.out` per cell.
+def _plate_results(
+    tmp_path: Path,
+    *,
+    logged: Sequence[str] = ("cell_a", "cell_b"),
+    extracted: Sequence[str] = (),
+) -> Path:
+    """A finished `map/star-umi` run on disk: the fan-in h5ad, plus per-cell artifacts.
 
     `logged` is which cells got as far as writing an alignment log — a preempted plate has cells the
     counter measured and STAR's per-cell log did not survive for, which is exactly the union case.
+    `extracted` is which cells kept the summary the extraction wrote a rule earlier; it defaults to
+    none so the tests about the log/fan-in join stay about two artifacts and not three.
     """
     db, cells = _plate(tmp_path)
     results = tmp_path / "results"
@@ -4087,6 +4119,20 @@ def _plate_results(tmp_path: Path, *, logged: Sequence[str] = ("cell_a", "cell_b
         _write(
             results / sample / "Log.final.out",
             "".join(f"  {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()),
+        )
+    for sample in extracted:
+        _write(
+            results / sample / f"{sample}{EXTRACT_SUFFIX}",
+            json.dumps(
+                {
+                    "sample": sample,
+                    "geometry": _PLATE_GEOMETRY,
+                    "fragments": 100,
+                    "tagged": 27,
+                    "untagged": 73,
+                    "offsets": {"0": 26, "13": 1},
+                }
+            ),
         )
     return results
 
@@ -4250,6 +4296,63 @@ def test_a_corrupt_plate_object_costs_a_note_and_never_the_cells_that_did_land(
     assert "uniquely_mapped" in _by_key(stats.samples[0])
     assert not set(FATES) & set(_by_key(stats.samples[0]))
     assert any(PLATE_H5AD in note for note in stats.notes), stats.notes
+
+
+def test_three_artifacts_are_three_chapters_of_one_row_and_never_three_rows(
+    tmp_path: Path,
+) -> None:
+    """The plate is the first module with TWO per-sample artifacts, and a cell is still one row.
+
+    Each speaks about a different step and none is a version of another: the extraction summary says
+    what the FASTQs held and how much of it carried a tag, STAR's log says what it did with the reads
+    it was then handed, and the plate object says what the counter did with the fragments. A page
+    that carried them separately would show every cell two or three times.
+
+    The tagged fraction is what the second artifact is for. It is the per-cell readout of whether the
+    chemistry behaved and no other artifact on a finished plate carries it — STAR never saw an
+    untagged read as anything but a read — so before this landed it reached the page from nowhere.
+    Columns read in pipeline order, which is the registry's declared order and not the order the
+    files happened to land in.
+    """
+    results = _plate_results(tmp_path, extracted=["cell_a", "cell_b"])
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None and stats.complete
+    assert [s.sample_id for s in stats.samples] == [
+        "cell_a",
+        "cell_b",
+    ]  # two cells, not four or six
+    cell_a = _by_key(stats.samples[0])
+    assert cell_a["umi_tagged"].value == pytest.approx(0.27)
+    assert cell_a["extract_fragments"].value == 100
+    assert cell_a["umi_anchor_drift"].value == pytest.approx(1 / 27)
+    # ...beside both other halves, on the same row.
+    assert "uniquely_mapped" in cell_a and set(FATES) <= set(cell_a)
+    keys = [key for key, _ in stats.columns]
+    assert keys.index("umi_tagged") < keys.index("uniquely_mapped") < keys.index("no_feature")
+
+
+def test_an_unreadable_summary_costs_its_own_columns_and_names_the_file_it_could_not_read(
+    tmp_path: Path,
+) -> None:
+    """Two per-sample artifacts are two ways to be unreadable, so the note has to say which.
+
+    The registry's note used to read "its QC artifact could not be read", which was total while a
+    module had one; with two it sends a reader looking through the wrong file. The rest is the rule
+    that has always held one artifact out: bad bytes cost their own columns, and this cell keeps
+    every column its alignment log and the plate object gave it.
+    """
+    results = _plate_results(tmp_path, extracted=["cell_a", "cell_b"])
+    (results / "cell_a" / f"cell_a{EXTRACT_SUFFIX}").write_text("{not json")
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None
+    cell_a, cell_b = (_by_key(s) for s in stats.samples)
+    assert "umi_tagged" not in cell_a and "umi_tagged" in cell_b
+    assert "uniquely_mapped" in cell_a and set(FATES) <= set(cell_a)
+    assert stats.notes == [f"cell_a: cell_a{EXTRACT_SUFFIX} could not be read (JSONDecodeError)"]
 
 
 def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> None:
@@ -4651,8 +4754,18 @@ def test_a_single_end_plate_writes_one_unpaired_record_per_read(tmp_path: Path) 
     # A fragment is one record here and two on a paired plate, which is why the count is not `pairs`.
     assert (stats.fragments, stats.tagged, stats.untagged) == (3, 2, 1)
     assert stats.offsets == {0: 1, 13: 1}
-    # The verb prints this object, so the rename is the only thing that may move in its key set.
-    assert set(stats.to_dict()) == {"sample", "fragments", "tagged", "untagged", "offsets"}
+    # The verb prints this object AND it is what lands on disk, so its key set is a published shape:
+    # a rename here silently costs a column on every plate's page, and the file is the only surviving
+    # account of the extraction once the uBAM is reclaimed.
+    assert set(stats.to_dict()) == {
+        "sample",
+        "seqforge",
+        "geometry",
+        "fragments",
+        "tagged",
+        "untagged",
+        "offsets",
+    }
 
 
 def test_a_tagged_single_end_read_is_trimmed_from_its_anchor_and_carries_its_umi(
@@ -4784,6 +4897,150 @@ def test_the_extractor_shells_out_to_nothing_so_its_rule_needs_no_image(
 
     assert "subprocess" not in imported_by("workflows/umite/extract.py")
     assert "subprocess" in imported_by("workflows/cram.py")
+
+
+# ---- the summary that outlives the uBAM it measured ----------------------------------------------
+#
+# The uBAM is `temp()`, so once the aligner and the CRAM converter have consumed it every record is
+# gone -- and with them the only evidence of how many fragments carried a tag at all. That share is
+# the per-cell readout of whether the chemistry behaved (a tunable tagmentation parameter, published
+# from 6.9% to 70.5%), so a cell at 2% and a cell at 28% are a bench problem and a normal run that
+# nothing downstream can tell apart. These drive the REAL writer and the REAL reader, because the
+# failure being prevented is a rename in either: a report that finds nothing looks exactly like a
+# plate that was never extracted, so nothing raises and nobody is told.
+
+
+def _extracted(tmp_path: Path, reads: list[tuple[str, str]], *, sample: str = "cell") -> Path:
+    """Extract one cell into `<results>/<sample>/`, laid out as the rule lays it out, -> the summary."""
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, r2 = _write_pair(tmp_path, reads)
+    cell = tmp_path / "results" / sample
+    summary = cell / f"{sample}{EXTRACT_SUFFIX}"
+    extract_umis(
+        [r1], [r2], cell / f"{sample}.unaligned.bam", geometry, sample=sample, summary=summary
+    )
+    return summary
+
+
+def test_what_the_extraction_measured_is_still_on_disk_once_the_ubam_is_reclaimed(
+    tmp_path: Path,
+) -> None:
+    """The whole point of the artifact: snakemake deletes the uBAM, and the counts stay.
+
+    Asserted by deleting the BAM, which is exactly what `temp()` does the moment the mapping and the
+    CRAM jobs have consumed it. Before this landed the numbers went to stdout alone, so the only
+    surviving copy was whatever captured the workflow's output -- on a cluster, a scheduler log
+    somebody rotates -- and after the BAM was reclaimed nothing on disk could tell a dead library
+    from a normal one.
+
+    The payload is checked against what the extraction returned rather than against literals, so a
+    writer that serialises the wrong field goes red here instead of shipping a plausible file.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, r2 = _write_pair(tmp_path, [(_tagged("ACGTACGT"), _CDNA), (_CDNA, _CDNA)])
+    ubam, summary = tmp_path / "cell.unaligned.bam", tmp_path / f"cell{EXTRACT_SUFFIX}"
+
+    stats = extract_umis([r1], [r2], ubam, geometry, sample="cell", summary=summary)
+    ubam.unlink()
+
+    assert summary.is_file()
+    assert json.loads(summary.read_text()) == stats.to_dict()
+    # And every field the artifact was asked to carry is in it, by name: these are what a reader
+    # needs to judge a cell, and the geometry is what makes the rest interpretable at all.
+    written = json.loads(summary.read_text())
+    assert (written["fragments"], written["tagged"], written["untagged"]) == (2, 1, 1)
+    assert written["offsets"] == {"0": 1}
+    assert written["geometry"] == geometry.render()
+    assert written["seqforge"] == seqforge_version
+
+
+def test_no_summary_is_written_when_none_is_asked_for(tmp_path: Path) -> None:
+    """A path and not a convention: nothing is derived from `--out`, so nothing appears beside it.
+
+    The rule DECLARES the summary and passes what it declared, and a path guessed from the BAM's
+    would be a second owner of that filename -- the owner that goes stale in silence. A hand
+    invocation that asks for no summary must therefore leave the directory as it found it.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1, r2 = _write_pair(tmp_path, [(_tagged("ACGTACGT"), _CDNA)])
+    out = tmp_path / "bam" / "cell.unaligned.bam"
+
+    extract_umis([r1], [r2], out, geometry, sample="cell")
+
+    assert [p.name for p in out.parent.iterdir()] == ["cell.unaligned.bam"]
+
+
+def test_the_summary_the_extractor_writes_is_the_one_the_report_reads_back(tmp_path: Path) -> None:
+    """The writer decides the payload keys and the reader looks them up -- through the real writer.
+
+    They live in one file precisely so they cannot drift, and a test that handed `extract_metrics` a
+    dict of its own could not catch a rename in the writer: the reader would keep resolving against
+    the test's dict while the page silently lost the one column this artifact exists for.
+
+    The tagged fraction is that column. It is deliberately UNGRADED -- a library tuned low is a
+    choice somebody made at the bench, and inventing a bar would tint a page over a decision rather
+    than over a fault -- so what is asserted is the number and the absence of a verdict on it.
+    """
+    summary = _extracted(
+        tmp_path,
+        [(_tagged("ACGTACGT"), _CDNA), (_tagged("TTTTGGCC", offset=13), _CDNA), (_CDNA, _CDNA)],
+    )
+
+    sample = read_extract_summary(summary, "cell")
+    got = {m.key: m for m in sample.metrics}
+
+    assert got["extract_fragments"].value == 3
+    assert got["umi_tagged"].value == pytest.approx(2 / 3)
+    assert got["umi_anchor_drift"].value == pytest.approx(1 / 2)  # one of the two tags is at 13
+    assert {m.level for m in sample.metrics} == {"none"}
+    # One headline, and it is the chemistry readout rather than a count: ten columns is past the
+    # width at which the report folds the table away, so which survives the fold is a decision.
+    assert {m.key for m in sample.metrics if m.headline} == {"umi_tagged"}
+
+
+def test_a_cell_that_held_no_fragment_reports_no_tagged_share_rather_than_zero() -> None:
+    """The one division here with no answer, and absence is what it produces.
+
+    Pure over a payload, which is the seam the loader exists to keep testable. A cell whose FASTQs
+    held nothing cannot have a share of them tagged, and a rendered `0.0%` is a number a reader acts
+    on -- the same rule `fate_metrics` keeps for a cell the counter measured nothing in. The count
+    itself is a real zero and stays: it was measured.
+    """
+    sample = extract_metrics(
+        {"fragments": 0, "tagged": 0, "offsets": {}, "geometry": _PLATE_GEOMETRY}, "cell"
+    )
+
+    got = {m.key: m for m in sample.metrics}
+    assert got["extract_fragments"].value == 0
+    assert "umi_tagged" not in got
+    assert "umi_anchor_drift" not in got
+
+
+def test_the_drift_column_is_measured_against_the_start_the_geometry_declares() -> None:
+    """The offsets histogram compressed to the number it is read for, and against the right origin.
+
+    The search is unanchored because a measured 4.3% of exact hits do not start where the layout
+    declares -- so a cell's own figure is what makes that measurement checkable rather than trusted,
+    and a distribution that has shifted is a primer or trimming problem no count matrix explains.
+    Measured against a GUESSED origin the column would be a different number that looks like this
+    one, which is why the declared start is parsed out of the geometry the payload carries and a
+    payload with no readable geometry drops the column instead of inventing a denominator.
+    """
+    counted = {"fragments": 10, "tagged": 8, "offsets": {"0": 6, "13": 1, "15": 1}}
+
+    drifted = extract_metrics({**counted, "geometry": _PLATE_GEOMETRY}, "cell")
+    assert {m.key: m.value for m in drifted.metrics}["umi_anchor_drift"] == pytest.approx(2 / 8)
+
+    # A geometry that does not round-trip is a summary this reader cannot interpret, not a crash:
+    # `TagGeometry.parse` refuses one, and the refusal is not among the exceptions the registry
+    # tolerates, so an uncaught one would cost the whole page rather than one column.
+    for unreadable in ({}, {"geometry": ""}, {"geometry": "R1:umi@0+8"}):
+        thin = extract_metrics({**counted, **unreadable}, "cell")
+        keys = {m.key for m in thin.metrics}
+        assert "umi_anchor_drift" not in keys
+        assert {"extract_fragments", "umi_tagged"} <= keys, (
+            "the counts survive an unreadable geometry"
+        )
 
 
 def _revcomp(seq: str) -> str:
