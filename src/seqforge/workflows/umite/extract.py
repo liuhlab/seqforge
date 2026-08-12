@@ -35,11 +35,17 @@ hits, **354 (4.3%) are not at offset 0**, clustering at 13, 15 and 23. A port th
 declared offset silently loses every one of them. So the declared offset is the *lower bound* of a
 search, never the match position.
 
-**The search stops at 24, and that bound is mechanistic rather than fitted.** No exact hit anywhere
-in 18,901 reads starts past offset 24 — the bound being Tn5 mosaic-end read-through, which is what
-puts anything in front of the tag at all. Capping there costs 0 exact hits, and the 113 of 8,976
-fuzzy hits it drops (-1.26%) are a purity gain: a tolerant anchor matches spurious 11-mers as deep
-as offset 133, at offsets a fixed-offset chemistry cannot produce.
+**The matcher is an exact anchor, found anywhere from its declared start to 24 bases past it, closed
+by a trailing motif tolerant of one substitution.** There is no fuzzy path: the reference's
+mismatch- and indel-tolerant fallback was priced against this fixture and refused on purity — the
+step to it fabricates a tag in 26% of the reads it adds — so this port is stricter than the
+reference on the anchor and looser only on the motif, deliberately (issue #352, Out of scope).
+
+**That 24 is mechanistic rather than fitted.** No exact hit anywhere in 18,901 reads starts past
+offset 24 — the bound being Tn5 mosaic-end read-through, which is what puts anything in front of the
+tag at all. Capping there costs 0 exact hits, and the 113 of 8,976 hits a tolerant matcher would
+find past it (-1.26%) are ones not to have: it matches spurious 11-mers as deep as offset 133, at
+offsets a fixed-offset chemistry cannot produce.
 
 **R1 and R2 are paired positionally**, as every other tool does, so the input contract stops
 depending on who produced the FASTQ. That dissolves a whole hazard class rather than guarding it:
@@ -196,15 +202,6 @@ class TagGeometry:
     def span(self) -> int:
         """How many bases one match consumes: tag + UMI + trailing motif."""
         return self.cdna_offset
-
-    @property
-    def window(self) -> int:
-        """How much of R1 the search may look at — the extraction window.
-
-        Derived, never a literal: the deepest legal match starts at ``anchor_start + drift`` and
-        runs for ``span``. For the shipped plate chemistry that is 0 + 24 + 22 = the first 46 bp.
-        """
-        return self.anchor_start + MAX_ANCHOR_DRIFT + self.span
 
     def render(self) -> str:
         """The whole geometry as ONE string — what the composer emits and the rule hands over.
@@ -412,11 +409,16 @@ def find_tag(seq: str, geometry: TagGeometry) -> TagMatch | None:
     least one base of cDNA to be worth aligning, and a zero-length record is one an aligner refuses
     rather than skips — so a read that is all prefix falls through to the untagged path, keeping its
     bases, instead of becoming an empty record with a UMI on it.
+
+    **The read is searched where it lies**, with no prefix cut from it first. What bounds the search
+    is the last offset the anchor may START at, and a copy of the extraction window on top of that
+    bounds nothing further: the anchor is never longer than the span a match consumes, so a hit
+    inside the search bound is inside the window already. Slicing one anyway cost 0.05 µs a read to
+    say nothing.
     """
     lowest, highest = geometry.anchor_start, geometry.anchor_start + MAX_ANCHOR_DRIFT
-    window = seq[: geometry.window]
-    stop = highest + len(geometry.anchor)  # `find`'s end is exclusive over the SLICE, not the start
-    at = window.find(geometry.anchor, lowest, stop)
+    stop = highest + len(geometry.anchor)  # `find`'s end is exclusive, so the last legal start + it
+    at = seq.find(geometry.anchor, lowest, stop)
     while at != -1:
         umi_from = at + geometry.umi_offset
         trail_from = at + geometry.trailing_offset
@@ -426,7 +428,7 @@ def find_tag(seq: str, geometry: TagGeometry) -> TagMatch | None:
             TRAILING_MAX_MISMATCH,
         ):
             return TagMatch(at, seq[umi_from : umi_from + geometry.umi_length])
-        at = window.find(geometry.anchor, at + 1, stop)
+        at = seq.find(geometry.anchor, at + 1, stop)
     return None
 
 
@@ -678,6 +680,13 @@ def _header(sample: str) -> dict[str, object]:
     }
 
 
+#: The seven SAM fields between the flag and the sequence, and an unaligned record has none of them:
+#: no reference, no position, no mapping quality, no CIGAR, no mate reference and no template
+#: length. Their placeholders are the same for every record this module writes, so they are spelled
+#: once here rather than rebuilt per record.
+_UNALIGNED_FIELDS = "\t*\t0\t0\t*\t*\t0\t0\t"
+
+
 def _segment(
     header: pysam.AlignmentHeader,
     *,
@@ -688,17 +697,32 @@ def _segment(
     sample: str,
     umi: str | None,
 ) -> pysam.AlignedSegment:
-    """One unaligned BAM record. The UMI rides in ``UB``, and nothing rides in the name."""
-    segment = pysam.AlignedSegment(header)
-    segment.query_name = name
-    segment.flag = flag
-    # Sequence before qualities, and not the other way round: assigning `query_sequence` discards
-    # whatever qualities the record held, so the reverse order writes a record with none.
-    segment.query_sequence = seq
-    segment.query_qualities = pysam.qualitystring_to_array(qual)
-    segment.set_tag("RG", sample, value_type="Z")
-    if umi is not None:
-        segment.set_tag("UB", umi, value_type="Z")
+    """One unaligned BAM record. The UMI rides in ``UB``, and nothing rides in the name.
+
+    Parsed from one SAM line rather than assembled attribute by attribute: 2.64 µs a record became
+    0.65, most of that the per-base quality array the string form never has to build, since a SAM
+    line carries the quality string the FASTQ already handed over. **What is written is unchanged**
+    — this is how a record is built, not what it holds, and the byte-identity test is what says so.
+
+    Two bytes need saying, because both are places where the two constructions do NOT agree by
+    default. The record's **bin** — the index field of a coordinate-sorted BAM, meaningless in an
+    unsorted uBAM nothing indexes — is put back to the zero an unset record has always carried,
+    because parsing fills in the bin htslib computes for an unmapped read and this file's bytes are
+    its identity. And a **quality string of exactly** ``*`` is SAM's word for *no qualities at all*,
+    so the one-base read whose Phred happens to be 9 has its quality restored by hand rather than
+    silently written as a record that never had one.
+
+    The input gate covers the rest: it takes the QNAME as one whitespace-free token and refuses a
+    record whose quality is not as long as its sequence. What it does not check is a tab inside
+    either — a FASTQ that is not one — and parsing stops on it where assembling encoded it as a base.
+    """
+    tags = f"\tRG:Z:{sample}" if umi is None else f"\tRG:Z:{sample}\tUB:Z:{umi}"
+    segment = pysam.AlignedSegment.fromstring(
+        f"{name}\t{flag}{_UNALIGNED_FIELDS}{seq}\t{qual}{tags}", header
+    )
+    segment.bin = 0
+    if qual == "*":
+        segment.query_qualities = pysam.qualitystring_to_array(qual)
     return segment
 
 

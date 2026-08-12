@@ -744,6 +744,9 @@ def io_umi_count(
     out: Path = typer.Option(
         ..., "--out", help="Output .h5ad path — one object for the whole plate."
     ),
+    threads: int = typer.Option(
+        1, "--threads", help="How many cells to count at once. 1 counts the plate on one core."
+    ),
 ) -> None:
     """Count every cell of a plate into ONE .h5ad — the fan-in of the SMART-seq3 pipeline.
 
@@ -764,6 +767,12 @@ def io_umi_count(
     `<name>.db` it builds from it, and exposes the first, so the second is derived from it and the
     module below stays strictly typed and testable against a synthetic annotation. Exit 2 on a
     malformed cell argument, exit 3 on an unresolvable annotation or a missing BAM.
+
+    **`--threads` counts cells at once, and defaults to one.** The counting rule asks the scheduler
+    for threads and hands them over here; a hand invocation that says nothing gets the single-core
+    plate it used to get. The cells are independent and the annotation is read once before the
+    fan-out, so the width buys close to itself — and the h5ad's rows stay in the order the cells were
+    given on the command line, whatever order they finish in.
     """
     from ..workflows.umite.count import UmiCountError, parse_cells, write_umi_counts
 
@@ -783,7 +792,7 @@ def io_umi_count(
         raise typer.Exit(3) from exc
     try:
         gtf = Path(str(Genome(assembly).get_gtf_path(annotation)))
-        written = write_umi_counts(plate, gtf.with_suffix(".db"), out)
+        written = write_umi_counts(plate, gtf.with_suffix(".db"), out, workers=threads)
     except UmiCountError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc

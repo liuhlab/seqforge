@@ -88,11 +88,19 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
     this is the test that goes red if that layout ever moves. `Genome` is stubbed because resolving
     a real assembly needs a genome store this box may not have; what is under test is the
     derivation and the wiring, not liulab-genome.
+
+    **`--threads` is the other thing it marshals, and it is the whole of what #397 changed here.**
+    The counting rule asks the scheduler for threads and renders them into this command; a verb that
+    accepted the option and dropped it would leave the plate on one core at exit 0, which is the
+    state this ticket found. So the number is caught on its way into the counter rather than
+    inferred from how fast one cell counted.
     """
     import anndata as ad
     import genome as liulab_genome
     import gffutils
     import pysam
+
+    from seqforge.workflows.umite import count as counter
 
     gtf = tmp_path / "synthetic.gtf"
     gtf.write_text(
@@ -135,14 +143,24 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
 
     monkeypatch.setattr(liulab_genome, "Genome", _StubGenome)
 
+    asked_for: list[int] = []
+    write_counts = counter.write_umi_counts
+
+    def note_the_width(cells: Any, db: Path, out: Path, workers: int = 1) -> Path:
+        asked_for.append(workers)
+        return write_counts(cells, db, out, workers)
+
+    monkeypatch.setattr(counter, "write_umi_counts", note_the_width)
+
     written = tmp_path / "plate.h5ad"
     result = runner.invoke(
         app,
         ["io", "umi-count", f"cell_a={bam}", "--assembly", "mm10",
-         "--annotation", "synthetic", "--out", str(written)],
+         "--annotation", "synthetic", "--out", str(written), "--threads", "3"],
     )  # fmt: skip
 
     assert result.exit_code == 0, result.stdout
+    assert asked_for == [3], "the verb took a thread count and counted the plate on one core"
     assert json.loads(result.stdout)["written"] == str(written)
     adata = ad.read_h5ad(written)
     assert list(adata.obs_names) == ["cell_a"]

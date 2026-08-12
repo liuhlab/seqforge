@@ -133,6 +133,7 @@ from seqforge.workflows.umite.count import (
     N_FRAGMENTS,
     PRIMARY_MATRIX,
     UmiCountError,
+    _step_index,
     correct_umis,
     count_bam,
     count_plate,
@@ -1220,6 +1221,11 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     assert re.search(r"--units \S*units\.tsv --sample \S+", plan), plan
     assert not re.search(r"--r1\b|--r2\b", plan), plan
     assert "--readFilesType SAM PE" in plan
+    # The fan-in SPENDS the threads it asks the scheduler for. It requested them and handed the verb
+    # none of them, so the one job that runs after every cell has finished counted a whole plate on
+    # one core of an allocation it was holding whole. Read off the rendered command, because a rule
+    # whose `threads:` and whose command line disagree is exactly what that looked like.
+    assert "--threads 4" in _rendered_shell(plan)["umi_count"][""]
 
 
 def test_the_three_prime_clip_takes_its_arity_from_the_same_fact_the_read_type_does(
@@ -3743,6 +3749,50 @@ def test_the_annotation_is_read_from_the_built_database_with_no_gtf_parse(tmp_pa
     assert annotation.gene_bodies("chrUn_synthetic", 50, 70) == frozenset()
 
 
+def test_the_overlap_index_answers_every_span_the_intervals_do_and_lends_out_its_interned_set() -> (
+    None
+):
+    """The step index against a brute-force sweep of the intervals it was built from.
+
+    `genes` is the busiest path in the counter — once per fragment of every cell — so it is the one
+    place where a faster search would be worth a wrong answer, and the two things it has to get
+    right are both invisible in a whole-plate fate assertion. Several features opening or closing at
+    one base collapse into a single segment, which is where an off-by-one in either bound hides; and
+    a span touching exactly one segment is handed the interned set itself rather than a copy of it,
+    which is only sound because that set is immutable. The oracle below is the intervals rather than
+    a second reading of the index, so a wrong bound fails it instead of agreeing with it.
+    """
+    intervals = [
+        (10, 40, 0),  # three features opening at the same base, two of them closing at the same one
+        (10, 40, 1),
+        (10, 25, 2),
+        (25, 60, 3),  # opens exactly where gene 2 closes: adjacent, never overlapping
+        (40, 40, 4),  # zero length, so it covers nothing and must open no segment at all
+        (70, 90, 5),
+    ]
+    index = _step_index(intervals)
+
+    def covering(start: int, end: int) -> frozenset[int]:
+        span = set(range(start, end))
+        return frozenset(gene for s, e, gene in intervals if span & set(range(s, e)))
+
+    for start in range(0, 100):
+        for end in range(start, 101):  # end == start is a span of no bases and covers nothing
+            assert index.genes(start, end) == covering(start, end), (start, end)
+
+    # The single-segment answer is the index's own object, not a rebuild of it: `frozenset(found)`
+    # would return something equal and distinct, so identity is what says the copy is gone.
+    inside = index.genes(11, 20)
+    assert inside == frozenset({0, 1, 2})
+    assert any(inside is interned for interned in index.sets)
+
+    # A contig whose features were all zero-length is a contig with none, and answers empty for
+    # every span rather than raising on an index with nothing in it.
+    empty = _step_index([(5, 5, 0)])
+    assert empty.genes(0, 1000) == frozenset()
+    assert _step_index([]).genes(0, 1000) == frozenset()
+
+
 def test_a_missing_or_unreadable_annotation_database_is_a_refusal_not_an_empty_gene_axis(
     tmp_path: Path,
 ) -> None:
@@ -4010,6 +4060,77 @@ def test_umi_correction_absorbs_a_neighbour_only_when_the_seed_can_explain_it() 
     assert list(correct_umis({"TTTTTTTT": 3, "AAAAAAAA": 3})) == ["AAAAAAAA", "TTTTTTTT"]
 
 
+def test_umi_correction_by_neighbour_index_answers_what_the_full_scan_answers() -> None:
+    """The correction reads its neighbours out of an index; this is the scan it has to agree with.
+
+    `scan` below is the reference's algorithm as the counter used to hold it: walk the survivors
+    from least abundant upward and STOP at the first one too abundant for the seed to explain. The
+    index cannot walk, so it applies that stop as arithmetic on each neighbour it looks up, and the
+    two are only the same function because the survivors are in count order and the seed's count
+    never rises as it absorbs. Nothing enforces that pair of properties, so this asserts it: the
+    moment the stop and the filter disagree on any bucket, one of the two is wrong and this goes
+    red. It compares key order as well as totals, so a lost tie-break lands here too — that is the
+    same guarantee the byte-identical plate rests on, priced at a millisecond instead of an h5ad.
+
+    Buckets come from a fixed seed rather than from `hypothesis`, which this project does not depend
+    on and would not be worth depending on for one property. Three letters, so Hamming-1 neighbours
+    are common at these lengths; several lengths including buckets that mix them, because refusing
+    to merge a ragged pair is a property of the index's key rather than a rule anybody wrote down,
+    and a key is exactly the kind of thing that stops carrying a length by accident. The two counters
+    at the end are what keep the generator honest: a widened alphabet or a flattened count
+    distribution would leave the buckets with nothing to merge and quietly make all of this vacuous.
+    """
+    import random
+
+    from seqforge.workflows.umite.count import COUNT_RATIO_THRESHOLD, HAMMING_THRESHOLD
+
+    def hamming_within(a: str, b: str, threshold: int) -> bool:
+        if len(a) != len(b):
+            return False
+        seen = 0
+        for x, y in zip(a, b, strict=True):
+            if x != y:
+                seen += 1
+                if seen > threshold:
+                    return False
+        return True
+
+    def scan(observations: dict[str, int]) -> dict[str, int]:
+        remaining = sorted(observations.items(), key=lambda item: (-item[1], item[0]))
+        corrected: dict[str, int] = {}
+        while remaining:
+            seed, seed_count = remaining.pop(0)
+            corrected[seed] = seed_count
+            i = len(remaining) - 1
+            while i >= 0:
+                candidate, candidate_count = remaining[i]
+                if (COUNT_RATIO_THRESHOLD * candidate_count) - 1 > seed_count:
+                    break
+                if hamming_within(seed, candidate, HAMMING_THRESHOLD):
+                    corrected[seed] += candidate_count
+                    remaining.pop(i)
+                i -= 1
+        return corrected
+
+    rng = random.Random(20260811)
+    with_a_merge = 0
+    ragged = 0
+    for _ in range(400):
+        lengths = rng.choice(([6], [8], [10], [6, 8], [6, 8, 10]))
+        bucket: dict[str, int] = {}
+        for _ in range(rng.randint(1, 40)):
+            umi = "".join(rng.choice("ACG") for _ in range(rng.choice(lengths)))
+            bucket[umi] = rng.randint(1, 12)
+        corrected = correct_umis(bucket)
+        assert corrected == scan(bucket), bucket
+        assert list(corrected) == list(scan(bucket)), bucket
+        with_a_merge += len(corrected) < len(bucket)
+        ragged += len({len(umi) for umi in bucket}) > 1
+
+    assert with_a_merge > 100, "the generator stopped producing neighbours to merge"
+    assert ragged > 50, "the generator stopped producing UMIs of unequal length"
+
+
 def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
     tmp_path: Path,
 ) -> None:
@@ -4053,17 +4174,33 @@ def test_counting_the_same_plate_twice_gives_a_byte_identical_h5ad(tmp_path: Pat
     The reference picks an alignment with an unseeded `random.choice` when a read has several
     primary alignments. There is nothing to choose here — every tie-break is written down — and
     this is what proves it, including the iteration orders that are only accidentally stable.
+
+    **And it holds across the fan-out, which is where determinism is easiest to lose.** Counting a
+    plate on N cores makes the order cells FINISH in a property of their depth and of the machine,
+    so the two pooled files below are the ones that would differ if any row, any matrix or any
+    correction inherited that order instead of the caller's. All four are the same bytes: the width
+    is how many cells are counted at once and nothing else.
     """
     db, cells = _plate(tmp_path)
 
     first = write_umi_counts(cells, db, tmp_path / "first.h5ad")
     second = write_umi_counts(cells, db, tmp_path / "second.h5ad")
+    pooled = write_umi_counts(cells, db, tmp_path / "pooled.h5ad", workers=4)
+    again = write_umi_counts(cells, db, tmp_path / "pooled-again.h5ad", workers=4)
 
     assert first.read_bytes() == second.read_bytes()
+    assert pooled.read_bytes() == again.read_bytes()
+    assert pooled.read_bytes() == first.read_bytes()
 
 
 def test_a_plate_refuses_rather_than_writing_a_row_that_names_two_cells(tmp_path: Path) -> None:
-    """A sample id is an h5ad row, so two cells sharing one refuses instead of overwriting."""
+    """A sample id is an h5ad row, so two cells sharing one refuses instead of overwriting.
+
+    The last case is the one the fan-out newly has to keep: a cell that cannot be counted is a
+    refusal in a worker, and a worker's traceback says nothing about which of hundreds of cells it
+    belonged to. It carries the sample id here whichever way the plate ran, which is why the same
+    refusal is asserted at both widths.
+    """
     db, cells = _plate(tmp_path)
     annotation = read_annotation(db)
 
@@ -4071,8 +4208,87 @@ def test_a_plate_refuses_rather_than_writing_a_row_that_names_two_cells(tmp_path
         count_plate([("same", cells[0][1]), ("same", cells[1][1])], annotation)
     with pytest.raises(UmiCountError, match="no cells"):
         count_plate([], annotation)
-    with pytest.raises(UmiCountError, match="missing"):
-        count_plate([("gone", tmp_path / "never-aligned.bam")], annotation)
+    for workers in (1, 4):
+        with pytest.raises(UmiCountError, match="'gone'.*missing"):
+            count_plate(
+                [("counted", cells[0][1]), ("gone", tmp_path / "never-aligned.bam")],
+                annotation,
+                workers=workers,
+            )
+
+
+def test_the_plate_is_counted_on_every_core_it_was_given_and_on_one_where_fork_is_not_offered(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The fan-out's two arms: what the width actually buys, and what happens where it cannot.
+
+    **The width is asserted with a barrier, because nothing weaker can tell a pool from a loop.**
+    Every cell waits for every other before it returns, so a plate handed four workers finishes only
+    if four cells really were being counted at once — a counter that quietly ran them one after
+    another blocks and the barrier breaks. It also makes the completion order genuinely
+    indeterminate, which is what puts the row-order claim under load: all four cells finish at the
+    same instant, so a plate that collected results as they arrived rather than by index would
+    scramble exactly here. The fragment counts are read back per row, because obs_names in the right
+    order over rows in the wrong one is the failure that looks correct.
+
+    **The other arm is `spawn`, which this module refuses.** Told that fork is not on offer, the
+    counter must count the plate itself rather than pickle the annotation into a worker per cell —
+    proved by every cell's pid being this process's, which a forked plate could not report — and it
+    must produce the same object it produces any other way.
+
+    `_count_cell` is where both arms hook in because it is the one thing a worker does; patching it
+    is what lets the barrier and the pid land inside the counting rather than beside it. A fork
+    inherits the patch along with everything else, which is the same property the annotation reaches
+    a worker by.
+    """
+    import multiprocessing
+    import os
+
+    from seqforge.workflows.umite import count as counter
+
+    db, two = _plate(tmp_path)
+    # Four cells of two shapes, alternating: the deep cell is 13 fragments and the shallow one is 1,
+    # so a plate collected by completion rather than by index reads back as [1, 13, 1, 13].
+    plate = [(f"cell_{i}", bam) for i, (_id, bam) in enumerate(two * 2)]
+    depths = [len(_PLATE), 1, len(_PLATE), 1]
+    annotation = read_annotation(db)
+    serial, _ = count_plate(plate, annotation)
+    serial.write_h5ad(tmp_path / "serial.h5ad")
+    real = counter._count_cell
+
+    if "fork" in multiprocessing.get_all_start_methods():
+        barrier = multiprocessing.get_context("fork").Barrier(len(plate))
+
+        def in_lockstep(bam: Path, annotation: Any) -> Any:
+            counted = real(bam, annotation)
+            barrier.wait(timeout=60)
+            return counted
+
+        monkeypatch.setattr(counter, "_count_cell", in_lockstep)
+        pooled, _ = count_plate(plate, annotation, workers=len(plate))
+        monkeypatch.undo()
+
+        assert list(pooled.obs_names) == [sample for sample, _ in plate]
+        assert [int(n) for n in _frame(pooled.obs)[N_FRAGMENTS]] == depths
+        pooled.write_h5ad(tmp_path / "pooled.h5ad")
+        assert (tmp_path / "pooled.h5ad").read_bytes() == (tmp_path / "serial.h5ad").read_bytes()
+
+    monkeypatch.setattr(multiprocessing, "get_all_start_methods", lambda: ["spawn", "forkserver"])
+    counted_in: list[int] = []
+
+    def note_the_process(bam: Path, annotation: Any) -> Any:
+        counted_in.append(os.getpid())
+        return real(bam, annotation)
+
+    monkeypatch.setattr(counter, "_count_cell", note_the_process)
+    unforked, _ = count_plate(plate, annotation, workers=len(plate))
+
+    assert counted_in == [os.getpid()] * len(plate), (
+        "the counter forked where the platform offers no fork, so it would have spawned — which "
+        "pickles the annotation into a worker for every cell of the plate"
+    )
+    unforked.write_h5ad(tmp_path / "unforked.h5ad")
+    assert (tmp_path / "unforked.h5ad").read_bytes() == (tmp_path / "serial.h5ad").read_bytes()
 
 
 def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the_filename() -> None:
@@ -4495,12 +4711,12 @@ def _records(bam: Path) -> list[pysam.AlignedSegment]:
 
 
 def test_the_extraction_geometry_is_derived_from_the_element_model_and_not_written_down() -> None:
-    """The 46 bp window is a consequence of the layout, not a number in the source.
+    """Every number the search uses is a consequence of the layout, not a number in the source.
 
     Anchor start <= 24 -- mechanistic, not fitted: no exact hit anywhere in 18,901 reads starts past
     offset 24, that bound being Tn5 mosaic-end read-through -- plus the 22 bp one match consumes.
-    Every term comes out of the elements, so a chemistry with a longer tag gets a wider window
-    without a line changing.
+    Every term but that bound comes out of the elements, so a chemistry with a longer tag searches
+    deeper and trims further without a line changing.
     """
     geometry = geometry_for_read(_smartseq3_r1())
 
@@ -4508,7 +4724,6 @@ def test_the_extraction_geometry_is_derived_from_the_element_model_and_not_writt
     assert (geometry.anchor_start, geometry.umi_offset, geometry.umi_length) == (0, 11, 8)
     assert (geometry.trailing, geometry.trailing_offset, geometry.cdna_offset) == ("GGG", 19, 22)
     assert geometry.span == 22
-    assert geometry.window == 46
 
 
 def test_the_tagged_read_is_the_one_the_layout_says_carries_a_umi() -> None:
@@ -4741,6 +4956,30 @@ def test_the_same_pair_extracts_to_a_byte_identical_bam(tmp_path: Path) -> None:
     assert (tmp_path / "one.bam").read_bytes() == (tmp_path / "two.bam").read_bytes()
     assert first.to_dict() == second.to_dict()
     assert first.to_dict()["offsets"] == {"0": 1, "15": 1}
+
+
+def test_a_record_holds_what_it_held_however_it_was_built(tmp_path: Path) -> None:
+    """The two fields where a SAM line and a BAM record do not mean the same thing.
+
+    A record is parsed from one SAM line rather than assembled field by field, which is four times
+    cheaper and writes the same record -- except here, and neither of these shows up in a
+    run-it-twice comparison, because both constructions are deterministic. `*` is SAM's word for
+    "this read has no qualities", so a one-base read whose Phred happens to be 9 spells its whole
+    quality string that way and would come back carrying none at all. And the index bin -- which an
+    unsorted, unindexed uBAM has no use for -- is one the parse computes and the assembly leaves at
+    zero, so the file's bytes move if nobody puts it back.
+    """
+    geometry = geometry_for_read(_smartseq3_r1())
+    r1 = tmp_path / "r1.fastq.gz"
+    _fastq(r1, [("@cell:0", "A", "+", "*"), ("@cell:1", _CDNA, "+", _quals(_CDNA))])
+
+    extract_umis([r1], None, tmp_path / "cell.bam", geometry, sample="cell")
+    one_base, internal = _records(tmp_path / "cell.bam")
+
+    qualities = one_base.query_qualities
+    assert qualities is not None, "a `*` quality string is a Phred of 9, not an absent quality"
+    assert list(qualities) == [9]
+    assert (one_base.bin, internal.bin) == (0, 0)
 
 
 def test_a_truncated_input_is_refused_rather_than_extracted_up_to_the_cut(tmp_path: Path) -> None:

@@ -36,8 +36,10 @@ the combined UMI matrix is here and a combined *read* matrix is not: reads carry
 never deduplicated (``umicount.py:407``), so ``read_exon + read_intron`` is exact arithmetic anybody
 can do on the object, while the combined UMI figure is a *third* deduplication that neither of the
 other two contains — see :func:`deduplicate`. The reference's remaining table, ``D`` (per-gene PCR
-duplicates), is not a sixth matrix for the same rule read the other way: it is derivable from the
-observation counts, and ``n_fragments`` on ``obs`` is what makes the four fates readable as rates.
+duplicates), is dropped rather than derived — the rule above does not reach it: the object carries
+deduplicated counts and never the per-gene raw UMI observation totals ``D`` is the remainder of, and
+this verb writes nothing else, so no arithmetic on the object recovers it. ``n_fragments`` on
+``obs`` is what makes the four fates readable as rates.
 
 **The annotation comes from the database ``liulab-genome`` already built** — no HTSeq, no GTF parse,
 no per-worker copy. The reference parses the GTF into two HTSeq ``GenomicArrayOfSets`` and pickles
@@ -45,6 +47,15 @@ them; that pickle is 47.5 MB and is serialised into every worker, which at 1440 
 through pipes for an object that never changes, on top of a 50 s parse. Reading gffutils' SQLite
 once, into the step index below, deletes both — and it is the largest single win in this port,
 obtained by declining to reproduce the architecture rather than by optimising it.
+
+**The plate is counted on every core the rule asked for, and there is still no per-worker copy.**
+The cells are independent, so :func:`count_plate` fans out over them; the workers are forked, and a
+forked worker INHERITS the annotation instead of being sent one. That is the opposite of the
+architecture refused above rather than a return to it — nothing is serialised, and what a worker
+adds is only the pages it dirties by touching the interned sets, measured as a ceiling of ~75 MB
+that a cell reaches within its first twenty thousand fragments and never exceeds. Where fork is not
+on offer the plate is counted serially rather than under ``spawn``, which would re-import this
+module and pickle the annotation into every worker on every cell.
 
 Note that the reader is **gffutils, not pysam**: pysam reads the alignments, and the built database
 is a gffutils SQLite file, which is gffutils' format to read. This module takes the resolved
@@ -79,9 +90,13 @@ every iteration order is sorted rather than inherited from a dict.
 
 from __future__ import annotations
 
+import array
+import multiprocessing
 import sqlite3
+from bisect import bisect_left, bisect_right
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ProcessPoolExecutor
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
@@ -146,9 +161,9 @@ N_FRAGMENTS = "n_fragments"
 class _StepIndex:
     """One contig's intervals as a step function: segment starts, and the gene set on each segment.
 
-    This is HTSeq's ``GenomicArrayOfSets`` in two numpy arrays and a tuple. ``starts`` is ascending
-    and begins at 0, so ``searchsorted`` always lands inside it; ``set_ids[i]`` names the genes
-    covering ``[starts[i], starts[i + 1])``.
+    This is HTSeq's ``GenomicArrayOfSets`` in two flat buffers and a tuple. ``starts`` is ascending
+    and begins at 0, so a search always lands inside it; ``set_ids[i]`` names the genes covering
+    ``[starts[i], starts[i + 1])``.
 
     **The set ids are the whole reason this fits in memory.** A gencode-scale annotation has ~841 000
     exons, so a step vector over them has ~1.7M segments — and one Python ``frozenset`` per segment
@@ -156,20 +171,40 @@ class _StepIndex:
     Interning collapses that to ~60 000 distinct sets behind an int32 array, which is a few MB. The
     alternative — an interval tree per contig — is a comparable amount of code and answers a
     question we do not ask (which interval), rather than the one we do (which gene set).
+
+    ``starts`` is an ``array.array`` of int64 rather than a numpy array because :meth:`genes` is the
+    busiest path in the counter — once per fragment of every cell — and ``bisect`` over a plain
+    buffer beats ``np.searchsorted`` at byte-for-byte the same resident size. A ``list[int]`` is
+    faster still and is refused: it pays a boxed integer and a pointer per element where a buffer
+    pays eight bytes, so it costs five times the memory for the same numbers — twice over, since
+    every contig carries a body index and an exon index — to buy a fraction of a microsecond.
+    Holding a numpy array and taking ``starts.searchsorted``, the bound method, is the same two
+    lines here and the same one line below, which is what keeps that a decision the cluster can
+    still make; the measurement behind the choice is in ``docs/research/``.
     """
 
-    starts: np.ndarray
+    starts: array.array[int]
     set_ids: np.ndarray
     sets: tuple[frozenset[int], ...]
 
     def genes(self, start: int, end: int) -> frozenset[int]:
-        """Every gene covering any part of ``[start, end)``. Empty is a legal answer."""
+        """Every gene covering any part of ``[start, end)``. Empty is a legal answer.
+
+        A span that touches exactly one segment — most of them, since a fragment is far shorter than
+        the stretch between two annotation boundaries — is answered with the interned set itself
+        rather than with a copy of it. That is safe because the interned set is a ``frozenset``: the
+        caller holds the index's own object and has no way to change it.
+        """
         if end <= start:
             return frozenset()
-        first = int(np.searchsorted(self.starts, start, side="right")) - 1
-        last = int(np.searchsorted(self.starts, end, side="left"))
+        first = bisect_right(self.starts, start) - 1
+        last = bisect_left(self.starts, end)
+        if first < 0:
+            first = 0
+        if last - first == 1:
+            return self.sets[int(self.set_ids[first])]
         found: set[int] = set()
-        for i in range(max(first, 0), last):
+        for i in range(first, last):
             found |= self.sets[int(self.set_ids[i])]
         return frozenset(found)
 
@@ -207,7 +242,7 @@ def _step_index(intervals: Sequence[tuple[int, int, int]]) -> _StepIndex:
             set_ids.append(set_id)
 
     return _StepIndex(
-        starts=np.array(starts, dtype=np.int64),
+        starts=array.array("q", starts),
         set_ids=np.array(set_ids, dtype=np.int32),
         sets=tuple(sets),
     )
@@ -390,31 +425,32 @@ def _representative(record: AlignedSegment) -> bool:
     return (not record.is_paired) or bool(record.is_read1)
 
 
-def _hamming_within(a: str, b: str, threshold: int) -> bool:
-    """Whether ``a`` and ``b`` differ in at most ``threshold`` positions.
-
-    Unequal lengths are **not** within any threshold. The reference asks rapidfuzz for the distance
-    with padding off, which raises on a length mismatch; refusing to merge says the same thing
-    without making a ragged tag an exception, and without a dependency for eight characters.
-    """
-    if len(a) != len(b):
-        return False
-    seen = 0
-    for x, y in zip(a, b, strict=True):
-        if x != y:
-            seen += 1
-            if seen > threshold:
-                return False
-    return True
-
-
 def correct_umis(observations: Mapping[str, int]) -> dict[str, int]:
     """Merge each UMI into the more abundant near-neighbour that can explain it as a PCR error.
 
-    The reference's algorithm, kept: take the most abundant UMI as a seed, then walk the remaining
-    UMIs from the least abundant upward, absorbing any within :data:`HAMMING_THRESHOLD` of the seed
-    and stopping as soon as a candidate is too abundant for the seed to explain
-    (``COUNT_RATIO_THRESHOLD * candidate - 1 > seed``). Repeat with what is left.
+    The reference's rule, kept exactly: take the most abundant UMI as a seed and absorb every UMI
+    still standing that is within :data:`HAMMING_THRESHOLD` of it *and* rare enough for it to
+    explain (``COUNT_RATIO_THRESHOLD * candidate - 1 <= seed``). Repeat with what is left.
+
+    **The neighbours are looked up, not searched for**, and that is the only difference from the
+    reference — which compares the seed against every surviving UMI in the bucket, so a deep gene of
+    a deep cell costs seconds. Blanking one position of a UMI leaves a key that its Hamming-1
+    neighbours share and nothing else does, so a seed reads its neighbours out of a dict. Two
+    properties make that the *same* function rather than an approximation of it. The reference stops
+    its walk at the first candidate too abundant to absorb, and since it walks in count order
+    everything past that point fails the same arithmetic — so the stop is the count test, spelled as
+    control flow. And the seed's own count is never raised as it absorbs, so which neighbour it
+    takes first cannot change what it ends up holding.
+
+    A key is a position and the two fragments that survive blanking it, so it carries the UMI's
+    length and two UMIs of different lengths can never share one. That is this port's refusal to
+    merge a ragged tag — the reference asks rapidfuzz for a distance with padding off, which raises
+    on a length mismatch — now carried by the index's shape instead of by a rule saying so.
+
+    Each UMI's keys are held rather than rebuilt when it comes up as a seed. That is what puts the
+    index ahead of the scan from eleven UMIs upward, which is small enough that the buckets below it
+    are not worth a size threshold and a second path through this function: measured over one cell's
+    worth of genes they are most of them by count and a rounding error of its correction time.
 
     **Ties are broken on the UMI itself, not on the order the BAM happened to hand them over.** The
     reference sorts by count alone and lets Python's stable sort fall back to insertion order, which
@@ -423,20 +459,31 @@ def correct_umis(observations: Mapping[str, int]) -> dict[str, int]:
     counts by sequence makes the result a function of the data alone, which is what lets the same
     plate counted twice come out byte-identical.
     """
-    remaining = sorted(observations.items(), key=lambda item: (-item[1], item[0]))
+    order = sorted(observations.items(), key=lambda item: (-item[1], item[0]))
+    neighbours: dict[tuple[int, str, str], list[str]] = {}
+    blanked: dict[str, list[tuple[int, str, str]]] = {}
+    for umi, _ in order:
+        keys = [(i, umi[:i], umi[i + 1 :]) for i in range(len(umi))]
+        for key in keys:
+            neighbours.setdefault(key, []).append(umi)
+        blanked[umi] = keys
+
+    standing = set(observations)
     corrected: dict[str, int] = {}
-    while remaining:
-        seed, seed_count = remaining.pop(0)
-        corrected[seed] = seed_count
-        i = len(remaining) - 1
-        while i >= 0:
-            candidate, candidate_count = remaining[i]
-            if (COUNT_RATIO_THRESHOLD * candidate_count) - 1 > seed_count:
-                break  # everything left of here is at least this abundant
-            if _hamming_within(seed, candidate, HAMMING_THRESHOLD):
-                corrected[seed] += candidate_count
-                remaining.pop(i)
-            i -= 1
+    for seed, seed_count in order:
+        if seed not in standing:
+            continue  # already absorbed by an abundant enough seed
+        standing.discard(seed)
+        total = seed_count
+        for key in blanked[seed]:
+            for candidate in neighbours[key]:
+                if candidate not in standing:
+                    continue
+                candidate_count = observations[candidate]
+                if (COUNT_RATIO_THRESHOLD * candidate_count) - 1 <= seed_count:
+                    total += candidate_count
+                    standing.discard(candidate)
+        corrected[seed] = total
     return corrected
 
 
@@ -604,6 +651,115 @@ def deduplicate(counts: CellCounts) -> dict[str, dict[int, int]]:
 # The plate
 # --------------------------------------------------------------------------------------------
 
+#: The start method a plate is counted under, and the only one this module will use. A forked child
+#: inherits the annotation, which is why the fan-out costs no serialisation at all; ``spawn``
+#: re-imports this module and pickles the annotation into every worker on every cell, which is the
+#: architecture the header declines. Where the platform does not offer fork the plate is counted on
+#: one core instead — slower is a cost, and a 47.5 MB pickle per cell is a design.
+_FORK = "fork"
+
+#: The annotation a forked worker counts against. Set on the parent immediately before the pool is
+#: built and cleared the moment it closes, so the children have it from the fork itself.
+#:
+#: A module global precisely because that is what fork copies. Handing it over as a task argument,
+#: or through the pool's ``initializer``, would pickle it — one copy per cell in the first case and
+#: one per worker in the second, either of which reintroduces the cost this arrangement exists to
+#: avoid. It is read-only for the life of the pool: nothing in a worker mutates it, and the parent
+#: has no worker running when it writes here.
+_INHERITED_ANNOTATION: Annotation | None = None
+
+#: One cell's answer: its matrices, and the raw counts they were deduplicated from.
+_Counted = tuple[dict[str, dict[int, int]], CellCounts]
+
+
+def _count_cell(bam: Path, annotation: Annotation) -> _Counted:
+    """One cell, all the way to its matrices. What a worker does, and what one core does.
+
+    Both arms of :func:`_count_cells` call exactly this, so a pooled plate and a serial plate do the
+    same work in the same order and there is no second account of what counting a cell means.
+
+    **The deduplication happens here and not back in the parent**, which is what the fan-out buys
+    beyond :func:`count_bam` itself: correcting one real cell's UMIs is measured at 0.9 s over
+    200 000 fragments and 4.6 s over a million, so a parent that deduplicated the plate itself would
+    hold a serial tail the size of the whole correction pass while every worker idled. It also
+    shrinks what crosses the pipe by ~74x — the raw observations pickle to 2.5 MB where the matrices
+    are 34 kB — though that was never the binding constraint: the raw object costs 10 ms to pickle
+    against the seconds its cell took to count. Both figures are in ``docs/research/``.
+
+    The raw counts travel back beside the matrices because the fates and the fragment total are read
+    off them, and because this function's caller has always handed them to ITS caller.
+    """
+    counts = count_bam(bam, annotation)
+    return deduplicate(counts), counts
+
+
+def _count_inherited(bam: Path) -> _Counted:
+    """A worker's whole job: count one cell against the annotation it was forked with."""
+    annotation = _INHERITED_ANNOTATION
+    if annotation is None:  # pragma: no cover — fork copies the global, so this cannot be reached
+        raise UmiCountError(
+            f"a counting worker was started without an annotation, so {bam} cannot be counted; "
+            f"only a fork inherits one, and this worker did not"
+        )
+    return _count_cell(bam, annotation)
+
+
+def _refusal(sample: str, exc: BaseException) -> UmiCountError:
+    """A failure in one cell, named for the cell rather than for the file or the worker.
+
+    A plate is one job over hundreds of BAMs, so "which cell" is the first thing anybody asks and
+    the one thing a pooled traceback does not say: the exception is raised in a child and re-raised
+    in the parent with nothing about which task it belonged to. Naming it here means the pooled and
+    the serial paths refuse in the same words.
+    """
+    return UmiCountError(f"cell {sample!r} could not be counted: {exc}")
+
+
+def _count_cells(
+    cells: Sequence[tuple[str, Path]], annotation: Annotation, workers: int
+) -> list[_Counted]:
+    """Every cell counted, on up to ``workers`` cores, in the order the cells were given.
+
+    **The results are collected by index and never by completion.** Cells differ in depth by three
+    orders of magnitude, so they finish in an order that is a property of the data; the h5ad's rows
+    are the caller's order, and a plate whose rows arrived as they finished would be labelled
+    correctly and hold the wrong counts.
+
+    One task per cell rather than a contiguous slice each, for the same reason: a chunk of a
+    sorted-looking cell list is a chunk of similar depth, and one worker then holds the tail of the
+    plate while the rest are idle.
+
+    A cell that cannot be counted stops the plate, and what is not yet running is cancelled rather
+    than waited for — the refusal has already been decided, and a plate that reported it only after
+    counting its remaining thousand cells would be a wrong kind of patient.
+    """
+    global _INHERITED_ANNOTATION
+    width = max(1, min(workers, len(cells)))
+    counted: list[_Counted] = []
+    if width == 1 or _FORK not in multiprocessing.get_all_start_methods():
+        for sample, bam in cells:
+            try:
+                counted.append(_count_cell(bam, annotation))
+            except Exception as exc:
+                raise _refusal(sample, exc) from exc
+        return counted
+
+    _INHERITED_ANNOTATION = annotation
+    try:
+        with ProcessPoolExecutor(
+            max_workers=width, mp_context=multiprocessing.get_context(_FORK)
+        ) as pool:
+            futures = [pool.submit(_count_inherited, bam) for _, bam in cells]
+            for (sample, _bam), future in zip(cells, futures, strict=True):
+                try:
+                    counted.append(future.result())
+                except Exception as exc:
+                    pool.shutdown(wait=False, cancel_futures=True)
+                    raise _refusal(sample, exc) from exc
+    finally:
+        _INHERITED_ANNOTATION = None
+    return counted
+
 
 def _matrix(rows: Sequence[Mapping[int, int]], n_genes: int) -> csr_matrix:
     """``cell -> gene -> value`` for every cell -> one cells x genes sparse matrix.
@@ -630,12 +786,20 @@ def _matrix(rows: Sequence[Mapping[int, int]], n_genes: int) -> csr_matrix:
 
 
 def count_plate(
-    cells: Sequence[tuple[str, Path]], annotation: Annotation
+    cells: Sequence[tuple[str, Path]], annotation: Annotation, workers: int = 1
 ) -> tuple[anndata.AnnData, list[CellCounts]]:
     """Every cell of a plate -> one AnnData, rows in the order the cells were given.
 
     Row order is the caller's, never a sort and never the order the filesystem answered in: the
-    composer hands the cells over in its own sample order, and the h5ad row is the sample id.
+    composer hands the cells over in its own sample order, and the h5ad row is the sample id. That
+    holds whatever ``workers`` is — see :func:`_count_cells`, which collects by index.
+
+    ``workers`` is the width of the fan-out over cells, and one is serial. The rule that runs this
+    passes the thread count it asked the scheduler for, uncapped: a worker's resident growth is a
+    CEILING rather than a rate — ~75 MB of copy-on-write on the interned gene sets, reached inside
+    the first twenty thousand fragments of the first cell and flat from there — so the width the
+    memory arithmetic can afford is far wider than any node's core count. Asking for more workers
+    than there are cells simply gets one per cell.
     """
     import anndata as ad
 
@@ -647,8 +811,9 @@ def count_plate(
             f"sample ids must be unique — each names one h5ad row — but {duplicates} repeat"
         )
 
-    per_cell = [count_bam(bam, annotation) for _, bam in cells]
-    entries = [deduplicate(counts) for counts in per_cell]
+    counted = _count_cells(cells, annotation, workers)
+    entries = [entry for entry, _ in counted]
+    per_cell = [counts for _, counts in counted]
     n_genes = len(annotation.gene_ids)
 
     adata = ad.AnnData(X=_matrix([e[PRIMARY_MATRIX] for e in entries], n_genes))
@@ -664,15 +829,21 @@ def count_plate(
     return adata, per_cell
 
 
-def write_umi_counts(cells: Sequence[tuple[str, Path]], annotation_db: Path, out: Path) -> Path:
+def write_umi_counts(
+    cells: Sequence[tuple[str, Path]], annotation_db: Path, out: Path, workers: int = 1
+) -> Path:
     """The one entry point: N per-cell BAMs + the built annotation -> one ``.h5ad``. Returns ``out``.
 
     The verb behind this is a thin marshalling wrapper, and this is where the work is, so the whole
     fan-in is unit-testable against a synthetic annotation and a BAM whose every read has a fate
     known by construction.
+
+    **The annotation is read BEFORE the fan-out and never inside it**, which is what makes the width
+    free: one gffutils read for the plate, and every worker forked from the process that already
+    holds the result.
     """
     annotation = read_annotation(annotation_db)
-    adata, _ = count_plate(cells, annotation)
+    adata, _ = count_plate(cells, annotation, workers)
     out.parent.mkdir(parents=True, exist_ok=True)
     adata.write_h5ad(out)
     return out

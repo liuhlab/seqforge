@@ -510,6 +510,12 @@ rule umi_count:
     Its memory request is the module's own arithmetic over the recipe's ONE figure, not the same
     request the mapping jobs make: this rule loads no genome index at all, and the recipe's figure
     was sized against one that does.
+
+    **`--threads` is the threads it asked for, and it used to ask and then use one.** The cells are
+    independent, so the verb forks a worker per core and each one inherits the annotation the parent
+    read; the h5ad's rows stay in the order this rule listed the cells, not the order they finished.
+    The request stands unchanged against that, because a worker's resident growth is a ceiling and
+    not a rate — it dirties the interned gene sets once and then nothing more.
     """
     input:
         bams=expand(rules.star_umi_map.output.bam, sample=SAMPLES),
@@ -535,7 +541,7 @@ rule umi_count:
         r"""
         seqforge io umi-count {params.cells} \
              --assembly {params.assembly} --annotation {params.annotation} \
-             --out {output.h5ad}
+             --out {output.h5ad} --threads {threads}
         """
 
 
