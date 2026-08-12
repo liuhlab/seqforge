@@ -159,8 +159,8 @@ class ProcessingOverrides:
 
     A flag outranks an instruction document because it is more specific and it is later in time: both
     are the user talking to seqforge, one just talks now. It also outranks it in *trust*, which is why
-    it may set fields an instruction document may not (``threads``, ``annotation_name``): a flag is
-    typed by a human, a document is read by a model.
+    it may set fields an instruction document may not (``threads``, ``mem_gb``, ``annotation_name``):
+    a flag is typed by a human, a document is read by a model.
     """
 
     assembly: str | None = None
@@ -171,6 +171,7 @@ class ProcessingOverrides:
     # early is paid for with a suppression at the seam where it finally has to be cashed.
     features: tuple[str, ...] | None = None  # --quantify: EXACT replacement, not a union
     threads: int | None = None
+    mem_gb: int | None = None
     environment: RuntimeEnv | None = None
 
 
@@ -461,9 +462,28 @@ def resolve_processing(
             confidence=0.95,
             rung=0,
         ),
-        resources=ResourceHints(threads=ov.threads) if ov.threads else ResourceHints(),
+        resources=_resource_hints(ov),
     )
     return section, warnings
+
+
+def _resource_hints(ov: ProcessingOverrides) -> ResourceHints:
+    """The scheduler hints a flag actually stated; every unstated one keeps the schema's default.
+
+    Built from the stated fields only, rather than from a call naming each one. Passing ``None``
+    through would overwrite a default with nothing, and spelling the defaults again here would make
+    this the second place they live — so what no flag names, the model answers, and the model is the
+    only thing that knows what the answer is.
+
+    A stated value is passed on unfiltered, ``0`` included, so a figure the schema's floor rejects
+    surfaces as a refusal the caller can read rather than as a flag that was silently ignored.
+    """
+    stated: dict[str, int] = {
+        field: value
+        for field, value in (("threads", ov.threads), ("mem_gb", ov.mem_gb))
+        if value is not None
+    }
+    return ResourceHints(**stated)
 
 
 def _instructed_entry(instructions: Sequence[Instruction], field: str) -> Instruction | None:

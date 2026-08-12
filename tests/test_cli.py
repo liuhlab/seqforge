@@ -258,6 +258,12 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     Uses the no-barcode bulk branch so it needs no onlist: the default registry deliberately
     materializes no real whitelist (they are license-restricted), which is exactly why the 10x path
     refuses to compose until one is registered.
+
+    It is also where `--mem-gb` is proved, because the claim is a JOURNEY rather than a field: a
+    memory figure a recipe author types has to survive `processing new` -> `processing.yaml` ->
+    `compose` -> the emitted config a mapping rule reads its request off. sacCer3 is the right place
+    to prove it -- a small genome is the whole reason the option exists, since 48 GB against an index
+    of a gigabyte or so is a figure nothing about residency argues for.
     """
     spec = kb.load_spec("bulk-rnaseq")
     reads = kb.generate_reads(spec, n=600, seed=0)
@@ -310,12 +316,18 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
             "sacCer3",
             "--annotation",
             "ensembl",
+            "--mem-gb",
+            "8",
             "-o",
             str(proc_path),
         ],
     )
     assert authored.exit_code == 0, authored.stdout
     assert proc_path.is_file()
+    assert yaml.safe_load(proc_path.read_text())["processing"]["resources"]["mem_gb"] == 8, (
+        "--mem-gb never reached the recipe, so the only way to size a small-genome run is still to "
+        "hand-edit the generated file"
+    )
     assert (
         runner.invoke(
             app, ["processing", "validate", str(proc_path), "--dataset", str(manifest_path)]
@@ -340,6 +352,29 @@ def test_manifest_fill_validate_hash_compose_spine(tmp_path: Path) -> None:
     assert (tmp_path / doc["units_path"]).is_file()
     # whatever decided the run is recoverable from disk, bound to this dataset
     assert ((tmp_path / doc["config_path"]).parent / "processing.lock.yaml").is_file()
+
+    # ...and the stated figure is what the pipeline's rules read their request off. `config["mem_mb"]`
+    # is the one place a rule can see it, so this is the far end of the journey the option exists for.
+    config = yaml.safe_load((tmp_path / doc["config_path"]).read_text())
+    assert config["mem_mb"] == 8 * 1024
+
+    # Omitting the flag leaves the SCHEMA's default, compared against the model rather than against
+    # the literal 48: a recipe that says nothing must be byte-identical to what shipped before the
+    # option existed, and the way that breaks is the CLI acquiring a default of its own.
+    from seqforge.models.processing import ResourceHints
+
+    bare_path = tmp_path / "processing.bare.yaml"
+    bare = runner.invoke(
+        app,
+        [
+            "processing", "new", str(manifest_path),
+            "--assembly", "sacCer3", "--annotation", "ensembl", "-o", str(bare_path),
+        ],
+    )  # fmt: skip
+    assert bare.exit_code == 0, bare.stdout
+    resources = yaml.safe_load(bare_path.read_text())["processing"]["resources"]
+    assert resources["mem_gb"] == ResourceHints().mem_gb
+    assert resources["threads"] == ResourceHints().threads
 
 
 def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:

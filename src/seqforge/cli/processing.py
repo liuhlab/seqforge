@@ -81,6 +81,12 @@ def processing_new(
         help="Comma-separated soloFeatures. EXACT replacement of the default (which counts all five).",
     ),
     threads: int | None = typer.Option(None, "--threads", help="Threads per mapping job."),
+    mem_gb: int | None = typer.Option(
+        None,
+        "--mem-gb",
+        help="Memory per mapping job, in GB. Covers the genome index, the aligner's working set "
+        "and the BAM sort together; the sort gets three quarters of it.",
+    ),
     processing_id: str = typer.Option("default", "--id", help="Human slug for this recipe."),
     pin: bool = typer.Option(
         True,
@@ -112,6 +118,7 @@ def processing_new(
                 annotation_name=annotation,
                 features=_parse_quantify(quantify),
                 threads=threads,
+                mem_gb=mem_gb,
             ),
             instructions=instructions,
             prep_type=prep_type,

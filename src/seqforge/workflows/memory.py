@@ -22,13 +22,19 @@ is intent and a recipe carrying every module's rule names would widen its schema
 So the module turns one figure into three requests (:func:`index_mem_mb`, :func:`per_cell_mem_mb`,
 :func:`fan_in_mem_mb`) and escalation applies to each class alone.
 
-**What that one figure is actually sized by, because it is not what it looks like.** It reads as a
-genome-index budget and it is a *sort* budget: :func:`bam_sort_ram` takes three quarters of it, and
-the default moved 32 -> 48 GB so that a 215M-read sample's ~32 GB sort would fit. Sort RAM scales
-with a sample's DEPTH; index residency scales with the GENOME. One number cannot track both, and on a
-small genome the surplus over the index is not waste — it is the half doing the work. Shrinking the
-figure because the index is small is therefore the one change that looks obviously right and FATALs
-deep samples.
+**What that one figure covers, and why no single sentence about it stays true.** A mapping job's peak
+is three things held at once: the genome index, resident for the life of the process; the aligner's
+own working set; and a coordinate sort that grows with the number of alignment records. Residency
+scales with the GENOME, sort RAM scales with the sample's DEPTH, and **which term dominates is a
+property of the sample rather than of the workflow**. A plate cell of a few thousand reads is
+index-dominated — 27.7 GB peak RSS against a 25 GB index, whether the cell holds 901 reads or 3.1M.
+A 215M-read droplet sample is sort-dominated — at the ~160 B per alignment record measured below, its
+sort alone wants ~32 GB, which is what moved the default 32 -> 48 GB. Both are real samples at two
+ends of one curve, so the figure is sized by whichever term is LARGER for the end a recipe is aimed
+at. Two consequences. On a small genome the surplus over the index is not waste, it is the sort doing
+the work, so shrinking the figure because the index is small is the change that looks obviously right
+and FATALs deep samples. And a recipe that shrinks it anyway — ``processing new --mem-gb`` is how —
+has a floor to clear, which :func:`bam_sort_ram` derives.
 
 **The cap is a `resources:` entry and not a `params:` one, which is the part that is easy to get
 wrong.** Snakemake hands `resources` to a `params:` callable, so
@@ -120,9 +126,11 @@ PLATE_RETRIES: int = 2
 #: may not fall below. **A declared share, not a measurement, and it is here so it can become one.**
 #:
 #: What is known is the SHAPE, and the shape is what makes one figure wrong for both rules. A
-#: per-cell mapping job is dominated by the genome index — per process, independent of read count,
-#: measured at 27.7 GB peak RSS against a 25 GB index whether the cell holds 901 reads or 3.1M — so
-#: it wants the whole figure the recipe was sized with. The fan-in counter loads **no genome index at
+#: per-cell mapping job pays the whole of a mapping job's peak — index residency, working set and
+#: sort — and on a PLATE CELL it is the residency that dominates, measured at 27.7 GB peak RSS
+#: against a 25 GB index whether the cell holds 901 reads or 3.1M. (On a deep sample the sort is what
+#: dominates instead; the module header has the curve.) Either way it wants the whole figure the
+#: recipe was sized with. The fan-in counter loads **no genome index at
 #: all**: it reads the built annotation database into one interval index and accumulates the plate's
 #: sparse matrices, which is a fraction of a mapping job rather than a multiple of it. Asking for the
 #: mapping figure would idle three quarters of a node for the one job that must run after every cell
@@ -142,24 +150,24 @@ def per_cell_mem_mb(mem_mb: int, attempt: int) -> int:
     the only artifact that knows its own rule graph — turns that one figure into two requests, and
     this is the first of them.
 
-    It is the figure **unchanged** rather than a share of it, and it stays unchanged for a reason
-    this docstring used to get wrong. It said the figure is dominated by the genome index, per
-    process. Two things in this same module contradict that. ``map/star-umi``'s ``load_genome`` puts
-    the index in SHARED memory with ``LoadAndExit`` and every mapping job depends on that rule's
-    flag, so the index is resident once per node and attached, not allocated per process. And
-    :func:`bam_sort_ram` records what actually moved the default to 48 GB: ``--limitBAMsortRAM``
-    takes three quarters of this figure, and a 215M-read sample needs ~32 GB of it. So the number is
-    sized by **sort RAM, which scales with a sample's depth**, not by an index, which scales with the
-    genome.
+    It is the figure **unchanged** rather than a share of it, because a mapping job pays all of what
+    a mapping job costs: the genome index, the aligner's working set, and the sort. Which of those
+    dominates is the sample's business and not this function's — the module header has the curve, and
+    a plate sits at its index-dominated end while a deep droplet sample sits at the other. Even the
+    residency term is not simply "per process" here: ``map/star-umi``'s ``load_genome`` puts the
+    index in SHARED memory with ``LoadAndExit`` and every mapping job depends on that rule's flag, so
+    on a plate the index is resident once per node and attached rather than allocated per cell — the
+    request still covers it, because a request that assumed the attachment would be wrong the first
+    time a cell ran alone.
 
     That matters when the genome is small. Against the 1.3 GB ce11 index a per-cell request of 48 GB
-    is ~35x the residency and the surplus is doing real work — it is the sort budget. **Do not shrink
-    it because the index shrank**: three quarters of a smaller figure is a smaller
+    is ~35x the residency, and the surplus is doing real work — it is the sort budget. **Shrinking it
+    because the index shrank is not free**: three quarters of a smaller figure is a smaller
     ``--limitBAMsortRAM``, and STAR FATALs on a deep sample rather than degrading, which is the exact
-    regression the 32 -> 48 move fixed. What would justify a smaller figure here is a measurement of
-    sort RAM against a shallow plate, and what would separate the two concerns for good is a second
-    recipe knob — depth-driven sort budget apart from genome-driven residency. Neither exists yet,
-    and one number that is honest about being the larger of two is better than two that are guesses.
+    regression the 32 -> 48 move fixed. It is nonetheless a legitimate thing for a recipe to do —
+    ``processing new --mem-gb`` states it — against the floor :func:`bam_sort_ram` derives: the
+    request must be at least four thirds of the sort the samples being mapped will need. That is the
+    honest form of the choice, and it is the recipe's to make rather than a default's.
     """
     return escalated_mem_mb(mem_mb, attempt)
 
@@ -222,6 +230,16 @@ def bam_sort_ram(mem_mb: int) -> int:
     and it is the recipe's `resources.mem_gb` that answers it for a sample the default does not hold.
     The failure is at least legible: STAR names the number it needed and exits, rather than producing
     a short BAM.
+
+    **Read backwards, the three quarters is a floor on the recipe: the request must be at least FOUR
+    THIRDS of the sort the sample is expected to need.** On a human genome that constraint binds on
+    nothing, because a figure big enough to hold a 25 GB index already holds four thirds of almost
+    any sort. On a small genome it is the only thing holding the figure up — ce11's index is 1.3 GB,
+    so nothing about residency argues against `--mem-gb 8`, and what that recipe actually buys is a
+    6 GB sort, roughly 40M alignment records at the ~160 B each measured above. A plate of shallow
+    cells sits far inside it; a deep sample does not, and four thirds of its sort is the number to
+    state. Sizing DOWN for a small genome is a legitimate recipe decision — it is what
+    ``processing new --mem-gb`` exists for — and this inequality is the thing it has to clear.
 
     STAR takes bytes; `mem_mb` is MiB, and that unit crossing is the whole reason this is a named
     function rather than an expression in the shell block.

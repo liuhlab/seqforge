@@ -18,7 +18,8 @@ seqforge manifest validate MANIFEST                             # the refusal co
 seqforge manifest hash MANIFEST
 
 seqforge processing new MANIFEST --assembly ce11 --annotation WS298 \
-        [--quantify Gene,GeneFull] [--threads N] [--pin|--template] [-o processing.yaml]
+        [--quantify Gene,GeneFull] [--threads N] [--mem-gb N] [--pin|--template] \
+        [-o processing.yaml]
 seqforge processing validate PROCESSING [--dataset MANIFEST]
 seqforge processing hash PROCESSING
 ```
