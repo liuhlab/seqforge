@@ -2257,37 +2257,133 @@ def test_two_processing_manifests_do_not_overwrite_each_other(
     assert yaml.safe_load((tmp_path / b.config_path).read_text())["genome"]["assembly"] == "ce11"
 
 
-def test_a_kb_bump_re_keys_the_compile_without_moving_the_dataset_hash(
-    built_v3: Built, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def _serve_edited_spec(monkeypatch: pytest.MonkeyPatch, tech: str, **update: object) -> None:
+    """Hand the COMPOSER ``tech``'s spec with one top-level field replaced and nothing else moved.
+
+    A copy and never a mutation: `load_spec` is cached and hands back a SHARED `Spec`, so setting a
+    field in place would leak the edit into every other test in the session. Re-validated through
+    `model_validate`, because `model_copy` runs no validator at all — an edit the schema forbids goes
+    red here, instead of proving something about a `Spec` `load_spec` would never hand anybody.
+    Patched at the composer's own name, which is where `plan` binds it.
+    """
+    edited = kb.Spec.model_validate(kb.load_spec(tech).model_copy(update=update).model_dump())
+    monkeypatch.setattr(
+        core, "load_spec", lambda name: edited if name == tech else kb.load_spec(name)
+    )
+
+
+#: One knowledge-base edit, applied to whatever the fixture's chemistry is.
+KbEdit = Callable[[pytest.MonkeyPatch, str], None]
+
+
+def _bump_the_kb_version(monkeypatch: pytest.MonkeyPatch, tech: str) -> None:
+    """The repository declares a new release and this chemistry's entry is untouched by it."""
+    monkeypatch.setattr(core, "KB_VERSION", "2099.1.1")
+
+
+def _edit_the_signature(monkeypatch: pytest.MonkeyPatch, tech: str) -> None:
+    """Re-weight one piece of additive evidence: strictly a change to how the bytes are RECOGNISED."""
+    signature = kb.load_spec(tech).signature
+    first, *rest = signature.supports
+    _serve_edited_spec(
+        monkeypatch,
+        tech,
+        signature=signature.model_copy(
+            update={"supports": [first.model_copy(update={"weight": first.weight + 1.0}), *rest]}
+        ),
+    )
+
+
+def _edit_the_backend_params(monkeypatch: pytest.MonkeyPatch, tech: str) -> None:
+    """Run the other read trimmer: a chemistry-defining knob that lands in the config verbatim."""
+    backend = kb.load_spec(tech).require_backend()
+    _serve_edited_spec(
+        monkeypatch,
+        tech,
+        backend=backend.model_copy(
+            update={"params": {**backend.params, "clipAdapterType": "Hamming"}}
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("edit", "re_keys"),
+    [
+        pytest.param(_bump_the_kb_version, False, id="a-bare-version-bump-does-not"),
+        pytest.param(_edit_the_signature, False, id="a-signature-only-edit-does-not"),
+        pytest.param(_edit_the_backend_params, True, id="a-backend-params-edit-does"),
+    ],
+)
+def test_a_kb_edit_re_keys_the_compile_only_when_it_reaches_an_emitted_byte(
+    built_v3: Built,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    edit: KbEdit,
+    re_keys: bool,
 ) -> None:
-    """The same manifest, compiled under two knowledge bases, is two runs — ADR-0037.
+    """What the knowledge base contributes to a run's identity is ONE spec's processing half (#361).
 
-    `run_id` folded `manifest.provenance.kb_version`, which is stamped at **fill** time, while `plan`
-    reads the **live** KB for the params, the derived keys and the admission floor. So the emitted
-    config was a function of one knowledge base and its identity a function of another: bump the KB,
-    skip the re-fill, and the second compile wrote over the first with nothing noticing.
+    The first row used to assert the exact opposite, and its reason was sound: `run_id` once folded
+    `manifest.provenance.kb_version`, stamped at **fill** time, while `plan` reads the **live** KB for
+    the params, the derived keys and the admission floor — so the emitted config was a function of one
+    knowledge base and its identity a function of another, and bumping the KB without re-filling wrote
+    the second compile over the first with nothing noticing. Folding the live `KB_VERSION` closed that,
+    at the price of making a knowledge-base release invalidate every dataset ever compiled: a
+    whitelist added for a chemistry nobody's corpus uses, or a fixed alias, moved ~10^4 pipeline
+    directories and orphaned every alignment under them. ADR-0037's claim is unchanged and is still
+    the live KB's; it was the GRANULARITY that was wrong, so the version string is out and a content
+    hash of the one spec `plan` actually read is in.
 
-    Patched on `compose.core`, not on `kb`, because that is where the name is bound — and the second
-    assertion is the half that makes this a re-keying rather than a new dataset: the manifest is
-    untouched, so its hash may not move. That is ADR-0032's property, and it now holds without
-    needing the re-fill that used to be the only thing that carried a KB bump into the run id.
+    That draws the line these three rows walk, which is whether the edit can reach an emitted byte. A
+    signature is how the classifier RECOGNISES this chemistry, and recognising a chemistry is not
+    processing it — by compose time the chemistry is decided and written into the manifest, and no
+    reader of `signature` exists downstream of that. `backend.params` is the other half, and it is
+    very nearly the config verbatim.
+
+    The last two assertions are the untouched half of the old test, and they hold for every row: the
+    manifest is an input to none of this, so neither the dataset hash nor its own recorded
+    `kb_version` may move whatever the knowledge base does. That is ADR-0032's property.
     """
     manifest, reg = built_v3
     processing = _processing(manifest)
+    tech = manifest.library.chemistry.value[0]
     dataset_hash = manifest.provenance.dataset_hash
     recorded_kb = manifest.provenance.kb_version
+
     before = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    emitted = (tmp_path / before.config_path).read_text()
 
-    monkeypatch.setattr("seqforge.compose.core.KB_VERSION", "2099.1.1")
+    edit(monkeypatch, tech)
     after = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    # Where the edit either arrived or did not, and between them these two cover every
+    # knowledge-base fact a compile can read: `ComposePlan.spec` IS the object `compose` hands to
+    # `spec_content_hash`, and `ComposeResult.kb_version` is the live version string it stamps. A row
+    # whose patch missed the name `plan` binds would otherwise pass by asserting on nothing.
+    assert (plan(manifest, processing, registry=reg).spec, after.kb_version) != (
+        kb.load_spec(tech),
+        before.kb_version,
+    ), "the edit moved nothing the composer can see, so nothing below it means anything"
 
-    assert before.config_path != after.config_path, (
-        "an old manifest compiled under a new KB must land in its own directory; sharing one is the "
-        "silent overwrite ADR-0037 exists to stop"
-    )
-    assert (tmp_path / before.config_path).is_file() and (tmp_path / after.config_path).is_file(), (
-        "both compiles must survive — re-keying that deletes the earlier run is not re-keying"
-    )
+    if re_keys:
+        assert after.config_path != before.config_path, (
+            "a param that reaches the config must land in its own directory; sharing one is the "
+            "silent overwrite ADR-0037 exists to stop"
+        )
+        assert (tmp_path / before.config_path).is_file() and (
+            tmp_path / after.config_path
+        ).is_file(), (
+            "both compiles must survive — re-keying that deletes the earlier run is not re-keying"
+        )
+    else:
+        assert after.config_path == before.config_path, (
+            "a knowledge-base fact no emitted byte is a function of may not cost this dataset its "
+            "directory, and with it every alignment already sitting in one"
+        )
+        assert (tmp_path / after.config_path).read_text() == emitted, (
+            "the two compiles share a directory only because they share their bytes; a config that "
+            "moved under an unchanged run id is the silent overwrite, not the point being made"
+        )
+
     assert manifest.provenance.dataset_hash == dataset_hash, (
         "the dataset hash may not move: what the data IS did not change, only what was done with it"
     )
