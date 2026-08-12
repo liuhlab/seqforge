@@ -945,7 +945,8 @@ def test_e2e_fit_merges_array_tasks_into_one_line(tmp_path: Path) -> None:
     assert out["n_runs_merged"] == 3
     assert [p["n_reads"] for p in out["points"]] == [10_000_000, 40_000_000, 100_000_000]
     assert out["fit"]["ok"]
-    # ~1 byte/read is the measured reality on hg38; the fit must reproduce it from these points
+    # These three points are fixture inputs, not measurements — hg38's real curve is flat. What is
+    # pinned is that the fit recovers a small positive slope from whatever points it is handed.
     assert 0 < out["fit"]["bytes_per_read"] < 5
 
 
