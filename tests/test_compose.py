@@ -902,7 +902,7 @@ def test_the_params_gate_refuses_a_mate_the_layout_does_not_have(
     assert any("mate2" in p for p in problems), problems
 
 
-def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_one(
+def test_the_bulk_plan_hands_star_its_mates_and_declares_the_memory_it_sorts_in(
     synth_bulk_pe: SynthDataset, tmp_path: Path, dry_run: DryRun
 ) -> None:
     """What STAR is actually handed, both ways, off one fixture — the contrast IS the claim.
@@ -916,10 +916,21 @@ def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_on
     The two-mate half is here rather than left implicit because a one-sided assertion is satisfied by
     a module that dropped `mate2` for EVERYBODY: single-end is a correct rendering of a paired-end
     library's first mate, it exits 0, and it silently maps half the data.
+
+    **The memory the job asks for and the memory STAR may sort in ride the same plan** (#377). This
+    rule used to declare NEITHER: no `mem_mb`, so the job holding the largest allocation in the run
+    was invisible to whatever packs the machine, and no `--limitBAMsortRAM`, so a coordinate sort ran
+    on STAR's default of `0` — "reuse the genome allocation", the one value STAR forbids outright
+    once a run shares one copy of the index, refused before the genome directory is even read. Both
+    are rendering claims and only a rendering can make them: the request reaches the scheduler and
+    not the command line, the cap reaches the command line and not the scheduler, and a `resources:`
+    callable that raised, fell back to a literal, or handed over MiB where STAR wants bytes would
+    plan just as cleanly under any assertion looser than the byte count.
     """
     reg = synth_bulk_pe.registry
     r1, r2 = (p.name for p in synth_bulk_pe.paths)
     planned: dict[str, str] = {}
+    config: dict[str, object] = {}
     for label, manifest in (
         ("one", _one_mate(synth_bulk_pe.manifest)),
         ("two", synth_bulk_pe.manifest),
@@ -927,6 +938,7 @@ def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_on
         processing = _processing(manifest)
         result = compose(manifest, processing, registry=reg, workspace=tmp_path)
         pipeline_dir = (tmp_path / result.snakefile_path).parent
+        config = yaml.safe_load((tmp_path / result.config_path).read_text())
         planned[label] = dry_run(pipeline_dir, plan(manifest, processing, registry=reg))
 
     def readfilesin(text: str) -> list[str]:
@@ -939,6 +951,25 @@ def test_star_is_handed_one_mate_for_a_one_read_layout_and_two_for_a_two_read_on
     # ...and the second mate is nowhere in the one-mate plan at all: `input.mate2` resolves to EMPTY,
     # rather than to a stale file the units table no longer lists.
     assert r2 not in planned["one"], f"a one-mate layout planned the second mate's file: {r2}"
+
+    # Both numbers as LITERALS rather than a call to the arithmetic that produced them: recomputing
+    # an expectation with the shipped formula cannot fail, and it agrees with a wrong formula as
+    # readily as a right one. 48 GiB is `ResourceHints.mem_gb`'s default, so 49152 MiB is what the
+    # composer emits, what the job must ask for on attempt 1, and 36 GiB — three quarters of it, IN
+    # BYTES — is what STAR must be handed. What the plan cannot show is either number FOLLOWING the
+    # attempt, since a dry run renders attempt 1 and nothing else;
+    # `test_the_sort_budget_follows_the_escalated_memory_request` and
+    # `test_the_star_rule_escalates_its_memory_on_retry` (`tests/test_workflows.py`) own that half.
+    assert config["mem_mb"] == 48 * 1024, "the default memory request moved; restate the two below"
+    assert "mem_mb=49152" in planned["two"], (
+        "`star_count` asks the scheduler for nothing, so the job with the largest allocation in a "
+        f"bulk run is the one nothing packing the machine can see. Planned:\n{planned['two']}"
+    )
+    assert "--limitBAMsortRAM 38654705664" in planned["two"], (
+        "the bulk sort runs on STAR's default of 0 — 'reuse the genome allocation', which is what "
+        "STAR refuses under a shared index and what silently tracks the genome's size otherwise. "
+        f"Planned: {[ln for ln in planned['two'].splitlines() if 'limitBAMsortRAM' in ln]}"
+    )
 
 
 # ---- the plate pipeline: a fourth layout kind, and a geometry nobody declares --------------------
