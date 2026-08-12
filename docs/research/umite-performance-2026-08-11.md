@@ -14,7 +14,73 @@ that produced its numbers; what any of them *decided* lives in the issue that to
 
 ## UMI correction: a neighbour index against a quadratic scan
 
-<!-- filled by #393 -->
+`correct_umis` compared each seed against every UMI still standing in the bucket. It now blanks one
+position at a time to build a key that a UMI's Hamming-1 neighbours share and nothing else does, and
+reads its neighbours out of that. **43.7× over a whole cell's genes, 182.6× on the deepest bucket
+measured.** The two produce the same mapping in the same key order on every input tried, which is the
+point — the change is an index, not a rule.
+
+| n UMIs, one bucket | scan | index | | scan, skewed | index, skewed | |
+|---|---|---|---|---|---|---|
+| 200 | 2.84 ms | 0.28 ms | 10.1× | 4.61 ms | 0.30 ms | 15.3× |
+| 1 000 | 57.58 ms | 1.84 ms | 31.4× | 104.40 ms | 1.93 ms | 54.1× |
+| 4 000 | 725.71 ms | 8.77 ms | 82.7× | 1 146.26 ms | 8.80 ms | 130.3× |
+| 10 000 | 2 802.61 ms | 24.83 ms | 112.9× | 4 213.10 ms | 23.07 ms | 182.6× |
+
+**The skewed columns are the ones to read.** The parent issue's first numbers came from counts drawn
+uniformly from 1–30, and real per-gene UMI counts are nothing like that: most UMIs are seen once or
+twice. The skewed distribution below is 62% seen once, 20% twice, 10% three times, 5% four to eight
+and 3% nine to sixty — and it makes the scan *worse* at every size, because the scan stops walking at
+the first candidate too abundant to absorb and a bucket full of singletons pushes that stop to the
+far end. At n = 10 000 the skew costs the scan 1.5× and costs the index nothing.
+
+### There is no size threshold, and here is the measurement that says so
+
+The index is behind below about eleven UMIs — it pays for a dict of `len(umi)` keys per UMI before it
+looks anything up, and under that size the scan is simply shorter.
+
+| n UMIs, skewed, µs/bucket | 2 | 4 | 8 | 10 | 11 | 12 | 13 | 16 | 20 | 30 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| scan | 0.60 | 2.25 | 8.65 | 13.43 | 15.99 | 19.25 | 23.00 | 34.37 | 53.50 | 117.38 |
+| index | 2.97 | 5.90 | 11.27 | 14.49 | 15.67 | 17.27 | 18.65 | 23.31 | 29.29 | 44.58 |
+| | 0.20× | 0.38× | 0.77× | 0.93× | 1.02× | 1.11× | 1.23× | 1.47× | 1.83× | 2.63× |
+
+That looks like a case for falling back to the scan on small buckets, and it is not, because the
+buckets it would apply to cost nothing. Over 8 000 buckets sized like one real cell's genes — median
+2, mean 27.5, max 3 851, 219 751 UMIs in total — the sub-crossover buckets are **82% of the genes and
+8.1 ms of the cell's 20 428.7 ms**:
+
+| | scan | index | |
+|---|---|---|---|
+| whole cell, 8 000 buckets | 20 428.7 ms | 467.3 ms | 43.7× |
+| only the 6 545 buckets at n < 12 | 8.1 ms | 21.6 ms | 0.4× |
+
+A threshold would recover 13.5 ms of 467.3 — 2.9% — and would buy it with a second path through the
+one function in this module whose whole claim is that it is provably the function it replaced. So
+there is none, and the crossover the parent issue left unmeasured is eleven.
+
+Holding each UMI's keys instead of rebuilding them when it comes up as a seed is what makes that
+affordable: it is worth 1.5× at every size and moves the crossover from about twenty UMIs down to
+eleven, which is what takes the sub-crossover buckets from *arguable* to 8 ms of a 20-second cell.
+Carrying the blanked position in the key alongside the two surviving fragments is redundant — the
+prefix's length already names the position — and dropping it measured 1–4%, so the redundant form
+stays for the reader.
+
+### Method
+
+Apple Silicon laptop, Python 3.13.14, one core, `min` of repeated runs. Buckets are synthetic:
+random UMIs over `ACGT` at 8 bp, counts drawn from the two distributions above, one fixed seed per
+size so the same buckets time both implementations. The scan is the previous implementation copied
+verbatim, and every bucket timed was first checked for an identical result — same totals, same key
+order — under both. The whole-cell figure is 8 000 buckets whose *sizes* are drawn from a second
+skewed distribution (45% one UMI, 20% two, up to a 0.3% tail of 800–4 000); it is a shape, not a
+plate, and the real plate is the last section of this page.
+
+The equivalence itself is not a measurement and does not rest on one: the scan's early stop is the
+same arithmetic as the index's filter because the survivors are in count order, and the seed's count
+is never raised as it absorbs, so absorption order cannot change a total. The property test in
+`tests/test_workflows.py` re-derives that on 400 generated buckets over a three-letter alphabet at
+mixed lengths, against the scan written out in the test.
 
 ## The annotation lookup: `bisect` over `array.array` against `np.searchsorted`
 

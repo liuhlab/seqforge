@@ -392,31 +392,32 @@ def _representative(record: AlignedSegment) -> bool:
     return (not record.is_paired) or bool(record.is_read1)
 
 
-def _hamming_within(a: str, b: str, threshold: int) -> bool:
-    """Whether ``a`` and ``b`` differ in at most ``threshold`` positions.
-
-    Unequal lengths are **not** within any threshold. The reference asks rapidfuzz for the distance
-    with padding off, which raises on a length mismatch; refusing to merge says the same thing
-    without making a ragged tag an exception, and without a dependency for eight characters.
-    """
-    if len(a) != len(b):
-        return False
-    seen = 0
-    for x, y in zip(a, b, strict=True):
-        if x != y:
-            seen += 1
-            if seen > threshold:
-                return False
-    return True
-
-
 def correct_umis(observations: Mapping[str, int]) -> dict[str, int]:
     """Merge each UMI into the more abundant near-neighbour that can explain it as a PCR error.
 
-    The reference's algorithm, kept: take the most abundant UMI as a seed, then walk the remaining
-    UMIs from the least abundant upward, absorbing any within :data:`HAMMING_THRESHOLD` of the seed
-    and stopping as soon as a candidate is too abundant for the seed to explain
-    (``COUNT_RATIO_THRESHOLD * candidate - 1 > seed``). Repeat with what is left.
+    The reference's rule, kept exactly: take the most abundant UMI as a seed and absorb every UMI
+    still standing that is within :data:`HAMMING_THRESHOLD` of it *and* rare enough for it to
+    explain (``COUNT_RATIO_THRESHOLD * candidate - 1 <= seed``). Repeat with what is left.
+
+    **The neighbours are looked up, not searched for**, and that is the only difference from the
+    reference — which compares the seed against every surviving UMI in the bucket, so a deep gene of
+    a deep cell costs seconds. Blanking one position of a UMI leaves a key that its Hamming-1
+    neighbours share and nothing else does, so a seed reads its neighbours out of a dict. Two
+    properties make that the *same* function rather than an approximation of it. The reference stops
+    its walk at the first candidate too abundant to absorb, and since it walks in count order
+    everything past that point fails the same arithmetic — so the stop is the count test, spelled as
+    control flow. And the seed's own count is never raised as it absorbs, so which neighbour it
+    takes first cannot change what it ends up holding.
+
+    A key is a position and the two fragments that survive blanking it, so it carries the UMI's
+    length and two UMIs of different lengths can never share one. That is this port's refusal to
+    merge a ragged tag — the reference asks rapidfuzz for a distance with padding off, which raises
+    on a length mismatch — now carried by the index's shape instead of by a rule saying so.
+
+    Each UMI's keys are held rather than rebuilt when it comes up as a seed. That is what puts the
+    index ahead of the scan from eleven UMIs upward, which is small enough that the buckets below it
+    are not worth a size threshold and a second path through this function: measured over one cell's
+    worth of genes they are most of them by count and a rounding error of its correction time.
 
     **Ties are broken on the UMI itself, not on the order the BAM happened to hand them over.** The
     reference sorts by count alone and lets Python's stable sort fall back to insertion order, which
@@ -425,20 +426,31 @@ def correct_umis(observations: Mapping[str, int]) -> dict[str, int]:
     counts by sequence makes the result a function of the data alone, which is what lets the same
     plate counted twice come out byte-identical.
     """
-    remaining = sorted(observations.items(), key=lambda item: (-item[1], item[0]))
+    order = sorted(observations.items(), key=lambda item: (-item[1], item[0]))
+    neighbours: dict[tuple[int, str, str], list[str]] = {}
+    blanked: dict[str, list[tuple[int, str, str]]] = {}
+    for umi, _ in order:
+        keys = [(i, umi[:i], umi[i + 1 :]) for i in range(len(umi))]
+        for key in keys:
+            neighbours.setdefault(key, []).append(umi)
+        blanked[umi] = keys
+
+    standing = set(observations)
     corrected: dict[str, int] = {}
-    while remaining:
-        seed, seed_count = remaining.pop(0)
-        corrected[seed] = seed_count
-        i = len(remaining) - 1
-        while i >= 0:
-            candidate, candidate_count = remaining[i]
-            if (COUNT_RATIO_THRESHOLD * candidate_count) - 1 > seed_count:
-                break  # everything left of here is at least this abundant
-            if _hamming_within(seed, candidate, HAMMING_THRESHOLD):
-                corrected[seed] += candidate_count
-                remaining.pop(i)
-            i -= 1
+    for seed, seed_count in order:
+        if seed not in standing:
+            continue  # already absorbed by an abundant enough seed
+        standing.discard(seed)
+        total = seed_count
+        for key in blanked[seed]:
+            for candidate in neighbours[key]:
+                if candidate not in standing:
+                    continue
+                candidate_count = observations[candidate]
+                if (COUNT_RATIO_THRESHOLD * candidate_count) - 1 <= seed_count:
+                    total += candidate_count
+                    standing.discard(candidate)
+        corrected[seed] = total
     return corrected
 
 

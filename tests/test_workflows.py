@@ -4010,6 +4010,77 @@ def test_umi_correction_absorbs_a_neighbour_only_when_the_seed_can_explain_it() 
     assert list(correct_umis({"TTTTTTTT": 3, "AAAAAAAA": 3})) == ["AAAAAAAA", "TTTTTTTT"]
 
 
+def test_umi_correction_by_neighbour_index_answers_what_the_full_scan_answers() -> None:
+    """The correction reads its neighbours out of an index; this is the scan it has to agree with.
+
+    `scan` below is the reference's algorithm as the counter used to hold it: walk the survivors
+    from least abundant upward and STOP at the first one too abundant for the seed to explain. The
+    index cannot walk, so it applies that stop as arithmetic on each neighbour it looks up, and the
+    two are only the same function because the survivors are in count order and the seed's count
+    never rises as it absorbs. Nothing enforces that pair of properties, so this asserts it: the
+    moment the stop and the filter disagree on any bucket, one of the two is wrong and this goes
+    red. It compares key order as well as totals, so a lost tie-break lands here too — that is the
+    same guarantee the byte-identical plate rests on, priced at a millisecond instead of an h5ad.
+
+    Buckets come from a fixed seed rather than from `hypothesis`, which this project does not depend
+    on and would not be worth depending on for one property. Three letters, so Hamming-1 neighbours
+    are common at these lengths; several lengths including buckets that mix them, because refusing
+    to merge a ragged pair is a property of the index's key rather than a rule anybody wrote down,
+    and a key is exactly the kind of thing that stops carrying a length by accident. The two counters
+    at the end are what keep the generator honest: a widened alphabet or a flattened count
+    distribution would leave the buckets with nothing to merge and quietly make all of this vacuous.
+    """
+    import random
+
+    from seqforge.workflows.umite.count import COUNT_RATIO_THRESHOLD, HAMMING_THRESHOLD
+
+    def hamming_within(a: str, b: str, threshold: int) -> bool:
+        if len(a) != len(b):
+            return False
+        seen = 0
+        for x, y in zip(a, b, strict=True):
+            if x != y:
+                seen += 1
+                if seen > threshold:
+                    return False
+        return True
+
+    def scan(observations: dict[str, int]) -> dict[str, int]:
+        remaining = sorted(observations.items(), key=lambda item: (-item[1], item[0]))
+        corrected: dict[str, int] = {}
+        while remaining:
+            seed, seed_count = remaining.pop(0)
+            corrected[seed] = seed_count
+            i = len(remaining) - 1
+            while i >= 0:
+                candidate, candidate_count = remaining[i]
+                if (COUNT_RATIO_THRESHOLD * candidate_count) - 1 > seed_count:
+                    break
+                if hamming_within(seed, candidate, HAMMING_THRESHOLD):
+                    corrected[seed] += candidate_count
+                    remaining.pop(i)
+                i -= 1
+        return corrected
+
+    rng = random.Random(20260811)
+    with_a_merge = 0
+    ragged = 0
+    for _ in range(400):
+        lengths = rng.choice(([6], [8], [10], [6, 8], [6, 8, 10]))
+        bucket: dict[str, int] = {}
+        for _ in range(rng.randint(1, 40)):
+            umi = "".join(rng.choice("ACG") for _ in range(rng.choice(lengths)))
+            bucket[umi] = rng.randint(1, 12)
+        corrected = correct_umis(bucket)
+        assert corrected == scan(bucket), bucket
+        assert list(corrected) == list(scan(bucket)), bucket
+        with_a_merge += len(corrected) < len(bucket)
+        ragged += len({len(umi) for umi in bucket}) > 1
+
+    assert with_a_merge > 100, "the generator stopped producing neighbours to merge"
+    assert ragged > 50, "the generator stopped producing UMIs of unequal length"
+
+
 def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
     tmp_path: Path,
 ) -> None:
