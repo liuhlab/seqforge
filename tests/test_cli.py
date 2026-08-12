@@ -1785,7 +1785,7 @@ def test_umi_extract_takes_one_derived_geometry_and_offers_no_way_to_declare_a_n
     # it outlives the `temp()` uBAM, and stdout says where it went. A verb that printed and wrote
     # two different things would be two accounts of one extraction.
     assert written["summary"] == str(summary)
-    assert {k: v for k, v in json.loads(summary.read_text()).items()} == {
+    assert json.loads(summary.read_text()) == {
         k: v for k, v in written.items() if k not in ("written", "summary", "read_id")
     }
 

@@ -881,8 +881,9 @@ def io_umi_extract(
     **`--summary` is what makes the numbers outlive the run.** The uBAM is `temp()`, so the only
     lasting account of what the extraction saw — how many fragments, how many carried a tag, and
     where the tag actually started — used to be whatever captured this command's stdout. Given a
-    path, the same payload lands beside the cell's other outputs and `seqforge report` reads it back,
-    the way it already reads STAR's own per-sample log. Stdout is unchanged.
+    path, the SAME payload lands beside the cell's other outputs and `seqforge report` reads it back,
+    the way it already reads STAR's own per-sample log. One payload and not two: stdout keeps every
+    key it had, gains the geometry and the version the file carries, and names where the file went.
 
     Exit 3 on a Blocker-shaped refusal: an unreadable geometry, the wrong mate, a run whose mate was
     never deposited, a half-renamed FASTQ, a pair of unequal length, a truncated input.

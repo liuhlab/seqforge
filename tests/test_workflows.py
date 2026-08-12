@@ -4333,6 +4333,42 @@ def test_three_artifacts_are_three_chapters_of_one_row_and_never_three_rows(
     assert keys.index("umi_tagged") < keys.index("uniquely_mapped") < keys.index("no_feature")
 
 
+def test_a_plate_that_has_only_extracted_is_reported_as_started_and_never_as_finished(
+    tmp_path: Path,
+) -> None:
+    """What is SHOWN and what is FINISHED are two questions, and the first mid-pipeline artifact
+    is what pulled them apart.
+
+    `n_found` feeds `PipelineStats.complete`, which the page renders as a green "all N samples
+    finished". Every artifact this registry read used to be the LAST thing its pipeline wrote, so
+    "some source answered" and "this sample is done" were the same fact and one number could serve
+    both. The extraction summary is the FIRST thing the plate writes: counting it would tint a plate
+    that has not aligned a single cell green, which is the one sentence a reader would act on
+    without checking. So its columns are on the page and its landing is not a finish.
+
+    Both halves are asserted, because either alone is satisfiable by doing the wrong thing: dropping
+    the row entirely also stops the badge going green, and it would hide the very number the artifact
+    was added for.
+    """
+    results = _plate_results(tmp_path, logged=[], extracted=["cell_a", "cell_b"])
+    (results / PLATE_H5AD).unlink()  # extraction ran; the aligner and the counter have not
+
+    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert stats is not None and not stats.complete
+    assert (stats.n_found, stats.n_expected) == (0, 2)
+    assert [s.sample_id for s in stats.samples] == ["cell_a", "cell_b"]
+    assert _by_key(stats.samples[0])["umi_tagged"].value == pytest.approx(0.27)
+
+    # ...and a cell whose alignment log then lands IS finished, so the distinction is about which
+    # artifact answered and not about the summary suppressing a count.
+    _write(results / "cell_a" / "Log.final.out", "  Number of input reads |\t10\n")
+    landed = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+
+    assert landed is not None and (landed.n_found, landed.n_expected) == (1, 2)
+    assert len(landed.samples) == 2, "a cell that has only extracted still has a row"
+
+
 def test_an_unreadable_summary_costs_its_own_columns_and_names_the_file_it_could_not_read(
     tmp_path: Path,
 ) -> None:

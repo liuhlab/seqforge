@@ -361,11 +361,8 @@ rule umi_extract:
         # job finishes -- 1440 uBAMs never coexist with 1440 alignments.
         ubam=temp(f"{OUTDIR}/{{sample}}/{{sample}}.unaligned.bam"),
         # And NOT `temp()`, which is the whole point of it: what the extraction measured has to
-        # outlive the records it measured. The tagged fraction is the per-cell readout of whether the
-        # chemistry behaved -- a tunable tagmentation parameter, published across 6.9-70.5% -- and
-        # once the uBAM above is reclaimed nothing on disk can tell a 2% cell from a 28% one. Printed
-        # to stdout it survived only in whatever captured the workflow's output, which on a cluster
-        # is a scheduler log somebody rotates.
+        # outlive the records it measured. `workflows.umite.extract` argues why those numbers are
+        # worth keeping; what belongs here is that the uBAM above is the reason they need a file.
         summary=f"{OUTDIR}/{{sample}}/{{sample}}{EXTRACT_SUFFIX}",
     params:
         # The whole extraction geometry as one value, derived by compose from the element

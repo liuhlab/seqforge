@@ -70,7 +70,9 @@ cell at 28% are a bench problem and a normal run and nothing downstream can tell
 records are gone. Printing them to stdout left the only surviving copy in whatever captured it,
 which on a cluster is a scheduler log somebody rotates. So this also writes one small JSON per cell
 beside the cell's other outputs, and the report reads it back — the same shape STAR sets by dropping
-``Log.final.out`` into a sample's directory unasked. Stdout is unchanged; the file is an addition.
+``Log.final.out`` into a sample's directory unasked. **Stdout and the file are one payload**: every
+key stdout carried it still carries, and both gained the geometry and the version together, so the
+printed account and the durable one cannot come to say different things.
 
 ``pysam`` is a plain dependency, not a runtime one, and this module needs **no container**: it
 shells out to nothing at all. The h5ad packager draws the same line for the same reason — writing a
@@ -509,12 +511,13 @@ class ExtractStats:
     #: a measured offset distribution, so a run that reports its own is a run that can be checked
     #: against it instead of trusted — the 4.3%-not-at-zero claim is observable per cell, forever.
     offsets: dict[int, int]
-    #: The rendered geometry this cell was extracted under. Carried because every number beside it is
-    #: only interpretable against it: a tagged fraction of 0 means a dead library under one geometry
-    #: and the wrong read handed over under another, and the artifact outlives the config that said
-    #: which. It is also what makes the offsets readable — the declared anchor start is in it, so
-    #: "where the tag actually began" can be compared with where the layout said it would.
-    geometry: str
+    #: The geometry this cell was extracted under, held as the value and rendered on the way out.
+    #: Carried because every number beside it is only interpretable against it: a tagged fraction of
+    #: 0 means a dead library under one geometry and the wrong read handed over under another, and
+    #: the artifact outlives the config that said which. It is also what makes the offsets readable —
+    #: the declared anchor start is in it, so "where the tag actually began" can be compared with
+    #: where the layout said it would.
+    geometry: TagGeometry
 
     @property
     def untagged(self) -> int:
@@ -531,7 +534,7 @@ class ExtractStats:
         return {
             "sample": self.sample,
             "seqforge": __version__,
-            "geometry": self.geometry,
+            "geometry": self.geometry.render(),
             "fragments": self.fragments,
             "tagged": self.tagged,
             "untagged": self.untagged,
@@ -539,7 +542,7 @@ class ExtractStats:
         }
 
 
-def _write_summary(stats: ExtractStats, path: Path) -> Path:
+def _write_summary(stats: ExtractStats, path: Path) -> None:
     """One cell's counts, on disk, as the last act of an extraction that finished.
 
     Last, and only on success, so the file's existence means the uBAM beside it was written whole. A
@@ -553,7 +556,6 @@ def _write_summary(stats: ExtractStats, path: Path) -> Path:
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(stats.to_dict(), indent=2) + "\n", encoding="utf-8")
-    return path
 
 
 def _counted(payload: Mapping[str, object], key: str) -> int | None:
@@ -578,7 +580,9 @@ def _anchor_drift(payload: Mapping[str, object], tagged: int | None) -> float | 
     The declared start comes from the geometry the payload carries, parsed by the same code that
     rendered it. A payload with no readable geometry yields ``None`` rather than a share measured
     against a guessed origin — the histogram is still on disk, and a wrong denominator is worse than
-    a missing column.
+    a missing column. So does a histogram holding more matches than the file says were tagged: the
+    two numbers are written together and disagree only in a file somebody edited, and a share above
+    100% reads as a rendering bug rather than as the inconsistency it is.
     """
     offsets, geometry = payload.get("offsets"), payload.get("geometry")
     if not tagged or not isinstance(offsets, Mapping) or not isinstance(geometry, str):
@@ -587,29 +591,29 @@ def _anchor_drift(payload: Mapping[str, object], tagged: int | None) -> float | 
         declared = TagGeometry.parse(geometry).anchor_start
     except UmiExtractError:
         return None
-    drifted = 0
+    drifted = at_declared = 0
     for at, seen in offsets.items():
-        if not isinstance(seen, int) or isinstance(seen, bool):
+        if not isinstance(seen, int) or isinstance(seen, bool) or seen < 0:
             return None
-        if str(at) != str(declared):
+        if str(at) == str(declared):
+            at_declared += seen
+        else:
             drifted += seen
-    return drifted / tagged
+    return drifted / tagged if drifted + at_declared <= tagged else None
 
 
 def extract_metrics(payload: Mapping[str, object], sample: str) -> SampleStats:
     """One cell's summary payload -> the columns its report row shows. Pure — no file, no pysam.
 
-    **The tagged fraction is the point of this adapter.** It is the single best per-sample readout of
-    whether the chemistry behaved: the fraction of UMI-containing reads is a tunable tagmentation
-    parameter, published across 6.9–70.5% over five libraries, and until this landed nothing on a
-    finished plate surfaced it at all. It is deliberately **ungraded** — a library tuned low is a
-    choice and not a fault, and inventing a bar would tint a page over a decision somebody made at
-    the bench. The number is the contribution; a threshold is a measurement nobody has made.
+    **The tagged fraction is the point of this adapter** (the module docstring argues why), and it is
+    deliberately **ungraded**: a library tuned low is a choice somebody made at the bench and not a
+    fault, so inventing a bar would tint a page over a decision. The number is the contribution; a
+    threshold is a measurement nobody has made.
 
     Fragments come along as its own denominator, and they are the extractor's count of what it READ
     rather than the counter's of what reached the matrix. Two numbers that should agree, from two
-    artifacts, one of which exists long before the other: a plate still counting has this column and
-    no other, and a plate that finished has both and can be checked.
+    artifacts, one of which exists long before the other: a plate still extracting has this column
+    and no other, and a plate that finished has both and can be checked.
     """
     fragments, tagged = _counted(payload, "fragments"), _counted(payload, "tagged")
     built: list[Metric | None] = [
@@ -887,11 +891,7 @@ def extract_umis(
                 if two is not None and mate_fastq is not None:
                     _checked(two, mate_fastq)
     stats = ExtractStats(
-        sample=sample,
-        fragments=fragments,
-        tagged=tagged,
-        offsets=offsets,
-        geometry=geometry.render(),
+        sample=sample, fragments=fragments, tagged=tagged, offsets=offsets, geometry=geometry
     )
     if summary is not None:
         _write_summary(stats, summary)

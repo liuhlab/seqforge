@@ -37,9 +37,13 @@ if TYPE_CHECKING:
 #: somebody rotates. The offsets histogram is the same evidence one level down: where the tag
 #: actually started, so a shifted distribution is a primer or trimming problem no count matrix would
 #: explain. `seqforge report` now reads the file the way it already reads `Log.final.out`, which is
-#: what makes `map/star-umi` the first module with TWO per-sample artifacts.
-#: **WHICH OUTPUT MOVES.** Nothing already produced. The uBAM is byte-identical, every alignment and
-#: every count is unchanged, and stdout keeps the keys it had — this adds an artifact and moves none.
+#: what makes `map/star-umi` the first module with TWO per-sample artifacts — and the first with one
+#: that is NOT evidence a sample finished, so a `SampleArtifact` says which it is and a plate whose
+#: extraction has outrun its aligner reports "3 of 1440" rather than a green "all finished".
+#: **WHICH OUTPUT MOVES.** No FILE already produced. The uBAM is byte-identical and every alignment
+#: and count is unchanged. Stdout keeps every key it had and gains three — the geometry, the seqforge
+#: version and where the summary went — because the printed payload and the written one are one
+#: object, and two accounts of one extraction is the drift this artifact exists to end.
 #: The bump is owed by the `.smk` edit, and a `run_id` is its whole cost.
 #: 2026.8.12 — every STAR workflow loads ONE copy of the genome per run and shares it, instead of one
 #: workflow doing so and two loading a private copy per job (#379). `map/star` and `map/starsolo` each

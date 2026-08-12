@@ -101,10 +101,20 @@ class SampleArtifact:
     A pair rather than two parallel tuples on the spec, because the filename and the code that can
     read those bytes are one fact: split across two lists they can go out of step by one, and the
     failure is a reader handed a file it does not understand.
+
+    ``finishes`` is whether this file LANDING means the pipeline is done with this sample. True for
+    a module's terminal artifact, which is every module's only one — and false for an artifact a
+    mid-pipeline rule writes, which is evidence ABOUT a sample and not evidence that the sample is
+    finished. The distinction did not exist while every artifact was terminal, and the first
+    mid-pipeline one made it load-bearing: ``n_found`` feeds ``PipelineStats.complete``, which the
+    page renders as a green "all N samples finished", so counting an extraction summary there would
+    tint a plate that has not yet aligned a single cell. What is shown is still the union of every
+    artifact that landed; only what counts as FINISHED is narrower.
     """
 
     filename: str
     read: Callable[[Path, str], SampleStats]
+    finishes: bool = True
 
 
 @dataclass(frozen=True)
@@ -172,6 +182,9 @@ _SPECS: dict[str, StatsSpec] = {
     # behaved — exists nowhere but this file. STAR's log cannot say it; it never saw an untagged read
     # as anything but a read. Ordered before the log so a page reads left to right in pipeline order.
     #
+    # It is the module's FIRST rule, so it is also the first artifact that is not evidence a cell
+    # finished — `finishes=False`, or a plate whose extraction has outrun STAR renders as done.
+    #
     # It is also the only module with a THIRD half, and that half is where its counting decisions
     # are: the fan-in writes every cell's read fates into the combined object's `obs`, and those say
     # what neither per-sample artifact can — how many fragments reached no gene, and why. They arrive
@@ -185,7 +198,7 @@ _SPECS: dict[str, StatsSpec] = {
     # them or fails at import.
     "map/star-umi": StatsSpec(
         artifacts=(
-            SampleArtifact(f"{{sample}}{_EXTRACT_SUFFIX}", _read_extract_summary),
+            SampleArtifact(f"{{sample}}{_EXTRACT_SUFFIX}", _read_extract_summary, finishes=False),
             SampleArtifact(STAR_FINAL_LOG, _read_star_log),
         ),
         read_fan_in=_read_plate_stats,
@@ -256,26 +269,16 @@ def _merged(held: SampleStats | None, arriving: SampleStats) -> SampleStats:
     a reading" is the ordinary first step of a fold, while "a reading of nothing" is not a thing an
     artifact that landed can produce, so the signature says which absence is expected.
 
-    **Metrics merge and nothing else does**, deliberately. The other fields of a
+    **Metrics merge and nothing else does.** The other fields of a
     :class:`~seqforge.workflows.metrics.SampleStats` are single-valued judgements — which feature the
-    numbers came from, the knee vector, the caption — and merging them would mean picking a winner
-    between two artifacts that each answered honestly for themselves. Today exactly one artifact per
-    module carries any of them, so the first non-empty one is kept and there is nothing to arbitrate;
-    a second artifact wanting to speak there is a design question, not a merge rule.
+    numbers came from, the knee vector, the caption — and no module has two artifacts that both speak
+    there: every reader but ``qc.read_metrics`` returns an id and a metric list. Code to arbitrate
+    between them would be code no test could turn red, which is the reason it is absent rather than
+    written and unexercised. A second speaking artifact is a design question, not a merge rule.
     """
     if held is None:
         return arriving
-    filled = {
-        field: value
-        for field, value in (
-            ("knee", arriving.knee),
-            ("note", arriving.note),
-            ("feature_reads_in_genes", arriving.feature_reads_in_genes),
-            ("primary_feature", arriving.primary_feature),
-        )
-        if value and not getattr(held, field)
-    }
-    return held.model_copy(update={"metrics": [*held.metrics, *arriving.metrics], **filled})
+    return held.model_copy(update={"metrics": [*held.metrics, *arriving.metrics]})
 
 
 def _read_fan_in(
@@ -343,11 +346,16 @@ def read_pipeline_stats(
     on what landed rather than made to wait for a full plate.
 
     A module with a **fan-in artifact** is read from both, and the join is a **union**: a sample is
-    reported if EITHER source has it. A cell whose ``Log.final.out`` is missing but whose row is in
+    reported if ANY source has it. A cell whose ``Log.final.out`` is missing but whose row is in
     the plate object was counted — it has fates, a fragment count and a matrix column — and dropping
-    it would report a plate as thinner than the object on disk says it is. ``n_found`` therefore
-    counts the samples one source or the other answered for, which is what "how much landed" means
-    once landing can happen twice.
+    it would report a plate as thinner than the object on disk says it is.
+
+    **What is SHOWN and what is FINISHED are two questions**, and they came apart the first time a
+    module reported from a mid-pipeline artifact. Every source that landed puts its columns on the
+    page; only a source that ``finishes`` counts toward ``n_found``, and ``n_found`` is what
+    ``complete`` — the green "all N samples finished" — is read off. An extraction summary is a real
+    row and is not a finished cell, so a plate whose extraction has outrun its aligner shows every
+    cell's tagged fraction under an honest "3 of 1440".
     """
     spec = _SPECS.get(module)
     if spec is None or not results_dir.is_dir():
@@ -355,6 +363,7 @@ def read_pipeline_stats(
 
     per_sample: dict[str, SampleStats] = {}
     notes: list[str] = []
+    finished: set[str] = set()
     for sample in samples:
         for artifact in spec.artifacts:
             filename = artifact.filename.format(sample=sample)
@@ -369,6 +378,8 @@ def read_pipeline_stats(
                 notes.append(f"{sample}: {filename} could not be read ({type(exc).__name__})")
                 continue
             per_sample[sample] = _merged(per_sample.get(sample), read)
+            if artifact.finishes:
+                finished.add(sample)
 
     # Read once, whatever the plate's size, and merged per sample below. A sample's two sources are
     # two halves of ONE row and not two rows: the alignment log says what STAR did with this cell's
@@ -384,6 +395,9 @@ def read_pipeline_stats(
         row = landed if counted is None else _merged(landed, counted)
         if row is not None:
             found.append(row)
+        if counted is not None:
+            # The fan-in is the last thing the pipeline writes, so a row in it always means finished.
+            finished.add(sample)
 
     # Nothing found AND nothing unreadable is the only "there is nothing on disk" case. Nothing found
     # WITH notes is a pipeline that ran and wrote bytes nobody can parse — and returning `None` for it
@@ -417,7 +431,10 @@ def read_pipeline_stats(
     return PipelineStats(
         module=module,
         n_expected=len(samples),
-        n_found=len(found),
+        # How many samples the pipeline FINISHED, which is not how many rows are below: a sample
+        # whose only artifact is a mid-pipeline one has real numbers to show and is not done, and
+        # `complete` tints the whole section green off this count.
+        n_found=len(finished),
         samples=found,
         columns=columns,
         notes=notes,
@@ -457,10 +474,10 @@ def _check_registry() -> None:
     # A spec that names no per-sample artifact reports nothing while looking like it reports — the
     # same silence `MODULES_WITHOUT_STATS` exists to make somebody say out loud. Cheap to write once
     # the field is a tuple, and a tuple is exactly what makes the empty case expressible at all.
-    silentspecs = sorted(m for m, s in _SPECS.items() if not s.artifacts)
-    if silentspecs:
+    unsourced = sorted(m for m, s in _SPECS.items() if not s.artifacts)
+    if unsourced:
         raise AssertionError(
-            f"workflow module(s) {silentspecs} register a StatsSpec naming no per-sample artifact; "
+            f"workflow module(s) {unsourced} register a StatsSpec naming no per-sample artifact; "
             f"there is nothing for the reader to open"
         )
     unknown = sorted(
