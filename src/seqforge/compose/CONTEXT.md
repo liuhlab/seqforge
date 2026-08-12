@@ -42,7 +42,9 @@ dataset id
 **`run_id`**:
 `H(dataset ⊕ processing ⊕ kb ⊕ workflow)` — the identity of one *pairing*, computed at compile time
 and stored inside neither input. It names the pipeline directory, so two recipes over one dataset
-cannot overwrite each other.
+cannot overwrite each other. Its `kb` term is a content hash of the one spec that decided the
+config, not a repository-wide version, so a release that leaves this chemistry's processing alone
+leaves this pairing's identity alone.
 _Avoid_: build id, job id, provenance id; and never for `RunResolution.run_id`, which is a
 filename-derived **Run** key
 

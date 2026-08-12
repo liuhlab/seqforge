@@ -38,7 +38,7 @@ import yaml
 from ..io import DEFAULT_REGISTRY, OnlistNotAvailable, OnlistRegistry
 from ..kb import KB_VERSION, load_spec
 from ..kb.schema import Spec
-from ..manifest.hash import run_id
+from ..manifest.hash import run_id, spec_content_hash
 from ..models.dataset import INDEX_ROLE, DatasetManifest, ReadDef
 from ..models.processing import (
     DatasetPin,
@@ -363,12 +363,17 @@ def compose(
     # The LIVE knowledge base, not the one the manifest recorded at fill time. ADR-0037. `plan` above
     # read this KB for the params, the derived keys and the admission floor, so the config is a
     # function of it; hashing the fill-time value instead meant an old manifest compiled under a new
-    # KB produced a different config at the same `run_id`, into the same directory, silently. The
-    # manifest's own `kb_version` stays exactly what it is — the KB that decided its chemistry.
+    # KB produced a different config at the same `run_id`, into the same directory, silently.
+    # What is folded is now the ONE spec's processing half rather than a repository-wide version
+    # string — the same claim at the granularity it was always about, since `p.spec` is the very
+    # object all three of those readings went through. A knowledge-base release that leaves this
+    # chemistry's params alone therefore leaves this dataset's directory where it is, and its
+    # alignments findable; only an edit that would change an emitted byte moves it. The manifest's own
+    # `kb_version` stays exactly what it is — the KB that decided its chemistry.
     rid = run_id(
         dataset_hash=manifest.provenance.dataset_hash,
         processing_hash=processing.provenance.processing_hash,
-        kb_version=KB_VERSION,
+        spec_hash=spec_content_hash(p.spec),
         workflow_version=processing.provenance.workflow_version,
     )
     # `pipeline/default-a3f8c19d2b04/`, not `pipeline/a3f8c19d…696/`. The run_id stays the identity

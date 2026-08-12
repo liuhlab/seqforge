@@ -5,7 +5,8 @@ Operations live here; the *schemas* are :mod:`seqforge.models.dataset` (the IR: 
 a dataset manifest — each section keeping its own authority — and ``fill_processing`` builds one of
 the many processing manifests a dataset may be paired with. ``validate`` is the refusal contract
 (structured ``Blocker``s + a nonzero exit), and ``hash`` gives each artifact a content-addressed
-identity plus the ``run_id`` that records their pairing.
+identity plus the ``run_id`` that records their pairing — and, since that pairing is keyed on the
+knowledge base too, the hash of the one spec that decided it.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from .fill import (
     fill_manifest,
     fill_processing,
 )
-from .hash import dataset_content_hash, processing_content_hash, run_id
+from .hash import dataset_content_hash, processing_content_hash, run_id, spec_content_hash
 from .instruct import INSTRUCTABLE_FIELDS, Instruction, instructions_from_assertions
 from .policy import (
     DEFAULT_SOLO_FEATURES,
@@ -47,6 +48,7 @@ __all__ = [
     "exit_code_for_report",
     "dataset_content_hash",
     "processing_content_hash",
+    "spec_content_hash",
     "run_id",
     "processing_defaults",
     "ProcessingDefaults",

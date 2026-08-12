@@ -677,15 +677,17 @@ def test_compose_says_on_the_human_stream_which_knowledge_base_it_compiled_under
 ) -> None:
     """A manifest whose chemistry was decided under an older KB must SAY so — ADR-0037.
 
-    Since the live knowledge base folds into `run_id`, an old manifest under a new KB no longer
-    overwrites the earlier compile; it lands in its own directory and exits 0. That is the right
-    outcome and it is also a silent one: the params and any admission floor now come from a knowledge
-    base that never saw this dataset's chemistry decided, and nothing on the machine surface says the
-    two versions differ. So the disclosure is a line on the human stream, beside the admission line
-    and for the same reason — not a gate, because there is no failure here to gate on.
+    An old manifest under a new KB exits 0, and — since `run_id` folds a hash of the deciding spec
+    and no longer this version string — a bump that left this chemistry alone lands it in the SAME
+    directory as before, which is the reuse that narrowing bought. What neither the key nor the
+    directory can carry is that the chemistry was *decided* under the older KB: which spec a dataset
+    resolves to is a whole-knowledge-base question, a signature edited anywhere can change the
+    answer, and nothing on the machine surface says the two versions differ. So the disclosure is a
+    line on the human stream, beside the admission line and for the same reason — not a gate, because
+    there is no failure here to gate on.
 
     `KB_VERSION` is patched where `compose.core` binds it rather than on `kb` or on this CLI, because
-    that is the one place the value now enters: `compose` records both versions on its result and
+    that is the one place the value still enters: `compose` records both versions on its result and
     every verb renders from those. It is patched *forward*, to a version the manifest cannot have
     been filled under: every manifest this suite builds is filled under the live KB, which is exactly
     why no fixture produced this divergence and exactly why the defect ADR-0037 fixes survived a

@@ -124,17 +124,20 @@ def compose_cmd(
             f"floor this chemistry declares. Which, and why: {result.admission.record_path}",
             err=True,
         )
-    # The second line the human stream owes. `run_id` folds the LIVE knowledge base (ADR-0037), so an
-    # old manifest under a new KB compiles cleanly into its own directory rather than over the last
-    # one — but the chemistry in it was still decided under the older KB, and only this says so.
-    # Read off the result rather than compared here: `run` chains the same `compose` call and owes the
-    # same disclosure, and a comparison spelled once per verb is the spelling that drifts.
+    # The second line the human stream owes. `run_id` folds a hash of the spec that decided this
+    # config (ADR-0037), so the key can see whether the params moved and cannot see the thing this
+    # line reports: whether the dataset would still be resolved to that spec at all, which every
+    # signature in the knowledge base has a vote in. Read off the result rather than compared here:
+    # `run` chains the same `compose` call and owes the same disclosure, and a comparison spelled once
+    # per verb is the spelling that drifts.
     if result.kb_moved:
         typer.echo(
             f"compiled under knowledge base {result.kb_version}; this manifest's chemistry was "
-            f"decided under {result.manifest_kb_version}. The params and any admission floor above "
-            f"come from {result.kb_version}. Re-run `seqforge manifest fill` to decide the chemistry "
-            f"under it too.",
+            f"decided under {result.manifest_kb_version}, and compose loads the spec that decision "
+            f"named rather than deciding again. Which spec a dataset resolves to is a "
+            f"whole-knowledge-base question — a signature edited anywhere in {result.kb_version} can "
+            f"change the answer. Re-run `seqforge manifest fill` to decide the chemistry under it "
+            f"too.",
             err=True,
         )
     # A refusal that does not say why is what #267's triage mis-read as a silent pass, so the reason

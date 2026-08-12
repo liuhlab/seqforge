@@ -40,6 +40,7 @@ from seqforge.manifest import (
     validate_manifest,
     validate_processing,
 )
+from seqforge.manifest.hash import spec_content_hash
 from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 from seqforge.models.blocker import Blocker, BlockerCode, BlockerSubject
 from seqforge.models.dataset import INDEX_ROLE, DatasetManifest, SampleGroup
@@ -202,6 +203,18 @@ def test_dataset_hash_is_invariant_across_a_processing_sweep(built_v3: Built) ->
     )
 
 
+def _spec_hash(manifest: DatasetManifest) -> str:
+    """The knowledge-base component of a run id, computed the way compose computes it (#361).
+
+    Held CONSTANT across both sweeps below, because a second recipe and a stripped read count are
+    exactly the things that do not touch the chemistry. It used to be spelled
+    `manifest.provenance.kb_version`, which worked only as an opaque distinct string: the parameter is
+    a content hash of one spec now, and a CalVer stamp read back out of provenance would misdescribe
+    it at the call site.
+    """
+    return spec_content_hash(kb.load_spec(manifest.library.chemistry.value[0]))
+
+
 def test_run_id_differs_per_processing_manifest(built_v3: Built) -> None:
     """One dataset x N processing manifests = N runs.
 
@@ -216,7 +229,7 @@ def test_run_id_differs_per_processing_manifest(built_v3: Built) -> None:
         run_id(
             dataset_hash=manifest.provenance.dataset_hash,
             processing_hash=p.provenance.processing_hash,
-            kb_version=manifest.provenance.kb_version,
+            spec_hash=_spec_hash(manifest),
             workflow_version=p.provenance.workflow_version,
         )
         for p in (a, b)
@@ -281,7 +294,7 @@ def test_the_read_counts_move_neither_the_dataset_hash_nor_the_run_id(built_v3: 
         run_id(
             dataset_hash=m.provenance.dataset_hash,
             processing_hash=p.provenance.processing_hash,
-            kb_version=m.provenance.kb_version,
+            spec_hash=_spec_hash(m),
             workflow_version=p.provenance.workflow_version,
         )
         for m in (manifest, stripped, doubled)
