@@ -315,6 +315,17 @@ def alignment_metrics(log_final: Mapping[str, Any]) -> list[Metric]:
     length and rRNA content far more than with anything seqforge decided, so these are set to catch
     the *decision* failures (wrong assembly, wrong species, unclipped adapter) and not to grade a
     library — a bar tight enough to flag ordinary biology is a bar that gets ignored.
+
+    An unclipped adapter is the one of those three a reader can now *see* rather than infer, because
+    ``input_read_length`` is the length STAR was left with **after** doing its own clipping. It
+    carries no bar, and that is the decision rather than an omission. The shortfall only means
+    something against the length that was sequenced, and nothing downstream of ``probe`` holds that
+    number — the manifest never carried a read length. Nor can ``unmapped_too_short`` stand in for
+    it: correctly clipped Smart-seq3 cells still average 22.75% there, down from 54.43% unclipped
+    but above this table's own 0.20 ``ok`` bar, so a cross-check reusing that bar would fire on the
+    healthy case, and four cells of one chemistry argue no other. Full tables:
+    ``docs/research/smartseq3-tn5-read-through.md``. Publishing the number and declaring no bar is
+    the whole of it; the comparison belongs to the reader who knows what they sequenced.
     """
     unique = _as_number(log_final.get("Uniquely mapped reads %"))
     multi = _as_number(log_final.get("% of reads mapped to multiple loci"))
@@ -327,6 +338,20 @@ def alignment_metrics(log_final: Mapping[str, Any]) -> list[Metric]:
             _as_number(log_final.get("Number of input reads")),
             group="input",
             hint="How many read pairs STAR was handed. Compare it with what you expected to sequence.",
+        ),
+        count(
+            "input_read_length",
+            "Input read length",
+            _as_number(log_final.get("Average input read length")),
+            group="input",
+            exact=True,
+            hint="Mean bases that reached the aligner per FRAGMENT — both mates of a pair summed, "
+            "so 150 bp paired-end reads arrive here as ~300 rather than 150. STAR counts it AFTER "
+            "its own clipping, so the value drops below what was sequenced if and only if a declared "
+            "adapter read-through was actually found. Compare the two: that is what tells a library "
+            "clipped and still mapping badly from one that was never clipped at all, which look "
+            "identical in the unmapped-too-short share. No bar — nothing in this report records the "
+            "length that went in, so only you can supply it.",
         ),
         fraction(
             "uniquely_mapped",
