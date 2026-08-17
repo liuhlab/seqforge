@@ -119,11 +119,9 @@ def test_seqforge_defines_no_genome_machinery(src_trees: SrcTrees) -> None:
 _GENOME_API = {
     "get_star_index",  # starsolo.smk / star.smk rule genome_index + e2e: resolve the prebuilt index
     "get_chromap_index",  # chromap.smk rule genome_index: resolve the prebuilt scATAC index (no GTF)
-    "register_gtf",  # staging an annotation (see the consumer note in CLAUDE.md)
     "fasta_path",  # chromap.smk rule genome_index (chromap maps against -r ref) + e2e: simulate reads
     "default_gtf_path",  # e2e: build gene models
-    "annotations",  # e2e/docs: which GTF names are registered
-    "get_gtf_path",  # io umi-count: the registered GTF, beside the database gffutils built from it
+    "annotations",  # e2e/docs: which GTF names are registered; io umi-count: `.path(name)`
 }
 
 
@@ -143,7 +141,7 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
     liulab-genome is a declared dependency now, so this check runs everywhere rather than on a cluster
     nobody visits. That is the fix; renaming the method was just the symptom.
     """
-    from genome import Genome
+    from genome import AnnotationRegistry, Genome
 
     missing = sorted(name for name in _GENOME_API if not hasattr(Genome, name))
     assert not missing, (
@@ -155,6 +153,12 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
     # _does_not_exist): the name we resolve the prebuilt index through must exist, and a name
     # liulab-genome does not define must NOT resolve — else `missing` being empty would prove nothing.
     assert hasattr(Genome, "get_star_index"), "seqforge resolves the prebuilt index through this"
+    # `io umi-count` takes two hops — `Genome.annotations.path(name)` — and a set of Genome attributes
+    # reaches only the first, so the second is named here. It was one hop, `get_gtf_path`, until
+    # liulab-genome moved the whole annotation surface behind the registry; this guard is what said so.
+    assert hasattr(AnnotationRegistry, "path"), (
+        "io umi-count resolves the registered GTF through this"
+    )
     assert not hasattr(Genome, "resolve_star_index_please"), (
         "a name liulab-genome does not define must not resolve — else the guard proves nothing"
     )
