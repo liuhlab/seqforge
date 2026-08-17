@@ -64,7 +64,7 @@ from seqforge.workflows import (
     list_modules,
     memory,
 )
-from seqforge.workflows.cram import CramError, bam_to_cram
+from seqforge.workflows.cram import _RENAME_QNAME, CramError, bam_to_cram
 from seqforge.workflows.fragments import (
     QC_SUFFIX,
     FragmentsError,
@@ -745,6 +745,43 @@ def test_cram_passes_the_reference_and_never_embeds_it(
     assert any(c[:3] == ["samtools", "index", "-@"] for c in rec.calls)
 
 
+@pytest.mark.external
+@pytest.mark.skipif(shutil.which("awk") is None, reason="awk not on PATH")
+def test_the_read_name_rewrite_carries_every_header_line_into_the_retained_cram(
+    tmp_path: Path,
+) -> None:
+    """The converter inherits the read group rather than learning what one is — RUN, not read.
+
+    The plate route declares `@RG` at the aligner, and the CRAM is the RETAINED artifact, so the
+    header line has to survive the one stage between them that rewrites bytes: the QNAME rename. That
+    it does is a property of the rename program, and the test beside this one can only say the
+    program CONTAINS a header branch — which is a claim about source text, and would pass just as
+    happily if the branch printed the line into the wrong stream or dropped the tab layout.
+
+    So the program is executed over a SAM holding the two lines that matter, and the claim is what
+    comes out: `@RG` verbatim, tabs and all, and the alignment beneath it renamed. That is also why
+    the converter needs no edit for the read group and must not get one — a stage that special-cased
+    `@RG` would be a second owner of a fact the aligner already states.
+    """
+    sam = tmp_path / "one.sam"
+    sam.write_text(
+        "@HD\tVN:1.6\tSO:coordinate\n"
+        "@SQ\tSN:chrI\tLN:1000\n"
+        "@RG\tID:cell_a\tSM:cell_a\n"
+        "A00234:HHV:1:1101:1:1\t0\tchrI\t1\t255\t4M\t*\t0\t0\tACGT\tIIII\tRG:Z:cell_a\n"
+    )
+    out = subprocess.run(
+        ["awk", _RENAME_QNAME, str(sam)], capture_output=True, text=True, check=True
+    ).stdout.splitlines()
+
+    assert "@RG\tID:cell_a\tSM:cell_a" in out, (
+        "the retained CRAM would carry records naming a read group its header never introduced"
+    )
+    assert out[:2] == ["@HD\tVN:1.6\tSO:coordinate", "@SQ\tSN:chrI\tLN:1000"]
+    # ...and the rename it exists for still happens, on the alignment and on nothing above it.
+    assert out[3].split("\t")[0] == "r1" and out[3].endswith("RG:Z:cell_a")
+
+
 @pytest.mark.parametrize(
     ("fails", "named"),
     [("-F", "primary alignments"), ("awk", "read-name rewrite"), ("-C", "CRAM encode")],
@@ -969,10 +1006,13 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
     # The twin is reachable ONLY through its base's declaration, and the guard set that keeps it that
     # way is DERIVED from the registry rather than typed beside it — a second list is one a new twin
     # would be missing from, and the KB refusal would then pass while guarding nothing.
+    # By NAME, and only by name. Restating the comprehension that defines the set would assert the
+    # source line back at itself: it cannot go red for anything the code can do, and it would pass
+    # unchanged on the day a twin went missing from the registry.
     assert CHIMERIC_VARIANTS == {"map/star-umi-chimera"}
-    assert CHIMERIC_VARIANTS == {
-        m.chimeric_variant for m in MODULES.values() if m.chimeric_variant is not None
-    }
+    assert get_module("map/star-umi-chimera").chimeric_variant is None, (
+        "a twin of a twin has no meaning and nothing would ever select it"
+    )
 
     # The assay<->pipeline adapter (folded from test_resolve_pipeline_binds_a_chemistry_and_refuses_an
     # _unserved_modality): a chemistry binds to the module its backend selects, and a spec whose
@@ -1103,15 +1143,21 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     5. **The flag is not `temp()`.** Snakemake announces every temporary output it would delete, so
        the plan is where "this file survives the run" is legible. Delete it and a rerun is told the
        load never happened, and reloads a segment that is already resident.
-    6. **The alignment declares the read group it stamps** (#416), with the id and the sample name
-       being the job's own wildcard. `--outSAMattrRGline` is STAR's ONLY input to an `@RG` header
-       line and setting it is also what puts `RG` on a record, so one flag carries both halves of
-       the SAM rule that a record's `RG` name a group its header introduced. The plate route broke
-       that rule outright — the uBAM's `RG:Z:` rode through `--readFilesSAMattrKeep All` onto records
-       whose header declared nothing — and the FASTQ-fed routes shipped alignments with no library
-       provenance at all. Asserted per JOB rather than per module, because the value is the whole
-       claim: a flag rendering one cell's id onto every cell's records would satisfy any test that
-       only asked whether the flag was there.
+    6. **A uBAM-fed alignment declares the read group it stamps** (#416), with the id and the sample
+       name being the job's own wildcard. `--outSAMattrRGline` is STAR's ONLY input to an `@RG`
+       header line and setting it is also what puts `RG` on a record, so one flag carries both halves
+       of the SAM rule that a record's `RG` name a group its header introduced.
+
+       **Which modules owe it is DERIVED from the rendered command, not from a list here**: a route
+       that renders `--readFilesSAMattrKeep` is one handing STAR an alignment file whose records
+       already carry tags, and that is exactly the route whose records arrive carrying `RG:Z:` from
+       the extractor. A FASTQ-fed route hands STAR no input tags, so its records carry no `RG` to
+       dangle and its files are not malformed — giving those a read group is a usability improvement
+       and not this defect, so it is deliberately absent and this test says nothing about them.
+
+       Asserted per JOB rather than per module, because the value is the whole claim: a flag
+       rendering one cell's id onto every cell's records would satisfy any test that only asked
+       whether the flag was there.
 
     Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
     copied into each workflow file rather than factored out, so a fourth STAR workflow must be
@@ -1154,16 +1200,20 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     assert all("--genomeLoad LoadAndKeep" in cmd for cmd in jobs.values()), jobs
     assert all(re.search(r"--limitBAMsortRAM \d+", cmd) for cmd in jobs.values()), jobs
 
-    # The read group, per job, against the job's OWN wildcard -- which is the sample on every one of
-    # these modules, and is the value the retained CRAM will name. A module that rendered the flag
-    # from a constant, or from the first cell of the plate, is what this catches and a presence check
-    # would not.
+    # The read group, per job, against the job's OWN wildcard -- which is the cell on the routes that
+    # owe it, and is the value the retained CRAM will name. A module that rendered the flag from a
+    # constant, or from the first cell of the plate, is what this catches and a presence check would
+    # not. Owed by the uBAM-fed routes and read off the command rather than off a list: keeping input
+    # tags at all IS the property that makes a record arrive carrying `RG:Z:`.
     for wildcard, cmd in jobs.items():
+        if "--readFilesSAMattrKeep" not in cmd:
+            continue
         assert f"--outSAMattrRGline ID:{wildcard} SM:{wildcard}" in cmd, (
-            f"{module} maps {wildcard} without declaring the read group its records carry, so the "
-            f"retained alignment names a group its header never introduced:\n{cmd}"
+            f"{module} maps {wildcard} from a uBAM whose records carry the extractor's `RG:Z:` and "
+            f"declares no read group, so the retained alignment names a group its header never "
+            f"introduced:\n{cmd}"
         )
-    # ...and the input tags a uBAM route keeps may not include `RG`, because STAR appends the kept
+    # ...and the input tags such a route keeps may not include `RG`, because STAR appends the kept
     # input tags after writing its own and de-duplicates against nothing: `All` beside the flag above
     # puts `RG` on a record twice, which is worse than the dangling tag it replaces. A FASTQ-fed
     # module renders no keep list at all, and this says nothing about one.
@@ -3851,6 +3901,12 @@ class _Fragment:
     #: is a placement some consumer is expected to discard, and which discard rule saw it first is
     #: exactly what a per-reason drop count has to keep apart.
     extra_flags: int = 0
+    #: Where this fragment's MATE sits, when that is somewhere other than `contig`. Empty — the
+    #: default — puts the mate on this fragment's own contig, which is what an aligner writes and
+    #: what every other row here wants. Set to another Component's contig it builds the one template
+    #: the chimera splitter's design says cannot exist: both mates carry one `NH` and one chromosome,
+    #: so a template spanning two Components is the assumption failing rather than a case to handle.
+    mate_contig: str = ""
 
 
 def _segments(header: Any, frag: _Fragment) -> list[Any]:
@@ -3872,7 +3928,7 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
             rec.reference_start = start
             rec.mapping_quality = 255
             rec.cigarstring = f"{_READ_LEN}M"
-            rec.next_reference_id = tid
+            rec.next_reference_id = header.get_tid(frag.mate_contig) if frag.mate_contig else tid
             rec.next_reference_start = mate
             rec.template_length = tlen
         tags: list[tuple[str, object, str]] = [("NH", frag.hits, "i")]
@@ -4843,6 +4899,38 @@ def test_an_sq_name_that_will_not_split_at_the_recorded_separator_is_refused(
         split_chimera(bam, outputs, chimera.separator)
 
 
+def test_a_template_whose_mate_sits_on_another_component_is_refused_by_name(tmp_path: Path) -> None:
+    """The splitter's own runtime check, and the reason it exists is the message rather than the stop.
+
+    The design rests on a fact read off the aligner's source that nobody has yet watched hold on a
+    real chimera: both mates of a template carry one `NH` and sit on one chromosome, which is what
+    lets the filter be stateless — no name sort, no buffer. If that is ever false, the record's mate
+    points into a reference dictionary this output does not have, and the split would die on a lookup
+    naming neither the read nor the organisms involved.
+
+    So it is checked per record and refused by name. This is deliberately NOT the output assertion
+    the map originally wanted — asserting mates land together proves nothing, because the refusal
+    fires before any output exists to inspect. What is worth a case is that the refusal FIRES and
+    says what it saw. It cannot prove the aligner never writes such a template; nothing cheap can.
+    """
+    chimera = _CHIMERAS["plain"]
+    ce, ec = chimera.components
+    spanning = _Fragment(
+        "worm_body_bacterial_mate",
+        suffixed(ce.chromosomes[0][0], ce.name, chimera.separator),
+        100,
+        160,
+        mate_contig=suffixed(ec.chromosomes[0][0], ec.name, chimera.separator),
+    )
+    bam = _chimeric_bam(tmp_path / "spanning.bam", chimera, (spanning,))
+    outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
+    with pytest.raises(SplitError) as refusal:
+        split_chimera(bam, outputs, chimera.separator)
+    # The read AND both Components: a diagnosis, not a stop. Named because the whole value of the
+    # check is turning an opaque failure into a sentence someone can act on.
+    assert {spanning.name, ce.name, ec.name} <= set(re.findall(r"[\w.]+", str(refusal.value)))
+
+
 # ---- the plate object's second reader: what `seqforge report` gets out of it ----------------------
 #
 # These drive `read_pipeline_stats` and they live HERE, in the counter's section, for the reason
@@ -5199,14 +5287,21 @@ def test_a_chimeric_plate_reports_what_left_at_the_split_and_never_a_gene_assign
     assert stats is not None and stats.complete
     cell_a = _by_key(stats.samples[0])
     assert "uniquely_mapped" in cell_a  # STAR's half, on the same row and not a row of its own
-    # Every Component of the Chimera has a share, and every share is over the records that came in —
-    # read off `_chimeric_plate`'s rows by hand: 21 records in, of which 4 kept per Component.
+    # Every Component of the Chimera gets BOTH columns: what it kept, and that as a share of the
+    # records that came in — read off `_chimeric_plate`'s rows by hand, 21 records in of which 4 kept
+    # per Component. The count is what lets the page close (every kept plus the four drops is the 21)
+    # and the share is what compares across cells of different depth; neither derives from the other
+    # without a denominator that is not on the page.
     kept = round_trip.stats.kept
     assert set(kept) == {c.name for c in round_trip.chimera.components}
     for component, n in kept.items():
-        assert cell_a[f"split_kept_{component}"].value == pytest.approx(
+        assert cell_a[f"split_kept_{component}"].value == n
+        assert cell_a[f"split_share_{component}"].value == pytest.approx(
             n / round_trip.stats.records_in
         )
+    assert sum(kept.values()) + sum(round_trip.stats.dropped.values()) == (
+        round_trip.stats.records_in
+    ), "the page's own columns have to add back up to the records the BAM held"
     # ...and all four reasons, always present, because an absent key and a zero are different claims
     # and only one of them is a measurement.
     assert {r: cell_a[f"split_dropped_{r}"].value for r in DROP_REASONS} == {

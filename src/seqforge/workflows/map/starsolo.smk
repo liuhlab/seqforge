@@ -277,14 +277,6 @@ rule starsolo_count:
     genome allocation", and under a shared copy there is none of its own to reuse. The memory request
     does NOT shrink to match the sharing -- it covers a job alone on the machine (ADR-0051), which is
     what it would be the first time one sample ran by itself.
-
-    **The retained alignment says which library it came from** (#416). Every record now carries
-    `RG:Z:<sample>` and the header declares the matching `@RG ID:<sample> SM:<sample>`, both from
-    the one `--outSAMattrRGline` in `workflows/starsolo_args.py`. Nothing here was INVALID before --
-    a file with neither the tag nor the line is conformant -- it simply shipped a CRAM with no
-    library provenance, which the GATK family refuses to work from and which no merge of two samples'
-    alignments can recover after the fact. The `map/star-umi` family had the other half of that
-    problem, and both are paid in the same release because the fix is one flag on four command lines.
     """
     input:
         cdna=lambda wc: fastqs(wc.sample, config["read_files_in"]["cdna"]),
@@ -361,10 +353,6 @@ rule starsolo_count:
             barcode=readfilesin(wc.sample, config["read_files_in"]["barcode"]),
             whitelist=input.whitelist,
             out_prefix=f"{OUTDIR}/{wc.sample}/",
-            # The read group STAR declares and stamps, off the SAME wildcard the output prefix is
-            # built from, so the group named in the header and the sample the files are filed under
-            # cannot drift apart. There is no second spelling of the id anywhere on this route.
-            sample=wc.sample,
             threads=threads,
         ),
     shell:

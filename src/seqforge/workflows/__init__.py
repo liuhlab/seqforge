@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
-#: 2026.8.16 — every STAR module declares the read group its records name (#416). The plate route was
+#: 2026.8.16 — the plate route declares the read group its records name (#416). It was
 #: shipping INVALID SAM and had been since the uBAM arrived: `umite`'s extractor writes
 #: `@RG ID:<cell> SM:<cell>` into the uBAM and stamps `RG:Z:<cell>` on every record, and
 #: `--readFilesSAMattrKeep All` carried that tag through the aligner — but STAR builds its output
@@ -41,17 +41,21 @@ if TYPE_CHECKING:
 #: — a worse file than the one being fixed. The two plate modules therefore keep `UB` by name instead
 #: of `All`; the input `RG` is dropped and STAR's is the only one. Nothing is lost, because both
 #: spell the same `{wildcards.sample}` and the extractor's uBAM is unchanged.
-#: **ALL FOUR STAR MODULES, NOT ONLY THE BROKEN ONE, AND THE COST ARGUMENT IS WHY.** `map/star` and
-#: `map/starsolo` read FASTQ, carried no `RG` in and stamped none out — valid files, merely with no
-#: library provenance, which the GATK family also refuses and which no merge of two samples can
-#: recover after the fact. Giving them the group is a behaviour change and would normally owe its own
-#: re-keying argument; here it owes none, because this release re-keys every pipeline anyway. Paying
-#: it now is the cheap moment, and paying it at all is the point.
-#: **WHICH OUTPUT MOVES. EVERY ALIGNMENT THE FOUR STAR MODULES WRITE**, and nothing else. Each gains
-#: an `@RG` line in its header and an `RG:Z:` on every record: `map/starsolo`'s per-sample BAM and
-#: its retained CRAM, `map/star-umi`'s and the chimera twin's per-cell BAMs and their retained CRAMs,
-#: and `map/star`'s coordinate-sorted BAM (which that module writes and does not declare — its
-#: `rule all` target, `ReadsPerGene.out.tab`, is byte-identical). Counts are untouched everywhere:
+#: **THE TWO PLATE MODULES ONLY, AND THE OTHER TWO ARE LEFT ALONE ON PURPOSE.** `map/star` and
+#: `map/starsolo` read FASTQ, hand STAR no input tags, and so stamp no `RG` at all: their files are
+#: not malformed, they merely carry no library provenance — a usability gap the GATK family also
+#: refuses, and a DIFFERENT defect from this one. Giving them a read group would move the bytes of
+#: every alignment and every retained CRAM on two routes that have nothing wrong with them, and the
+#: re-keying that would pay for it does not happen by itself: `run_id` folds the `workflow_version`
+#: STAMPED IN THE RECIPE, not the live constant, so an existing `processing.yaml` recompiles to the
+#: same id and into the same directory as before, now under a module whose command line has moved.
+#: That is the ordinary cost of editing a shipped module and it is worth paying to fix invalid SAM;
+#: it is not worth paying to add a field to files nobody has complained about. Whoever wants it on
+#: the FASTQ routes should ask for it, and re-stamp their recipes when they do.
+#: **WHICH OUTPUT MOVES. EVERY ALIGNMENT THE TWO PLATE MODULES WRITE**, and nothing else — the
+#: per-cell BAMs of `map/star-umi` and of the chimera twin, and the retained CRAMs made from them.
+#: Each gains an `@RG` line in its header and an `RG:Z:` on every record. `map/star`, `map/starsolo`
+#: and `map/chromap` are untouched, byte for byte. Counts are untouched everywhere too:
 #: `--outSAMattrRGline` reaches the SAM/BAM write path and no counting path, and the plate counter
 #: reads `UB` and `NH`, neither of which moves. The chimera splitter and the CRAM converter inherit
 #: the line for free and were not edited — the splitter copies every non-`@SQ` header line verbatim,

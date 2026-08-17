@@ -201,20 +201,6 @@ rule star_count:
     budget one multiple of the figure larger -- depth alone. The count is `BULK_RETRIES` and not
     STARsolo's for exactly that reason: one workflow's headroom may not be a function of the other's.
     The arithmetic and the measurements behind it live in `workflows/memory.py`.
-
-    **The alignment says which library it came from** (#416). `--outSAMattrRGline` is STAR's only
-    input to an `@RG` header line, and setting it also makes STAR stamp `RG:Z:` on every record --
-    `RG` is not a word `--outSAMattributes` accepts, so there is no way to ask for the tag and no way
-    to get the line without it, which makes header and tag one decision. The id is
-    `{wildcards.sample}`, the same wildcard the output prefix is built from, so a run has one
-    spelling of the sample rather than two. ONE line for a sample pooled across runs, because STAR
-    replicates a single `RG` entry across every comma-joined input file.
-
-    `rule all` demands `ReadsPerGene.out.tab` and that file does not move; what moves is the
-    coordinate-sorted BAM beside it, which this module writes and does not declare. Bulk was never
-    producing an INVALID file the way the plate route was -- it stamped no `RG` to dangle -- but an
-    alignment with no read group is one the GATK family will not take, and one that cannot be merged
-    with another sample's without inventing the provenance by hand.
     """
     input:
         mate1=lambda wc: fastqs(wc.sample, mates()[0]),
@@ -264,7 +250,6 @@ rule star_count:
              --quantMode {params.bulk[quantMode]} \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM SortedByCoordinate \
-             --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
              --limitBAMsortRAM {resources.bam_sort_ram_bytes}
         """
 

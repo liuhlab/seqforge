@@ -340,12 +340,14 @@ def split_chimera(
         # own Component is then a lookup rather than a string operation per record, and — since the
         # request has already been checked against this same list — every lookup below is total.
         owner = [_split_name(str(entry["SN"]), separator)[1] for entry in header.get("SQ", [])]
-        plan = {c: _restored(header, c, path, separator) for c, path in outputs.items()}
+        # `restored`, never `plan`: `plan` is compose's compile verb everywhere else in this
+        # repo, and one word for two unrelated things is how a reader loses a page.
+        restored = {c: _restored(header, c, path, separator) for c, path in outputs.items()}
         for path in outputs.values():
             path.parent.mkdir(parents=True, exist_ok=True)
         writers = {
             component: pysam.AlignmentFile(
-                str(outputs[component]), "wb", header=plan[component][0], threads=per_writer
+                str(outputs[component]), "wb", header=restored[component][0], threads=per_writer
             )
             for component in outputs
         }
@@ -377,8 +379,8 @@ def split_chimera(
                         f"output, and assigning it to one would turn a cross-species ambiguity into "
                         f"a confident read"
                     )
-                restored, tids = plan[component]
-                writers[component].write(_rewritten(record, restored, tids))
+                header_out, tids = restored[component]
+                writers[component].write(_rewritten(record, header_out, tids))
                 kept[component] += 1
                 if record.is_read1:
                     read1[component] += 1
@@ -449,11 +451,14 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     rendering them from the counting object would be stating a falsehood about the data, since the
     reads existed and left earlier. They are counted here, by reason, and reported here.
 
-    **One metric per Component, computed as that Component's share of the records that came in**, so
-    the bacterial fraction of a well is readable without opening an ``.h5ad`` — the number the whole
-    exercise exists to produce. It is a share and not a count because a share is comparable between
-    two cells of different depths, and it is over records rather than fragments because records are
-    what this artifact counted.
+    **Two metrics per Component: what it kept, and that as a share of the records that came in.** The
+    share is the number the whole exercise exists to produce — the bacterial fraction of a well,
+    readable without opening an ``.h5ad`` — and it is a share because only a share compares between
+    two cells of different depths. The count is what makes the page CLOSE: every kept count plus the
+    four drop counts is exactly the records that came in, so a reader can see nothing went missing
+    without doing arithmetic on a denominator that is not shown. Neither is derivable from the other
+    here, which is the bar a column has to clear; both are over records rather than fragments,
+    because records are what this artifact counted.
 
     **Ungraded, every one of them.** Nobody has measured what share of a worm plate *should* be *E.
     coli*, so a bar here would be a figure invented at review — which is exactly what the module's
@@ -471,18 +476,30 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     dropped = payload.get("dropped")
     dropped = dropped if isinstance(dropped, Mapping) else {}
 
-    built: list[Metric | None] = [
-        fraction(
-            f"split_kept_{component}",
-            f"{component} share",
-            (_counted(kept, component) or 0) / records_in if records_in else None,
-            group="alignment",
-            hint=f"Share of this cell's alignment records that landed on {component} and were kept "
-            f"— mapped, uniquely placed, primary. A LOWER BOUND on that organism's presence: a read "
-            f"ambiguous across Components is dropped as a multimapper rather than assigned to one.",
-        )
-        for component in sorted(kept)
-    ]
+    built: list[Metric | None] = []
+    for component in sorted(kept):
+        built += [
+            count_metric(
+                f"split_kept_{component}",
+                f"{component} kept",
+                _counted(kept, component),
+                group="alignment",
+                exact=True,
+                hint=f"Alignment records that landed on {component} and were kept — mapped, uniquely "
+                f"placed, primary. These plus every other Component's, plus the four drop counts, are "
+                f"exactly the records this cell's chimeric BAM held.",
+            ),
+            fraction(
+                f"split_share_{component}",
+                f"{component} share",
+                (_counted(kept, component) or 0) / records_in if records_in else None,
+                group="alignment",
+                hint=f"The count beside this as a share of the records that came in — the figure that "
+                f"compares between two cells of different depths. A LOWER BOUND on {component}'s "
+                f"presence: a read ambiguous across Components is dropped as a multimapper rather "
+                f"than assigned to one.",
+            ),
+        ]
     built += [
         count_metric(
             f"split_dropped_{reason}",

@@ -548,7 +548,6 @@ def run_starsolo(
     whitelist: Path,
     solo: dict[str, object],
     outdir: Path,
-    sample: str,
     threads: int = 8,
     cost: dict[str, object] | None = None,
     timeout: int = 1800,
@@ -591,14 +590,6 @@ def run_starsolo(
       under is the cap a recipe of that size would run under. It defaults to the recipe default.
     - ``extra_args`` is what a measurement adds to itself, and is never a claim about what ships.
 
-    ``sample`` is NOT one of those four. The renderer requires a read group (#416) and this passes the
-    arm's own depth tag, because an instrument that dropped the flag would be running a command the
-    module does not ship — the drift ADR-0049 closed, reintroduced through the one argument that
-    looks like a formality. No :data:`INSTRUMENT_VERSION` bump is owed for it and that is an argument
-    rather than a shrug: the reading is a peak RSS, the one allocation that scales with record size
-    is the coordinate sort, and ``--limitBAMsortRAM`` caps that sort at a figure this flag does not
-    move. A record eleven bytes wider means fewer records per bin, not a bigger bin.
-
     Keep that in mind before adding an argument here: this is a measuring device pointed at STAR, and
     it is NOT evidence about the pipeline. If you want a claim about what users run, put it in
     `run_composed` — or, now, in the renderer both of them share.
@@ -617,7 +608,6 @@ def run_starsolo(
             barcode=_fq_arg(barcode_fq),
             whitelist=whitelist,
             out_prefix=f"{outdir}/",
-            sample=sample,
             threads=threads,
             bam_sort_ram_bytes=bam_sort_ram(mem_mb),
             out_sam_type=out_sam_type,
@@ -1580,9 +1570,6 @@ def run_cost_sweep(
                 whitelist=wl_path,
                 solo=solo,
                 outdir=outdir,
-                # The read group the shipped command line requires, and the depth tag is the honest
-                # value: each arm is a different synthetic library, so each gets its own group.
-                sample=tag,
                 threads=threads,
                 cost=cost,
                 timeout=timeout,

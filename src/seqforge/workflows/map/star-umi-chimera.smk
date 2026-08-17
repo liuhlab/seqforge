@@ -10,11 +10,15 @@
 #
 # **A full standalone copy, and that is FORCED rather than preferred.** Composition copies exactly
 # one `.smk` into the run directory, so an `include:`d fragment would be neither copied nor eligible
-# as the default target. FOUR things differ out of the ~580 lines below -- this header, `rule all`,
-# the new `rule split_chimera`, and `rule umi_count`. Genome index resolution, the shared genome
-# load, UMI extraction, mapping and CRAM conversion are byte-identical to the base's, `--outSAMmultNmax 1`
-# included: the split's keep rule never asks where a multimapper's other loci are, so that flag's
-# measured justification survives intact. What keeps the two copies in step is DERIVED from the module
+# as the default target. FOUR RULES differ out of the ~580 lines below -- `rule all`, the new
+# `rule split_chimera`, `rule umi_count`, and this header; the imports and the two module constants
+# that serve them move with those, and `rule star_umi_map`'s prose gained a sentence about the
+# per-Component figures its flags now feed. What is byte-identical is every COMMAND: genome index
+# resolution, the shared genome load, UMI extraction, the mapping invocation and CRAM conversion,
+# `--outSAMmultNmax 1` included -- the split's keep rule never asks where a multimapper's other loci
+# are, so that flag's measured justification survives intact. Stated as commands rather than as lines
+# because prose drifts between two copies and a rendered command line does not: what keeps the copies
+# in step is DERIVED from the module
 # registry rather than typed beside them -- the shared-genome lifecycle sweep, the wiring gate, the
 # config-key scanner and the verb-existence check each pick this file up because it is registered.
 # There is deliberately NO same-ness test against the base: its subject would be source text, which a

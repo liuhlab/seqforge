@@ -199,7 +199,6 @@ def plan(
 
     onlist_files: dict[str, list[str]] = {}
     intent = processing.processing
-    _check_env(intent.environment.value, module)
     # A chimera is STATED, never detected: naming `ce11_ecHT115` as the assembly IS the claim that
     # this reference carries several organisms, and reading it costs a plain compile one call that
     # returns `None`. It sits here, beside the other module-versus-recipe agreement check, because
@@ -226,6 +225,12 @@ def plan(
         # what makes it impossible for two modules to collide on one — the module id itself is in no
         # hash at all, and a chimeric run re-keys through the assembly inside the processing hash.
         module = get_module(module.chimeric_variant)
+    # AFTER the swap, deliberately: this asks whether the recipe's environment can supply the
+    # aligner THIS COMPILE will run, so it has to be asked of the module that ends up in the run
+    # directory rather than of the one the chemistry named on the way in. The two agree today —
+    # a twin runs the same aligner as its base, so it declares the same env — and that is precisely
+    # what would make the wrong order cost nothing until the first twin that does not.
+    _check_env(intent.environment.value, module)
     # Two owners, one block. The KB says how to PARSE; the processing manifest says what to
     # COUNT. params_gate proves the key sets stay disjoint and that both halves arrive verbatim.
     params = _resolve_params(manifest, spec, registry, onlist_files)

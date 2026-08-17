@@ -1858,18 +1858,18 @@ def test_no_spec_may_name_a_chimeric_twin_and_the_guard_set_is_derived_from_the_
     The set is DERIVED from the module registry, so the day a second base declares a twin the refusal
     covers it without anyone writing its name down: a hand-kept list is one a new twin is missing
     from, and the guard would pass while guarding nothing. That derivation is the second assertion
-    below, because a refusal for one hardcoded id would look identical from in here.
+    below — every id the set holds is refused, so the loop covers a second twin the day one arrives
+    and a refusal wired to one hardcoded id would go red here instead of passing quietly. What is NOT
+    asserted is the comprehension that builds the set: restating it would check the source line
+    against itself, and the registry test next door already pins the membership by name.
 
     It fires at LOAD, where every other DSL mistake in this file dies, and on the BACKEND — before
     the cell-axis biconditional a few validators along gets to speak, so a spec naming the plate twin
     is told the real reason rather than being asked for a flag it may not be entitled to anyway.
     """
     from seqforge.kb.loader import SPECS_DIR
-    from seqforge.workflows import CHIMERIC_VARIANTS, MODULES
+    from seqforge.workflows import CHIMERIC_VARIANTS
 
-    assert CHIMERIC_VARIANTS == {
-        m.chimeric_variant for m in MODULES.values() if m.chimeric_variant is not None
-    }
     assert CHIMERIC_VARIANTS, "no module declares a twin, so this rule refuses nothing"
 
     raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
