@@ -122,6 +122,9 @@ _GENOME_API = {
     "fasta_path",  # chromap.smk rule genome_index (chromap maps against -r ref) + e2e: simulate reads
     "default_gtf_path",  # e2e: build gene models
     "annotations",  # e2e/docs: which GTF names are registered; io umi-count: `.path(name)`
+    "components",  # io split-chimera: which Components a Chimera holds, off the completion record
+    "separator",  # io split-chimera: the underscore run those Components' chromosome names carry
+    "component_annotations",  # io umi-count --component: what each Component gave the merged GTF
 }
 
 
@@ -142,6 +145,7 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
     nobody visits. That is the fix; renaming the method was just the symptom.
     """
     from genome import AnnotationRegistry, Genome
+    from genome import metadata as genome_metadata
 
     missing = sorted(name for name in _GENOME_API if not hasattr(Genome, name))
     assert not missing, (
@@ -156,8 +160,21 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
     # `io umi-count` takes two hops — `Genome.annotations.path(name)` — and a set of Genome attributes
     # reaches only the first, so the second is named here. It was one hop, `get_gtf_path`, until
     # liulab-genome moved the whole annotation surface behind the registry; this guard is what said so.
+    # `--component` ends on the SAME second hop and reaches it one hop earlier: the registered name
+    # comes off the Chimera's `component_annotations` above, and is then resolved under the
+    # Component's own assembly rather than the Chimera's, which is where a Component's GTF lives.
     assert hasattr(AnnotationRegistry, "path"), (
-        "io umi-count resolves the registered GTF through this"
+        "io umi-count resolves the registered GTF through this — the assembly's own name under "
+        "--annotation, the Component's under --component"
+    )
+    # The processing policy reads the recipe's genome taxid off the shipped assembly cross-reference,
+    # and that is a MODULE-LEVEL function rather than a `Genome` attribute, so a set of `Genome`
+    # attributes cannot reach it — the same reason the annotation registry's hop is named above. The
+    # total accessor specifically: it answers *what is known about this assembly* and always hands
+    # back a record, which is what makes an unlisted name and a Chimera's blank taxid both read as
+    # `None` with no branch in the policy.
+    assert callable(getattr(genome_metadata, "assembly_metadata", None)), (
+        "the processing policy resolves the recipe's genome taxid through this"
     )
     assert not hasattr(Genome, "resolve_star_index_please"), (
         "a name liulab-genome does not define must not resolve — else the guard proves nothing"

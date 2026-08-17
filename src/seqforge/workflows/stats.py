@@ -7,14 +7,17 @@ gets at it — for **any** **Workflow module**, without the report ever learning
 The seam is :class:`StatsSpec`: where one sample's artifact lives, and how to turn it into the shared
 :class:`~seqforge.workflows.metrics.SampleStats`. Every shipped module is wired::
 
-    map/starsolo   <sample>.qc.json.gz             gzipped JSON, written by `rule qc_bundle`
-    map/chromap    <sample>.fragments.qc.json.gz   gzipped JSON, written by `rule fragments_qc`
-    map/star       Log.final.out                   plain text, written by STAR itself
-    map/star-umi   Log.final.out                   the same, one per cell
-                   + <sample>.umi-extract.json     what the UMI extraction saw, one per cell
-                   + the fan-in artifact           one h5ad over the plate, one `obs` row per cell
+    map/starsolo           <sample>.qc.json.gz             gzipped JSON, by `rule qc_bundle`
+    map/chromap            <sample>.fragments.qc.json.gz   gzipped JSON, by `rule fragments_qc`
+    map/star               Log.final.out                   plain text, written by STAR itself
+    map/star-umi           Log.final.out                   the same, one per cell
+                           + <sample>.umi-extract.json     what the UMI extraction saw, per cell
+                           + the fan-in artifact           one h5ad over the plate, one row per cell
+    map/star-umi-chimera   the two per-cell files above
+                           + <sample>.split.json           what left for which Component, per cell
+                           and NO fan-in reader            argued on the entry itself
 
-Five artifacts, five vocabularies, and no shared column set — the ATAC summary has no
+Six artifacts, six vocabularies, and no shared column set — the ATAC summary has no
 whitelist-match rate and no per-barcode vector, so an scATAC page speaks about fragments and never
 about cells, a bulk page speaks about mapping and never about barcodes, and a plate's counting object
 speaks about fragments that reached no gene, which none of the other three measured. That divergence
@@ -40,7 +43,10 @@ of it can leave a durable account behind. ``map/star-umi`` leaves two: STAR's ow
 the summary the UMI extraction writes a step earlier — two files, two vocabularies, and neither is a
 version of the other. They are two entries in :attr:`StatsSpec.artifacts` rather than one adapter
 that opens a sibling, so the registry still states every filename it reads and a sample missing one
-of them keeps the other. The metrics merge; the row does not split.
+of them keeps the other. The metrics merge; the row does not split. Its chimeric twin leaves a
+**third** — the per-cell split summary — which is the one artifact on this page that is load-bearing
+rather than additional: two of the four read fates leave the pipeline at the split, so a chimeric
+run's ``unmapped`` and ``multimapping`` exist nowhere else.
 
 **One module reads a THIRD artifact, and what is new about that one is its ARITY, not its name.**
 ``map/star-umi`` counts its whole plate in one job and writes one ``.h5ad`` whose ``obs`` carries
@@ -77,6 +83,8 @@ from .qc import gene_model_rule as _starsolo_gene_model_rule
 from .qc import read_metrics as _read_starsolo
 from .qc import read_star_log as _read_star_log
 from .qc import solo_features_rule as _starsolo_solo_features_rule
+from .split import SPLIT_SUFFIX as _SPLIT_SUFFIX
+from .split import read_split_summary as _read_split_summary
 from .umite.count import read_plate_stats as _read_plate_stats
 from .umite.extract import EXTRACT_SUFFIX as _EXTRACT_SUFFIX
 from .umite.extract import read_extract_summary as _read_extract_summary
@@ -203,6 +211,35 @@ _SPECS: dict[str, StatsSpec] = {
         ),
         read_fan_in=_read_plate_stats,
     ),
+    # The chimeric twin: the plate module's spec PLUS one artifact and MINUS its fan-in reader.
+    #
+    # The artifact it gains is the per-cell split summary, ordered last so the page reads left to
+    # right in pipeline order — extraction, then alignment, then the split that follows it. It is
+    # **load-bearing rather than decorative**: `unmapped` and `multimapping` read structurally zero
+    # in every per-Component matrix, because those reads are dropped at the split one rule before the
+    # counter, and this file is where they now live. It also carries the number the whole chimera
+    # exercise exists to produce — each Component's share of this cell — so a bacterial fraction is
+    # readable without opening an `.h5ad`. `finishes=False`, like the extraction summary and for the
+    # same reason: it is a mid-pipeline account, so `finishes` stays on STAR's log and "N of M
+    # finished" means the same thing on a chimeric run as on a plain one.
+    #
+    # **`read_fan_in` is absent, and that is argued rather than deferred.** This module's
+    # `fan_in_artifact` carries a `{component}`, so reporting the fan-in means looping over
+    # Components and giving every cell's row N colliding sets of fate keys under per-Component
+    # prefixes — and the numbers bought that way are precisely the ones that do not compare across
+    # run types: two of the four fates are structurally zero here and every surviving rate, the
+    # headline one included, rides a smaller denominator. Rendered beside a single-assembly run's
+    # page they are not the same measurement. Declining them DELETES a `CompiledPipeline.components`
+    # field and a `read_pipeline_stats` signature change rather than paying for both. The stated cost
+    # is that a chimeric run's page shows no gene-assignment fates at all; they are in each object's
+    # `obs` for anyone who wants them.
+    "map/star-umi-chimera": StatsSpec(
+        artifacts=(
+            SampleArtifact(f"{{sample}}{_EXTRACT_SUFFIX}", _read_extract_summary, finishes=False),
+            SampleArtifact(STAR_FINAL_LOG, _read_star_log),
+            SampleArtifact(f"{{sample}}{_SPLIT_SUFFIX}", _read_split_summary, finishes=False),
+        ),
+    ),
 }
 
 #: Registered modules that deliberately report nothing **yet** — the half of the drift guard that lets
@@ -238,8 +275,12 @@ MODULES_WITHOUT_STATS: frozenset[str] = frozenset()
 #: intronic, and the droplet bar was set on droplet libraries counted a different way. Reporting the
 #: number and declining to grade it is the honest state; it leaves this set the day a bar can be
 #: argued from a measurement.
+#: ``map/star-umi-chimera`` inherits every word of that and adds one of its own: **nobody has
+#: measured what share of a worm plate should be *E. coli***, so a threshold on a Component's share
+#: would be a figure invented at review — which is exactly what this set exists to refuse. The number
+#: is reported, and not graded.
 MODULES_WITHOUT_CROSS_CHECKS: frozenset[str] = frozenset(
-    {"map/chromap", "map/star", "map/star-umi"}
+    {"map/chromap", "map/star", "map/star-umi", "map/star-umi-chimera"}
 )
 
 #: What the reader will survive from one sample's artifact: bad **bytes**. Caught per sample, so one

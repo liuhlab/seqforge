@@ -681,10 +681,59 @@ def _manifest_from(paths: list[Path], tech: str, reg: OnlistRegistry) -> Dataset
     )
 
 
+#: An assembly name SPELLED like a chimera's — two Components, in the order the name spells them.
+#: Nothing looks it up: compose reads a chimera off the name alone, so a two-part name is all it
+#: takes to plan a chimeric run with no built reference, no shipped table row and nothing on disk.
+#: The names are deliberately not `ce11_ecHT115`, the one real Chimera, so that nothing here can be
+#: mistaken for a claim that this test reached it.
+CHIMERIC_ASSEMBLY = "tinyCe_tinyEc"
+
+#: The ordinary, single-Component assembly every non-chimeric plan in this suite composes against.
+#: Named so that :func:`planning_route` can hand it back without becoming a second spelling of
+#: :func:`_processing`'s own default — the pair has to stay one value, or a "plain" route would stop
+#: being the plain one and nothing would say so.
+PLAIN_ASSEMBLY = "sacCer3"
+
+
+def planning_route(module: str) -> tuple[str, str]:
+    """Which chemistry plans a run on ``module``, and under which assembly. ``(spec id, assembly)``.
+
+    Every registry-derived gate in this suite plans a real pipeline for a module, and each used to
+    reach its chemistry the same way: the specs whose backend names that module, first one wins. A
+    **chimera-aware twin** breaks that and is *meant* to — no spec may name a twin, and the KB
+    refuses one that tries, because a twin is selected by compose swapping it in for its base when
+    the recipe's assembly is spelled like a chimera's. So the list is empty and the gate dies of the
+    very module it was derived to cover.
+
+    The route for a twin is therefore its BASE's chemistry under a two-part assembly name, which is
+    the same two arguments every caller already had. It needs no fixture and nothing on disk:
+    detection is syntactic, `rule genome_index` keeps its `Genome(...)` call inside a `run:` block,
+    and the per-Component annotations are resolved by the counting verb at job time — so a dry run of
+    a chimeric plate resolves no genome at all.
+
+    Raises rather than returning a sentinel for a module nothing can reach: a gate that quietly
+    skipped would be green about nothing, which is exactly the state these gates exist to prevent.
+    """
+    from seqforge.workflows import MODULES
+
+    base = next((m for m in MODULES.values() if m.chimeric_variant == module), None)
+    named, assembly = (module, PLAIN_ASSEMBLY) if base is None else (base.name, CHIMERIC_ASSEMBLY)
+    techs = sorted(
+        t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == named
+    )
+    if not techs:
+        raise AssertionError(
+            f"{module} is registered but no spec reaches it"
+            if base is None
+            else f"{module} is the chimeric twin of {named}, which no spec reaches either"
+        )
+    return techs[0], assembly
+
+
 def _processing(
     manifest: DatasetManifest,
     *,
-    assembly: str = "sacCer3",
+    assembly: str = PLAIN_ASSEMBLY,
     annotation: str = "ensembl",
     processing_id: str = "default",
     pin: bool = True,
@@ -1009,6 +1058,12 @@ def _rendered_shell(plan_text: str) -> dict[str, dict[str, str]]:
     a param the command dereferences and the config does not carry plans clean and dies on a compute
     node. A rule with no wildcards is keyed under the empty string.
 
+    The wildcard's NAME is not assumed to be ``sample``. It was, for as long as every rule any caller
+    read fanned out over cells — and then a fan-in that fans out over a chimera's Components arrived,
+    printed ``wildcards: component=…``, and every one of its jobs collapsed onto the empty key, so a
+    two-Component plan read as one job whose command was whichever landed last. A rule keyed by the
+    VALUE is what every caller already wants; which axis produced it is the rule's business.
+
     Here rather than beside its first caller because it now has two of them — the composed-plate gate
     in `test_compose.py` and the shared-genome sweep in `test_workflows.py` — and two readers of one
     plan format do not disagree until they do.
@@ -1026,7 +1081,7 @@ def _rendered_shell(plan_text: str) -> dict[str, dict[str, str]]:
     for i, line in enumerate(lines):
         if match := re.match(r"^rule (\w+):$", line):
             rule, wildcard = match.group(1), ""
-        elif match := re.match(r"^\s+wildcards: sample=(\S+)$", line):
+        elif match := re.match(r"^\s+wildcards: \w+=(\S+)$", line):
             wildcard = match.group(1)
         elif (match := re.match(r"^Shell command:(.*)$", line)) and rule is not None:
             head = match.group(1).strip()

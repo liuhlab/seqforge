@@ -1,15 +1,57 @@
-# workflows/map/star-umi.smk  --  HAND-WRITTEN, VERSIONED, CI-TESTED. NEVER machine-generated.
+# workflows/map/star-umi-chimera.smk  --  HAND-WRITTEN, VERSIONED, CI-TESTED. NEVER machine-generated.
 #
-# The pipeline for a PRE-DEMULTIPLEXED, one-cell-one-file library (SMART-seq3 and its relatives):
-# demultiplexing happened at the bench, so the cell barcode is the FILE and not a read. The composer
-# emits `config.yaml` + `units.tsv` and selects this module by id `map/star-umi`; it NEVER writes
-# rule source.
+# The CHIMERA-AWARE TWIN of `star-umi.smk`, for the same PRE-DEMULTIPLEXED, one-cell-one-file library
+# (SMART-seq3 and its relatives) mapped against a CHIMERA -- one reference built from several
+# Component assemblies, whose chromosome names carry a `<separator><component>` suffix so every read
+# declares which organism it landed on. The composer selects this module by id
+# `map/star-umi-chimera` when the recipe's assembly name is spelled like a chimera's, and it selects
+# it INSTEAD of the base rather than beside it: the base declares this id as its `chimeric_variant`,
+# and nothing else can reach this file. A KB backend naming it is refused at load.
 #
-# The chain is per cell `extract -> STAR -> one coordinate-sorted BAM`, and then ONCE
-# `count(N BAMs) -> one combined .h5ad`. That fan-in is what makes this module a different shape from
-# the three beside it, and it is DECLARED on the module (`fan_in_artifact`) rather than left to be
-# discovered from the rule graph. Snakemake fans in natively and `rule all` already expands over
-# samples, so a failed counting job re-runs only itself: every per-cell BAM is on disk.
+# **A full standalone copy, and that is FORCED rather than preferred.** Composition copies exactly
+# one `.smk` into the run directory, so an `include:`d fragment would be neither copied nor eligible
+# as the default target. FOUR RULES differ out of the ~580 lines below -- `rule all`, the new
+# `rule split_chimera`, `rule umi_count`, and this header; the imports and the two module constants
+# that serve them move with those, and `rule star_umi_map`'s prose gained a sentence about the
+# per-Component figures its flags now feed. What is byte-identical is every COMMAND: genome index
+# resolution, the shared genome load, UMI extraction, the mapping invocation and CRAM conversion,
+# `--outSAMmultNmax 1` included -- the split's keep rule never asks where a multimapper's other loci
+# are, so that flag's measured justification survives intact. Stated as commands rather than as lines
+# because prose drifts between two copies and a rendered command line does not: what keeps the copies
+# in step is DERIVED from the module
+# registry rather than typed beside them -- the shared-genome lifecycle sweep, the wiring gate, the
+# config-key scanner and the verb-existence check each pick this file up because it is registered.
+# There is deliberately NO same-ness test against the base: its subject would be source text, which a
+# rename reddens falsely and an indirection passes falsely.
+#
+# The chain is per cell `extract -> STAR -> one coordinate-sorted CHIMERIC BAM`, and then, per cell,
+# ONE new step: that BAM is SPLIT into one BAM per Component, each restored to the chromosome names,
+# the `@SQ` order and the lengths a run against the bare Component would have written. The counting
+# fan-in then runs ONCE PER COMPONENT against that Component's own annotation, so the deliverable is
+# `combined.<component>.h5ad` per Component rather than one merged object whose columns are two
+# organisms' genes with nothing saying which reads were whose.
+#
+# **The split sits BESIDE the CRAM, not upstream of it.** `umi_to_cram` reads the PRE-split chimeric
+# BAM, so a chimeric run's archive keeps every multimapper and is strictly MORE complete than a
+# single-assembly run's -- and peak disk drops slightly, because the chimeric BAM is freed as soon as
+# the CRAM and the split have both consumed it instead of living until the fan-in. Per-Component BAMs
+# are `temp()`; the per-cell split summary beside them is not.
+#
+# **Every per-Component figure is over uniquely-placed reads only**, which is the split's keep rule
+# and is stated here because a reader will otherwise read it as a regression: a read ambiguous ACROSS
+# organisms is indistinguishable from a within-organism repeat, so a bacterial fraction read off these
+# matrices is a LOWER BOUND. Two of the four read fates -- `unmapped` and `multimapping` -- therefore
+# go structurally zero in a chimeric `.h5ad`, and the per-cell split summary is where they now live.
+#
+# **The memory figures below are the base's, carried over IDENTICAL, and they are honestly
+# UNMEASURED.** A chimeric index is larger than any one Component's and nobody has measured one; the
+# built `ce11_ecHT115` is a worm plus ~4 Mb of bacterium, so it barely moves, but "barely" is not a
+# number and a multiplier invented here could be defended by nothing. Stated rather than guessed.
+#
+# The counting fan-in is DECLARED on the module (`fan_in_artifact`, carrying a `{component}`
+# placeholder here where the base's carries none) rather than left to be discovered from the rule
+# graph. Snakemake fans in natively and `rule all` already expands over samples, so a failed counting
+# job re-runs only itself: every per-Component BAM is on disk.
 #
 # The read->role placement arrives via `config["read_files_in"]`, whose `umi_tagged` shape is
 # `umi_cdna` and — only where the protocol was sequenced paired — `cdna`, chosen by ROLE. Role and
@@ -25,23 +67,32 @@
 # same per-sample mate list this module stages for it.
 #
 # Every knob the extraction needs arrives as ONE derived value, `config["umi"]["read_structure"]`,
-# computed by compose from the element coordinates. This module's parse namespace is EMPTY: there is
-# nothing here for a KB entry to declare, because the layout already states all of it.
+# computed by compose from the element coordinates. This module's parse namespace is EMPTY and MUST
+# stay empty: there is nothing here for a KB entry to declare, because the layout already states all
+# of it — and a KB entry naming this module at all is refused, so the namespace has no declarer left.
 #
 # The genome index resolves at RUN TIME from a `liulab-genome` assembly id — no genome path is ever
-# baked into a config or a manifest.
+# baked into a config or a manifest — and the Chimera's own record is likewise never opened while
+# this file is PARSED. Which Components this run has arrives as one config key compose filled from
+# the assembly NAME; the per-Component annotations do not, because they are not recoverable from a
+# name, so the counting verb resolves each off the completion record inside its own job. Reading that
+# record here instead would make every dry run of this module need a real built Chimera on disk,
+# which is the same cost `rule genome_index` keeps its `Genome(...)` call in a `run:` block to avoid.
 
-# seqforge's own helpers, imported rather than restated -- the same contract the other three modules
-# state at greater length. `ordered_fastqs` decides the order every mate of one sample is handed over
-# in, and all four modules must agree on it exactly; `load_units` is the one reader of the table, and
-# `rule umi_extract`'s verb opens the same file through the same function (ADR-0036). `memory` is
+# seqforge's own helpers, imported rather than restated -- the same contract the other mapping
+# modules state at greater length. `ordered_fastqs` decides the order every mate of one sample is
+# handed over in, and every module must agree on it exactly; `load_units` is the one reader of the
+# table, and `rule umi_extract`'s verb opens the same file through the same function (ADR-0036). `memory` is
 # this module's map from the recipe's ONE memory figure to its TWO rule classes: a Snakefile is not
-# importable, so arithmetic written here could never be unit-tested, only run. `PLATE_H5AD` is the
-# name the module registry DECLARES as this pipeline's dataset-scoped deliverable, so the
-# declaration and the rule that produces it cannot come apart. `EXTRACT_SUFFIX` is the same contract
-# for the per-cell extraction summary: the extractor writes it, the report finds it, and this rule
-# declares it -- one owner, imported three times, never spelled twice.
-from seqforge.workflows import PLATE_H5AD
+# importable, so arithmetic written here could never be unit-tested, only run. `PLATE_COMPONENT_H5AD`
+# is the name the module registry DECLARES as this pipeline's dataset-scoped deliverable, so the
+# declaration and the rule that produces it cannot come apart -- it is `PLATE_H5AD`'s discipline one
+# arity out, the `{component}` surviving into the rule's output as a snakemake wildcard.
+# `EXTRACT_SUFFIX` and `SPLIT_SUFFIX` are the same contract for the two per-cell summaries: the verb
+# writes each, the report finds it, and the rule declares it -- one owner, imported, never spelled
+# twice, which is what stops a reader that finds nothing from looking exactly like a run that never
+# happened.
+from seqforge.workflows import PLATE_COMPONENT_H5AD
 from seqforge.workflows.h5ad import STAR_BAM
 from seqforge.workflows.memory import (
     PLATE_RETRIES,
@@ -50,6 +101,7 @@ from seqforge.workflows.memory import (
     index_mem_mb,
     per_cell_mem_mb,
 )
+from seqforge.workflows.split import SPLIT_SUFFIX
 from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
 from seqforge.workflows.units import mate_role as units_mate_role
@@ -62,6 +114,13 @@ SAMPLES = sorted({u["sample_id"] for u in UNITS})
 OUTDIR = config["outdir"]
 ASSEMBLY = config["genome"]["assembly"]
 ANNOTATION = config["genome"]["annotation"]
+# The Chimera's Components, in the order the assembly name spells them, read at PARSE time from the
+# one config key compose emits for a chimeric run. It is a plain list of names and no I/O at all,
+# which is what lets `snakemake -n` plan this whole module with no built reference anywhere on disk.
+# What is NOT here is each Component's annotation: a merged annotation does not record what fed it,
+# so that fact is not recoverable from the name and cannot be a config key -- `rule umi_count` hands
+# the counting verb a Component and the verb reads the completion record inside its own job.
+COMPONENTS = config["genome"]["components"]
 UMI = config["umi"]
 READ_FILES_IN = config["read_files_in"]
 
@@ -74,6 +133,13 @@ LOADED_FLAG = f"{OUTDIR}/index/{ASSEMBLY}.loaded"
 # Where STAR writes the small logs its load and unload invocations produce. Beside the index for the
 # same reason, and prefixed so they never collide with a cell's.
 LOAD_PREFIX = f"{OUTDIR}/index/_genome_{ASSEMBLY}_"
+
+# One cell's BAM for one Component, with BOTH wildcards left in place: `{sample}` because these are
+# per-cell files like everything else under a cell's directory, and `{component}` because the fan-in
+# below is one job per Component over the whole plate. Spelled ONCE, here, because the rule that
+# writes it and the rule that reads it must name the same path and a second spelling is the copy that
+# points at cells which are not there while the ids still look right.
+SPLIT_BAM = f"{OUTDIR}/{{sample}}/{{sample}}.{{component}}.bam"
 
 
 def fastqs(sample, role):
@@ -220,13 +286,16 @@ def read_files_type(sample):
 
 rule all:
     input:
-        # ONE object over every cell, and a CRAM per cell. The h5ad is the deliverable the fan-in
-        # produces and it is demanded by NAME rather than as a directory: a rule whose output is a
-        # folder is satisfied by a folder, which is how a counting job that wrote three cells of 1440
-        # exits 0. Per-cell QC needs no target -- STAR writes `Log.final.out` into each cell's
-        # directory unasked, and the report's reader finds it there.
-        f"{OUTDIR}/{PLATE_H5AD}",
+        # ONE object PER COMPONENT over every cell, and a CRAM per cell. Each h5ad is demanded by
+        # NAME rather than as a directory, and here that carries a second load: a rule whose output
+        # is a folder is satisfied by a folder, which is how a counting job that wrote three cells of
+        # 1440 exits 0 -- and, one arity out, how a chimeric run that counted two Components of three
+        # exits 0 with an organism silently missing. Naming each one closes both.
+        expand(f"{OUTDIR}/{PLATE_COMPONENT_H5AD}", component=COMPONENTS),
         expand(f"{OUTDIR}/{{sample}}/{{sample}}.cram", sample=SAMPLES),
+        # Per-cell QC needs no target -- STAR writes `Log.final.out` into each cell's directory
+        # unasked, and the split summary is written by a rule every h5ad above depends on, so a plate
+        # that finishes has written one per cell. The report's readers find both there.
 
 
 rule genome_index:
@@ -395,7 +464,9 @@ rule star_umi_map:
     own parameters -- it does not inherit the input BAM's -- so the `RG` that rode through named a
     group no `@RG` line introduced, which the SAM specification forbids. samtools and pysam tolerate
     such a file; Picard and GATK refuse it, and the per-cell CRAM downstream of here is the RETAINED
-    artifact, so the malformed one is what shipped.
+    artifact, so the malformed one is what shipped. The split BAMs inherit the fix for free: the
+    splitter copies every non-`@SQ` header line verbatim, so an `@RG` STAR emits reaches each
+    Component's file without `seqforge io split-chimera` learning what a read group is.
 
     `--outSAMattrRGline` is STAR's only input to an `@RG` header line, and setting it also makes
     STAR stamp its own `RG` on every record -- `RG` is not a word `--outSAMattributes` accepts, so
@@ -504,8 +575,82 @@ rule umi_to_cram:
         """
 
 
+rule split_chimera:
+    """One cell's chimeric BAM into one BAM per Component, each spelled for a single assembly.
+
+    **BESIDE the CRAM rather than upstream of it**, and that is the decision this rule carries. Both
+    this and `umi_to_cram` consume the same pre-split `temp()` BAM, so the archive is made from the
+    file STAR actually wrote: it keeps every multimapper and is strictly MORE complete than a
+    single-assembly run's, instead of inheriting this rule's filter. Splitting first would buy
+    per-Component CRAMs readable against a bare Component -- and the Chimera had to exist to produce
+    the run at all, so "readable without it" is not a property anyone here is short of. Peak disk also
+    falls slightly: the chimeric BAM is freed once BOTH consumers finish rather than living until the
+    fan-in.
+
+    It follows `rule umi_extract` in kind and therefore in shape. A `shell:` calling a seqforge verb,
+    because `snakemake -n -p` renders every shell block while planning and cannot see inside a `run:`,
+    so only a verb is visible to compose's wiring gate. **No `container:`** -- pysam is a plain
+    dependency of this package and only STAR needs an environment we do not own. **No `resources:`**
+    -- the split is a stateless per-record filter that holds nothing at all: both mates of a template
+    carry one `NH` and sit on one chromosome, so keeping a pair together needs no name sort and no
+    buffer, and a ten-million-record BAM streams in constant memory.
+
+    `threads:` is the share of the machine this job takes, and it is HANDED OVER rather than merely
+    reserved. The same figure its sibling `umi_to_cram` declares -- the two run against each other
+    over one BAM, so a plate's width should not depend on which of them got there first. What the
+    verb spends it on is the BGZF codec and nothing else, divided across the outputs: the record loop
+    is one stateless pass and stays on one core whatever this says, while the block compression
+    underneath it is where writing several BAMs actually spends its wall-clock. Asking the scheduler
+    for cores and then handing the verb none of them is the shape this module's own history records
+    on `umi_count`, where a whole plate was counted on one core inside an allocation sized for the
+    rest.
+
+    Whether one wide split beats several narrow ones on a real plate is UNMEASURED, and the recipe's
+    own figure is what is passed rather than a number invented here.
+
+    **The outputs are rendered as `<component>=<path>` from `zip(COMPONENTS, output.bams)`** -- the
+    same argument shape `umi_count` takes its cells in, and for the same reason: a Component and where
+    its BAM goes travel as one token, so there is no second list for anyone to keep in the same order
+    as the first. `strict=True` because a silent zip would write fewer outputs than were declared and
+    snakemake would then fail on a missing file rather than on the arity that caused it.
+
+    **`--assembly` is the CHIMERA and never a Component.** The verb resolves `(components,
+    separator)` off that Chimera's completion record, which is the only honest source for both: a
+    Component list read off a name is a convention, and the separator belongs to one built reference
+    -- a Component whose own chromosome names already carry a doubled underscore forces a longer run
+    than the default, and only the record knows.
+
+    **Two outputs, and only the BAMs are reclaimed.** They are `temp()` and consumed by exactly one
+    rule each, so the whole plate's per-Component BAMs never coexist with the objects counted from
+    them. The summary beside them is deliberately NOT `temp()`: it is the durable account of what left
+    and where it went, and it is where `unmapped` and `multimapping` LIVE for a chimeric run -- both
+    read structurally zero in every h5ad below, because those reads leave here, one rule before the
+    counter. Nothing demands it in `rule all` and nothing needs to: this rule is upstream of every
+    matrix, so a plate that finishes has written one per cell.
+    """
+    input:
+        bam=rules.star_umi_map.output.bam,
+    output:
+        # One per Component, with `{sample}` left standing: `allow_missing` is what keeps this a
+        # per-cell rule while the Component axis is expanded here and the cell axis by `rule all`.
+        bams=temp(expand(SPLIT_BAM, component=COMPONENTS, allow_missing=True)),
+        summary=f"{OUTDIR}/{{sample}}/{{sample}}{SPLIT_SUFFIX}",
+    threads: config["threads"]
+    params:
+        assembly=ASSEMBLY,
+        outputs=lambda wc, output: " ".join(
+            f"{component}={bam}" for component, bam in zip(COMPONENTS, output.bams, strict=True)
+        ),
+    shell:
+        r"""
+        seqforge io split-chimera {params.outputs} \
+             --bam {input.bam} --assembly {params.assembly} --summary {output.summary} \
+             --threads {threads}
+        """
+
+
 rule umi_count:
-    """THE FAN-IN: count every cell of the plate into ONE .h5ad. One job, not one per cell.
+    """THE FAN-IN, once per COMPONENT: count every cell of the plate into that Component's .h5ad.
 
     This is the rule the module's `fan_in_artifact` declaration names, and the reason this module is
     a different shape from the three beside it. A per-cell counter followed by a merge would produce
@@ -513,39 +658,61 @@ rule umi_count:
     reference tool had to warn about, and which does not exist here because each cell's `sample_id`
     travels WITH its BAM on the command line.
 
-    It writes the object directly, with no table in between: a whole plate as dense text is hundreds
-    of megabytes for a sparse object several times smaller, and a format written solely to be read
-    back one rule later is a seam with no interface. Which matrices it holds is `workflows.umite.count`'s
-    table to state, and this sentence used to restate the count -- which is how it came to claim four
-    of them for a release that shipped five.
+    **ONE `{component}` wildcard over one config list, and the rule is N-AGNOSTIC by construction.**
+    A three-Component Chimera changes the length of `COMPONENTS` and nothing else in this file: the
+    input expands the same way, the output names itself from the wildcard, and `rule all` demands one
+    more file. There is no Component loop here and no per-Component key anywhere in the config.
 
-    A failed counting job re-runs only itself. Every per-cell BAM is on disk, which is what made the
-    fan-in affordable in the first place.
+    **`--component`, never `--annotation`, and the assembly stays the CHIMERA.** Exactly one of the
+    two forms is legal, so rendering both would be a refusal at exit 2 rather than a precedence rule
+    somebody has to remember, and rendering the Component as the assembly would resolve the wrong
+    reference: the record that says what each Component contributed to the merge lives on the
+    Chimera. The verb reads it there and then resolves that Component's OWN GTF -- what it actually
+    contributed, not what its default annotation has since become -- so a gene's count means what it
+    means in a single-organism run. A Component that contributed no annotation is a refusal naming
+    it, and the cost of that is WHEN: this is the fan-in, so an uncountable Component kills the run
+    after the whole plate has mapped rather than on the first job. Both Components of the Chimera
+    this module exists for are annotated.
+
+    Each Component's matrices are separate objects rather than one hstacked one, so the two organisms
+    never have to be told apart downstream by a gene-name prefix. It writes the object directly, with
+    no table in between: a whole plate as dense text is hundreds of megabytes for a sparse object
+    several times smaller, and a format written solely to be read back one rule later is a seam with
+    no interface. Which matrices it holds is `workflows.umite.count`'s table to state.
+
+    A failed counting job re-runs only itself, and only for its own Component. Every per-Component
+    BAM is on disk, which is what made the fan-in affordable in the first place.
 
     No `container:`: counting is not aligning, and pysam, gffutils and anndata are plain
     dependencies of this package. Only STAR needs an environment we do not own.
 
     Its memory request is the module's own arithmetic over the recipe's ONE figure, not the same
     request the mapping jobs make: this rule loads no genome index at all, and the recipe's figure
-    was sized against one that does.
+    was sized against one that does. UNMEASURED against a chimeric run, like every figure in this
+    file: a Component's matrix is slightly SMALLER than its single-assembly counterpart, because
+    cross-Component multimappers never entered one, so the arithmetic is if anything generous -- but
+    "if anything" is not a measurement and the number is the base's, unchanged.
 
-    **`--threads` is the threads it asked for, and it used to ask and then use one.** The cells are
-    independent, so the verb forks a worker per core and each one inherits the annotation the parent
-    read; the h5ad's rows stay in the order this rule listed the cells, not the order they finished.
-    The request stands unchanged against that, because a worker's resident growth is a ceiling and
-    not a rate — it dirties the interned gene sets once and then nothing more.
+    **`--threads` is the threads it asked for.** The cells are independent, so the verb forks a
+    worker per core and each one inherits the annotation the parent read; the h5ad's rows stay in the
+    order this rule listed the cells, not the order they finished. The request stands unchanged
+    against that, because a worker's resident growth is a ceiling and not a rate — it dirties the
+    interned gene sets once and then nothing more.
     """
     input:
-        bams=expand(rules.star_umi_map.output.bam, sample=SAMPLES),
+        # Every cell of the plate, for THIS Component: the cell axis is expanded here and the
+        # Component axis is left standing as this rule's own wildcard.
+        bams=expand(SPLIT_BAM, sample=SAMPLES, allow_missing=True),
     output:
-        h5ad=f"{OUTDIR}/{PLATE_H5AD}",
+        # The `{component}` in the declared name survives into the output as a snakemake wildcard,
+        # so the registry's `fan_in_artifact` and this rule stay ONE owner of that filename.
+        h5ad=f"{OUTDIR}/{PLATE_COMPONENT_H5AD}",
     threads: config["threads"]
     retries: PLATE_RETRIES
     resources:
         mem_mb=lambda wildcards, attempt: fan_in_mem_mb(config["mem_mb"], attempt),
     params:
         assembly=ASSEMBLY,
-        annotation=ANNOTATION,
         # `sample_id=path` per cell, in the object's row order. The ids come from units.tsv, which is
         # seqforge's own grouping, and the paths come from `input.bams` rather than being rebuilt --
         # a second spelling of a path is the copy that goes stale, and here it would point the
@@ -558,7 +725,7 @@ rule umi_count:
     shell:
         r"""
         seqforge io umi-count {params.cells} \
-             --assembly {params.assembly} --annotation {params.annotation} \
+             --assembly {params.assembly} --component {wildcards.component} \
              --out {output.h5ad} --threads {threads}
         """
 

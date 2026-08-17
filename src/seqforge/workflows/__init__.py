@@ -23,6 +23,97 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.16 — the plate route declares the read group its records name (#416). It was
+#: shipping INVALID SAM and had been since the uBAM arrived: `umite`'s extractor writes
+#: `@RG ID:<cell> SM:<cell>` into the uBAM and stamps `RG:Z:<cell>` on every record, and
+#: `--readFilesSAMattrKeep All` carried that tag through the aligner — but STAR builds its output
+#: header from the genome and its own parameters and inherits NOTHING from an input BAM, so every
+#: aligned record named a read group its header never introduced. The specification forbids that.
+#: samtools and pysam tolerate it, Picard and GATK refuse the file outright, and the per-cell CRAM is
+#: the RETAINED artifact — so the malformed file is the one that ships to whoever receives the data.
+#: **THE FIX IS TWO FLAGS AND THE SECOND ONE IS NOT OPTIONAL.** `--outSAMattrRGline ID:<sample>
+#: SM:<sample>` is STAR's only input to an `@RG` header line, and setting it also appends `RG` to the
+#: output attribute order on STAR's own initiative — `RG` is not a word `--outSAMattributes` accepts,
+#: so header and tag are one decision and cannot be taken separately. That is precisely what made the
+#: keep list load-bearing: STAR writes its own attributes and THEN appends the kept input tags,
+#: de-duplicating against nothing (`ReadAlign_alignBAM.cpp` calls `bamAttrArrayWriteSAMtags`, which
+#: filters on the keep list alone), so `All` plus the flag would have written `RG` on a record TWICE
+#: — a worse file than the one being fixed. The two plate modules therefore keep `UB` by name instead
+#: of `All`; the input `RG` is dropped and STAR's is the only one. Nothing is lost, because both
+#: spell the same `{wildcards.sample}` and the extractor's uBAM is unchanged.
+#: **THE TWO PLATE MODULES ONLY, AND THE OTHER TWO ARE LEFT ALONE ON PURPOSE.** `map/star` and
+#: `map/starsolo` read FASTQ, hand STAR no input tags, and so stamp no `RG` at all: their files are
+#: not malformed, they merely carry no library provenance — a usability gap the GATK family also
+#: refuses, and a DIFFERENT defect from this one. Giving them a read group would move the bytes of
+#: every alignment and every retained CRAM on two routes that have nothing wrong with them, and the
+#: re-keying that would pay for it does not happen by itself: `run_id` folds the `workflow_version`
+#: STAMPED IN THE RECIPE, not the live constant, so an existing `processing.yaml` recompiles to the
+#: same id and into the same directory as before, now under a module whose command line has moved.
+#: That is the ordinary cost of editing a shipped module and it is worth paying to fix invalid SAM;
+#: it is not worth paying to add a field to files nobody has complained about. Whoever wants it on
+#: the FASTQ routes should ask for it, and re-stamp their recipes when they do.
+#: **WHICH OUTPUT MOVES. EVERY ALIGNMENT THE TWO PLATE MODULES WRITE**, and nothing else — the
+#: per-cell BAMs of `map/star-umi` and of the chimera twin, and the retained CRAMs made from them.
+#: Each gains an `@RG` line in its header and an `RG:Z:` on every record. `map/star`, `map/starsolo`
+#: and `map/chromap` are untouched, byte for byte. Counts are untouched everywhere too:
+#: `--outSAMattrRGline` reaches the SAM/BAM write path and no counting path, and the plate counter
+#: reads `UB` and `NH`, neither of which moves. The chimera splitter and the CRAM converter inherit
+#: the line for free and were not edited — the splitter copies every non-`@SQ` header line verbatim,
+#: the converter's `awk` passes `/^@/` through — so the split BAMs and every CRAM carry it without
+#: either learning what a read group is.
+#: A SEPARATE entry from 2026.8.15 rather than an extension of it, deliberately: that entry's "which
+#: output moves" says NONE, and it is true of the twin's arrival. Folding this in would make it false.
+#: 2026.8.15 — a FIFTH module, `map/star-umi-chimera`: the chimera-aware twin of the plate pipeline
+#: (#423, spec #419). A **Chimera** is one reference built from several **Component** assemblies whose
+#: chromosome names carry a component suffix, and until now seqforge would compile against one and
+#: produce nothing anyone could use — a BAM whose every chromosome is spelled wrong for every tool the
+#: user owns, and one matrix counted against the merged annotation with both organisms' genes as its
+#: columns and no number anywhere saying how much of the library was which. The twin runs the same
+#: per-cell chain and then, per cell, ONE new step: `rule split_chimera` shells out to `seqforge io
+#: split-chimera` and writes one BAM per Component, each restored to the chromosome names, `@SQ` order
+#: and lengths a run against the bare Component would have written, plus a non-`temp()` per-cell split
+#: summary. `rule umi_count` then carries one `{component}` wildcard over `config["genome"]["components"]`
+#: — read at PARSE time, so a dry run needs no built reference — and renders `--component` in place of
+#: `--annotation`, which makes each Component counted against what IT contributed to the merge. `rule
+#: all` demands each Component's `.h5ad` BY NAME, because a rule whose output is a folder is satisfied
+#: by a folder, which is how a counting job that wrote two Components of three exits 0.
+#: **THE SPLIT SITS BESIDE THE CRAM, NOT UPSTREAM OF IT.** `umi_to_cram` reads the pre-split chimeric
+#: BAM, so a chimeric archive keeps every multimapper and is strictly MORE complete than a
+#: single-assembly one, and peak disk falls slightly because the chimeric BAM is freed once both
+#: consumers finish instead of living until the fan-in. `--outSAMmultNmax 1` STAYS: the split's keep
+#: rule never asks where a multimapper's other loci are.
+#: **A FULL STANDALONE COPY, AND THAT IS FORCED.** Composition copies exactly one `.smk` into the run
+#: directory, so an `include:`d fragment would be neither copied nor eligible as the default target,
+#: and the file's basename must equal the module id's tail because module identity is inverted out of
+#: it. Four things differ out of ~580 lines — the header, `rule all`, `split_chimera` and `umi_count`
+#: — and what keeps the copies in step is DERIVED from this registry rather than typed beside it: the
+#: shared-genome lifecycle sweep, the wiring gate, the config-key scanner and the verb-existence check
+#: each pick the twin up because it is registered. There is deliberately no same-ness test against the
+#: base; its subject would be source text.
+#: **SELECTION IS THE BASE'S DECLARATION AND NOTHING ELSE.** `map/star-umi` names the twin as its
+#: `chimeric_variant`, so compose swaps where it used to refuse; the other three still declare nothing
+#: and a chimeric assembly on them is still a hard refusal naming the module. The twin is reachable no
+#: other way — the guard set is derived from this registry and a KB backend naming a variant is
+#: refused at load — and its `parse_keys` stay EMPTY and must.
+#: **WHICH OUTPUT MOVES. NONE, and this is argued rather than benchmarked.** A chimeric run selects a
+#: DIFFERENT `.smk`; a non-chimeric compile reaches one new call whose only outcome on that path is
+#: `None`; the twin is a NEW FILE, so no existing module is edited and no existing rule, param or
+#: command line moves; the emitted config is byte-identical, because the one new key
+#: (`genome.components`) is emitted CONDITIONALLY, the same shape `primary_feature` already has; no
+#: recipe migration is owed; and **no existing pipeline directory moves** even though a fifth module
+#: bumps this stamp, because `run_id` folds the `workflow_version` recorded in the recipe rather than
+#: the live one. Two modules also cannot collide on one `run_id` by construction: the module id is in
+#: no hash at all, a chimeric run re-keys via the assembly inside the processing hash, and the module
+#: is a pure function of `(spec, assembly)` with both already hashed.
+#: **EVERY PER-COMPONENT FIGURE IS OVER UNIQUELY-PLACED READS ONLY**, which is the split's keep rule:
+#: a read ambiguous ACROSS organisms is indistinguishable from a within-organism repeat, so a
+#: bacterial fraction read off these matrices is a LOWER BOUND. `unmapped` and `multimapping`
+#: consequently read structurally zero in a chimeric `.h5ad` — those reads leave one rule earlier —
+#: and the per-cell split summary is where they now live, which is why it ships and why the report
+#: reads it.
+#: **THE MEMORY FIGURES ARE THE BASE'S, CARRIED OVER IDENTICAL, AND HONESTLY UNMEASURED.** A chimeric
+#: index is larger than any one Component's and nobody has measured one; the twin's header says so
+#: rather than inventing a multiplier.
 #: 2026.8.14 — `rule umi_count` uses the threads it asks the scheduler for (#397). It requested
 #: `config["threads"]` and handed the verb none of them, so a plate-wide counting job over 784 cells
 #: — or the 1440 the counter sizes for — ran on ONE core while the rest of the allocation sat idle.
@@ -366,7 +457,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.14"
+WORKFLOW_VERSION = "2026.8.16"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -627,6 +718,24 @@ class WorkflowModule:
     #: It NAMES the artifact and stops there — not a scope algebra, and not the rule's resource class
     #: (which the module's own arithmetic owns, because only the module knows its rule graph).
     fan_in_artifact: str | None = None
+    #: This pipeline's chimera-aware twin: the module id to compose instead when the recipe names a
+    #: **chimera** — one reference built from several component assemblies. ``None`` for a pipeline
+    #: that has no such twin, which is every shipped one, and a recipe naming a chimera against one of
+    #: those is a compose refusal rather than a run that merges two organisms into a single count
+    #: table with nothing in it saying which reads were whose.
+    #:
+    #: **Declared rather than inferred, by the argument ``fan_in_artifact`` makes directly above and
+    #: by one more that is specific to this fact.** Whether a pipeline can keep the components apart
+    #: downstream of the aligner is a property of its rule graph, and every way of inferring it reads
+    #: something that is not: a module-id compare is ``read_layout_kind``'s dead ancestor, in which
+    #: everything that was not starsolo silently meant bulk; a lookup in the shipped assembly table is
+    #: worse *here* than that pattern is anywhere else, because nothing folds the `liulab-genome` pin
+    #: into ``run_id`` — a table-derived answer would let one recipe compile to a DIFFERENT module at
+    #: the SAME ``run_id``, into the directory the first compile's alignments are already in.
+    #:
+    #: It NAMES the twin and stops there. Which components a chimera has is the recipe's statement
+    #: (`compose.chimera`), and what the twin then does with them is the twin's own contract.
+    chimeric_variant: str | None = None
 
     @property
     def aligner(self) -> str:
@@ -702,6 +811,18 @@ class WorkflowModule:
 #: QC-suffix constants get, applied to the one artifact that has no ``{sample}`` in it.
 PLATE_H5AD = "combined.h5ad"
 
+#: What ``map/star-umi-chimera`` fans in to: one ``.h5ad`` **per Component** over every cell, the same
+#: artifact one arity out. The ``{component}`` placeholder is what makes it that: inserted into the
+#: rule's f-string it survives as a snakemake wildcard, so the counting rule fans in once per
+#: Component and the declaration below and the rule that produces it still read one constant. The
+#: precedent for a placeholder in a declared artifact name is the stats registry's ``{sample}``
+#: templates; the reason it is here rather than a second field is that a fan-in artifact's NAME has
+#: exactly one owner and an arity is part of a name.
+#:
+#: Two objects and not one hstacked one, deliberately: a merged matrix would make the two organisms
+#: tellable apart only by a gene-name prefix, forever, downstream of everything.
+PLATE_COMPONENT_H5AD = "combined.{component}.h5ad"
+
 MODULES: dict[str, WorkflowModule] = {
     "map/starsolo": WorkflowModule(
         name="map/starsolo",
@@ -740,8 +861,42 @@ MODULES: dict[str, WorkflowModule] = {
         snakefile=_MODULE_DIR / "map" / "star-umi.smk",
         read_layout_kind="umi_tagged",
         fan_in_artifact=PLATE_H5AD,
+        # The one module that can keep a chimera's Components apart downstream of the aligner, so it
+        # is the one module that declares a twin. The other three still declare nothing and a recipe
+        # naming a chimera against any of them is a compose refusal — better a refusal than a count
+        # table merging two organisms with nothing in it saying which reads were whose.
+        chimeric_variant="map/star-umi-chimera",
+    ),
+    # The chimera-aware twin, reachable ONLY through the declaration above: no KB backend may name it
+    # (`Backend._not_a_chimeric_variant` refuses one at load), so nothing bypasses the single dispatch
+    # rule in `compose.plan`. Its `parse_keys` are empty for the base's reason and one more — with no
+    # backend able to name it, there is no declarer left for a namespace to serve.
+    #
+    # Everything else it declares is the base's, and must be: same env because it runs the same STAR,
+    # same read layout because it maps the same plate, same modalities. What differs is the fan-in
+    # artifact's ARITY — one object per Component instead of one for the deposit — which is why the
+    # name carries a `{component}` and why `rule all` demands each one by name.
+    "map/star-umi-chimera": WorkflowModule(
+        name="map/star-umi-chimera",
+        version=WORKFLOW_VERSION,
+        env="align-rna",
+        # The basename is FORCED rather than chosen: `CompiledPipeline.module` inverts a run
+        # directory's module identity out of the copied `.smk`'s basename, so a file named anything
+        # else would compile and then report as no module at all.
+        snakefile=_MODULE_DIR / "map" / "star-umi-chimera.smk",
+        read_layout_kind="umi_tagged",
+        fan_in_artifact=PLATE_COMPONENT_H5AD,
     ),
 }
+
+#: The module ids that are a twin of some other module — **derived from the registry above**, so
+#: there is no second list for a new twin to be missing from. A KB backend naming one of these is
+#: refused: the twin is selected by ``compose.plan`` swapping it in for its base under a chimeric
+#: assembly, and a spec naming it directly would reach the same module by a route that never asked
+#: whether the recipe's reference is a chimera at all.
+CHIMERIC_VARIANTS: frozenset[str] = frozenset(
+    m.chimeric_variant for m in MODULES.values() if m.chimeric_variant is not None
+)
 
 
 def get_module(name: str) -> WorkflowModule:
@@ -788,7 +943,9 @@ def list_modules() -> list[str]:
 
 
 __all__ = [
+    "CHIMERIC_VARIANTS",
     "WORKFLOW_VERSION",
+    "PLATE_COMPONENT_H5AD",
     "PLATE_H5AD",
     "RUNTIME_IMAGE",
     "ReadLayoutKind",

@@ -1845,6 +1845,47 @@ def test_a_cell_is_a_sample_only_beside_a_module_that_counts_them_together() -> 
     assert ok.identity.sample_is_cell and ok.require_backend().module == "map/star-umi"
 
 
+def test_no_spec_may_name_a_chimeric_twin_and_the_guard_set_is_derived_from_the_registry() -> None:
+    """A twin is reachable by being SWAPPED IN, and a spec naming one takes a route that never asks.
+
+    Compose selects a chimera-aware twin when the recipe's assembly is spelled like a **chimera**'s,
+    by swapping it in for the pipeline the chemistry already binds to. A spec naming the twin
+    directly reaches the same module without that question ever being asked — so an ordinary,
+    single-assembly recipe would compile to a pipeline that splits a BAM by a suffix nothing put
+    there, and the run would die deep in a fan-in rather than at compose. One dispatch rule, and this
+    is what keeps it the only one.
+
+    The set is DERIVED from the module registry, so the day a second base declares a twin the refusal
+    covers it without anyone writing its name down: a hand-kept list is one a new twin is missing
+    from, and the guard would pass while guarding nothing. That derivation is the second assertion
+    below — every id the set holds is refused, so the loop covers a second twin the day one arrives
+    and a refusal wired to one hardcoded id would go red here instead of passing quietly. What is NOT
+    asserted is the comprehension that builds the set: restating it would check the source line
+    against itself, and the registry test next door already pins the membership by name.
+
+    It fires at LOAD, where every other DSL mistake in this file dies, and on the BACKEND — before
+    the cell-axis biconditional a few validators along gets to speak, so a spec naming the plate twin
+    is told the real reason rather than being asked for a flag it may not be entitled to anyway.
+    """
+    from seqforge.kb.loader import SPECS_DIR
+    from seqforge.workflows import CHIMERIC_VARIANTS
+
+    assert CHIMERIC_VARIANTS, "no module declares a twin, so this rule refuses nothing"
+
+    raw = yaml.safe_load((SPECS_DIR / "10x-3p-gex-v3" / "spec.yaml").read_text())
+    for twin in sorted(CHIMERIC_VARIANTS):
+        with pytest.raises(ValidationError, match="chimera-aware twin"):
+            Spec.model_validate(
+                {
+                    # The cell axis is declared too, so what refuses the spec is this rule and not
+                    # the biconditional that would also have something to say about a fan-in module.
+                    **raw,
+                    "identity": {**raw["identity"], "sample_is_cell": True},
+                    "backend": {"module": twin, "params": {}},
+                }
+            )
+
+
 def test_a_backend_on_the_plate_module_may_declare_no_parse_key_at_all() -> None:
     """Its parse namespace is EMPTY, so any declared key is refused at load — including a real one.
 

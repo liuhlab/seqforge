@@ -35,6 +35,7 @@ from conftest import (
     count_matrix,
     declare_read_floor,
     one_run_each,
+    planning_route,
     plate_of,
     solo_block,
     star_modules,
@@ -42,6 +43,7 @@ from conftest import (
 )
 from seqforge import kb
 from seqforge.compose import ComposeError, compose, core, params_gate, plan
+from seqforge.compose.chimera import components
 from seqforge.compose.params import derived_params, param_block_key, param_owners
 from seqforge.io import OnlistRegistry
 from seqforge.manifest.hash import dataset_content_hash
@@ -50,7 +52,13 @@ from seqforge.models.processing import ProcessingManifest
 from seqforge.models.resolve import ComposeResult
 from seqforge.pipeline import EXCLUSIONS_NAME
 from seqforge.resolve.confuse import canonical_backend
-from seqforge.workflows import PLATE_H5AD, get_module, keys_read_by, list_modules
+from seqforge.workflows import (
+    CHIMERIC_VARIANTS,
+    PLATE_H5AD,
+    get_module,
+    keys_read_by,
+    list_modules,
+)
 from seqforge.workflows.umite.extract import TagGeometry
 
 
@@ -724,16 +732,17 @@ def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe(
     """
     swept = []
     for module in star_modules():
-        techs = sorted(
-            t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
-        )
-        assert techs, f"{module} invokes STAR but no spec reaches it; nothing here can be planned"
+        # `planning_route` because a chimera-aware twin is in this selector and no spec may name one
+        # — it is planned from its base's chemistry under a two-part assembly name, which is the
+        # route compose really takes to it. Everything else keeps its own chemistry and a plain
+        # assembly.
+        tech, assembly = planning_route(module)
         # one deposit per module rather than one shared: `_build` writes its reads under a fixed
-        # `s_<read id>.fastq.gz`, and the three chemistries do not name their reads the same way.
+        # `s_<read id>.fastq.gz`, and the chemistries do not name their reads the same way.
         workdir = tmp_path / module.replace("/", "-")
         workdir.mkdir()
-        manifest, reg = _build(workdir, techs[0])
-        processing = _processing(manifest)
+        manifest, reg = _build(workdir, tech)
+        processing = _processing(manifest, assembly=assembly)
         result = compose(manifest, processing, registry=reg, workspace=workdir)
         pipeline_dir = (workdir / result.snakefile_path).parent
 
@@ -798,6 +807,94 @@ def test_compose_refuses_a_recipe_whose_env_cannot_supply_the_aligner(
 
     with pytest.raises(ComposeError, match="align-rna"):
         compose(manifest, broken, registry=reg, workspace=tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("assembly", "expected"),
+    [
+        pytest.param("ce11_ecHT115", ("ce11", "ecHT115"), id="the-chimera-that-is-built"),
+        pytest.param("ecHT115_ce11", ("ecHT115", "ce11"), id="spelled-order-not-sorted-order"),
+        pytest.param("sacCer3", None, id="an-ordinary-assembly"),
+        pytest.param("GRCh38.p13", None, id="a-patch-suffix-is-not-a-component"),
+        pytest.param("my_ref", ("my", "ref"), id="the-accepted-price"),
+    ],
+)
+def test_a_chimera_is_read_off_the_name_the_recipe_states_and_out_of_nothing_else(
+    assembly: str, expected: tuple[str, ...] | None
+) -> None:
+    """The user STATES a chimera by naming it, and this is the whole of compose's reading of it.
+
+    Two decisions ride on these rows. **Not-a-chimera is an answer, not a failure**: upstream's
+    splitter raises for a name that does not split, and the overwhelmingly common input here is an
+    ordinary assembly, so the wrapper hands back ``None`` and every plain compile pays one call that
+    tells it to stop. **The reading is syntactic**: no table is consulted and no index is probed, so
+    the last row is not a bug but the accepted price of that — an underscored assembly name reads as
+    a chimera, which is already off-contract on the genome side and fails loudly but late, in genome
+    resolution at run time. It is asserted so the next reader finds it recorded rather than
+    rediscovers it, and so that a "fix" here has to be a decision rather than a drive-by.
+
+    The mis-ordered row guards the other half of that syntactic contract: components come back in the
+    order the name spells them, never sorted, which is what lets a caller tell a mis-ordered chimera
+    from the canonical spelling instead of silently accepting either.
+    """
+    assert components(assembly) == expected
+
+
+@pytest.mark.parametrize("module", list_modules())
+def test_a_chimeric_assembly_swaps_to_a_declared_twin_and_refuses_against_every_module_without_one(
+    module: str, tmp_path: Path
+) -> None:
+    """Naming a chimera SELECTS the twin where one is declared, and refuses everywhere else.
+
+    Both arms are one claim, which is why they are one case: whether a pipeline can keep a chimera's
+    Components apart downstream of the aligner is a property of its rule graph, so a module that
+    declares a twin must compile to it and a module that declares none must refuse. The refusal's
+    alternative is what shipped before this: `--assembly ce11_ecHT115` was an unvalidated string, the
+    aligner resolved the chimeric index at run time, and **nothing downstream knew the BAM held two
+    organisms** — one merged count table with both organisms' genes as columns, at exit 0, and no
+    number anywhere saying how much of the library was which.
+
+    Parametrized over the registry rather than over a hand list, so a sixth module joins whichever
+    arm its own declaration puts it in the day it is registered. This row used to assert that NO
+    module declared a twin and therefore that every module refused; the swap arm is that assertion
+    rewritten, at the moment it came true, rather than left to pass for a new reason.
+
+    A twin itself takes neither arm and is skipped here rather than asserted on: it is reachable only
+    by being swapped IN, no spec may name it, and `test_every_registered_module_wires_into_a_runnable
+    _dag` is where its own compile is proved.
+
+    At the `plan` seam deliberately: `plan` is `compose`'s first statement and writes nothing at all,
+    so both outcomes are reached before the Snakefile, the config and the run directory exist. A
+    branch that drifted downstream of the writes would leave this red.
+    """
+    if module in CHIMERIC_VARIANTS:
+        pytest.skip(f"{module} is a twin: it is what a base swaps TO, so it takes neither arm")
+    techs = sorted(
+        t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
+    )
+    assert techs, f"{module} is registered but no spec reaches it"
+    manifest, reg = _build(tmp_path, techs[0])
+    processing = _processing(manifest, assembly="ce11_ecHT115")
+    twin = get_module(module).chimeric_variant
+    if twin is None:
+        with pytest.raises(ComposeError, match=re.escape(module)):
+            plan(manifest, processing, registry=reg)
+        return
+    composed = plan(manifest, processing, registry=reg)
+    assert composed.module.name == twin
+    # ...and the ONE key that carries. Conditional, so the row above emits none of it: a config key
+    # is a byte of the compiled pipeline and every byte is hashed into the directory the run lives
+    # in, so an unconditional one re-keys every pipeline in the corpus to say something about a
+    # chimera to recipes that name none. In the order the NAME spells them, never sorted, which is
+    # the order the twin's `rule all` demands its matrices in.
+    genome = composed.config["genome"]
+    assert isinstance(genome, dict)
+    assert genome["components"] == ["ce11", "ecHT115"]
+    assert genome["assembly"] == "ce11_ecHT115"
+    # Per-Component annotations are deliberately NOT a config key: a merged annotation does not
+    # record what fed it, so the fact is not offline-recoverable and the counting verb reads it off
+    # the completion record at run time.
+    assert set(genome) == {"assembly", "annotation", "components"}
 
 
 def test_policy_takes_the_runtime_env_from_the_module_that_needs_it() -> None:
@@ -2607,6 +2704,16 @@ def test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate(
     2. **The params gate passes.** The three-owner coverage check — every emitted param attributable to
        exactly one of KB / derived / processing — was only ever exercised against two owners until a
        combinatorial chemistry (splitseq) reached it here.
+
+    3. **The top level is exactly these keys.** The gate below proves the *param block* is exactly its
+       owners' union and says nothing whatever about the block's neighbours — and the genome block is
+       one of those neighbours — so until this line, a key emitted unconditionally into the config
+       went unnoticed by every test in the suite, for every chemistry. A config key is a byte of the
+       compiled pipeline and every byte of it is hashed into the directory the run lives in, so a new
+       one that "only adds information" re-keys ~10^4 pipelines and orphans the alignments already
+       under them. ``primary_feature`` is subtracted because it is the one key a chemistry genuinely
+       may or may not have (bulk has no ``Solo.out/<Feature>/`` to name); everything else is owed by
+       every compile or is owed by none.
     """
     manifest, reg = _build(tmp_path, tech)  # read ids come from the spec, not from 10x's naming
     spec = kb.load_spec(tech)
@@ -2629,6 +2736,19 @@ def test_every_chemistry_emits_its_required_keys_and_passes_the_params_gate(
 
     status, problems = params_gate(manifest, processing, spec, config)
     assert status == "pass", problems
+
+    assert set(config) - {"primary_feature"} == {
+        "chemistry",
+        "container",
+        "genome",
+        "mem_mb",
+        "outdir",
+        "read_files_in",
+        "samples",
+        "threads",
+        "units_tsv",
+        block,
+    }, f"{tech} -> {module_name}: the composer emitted a top-level config key nothing owns"
 
 
 def test_a_complex_chemistry_locates_its_barcodes_by_quadruple(

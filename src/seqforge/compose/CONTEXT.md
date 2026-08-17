@@ -65,10 +65,28 @@ run never spans machines.
 _Avoid_: shared memory, segment, cached index — each names the mechanism rather than the thing; also
 genome index, which is the on-disk directory `liulab-genome` owns and is what gets loaded
 
+**Chimera**:
+One `liulab-genome` reference built from several **Component** assemblies, whose chromosome names
+each carry a component suffix at a separator that reference recorded. A **Recipe** states one by
+naming it and nothing else — `compose` reads the *name* to select the chimera-aware **Workflow
+module**, and every fact about what was actually built comes from the completion record at run time.
+_Avoid_: combined/merged/hybrid genome, multi-species reference, co-mapping index; and never
+*chimeric read*, which is one alignment split across loci and an unrelated thing
+
+**Component**:
+One assembly a **Chimera** was built from, and the axis every per-organism artifact is keyed by — one
+BAM, one matrix, one kept count per component. Which annotation its matrix is counted against is
+what that component *contributed to the merge*, read off the Chimera's record rather than typed,
+because the merged annotation's name does not record who fed it.
+_Avoid_: species and organism (a component is an assembly, and two of them can be one species);
+host/contaminant/spike-in, which name a role no stage here privileges; also the architecture sense of
+"component", which this project does not use at all — see the two-vocabularies note in the map
+
 **Workflow module**:
 A hand-written, versioned Snakemake module under `workflows/`. `compose` selects one and copies it
 beside the emitted `Snakefile`, so a run directory reproduces after it is moved; nothing generates
-rule source.
+rule source. One may declare a chimera-aware twin of itself, which is the only way that twin is ever
+selected.
 _Avoid_: template, generated rules, pipeline code, snippet
 
 **Workspace**:

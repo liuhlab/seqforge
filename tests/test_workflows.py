@@ -30,6 +30,7 @@ import anndata as ad
 import pysam
 import pytest
 import yaml
+from genome.chimera import derive_separator, split_suffixed, suffixed
 from scipy.sparse import csr_matrix
 
 from conftest import (
@@ -43,6 +44,7 @@ from conftest import (
     _src_root,
     count_matrix,
     planned_paths,
+    planning_route,
     star_modules,
     write_fastq_gz,
 )
@@ -52,6 +54,8 @@ from seqforge.compose import compose, core
 from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
 from seqforge.models.processing import RuntimeEnv, SoloFeature
 from seqforge.workflows import (
+    CHIMERIC_VARIANTS,
+    PLATE_COMPONENT_H5AD,
     PLATE_H5AD,
     WORKFLOW_VERSION,
     argv_keys_read_by,
@@ -60,7 +64,7 @@ from seqforge.workflows import (
     list_modules,
     memory,
 )
-from seqforge.workflows.cram import CramError, bam_to_cram
+from seqforge.workflows.cram import _RENAME_QNAME, CramError, bam_to_cram
 from seqforge.workflows.fragments import (
     QC_SUFFIX,
     FragmentsError,
@@ -99,6 +103,7 @@ from seqforge.workflows.metrics import (
     Metric,
     SampleStats,
     Severity,
+    fmt_count,
     fmt_int,
     fraction,
     gather_alerts,
@@ -120,6 +125,13 @@ from seqforge.workflows.qc import (
 )
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
+from seqforge.workflows.split import (
+    DROP_REASONS,
+    SPLIT_SUFFIX,
+    SplitError,
+    SplitStats,
+    split_chimera,
+)
 from seqforge.workflows.stats import (
     MODULES_WITHOUT_CROSS_CHECKS,
     MODULES_WITHOUT_STATS,
@@ -733,6 +745,43 @@ def test_cram_passes_the_reference_and_never_embeds_it(
     assert any(c[:3] == ["samtools", "index", "-@"] for c in rec.calls)
 
 
+@pytest.mark.external
+@pytest.mark.skipif(shutil.which("awk") is None, reason="awk not on PATH")
+def test_the_read_name_rewrite_carries_every_header_line_into_the_retained_cram(
+    tmp_path: Path,
+) -> None:
+    """The converter inherits the read group rather than learning what one is — RUN, not read.
+
+    The plate route declares `@RG` at the aligner, and the CRAM is the RETAINED artifact, so the
+    header line has to survive the one stage between them that rewrites bytes: the QNAME rename. That
+    it does is a property of the rename program, and the test beside this one can only say the
+    program CONTAINS a header branch — which is a claim about source text, and would pass just as
+    happily if the branch printed the line into the wrong stream or dropped the tab layout.
+
+    So the program is executed over a SAM holding the two lines that matter, and the claim is what
+    comes out: `@RG` verbatim, tabs and all, and the alignment beneath it renamed. That is also why
+    the converter needs no edit for the read group and must not get one — a stage that special-cased
+    `@RG` would be a second owner of a fact the aligner already states.
+    """
+    sam = tmp_path / "one.sam"
+    sam.write_text(
+        "@HD\tVN:1.6\tSO:coordinate\n"
+        "@SQ\tSN:chrI\tLN:1000\n"
+        "@RG\tID:cell_a\tSM:cell_a\n"
+        "A00234:HHV:1:1101:1:1\t0\tchrI\t1\t255\t4M\t*\t0\t0\tACGT\tIIII\tRG:Z:cell_a\n"
+    )
+    out = subprocess.run(
+        ["awk", _RENAME_QNAME, str(sam)], capture_output=True, text=True, check=True
+    ).stdout.splitlines()
+
+    assert "@RG\tID:cell_a\tSM:cell_a" in out, (
+        "the retained CRAM would carry records naming a read group its header never introduced"
+    )
+    assert out[:2] == ["@HD\tVN:1.6\tSO:coordinate", "@SQ\tSN:chrI\tLN:1000"]
+    # ...and the rename it exists for still happens, on the alignment and on nothing above it.
+    assert out[3].split("\t")[0] == "r1" and out[3].endswith("RG:Z:cell_a")
+
+
 @pytest.mark.parametrize(
     ("fails", "named"),
     [("-F", "primary alignments"), ("awk", "read-name rewrite"), ("-C", "CRAM encode")],
@@ -921,7 +970,13 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
 
     from seqforge.workflows import MODULES, resolve_pipeline
 
-    assert set(list_modules()) == {"map/starsolo", "map/star", "map/chromap", "map/star-umi"}
+    assert set(list_modules()) == {
+        "map/starsolo",
+        "map/star",
+        "map/chromap",
+        "map/star-umi",
+        "map/star-umi-chimera",
+    }
     valid_envs = set(get_args(RuntimeEnv))
     for name in list_modules():
         module = get_module(name)
@@ -933,14 +988,31 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
         # in a different env is correct, not a test failure.
         assert module.env in valid_envs
 
-    # The fan-in declaration, by NAME in both directions. Exactly one shipped module produces a
-    # deliverable the sample axis does not reach, and the other three are untouched by its arrival —
-    # which is the whole of why the field defaults to absent. A set comparison rather than a count:
-    # "some module aggregates" was never the claim.
+    # The fan-in declaration, by NAME in both directions. Two shipped modules produce a deliverable
+    # the sample axis does not reach — the plate pipeline and its chimeric twin, which is the same
+    # pipeline one arity out — and the other three are untouched by either's arrival, which is the
+    # whole of why the field defaults to absent. A set comparison rather than a count: "some module
+    # aggregates" was never the claim.
     assert {n for n in list_modules() if get_module(n).fan_in_artifact is not None} == {
-        "map/star-umi"
+        "map/star-umi",
+        "map/star-umi-chimera",
     }
     assert get_module("map/star-umi").fan_in_artifact == PLATE_H5AD
+    # The twin's carries a `{component}` and the base's does not, which is the arity difference
+    # itself: one object for the deposit against one per Component of the chimera it mapped to.
+    assert get_module("map/star-umi-chimera").fan_in_artifact == PLATE_COMPONENT_H5AD
+    assert "{component}" in PLATE_COMPONENT_H5AD and "{component}" not in PLATE_H5AD
+
+    # The twin is reachable ONLY through its base's declaration, and the guard set that keeps it that
+    # way is DERIVED from the registry rather than typed beside it — a second list is one a new twin
+    # would be missing from, and the KB refusal would then pass while guarding nothing.
+    # By NAME, and only by name. Restating the comprehension that defines the set would assert the
+    # source line back at itself: it cannot go red for anything the code can do, and it would pass
+    # unchanged on the day a twin went missing from the registry.
+    assert CHIMERIC_VARIANTS == {"map/star-umi-chimera"}
+    assert get_module("map/star-umi-chimera").chimeric_variant is None, (
+        "a twin of a twin has no meaning and nothing would ever select it"
+    )
 
     # The assay<->pipeline adapter (folded from test_resolve_pipeline_binds_a_chemistry_and_refuses_an
     # _unserved_modality): a chemistry binds to the module its backend selects, and a spec whose
@@ -988,6 +1060,14 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     a spec targets it, and a module no spec reaches is refused here unless it is NAMED in
     :data:`MODULES_NO_SPEC_REACHES_YET` with the reason, rather than going quietly untested.
 
+    **A chimera-aware twin is reached by no spec and never will be**, which is a different fact from
+    "not yet": no KB backend may name a twin, and one that tries is refused at load. So it is planned
+    the way compose will really reach it — its BASE's chemistry under a two-part assembly name
+    (:func:`~conftest.planning_route`) — rather than being written into the skip set, where it would
+    have lost the ``snakemake -n`` coverage every other module has, permanently and quietly. The
+    route costs nothing on disk: chimera detection is syntactic and the genome resolves inside a
+    ``run:`` block, so this plans a whole chimeric plate with no built reference anywhere.
+
     It also owns "the gate leaves no zero-byte FASTQ behind", which used to be a second 1.5s spawn of
     its own on `map/starsolo`. The gate stands in zero-byte FASTQs; they were touched straight into
     the run directory (`pipeline_dir / row["path"]`) and never removed, which was invisible only
@@ -997,20 +1077,24 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     commit that made the gate work. Asserted here it holds for all three modules, not for starsolo
     alone.
     """
-    techs = sorted(
-        t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
-    )
     if module in MODULES_NO_SPEC_REACHES_YET:
-        assert not techs, (
-            f"{module} is named as reached by no spec, but {techs} reach it — drop it from "
+        assert not [
+            t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
+        ], (
+            f"{module} is named as reached by no spec, but a spec reaches it — drop it from "
             f"MODULES_NO_SPEC_REACHES_YET so the composed-pipeline gate covers it"
         )
         pytest.skip(
             f"{module} has no chemistry yet; its .smk is planned from a hand-written config"
         )
-    assert techs, f"{module} is registered but no spec reaches it"
-    manifest, reg = _build(tmp_path, techs[0])
-    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    tech, assembly = planning_route(module)
+    manifest, reg = _build(tmp_path, tech)
+    result = compose(
+        manifest, _processing(manifest, assembly=assembly), registry=reg, workspace=tmp_path
+    )
+    # ...and it composed to the module this case is about. For a twin that is the whole claim of the
+    # route above: the chemistry names the base, and the assembly is what swapped it.
+    assert result.modules[0].name == module
     # PASS, not skip. This used to read `in {"pass", "skip"}` and so forbade only the one value that
     # could not occur: `snakemake` was in no dependency table, `have("snakemake")` was False, and the
     # gate returned "skip" every time. A skip is green, so the gate was decorative for the life of the
@@ -1022,10 +1106,10 @@ def test_every_registered_module_wires_into_a_runnable_dag(
 
 
 @pytest.mark.parametrize("module", star_modules())
-def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_job_to_it(
+def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
-    """One index in memory per run, for every workflow that loads one — read off the rendered plan.
+    """Two invariants every STAR workflow owes, read off ONE rendered plan.
 
     STAR's index is per-process and resident for the life of the job, so N mapping jobs running at
     once on one machine cost N copies of it. A composed pipeline runs on ONE machine (ADR-0051),
@@ -1033,7 +1117,14 @@ def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_jo
     multiplication real, since the jobs of a run are concurrent by construction. `map/star-umi` has
     shared a copy since 2026.8.6; the other two loaded a private copy per job until #379.
 
-    Five claims, and a dry run is the only thing that can make any of them:
+    The read group is the second invariant and it rides here rather than in a neighbour of its own
+    because the plan is the expensive part: this test already composes and dry-runs every STAR
+    workflow there is, and a second sweep would spawn `snakemake` four more times to read the same
+    text. Both claims are about what a mapping job's command line SAYS, and neither can be made
+    anywhere else — a `shell:` literal is source, and a source claim about a command is not a claim
+    about a command.
+
+    Six claims, and a dry run is the only thing that can make any of them:
 
     1. **The load is a job.** A rule unreachable from `rule all` plans nothing, and this one is
        reachable only through the mapping rule's inputs — there is no target naming it.
@@ -1052,19 +1143,38 @@ def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_jo
     5. **The flag is not `temp()`.** Snakemake announces every temporary output it would delete, so
        the plan is where "this file survives the run" is legible. Delete it and a rerun is told the
        load never happened, and reloads a segment that is already resident.
+    6. **A uBAM-fed alignment declares the read group it stamps** (#416), with the id and the sample
+       name being the job's own wildcard. `--outSAMattrRGline` is STAR's ONLY input to an `@RG`
+       header line and setting it is also what puts `RG` on a record, so one flag carries both halves
+       of the SAM rule that a record's `RG` name a group its header introduced.
+
+       **Which modules owe it is DERIVED from the rendered command, not from a list here**: a route
+       that renders `--readFilesSAMattrKeep` is one handing STAR an alignment file whose records
+       already carry tags, and that is exactly the route whose records arrive carrying `RG:Z:` from
+       the extractor. A FASTQ-fed route hands STAR no input tags, so its records carry no `RG` to
+       dangle and its files are not malformed — giving those a read group is a usability improvement
+       and not this defect, so it is deliberately absent and this test says nothing about them.
+
+       Asserted per JOB rather than per module, because the value is the whole claim: a flag
+       rendering one cell's id onto every cell's records would satisfy any test that only asked
+       whether the flag was there.
 
     Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
     copied into each workflow file rather than factored out, so a fourth STAR workflow must be
     covered the day it ships rather than the day someone remembers to add it. `map/chromap` is absent
     because it invokes `chromap`, not because anything here exempts it.
+
+    A **chimera-aware twin** is picked up by that selector and then cannot be planned the way the
+    others are, because no KB spec may name one — so it is planned through
+    :func:`~conftest.planning_route`, which is its base's chemistry under a two-part assembly name.
+    That is not an exemption: the twin carries a fourth copy of this lifecycle and owes every claim
+    below, and the route is what lets it pay them with no fixture and nothing on disk.
     """
-    techs = sorted(
-        t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
-    )
-    assert techs, f"{module} invokes STAR but no spec reaches it; nothing here can be planned"
-    manifest, reg = _build(tmp_path, techs[0])
-    processing = _processing(manifest)
+    tech, assembly = planning_route(module)
+    manifest, reg = _build(tmp_path, tech)
+    processing = _processing(manifest, assembly=assembly)
     result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    assert result.modules[0].name == module
     pipeline_dir = (tmp_path / result.snakefile_path).parent
 
     plan_text = dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg))
@@ -1090,6 +1200,30 @@ def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_jo
     assert all("--genomeLoad LoadAndKeep" in cmd for cmd in jobs.values()), jobs
     assert all(re.search(r"--limitBAMsortRAM \d+", cmd) for cmd in jobs.values()), jobs
 
+    # The read group, per job, against the job's OWN wildcard -- which is the cell on the routes that
+    # owe it, and is the value the retained CRAM will name. A module that rendered the flag from a
+    # constant, or from the first cell of the plate, is what this catches and a presence check would
+    # not. Owed by the uBAM-fed routes and read off the command rather than off a list: keeping input
+    # tags at all IS the property that makes a record arrive carrying `RG:Z:`.
+    for wildcard, cmd in jobs.items():
+        if "--readFilesSAMattrKeep" not in cmd:
+            continue
+        assert f"--outSAMattrRGline ID:{wildcard} SM:{wildcard}" in cmd, (
+            f"{module} maps {wildcard} from a uBAM whose records carry the extractor's `RG:Z:` and "
+            f"declares no read group, so the retained alignment names a group its header never "
+            f"introduced:\n{cmd}"
+        )
+    # ...and the input tags such a route keeps may not include `RG`, because STAR appends the kept
+    # input tags after writing its own and de-duplicates against nothing: `All` beside the flag above
+    # puts `RG` on a record twice, which is worse than the dangling tag it replaces. A FASTQ-fed
+    # module renders no keep list at all, and this says nothing about one.
+    for cmd in jobs.values():
+        kept = re.search(r"--readFilesSAMattrKeep ((?:\w+ )*\w+)", cmd)
+        assert kept is None or "RG" not in kept.group(1).split(), (
+            f"{module} keeps the input `RG` while declaring its own, so every record carries the "
+            f"tag twice:\n{cmd}"
+        )
+
     flag = planned_paths(plan_text, "output")["load_genome"]
     assert flag <= planned_paths(plan_text, "input")[next(iter(mapping))], (
         f"{module}'s mapping jobs do not depend on {flag}, so they race the load rather than "
@@ -1114,6 +1248,7 @@ def _plate_run_dir(
     *,
     mate: bool | None = True,
     read_through: str | None = None,
+    components: Sequence[str] | None = None,
 ) -> dict[str, object]:
     """Write a runnable plate pipeline directory by hand, and return the config it carries.
 
@@ -1136,11 +1271,24 @@ def _plate_run_dir(
     ``read_through`` writes the adapter compose derives for a chemistry that declares one. Absent by
     default, because that is the shape every other assertion in this file is about and because an
     absent key is what the module's ``.get`` exists to serve.
+
+    ``components`` writes the directory for the CHIMERIC TWIN instead — a chimeric assembly name, the
+    one extra config key compose emits for such a run, and the twin's own ``.smk``. One flag rather
+    than a second copy of this function, for the reason ``mate`` is one: the two directories differ
+    in exactly the fact the two modules differ in, and two copies would be free to drift on the eight
+    keys that are not the subject. The Components are the caller's, not derived from the name: what
+    compose reads off a name is compose's claim and is asserted where compose is.
     """
-    module = get_module("map/star-umi")
+    module = get_module("map/star-umi" if components is None else "map/star-umi-chimera")
     config: dict[str, object] = {
         "container": "docker://example/align-rna",
-        "genome": {"assembly": "sacCer3", "annotation": "ensembl_R64-1-1"},
+        "genome": {"assembly": "sacCer3", "annotation": "ensembl_R64-1-1"}
+        if components is None
+        else {
+            "assembly": "_".join(components),
+            "annotation": "merged_R64-1-1",
+            "components": list(components),
+        },
         "mem_mb": 8 * 1024,
         "outdir": "results",
         "read_files_in": {"umi_cdna": "R1", "cdna": "R2"}
@@ -1226,6 +1374,96 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     # one core of an allocation it was holding whole. Read off the rendered command, because a rule
     # whose `threads:` and whose command line disagree is exactly what that looked like.
     assert "--threads 4" in _rendered_shell(plan)["umi_count"][""]
+
+
+def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_component(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """The twin's rule graph, off a rendered plan — the one thing no other test here can say.
+
+    The wiring gate proves the twin PLANS; it renders every `shell:` and runs none, so a counting
+    command naming the wrong flag, a CRAM made from the wrong BAM or a matrix demanded as a folder
+    all pass it. Those are the four decisions this module exists to carry, so they are read off the
+    plan itself, from a hand-written config — which keeps the claim about the MODULE rather than
+    about the composer agreeing with itself, exactly as the base module's plan test argues.
+
+    1. **The split sits BESIDE the CRAM.** `umi_to_cram` reads the pre-split chimeric BAM, so the
+       archive keeps every multimapper and is strictly MORE complete than a single-assembly run's.
+       Upstream of it the archive would inherit the split's filter, which is the price this ordering
+       dissolves rather than pays.
+    2. **`rule all` demands each Component's matrix BY NAME.** A rule whose output is a folder is
+       satisfied by a folder, which is how a counting job that wrote two Components of three exits 0
+       with an organism silently missing.
+    3. **The counting verb is handed a Component and the CHIMERA.** Exactly one of `--component` and
+       `--annotation` is legal, so rendering both is exit 2 rather than a precedence rule anyone has
+       to remember — and the record saying what each Component contributed lives on the Chimera, so
+       passing the Component as the assembly would resolve the wrong reference.
+    4. **N-agnostic**: one job per cell for the split, one per Component for the count, over one
+       config list. The counts below are the whole shape, and a Component loop written into the
+       module would read as the same number here only by coincidence.
+
+    Plus the reclaim rule: the per-Component BAMs are `temp()` and the split summary is not, because
+    what the split MEASURED has to outlive the records it measured — it is where `unmapped` and
+    `multimapping` live once they have left the pipeline.
+    """
+    components = ("tinyCe", "tinyEc")
+    cells = ("cell_a", "cell_b", "cell_c")
+    module = get_module("map/star-umi-chimera")
+    config = _plate_run_dir(tmp_path, cells, components=components)
+
+    dotted = {
+        f"{key}.{sub}" if isinstance(value, dict) else key
+        for key, value in config.items()
+        for sub in (value if isinstance(value, dict) else [None])
+    }
+    # The same identity the base's plan test makes, and here it is what proves the ONE new key is
+    # read and that nothing else came with it: `read_files_in.cdna` is the module's optional `.get`.
+    assert set(module.required_config) == dotted - {"read_files_in.cdna"}
+
+    plan = dry_run(tmp_path)
+    rendered = _rendered_shell(plan)
+
+    assert re.search(r"^split_chimera\s+3\s*$", plan, re.M), plan
+    assert re.search(r"^umi_to_cram\s+3\s*$", plan, re.M), plan
+    assert re.search(r"^umi_count\s+2\s*$", plan, re.M), plan  # one per Component, not one per cell
+    # Each Component's object, by name.
+    for component in components:
+        assert f"results/combined.{component}.h5ad" in plan
+    assert all(f"results/{s}/{s}.cram" in plan for s in cells)
+
+    # The CRAM is made from the PRE-split BAM: the file STAR wrote, not a per-Component one.
+    cram = rendered["umi_to_cram"]["cell_a"]
+    assert f"--bam results/cell_a/{STAR_BAM}" in cram, cram
+
+    # The split takes the same BAM, one `<component>=<path>` per Component, and the CHIMERA.
+    split = rendered["split_chimera"]["cell_a"]
+    assert f"--bam results/cell_a/{STAR_BAM}" in split, split
+    for component in components:
+        assert f"{component}=results/cell_a/cell_a.{component}.bam" in split, split
+    assert f"--assembly {'_'.join(components)}" in split, split
+    assert f"--summary results/cell_a/cell_a{SPLIT_SUFFIX}" in split, split
+    # The threads the rule RESERVED reach the verb. Asking a scheduler for cores and then handing
+    # the command none of them is this module's own recorded defect one rule over, where a whole
+    # plate was counted on one core inside an allocation sized for the rest — and it is invisible
+    # except here, because a declared `threads:` looks identical either way from the rule source.
+    assert "--threads 4" in split, split
+
+    # The count is handed a Component and never an annotation — both would be a refusal, and the
+    # assembly stays the Chimera because that is where the merge's record lives.
+    counting = rendered["umi_count"]
+    assert set(counting) == set(components)
+    for component in components:
+        command = counting[component]
+        assert f"--component {component}" in command, command
+        assert "--annotation" not in command, command
+        assert f"--assembly {'_'.join(components)}" in command, command
+        assert f"--out results/combined.{component}.h5ad" in command, command
+        # Every cell of the plate, for this Component and no other.
+        assert all(f"{s}=results/{s}/{s}.{component}.bam" in command for s in cells), command
+
+    removed = [line for line in plan.splitlines() if line.startswith("Would remove temporary")]
+    assert any(f"cell_a.{components[0]}.bam" in line for line in removed), removed
+    assert not any(SPLIT_SUFFIX in line for line in removed), removed
 
 
 def test_the_three_prime_clip_takes_its_arity_from_the_same_fact_the_read_type_does(
@@ -1471,7 +1709,7 @@ def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one
 
     That both handlers call `release_genome_segment()` and that the helper carries
     `--genomeLoad Remove ... || true` is read off the RENDERED command and the EMITTED module by
-    `test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_job_to_it`. What no
+    `test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps`. What no
     rendering shows is the ORDER — marking a stale segment after the load is a load that inherits it
     — nor that the command lives in the helper alone, where a second copy is a second chance to fix
     one.
@@ -2075,17 +2313,25 @@ _HEALTHY_SUMMARY: dict[str, object] = {
     "Total Gene Detected": 21044,
 }
 
+#: `Average input read length` is the one row in either log below that was RECONSTRUCTED rather than
+#: transcribed — both runs were archived before anything read it — so each carries the length its own
+#: chemistry put in front of STAR: a 10x cDNA read here, and in the broken run the 28-base barcode
+#: read it handed the aligner by mistake — the same swap `_CATCHES_A_BROKEN_RUN` catches by its
+#: consequences, sitting here as the cause. Nothing grades this metric, so no assertion rests on
+#: either magnitude; what rests on them is that STAR's own label resolves, since a misspelling costs
+#: the row silently rather than raising.
 _HEALTHY_LOG: dict[str, object] = {
     "Number of input reads": 412331205,
+    "Average input read length": 91,
     "Uniquely mapped reads %": "88.42%",
     "% of reads mapped to multiple loci": "6.31%",
     "% of reads mapped to too many loci": "0.42%",
     "% of reads unmapped: too short": "3.90%",
 }
 
-#: A real STARsolo run in which the cDNA read was handed to STAR as the barcode read. Every value is
-#: verbatim from its `Summary.csv` / `Log.final.out`; the four that must go red are the ones a human
-#: used to catch by eye, and the reason this layer exists.
+#: A real STARsolo run in which the cDNA read was handed to STAR as the barcode read. Every value but
+#: the read length noted above is verbatim from its `Summary.csv` / `Log.final.out`; the four that
+#: must go red are the ones a human used to catch by eye, and the reason this layer exists.
 _BROKEN_SUMMARY: dict[str, object] = {
     "Number of Reads": 207946411,
     "Reads With Valid Barcodes": 0.000762759,
@@ -2103,6 +2349,7 @@ _BROKEN_SUMMARY: dict[str, object] = {
 
 _BROKEN_LOG: dict[str, object] = {
     "Number of input reads": 207946411,
+    "Average input read length": 28,
     "Uniquely mapped reads %": "25.94%",
     "% of reads mapped to multiple loci": "5.30%",
     "% of reads mapped to too many loci": "10.90%",
@@ -2122,9 +2369,12 @@ _CATCHES_A_BROKEN_RUN = (
 #: Every metric a complete STARsolo bundle yields. Asserted as a SET, because that is the writer ->
 #: reader contract: rename a key in `build_qc_bundle` and the lookup in `qc.metrics` stops resolving,
 #: which costs a row here rather than failing anywhere. `input_reads` is absent on purpose — STARsolo's
-#: own "reads" already reports it, and two columns of one number read as two facts.
+#: own "reads" already reports it, and two columns of one number read as two facts. `Summary.csv` has
+#: no twin for the read length, though, so `input_read_length` must SURVIVE that same prune and appear
+#: on the droplet row as well as the bulk one.
 _FULL_SOLO_METRICS = {
     "reads",
+    "input_read_length",
     "valid_barcodes",
     "reads_in_genes",
     "reads_in_genome",
@@ -2217,6 +2467,7 @@ def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -
         "map/chromap",
         "map/star",
         "map/star-umi",
+        "map/star-umi-chimera",
     }
     assert MODULES_WITHOUT_STATS == frozenset()
 
@@ -2238,7 +2489,15 @@ def test_every_registered_workflow_module_either_cross_checks_or_says_it_does_no
     )
     assert not (set(modules_with_cross_checks()) & MODULES_WITHOUT_CROSS_CHECKS)
     assert set(modules_with_cross_checks()) == {"map/starsolo"}
-    assert MODULES_WITHOUT_CROSS_CHECKS == {"map/chromap", "map/star", "map/star-umi"}
+    assert MODULES_WITHOUT_CROSS_CHECKS == {
+        "map/chromap",
+        "map/star",
+        "map/star-umi",
+        # The chimeric twin inherits the plate's whole argument and adds one: nobody has measured
+        # what share of a worm plate SHOULD be E. coli, so a bar on a Component's share would be a
+        # figure invented at review — which is the thing this set exists to refuse.
+        "map/star-umi-chimera",
+    }
 
 
 def _stub_reader(path: Path, sample: str) -> SampleStats:
@@ -2451,7 +2710,7 @@ def _reads_per_fragment(tenths: int) -> Metric:
     return _by_key(fragments_metrics(payload, "s1"))["reads_per_fragment"]
 
 
-def test_the_graded_ratio_is_shown_at_a_precision_that_keeps_its_verdicts_apart() -> None:
+def test_a_metric_is_shown_by_the_formatter_its_own_number_survives() -> None:
     """`reads / fragment` is graded at 2.0 and 4.0, so its display has to resolve a tenth.
 
     This is what `ratio` exists for beside `count`, and the fragments adapter is its first caller:
@@ -2465,6 +2724,11 @@ def test_the_graded_ratio_is_shown_at_a_precision_that_keeps_its_verdicts_apart(
     that no two differently-graded values ever share a string, because values arbitrarily close to a
     bar exist on both sides of it — at a tenth the pair that still collapses has to agree with the
     bar to within 0.05, which is 2.5% of it rather than the 25% an integer would allow.
+
+    `input_read_length` is the same decision one door along: it is a length in bases, read against a
+    length the human remembers sequencing, and `count`'s abbreviating default renders a merged
+    long-read fragment as `1.2K` — a number nobody can subtract 150 from. So it passes `exact`, and
+    the counterfactual below is why.
     """
     below_ok, above_ok = _reads_per_fragment(19), _reads_per_fragment(21)
     below_warn, above_warn = _reads_per_fragment(39), _reads_per_fragment(41)
@@ -2476,6 +2740,13 @@ def test_the_graded_ratio_is_shown_at_a_precision_that_keeps_its_verdicts_apart(
     # The counterfactual, and the reason this metric is not built with `count`.
     assert fmt_int(below_ok.value) == fmt_int(above_ok.value) == "2"
     assert fmt_int(below_warn.value) == fmt_int(above_warn.value) == "4"
+
+    long_read = _by_key(starsolo_metrics({"log_final": {"Average input read length": 1203}}, "S1"))[
+        "input_read_length"
+    ]
+
+    assert long_read.display == "1,203" and fmt_count(long_read.value) == "1.2K"
+    assert long_read.level == "none"  # no bar to defend, so no colour claiming there is one
 
 
 # -- absent degrades to absent ----------------------------------------------
@@ -2746,6 +3017,7 @@ def test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between(
     # else -- `input_reads` included, which STARsolo drops only because its own "Reads" repeats it.
     assert set(_by_key(sample)) == {
         "input_reads",
+        "input_read_length",
         "uniquely_mapped",
         "multi_loci",
         "too_many_loci",
@@ -3603,6 +3875,13 @@ def _annotation_db(tmp_path: Path) -> Path:
     return db
 
 
+#: SAM's own words for the two placements that re-state a read the file already carries. Spelled as
+#: the flag bits because that is what a fragment declaring one is asking for, and because a boolean
+#: per bit would multiply every time SAM grew another.
+_SECONDARY = 0x100
+_SUPPLEMENTARY = 0x800
+
+
 @dataclass(frozen=True)
 class _Fragment:
     """One fragment to synthesise: where it lands, what it carries, and how many loci it claims."""
@@ -3614,13 +3893,26 @@ class _Fragment:
     umi: str = ""
     hits: int = 1
     mate_unmapped: bool = False
+    #: Neither mate aligned anywhere. One record, no reference, `uT` saying why — the shape STAR
+    #: writes for a pair it could not place, and the one a chimera split has to DROP rather than
+    #: rewrite, because its RNEXT still names a suffixed chromosome the output header will not have.
+    unmapped: bool = False
+    #: Bits OR-ed onto both mates' flags: `_SECONDARY` or `_SUPPLEMENTARY`. A fragment carrying one
+    #: is a placement some consumer is expected to discard, and which discard rule saw it first is
+    #: exactly what a per-reason drop count has to keep apart.
+    extra_flags: int = 0
+    #: Where this fragment's MATE sits, when that is somewhere other than `contig`. Empty — the
+    #: default — puts the mate on this fragment's own contig, which is what an aligner writes and
+    #: what every other row here wants. Set to another Component's contig it builds the one template
+    #: the chimera splitter's design says cannot exist: both mates carry one `NH` and one chromosome,
+    #: so a template spanning two Components is the assumption failing rather than a case to handle.
+    mate_contig: str = ""
 
 
 def _segments(header: Any, frag: _Fragment) -> list[Any]:
-    """One `_Fragment` -> its BAM records: two mates, or one when the mate never aligned."""
+    """One `_Fragment` -> its BAM records: two mates, or one when it or its mate never aligned."""
     import pysam
 
-    tid = header.get_tid(frag.contig)
     span = frag.end - frag.start
     mate_start = frag.end - _READ_LEN
 
@@ -3630,43 +3922,58 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
         rec.query_sequence = "A" * _READ_LEN
         rec.query_qualities = pysam.qualitystring_to_array("I" * _READ_LEN)
         rec.flag = flag
-        rec.reference_id = tid
-        rec.reference_start = start
-        rec.mapping_quality = 255
-        rec.cigarstring = f"{_READ_LEN}M"
-        rec.next_reference_id = tid
-        rec.next_reference_start = mate
-        rec.template_length = tlen
+        if not rec.is_unmapped:
+            tid = header.get_tid(frag.contig)
+            rec.reference_id = tid
+            rec.reference_start = start
+            rec.mapping_quality = 255
+            rec.cigarstring = f"{_READ_LEN}M"
+            rec.next_reference_id = header.get_tid(frag.mate_contig) if frag.mate_contig else tid
+            rec.next_reference_start = mate
+            rec.template_length = tlen
         tags: list[tuple[str, object, str]] = [("NH", frag.hits, "i")]
         if frag.umi:
             tags.append(("UB", frag.umi, "Z"))
+        if frag.unmapped:
+            tags.append(("uT", "4", "A"))
         rec.set_tags(tags)
         return rec
 
+    if frag.unmapped:
+        # PAIRED | UNMAPPED | MATE_UNMAPPED | READ1, and no coordinates at all.
+        return [build(frag.start, 1 | 4 | 8 | 64, frag.start, 0)]
     if frag.mate_unmapped:
         # PAIRED | MATE_UNMAPPED | READ1, and no second record: STAR writes none unless asked to,
         # so the flag on this one is the only evidence that the fragment did not align.
         return [build(frag.start, 1 | 8 | 64, frag.start, 0)]
     return [
-        build(frag.start, 1 | 2 | 32 | 64, mate_start, span),
-        build(mate_start, 1 | 2 | 16 | 128, frag.start, -span),
+        build(frag.start, 1 | 2 | 32 | 64 | frag.extra_flags, mate_start, span),
+        build(mate_start, 1 | 2 | 16 | 128 | frag.extra_flags, frag.start, -span),
     ]
 
 
-def _synthetic_bam(path: Path, fragments: Sequence[_Fragment]) -> Path:
+def _synthetic_bam(
+    path: Path, fragments: Sequence[_Fragment], header: dict[str, Any] | None = None
+) -> Path:
     """`fragments` -> a COORDINATE-sorted BAM, which is the input contract this counter has.
 
     Sorting by position is what scatters each fragment's two mates apart, so a port that quietly
-    depended on name adjacency goes red here rather than in production.
+    depended on name adjacency goes red here rather than in production. A record with no coordinates
+    sorts to the END, where a coordinate-sorted BAM puts it, rather than ahead of chromosome zero.
+
+    `header` defaults to the counter's own two-contig header. The chimera rows hand over their own,
+    because a chimeric BAM's whole subject is what its @SQ block says and which program wrote it.
     """
     import pysam
 
-    header = pysam.AlignmentHeader.from_dict(
-        {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": _CONTIGS}
+    template = pysam.AlignmentHeader.from_dict(
+        header if header is not None else {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": _CONTIGS}
     )
-    records = [rec for frag in fragments for rec in _segments(header, frag)]
-    records.sort(key=lambda r: (r.reference_id, r.reference_start))
-    with pysam.AlignmentFile(str(path), "wb", header=header) as out:
+    records = [rec for frag in fragments for rec in _segments(template, frag)]
+    records.sort(
+        key=lambda r: (r.reference_id if r.reference_id >= 0 else 1 << 30, r.reference_start)
+    )
+    with pysam.AlignmentFile(str(path), "wb", header=template) as out:
         for rec in records:
             out.write(rec)
     return path
@@ -4311,6 +4618,319 @@ def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the
             parse_cells([malformed])
 
 
+# ---- one chimeric BAM back into the single-assembly BAMs it would have been ----------------------
+#
+# Both ends of the round-trip are hand-written from ONE declared contig table, spelled two ways: the
+# chimeric BAM the splitter reads, and the single-assembly header its output is compared against. No
+# aligner, no built Chimera, no genome store — which is why this is a row on the plate above rather
+# than an `external` test nobody runs, and it is also the limit of what it proves. That STAR produces
+# the BAM shape assumed here is not under test; the aligner is not the thing being exercised.
+#
+# **Seven assertions, and the set is measured rather than argued.** A prototype wrote a splitter to
+# this contract, broke it eighteen ways on purpose, and kept only the assertions that were the ONLY
+# thing catching a defect. Four candidates are deliberately absent. Routing — "every uniquely-placed
+# read lands in the Component it came from", the headline bar — catches nothing once the name split
+# is liulab-genome's: a record's Component is then a pure function of its RNAME, and every
+# constructible misrouting refuses or crashes before any assertion runs. Reads-in-equals-kept-plus-
+# dropped is strictly subsumed by the per-reason drop counts. Mate-in-same-Component is the
+# splitter's own runtime refusal, which fires before an output exists to assert over. And nothing
+# asserts an ambiguous route, because assigning a spanning template to its best-scoring Component
+# was rejected outright — there is no such route to have an opinion about.
+
+
+@dataclass(frozen=True)
+class _Component:
+    """One assembly a Chimera is built from, and the chromosomes it declares IN ITS OWN ORDER."""
+
+    name: str
+    chromosomes: tuple[tuple[str, int], ...]  # (name, length)
+
+
+@dataclass(frozen=True)
+class _Chimera:
+    """Several `_Component`s as one reference: the contig table this section spells two ways."""
+
+    components: tuple[_Component, ...]
+
+    @property
+    def separator(self) -> str:
+        """The underscore run these names force — DERIVED by liulab-genome, never typed here.
+
+        Typing it would make the `dub` shape below prove nothing: its whole point is that a
+        Component whose own chromosome names carry `__` forces a longer run, and a fixture that
+        asserts the separator it also hardcoded cannot notice that.
+        """
+        return derive_separator({c.name: [n for n, _ in c.chromosomes] for c in self.components})
+
+    @property
+    def sq(self) -> list[dict[str, Any]]:
+        """The chimeric @SQ: Components in sorted order, each block in its own declared order."""
+        return [
+            {"SN": suffixed(chrom, c.name, self.separator), "LN": length}
+            for c in sorted(self.components, key=lambda c: c.name)
+            for chrom, length in c.chromosomes
+        ]
+
+    def single_assembly_sq(self, component: str) -> list[dict[str, Any]]:
+        """What a run against the bare Component alone would have written — the comparison artifact."""
+        one = next(c for c in self.components if c.name == component)
+        return [{"SN": chrom, "LN": length} for chrom, length in one.chromosomes]
+
+
+# `chrX` before `chrM` is real ce11 order and is NOT alphabetical, deliberately: an @SQ block that
+# happened to be sorted would make the ORDER half of the header assertion decorative, since a
+# splitter that sorted its output would agree with it anyway.
+_TINY_CE = _Component("tinyCe", (("chrI", 4000), ("chrII", 3000), ("chrX", 2500), ("chrM", 900)))
+_TINY_EC = _Component("tinyEc", (("ctg1", 1200), ("ctg2", 800)))
+#: The same bacterium with chromosome names that ALREADY carry `__`, which forces the Chimera's
+#: separator to `___`. Load-bearing for a narrower reason than it looks: a splitter that hardcodes
+#: `__` on such a name does not raise — it still recovers the right Component and corrupts only the
+#: bare name, by one trailing underscore — so it is sprung by the HEADER assertion and by nothing
+#: else. The plain shape springs the opposite bug: a splitter hardcoding `___`, written by whoever
+#: only ever tested on this one, refuses on ordinary names, which is why `plain` only has to be run.
+_TINY_EC_DUB = _Component("tinyEcDub", (("ctg__1", 1200), ("ctg__2", 800)))
+
+_CHIMERAS = {
+    "plain": _Chimera((_TINY_CE, _TINY_EC)),
+    "dub": _Chimera((_TINY_CE, _TINY_EC_DUB)),
+}
+
+
+def _chimeric_plate(chimera: _Chimera) -> tuple[_Fragment, ...]:
+    """One fragment of every kind in every Component, plus one template that never aligned at all.
+
+    Nothing here is computed from the splitter's own arithmetic: each row states its kind, and the
+    counts the assertions below carry are read off this list by hand — two records per fragment, one
+    for the unmapped pair, so a two-Component shape is 8 kept and 13 dropped out of 21 records in.
+    """
+    separator = chimera.separator
+    fragments: list[_Fragment] = []
+    for component in chimera.components:
+        first = suffixed(component.chromosomes[0][0], component.name, separator)
+        last = suffixed(component.chromosomes[-1][0], component.name, separator)
+        fragments += [
+            # Kept: mapped, uniquely placed, primary. The second one is on the LAST contig its
+            # Component declares, so a tid remap that only ever gets index zero right goes red.
+            _Fragment(f"{component.name}_unique_first", first, 100, 160),
+            _Fragment(f"{component.name}_unique_last", last, 200, 260),
+            # Dropped, one category each, and only the first of the three can occur under the flags
+            # the aligner runs with today.
+            _Fragment(f"{component.name}_multi", first, 300, 360, hits=2),
+            _Fragment(f"{component.name}_secondary", first, 400, 460, extra_flags=_SECONDARY),
+            _Fragment(f"{component.name}_supp", first, 500, 560, extra_flags=_SUPPLEMENTARY),
+        ]
+    fragments.append(_Fragment("never_aligned", "", 0, 0, unmapped=True))
+    return tuple(fragments)
+
+
+def _chimeric_bam(path: Path, chimera: _Chimera, fragments: Sequence[_Fragment]) -> Path:
+    """The aligner's output: a coordinate-sorted chimeric BAM whose @PG/@CO name the Chimera."""
+    name = "_".join(sorted(c.name for c in chimera.components))
+    return _synthetic_bam(
+        path,
+        fragments,
+        header={
+            "HD": {"VN": "1.6", "SO": "coordinate"},
+            "SQ": chimera.sq,
+            "PG": [{"ID": "STAR", "PN": "STAR", "VN": "2.7.11b", "CL": f"STAR --genomeDir {name}"}],
+            "CO": [f"user command line: STAR --genomeDir {name}"],
+        },
+    )
+
+
+@dataclass(frozen=True)
+class _Round:
+    """One round-trip: what went in, where it came out, and what the splitter said it did."""
+
+    chimera: _Chimera
+    source: Path
+    fragments: tuple[_Fragment, ...]
+    outputs: dict[str, Path]
+    stats: SplitStats
+
+
+def _split(tmp_path: Path, label: str) -> _Round:
+    """Build one Chimera's BAM, split it into every Component, and hand back what to read."""
+    chimera = _CHIMERAS[label]
+    fragments = _chimeric_plate(chimera)
+    bam = _chimeric_bam(tmp_path / f"{label}.bam", chimera, fragments)
+    outputs = {c.name: tmp_path / f"{label}.{c.name}.bam" for c in chimera.components}
+    stats = split_chimera(bam, outputs, chimera.separator)
+    return _Round(chimera, bam, fragments, outputs, stats)
+
+
+def _kept(fragments: Sequence[_Fragment]) -> list[_Fragment]:
+    """The plate's mapped, uniquely-placed, primary fragments — the keep rule, read off the rows."""
+    return [f for f in fragments if not f.unmapped and not f.extra_flags and f.hits == 1]
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_each_component_comes_back_with_the_header_a_single_assembly_run_would_have_written(
+    tmp_path: Path, label: str
+) -> None:
+    """The bar: @SQ names, lengths and ORDER against a hand-written single-assembly header, and @HD.
+
+    Names because a suffix left on makes the output unusable by everything the user owns, which is
+    the entire reason this verb exists. Lengths because the split takes them off the BAM's own @SQ
+    rather than a `chrom.sizes` that could have drifted underneath it. Order because a Component's
+    contigs must arrive as its own assembly declares them, and a splitter that sorted them would
+    look right on a table that happened to be alphabetical — this one is not.
+
+    @HD travels untouched, and dropping it is what stops the BAM declaring itself coordinate-sorted:
+    an unsorted-looking BAM is not an error anybody sees, it is an index build that fails later.
+    """
+    round_trip = _split(tmp_path, label)
+    with pysam.AlignmentFile(str(round_trip.source), "rb") as chimeric:
+        chimeric_hd = chimeric.header.to_dict()["HD"]
+
+    for component, path in round_trip.outputs.items():
+        alone = _synthetic_bam(
+            tmp_path / f"{label}.{component}.single.bam",
+            (),
+            header={
+                "HD": {"VN": "1.6", "SO": "coordinate"},
+                "SQ": round_trip.chimera.single_assembly_sq(component),
+            },
+        )
+        with (
+            pysam.AlignmentFile(str(path), "rb") as split,
+            pysam.AlignmentFile(str(alone), "rb") as single,
+        ):
+            assert split.header.to_dict()["SQ"] == single.header.to_dict()["SQ"], (
+                f"{component}'s @SQ is not what a run against the bare assembly would have written"
+            )
+            assert split.header.to_dict()["HD"] == chimeric_hd
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_every_kept_record_resolves_to_the_chromosome_it_actually_sits_on(
+    tmp_path: Path, label: str
+) -> None:
+    """The binary reference dictionary is rewritten, not just the text header.
+
+    A record names its reference by INDEX into that dictionary, so the one corruption nothing else
+    here can see is a remap that is off by one and still in range: the header reads perfectly, every
+    record resolves, and every read is on the wrong chromosome. Resolving each record's name through
+    the output's own header is what catches it — and it only catches it on the SECOND Component,
+    whose indexes are the ones that had to move at all.
+    """
+    round_trip = _split(tmp_path, label)
+    separator = round_trip.chimera.separator
+
+    for component, path in round_trip.outputs.items():
+        expected = sorted(
+            placed
+            for frag in _kept(round_trip.fragments)
+            if split_suffixed(frag.contig, separator)[1] == component
+            # Both mates, and they are on the same chromosome: the keep rule is per record, so an
+            # output missing one of a pair is a different failure than an output missing a name.
+            for placed in [(frag.name, split_suffixed(frag.contig, separator)[0])] * 2
+        )
+        with pysam.AlignmentFile(str(path), "rb") as split:
+            assert sorted((r.query_name, r.reference_name) for r in split) == expected
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_both_mates_of_a_kept_template_are_kept_so_read1_equals_read2(
+    tmp_path: Path, label: str
+) -> None:
+    """Nothing is held and nothing is halved: a template survives whole or not at all.
+
+    Both mates carry one NH and sit on one chromosome, which is the fact that lets the filter be
+    stateless — no name sort, no buffer. The failure it stands against is a keep rule written as
+    `is_read1`, which loses every second mate at exit 0 and halves a library nobody re-counts.
+    """
+    round_trip = _split(tmp_path, label)
+    assert round_trip.stats.read1 == round_trip.stats.read2 == dict.fromkeys(round_trip.outputs, 2)
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_every_dropped_record_is_counted_under_the_reason_it_was_dropped_for(
+    tmp_path: Path, label: str
+) -> None:
+    """Four discard categories under one keep rule, each counted apart.
+
+    Only multimapping can occur under the flags the aligner runs with today, and the other three are
+    counted anyway so the rule degrades legibly if a flag moves: a category that starts firing says
+    so here, rather than reads quietly going missing. Two records per fragment, one for the pair
+    that never aligned — see the plate.
+    """
+    assert _split(tmp_path, label).stats.dropped == {
+        "unmapped": 1,
+        "secondary": 4,
+        "supplementary": 4,
+        "multimapping": 4,
+    }
+
+
+def test_a_component_the_caller_named_no_output_for_is_refused_rather_than_dropped(
+    tmp_path: Path,
+) -> None:
+    """A partial request is a refusal, because served it looks exactly like a request that was met.
+
+    The reads on the un-named Component go nowhere and nothing says so: the run exits 0, writes the
+    file it was asked for, and reads-in-equals-reads-out stops closing with no record of when.
+    """
+    chimera = _CHIMERAS["plain"]
+    bam = _chimeric_bam(tmp_path / "plain.bam", chimera, _chimeric_plate(chimera))
+    with pytest.raises(SplitError, match="tinyEc"):
+        split_chimera(bam, {"tinyCe": tmp_path / "ce.bam"}, chimera.separator)
+
+
+def test_an_sq_name_that_will_not_split_at_the_recorded_separator_is_refused(
+    tmp_path: Path,
+) -> None:
+    """A chromosome the reference cannot explain is a refusal, and it is made from the header alone.
+
+    Skipping it instead would put reads in whichever output happened to be open, or in none, on a
+    BAM that was mapped to something other than the Chimera named. The check is up front because the
+    whole @SQ block is readable before the first record, so nothing has been written when it fires.
+    """
+    chimera = _CHIMERAS["plain"]
+    header = {
+        "HD": {"VN": "1.6", "SO": "coordinate"},
+        # A contig nobody suffixed, which is what a reference the named Chimera did not build looks
+        # like from in here — the same shape a chimeric BAM would take on if a contig were appended.
+        "SQ": [*chimera.sq, {"SN": "chrUn_unsuffixed", "LN": 500}],
+    }
+    bam = _synthetic_bam(tmp_path / "stray.bam", (), header=header)
+    outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
+    with pytest.raises(SplitError, match="chrUn_unsuffixed"):
+        split_chimera(bam, outputs, chimera.separator)
+
+
+def test_a_template_whose_mate_sits_on_another_component_is_refused_by_name(tmp_path: Path) -> None:
+    """The splitter's own runtime check, and the reason it exists is the message rather than the stop.
+
+    The design rests on a fact read off the aligner's source that nobody has yet watched hold on a
+    real chimera: both mates of a template carry one `NH` and sit on one chromosome, which is what
+    lets the filter be stateless — no name sort, no buffer. If that is ever false, the record's mate
+    points into a reference dictionary this output does not have, and the split would die on a lookup
+    naming neither the read nor the organisms involved.
+
+    So it is checked per record and refused by name. This is deliberately NOT the output assertion
+    the map originally wanted — asserting mates land together proves nothing, because the refusal
+    fires before any output exists to inspect. What is worth a case is that the refusal FIRES and
+    says what it saw. It cannot prove the aligner never writes such a template; nothing cheap can.
+    """
+    chimera = _CHIMERAS["plain"]
+    ce, ec = chimera.components
+    spanning = _Fragment(
+        "worm_body_bacterial_mate",
+        suffixed(ce.chromosomes[0][0], ce.name, chimera.separator),
+        100,
+        160,
+        mate_contig=suffixed(ec.chromosomes[0][0], ec.name, chimera.separator),
+    )
+    bam = _chimeric_bam(tmp_path / "spanning.bam", chimera, (spanning,))
+    outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
+    with pytest.raises(SplitError) as refusal:
+        split_chimera(bam, outputs, chimera.separator)
+    # The read AND both Components: a diagnosis, not a stop. Named because the whole value of the
+    # check is turning an opaque failure into a sentence someone can act on.
+    assert {spanning.name, ce.name, ec.name} <= set(re.findall(r"[\w.]+", str(refusal.value)))
+
+
 # ---- the plate object's second reader: what `seqforge report` gets out of it ----------------------
 #
 # These drive `read_pipeline_stats` and they live HERE, in the counter's section, for the reason
@@ -4610,6 +5230,95 @@ def test_an_unreadable_summary_costs_its_own_columns_and_names_the_file_it_could
     assert "umi_tagged" not in cell_a and "umi_tagged" in cell_b
     assert "uniquely_mapped" in cell_a and set(FATES) <= set(cell_a)
     assert stats.notes == [f"cell_a: cell_a{EXTRACT_SUFFIX} could not be read (JSONDecodeError)"]
+
+
+def test_a_chimeric_plate_reports_what_left_at_the_split_and_never_a_gene_assignment_fate(
+    tmp_path: Path,
+) -> None:
+    """The twin's page: per-Component shares and the four drop counts, and NO fan-in fates.
+
+    Three decisions meet here and none of them is legible from any other test.
+
+    **The split summary is load-bearing rather than additional.** `unmapped` and `multimapping` are
+    dropped one rule before the counter, so both read structurally zero in every per-Component
+    matrix — a page rendering them from the counting object would state a falsehood about the data,
+    since those reads existed and left earlier. They live in this artifact, and the per-Component
+    share beside them is the number the whole chimera exercise exists to produce: the bacterial
+    fraction of a well, readable without opening an `.h5ad`.
+
+    **`read_fan_in` is absent, and the absence is the claim.** The twin's fan-in artifact carries a
+    `{component}`, so reporting it means a Component loop and per-Component key prefixes to render
+    exactly the two numbers that do not compare across run types. Declining them is what deletes a
+    `CompiledPipeline.components` field and a reader signature change rather than paying for both,
+    and the stated cost is this: a chimeric run's page carries no gene-assignment fate at all.
+
+    **`finishes` stays on STAR's log**, which is why the second half runs the same read with no log
+    on disk: "N of M finished" has to mean the same thing on a chimeric run as on a plain one, or a
+    plate whose split has outrun its alignment renders as done.
+
+    The payload is written by the REAL splitter over the synthetic chimeric plate above, not by hand:
+    what a summary key is called is the writer's fact, so a reader driven from a hand-built dict
+    could only ever agree with itself.
+    """
+    round_trip = _split(tmp_path, "plain")
+    results = tmp_path / "results"
+    for sample in ("cell_a", "cell_b"):
+        _write(
+            results / sample / f"{sample}{SPLIT_SUFFIX}",
+            json.dumps(round_trip.stats.to_dict()),
+        )
+
+    started = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"])
+
+    # The split has landed for every cell and STAR's log has not, so there are rows and nothing is
+    # finished. Both halves matter: dropping the rows would also keep the badge off, and would hide
+    # the very numbers this artifact was added for.
+    assert started is not None and not started.complete
+    assert (started.n_found, started.n_expected) == (0, 2)
+    assert [s.sample_id for s in started.samples] == ["cell_a", "cell_b"]
+
+    for sample in ("cell_a", "cell_b"):
+        _write(
+            results / sample / "Log.final.out",
+            "".join(f"  {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()),
+        )
+    stats = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"])
+
+    assert stats is not None and stats.complete
+    cell_a = _by_key(stats.samples[0])
+    assert "uniquely_mapped" in cell_a  # STAR's half, on the same row and not a row of its own
+    # Every Component of the Chimera gets BOTH columns: what it kept, and that as a share of the
+    # records that came in — read off `_chimeric_plate`'s rows by hand, 21 records in of which 4 kept
+    # per Component. The count is what lets the page close (every kept plus the four drops is the 21)
+    # and the share is what compares across cells of different depth; neither derives from the other
+    # without a denominator that is not on the page.
+    kept = round_trip.stats.kept
+    assert set(kept) == {c.name for c in round_trip.chimera.components}
+    for component, n in kept.items():
+        assert cell_a[f"split_kept_{component}"].value == n
+        assert cell_a[f"split_share_{component}"].value == pytest.approx(
+            n / round_trip.stats.records_in
+        )
+    assert sum(kept.values()) + sum(round_trip.stats.dropped.values()) == (
+        round_trip.stats.records_in
+    ), "the page's own columns have to add back up to the records the BAM held"
+    # ...and all four reasons, always present, because an absent key and a zero are different claims
+    # and only one of them is a measurement.
+    assert {r: cell_a[f"split_dropped_{r}"].value for r in DROP_REASONS} == {
+        "unmapped": 1,
+        "secondary": 4,
+        "supplementary": 4,
+        "multimapping": 4,
+    }
+    # Nothing the split says is graded: nobody has measured what share of a worm plate SHOULD be
+    # E. coli, so a bar here would be a figure invented at review.
+    assert {_levels(stats.samples[0])[m] for m in cell_a if m.startswith("split_")} == {"none"}
+    assert stats.findings == []
+    # No fan-in reader, so no counting fate reaches the page at all — the stated cost, asserted.
+    assert not set(FATES) & set(cell_a)
+    # Columns read in pipeline order: what STAR did, then what the split then did with it.
+    keys = [key for key, _ in stats.columns]
+    assert keys.index("uniquely_mapped") < keys.index("split_dropped_multimapping")
 
 
 def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> None:
@@ -5330,7 +6039,9 @@ def _revcomp(seq: str) -> str:
 
 @NO_STAR_ALIGNMENT_ON_MACOS
 @pytest.mark.external
-def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Path) -> None:
+def test_the_aligner_carries_the_umi_tag_through_and_stamps_exactly_one_read_group(
+    tmp_path: Path,
+) -> None:
     """The uBAM route, run end to end: `UB:Z:` goes in as input and comes out on the alignment.
 
     This is the claim the output format rests on, and the reason it is a BAM rather than a FASTQ.
@@ -5345,9 +6056,17 @@ def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Pat
     `RG:Z:`. `--outSAMattributes ... UB` on the same input dies with the FATAL INPUT ERROR above, so
     the input route is not merely the better one, it is the only one.
 
-    `--readFilesSAMattrKeep All` is **STAR's own default**, measured: dropping it from this command
-    changed nothing (40 of 46 again). It is passed anyway, and that is not cargo — it pins a default
-    the whole output format depends on, in the one place a reader can see the dependency.
+    **The read group half is the same run asking a second question** (#416), and it is here rather
+    than in a neighbour because it is the SAME alignment: the two tags share one command line, and
+    what makes the fix non-obvious is precisely that they interact. The `RG` that used to survive
+    named a group the output header never declared — STAR builds that header from the genome and its
+    own parameters and inherits nothing from an input BAM — so the module now passes
+    `--outSAMattrRGline`, which is the only thing that emits an `@RG` line and which also makes STAR
+    stamp its own `RG` (`RG` is not a word `--outSAMattributes` takes). STAR appends the kept input
+    tags AFTER its own and de-duplicates against nothing, so the keep list had to stop saying `All`
+    and name `UB`; **`RG` is asserted here to appear exactly once**, because a doubled tag is invalid
+    SAM and would be a worse artifact than the dangling one. `UB` is asserted on the same records
+    because dropping `All` is where the UMI could have been lost.
 
     Needs STAR and samtools, which seqforge does not own. What runs it is the `test-external`
     environment, which carries both from bioconda for this purpose alone, and CI's `test (external
@@ -5382,14 +6101,27 @@ def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Pat
         [star, "--genomeDir", str(index), "--readFilesIn", str(ubam),
          "--readFilesType", "SAM", "PE", "--readFilesCommand", samtools, "view",
          "--sysShell", "/bin/bash",
-         "--readFilesSAMattrKeep", "All", "--outSAMtype", "BAM", "Unsorted",
+         "--readFilesSAMattrKeep", "UB", "--outSAMtype", "BAM", "Unsorted",
+         "--outSAMattrRGline", "ID:cell", "SM:cell",
          "--outFileNamePrefix", str(tmp_path / "star_")],
         check=True, capture_output=True,
     )  # fmt: skip
 
-    aligned = _records(tmp_path / "star_Aligned.out.bam")
+    out_bam = tmp_path / "star_Aligned.out.bam"
+    aligned = _records(out_bam)
     assert aligned, "STAR aligned nothing, so the tag question was never asked"
     assert all(record.get_tag("UB") == "ACGTACGT" for record in aligned)
+
+    with pysam.AlignmentFile(str(out_bam), "rb", check_sq=False) as handle:
+        groups = handle.header.to_dict().get("RG", [])
+    assert groups == [{"ID": "cell", "SM": "cell"}], (
+        f"the header declares no single read group naming the cell: {groups}"
+    )
+    for record in aligned:
+        # Counted off the raw tag list rather than read with `get_tag`, which answers with the first
+        # match and would report a doubled tag as a single one -- the exact failure this asks about.
+        assert [tag for tag, _ in record.get_tags()].count("RG") == 1, record.to_string()
+        assert record.get_tag("RG") == "cell"
 
 
 def test_the_shared_index_load_asks_the_scheduler_for_the_residency_it_holds() -> None:
