@@ -738,8 +738,17 @@ def io_umi_count(
     assembly: str = typer.Option(
         ..., "--assembly", help="UCSC assembly id the cells were mapped to."
     ),
-    annotation: str = typer.Option(
-        ..., "--annotation", help="Registered GTF name; its built database is what is read."
+    annotation: str | None = typer.Option(
+        None,
+        "--annotation",
+        help="Registered GTF name; its built database is what is read. Exactly one of this and "
+        "--component.",
+    ),
+    component: str | None = typer.Option(
+        None,
+        "--component",
+        help="Count this Component of a Chimera against what it contributed to the merge, read off "
+        "the Chimera's completion record. Exactly one of this and --annotation.",
     ),
     out: Path = typer.Option(
         ..., "--out", help="Output .h5ad path — one object for the whole plate."
@@ -766,7 +775,26 @@ def io_umi_count(
     cram` resolves the reference FASTA: liulab-genome registers a GTF as `<name>.gtf` beside the
     `<name>.db` it builds from it, and exposes the first, so the second is derived from it and the
     module below stays strictly typed and testable against a synthetic annotation. Exit 2 on a
-    malformed cell argument, exit 3 on an unresolvable annotation or a missing BAM.
+    malformed cell argument, or on a command line naming neither annotation form or both; exit 3 on
+    an unresolvable annotation, an uncountable Component, or a missing BAM.
+
+    **`--component` counts one Component of a Chimera against what THAT Component contributed to the
+    merge**, and exactly one of the two forms is required: both is a caller who believes two
+    different things about which annotation this is, neither is a caller who has said nothing, and
+    each is a bad invocation rather than something the environment refused. A Chimera's merged
+    annotation deliberately does not record which Components fed it, so the per-Component registered
+    name is not offline-recoverable — nobody can type it and compose cannot put it in a config — and
+    it is read off the Chimera's completion record here, at run time. Deliberately not
+    `Genome(component).default_gtf`: a Component's default *now* is not necessarily what went into
+    this merge, and which annotation a per-Component count is taken against is a decision. The GTF
+    is registered under the COMPONENT rather than the Chimera, so the pair handed to the resolution
+    below is the Component's own and an `--annotation` caller's route is the one it always was. A
+    Component that contributed no annotation is a refusal naming it — a spike-in or a plasmid
+    Component ships no GTF — because an uncountable Component is named rather than counted against
+    nothing; the cost is *when*, since this verb is the fan-in and the run dies after the whole
+    plate has mapped. Rejected: `--component` silently overriding `--annotation`, which leaves a
+    rendered command line saying two contradictory things about which GTF was used, in a repo whose
+    wiring gate reads rendered commands.
 
     **`--threads` counts cells at once, and defaults to one.** The counting rule asks the scheduler
     for threads and hands them over here; a hand invocation that says nothing gets the single-core
@@ -775,6 +803,32 @@ def io_umi_count(
     given on the command line, whatever order they finish in.
     """
     from ..workflows.umite.count import UmiCountError, parse_cells, write_umi_counts
+
+    # Argv alone decides which of the two forms named the annotation, so the pair is settled first
+    # and for free: a command line saying two contradictory things should not first buy a genome
+    # lookup, and neither should one that never said which annotation it meant at all.
+    if annotation is not None and component is not None:
+        typer.echo(
+            json.dumps(
+                {
+                    "error": f"--annotation {annotation} and --component {component} name two "
+                    f"different annotations; give exactly one"
+                }
+            ),
+            err=True,
+        )
+        raise typer.Exit(2)
+    if annotation is None and component is None:
+        typer.echo(
+            json.dumps(
+                {
+                    "error": "one of --annotation (a registered GTF name) or --component (a "
+                    "Component of a Chimera, resolved off its completion record) is required"
+                }
+            ),
+            err=True,
+        )
+        raise typer.Exit(2)
 
     # The cells are parsed before anything reaches the environment: a typo in an argument is a bad
     # invocation and should not first cost an assembly lookup that may not even be resolvable here.
@@ -791,7 +845,31 @@ def io_umi_count(
         typer.echo(json.dumps({"error": f"liulab-genome is not importable: {exc}"}), err=True)
         raise typer.Exit(3) from exc
     try:
-        gtf = Path(str(Genome(assembly).annotations.path(annotation)))
+        if component is not None:
+            # `None` for an assembly that is not a chimera, so `--component` against a plain
+            # assembly lands in the same refusal as a Component that contributed nothing: neither
+            # can be counted, and both are the caller naming a Component this merge does not have.
+            contributed = Genome(assembly).component_annotations or {}
+            registered = contributed.get(component)
+            if registered is None:
+                countable = sorted(name for name, gtf_name in contributed.items() if gtf_name)
+                typer.echo(
+                    json.dumps(
+                        {
+                            "error": f"{component} contributed no annotation to {assembly}, so "
+                            f"there is nothing to count it against; countable: {countable}"
+                        }
+                    ),
+                    err=True,
+                )
+                raise typer.Exit(3)
+            # A Component's GTF is registered under the COMPONENT, not under the Chimera, so the
+            # pair becomes the Component's own and the resolution below is the single one both
+            # forms take -- and the refusal below names the Component whose GTF went missing.
+            assembly, annotation = component, registered
+        # The gate above leaves exactly one of the two forms and the arm above has filled the
+        # annotation in; the checker cannot see a relation between two options, so it is said here.
+        gtf = Path(str(Genome(assembly).annotations.path(cast(str, annotation))))
         written = write_umi_counts(plate, gtf.with_suffix(".db"), out, workers=threads)
     except UmiCountError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)

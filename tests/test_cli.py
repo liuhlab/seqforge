@@ -65,6 +65,23 @@ CLI_SURFACE = [
         ["io", "umi-count", "/x/cell.bam", "--assembly", "mm10", "--annotation", "gencode_vM23",
          "--out", "plate.h5ad"], 2, (), id="io-umi-count-refuses-a-bam-with-no-sample-id",
     ),
+    # Which annotation the plate is counted against has exactly one answer, and the command line
+    # says it once: both flags is a caller who believes two different things about which annotation
+    # this is, neither is a caller who has said nothing. Argv alone decides each, before anything
+    # reaches a genome store, so each lands here with the malformed cell argument rather than with
+    # what the environment refuses. The row that would go red is `--component` quietly winning over
+    # `--annotation`, which was rejected: a rendered command line saying two contradictory things
+    # about which GTF was used, in a repo whose wiring gate reads rendered commands.
+    pytest.param(
+        ["io", "umi-count", "cell_a=/x/cell.bam", "--assembly", "tinyCe_tinyEcDub",
+         "--annotation", "wormbase_ws298", "--component", "tinyCe", "--out", "plate.h5ad"],
+        2, (), id="io-umi-count-refuses-an-annotation-and-a-component-together",
+    ),
+    pytest.param(
+        ["io", "umi-count", "cell_a=/x/cell.bam", "--assembly", "tinyCe_tinyEcDub",
+         "--out", "plate.h5ad"], 2, (),
+        id="io-umi-count-refuses-neither-an-annotation-nor-a-component",
+    ),
 ]  # fmt: skip
 
 
@@ -170,6 +187,86 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
     # it is the sparse matrix that was written, and only the cast says so to the checker.
     counts = cast("Any", adata.X)
     assert int(counts[0, adata.var_names.get_loc("GENE_A")]) == 1
+
+
+def test_io_umi_count_reads_a_components_annotation_off_the_chimeras_completion_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--component` counts one Component against what it contributed to the merge.
+
+    A Chimera's merged annotation deliberately does not record which Components fed it, so the
+    per-Component registered name is not offline-recoverable: nobody can type it on a command line
+    and compose cannot put it in a config. The verb reads it off the completion record at run time,
+    and that is the derivation under test — together with the assembly it then resolves the GTF
+    under, which is the **Component's** own, because that is where a Component's GTF is registered.
+
+    The stub's `default_gtf` raises, and that is the point of it: reading a Component's default
+    *now* is the rejected shortcut, and it is not the same fact as what went into this merge. A
+    Component that contributed nothing is named rather than counted against nothing — `tinyEcDub`
+    ships no GTF, and neither would a spike-in or a plasmid.
+
+    `Genome` is stubbed because a real Chimera needs a built genome store this box may not have, and
+    the counter is stubbed out too: what a `.db` beside its `.gtf` actually counts is the
+    neighbouring test's claim, proved there against a synthetic annotation. This one is about which.
+    """
+    import genome as liulab_genome
+
+    from seqforge.workflows.umite import count as counter
+
+    chimera = "tinyCe_tinyEcDub"
+    record: dict[str, str | None] = {"tinyCe": "wormbase_ws298", "tinyEcDub": None}
+    resolved: list[tuple[str, str]] = []
+
+    class _StubRegistry:
+        def __init__(self, assembly: str) -> None:
+            self.assembly = assembly
+
+        def path(self, name: str) -> Path:
+            resolved.append((self.assembly, name))
+            return tmp_path / f"{name}.gtf"
+
+    class _StubGenome:
+        def __init__(self, assembly: str) -> None:
+            self.assembly = assembly
+            self.annotations = _StubRegistry(assembly)
+
+        @property
+        def component_annotations(self) -> dict[str, str | None] | None:
+            return dict(record) if self.assembly == chimera else None
+
+        @property
+        def default_gtf(self) -> str:
+            raise AssertionError(
+                "a Component's default annotation now is not necessarily what went into the merge"
+            )
+
+    monkeypatch.setattr(liulab_genome, "Genome", _StubGenome)
+    monkeypatch.setattr(counter, "write_umi_counts", lambda cells, db, out, workers=1: out)
+
+    written = tmp_path / "combined.tinyCe.h5ad"
+    result = runner.invoke(
+        app,
+        ["io", "umi-count", f"cell_a={tmp_path / 'cell.bam'}", "--assembly", chimera,
+         "--component", "tinyCe", "--out", str(written)],
+    )  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    assert resolved == [("tinyCe", "wormbase_ws298")], (
+        "the registered name comes off the Chimera's record and the GTF off the Component itself"
+    )
+
+    refused = runner.invoke(
+        app,
+        ["io", "umi-count", f"cell_a={tmp_path / 'cell.bam'}", "--assembly", chimera,
+         "--component", "tinyEcDub", "--out", str(written)],
+    )  # fmt: skip
+
+    assert refused.exit_code == 3, refused.stdout + refused.stderr
+    # A Chimera is named after its Components, so `in` would be satisfied by the Chimera alone: what
+    # this pins is that the refusal's subject is the Component nothing can be counted against.
+    assert json.loads(refused.stderr)["error"].startswith("tinyEcDub "), (
+        "an uncountable Component is named, not just the Chimera it is part of"
+    )
 
 
 def test_schema_export_is_valid_json_per_model_and_over_all() -> None:
