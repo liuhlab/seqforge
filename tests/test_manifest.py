@@ -355,26 +355,47 @@ def test_a_template_is_portable_but_a_bound_one_refuses_a_foreign_dataset(tmp_pa
     assert exit_code_for_report(report) == 3
 
 
-def test_validate_processing_blocks_a_genome_organism_mismatch(built_v3: Built) -> None:
+@pytest.mark.parametrize(
+    ("assembly", "annotation", "taxid", "codes"),
+    [
+        pytest.param("sacCer3", "ensembl", 559292, [], id="the-datasets-own-organism"),
+        pytest.param("ce11", "WS298", 6239, ["GENOME_ORGANISM_MISMATCH"], id="a-worm-genome"),
+        pytest.param("ce11_ecHT115", "WS298", None, [], id="a-chimera-is-more-than-one-organism"),
+        pytest.param("no_such_assembly", "ensembl", None, [], id="the-table-does-not-list-it"),
+    ],
+)
+def test_validate_processing_blocks_a_genome_organism_mismatch(
+    built_v3: Built, assembly: str, annotation: str, taxid: int | None, codes: list[str]
+) -> None:
     """A wrong-but-VALID assembly is the worst failure this system can produce: STAR aligns, exits 0,
     and emits a plausible matrix in the wrong coordinate space. Every other check catches something
-    that would look broken; this one catches something that looks fine."""
-    manifest, _ = built_v3  # organism = 559292 (yeast)
-    p = _processing(manifest)
-    assert validate_processing(p, dataset=manifest).ok
+    that would look broken; this one catches something that looks fine.
 
-    worm = p.processing.genome.value.model_copy(update={"assembly": "ce11", "ncbi_taxid": 6239})
-    lying = p.model_copy(
-        update={
-            "processing": p.processing.model_copy(
-                update={"genome": p.processing.genome.model_copy(update={"value": worm})}
-            )
-        }
+    Every row here is a recipe the POLICY wrote — the fixture is what `seqforge processing new
+    --assembly <name>` produces — and never a hand-edited genome value. That is the whole point: the
+    recorded taxid used to be copied off the dataset's own organism, so the two sides of the
+    comparison were one value and the check could not fire on anything seqforge itself emitted. It
+    fired only for a `processing.yaml` someone had edited by hand, which is not the failure it was
+    written for. Proving it through `model_copy` is exactly what hid that for as long as it did.
+
+    The two silent `None` rows are silent for two DIFFERENT reasons, and neither is an exemption: a
+    chimera is more than one organism, so no single taxid is the answer, and an assembly the upstream
+    table does not list is legal and simply unidentified. The check stays deliberately narrow rather
+    than growing a refusal for either.
+    """
+    manifest, _ = built_v3  # organism = 559292 (yeast)
+    p = _processing(manifest, assembly=assembly, annotation=annotation)
+    assert p.processing.genome.value.ncbi_taxid == taxid, (
+        "the taxid is the ASSEMBLY's, not the dataset's"
     )
-    report = validate_processing(lying, dataset=manifest)
-    assert not report.ok
-    assert [blk.code for blk in report.blockers] == ["GENOME_ORGANISM_MISMATCH"]
-    assert all(blk.remedy for blk in report.blockers)  # every refusal is actionable
+
+    report = validate_processing(p, dataset=manifest)
+    assert report.ok == (not codes)
+    assert [blk.code for blk in report.blockers] == codes
+    assert exit_code_for_report(report) == (3 if codes else 0)
+    # Both exits, because a species-vs-strain block is unanswerable if only the first is named.
+    for blk in report.blockers:
+        assert blk.remedy and "--organism" in blk.remedy  # every refusal is actionable
 
 
 def test_validate_catches_referential_integrity_break(built_v3: Built) -> None:

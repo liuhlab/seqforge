@@ -13,6 +13,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from genome.metadata import assembly_metadata
+
 from ..harvest.prep import normalize_prep_type as _normalize_prep_type
 from ..kb.schema import Spec
 from ..models.assertion import Assertion
@@ -413,12 +415,25 @@ def resolve_processing(
     else:  # pragma: no cover - `assembly is None` already raised above
         genome_basis, genome_evidence = "inferred", []
 
+    # The recorded taxid is a fact about the ASSEMBLY, read off liulab-genome's shipped
+    # cross-reference — never a copy of `dataset.experiment.organism`. Copying the organism made the
+    # genome/organism check a tautology: the same value sat on both sides, so the one check written
+    # for a wrong-but-valid assembly (STAR aligns, exits 0, plausible matrix in the wrong coordinate
+    # space) could not fire on any recipe seqforge itself wrote. Two independently sourced values are
+    # what give it something to disagree about.
+    #
+    # The total accessor, so the answer is a record and never a missing one, and the two unidentified
+    # cases fall out with no branch here: an assembly the table does not list is legal and simply has
+    # no identifiers, and a Chimera's row carries a BLANK taxid on purpose because it is more than one
+    # organism. Both read back `None`, and `None` is what keeps the narrow check silent. Splitting a
+    # chimera into components to answer it would drag the compose context in here and was rejected;
+    # consume liulab-genome, never reimplement a slice of it.
     section = ProcessingSection(
         genome=EvidencedGenome(
             value=GenomeRef(
                 assembly=assembly,
                 annotation_name=ov.annotation_name,
-                ncbi_taxid=dataset.experiment.organism.value,
+                ncbi_taxid=assembly_metadata(assembly).ncbi_taxid,
             ),
             basis=genome_basis,
             evidence=genome_evidence,
