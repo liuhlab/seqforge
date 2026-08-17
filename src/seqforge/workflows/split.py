@@ -292,6 +292,7 @@ def split_chimera(
     separator: str,
     *,
     summary: Path | None = None,
+    threads: int = 1,
 ) -> SplitStats:
     """One chimeric BAM -> one unindexed, coordinate-sorted BAM per requested Component.
 
@@ -301,6 +302,18 @@ def split_chimera(
 
     ``summary`` is where the counts land, and handing over ``None`` skips the file — the split still
     happened and the caller still gets the numbers back, they simply do not outlive the process.
+
+    **``threads`` buys BGZF codec threads and nothing else, because there is nothing else to buy.**
+    The record loop is one stateless pass and stays on one core whatever this says; what scales is
+    the block compression underneath it, which is where the wall-clock of writing several BAMs
+    actually goes. So the figure is DIVIDED across the outputs rather than handed to each of them:
+    ``n`` writers each opening a pool of ``n`` is ``n²`` codec threads against an allocation of
+    ``n``, and oversubscribing a scheduler that was told a number is worse than ignoring the number
+    — which is the other failure available here, and the one this repo has already paid for once,
+    on the rule that asked for threads and counted a whole plate on one core.
+
+    The reader keeps the caller's figure whole. Decompressing one file is the pass's floor, it is
+    strictly cheaper than the compression it feeds, and it cannot overlap itself.
     """
     import pysam
 
@@ -315,7 +328,12 @@ def split_chimera(
     dropped: Counter[str] = Counter({reason: 0 for reason in DROP_REASONS})
     records_in = 0
 
-    with pysam.AlignmentFile(str(bam), "rb") as source:
+    # Floored at one: a `--threads 0` from somewhere is a caller saying nothing, not a caller asking
+    # for no codec at all, and htslib takes the difference badly.
+    codec = max(1, threads)
+    per_writer = max(1, codec // len(outputs)) if outputs else 1
+
+    with pysam.AlignmentFile(str(bam), "rb", threads=codec) as source:
         header = source.header.to_dict()
         _checked_request(header, outputs, separator)
         # Which Component each reference index belongs to, resolved ONCE off the header. A record's
@@ -326,7 +344,9 @@ def split_chimera(
         for path in outputs.values():
             path.parent.mkdir(parents=True, exist_ok=True)
         writers = {
-            component: pysam.AlignmentFile(str(outputs[component]), "wb", header=plan[component][0])
+            component: pysam.AlignmentFile(
+                str(outputs[component]), "wb", header=plan[component][0], threads=per_writer
+            )
             for component in outputs
         }
         try:

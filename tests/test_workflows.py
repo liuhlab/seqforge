@@ -1355,6 +1355,11 @@ def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_comp
         assert f"{component}=results/cell_a/cell_a.{component}.bam" in split, split
     assert f"--assembly {'_'.join(components)}" in split, split
     assert f"--summary results/cell_a/cell_a{SPLIT_SUFFIX}" in split, split
+    # The threads the rule RESERVED reach the verb. Asking a scheduler for cores and then handing
+    # the command none of them is this module's own recorded defect one rule over, where a whole
+    # plate was counted on one core inside an allocation sized for the rest — and it is invisible
+    # except here, because a declared `threads:` looks identical either way from the rule source.
+    assert "--threads 4" in split, split
 
     # The count is handed a Component and never an annotation — both would be a refusal, and the
     # assembly stays the Chimera because that is where the merge's record lives.

@@ -900,6 +900,12 @@ def io_split_chimera(
         help="Where to write this split's counts as JSON. Omitted, the same numbers go to stdout "
         "only — which on a cluster means a scheduler log and nowhere else.",
     ),
+    threads: int = typer.Option(
+        1,
+        "--threads",
+        help="BGZF codec threads, divided across the outputs. The record loop is one pass and "
+        "stays on one core; this is the compression underneath it.",
+    ),
 ) -> None:
     """Split one chimera-mapped BAM into one BAM per Component, each spelled for a single assembly.
 
@@ -970,7 +976,7 @@ def io_split_chimera(
         )
         raise typer.Exit(3)
     try:
-        stats = split_chimera(bam, requested, separator, summary=summary)
+        stats = split_chimera(bam, requested, separator, summary=summary, threads=threads)
     except SplitError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc

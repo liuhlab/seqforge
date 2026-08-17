@@ -571,11 +571,18 @@ rule split_chimera:
     carry one `NH` and sit on one chromosome, so keeping a pair together needs no name sort and no
     buffer, and a ten-million-record BAM streams in constant memory.
 
-    `threads:` is the share of the machine this job takes, declared so whatever packs the node does it
-    against a real number, and it is the same figure its sibling `umi_to_cram` declares -- the two run
-    against each other over one BAM, so a plate's width should not depend on which of them got there
-    first. It is deliberately NOT rendered onto the command line: the verb takes no `--threads`,
-    because one stateless streaming pass has nothing to fan out over.
+    `threads:` is the share of the machine this job takes, and it is HANDED OVER rather than merely
+    reserved. The same figure its sibling `umi_to_cram` declares -- the two run against each other
+    over one BAM, so a plate's width should not depend on which of them got there first. What the
+    verb spends it on is the BGZF codec and nothing else, divided across the outputs: the record loop
+    is one stateless pass and stays on one core whatever this says, while the block compression
+    underneath it is where writing several BAMs actually spends its wall-clock. Asking the scheduler
+    for cores and then handing the verb none of them is the shape this module's own history records
+    on `umi_count`, where a whole plate was counted on one core inside an allocation sized for the
+    rest.
+
+    Whether one wide split beats several narrow ones on a real plate is UNMEASURED, and the recipe's
+    own figure is what is passed rather than a number invented here.
 
     **The outputs are rendered as `<component>=<path>` from `zip(COMPONENTS, output.bams)`** -- the
     same argument shape `umi_count` takes its cells in, and for the same reason: a Component and where
@@ -613,7 +620,8 @@ rule split_chimera:
     shell:
         r"""
         seqforge io split-chimera {params.outputs} \
-             --bam {input.bam} --assembly {params.assembly} --summary {output.summary}
+             --bam {input.bam} --assembly {params.assembly} --summary {output.summary} \
+             --threads {threads}
         """
 
 
