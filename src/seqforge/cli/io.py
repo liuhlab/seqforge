@@ -804,6 +804,104 @@ def io_umi_count(
     typer.echo(json.dumps({"written": str(written)}, indent=2))
 
 
+@io_app.command("split-chimera")
+def io_split_chimera(
+    outputs: list[str] = typer.Argument(
+        ..., help="One `component=/path/to.bam` per Component, e.g. `ce11=ce11.bam ecHT115=ec.bam`."
+    ),
+    bam: Path = typer.Option(..., "--bam", help="The chimera-mapped, coordinate-sorted BAM."),
+    assembly: str = typer.Option(
+        ...,
+        "--assembly",
+        help="The Chimera's assembly id. Its completion record — never its name — says which "
+        "Components it holds and which separator its chromosome names carry.",
+    ),
+    summary: Path | None = typer.Option(
+        None,
+        "--summary",
+        help="Where to write this split's counts as JSON. Omitted, the same numbers go to stdout "
+        "only — which on a cluster means a scheduler log and nowhere else.",
+    ),
+) -> None:
+    """Split one chimera-mapped BAM into one BAM per Component, each spelled for a single assembly.
+
+    A Chimera's chromosome names carry a Component suffix, which is what makes the alignment
+    interpretable and every artifact downstream of it unusable: `chrI__ce11` is not `chrI`, so a
+    browser, a counter and the user's own scripts all refuse it. This is the undo, and it is
+    hand-runnable on any chimeric BAM with no pipeline involved.
+
+    Outputs arrive positionally as `<component>=<path>`, the shape `io umi-count` already takes its
+    cells in, because a second spelling of a path is the copy that goes stale. Every Component the
+    Chimera holds must be named: a partial request is refused rather than served, since served it
+    writes exactly the file that was asked for while reads-in-equals-reads-out quietly stops closing.
+
+    `--assembly` is resolved **authoritatively** off the Chimera's completion record, which is the
+    only honest source for both facts it supplies. The Component list is not readable from the
+    assembly's name — a derived name is a convention and a record is a fact — and the separator
+    belongs to one chimera, because a Component whose own chromosome names hold a doubled underscore
+    forces a longer run than the default. Resolved here rather than in the workflow module, exactly
+    as `io cram` resolves the reference FASTA: what the module does is a pure function of the BAM,
+    the outputs and the separator, so it stays strictly typed and testable with no built reference on
+    disk.
+
+    Exit 2 on a malformed argument, exit 3 on a refusal or an assembly that will not resolve.
+    """
+    from ..workflows.split import SplitError, parse_outputs, split_chimera
+
+    # The outputs are parsed before anything reaches the environment: a typo in an argument is a bad
+    # invocation and should not first cost an assembly lookup that may not be possible on this host.
+    try:
+        requested = parse_outputs(outputs)
+    except SplitError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(2) from exc
+    try:
+        from genome import (
+            Genome,  # the lab package's genome store; resolved here, off the strict workflow path
+        )
+    except ImportError as exc:  # pragma: no cover - depends on the host
+        typer.echo(json.dumps({"error": f"liulab-genome is not importable: {exc}"}), err=True)
+        raise typer.Exit(3) from exc
+    try:
+        chimera = Genome(assembly)
+        components, separator = chimera.components, chimera.separator
+    except (KeyError, ValueError, OSError) as exc:  # liulab-genome refuses an unknown assembly
+        typer.echo(json.dumps({"error": f"{assembly} does not resolve: {exc}"}), err=True)
+        raise typer.Exit(3) from exc
+    if components is None or separator is None:
+        typer.echo(
+            json.dumps(
+                {
+                    "error": f"{assembly} is not a Chimera — its completion record names no "
+                    f"Components and no separator, so there is nothing here to split"
+                }
+            ),
+            err=True,
+        )
+        raise typer.Exit(3)
+    if set(requested) != set(components):
+        typer.echo(
+            json.dumps(
+                {
+                    "error": f"{assembly} is a Chimera of {sorted(components)} and outputs were "
+                    f"named for {sorted(requested)}; every Component needs one, because the reads "
+                    f"on the rest have nowhere to go"
+                }
+            ),
+            err=True,
+        )
+        raise typer.Exit(3)
+    try:
+        stats = split_chimera(bam, requested, separator, summary=summary)
+    except SplitError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(3) from exc
+    written: dict[str, object] = {"written": {c: str(p) for c, p in requested.items()}}
+    if summary is not None:
+        written["summary"] = str(summary)
+    typer.echo(json.dumps({**written, **stats.to_dict()}, indent=2))
+
+
 @io_app.command("umi-extract")
 def io_umi_extract(
     units: Path | None = typer.Option(
