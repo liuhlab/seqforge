@@ -627,6 +627,24 @@ class WorkflowModule:
     #: It NAMES the artifact and stops there — not a scope algebra, and not the rule's resource class
     #: (which the module's own arithmetic owns, because only the module knows its rule graph).
     fan_in_artifact: str | None = None
+    #: This pipeline's chimera-aware twin: the module id to compose instead when the recipe names a
+    #: **chimera** — one reference built from several component assemblies. ``None`` for a pipeline
+    #: that has no such twin, which is every shipped one, and a recipe naming a chimera against one of
+    #: those is a compose refusal rather than a run that merges two organisms into a single count
+    #: table with nothing in it saying which reads were whose.
+    #:
+    #: **Declared rather than inferred, by the argument ``fan_in_artifact`` makes directly above and
+    #: by one more that is specific to this fact.** Whether a pipeline can keep the components apart
+    #: downstream of the aligner is a property of its rule graph, and every way of inferring it reads
+    #: something that is not: a module-id compare is ``read_layout_kind``'s dead ancestor, in which
+    #: everything that was not starsolo silently meant bulk; a lookup in the shipped assembly table is
+    #: worse *here* than that pattern is anywhere else, because nothing folds the `liulab-genome` pin
+    #: into ``run_id`` — a table-derived answer would let one recipe compile to a DIFFERENT module at
+    #: the SAME ``run_id``, into the directory the first compile's alignments are already in.
+    #:
+    #: It NAMES the twin and stops there. Which components a chimera has is the recipe's statement
+    #: (`compose.chimera`), and what the twin then does with them is the twin's own contract.
+    chimeric_variant: str | None = None
 
     @property
     def aligner(self) -> str:

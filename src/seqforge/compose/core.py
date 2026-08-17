@@ -53,6 +53,7 @@ from ..resolve.group import lane_of, run_key
 from ..workflows import WorkflowModule, container_uri, get_module, resolve_pipeline
 from ..workspace import pipeline_dir, readable
 from .admission import Admission, admit, render_record
+from .chimera import components
 from .params import (
     derived_params,
     find_read_with_role,
@@ -199,6 +200,23 @@ def plan(
     onlist_files: dict[str, list[str]] = {}
     intent = processing.processing
     _check_env(intent.environment.value, module)
+    # A chimera is STATED, never detected: naming `ce11_ecHT115` as the assembly IS the claim that
+    # this reference carries several organisms, and reading it costs a plain compile one call that
+    # returns `None`. It sits here, beside the other module-versus-recipe agreement check, because
+    # both answer "can the pipeline this chemistry binds to actually run what this recipe asks for" —
+    # and because policy never sees a genome, which is what keeps a processing default from acquiring
+    # an opinion about the reference. A module that declares a twin turns this refusal into a swap.
+    named = components(intent.genome.value.assembly)
+    if named is not None and module.chimeric_variant is None:
+        raise ComposeError(
+            f"assembly {intent.genome.value.assembly!r} is spelled like a chimera — components "
+            f"{', '.join(repr(c) for c in named)} — but pipeline {module.name!r} declares no "
+            f"chimeric twin, so nothing downstream of the aligner would know the alignments cover "
+            f"more than one organism: one count table, both organisms' genes as its columns, at exit "
+            f"0, and no number anywhere saying how much of the library was which. Compose against a "
+            f"single component assembly instead. If this reference is not a chimera it is named like "
+            f"one — an '_' in an assembly name is how a chimera spells its components."
+        )
     # Two owners, one block. The KB says how to PARSE; the processing manifest says what to
     # COUNT. params_gate proves the key sets stay disjoint and that both halves arrive verbatim.
     params = _resolve_params(manifest, spec, registry, onlist_files)
