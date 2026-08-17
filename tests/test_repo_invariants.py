@@ -122,6 +122,7 @@ _GENOME_API = {
     "fasta_path",  # chromap.smk rule genome_index (chromap maps against -r ref) + e2e: simulate reads
     "default_gtf_path",  # e2e: build gene models
     "annotations",  # e2e/docs: which GTF names are registered; io umi-count: `.path(name)`
+    "component_annotations",  # io umi-count --component: what each Component gave the merged GTF
 }
 
 
@@ -156,8 +157,12 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
     # `io umi-count` takes two hops — `Genome.annotations.path(name)` — and a set of Genome attributes
     # reaches only the first, so the second is named here. It was one hop, `get_gtf_path`, until
     # liulab-genome moved the whole annotation surface behind the registry; this guard is what said so.
+    # `--component` ends on the SAME second hop and reaches it one hop earlier: the registered name
+    # comes off the Chimera's `component_annotations` above, and is then resolved under the
+    # Component's own assembly rather than the Chimera's, which is where a Component's GTF lives.
     assert hasattr(AnnotationRegistry, "path"), (
-        "io umi-count resolves the registered GTF through this"
+        "io umi-count resolves the registered GTF through this — the assembly's own name under "
+        "--annotation, the Component's under --component"
     )
     assert not hasattr(Genome, "resolve_star_index_please"), (
         "a name liulab-genome does not define must not resolve — else the guard proves nothing"
