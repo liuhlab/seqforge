@@ -320,8 +320,23 @@ def validate_processing(
     emits a plausible matrix in the wrong coordinate space. Every other check in this file catches
     something that would otherwise crash or look empty; this one catches something that looks *fine*.
 
-    Deliberately narrow: it fires only when the manifest already carries an ``ncbi_taxid`` for the
-    genome. A full assembly->taxid table belongs in ``liulab-genome``, not here.
+    **The two sides must be independently sourced or there is nothing to compare.** The genome's
+    ``ncbi_taxid`` is the *assembly's*, read off ``liulab-genome``'s shipped cross-reference by the
+    processing policy; ``experiment.organism`` is the *dataset's*, asserted. It used to be a copy of
+    that same organism, which made this check a tautology that could fire only for a hand-edited
+    ``processing.yaml`` — never for a recipe seqforge wrote, which is the case it exists for.
+
+    Deliberately narrow: it fires only when the recipe carries an ``ncbi_taxid`` for the genome. A
+    full assembly->taxid table belongs in ``liulab-genome``, and consuming that one is what the
+    ``is not None`` guard now means — an assembly the table does not list, and a Chimera, whose row
+    carries no single taxid because it is more than one organism. Both stay silent here rather than
+    growing a refusal of their own.
+
+    A correct recipe can still block when the organism came from prose: the organism-name->taxid seed
+    resolves *Saccharomyces cerevisiae* to the species ``4932`` while the assembly table carries the
+    S288C strain ``559292``, and the same split exists for *E. coli* HT115. That is accepted rather
+    than papered over with lineage or rank normalization — a loud refusal naming both exits beats a
+    silent matrix in the wrong coordinate space, which is the whole reason for this check.
     """
     blockers: list[Blocker] = []
     open_conflicts = [c for c in (conflicts or []) if c.status == "open"]
@@ -356,8 +371,11 @@ def validate_processing(
                         f"{genome.ncbi_taxid}), but the dataset's organism is taxid {organism}."
                     ),
                     remedy=(
-                        f"Pick an assembly for taxid {organism}, or correct experiment.organism. A "
-                        "wrong-but-valid assembly aligns and exits 0 — nothing downstream catches it."
+                        f"Pick an assembly for taxid {organism}, or correct the dataset's organism "
+                        "(`seqforge manifest fill --organism <taxid>` overrides what the record "
+                        "said). The second exit is the one to take when both names are the same "
+                        "organism at different ranks — species against strain. A wrong-but-valid "
+                        "assembly aligns and exits 0 — nothing downstream catches it."
                     ),
                     subject=BlockerSubject(kind="field", ref="processing.genome.assembly"),
                 )

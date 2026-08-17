@@ -145,6 +145,7 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
     nobody visits. That is the fix; renaming the method was just the symptom.
     """
     from genome import AnnotationRegistry, Genome
+    from genome import metadata as genome_metadata
 
     missing = sorted(name for name in _GENOME_API if not hasattr(Genome, name))
     assert not missing, (
@@ -165,6 +166,15 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
     assert hasattr(AnnotationRegistry, "path"), (
         "io umi-count resolves the registered GTF through this — the assembly's own name under "
         "--annotation, the Component's under --component"
+    )
+    # The processing policy reads the recipe's genome taxid off the shipped assembly cross-reference,
+    # and that is a MODULE-LEVEL function rather than a `Genome` attribute, so a set of `Genome`
+    # attributes cannot reach it — the same reason the annotation registry's hop is named above. The
+    # total accessor specifically: it answers *what is known about this assembly* and always hands
+    # back a record, which is what makes an unlisted name and a Chimera's blank taxid both read as
+    # `None` with no branch in the policy.
+    assert callable(getattr(genome_metadata, "assembly_metadata", None)), (
+        "the processing policy resolves the recipe's genome taxid through this"
     )
     assert not hasattr(Genome, "resolve_star_index_please"), (
         "a name liulab-genome does not define must not resolve — else the guard proves nothing"
