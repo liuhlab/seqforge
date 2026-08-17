@@ -791,7 +791,7 @@ def io_umi_count(
         typer.echo(json.dumps({"error": f"liulab-genome is not importable: {exc}"}), err=True)
         raise typer.Exit(3) from exc
     try:
-        gtf = Path(str(Genome(assembly).get_gtf_path(annotation)))
+        gtf = Path(str(Genome(assembly).annotations.path(annotation)))
         written = write_umi_counts(plate, gtf.with_suffix(".db"), out, workers=threads)
     except UmiCountError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)

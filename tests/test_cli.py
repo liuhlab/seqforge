@@ -134,12 +134,14 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
     with pysam.AlignmentFile(str(bam), "wb", header=header) as out:
         out.write(record)
 
+    class _StubRegistry:
+        def path(self, name: str) -> Path:
+            return gtf
+
     class _StubGenome:
         def __init__(self, assembly: str) -> None:
             self.assembly = assembly
-
-        def get_gtf_path(self, name: str) -> Path:
-            return gtf
+            self.annotations = _StubRegistry()
 
     monkeypatch.setattr(liulab_genome, "Genome", _StubGenome)
 
