@@ -207,16 +207,25 @@ def plan(
     # and because policy never sees a genome, which is what keeps a processing default from acquiring
     # an opinion about the reference. A module that declares a twin turns this refusal into a swap.
     named = components(intent.genome.value.assembly)
-    if named is not None and module.chimeric_variant is None:
-        raise ComposeError(
-            f"assembly {intent.genome.value.assembly!r} is spelled like a chimera — components "
-            f"{', '.join(repr(c) for c in named)} — but pipeline {module.name!r} declares no "
-            f"chimeric twin, so nothing downstream of the aligner would know the alignments cover "
-            f"more than one organism: one count table, both organisms' genes as its columns, at exit "
-            f"0, and no number anywhere saying how much of the library was which. Compose against a "
-            f"single component assembly instead. If this reference is not a chimera it is named like "
-            f"one — an '_' in an assembly name is how a chimera spells its components."
-        )
+    if named is not None:
+        if module.chimeric_variant is None:
+            raise ComposeError(
+                f"assembly {intent.genome.value.assembly!r} is spelled like a chimera — components "
+                f"{', '.join(repr(c) for c in named)} — but pipeline {module.name!r} declares no "
+                f"chimeric twin, so nothing downstream of the aligner would know the alignments "
+                f"cover more than one organism: one count table, both organisms' genes as its "
+                f"columns, at exit 0, and no number anywhere saying how much of the library was "
+                f"which. Compose against a single component assembly instead. If this reference is "
+                f"not a chimera it is named like one — an '_' in an assembly name is how a chimera "
+                f"spells its components."
+            )
+        # THE SWAP, and it is one rebinding because everything downstream reads `module`:
+        # `_read_files_in` below, the `ModuleSelection` this returns, and `compose`'s own re-fetch by
+        # name when it copies the `.smk` into the run directory. The module is therefore a pure
+        # function of `(spec, assembly)`, both of which are already hashed into `run_id`, which is
+        # what makes it impossible for two modules to collide on one — the module id itself is in no
+        # hash at all, and a chimeric run re-keys through the assembly inside the processing hash.
+        module = get_module(module.chimeric_variant)
     # Two owners, one block. The KB says how to PARSE; the processing manifest says what to
     # COUNT. params_gate proves the key sets stay disjoint and that both halves arrive verbatim.
     params = _resolve_params(manifest, spec, registry, onlist_files)
@@ -228,12 +237,16 @@ def plan(
         {k: render_param(v) for k, v in processing_params(intent.quantification.value).items()}
     )
 
+    # A local rather than a literal inside the config below, because a chimeric compile adds one key
+    # to it further down and reaching back into `config["genome"]` would need the checker told what
+    # it already knows.
+    genome: dict[str, object] = {
+        "assembly": intent.genome.value.assembly,
+        "annotation": intent.genome.value.annotation_name,
+    }
     config: dict[str, object] = {
         "chemistry": list(chemistry),
-        "genome": {
-            "assembly": intent.genome.value.assembly,
-            "annotation": intent.genome.value.annotation_name,
-        },
+        "genome": genome,
         # The env name RESOLVED to an image this machine can run. `config["env"]` used to sit here:
         # emitted, and read by no rule — the env was recorded and then ignored, so a pipeline ran
         # against whatever STAR happened to be on PATH. One key, one owner, and now something reads
@@ -267,6 +280,23 @@ def plan(
         # an explicit value rather than leaving a positional convention load-bearing for every
         # downstream reader.
         config["primary_feature"] = primary
+    if named is not None:
+        # The ONE key a chimeric run adds, and it is emitted CONDITIONALLY for the reason
+        # `primary_feature` above is: a config key is a byte of the compiled pipeline and every byte
+        # of it is hashed into the directory the run lives in, so a key that appeared unconditionally
+        # would re-key every pipeline in the corpus to say something about a chimera to recipes that
+        # name none. Inside the genome block because that is what it is about, and the Component
+        # names are in the order the assembly NAME spells them, which is the order the twin's
+        # `rule all` will demand its matrices in.
+        #
+        # Nothing declares this key a second time: `keys_read_by` reads
+        # `COMPONENTS = config["genome"]["components"]` straight out of the twin's source, so
+        # `required_config` grows by one for that module and for no other, for free.
+        #
+        # What is deliberately NOT here is each Component's annotation. It is not recoverable from
+        # the name — a merged annotation does not record what fed it — so it cannot be an offline
+        # fact, and the counting verb reads it off the Chimera's completion record at run time.
+        genome["components"] = list(named)
 
     return ComposePlan(
         config=config,

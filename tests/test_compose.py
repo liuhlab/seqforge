@@ -35,6 +35,7 @@ from conftest import (
     count_matrix,
     declare_read_floor,
     one_run_each,
+    planning_route,
     plate_of,
     solo_block,
     star_modules,
@@ -51,7 +52,13 @@ from seqforge.models.processing import ProcessingManifest
 from seqforge.models.resolve import ComposeResult
 from seqforge.pipeline import EXCLUSIONS_NAME
 from seqforge.resolve.confuse import canonical_backend
-from seqforge.workflows import PLATE_H5AD, get_module, keys_read_by, list_modules
+from seqforge.workflows import (
+    CHIMERIC_VARIANTS,
+    PLATE_H5AD,
+    get_module,
+    keys_read_by,
+    list_modules,
+)
 from seqforge.workflows.umite.extract import TagGeometry
 
 
@@ -725,16 +732,17 @@ def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe(
     """
     swept = []
     for module in star_modules():
-        techs = sorted(
-            t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
-        )
-        assert techs, f"{module} invokes STAR but no spec reaches it; nothing here can be planned"
+        # `planning_route` because a chimera-aware twin is in this selector and no spec may name one
+        # — it is planned from its base's chemistry under a two-part assembly name, which is the
+        # route compose really takes to it. Everything else keeps its own chemistry and a plain
+        # assembly.
+        tech, assembly = planning_route(module)
         # one deposit per module rather than one shared: `_build` writes its reads under a fixed
-        # `s_<read id>.fastq.gz`, and the three chemistries do not name their reads the same way.
+        # `s_<read id>.fastq.gz`, and the chemistries do not name their reads the same way.
         workdir = tmp_path / module.replace("/", "-")
         workdir.mkdir()
-        manifest, reg = _build(workdir, techs[0])
-        processing = _processing(manifest)
+        manifest, reg = _build(workdir, tech)
+        processing = _processing(manifest, assembly=assembly)
         result = compose(manifest, processing, registry=reg, workspace=workdir)
         pipeline_dir = (workdir / result.snakefile_path).parent
 
@@ -833,37 +841,60 @@ def test_a_chimera_is_read_off_the_name_the_recipe_states_and_out_of_nothing_els
 
 
 @pytest.mark.parametrize("module", list_modules())
-def test_a_chimeric_assembly_refuses_against_every_module_that_declares_no_chimeric_twin(
+def test_a_chimeric_assembly_swaps_to_a_declared_twin_and_refuses_against_every_module_without_one(
     module: str, tmp_path: Path
 ) -> None:
-    """Naming a chimera is a refusal until some module declares it can keep the components apart.
+    """Naming a chimera SELECTS the twin where one is declared, and refuses everywhere else.
 
-    The alternative is what shipped before this: `--assembly ce11_ecHT115` was an unvalidated string,
-    the aligner resolved the chimeric index at run time, and **nothing downstream knew the BAM held
-    two organisms** — one merged count table with both organisms' genes as columns, at exit 0, and no
-    number anywhere saying how much of the library was which. A refusal naming the module is strictly
-    better than that, which is why it lands before the twin does.
+    Both arms are one claim, which is why they are one case: whether a pipeline can keep a chimera's
+    Components apart downstream of the aligner is a property of its rule graph, so a module that
+    declares a twin must compile to it and a module that declares none must refuse. The refusal's
+    alternative is what shipped before this: `--assembly ce11_ecHT115` was an unvalidated string, the
+    aligner resolved the chimeric index at run time, and **nothing downstream knew the BAM held two
+    organisms** — one merged count table with both organisms' genes as columns, at exit 0, and no
+    number anywhere saying how much of the library was which.
 
-    Parametrized over the registry rather than over a hand list, so a fifth module joins this claim
-    the day it is registered: whether a pipeline can split a chimeric BAM is a property of its rule
-    graph, and one that declares nothing must refuse rather than compose into a merged matrix. The
-    `chimeric_variant` assertion is what keeps the case honest — the day a module declares a twin,
-    this row must be rewritten as the swap it becomes, not silently pass for a new reason.
+    Parametrized over the registry rather than over a hand list, so a sixth module joins whichever
+    arm its own declaration puts it in the day it is registered. This row used to assert that NO
+    module declared a twin and therefore that every module refused; the swap arm is that assertion
+    rewritten, at the moment it came true, rather than left to pass for a new reason.
+
+    A twin itself takes neither arm and is skipped here rather than asserted on: it is reachable only
+    by being swapped IN, no spec may name it, and `test_every_registered_module_wires_into_a_runnable
+    _dag` is where its own compile is proved.
 
     At the `plan` seam deliberately: `plan` is `compose`'s first statement and writes nothing at all,
-    so a refusal reachable here is a refusal that precedes the Snakefile, the config and the run
-    directory. A check that drifted downstream of the writes would leave this red.
+    so both outcomes are reached before the Snakefile, the config and the run directory exist. A
+    branch that drifted downstream of the writes would leave this red.
     """
+    if module in CHIMERIC_VARIANTS:
+        pytest.skip(f"{module} is a twin: it is what a base swaps TO, so it takes neither arm")
     techs = sorted(
         t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
     )
     assert techs, f"{module} is registered but no spec reaches it"
-    assert get_module(module).chimeric_variant is None, (
-        f"{module} now declares a chimeric twin, so it must SWAP rather than refuse"
-    )
     manifest, reg = _build(tmp_path, techs[0])
-    with pytest.raises(ComposeError, match=re.escape(module)):
-        plan(manifest, _processing(manifest, assembly="ce11_ecHT115"), registry=reg)
+    processing = _processing(manifest, assembly="ce11_ecHT115")
+    twin = get_module(module).chimeric_variant
+    if twin is None:
+        with pytest.raises(ComposeError, match=re.escape(module)):
+            plan(manifest, processing, registry=reg)
+        return
+    composed = plan(manifest, processing, registry=reg)
+    assert composed.module.name == twin
+    # ...and the ONE key that carries. Conditional, so the row above emits none of it: a config key
+    # is a byte of the compiled pipeline and every byte is hashed into the directory the run lives
+    # in, so an unconditional one re-keys every pipeline in the corpus to say something about a
+    # chimera to recipes that name none. In the order the NAME spells them, never sorted, which is
+    # the order the twin's `rule all` demands its matrices in.
+    genome = composed.config["genome"]
+    assert isinstance(genome, dict)
+    assert genome["components"] == ["ce11", "ecHT115"]
+    assert genome["assembly"] == "ce11_ecHT115"
+    # Per-Component annotations are deliberately NOT a config key: a merged annotation does not
+    # record what fed it, so the fact is not offline-recoverable and the counting verb reads it off
+    # the completion record at run time.
+    assert set(genome) == {"assembly", "annotation", "components"}
 
 
 def test_policy_takes_the_runtime_env_from_the_module_that_needs_it() -> None:

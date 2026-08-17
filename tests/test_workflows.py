@@ -44,6 +44,7 @@ from conftest import (
     _src_root,
     count_matrix,
     planned_paths,
+    planning_route,
     star_modules,
     write_fastq_gz,
 )
@@ -53,6 +54,8 @@ from seqforge.compose import compose, core
 from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
 from seqforge.models.processing import RuntimeEnv, SoloFeature
 from seqforge.workflows import (
+    CHIMERIC_VARIANTS,
+    PLATE_COMPONENT_H5AD,
     PLATE_H5AD,
     WORKFLOW_VERSION,
     argv_keys_read_by,
@@ -121,7 +124,13 @@ from seqforge.workflows.qc import (
 )
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
-from seqforge.workflows.split import SplitError, SplitStats, split_chimera
+from seqforge.workflows.split import (
+    DROP_REASONS,
+    SPLIT_SUFFIX,
+    SplitError,
+    SplitStats,
+    split_chimera,
+)
 from seqforge.workflows.stats import (
     MODULES_WITHOUT_CROSS_CHECKS,
     MODULES_WITHOUT_STATS,
@@ -923,7 +932,13 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
 
     from seqforge.workflows import MODULES, resolve_pipeline
 
-    assert set(list_modules()) == {"map/starsolo", "map/star", "map/chromap", "map/star-umi"}
+    assert set(list_modules()) == {
+        "map/starsolo",
+        "map/star",
+        "map/chromap",
+        "map/star-umi",
+        "map/star-umi-chimera",
+    }
     valid_envs = set(get_args(RuntimeEnv))
     for name in list_modules():
         module = get_module(name)
@@ -935,14 +950,28 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
         # in a different env is correct, not a test failure.
         assert module.env in valid_envs
 
-    # The fan-in declaration, by NAME in both directions. Exactly one shipped module produces a
-    # deliverable the sample axis does not reach, and the other three are untouched by its arrival —
-    # which is the whole of why the field defaults to absent. A set comparison rather than a count:
-    # "some module aggregates" was never the claim.
+    # The fan-in declaration, by NAME in both directions. Two shipped modules produce a deliverable
+    # the sample axis does not reach — the plate pipeline and its chimeric twin, which is the same
+    # pipeline one arity out — and the other three are untouched by either's arrival, which is the
+    # whole of why the field defaults to absent. A set comparison rather than a count: "some module
+    # aggregates" was never the claim.
     assert {n for n in list_modules() if get_module(n).fan_in_artifact is not None} == {
-        "map/star-umi"
+        "map/star-umi",
+        "map/star-umi-chimera",
     }
     assert get_module("map/star-umi").fan_in_artifact == PLATE_H5AD
+    # The twin's carries a `{component}` and the base's does not, which is the arity difference
+    # itself: one object for the deposit against one per Component of the chimera it mapped to.
+    assert get_module("map/star-umi-chimera").fan_in_artifact == PLATE_COMPONENT_H5AD
+    assert "{component}" in PLATE_COMPONENT_H5AD and "{component}" not in PLATE_H5AD
+
+    # The twin is reachable ONLY through its base's declaration, and the guard set that keeps it that
+    # way is DERIVED from the registry rather than typed beside it — a second list is one a new twin
+    # would be missing from, and the KB refusal would then pass while guarding nothing.
+    assert CHIMERIC_VARIANTS == {"map/star-umi-chimera"}
+    assert CHIMERIC_VARIANTS == {
+        m.chimeric_variant for m in MODULES.values() if m.chimeric_variant is not None
+    }
 
     # The assay<->pipeline adapter (folded from test_resolve_pipeline_binds_a_chemistry_and_refuses_an
     # _unserved_modality): a chemistry binds to the module its backend selects, and a spec whose
@@ -990,6 +1019,14 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     a spec targets it, and a module no spec reaches is refused here unless it is NAMED in
     :data:`MODULES_NO_SPEC_REACHES_YET` with the reason, rather than going quietly untested.
 
+    **A chimera-aware twin is reached by no spec and never will be**, which is a different fact from
+    "not yet": no KB backend may name a twin, and one that tries is refused at load. So it is planned
+    the way compose will really reach it — its BASE's chemistry under a two-part assembly name
+    (:func:`~conftest.planning_route`) — rather than being written into the skip set, where it would
+    have lost the ``snakemake -n`` coverage every other module has, permanently and quietly. The
+    route costs nothing on disk: chimera detection is syntactic and the genome resolves inside a
+    ``run:`` block, so this plans a whole chimeric plate with no built reference anywhere.
+
     It also owns "the gate leaves no zero-byte FASTQ behind", which used to be a second 1.5s spawn of
     its own on `map/starsolo`. The gate stands in zero-byte FASTQs; they were touched straight into
     the run directory (`pipeline_dir / row["path"]`) and never removed, which was invisible only
@@ -999,20 +1036,24 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     commit that made the gate work. Asserted here it holds for all three modules, not for starsolo
     alone.
     """
-    techs = sorted(
-        t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
-    )
     if module in MODULES_NO_SPEC_REACHES_YET:
-        assert not techs, (
-            f"{module} is named as reached by no spec, but {techs} reach it — drop it from "
+        assert not [
+            t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
+        ], (
+            f"{module} is named as reached by no spec, but a spec reaches it — drop it from "
             f"MODULES_NO_SPEC_REACHES_YET so the composed-pipeline gate covers it"
         )
         pytest.skip(
             f"{module} has no chemistry yet; its .smk is planned from a hand-written config"
         )
-    assert techs, f"{module} is registered but no spec reaches it"
-    manifest, reg = _build(tmp_path, techs[0])
-    result = compose(manifest, _processing(manifest), registry=reg, workspace=tmp_path)
+    tech, assembly = planning_route(module)
+    manifest, reg = _build(tmp_path, tech)
+    result = compose(
+        manifest, _processing(manifest, assembly=assembly), registry=reg, workspace=tmp_path
+    )
+    # ...and it composed to the module this case is about. For a twin that is the whole claim of the
+    # route above: the chemistry names the base, and the assembly is what swapped it.
+    assert result.modules[0].name == module
     # PASS, not skip. This used to read `in {"pass", "skip"}` and so forbade only the one value that
     # could not occur: `snakemake` was in no dependency table, `have("snakemake")` was False, and the
     # gate returned "skip" every time. A skip is green, so the gate was decorative for the life of the
@@ -1059,14 +1100,18 @@ def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_jo
     copied into each workflow file rather than factored out, so a fourth STAR workflow must be
     covered the day it ships rather than the day someone remembers to add it. `map/chromap` is absent
     because it invokes `chromap`, not because anything here exempts it.
+
+    A **chimera-aware twin** is picked up by that selector and then cannot be planned the way the
+    others are, because no KB spec may name one — so it is planned through
+    :func:`~conftest.planning_route`, which is its base's chemistry under a two-part assembly name.
+    That is not an exemption: the twin carries a fourth copy of this lifecycle and owes every claim
+    below, and the route is what lets it pay them with no fixture and nothing on disk.
     """
-    techs = sorted(
-        t for t in kb.runnable_spec_ids() if kb.load_spec(t).require_backend().module == module
-    )
-    assert techs, f"{module} invokes STAR but no spec reaches it; nothing here can be planned"
-    manifest, reg = _build(tmp_path, techs[0])
-    processing = _processing(manifest)
+    tech, assembly = planning_route(module)
+    manifest, reg = _build(tmp_path, tech)
+    processing = _processing(manifest, assembly=assembly)
     result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    assert result.modules[0].name == module
     pipeline_dir = (tmp_path / result.snakefile_path).parent
 
     plan_text = dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg))
@@ -1116,6 +1161,7 @@ def _plate_run_dir(
     *,
     mate: bool | None = True,
     read_through: str | None = None,
+    components: Sequence[str] | None = None,
 ) -> dict[str, object]:
     """Write a runnable plate pipeline directory by hand, and return the config it carries.
 
@@ -1138,11 +1184,24 @@ def _plate_run_dir(
     ``read_through`` writes the adapter compose derives for a chemistry that declares one. Absent by
     default, because that is the shape every other assertion in this file is about and because an
     absent key is what the module's ``.get`` exists to serve.
+
+    ``components`` writes the directory for the CHIMERIC TWIN instead — a chimeric assembly name, the
+    one extra config key compose emits for such a run, and the twin's own ``.smk``. One flag rather
+    than a second copy of this function, for the reason ``mate`` is one: the two directories differ
+    in exactly the fact the two modules differ in, and two copies would be free to drift on the eight
+    keys that are not the subject. The Components are the caller's, not derived from the name: what
+    compose reads off a name is compose's claim and is asserted where compose is.
     """
-    module = get_module("map/star-umi")
+    module = get_module("map/star-umi" if components is None else "map/star-umi-chimera")
     config: dict[str, object] = {
         "container": "docker://example/align-rna",
-        "genome": {"assembly": "sacCer3", "annotation": "ensembl_R64-1-1"},
+        "genome": {"assembly": "sacCer3", "annotation": "ensembl_R64-1-1"}
+        if components is None
+        else {
+            "assembly": "_".join(components),
+            "annotation": "merged_R64-1-1",
+            "components": list(components),
+        },
         "mem_mb": 8 * 1024,
         "outdir": "results",
         "read_files_in": {"umi_cdna": "R1", "cdna": "R2"}
@@ -1228,6 +1287,91 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     # one core of an allocation it was holding whole. Read off the rendered command, because a rule
     # whose `threads:` and whose command line disagree is exactly what that looked like.
     assert "--threads 4" in _rendered_shell(plan)["umi_count"][""]
+
+
+def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_component(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """The twin's rule graph, off a rendered plan — the one thing no other test here can say.
+
+    The wiring gate proves the twin PLANS; it renders every `shell:` and runs none, so a counting
+    command naming the wrong flag, a CRAM made from the wrong BAM or a matrix demanded as a folder
+    all pass it. Those are the four decisions this module exists to carry, so they are read off the
+    plan itself, from a hand-written config — which keeps the claim about the MODULE rather than
+    about the composer agreeing with itself, exactly as the base module's plan test argues.
+
+    1. **The split sits BESIDE the CRAM.** `umi_to_cram` reads the pre-split chimeric BAM, so the
+       archive keeps every multimapper and is strictly MORE complete than a single-assembly run's.
+       Upstream of it the archive would inherit the split's filter, which is the price this ordering
+       dissolves rather than pays.
+    2. **`rule all` demands each Component's matrix BY NAME.** A rule whose output is a folder is
+       satisfied by a folder, which is how a counting job that wrote two Components of three exits 0
+       with an organism silently missing.
+    3. **The counting verb is handed a Component and the CHIMERA.** Exactly one of `--component` and
+       `--annotation` is legal, so rendering both is exit 2 rather than a precedence rule anyone has
+       to remember — and the record saying what each Component contributed lives on the Chimera, so
+       passing the Component as the assembly would resolve the wrong reference.
+    4. **N-agnostic**: one job per cell for the split, one per Component for the count, over one
+       config list. The counts below are the whole shape, and a Component loop written into the
+       module would read as the same number here only by coincidence.
+
+    Plus the reclaim rule: the per-Component BAMs are `temp()` and the split summary is not, because
+    what the split MEASURED has to outlive the records it measured — it is where `unmapped` and
+    `multimapping` live once they have left the pipeline.
+    """
+    components = ("tinyCe", "tinyEc")
+    cells = ("cell_a", "cell_b", "cell_c")
+    module = get_module("map/star-umi-chimera")
+    config = _plate_run_dir(tmp_path, cells, components=components)
+
+    dotted = {
+        f"{key}.{sub}" if isinstance(value, dict) else key
+        for key, value in config.items()
+        for sub in (value if isinstance(value, dict) else [None])
+    }
+    # The same identity the base's plan test makes, and here it is what proves the ONE new key is
+    # read and that nothing else came with it: `read_files_in.cdna` is the module's optional `.get`.
+    assert set(module.required_config) == dotted - {"read_files_in.cdna"}
+
+    plan = dry_run(tmp_path)
+    rendered = _rendered_shell(plan)
+
+    assert re.search(r"^split_chimera\s+3\s*$", plan, re.M), plan
+    assert re.search(r"^umi_to_cram\s+3\s*$", plan, re.M), plan
+    assert re.search(r"^umi_count\s+2\s*$", plan, re.M), plan  # one per Component, not one per cell
+    # Each Component's object, by name.
+    for component in components:
+        assert f"results/combined.{component}.h5ad" in plan
+    assert all(f"results/{s}/{s}.cram" in plan for s in cells)
+
+    # The CRAM is made from the PRE-split BAM: the file STAR wrote, not a per-Component one.
+    cram = rendered["umi_to_cram"]["cell_a"]
+    assert f"--bam results/cell_a/{STAR_BAM}" in cram, cram
+
+    # The split takes the same BAM, one `<component>=<path>` per Component, and the CHIMERA.
+    split = rendered["split_chimera"]["cell_a"]
+    assert f"--bam results/cell_a/{STAR_BAM}" in split, split
+    for component in components:
+        assert f"{component}=results/cell_a/cell_a.{component}.bam" in split, split
+    assert f"--assembly {'_'.join(components)}" in split, split
+    assert f"--summary results/cell_a/cell_a{SPLIT_SUFFIX}" in split, split
+
+    # The count is handed a Component and never an annotation — both would be a refusal, and the
+    # assembly stays the Chimera because that is where the merge's record lives.
+    counting = rendered["umi_count"]
+    assert set(counting) == set(components)
+    for component in components:
+        command = counting[component]
+        assert f"--component {component}" in command, command
+        assert "--annotation" not in command, command
+        assert f"--assembly {'_'.join(components)}" in command, command
+        assert f"--out results/combined.{component}.h5ad" in command, command
+        # Every cell of the plate, for this Component and no other.
+        assert all(f"{s}=results/{s}/{s}.{component}.bam" in command for s in cells), command
+
+    removed = [line for line in plan.splitlines() if line.startswith("Would remove temporary")]
+    assert any(f"cell_a.{components[0]}.bam" in line for line in removed), removed
+    assert not any(SPLIT_SUFFIX in line for line in removed), removed
 
 
 def test_the_three_prime_clip_takes_its_arity_from_the_same_fact_the_read_type_does(
@@ -2219,6 +2363,7 @@ def test_every_registered_workflow_module_either_reports_or_says_it_does_not() -
         "map/chromap",
         "map/star",
         "map/star-umi",
+        "map/star-umi-chimera",
     }
     assert MODULES_WITHOUT_STATS == frozenset()
 
@@ -2240,7 +2385,15 @@ def test_every_registered_workflow_module_either_cross_checks_or_says_it_does_no
     )
     assert not (set(modules_with_cross_checks()) & MODULES_WITHOUT_CROSS_CHECKS)
     assert set(modules_with_cross_checks()) == {"map/starsolo"}
-    assert MODULES_WITHOUT_CROSS_CHECKS == {"map/chromap", "map/star", "map/star-umi"}
+    assert MODULES_WITHOUT_CROSS_CHECKS == {
+        "map/chromap",
+        "map/star",
+        "map/star-umi",
+        # The chimeric twin inherits the plate's whole argument and adds one: nobody has measured
+        # what share of a worm plate SHOULD be E. coli, so a bar on a Component's share would be a
+        # figure invented at review — which is the thing this set exists to refuse.
+        "map/star-umi-chimera",
+    }
 
 
 def _stub_reader(path: Path, sample: str) -> SampleStats:
@@ -4922,6 +5075,88 @@ def test_an_unreadable_summary_costs_its_own_columns_and_names_the_file_it_could
     assert "umi_tagged" not in cell_a and "umi_tagged" in cell_b
     assert "uniquely_mapped" in cell_a and set(FATES) <= set(cell_a)
     assert stats.notes == [f"cell_a: cell_a{EXTRACT_SUFFIX} could not be read (JSONDecodeError)"]
+
+
+def test_a_chimeric_plate_reports_what_left_at_the_split_and_never_a_gene_assignment_fate(
+    tmp_path: Path,
+) -> None:
+    """The twin's page: per-Component shares and the four drop counts, and NO fan-in fates.
+
+    Three decisions meet here and none of them is legible from any other test.
+
+    **The split summary is load-bearing rather than additional.** `unmapped` and `multimapping` are
+    dropped one rule before the counter, so both read structurally zero in every per-Component
+    matrix — a page rendering them from the counting object would state a falsehood about the data,
+    since those reads existed and left earlier. They live in this artifact, and the per-Component
+    share beside them is the number the whole chimera exercise exists to produce: the bacterial
+    fraction of a well, readable without opening an `.h5ad`.
+
+    **`read_fan_in` is absent, and the absence is the claim.** The twin's fan-in artifact carries a
+    `{component}`, so reporting it means a Component loop and per-Component key prefixes to render
+    exactly the two numbers that do not compare across run types. Declining them is what deletes a
+    `CompiledPipeline.components` field and a reader signature change rather than paying for both,
+    and the stated cost is this: a chimeric run's page carries no gene-assignment fate at all.
+
+    **`finishes` stays on STAR's log**, which is why the second half runs the same read with no log
+    on disk: "N of M finished" has to mean the same thing on a chimeric run as on a plain one, or a
+    plate whose split has outrun its alignment renders as done.
+
+    The payload is written by the REAL splitter over the synthetic chimeric plate above, not by hand:
+    what a summary key is called is the writer's fact, so a reader driven from a hand-built dict
+    could only ever agree with itself.
+    """
+    round_trip = _split(tmp_path, "plain")
+    results = tmp_path / "results"
+    for sample in ("cell_a", "cell_b"):
+        _write(
+            results / sample / f"{sample}{SPLIT_SUFFIX}",
+            json.dumps(round_trip.stats.to_dict()),
+        )
+
+    started = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"])
+
+    # The split has landed for every cell and STAR's log has not, so there are rows and nothing is
+    # finished. Both halves matter: dropping the rows would also keep the badge off, and would hide
+    # the very numbers this artifact was added for.
+    assert started is not None and not started.complete
+    assert (started.n_found, started.n_expected) == (0, 2)
+    assert [s.sample_id for s in started.samples] == ["cell_a", "cell_b"]
+
+    for sample in ("cell_a", "cell_b"):
+        _write(
+            results / sample / "Log.final.out",
+            "".join(f"  {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()),
+        )
+    stats = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"])
+
+    assert stats is not None and stats.complete
+    cell_a = _by_key(stats.samples[0])
+    assert "uniquely_mapped" in cell_a  # STAR's half, on the same row and not a row of its own
+    # Every Component of the Chimera has a share, and every share is over the records that came in —
+    # read off `_chimeric_plate`'s rows by hand: 21 records in, of which 4 kept per Component.
+    kept = round_trip.stats.kept
+    assert set(kept) == {c.name for c in round_trip.chimera.components}
+    for component, n in kept.items():
+        assert cell_a[f"split_kept_{component}"].value == pytest.approx(
+            n / round_trip.stats.records_in
+        )
+    # ...and all four reasons, always present, because an absent key and a zero are different claims
+    # and only one of them is a measurement.
+    assert {r: cell_a[f"split_dropped_{r}"].value for r in DROP_REASONS} == {
+        "unmapped": 1,
+        "secondary": 4,
+        "supplementary": 4,
+        "multimapping": 4,
+    }
+    # Nothing the split says is graded: nobody has measured what share of a worm plate SHOULD be
+    # E. coli, so a bar here would be a figure invented at review.
+    assert {_levels(stats.samples[0])[m] for m in cell_a if m.startswith("split_")} == {"none"}
+    assert stats.findings == []
+    # No fan-in reader, so no counting fate reaches the page at all — the stated cost, asserted.
+    assert not set(FATES) & set(cell_a)
+    # Columns read in pipeline order: what STAR did, then what the split then did with it.
+    keys = [key for key, _ in stats.columns]
+    assert keys.index("uniquely_mapped") < keys.index("split_dropped_multimapping")
 
 
 def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> None:

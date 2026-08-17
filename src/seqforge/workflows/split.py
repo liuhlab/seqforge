@@ -64,6 +64,8 @@ from genome.chimera import ChimeraNamingError, split_suffixed
 
 from .. import __version__
 from . import WORKFLOW_VERSION
+from .metrics import Metric, SampleStats, fraction
+from .metrics import count as count_metric
 
 if TYPE_CHECKING:  # pragma: no cover — a runtime dep; keeps the import cost off compose
     from pysam import AlignedSegment, AlignmentHeader
@@ -388,11 +390,115 @@ def split_chimera(
     return stats
 
 
+def _counted(payload: Mapping[str, Any], key: str) -> int | None:
+    """One non-negative integer out of a summary payload, or ``None`` for anything else.
+
+    Absent is absent, and so is a value of the wrong shape: a number the artifact does not carry has
+    to be missing from the page rather than rendered as a zero somebody acts on. That covers a
+    summary written before a key existed and a hand-edited one, with the same answer for both — and
+    it matters more here than it does for the extraction summary, because two of the counts below
+    are *expected* to be zero on a healthy run and a fabricated zero would be indistinguishable.
+    """
+    value = payload.get(key)
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+
+#: What each drop reason means for a reader, and why the number is where it is. Beside the reasons
+#: rather than inline in the builder below, because the set is :data:`DROP_REASONS` and a hint list
+#: that could go out of step with it by one is the drift the shared tuple exists to stop.
+_DROP_HINTS: dict[str, str] = {
+    "unmapped": "Records the aligner placed nowhere. Dropped rather than passed through — such a "
+    "record's mate pointer still names a suffixed chromosome this output no longer declares — and "
+    "this is the only place a chimeric run reports them, since they never reach a matrix.",
+    "secondary": "Non-primary alignments of a read placed elsewhere too. Structurally absent under "
+    "this pipeline's flags, so a number above zero means a flag moved rather than a library changed.",
+    "supplementary": "Chimeric (split-read) alignment segments. Structurally absent under this "
+    "pipeline's flags, like the secondaries above.",
+    "multimapping": "Records placed at more than one locus, ACROSS Components as well as within "
+    "one. This is where cross-organism ambiguity goes, and it is why every share above is a lower "
+    "bound; it is also the fate that reads zero in a chimeric matrix, because it leaves here.",
+}
+
+
+def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
+    """One cell's split summary -> the columns its report row shows. Pure — no file, no pysam.
+
+    **This is where a chimeric run's ``unmapped`` and ``multimapping`` LIVE**, and that is what makes
+    the adapter load-bearing rather than decorative. Those reads are dropped at the split, one rule
+    before the counter, so both fates read structurally zero in every per-Component matrix — a page
+    rendering them from the counting object would be stating a falsehood about the data, since the
+    reads existed and left earlier. They are counted here, by reason, and reported here.
+
+    **One metric per Component, computed as that Component's share of the records that came in**, so
+    the bacterial fraction of a well is readable without opening an ``.h5ad`` — the number the whole
+    exercise exists to produce. It is a share and not a count because a share is comparable between
+    two cells of different depths, and it is over records rather than fragments because records are
+    what this artifact counted.
+
+    **Ungraded, every one of them.** Nobody has measured what share of a worm plate *should* be *E.
+    coli*, so a bar here would be a figure invented at review — which is exactly what the module's
+    membership in the cross-check silence set says out loud. And no ``headline``: the Component axis
+    is N-wide by construction, so promoting it would put an unbounded number of columns in a strip
+    whose whole job is being small.
+
+    Each Component's share is a LOWER BOUND on that organism's presence, because the split keeps only
+    uniquely-placed reads: a read ambiguous across organisms is indistinguishable from a
+    within-organism repeat and is counted in ``multimapping`` beside them.
+    """
+    kept = payload.get("kept")
+    kept = kept if isinstance(kept, Mapping) else {}
+    records_in = _counted(payload, "records_in")
+    dropped = payload.get("dropped")
+    dropped = dropped if isinstance(dropped, Mapping) else {}
+
+    built: list[Metric | None] = [
+        fraction(
+            f"split_kept_{component}",
+            f"{component} share",
+            (_counted(kept, component) or 0) / records_in if records_in else None,
+            group="alignment",
+            hint=f"Share of this cell's alignment records that landed on {component} and were kept "
+            f"— mapped, uniquely placed, primary. A LOWER BOUND on that organism's presence: a read "
+            f"ambiguous across Components is dropped as a multimapper rather than assigned to one.",
+        )
+        for component in sorted(kept)
+    ]
+    built += [
+        count_metric(
+            f"split_dropped_{reason}",
+            f"Dropped: {reason}",
+            _counted(dropped, reason),
+            group="alignment",
+            exact=True,
+            hint=_DROP_HINTS[reason],
+        )
+        for reason in DROP_REASONS
+    ]
+    return SampleStats(sample_id=sample, metrics=[m for m in built if m is not None])
+
+
+def read_split_summary(path: Path, sample: str) -> SampleStats:
+    """Load one ``<sample>.split.json`` and normalise it.
+
+    The thin half of the adapter, in the shape ``extract.read_extract_summary`` established: loading
+    lives beside the code that WRITES the file so the registry hands over a path and gets metrics
+    back, and the judgement lives in :func:`split_metrics`, which needs no file to test. Raises
+    ``OSError``/``ValueError`` if the bytes are unusable, so one bad summary costs its own columns
+    and not the whole page.
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"{path} is not a chimera split summary")
+    return split_metrics(payload, sample)
+
+
 __all__ = [
     "DROP_REASONS",
     "SPLIT_SUFFIX",
     "SplitError",
     "SplitStats",
     "parse_outputs",
+    "read_split_summary",
     "split_chimera",
+    "split_metrics",
 ]

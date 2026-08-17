@@ -297,6 +297,35 @@ class Backend(_Forbid):
     params: dict[str, str | int | float | list[str]]
 
     @model_validator(mode="after")
+    def _not_a_chimeric_variant(self) -> Backend:
+        """A chimera-aware twin is reachable through its base's declaration and no other way.
+
+        A twin is selected by the composer swapping it in for its base when the recipe's assembly is
+        spelled like a **chimera**'s. A spec naming one directly would reach the same module by a
+        route that never asked the question the swap exists to ask — so a plain assembly would
+        compile to a pipeline that splits a BAM by a suffix nothing put there, and the failure would
+        be a refusal deep in a run rather than at compose time.
+
+        **The set is DERIVED from the module registry** (:data:`~seqforge.workflows.CHIMERIC_VARIANTS`)
+        rather than listed here, which is the same rule as everything else in this file that knows
+        about modules: a second list is one a new twin is missing from, and the guard would then pass
+        while guarding nothing. It fires before :meth:`Spec._cell_axis_matches_the_module` gets to
+        speak, so a spec naming the plate twin is told the real reason rather than being asked to
+        declare a cell axis it may not have anyway.
+        """
+        from ..workflows import CHIMERIC_VARIANTS
+
+        if self.module in CHIMERIC_VARIANTS:
+            raise ValueError(
+                f"backend.module {self.module!r} is a chimera-aware twin, which no spec may name. "
+                f"A twin is selected by compose swapping it in for the pipeline this chemistry "
+                f"already binds to, and only when the recipe names a chimeric assembly — naming it "
+                f"here reaches it by a route that never asks whether the reference is a chimera at "
+                f"all. Declare the base pipeline; the twin follows from the recipe."
+            )
+        return self
+
+    @model_validator(mode="after")
     def _only_parse_keys(self) -> Backend:
         """A count/reference/runtime knob may not be declared here — only this pipeline's parse keys.
 
