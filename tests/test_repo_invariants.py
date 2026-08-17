@@ -122,6 +122,8 @@ _GENOME_API = {
     "fasta_path",  # chromap.smk rule genome_index (chromap maps against -r ref) + e2e: simulate reads
     "default_gtf_path",  # e2e: build gene models
     "annotations",  # e2e/docs: which GTF names are registered; io umi-count: `.path(name)`
+    "components",  # io split-chimera: which Components a Chimera holds, off the completion record
+    "separator",  # io split-chimera: the underscore run those Components' chromosome names carry
 }
 
 

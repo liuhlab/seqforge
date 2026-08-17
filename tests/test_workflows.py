@@ -30,6 +30,7 @@ import anndata as ad
 import pysam
 import pytest
 import yaml
+from genome.chimera import derive_separator, split_suffixed, suffixed
 from scipy.sparse import csr_matrix
 
 from conftest import (
@@ -120,6 +121,7 @@ from seqforge.workflows.qc import (
 )
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
+from seqforge.workflows.split import SplitError, SplitStats, split_chimera
 from seqforge.workflows.stats import (
     MODULES_WITHOUT_CROSS_CHECKS,
     MODULES_WITHOUT_STATS,
@@ -3603,6 +3605,13 @@ def _annotation_db(tmp_path: Path) -> Path:
     return db
 
 
+#: SAM's own words for the two placements that re-state a read the file already carries. Spelled as
+#: the flag bits because that is what a fragment declaring one is asking for, and because a boolean
+#: per bit would multiply every time SAM grew another.
+_SECONDARY = 0x100
+_SUPPLEMENTARY = 0x800
+
+
 @dataclass(frozen=True)
 class _Fragment:
     """One fragment to synthesise: where it lands, what it carries, and how many loci it claims."""
@@ -3614,13 +3623,20 @@ class _Fragment:
     umi: str = ""
     hits: int = 1
     mate_unmapped: bool = False
+    #: Neither mate aligned anywhere. One record, no reference, `uT` saying why — the shape STAR
+    #: writes for a pair it could not place, and the one a chimera split has to DROP rather than
+    #: rewrite, because its RNEXT still names a suffixed chromosome the output header will not have.
+    unmapped: bool = False
+    #: Bits OR-ed onto both mates' flags: `_SECONDARY` or `_SUPPLEMENTARY`. A fragment carrying one
+    #: is a placement some consumer is expected to discard, and which discard rule saw it first is
+    #: exactly what a per-reason drop count has to keep apart.
+    extra_flags: int = 0
 
 
 def _segments(header: Any, frag: _Fragment) -> list[Any]:
-    """One `_Fragment` -> its BAM records: two mates, or one when the mate never aligned."""
+    """One `_Fragment` -> its BAM records: two mates, or one when it or its mate never aligned."""
     import pysam
 
-    tid = header.get_tid(frag.contig)
     span = frag.end - frag.start
     mate_start = frag.end - _READ_LEN
 
@@ -3630,43 +3646,58 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
         rec.query_sequence = "A" * _READ_LEN
         rec.query_qualities = pysam.qualitystring_to_array("I" * _READ_LEN)
         rec.flag = flag
-        rec.reference_id = tid
-        rec.reference_start = start
-        rec.mapping_quality = 255
-        rec.cigarstring = f"{_READ_LEN}M"
-        rec.next_reference_id = tid
-        rec.next_reference_start = mate
-        rec.template_length = tlen
+        if not rec.is_unmapped:
+            tid = header.get_tid(frag.contig)
+            rec.reference_id = tid
+            rec.reference_start = start
+            rec.mapping_quality = 255
+            rec.cigarstring = f"{_READ_LEN}M"
+            rec.next_reference_id = tid
+            rec.next_reference_start = mate
+            rec.template_length = tlen
         tags: list[tuple[str, object, str]] = [("NH", frag.hits, "i")]
         if frag.umi:
             tags.append(("UB", frag.umi, "Z"))
+        if frag.unmapped:
+            tags.append(("uT", "4", "A"))
         rec.set_tags(tags)
         return rec
 
+    if frag.unmapped:
+        # PAIRED | UNMAPPED | MATE_UNMAPPED | READ1, and no coordinates at all.
+        return [build(frag.start, 1 | 4 | 8 | 64, frag.start, 0)]
     if frag.mate_unmapped:
         # PAIRED | MATE_UNMAPPED | READ1, and no second record: STAR writes none unless asked to,
         # so the flag on this one is the only evidence that the fragment did not align.
         return [build(frag.start, 1 | 8 | 64, frag.start, 0)]
     return [
-        build(frag.start, 1 | 2 | 32 | 64, mate_start, span),
-        build(mate_start, 1 | 2 | 16 | 128, frag.start, -span),
+        build(frag.start, 1 | 2 | 32 | 64 | frag.extra_flags, mate_start, span),
+        build(mate_start, 1 | 2 | 16 | 128 | frag.extra_flags, frag.start, -span),
     ]
 
 
-def _synthetic_bam(path: Path, fragments: Sequence[_Fragment]) -> Path:
+def _synthetic_bam(
+    path: Path, fragments: Sequence[_Fragment], header: dict[str, Any] | None = None
+) -> Path:
     """`fragments` -> a COORDINATE-sorted BAM, which is the input contract this counter has.
 
     Sorting by position is what scatters each fragment's two mates apart, so a port that quietly
-    depended on name adjacency goes red here rather than in production.
+    depended on name adjacency goes red here rather than in production. A record with no coordinates
+    sorts to the END, where a coordinate-sorted BAM puts it, rather than ahead of chromosome zero.
+
+    `header` defaults to the counter's own two-contig header. The chimera rows hand over their own,
+    because a chimeric BAM's whole subject is what its @SQ block says and which program wrote it.
     """
     import pysam
 
-    header = pysam.AlignmentHeader.from_dict(
-        {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": _CONTIGS}
+    template = pysam.AlignmentHeader.from_dict(
+        header if header is not None else {"HD": {"VN": "1.6", "SO": "coordinate"}, "SQ": _CONTIGS}
     )
-    records = [rec for frag in fragments for rec in _segments(header, frag)]
-    records.sort(key=lambda r: (r.reference_id, r.reference_start))
-    with pysam.AlignmentFile(str(path), "wb", header=header) as out:
+    records = [rec for frag in fragments for rec in _segments(template, frag)]
+    records.sort(
+        key=lambda r: (r.reference_id if r.reference_id >= 0 else 1 << 30, r.reference_start)
+    )
+    with pysam.AlignmentFile(str(path), "wb", header=template) as out:
         for rec in records:
             out.write(rec)
     return path
@@ -4309,6 +4340,287 @@ def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the
     for malformed in ("/x/one.bam", "=/x/one.bam", "c1="):
         with pytest.raises(UmiCountError, match="sample_id=path"):
             parse_cells([malformed])
+
+
+# ---- one chimeric BAM back into the single-assembly BAMs it would have been ----------------------
+#
+# Both ends of the round-trip are hand-written from ONE declared contig table, spelled two ways: the
+# chimeric BAM the splitter reads, and the single-assembly header its output is compared against. No
+# aligner, no built Chimera, no genome store — which is why this is a row on the plate above rather
+# than an `external` test nobody runs, and it is also the limit of what it proves. That STAR produces
+# the BAM shape assumed here is not under test; the aligner is not the thing being exercised.
+#
+# **Seven assertions, and the set is measured rather than argued.** A prototype wrote a splitter to
+# this contract, broke it eighteen ways on purpose, and kept only the assertions that were the ONLY
+# thing catching a defect. Four candidates are deliberately absent. Routing — "every uniquely-placed
+# read lands in the Component it came from", the headline bar — catches nothing once the name split
+# is liulab-genome's: a record's Component is then a pure function of its RNAME, and every
+# constructible misrouting refuses or crashes before any assertion runs. Reads-in-equals-kept-plus-
+# dropped is strictly subsumed by the per-reason drop counts. Mate-in-same-Component is the
+# splitter's own runtime refusal, which fires before an output exists to assert over. And nothing
+# asserts an ambiguous route, because assigning a spanning template to its best-scoring Component
+# was rejected outright — there is no such route to have an opinion about.
+
+
+@dataclass(frozen=True)
+class _Component:
+    """One assembly a Chimera is built from, and the chromosomes it declares IN ITS OWN ORDER."""
+
+    name: str
+    chromosomes: tuple[tuple[str, int], ...]  # (name, length)
+
+
+@dataclass(frozen=True)
+class _Chimera:
+    """Several `_Component`s as one reference: the contig table this section spells two ways."""
+
+    components: tuple[_Component, ...]
+
+    @property
+    def separator(self) -> str:
+        """The underscore run these names force — DERIVED by liulab-genome, never typed here.
+
+        Typing it would make the `dub` shape below prove nothing: its whole point is that a
+        Component whose own chromosome names carry `__` forces a longer run, and a fixture that
+        asserts the separator it also hardcoded cannot notice that.
+        """
+        return derive_separator({c.name: [n for n, _ in c.chromosomes] for c in self.components})
+
+    @property
+    def sq(self) -> list[dict[str, Any]]:
+        """The chimeric @SQ: Components in sorted order, each block in its own declared order."""
+        return [
+            {"SN": suffixed(chrom, c.name, self.separator), "LN": length}
+            for c in sorted(self.components, key=lambda c: c.name)
+            for chrom, length in c.chromosomes
+        ]
+
+    def single_assembly_sq(self, component: str) -> list[dict[str, Any]]:
+        """What a run against the bare Component alone would have written — the comparison artifact."""
+        one = next(c for c in self.components if c.name == component)
+        return [{"SN": chrom, "LN": length} for chrom, length in one.chromosomes]
+
+
+# `chrX` before `chrM` is real ce11 order and is NOT alphabetical, deliberately: an @SQ block that
+# happened to be sorted would make the ORDER half of the header assertion decorative, since a
+# splitter that sorted its output would agree with it anyway.
+_TINY_CE = _Component("tinyCe", (("chrI", 4000), ("chrII", 3000), ("chrX", 2500), ("chrM", 900)))
+_TINY_EC = _Component("tinyEc", (("ctg1", 1200), ("ctg2", 800)))
+#: The same bacterium with chromosome names that ALREADY carry `__`, which forces the Chimera's
+#: separator to `___`. Load-bearing for a narrower reason than it looks: a splitter that hardcodes
+#: `__` on such a name does not raise — it still recovers the right Component and corrupts only the
+#: bare name, by one trailing underscore — so it is sprung by the HEADER assertion and by nothing
+#: else. The plain shape springs the opposite bug: a splitter hardcoding `___`, written by whoever
+#: only ever tested on this one, refuses on ordinary names, which is why `plain` only has to be run.
+_TINY_EC_DUB = _Component("tinyEcDub", (("ctg__1", 1200), ("ctg__2", 800)))
+
+_CHIMERAS = {
+    "plain": _Chimera((_TINY_CE, _TINY_EC)),
+    "dub": _Chimera((_TINY_CE, _TINY_EC_DUB)),
+}
+
+
+def _chimeric_plate(chimera: _Chimera) -> tuple[_Fragment, ...]:
+    """One fragment of every kind in every Component, plus one template that never aligned at all.
+
+    Nothing here is computed from the splitter's own arithmetic: each row states its kind, and the
+    counts the assertions below carry are read off this list by hand — two records per fragment, one
+    for the unmapped pair, so a two-Component shape is 8 kept and 13 dropped out of 21 records in.
+    """
+    separator = chimera.separator
+    fragments: list[_Fragment] = []
+    for component in chimera.components:
+        first = suffixed(component.chromosomes[0][0], component.name, separator)
+        last = suffixed(component.chromosomes[-1][0], component.name, separator)
+        fragments += [
+            # Kept: mapped, uniquely placed, primary. The second one is on the LAST contig its
+            # Component declares, so a tid remap that only ever gets index zero right goes red.
+            _Fragment(f"{component.name}_unique_first", first, 100, 160),
+            _Fragment(f"{component.name}_unique_last", last, 200, 260),
+            # Dropped, one category each, and only the first of the three can occur under the flags
+            # the aligner runs with today.
+            _Fragment(f"{component.name}_multi", first, 300, 360, hits=2),
+            _Fragment(f"{component.name}_secondary", first, 400, 460, extra_flags=_SECONDARY),
+            _Fragment(f"{component.name}_supp", first, 500, 560, extra_flags=_SUPPLEMENTARY),
+        ]
+    fragments.append(_Fragment("never_aligned", "", 0, 0, unmapped=True))
+    return tuple(fragments)
+
+
+def _chimeric_bam(path: Path, chimera: _Chimera, fragments: Sequence[_Fragment]) -> Path:
+    """The aligner's output: a coordinate-sorted chimeric BAM whose @PG/@CO name the Chimera."""
+    name = "_".join(sorted(c.name for c in chimera.components))
+    return _synthetic_bam(
+        path,
+        fragments,
+        header={
+            "HD": {"VN": "1.6", "SO": "coordinate"},
+            "SQ": chimera.sq,
+            "PG": [{"ID": "STAR", "PN": "STAR", "VN": "2.7.11b", "CL": f"STAR --genomeDir {name}"}],
+            "CO": [f"user command line: STAR --genomeDir {name}"],
+        },
+    )
+
+
+@dataclass(frozen=True)
+class _Round:
+    """One round-trip: what went in, where it came out, and what the splitter said it did."""
+
+    chimera: _Chimera
+    source: Path
+    fragments: tuple[_Fragment, ...]
+    outputs: dict[str, Path]
+    stats: SplitStats
+
+
+def _split(tmp_path: Path, label: str) -> _Round:
+    """Build one Chimera's BAM, split it into every Component, and hand back what to read."""
+    chimera = _CHIMERAS[label]
+    fragments = _chimeric_plate(chimera)
+    bam = _chimeric_bam(tmp_path / f"{label}.bam", chimera, fragments)
+    outputs = {c.name: tmp_path / f"{label}.{c.name}.bam" for c in chimera.components}
+    stats = split_chimera(bam, outputs, chimera.separator)
+    return _Round(chimera, bam, fragments, outputs, stats)
+
+
+def _kept(fragments: Sequence[_Fragment]) -> list[_Fragment]:
+    """The plate's mapped, uniquely-placed, primary fragments — the keep rule, read off the rows."""
+    return [f for f in fragments if not f.unmapped and not f.extra_flags and f.hits == 1]
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_each_component_comes_back_with_the_header_a_single_assembly_run_would_have_written(
+    tmp_path: Path, label: str
+) -> None:
+    """The bar: @SQ names, lengths and ORDER against a hand-written single-assembly header, and @HD.
+
+    Names because a suffix left on makes the output unusable by everything the user owns, which is
+    the entire reason this verb exists. Lengths because the split takes them off the BAM's own @SQ
+    rather than a `chrom.sizes` that could have drifted underneath it. Order because a Component's
+    contigs must arrive as its own assembly declares them, and a splitter that sorted them would
+    look right on a table that happened to be alphabetical — this one is not.
+
+    @HD travels untouched, and dropping it is what stops the BAM declaring itself coordinate-sorted:
+    an unsorted-looking BAM is not an error anybody sees, it is an index build that fails later.
+    """
+    round_trip = _split(tmp_path, label)
+    with pysam.AlignmentFile(str(round_trip.source), "rb") as chimeric:
+        chimeric_hd = chimeric.header.to_dict()["HD"]
+
+    for component, path in round_trip.outputs.items():
+        alone = _synthetic_bam(
+            tmp_path / f"{label}.{component}.single.bam",
+            (),
+            header={
+                "HD": {"VN": "1.6", "SO": "coordinate"},
+                "SQ": round_trip.chimera.single_assembly_sq(component),
+            },
+        )
+        with (
+            pysam.AlignmentFile(str(path), "rb") as split,
+            pysam.AlignmentFile(str(alone), "rb") as single,
+        ):
+            assert split.header.to_dict()["SQ"] == single.header.to_dict()["SQ"], (
+                f"{component}'s @SQ is not what a run against the bare assembly would have written"
+            )
+            assert split.header.to_dict()["HD"] == chimeric_hd
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_every_kept_record_resolves_to_the_chromosome_it_actually_sits_on(
+    tmp_path: Path, label: str
+) -> None:
+    """The binary reference dictionary is rewritten, not just the text header.
+
+    A record names its reference by INDEX into that dictionary, so the one corruption nothing else
+    here can see is a remap that is off by one and still in range: the header reads perfectly, every
+    record resolves, and every read is on the wrong chromosome. Resolving each record's name through
+    the output's own header is what catches it — and it only catches it on the SECOND Component,
+    whose indexes are the ones that had to move at all.
+    """
+    round_trip = _split(tmp_path, label)
+    separator = round_trip.chimera.separator
+
+    for component, path in round_trip.outputs.items():
+        expected = sorted(
+            placed
+            for frag in _kept(round_trip.fragments)
+            if split_suffixed(frag.contig, separator)[1] == component
+            # Both mates, and they are on the same chromosome: the keep rule is per record, so an
+            # output missing one of a pair is a different failure than an output missing a name.
+            for placed in [(frag.name, split_suffixed(frag.contig, separator)[0])] * 2
+        )
+        with pysam.AlignmentFile(str(path), "rb") as split:
+            assert sorted((r.query_name, r.reference_name) for r in split) == expected
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_both_mates_of_a_kept_template_are_kept_so_read1_equals_read2(
+    tmp_path: Path, label: str
+) -> None:
+    """Nothing is held and nothing is halved: a template survives whole or not at all.
+
+    Both mates carry one NH and sit on one chromosome, which is the fact that lets the filter be
+    stateless — no name sort, no buffer. The failure it stands against is a keep rule written as
+    `is_read1`, which loses every second mate at exit 0 and halves a library nobody re-counts.
+    """
+    round_trip = _split(tmp_path, label)
+    assert round_trip.stats.read1 == round_trip.stats.read2 == dict.fromkeys(round_trip.outputs, 2)
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_every_dropped_record_is_counted_under_the_reason_it_was_dropped_for(
+    tmp_path: Path, label: str
+) -> None:
+    """Four discard categories under one keep rule, each counted apart.
+
+    Only multimapping can occur under the flags the aligner runs with today, and the other three are
+    counted anyway so the rule degrades legibly if a flag moves: a category that starts firing says
+    so here, rather than reads quietly going missing. Two records per fragment, one for the pair
+    that never aligned — see the plate.
+    """
+    assert _split(tmp_path, label).stats.dropped == {
+        "unmapped": 1,
+        "secondary": 4,
+        "supplementary": 4,
+        "multimapping": 4,
+    }
+
+
+def test_a_component_the_caller_named_no_output_for_is_refused_rather_than_dropped(
+    tmp_path: Path,
+) -> None:
+    """A partial request is a refusal, because served it looks exactly like a request that was met.
+
+    The reads on the un-named Component go nowhere and nothing says so: the run exits 0, writes the
+    file it was asked for, and reads-in-equals-reads-out stops closing with no record of when.
+    """
+    chimera = _CHIMERAS["plain"]
+    bam = _chimeric_bam(tmp_path / "plain.bam", chimera, _chimeric_plate(chimera))
+    with pytest.raises(SplitError, match="tinyEc"):
+        split_chimera(bam, {"tinyCe": tmp_path / "ce.bam"}, chimera.separator)
+
+
+def test_an_sq_name_that_will_not_split_at_the_recorded_separator_is_refused(
+    tmp_path: Path,
+) -> None:
+    """A chromosome the reference cannot explain is a refusal, and it is made from the header alone.
+
+    Skipping it instead would put reads in whichever output happened to be open, or in none, on a
+    BAM that was mapped to something other than the Chimera named. The check is up front because the
+    whole @SQ block is readable before the first record, so nothing has been written when it fires.
+    """
+    chimera = _CHIMERAS["plain"]
+    header = {
+        "HD": {"VN": "1.6", "SO": "coordinate"},
+        # A contig nobody suffixed, which is what a reference the named Chimera did not build looks
+        # like from in here — the same shape a chimeric BAM would take on if a contig were appended.
+        "SQ": [*chimera.sq, {"SN": "chrUn_unsuffixed", "LN": 500}],
+    }
+    bam = _synthetic_bam(tmp_path / "stray.bam", (), header=header)
+    outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
+    with pytest.raises(SplitError, match="chrUn_unsuffixed"):
+        split_chimera(bam, outputs, chimera.separator)
 
 
 # ---- the plate object's second reader: what `seqforge report` gets out of it ----------------------
