@@ -100,6 +100,7 @@ from seqforge.workflows.metrics import (
     Metric,
     SampleStats,
     Severity,
+    fmt_count,
     fmt_int,
     fraction,
     gather_alerts,
@@ -2077,17 +2078,25 @@ _HEALTHY_SUMMARY: dict[str, object] = {
     "Total Gene Detected": 21044,
 }
 
+#: `Average input read length` is the one row in either log below that was RECONSTRUCTED rather than
+#: transcribed — both runs were archived before anything read it — so each carries the length its own
+#: chemistry put in front of STAR: a 10x cDNA read here, and in the broken run the 28-base barcode
+#: read it handed the aligner by mistake — the same swap `_CATCHES_A_BROKEN_RUN` catches by its
+#: consequences, sitting here as the cause. Nothing grades this metric, so no assertion rests on
+#: either magnitude; what rests on them is that STAR's own label resolves, since a misspelling costs
+#: the row silently rather than raising.
 _HEALTHY_LOG: dict[str, object] = {
     "Number of input reads": 412331205,
+    "Average input read length": 91,
     "Uniquely mapped reads %": "88.42%",
     "% of reads mapped to multiple loci": "6.31%",
     "% of reads mapped to too many loci": "0.42%",
     "% of reads unmapped: too short": "3.90%",
 }
 
-#: A real STARsolo run in which the cDNA read was handed to STAR as the barcode read. Every value is
-#: verbatim from its `Summary.csv` / `Log.final.out`; the four that must go red are the ones a human
-#: used to catch by eye, and the reason this layer exists.
+#: A real STARsolo run in which the cDNA read was handed to STAR as the barcode read. Every value but
+#: the read length noted above is verbatim from its `Summary.csv` / `Log.final.out`; the four that
+#: must go red are the ones a human used to catch by eye, and the reason this layer exists.
 _BROKEN_SUMMARY: dict[str, object] = {
     "Number of Reads": 207946411,
     "Reads With Valid Barcodes": 0.000762759,
@@ -2105,6 +2114,7 @@ _BROKEN_SUMMARY: dict[str, object] = {
 
 _BROKEN_LOG: dict[str, object] = {
     "Number of input reads": 207946411,
+    "Average input read length": 28,
     "Uniquely mapped reads %": "25.94%",
     "% of reads mapped to multiple loci": "5.30%",
     "% of reads mapped to too many loci": "10.90%",
@@ -2124,9 +2134,12 @@ _CATCHES_A_BROKEN_RUN = (
 #: Every metric a complete STARsolo bundle yields. Asserted as a SET, because that is the writer ->
 #: reader contract: rename a key in `build_qc_bundle` and the lookup in `qc.metrics` stops resolving,
 #: which costs a row here rather than failing anywhere. `input_reads` is absent on purpose — STARsolo's
-#: own "reads" already reports it, and two columns of one number read as two facts.
+#: own "reads" already reports it, and two columns of one number read as two facts. `Summary.csv` has
+#: no twin for the read length, though, so `input_read_length` must SURVIVE that same prune and appear
+#: on the droplet row as well as the bulk one.
 _FULL_SOLO_METRICS = {
     "reads",
+    "input_read_length",
     "valid_barcodes",
     "reads_in_genes",
     "reads_in_genome",
@@ -2453,7 +2466,7 @@ def _reads_per_fragment(tenths: int) -> Metric:
     return _by_key(fragments_metrics(payload, "s1"))["reads_per_fragment"]
 
 
-def test_the_graded_ratio_is_shown_at_a_precision_that_keeps_its_verdicts_apart() -> None:
+def test_a_metric_is_shown_by_the_formatter_its_own_number_survives() -> None:
     """`reads / fragment` is graded at 2.0 and 4.0, so its display has to resolve a tenth.
 
     This is what `ratio` exists for beside `count`, and the fragments adapter is its first caller:
@@ -2467,6 +2480,11 @@ def test_the_graded_ratio_is_shown_at_a_precision_that_keeps_its_verdicts_apart(
     that no two differently-graded values ever share a string, because values arbitrarily close to a
     bar exist on both sides of it — at a tenth the pair that still collapses has to agree with the
     bar to within 0.05, which is 2.5% of it rather than the 25% an integer would allow.
+
+    `input_read_length` is the same decision one door along: it is a length in bases, read against a
+    length the human remembers sequencing, and `count`'s abbreviating default renders a merged
+    long-read fragment as `1.2K` — a number nobody can subtract 150 from. So it passes `exact`, and
+    the counterfactual below is why.
     """
     below_ok, above_ok = _reads_per_fragment(19), _reads_per_fragment(21)
     below_warn, above_warn = _reads_per_fragment(39), _reads_per_fragment(41)
@@ -2478,6 +2496,13 @@ def test_the_graded_ratio_is_shown_at_a_precision_that_keeps_its_verdicts_apart(
     # The counterfactual, and the reason this metric is not built with `count`.
     assert fmt_int(below_ok.value) == fmt_int(above_ok.value) == "2"
     assert fmt_int(below_warn.value) == fmt_int(above_warn.value) == "4"
+
+    long_read = _by_key(starsolo_metrics({"log_final": {"Average input read length": 1203}}, "S1"))[
+        "input_read_length"
+    ]
+
+    assert long_read.display == "1,203" and fmt_count(long_read.value) == "1.2K"
+    assert long_read.level == "none"  # no bar to defend, so no colour claiming there is one
 
 
 # -- absent degrades to absent ----------------------------------------------
@@ -2748,6 +2773,7 @@ def test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between(
     # else -- `input_reads` included, which STARsolo drops only because its own "Reads" repeats it.
     assert set(_by_key(sample)) == {
         "input_reads",
+        "input_read_length",
         "uniquely_mapped",
         "multi_loci",
         "too_many_loci",
