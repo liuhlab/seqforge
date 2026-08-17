@@ -314,6 +314,7 @@ def starsolo_argv(
     barcode: str,
     whitelist: str | Path | Sequence[str | Path],
     out_prefix: str,
+    sample: str,
     threads: int,
     bam_sort_ram_bytes: int | None,
     out_sam_type: Sequence[str] = SHIPPED_OUT_SAM_TYPE,
@@ -352,6 +353,14 @@ def starsolo_argv(
 
     ``whitelist`` takes one path or several: 10x names one, a split-pool chemistry names three, and
     STAR reads them as N values of a single flag.
+
+    ``sample`` is the library the alignment came from, and it is the only value on this command line
+    that names the DATA rather than the recipe — hence a parameter, where every other decision here
+    is a module literal. It becomes ``--outSAMattrRGline ID:<sample> SM:<sample>``, and an instrument
+    owes one too: a read group is not a flag a measurement may drop, because dropping it is exactly
+    the drift ADR-0049 closed. ONE line whatever the sample's file count, because STAR replicates a
+    single ``RG`` entry across every comma-joined input file and refuses any other count than 1 or N
+    (`Parameters_readFilesInit.cpp`); a pooled sample is one library either way.
 
     ``bam_sort_ram_bytes=None`` omits the sort cap, and only the Snakefile path may pass it: that one
     flag has to escalate per retry attempt, so it reaches the shell as :data:`SORT_CAP_SHELL` instead.
@@ -396,6 +405,20 @@ def starsolo_argv(
         *out_sam_type,
         *(() if bam_sort_ram_bytes is None else ("--limitBAMsortRAM", str(bam_sort_ram_bytes))),
         *SAM_WRITE_PATH,
+        # The read group. NOT a member of :data:`SAM_WRITE_PATH` even though it belongs to the same
+        # write path, for the one reason that keeps that tuple a tuple: its value moves from one
+        # sample to the next, so it cannot be a constant.
+        #
+        # `--outSAMattrRGline` is STAR's ONLY input to an `@RG` header line, and setting it also
+        # appends `RG` to the output attribute order on STAR's own initiative — `RG` is not a word
+        # `--outSAMattributes` accepts, so there is no second way to ask for the tag and no way to
+        # get the line without it. Header and tag therefore arrive together or not at all, which is
+        # the SAM rule this pays: a record's `RG` must name a group the header introduced. Until now
+        # this route's records named none at all — valid, and refused by the GATK family for having
+        # no library provenance, which is a retained CRAM nobody downstream can re-call from.
+        "--outSAMattrRGline",
+        f"ID:{sample}",
+        f"SM:{sample}",
         *extra,
     )
 

@@ -23,6 +23,42 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.16 — every STAR module declares the read group its records name (#416). The plate route was
+#: shipping INVALID SAM and had been since the uBAM arrived: `umite`'s extractor writes
+#: `@RG ID:<cell> SM:<cell>` into the uBAM and stamps `RG:Z:<cell>` on every record, and
+#: `--readFilesSAMattrKeep All` carried that tag through the aligner — but STAR builds its output
+#: header from the genome and its own parameters and inherits NOTHING from an input BAM, so every
+#: aligned record named a read group its header never introduced. The specification forbids that.
+#: samtools and pysam tolerate it, Picard and GATK refuse the file outright, and the per-cell CRAM is
+#: the RETAINED artifact — so the malformed file is the one that ships to whoever receives the data.
+#: **THE FIX IS TWO FLAGS AND THE SECOND ONE IS NOT OPTIONAL.** `--outSAMattrRGline ID:<sample>
+#: SM:<sample>` is STAR's only input to an `@RG` header line, and setting it also appends `RG` to the
+#: output attribute order on STAR's own initiative — `RG` is not a word `--outSAMattributes` accepts,
+#: so header and tag are one decision and cannot be taken separately. That is precisely what made the
+#: keep list load-bearing: STAR writes its own attributes and THEN appends the kept input tags,
+#: de-duplicating against nothing (`ReadAlign_alignBAM.cpp` calls `bamAttrArrayWriteSAMtags`, which
+#: filters on the keep list alone), so `All` plus the flag would have written `RG` on a record TWICE
+#: — a worse file than the one being fixed. The two plate modules therefore keep `UB` by name instead
+#: of `All`; the input `RG` is dropped and STAR's is the only one. Nothing is lost, because both
+#: spell the same `{wildcards.sample}` and the extractor's uBAM is unchanged.
+#: **ALL FOUR STAR MODULES, NOT ONLY THE BROKEN ONE, AND THE COST ARGUMENT IS WHY.** `map/star` and
+#: `map/starsolo` read FASTQ, carried no `RG` in and stamped none out — valid files, merely with no
+#: library provenance, which the GATK family also refuses and which no merge of two samples can
+#: recover after the fact. Giving them the group is a behaviour change and would normally owe its own
+#: re-keying argument; here it owes none, because this release re-keys every pipeline anyway. Paying
+#: it now is the cheap moment, and paying it at all is the point.
+#: **WHICH OUTPUT MOVES. EVERY ALIGNMENT THE FOUR STAR MODULES WRITE**, and nothing else. Each gains
+#: an `@RG` line in its header and an `RG:Z:` on every record: `map/starsolo`'s per-sample BAM and
+#: its retained CRAM, `map/star-umi`'s and the chimera twin's per-cell BAMs and their retained CRAMs,
+#: and `map/star`'s coordinate-sorted BAM (which that module writes and does not declare — its
+#: `rule all` target, `ReadsPerGene.out.tab`, is byte-identical). Counts are untouched everywhere:
+#: `--outSAMattrRGline` reaches the SAM/BAM write path and no counting path, and the plate counter
+#: reads `UB` and `NH`, neither of which moves. The chimera splitter and the CRAM converter inherit
+#: the line for free and were not edited — the splitter copies every non-`@SQ` header line verbatim,
+#: the converter's `awk` passes `/^@/` through — so the split BAMs and every CRAM carry it without
+#: either learning what a read group is.
+#: A SEPARATE entry from 2026.8.15 rather than an extension of it, deliberately: that entry's "which
+#: output moves" says NONE, and it is true of the twin's arrival. Folding this in would make it false.
 #: 2026.8.15 — a FIFTH module, `map/star-umi-chimera`: the chimera-aware twin of the plate pipeline
 #: (#423, spec #419). A **Chimera** is one reference built from several **Component** assemblies whose
 #: chromosome names carry a component suffix, and until now seqforge would compile against one and
@@ -417,7 +453,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.15"
+WORKFLOW_VERSION = "2026.8.16"
 
 _MODULE_DIR = Path(__file__).parent
 

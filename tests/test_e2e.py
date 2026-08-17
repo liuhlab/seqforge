@@ -684,6 +684,7 @@ _RENDER: dict[str, Any] = {
     "barcode": "b.fq.gz",
     "whitelist": "wl.txt",
     "out_prefix": "out/",
+    "sample": "s1",
     "threads": 4,
 }
 

@@ -18,15 +18,26 @@ so the uBAM stays self-describing (a ``SAM PE`` invocation over unpaired records
 in ``--outSAMattributes`` outside its single-cell mode (``FATAL INPUT ERROR: ... not allowed for
 --soloType None``), so a UMI cannot be asked for on the way out. The route that works is to put it
 in on the way *in*: an unaligned BAM carrying ``UB:Z:``, read with ``--readFilesType SAM PE
---readFilesCommand samtools view --readFilesSAMattrKeep All``. 452 of 716 aligned records came out
-carrying their input ``UB`` — and their ``RG`` — without ``UB`` ever being named in the output
-attribute list, and this module's own output was put through the same route again (STAR 2.7.11b,
-2026-08-04: 40 of 40 tagged records carried it, 46 of 46 carried ``RG``). Carrying the UMI in a tag
+--readFilesCommand samtools view`` and a keep list naming ``UB``. 452 of 716 aligned records came out
+carrying their input ``UB`` — and, under the ``All`` keep list those runs were taken with, their
+``RG`` too — without ``UB`` ever being named in the output attribute list, and this module's own
+output was put through the same route again (STAR 2.7.11b, 2026-08-04: 40 of 40 tagged records
+carried it, 46 of 46 carried ``RG``). Carrying the UMI in a tag
 rather than in the read name is also what makes the CRAM converter reusable unchanged: it rewrites
 every QNAME to ``r<N>`` and would destroy a name-carried UMI, along with the -16.2% that rewrite
-buys. ``--readFilesSAMattrKeep All`` is STAR's *default* rather than an opt-in — dropping it changed
-nothing on that re-run — so it is passed to pin a default this whole format rests on, not to enable
-anything.
+buys.
+
+**The keep list names ``UB`` and not ``All``, and that is the aligner's problem rather than this
+module's** (#416). Both tags this module writes used to ride through, but STAR builds its output
+header from the genome and its own parameters, so the ``RG`` that arrived named a group no ``@RG``
+line declared — invalid SAM, and the per-cell CRAM is the retained artifact. The mapping rule now
+passes ``--outSAMattrRGline``, which is STAR's only way to emit that line and which makes STAR stamp
+its own ``RG`` besides; STAR de-duplicates the kept input tags against nothing, so keeping ``RG`` too
+would put it on a record twice. **What this module writes is unchanged** — the uBAM still carries
+its own ``@RG`` and its own ``RG:Z:`` on every record, byte for byte — because it is a valid
+standalone alignment file in its own right and the aligner's inability to inherit a header is no
+reason to stop being one. The id is the sample on both sides, so the tag STAR writes and the tag
+this module wrote are the same string.
 
 **The anchor search is unanchored, and that is the whole point of the search.** The obvious reading
 of "the geometry is derived from the element model" is that the tag sits at the declared offset, so
@@ -671,8 +682,13 @@ def _header(sample: str) -> dict[str, object]:
 
     A read group and not a cell barcode tag, because on a plate assay the cell *is* the file — the
     demultiplexing happened at the bench — and a read group is what a BAM already has for "which
-    library this record came from". It survives the aligner: the same run that carried ``UB``
-    through carried ``RG`` with it.
+    library this record came from".
+
+    The alignment downstream carries the same group under the same id, but it is STAR's own rather
+    than this one carried through: the aligner cannot inherit an input header, so the mapping rule
+    declares the group again with ``--outSAMattrRGline`` and drops this ``RG`` from the tags it keeps
+    (#416). Two writers of one value, and what keeps them from disagreeing is that neither invents
+    it — both spell the sample.
     """
     return {
         "HD": {"VN": "1.6", "SO": "unsorted"},

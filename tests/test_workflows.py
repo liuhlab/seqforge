@@ -1065,10 +1065,10 @@ def test_every_registered_module_wires_into_a_runnable_dag(
 
 
 @pytest.mark.parametrize("module", star_modules())
-def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_job_to_it(
+def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
-    """One index in memory per run, for every workflow that loads one — read off the rendered plan.
+    """Two invariants every STAR workflow owes, read off ONE rendered plan.
 
     STAR's index is per-process and resident for the life of the job, so N mapping jobs running at
     once on one machine cost N copies of it. A composed pipeline runs on ONE machine (ADR-0051),
@@ -1076,7 +1076,14 @@ def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_jo
     multiplication real, since the jobs of a run are concurrent by construction. `map/star-umi` has
     shared a copy since 2026.8.6; the other two loaded a private copy per job until #379.
 
-    Five claims, and a dry run is the only thing that can make any of them:
+    The read group is the second invariant and it rides here rather than in a neighbour of its own
+    because the plan is the expensive part: this test already composes and dry-runs every STAR
+    workflow there is, and a second sweep would spawn `snakemake` four more times to read the same
+    text. Both claims are about what a mapping job's command line SAYS, and neither can be made
+    anywhere else — a `shell:` literal is source, and a source claim about a command is not a claim
+    about a command.
+
+    Six claims, and a dry run is the only thing that can make any of them:
 
     1. **The load is a job.** A rule unreachable from `rule all` plans nothing, and this one is
        reachable only through the mapping rule's inputs — there is no target naming it.
@@ -1095,6 +1102,15 @@ def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_jo
     5. **The flag is not `temp()`.** Snakemake announces every temporary output it would delete, so
        the plan is where "this file survives the run" is legible. Delete it and a rerun is told the
        load never happened, and reloads a segment that is already resident.
+    6. **The alignment declares the read group it stamps** (#416), with the id and the sample name
+       being the job's own wildcard. `--outSAMattrRGline` is STAR's ONLY input to an `@RG` header
+       line and setting it is also what puts `RG` on a record, so one flag carries both halves of
+       the SAM rule that a record's `RG` name a group its header introduced. The plate route broke
+       that rule outright — the uBAM's `RG:Z:` rode through `--readFilesSAMattrKeep All` onto records
+       whose header declared nothing — and the FASTQ-fed routes shipped alignments with no library
+       provenance at all. Asserted per JOB rather than per module, because the value is the whole
+       claim: a flag rendering one cell's id onto every cell's records would satisfy any test that
+       only asked whether the flag was there.
 
     Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
     copied into each workflow file rather than factored out, so a fourth STAR workflow must be
@@ -1136,6 +1152,26 @@ def test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_jo
     jobs = next(iter(mapping.values()))
     assert all("--genomeLoad LoadAndKeep" in cmd for cmd in jobs.values()), jobs
     assert all(re.search(r"--limitBAMsortRAM \d+", cmd) for cmd in jobs.values()), jobs
+
+    # The read group, per job, against the job's OWN wildcard -- which is the sample on every one of
+    # these modules, and is the value the retained CRAM will name. A module that rendered the flag
+    # from a constant, or from the first cell of the plate, is what this catches and a presence check
+    # would not.
+    for wildcard, cmd in jobs.items():
+        assert f"--outSAMattrRGline ID:{wildcard} SM:{wildcard}" in cmd, (
+            f"{module} maps {wildcard} without declaring the read group its records carry, so the "
+            f"retained alignment names a group its header never introduced:\n{cmd}"
+        )
+    # ...and the input tags a uBAM route keeps may not include `RG`, because STAR appends the kept
+    # input tags after writing its own and de-duplicates against nothing: `All` beside the flag above
+    # puts `RG` on a record twice, which is worse than the dangling tag it replaces. A FASTQ-fed
+    # module renders no keep list at all, and this says nothing about one.
+    for cmd in jobs.values():
+        kept = re.search(r"--readFilesSAMattrKeep ((?:\w+ )*\w+)", cmd)
+        assert kept is None or "RG" not in kept.group(1).split(), (
+            f"{module} keeps the input `RG` while declaring its own, so every record carries the "
+            f"tag twice:\n{cmd}"
+        )
 
     flag = planned_paths(plan_text, "output")["load_genome"]
     assert flag <= planned_paths(plan_text, "input")[next(iter(mapping))], (
@@ -1622,7 +1658,7 @@ def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one
 
     That both handlers call `release_genome_segment()` and that the helper carries
     `--genomeLoad Remove ... || true` is read off the RENDERED command and the EMITTED module by
-    `test_every_star_workflow_loads_one_genome_copy_and_attaches_every_mapping_job_to_it`. What no
+    `test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps`. What no
     rendering shows is the ORDER — marking a stale segment after the load is a load that inherits it
     — nor that the command lives in the helper alone, where a second copy is a second chance to fix
     one.
@@ -5882,7 +5918,9 @@ def _revcomp(seq: str) -> str:
 
 @NO_STAR_ALIGNMENT_ON_MACOS
 @pytest.mark.external
-def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Path) -> None:
+def test_the_aligner_carries_the_umi_tag_through_and_stamps_exactly_one_read_group(
+    tmp_path: Path,
+) -> None:
     """The uBAM route, run end to end: `UB:Z:` goes in as input and comes out on the alignment.
 
     This is the claim the output format rests on, and the reason it is a BAM rather than a FASTQ.
@@ -5897,9 +5935,17 @@ def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Pat
     `RG:Z:`. `--outSAMattributes ... UB` on the same input dies with the FATAL INPUT ERROR above, so
     the input route is not merely the better one, it is the only one.
 
-    `--readFilesSAMattrKeep All` is **STAR's own default**, measured: dropping it from this command
-    changed nothing (40 of 46 again). It is passed anyway, and that is not cargo — it pins a default
-    the whole output format depends on, in the one place a reader can see the dependency.
+    **The read group half is the same run asking a second question** (#416), and it is here rather
+    than in a neighbour because it is the SAME alignment: the two tags share one command line, and
+    what makes the fix non-obvious is precisely that they interact. The `RG` that used to survive
+    named a group the output header never declared — STAR builds that header from the genome and its
+    own parameters and inherits nothing from an input BAM — so the module now passes
+    `--outSAMattrRGline`, which is the only thing that emits an `@RG` line and which also makes STAR
+    stamp its own `RG` (`RG` is not a word `--outSAMattributes` takes). STAR appends the kept input
+    tags AFTER its own and de-duplicates against nothing, so the keep list had to stop saying `All`
+    and name `UB`; **`RG` is asserted here to appear exactly once**, because a doubled tag is invalid
+    SAM and would be a worse artifact than the dangling one. `UB` is asserted on the same records
+    because dropping `All` is where the UMI could have been lost.
 
     Needs STAR and samtools, which seqforge does not own. What runs it is the `test-external`
     environment, which carries both from bioconda for this purpose alone, and CI's `test (external
@@ -5934,14 +5980,27 @@ def test_the_aligner_carries_the_umi_tag_through_to_its_own_output(tmp_path: Pat
         [star, "--genomeDir", str(index), "--readFilesIn", str(ubam),
          "--readFilesType", "SAM", "PE", "--readFilesCommand", samtools, "view",
          "--sysShell", "/bin/bash",
-         "--readFilesSAMattrKeep", "All", "--outSAMtype", "BAM", "Unsorted",
+         "--readFilesSAMattrKeep", "UB", "--outSAMtype", "BAM", "Unsorted",
+         "--outSAMattrRGline", "ID:cell", "SM:cell",
          "--outFileNamePrefix", str(tmp_path / "star_")],
         check=True, capture_output=True,
     )  # fmt: skip
 
-    aligned = _records(tmp_path / "star_Aligned.out.bam")
+    out_bam = tmp_path / "star_Aligned.out.bam"
+    aligned = _records(out_bam)
     assert aligned, "STAR aligned nothing, so the tag question was never asked"
     assert all(record.get_tag("UB") == "ACGTACGT" for record in aligned)
+
+    with pysam.AlignmentFile(str(out_bam), "rb", check_sq=False) as handle:
+        groups = handle.header.to_dict().get("RG", [])
+    assert groups == [{"ID": "cell", "SM": "cell"}], (
+        f"the header declares no single read group naming the cell: {groups}"
+    )
+    for record in aligned:
+        # Counted off the raw tag list rather than read with `get_tag`, which answers with the first
+        # match and would report a doubled tag as a single one -- the exact failure this asks about.
+        assert [tag for tag, _ in record.get_tags()].count("RG") == 1, record.to_string()
+        assert record.get_tag("RG") == "cell"
 
 
 def test_the_shared_index_load_asks_the_scheduler_for_the_residency_it_holds() -> None:

@@ -451,10 +451,29 @@ rule star_umi_map:
 
     **The input is a uBAM, and the flags that read it are the format.** `--readFilesType SAM ...`
     with `--readFilesCommand samtools view` is how STAR reads an alignment file as input, and
-    `--readFilesSAMattrKeep All` pins a default the whole route depends on -- it is STAR's own
-    default rather than an opt-in, and passing it says so rather than leaving the format resting on
-    one unstated default. The `UB` tag then arrives in the output without ever being named in
-    `--outSAMattributes`, which is the only way to get it there at all outside single-cell mode.
+    `--readFilesSAMattrKeep` names which of the input record's tags ride through to the output. The
+    `UB` tag then arrives in the output without ever being named in `--outSAMattributes`, which is
+    the only way to get it there at all outside single-cell mode.
+
+    **`UB` and not `All`, and the read group is why** (#416). The extractor writes two tags, `UB:Z:`
+    and `RG:Z:`, and `All` carried both. But STAR builds its output header from the genome and its
+    own parameters -- it does not inherit the input BAM's -- so the `RG` that rode through named a
+    group no `@RG` line introduced, which the SAM specification forbids. samtools and pysam tolerate
+    such a file; Picard and GATK refuse it, and the per-cell CRAM downstream of here is the RETAINED
+    artifact, so the malformed one is what shipped. The split BAMs inherit the fix for free: the
+    splitter copies every non-`@SQ` header line verbatim, so an `@RG` STAR emits reaches each
+    Component's file without `seqforge io split-chimera` learning what a read group is.
+
+    `--outSAMattrRGline` is STAR's only input to an `@RG` header line, and setting it also makes
+    STAR stamp its own `RG` on every record -- `RG` is not a word `--outSAMattributes` accepts, so
+    header and tag are one decision. That is exactly why the keep list had to stop saying `All`:
+    STAR appends the kept input tags AFTER writing its own attributes and de-duplicates nothing
+    against them (`ReadAlign_alignBAM.cpp` calls `bamAttrArrayWriteSAMtags`, which filters on the
+    keep list alone), so `All` plus the flag would put `RG` on a record TWICE -- a worse file than
+    the one this fixes. Naming `UB` drops the input `RG` and leaves STAR's as the only one. Nothing
+    is lost by dropping it: the id is `{wildcards.sample}` on both sides, the same wildcard
+    `rule umi_extract` hands the extractor, so the tag STAR writes and the tag the uBAM carried are
+    the same string and cannot drift.
 
     Its `PE`/`SE` half is the one part of that format DERIVED per dataset rather than a module
     literal like the flags around it, and the uBAM is what it follows: two records a fragment or
@@ -510,10 +529,11 @@ rule star_umi_map:
         STAR --runMode alignReads --genomeDir {input.index} --runThreadN {threads} \
              --genomeLoad LoadAndKeep \
              --readFilesIn {input.ubam} --readFilesType {params.read_files_type} \
-             --readFilesCommand samtools view --readFilesSAMattrKeep All \
+             --readFilesCommand samtools view --readFilesSAMattrKeep UB \
              {params.read_through_clip} \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM SortedByCoordinate \
+             --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
              --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
              --outSAMmultNmax 1
         """
