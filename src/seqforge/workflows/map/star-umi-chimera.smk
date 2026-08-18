@@ -532,9 +532,22 @@ rule star_umi_map:
     shell:
         # `--outSAMmultNmax 1` is a module literal for the same reason it is one in starsolo.smk: its
         # value varies with nothing. It writes only a top-scoring alignment, which is exactly the
-        # record `seqforge io cram`'s `-F 0x100` would keep, so the sort stops paying for records the
-        # next rule deletes. It is safe for the counts HERE because our counter reads `NH` directly
-        # rather than inferring multimapping from bundle length -- `NH` still counts every locus.
+        # record the archive's secondary-alignment filter would keep, so the sort stops paying for
+        # records the next rule deletes. It is safe for the counts HERE because our counter reads
+        # `NH` directly rather than inferring multimapping from bundle length -- `NH` still counts
+        # every locus.
+        #
+        # `--outSAMunmapped Within` puts the fragments that never aligned into the same BAM, and it
+        # is the only thing that can make the counter's FIRST fate a real number: that counter reads
+        # what the BAM holds, so a library with no unmapped record in it reports zero unmapped
+        # fragments and is indistinguishable from one where everything aligned. Every plate object
+        # written before this flag carried that column structurally empty.
+        #
+        # Bare `Within`, never `Within KeepPairs`. The second token keeps an unmapped record
+        # adjacent to its mate in UNSORTED output only, and this rule writes coordinate-sorted
+        # output -- so it would buy nothing and would state an intent this module does not have.
+        # The retained archive does not grow to pay for the extra records either: `umi_to_cram`
+        # names the record selection that drops them again.
         r"""
         # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)
         rm -rf {params.prefix}_STARtmp
@@ -547,17 +560,18 @@ rule star_umi_map:
              --outSAMtype BAM SortedByCoordinate \
              --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
              --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
-             --outSAMmultNmax 1
+             --outSAMmultNmax 1 \
+             --outSAMunmapped Within
         """
 
 
 rule umi_to_cram:
     """Compact one cell's coordinate-sorted BAM into a CRAM, then let `temp()` drop the BAM.
 
-    The converter is reused UNCHANGED, and that is the largest single thing carrying the UMI in a tag
-    bought: its QNAME rewrite touches field 1 only and rebuilds the record tab-joined, so every tag
-    survives and its -16.2% comes back. A UMI carried in the read name would have been destroyed by
-    exactly that rewrite.
+    The converter is reused rather than rebuilt, and that is the largest single thing carrying the
+    UMI in a tag bought: its QNAME rewrite touches field 1 only and rebuilds the record tab-joined,
+    so every tag survives and its -16.2% comes back. A UMI carried in the read name would have been
+    destroyed by exactly that rewrite.
 
     It does not sort -- STAR did. `container:`, unlike the extractor and the counter, because this
     verb shells out to samtools, which comes from the pinned image and not from whatever the
@@ -565,7 +579,13 @@ rule umi_to_cram:
 
     The retained CRAM is not a FASTQ substitute: the tagged mate lost its structural prefix before
     STAR ever saw it, because the tag, the UMI and the motif are not genomic. The same property the
-    droplet chain already records.
+    droplet chain already records -- and the reason `--selection mapped` is right here rather than
+    merely smaller. A file that already cannot give the reads back gains nothing by carrying the
+    ones that never aligned, and it would grow by exactly the share of the library that did not,
+    which on a bacteria-fed worm is not a rounding error. `rule star_umi_map` asks STAR for those
+    records so the SPLIT and the COUNTER can measure them; this rule is where they stop. The
+    selection is NAMED and not a filter spelled out again: `mapped` is the archive's default plus
+    the drop of what never aligned, so this file is what it was before that flag existed.
     """
     input:
         bam=rules.star_umi_map.output.bam,
@@ -579,7 +599,7 @@ rule umi_to_cram:
     shell:
         r"""
         seqforge io cram --bam {input.bam} --assembly {params.assembly} \
-             --out {output.cram} --threads {threads}
+             --out {output.cram} --threads {threads} --selection mapped
         """
 
 
