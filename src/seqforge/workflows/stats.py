@@ -45,8 +45,8 @@ version of the other. They are two entries in :attr:`StatsSpec.artifacts` rather
 that opens a sibling, so the registry still states every filename it reads and a sample missing one
 of them keeps the other. The metrics merge; the row does not split. Its chimeric twin leaves a
 **third** — the per-cell split summary — which is the one artifact on this page that is load-bearing
-rather than additional: two of the four read fates leave the pipeline at the split, so a chimeric
-run's ``unmapped`` and ``multimapping`` exist nowhere else.
+rather than additional: one of the four read fates leaves the pipeline at the split, so a chimeric
+run's ``unmapped`` exists nowhere else.
 
 **One module reads a THIRD artifact, and what is new about that one is its ARITY, not its name.**
 ``map/star-umi`` counts its whole plate in one job and writes one ``.h5ad`` whose ``obs`` carries
@@ -215,19 +215,20 @@ _SPECS: dict[str, StatsSpec] = {
     #
     # The artifact it gains is the per-cell split summary, ordered last so the page reads left to
     # right in pipeline order — extraction, then alignment, then the split that follows it. It is
-    # **load-bearing rather than decorative**: `unmapped` and `multimapping` read structurally zero
-    # in every per-Component matrix, because those reads are dropped at the split one rule before the
-    # counter, and this file is where they now live. It also carries the number the whole chimera
-    # exercise exists to produce — each Component's share of this cell — so a bacterial fraction is
-    # readable without opening an `.h5ad`. `finishes=False`, like the extraction summary and for the
-    # same reason: it is a mid-pipeline account, so `finishes` stays on STAR's log and "N of M
-    # finished" means the same thing on a chimeric run as on a plain one.
+    # **load-bearing rather than decorative**: `unmapped` reads structurally zero in every
+    # per-Component matrix, because those records are dropped at the split one rule before the
+    # counter, and this file is where they now live, beside each Component's count of the records
+    # placed at more than one locus, which the split marks and keeps. It also carries the number the
+    # whole chimera exercise exists to produce — each Component's share of this cell — so a
+    # bacterial fraction is readable without opening an `.h5ad`. `finishes=False`, like the
+    # extraction summary and for the same reason: it is a mid-pipeline account, so `finishes` stays
+    # on STAR's log and "N of M finished" means the same thing on a chimeric run as on a plain one.
     #
     # **`read_fan_in` is absent, and that is argued rather than deferred.** This module's
     # `fan_in_artifact` carries a `{component}`, so reporting the fan-in means looping over
     # Components and giving every cell's row N colliding sets of fate keys under per-Component
     # prefixes — and the numbers bought that way are precisely the ones that do not compare across
-    # run types: two of the four fates are structurally zero here and every surviving rate, the
+    # run types: one of the four fates is structurally zero here and every surviving rate, the
     # headline one included, rides a smaller denominator. Rendered beside a single-assembly run's
     # page they are not the same measurement. The stated cost is that a chimeric run's page shows no
     # gene-assignment fates at all; they are in each object's `obs` for anyone who wants them.
