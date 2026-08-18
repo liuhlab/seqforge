@@ -11,6 +11,7 @@ import typer
 from ..io import DEFAULT_REGISTRY, HF_BENCHMARK_REPO, Orientation, default_registry
 from ..io.remote import NotYetImplemented, peek, resolve_accession
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
+from ..workflows.cram import CramError, RecordSelection, bam_to_cram
 from ..workspace import records_dir
 from ._common import _today
 from .root import io_app, onlist_app
@@ -306,6 +307,12 @@ def io_cram(
     assembly: str = typer.Option(..., "--assembly", help="UCSC assembly id; the CRAM reference."),
     out: Path = typer.Option(..., "--out", help="Output CRAM path ('.crai' is written beside it)."),
     threads: int = typer.Option(1, "--threads", help="samtools view/index threads."),
+    selection: RecordSelection = typer.Option(
+        RecordSelection.primary,
+        "--selection",
+        help="Which records the archive is of: primary (default) | mapped (also drops what never "
+        "aligned) | unique | multi (the two halves of the mappability partition).",
+    ),
 ) -> None:
     """Encode STAR's coordinate-sorted BAM as a CRAM against the liulab-genome reference.
 
@@ -313,9 +320,13 @@ def io_cram(
     the assembly id via `liulab-genome` (never a baked path), exactly as `rule genome_index` resolves
     the STAR index. Exit 3 on a samtools failure or an unresolvable reference.
 
+    `--selection` names which records the archive is of, and it defaults to what this verb has always
+    written: primary alignments. A caller wanting a narrower archive — the mapped records, or one side
+    of the mappability partition — names one instead of building a pipe beside this one.
+
     **It sorts nothing, and there is no memory knob, because there is no longer a sort.** The module
     asks STAR for `BAM SortedByCoordinate` — the only output STAR will put `CB`/`UB` in — so the BAM
-    arrives in order and what remains is a streaming pipe: drop the secondary alignments, rewrite each
+    arrives in order and what remains is a streaming pipe: keep the selected records, rewrite each
     read name to `r<N>`, encode CRAM. Nothing here buffers, so nothing here needs a budget. That
     deleted a whole re-sort pass over every BAM, and with it the `samtools.<pid>.<tid>.tmp.*` files a
     killed sort left in the pipeline directory: they were undeclared outputs, so snakemake could not
@@ -323,8 +334,6 @@ def io_cram(
     snakemake-owned directory would have fixed that too; a step that cannot leak beats a step that
     must be configured not to.
     """
-    from ..workflows.cram import CramError, bam_to_cram
-
     try:
         from genome import (
             Genome,  # untyped lab package; resolved here, off the strict workflow path
@@ -334,7 +343,7 @@ def io_cram(
         raise typer.Exit(3) from exc
     try:
         fasta = Path(str(Genome(assembly).fasta_path))
-        written = bam_to_cram(bam, fasta, out, threads=threads)
+        written = bam_to_cram(bam, fasta, out, threads=threads, selection=selection)
     except CramError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc

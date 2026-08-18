@@ -58,6 +58,13 @@ CLI_SURFACE = [
         ["io", "cram", "--bam", "in.bam", "--assembly", "hg38", "--out", "out.cram",
          "--sort-mem-mb", "8000"], 2, (), id="io-cram-has-no-sort-memory-knob",
     ),
+    # Which records the archive is OF is a closed set of names, not a filter the caller spells: a
+    # misspelling is refused at the gate rather than silently cutting a different archive. Argv alone
+    # decides it, before the assembly reaches a genome store this box may not have.
+    pytest.param(
+        ["io", "cram", "--bam", "in.bam", "--assembly", "hg38", "--out", "out.cram",
+         "--selection", "uniqe"], 2, (), id="io-cram-refuses-a-selection-it-does-not-define",
+    ),
     # Each cell's BAM arrives with the sample id that names its h5ad row, so a bare path is a bad
     # invocation — refused before the assembly is looked up, since a typo should not first cost a
     # genome resolution that may not be possible on this host at all.

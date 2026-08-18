@@ -64,7 +64,7 @@ from seqforge.workflows import (
     list_modules,
     memory,
 )
-from seqforge.workflows.cram import _RENAME_QNAME, CramError, bam_to_cram
+from seqforge.workflows.cram import _RENAME_QNAME, CramError, RecordSelection, bam_to_cram
 from seqforge.workflows.fragments import (
     QC_SUFFIX,
     FragmentsError,
@@ -731,10 +731,13 @@ def test_cram_passes_the_reference_and_never_embeds_it(
     assert "embed_ref" not in flat
     # STAR sorted it; nothing here re-sorts, and no `-T`-less spill file can be left behind.
     assert not any(c[:2] == ["samtools", "sort"] for c in rec.calls)
-    # Primary alignments only, header kept (the encoder needs the @SQ lines), multi-threaded.
+    # Primary alignments only, header kept (the encoder needs the @SQ lines), multi-threaded. The
+    # default selection is the one the shipped rules invoke, so its argv is what "nothing on disk
+    # changes" means: today's flag, and no tag expression beside it.
     primary = next(c for c in rec.calls if "-F" in c)
     assert primary[:2] == ["samtools", "view"] and "-h" in primary
     assert primary[primary.index("-F") + 1] == "0x100"
+    assert "-e" not in primary
     assert primary[primary.index("--threads") + 1] == "8"
     # The read names are rewritten in the stream: `awk`, tab-delimited in AND out, headers passed
     # through untouched, and the new QNAME is a counter.
@@ -782,13 +785,84 @@ def test_the_read_name_rewrite_carries_every_header_line_into_the_retained_cram(
     assert out[3].split("\t")[0] == "r1" and out[3].endswith("RG:Z:cell_a")
 
 
+@pytest.mark.external
 @pytest.mark.parametrize(
-    ("fails", "named"),
-    [("-F", "primary alignments"), ("awk", "read-name rewrite"), ("-C", "CRAM encode")],
-    ids=["primary-filter", "read-name-rewrite", "cram-encoder"],
+    ("selection", "kept"),
+    [
+        (RecordSelection.primary, 3),
+        (RecordSelection.mapped, 2),
+        (RecordSelection.unique, 1),
+        (RecordSelection.multi, 1),
+    ],
+    ids=["primary", "mapped", "unique", "multi"],
+)
+def test_each_record_selection_keeps_exactly_the_records_it_names(
+    selection: RecordSelection, kept: int, tmp_path: Path
+) -> None:
+    """Four records — one of each kind the aligner writes — cut four ways by a REAL samtools.
+
+    A selection is a flag filter and a tag expression together, and this is the fixture that shows
+    why neither half can be dropped: the record that never aligned carries `NH:i:1` exactly like the
+    uniquely placed one, so `[NH]==1` alone keeps it and only the flag half can say a record aligned
+    at all. Asserting the argv instead would pass just as happily on a table that said `-F 0x4` or
+    `[NH]<2`, so the claim here is the count that comes back OUT of the archive, read with the
+    binary the rules actually run.
+
+    The counts are the partition claim at the scale it can be checked: `unique` plus `multi` is
+    exactly `mapped`, with nothing in both — so the two archives the later tickets write together
+    hold what one mixed archive holds and duplicate no bytes. And `primary`, the default, still
+    keeps the record that never aligned, which is the behaviour nothing on disk may lose here.
+    """
+    samtools = shutil.which("samtools")
+    if samtools is None or shutil.which("awk") is None:
+        pytest.skip("needs samtools and awk on PATH")
+
+    fasta = tmp_path / "ref.fa"
+    fasta.write_text(">chrI\n" + "ACGT" * 50 + "\n")
+    subprocess.run([samtools, "faidx", str(fasta)], check=True, capture_output=True)
+    sam = tmp_path / "four.sam"
+    sam.write_text(
+        "@HD\tVN:1.6\tSO:coordinate\n"
+        "@SQ\tSN:chrI\tLN:200\n"
+        # Uniquely placed, multiply placed, that one's secondary, never aligned — all carrying NH.
+        "u1\t0\tchrI\t1\t255\t4M\t*\t0\t0\tACGT\tIIII\tNH:i:1\n"
+        "m1\t0\tchrI\t11\t3\t4M\t*\t0\t0\tACGT\tIIII\tNH:i:2\n"
+        "m1\t256\tchrI\t21\t3\t4M\t*\t0\t0\tACGT\tIIII\tNH:i:2\n"
+        "n1\t4\t*\t0\t0\t*\t*\t0\t0\tACGT\tIIII\tNH:i:1\n"
+    )
+    bam = tmp_path / STAR_BAM
+    subprocess.run(
+        [samtools, "view", "-b", "-o", str(bam), str(sam)], check=True, capture_output=True
+    )
+
+    out = tmp_path / "S1" / "S1.cram"
+    bam_to_cram(bam, fasta, out, selection=selection)
+
+    counted = subprocess.run(
+        [samtools, "view", "-c", "-T", str(fasta), str(out)],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert int(counted) == kept
+
+
+@pytest.mark.parametrize(
+    ("fails", "named", "selection"),
+    [
+        ("-F", "primary records", RecordSelection.primary),
+        ("awk", "read-name rewrite", RecordSelection.primary),
+        ("-C", "CRAM encode", RecordSelection.primary),
+        ("[NH]>1", "multi records", RecordSelection.multi),
+    ],
+    ids=["primary-filter", "read-name-rewrite", "cram-encoder", "tag-expression"],
 )
 def test_a_failure_in_any_stage_of_the_pipe_is_a_cram_error_that_names_it(
-    fails: str, named: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    fails: str,
+    named: str,
+    selection: RecordSelection,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A pipe reports the exit status of its LAST stage, so two of these three would pass silently.
 
@@ -796,6 +870,13 @@ def test_a_failure_in_any_stage_of_the_pipe_is_a_cram_error_that_names_it(
     rewrite that died mid-file becomes a CRAM missing most of its reads — the silent-plausible-wrong
     class again, and expensive here because the BAM it came from is a `temp()` output that snakemake
     deletes the moment this rule succeeds. So each stage is waited on and named.
+
+    The last row is the selecting stage again with a selection that carries a tag expression, and it
+    is here because a malformed expression is the one new way that stage can die: samtools exits
+    non-zero on one rather than matching nothing, so the archive a wrong expression produces is a
+    named refusal and never a short file. The token it fails on is the expression itself, which no
+    other selection's argv contains — so the row also proves the expression reached samtools at all,
+    and that the error says WHICH selection was being cut.
     """
     _stub_samtools(monkeypatch, fails=fails)
     bam = tmp_path / STAR_BAM
@@ -806,7 +887,7 @@ def test_a_failure_in_any_stage_of_the_pipe_is_a_cram_error_that_names_it(
 
     out = tmp_path / "S1" / "S1.cram"
     with pytest.raises(CramError, match=named):
-        bam_to_cram(bam, fasta, out, threads=2)
+        bam_to_cram(bam, fasta, out, threads=2, selection=selection)
 
 
 def test_a_missing_bam_refuses_before_touching_samtools(tmp_path: Path) -> None:
