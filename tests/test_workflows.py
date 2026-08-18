@@ -149,6 +149,7 @@ from seqforge.workflows.split import (
 from seqforge.workflows.stats import (
     MODULES_WITHOUT_CROSS_CHECKS,
     MODULES_WITHOUT_STATS,
+    PER_COMPONENT_CAVEAT,
     modules_with_cross_checks,
     modules_with_stats,
     read_pipeline_stats,
@@ -6129,40 +6130,76 @@ def test_an_unreadable_bundle_costs_its_own_columns_and_names_the_file_it_could_
     assert stats.notes == [f"cell_a: cell_a{QC_BUNDLE_SUFFIX} could not be read (BadGzipFile)"]
 
 
-def test_a_chimeric_plate_reports_what_left_at_the_split_and_never_a_gene_assignment_fate(
+def _chimeric_plate_results(
+    tmp_path: Path, *, wrote: Sequence[str] | None = None
+) -> tuple[Path, _Round, dict[str, int]]:
+    """A finished chimeric plate on disk: one QC bundle per cell, one counting object per Component.
+
+    Returns the results directory, the split round-trip whose summary each bundle absorbed, and how
+    many fragments each Component's object holds for `cell_a`. The two Components are counted over
+    DIFFERENT fragment sets deliberately — the whole plate against one gene's worth — so a reader
+    that let one Component's row overwrite the other's is red on a number rather than on a key set.
+
+    `wrote` is which Components got an object at all; a run that counted one organism of two is the
+    per-Component half of "a missing artifact costs its own columns".
+    """
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    round_trip = _split(tmp_path, "plain")
+    first, second = (c.name for c in round_trip.chimera.components)
+    db, whole = _plate(tmp_path)
+    thin = [
+        (sample, _synthetic_bam(tmp_path / f"{second}_{sample}.bam", _PLATE[6:7]))
+        for sample, _ in whole
+    ]
+    results = tmp_path / "results"
+    for component, cells in ((first, whole), (second, thin)):
+        if wrote is None or component in wrote:
+            write_umi_counts(cells, db, results / PLATE_COMPONENT_H5AD.format(component=component))
+    for sample in ("cell_a", "cell_b"):
+        _bundled_cell(results, tmp_path / "staging", sample, split=round_trip.stats.to_dict())
+    return results, round_trip, {first: len(_PLATE), second: 1}
+
+
+def test_a_chimeric_plate_reports_what_left_at_the_split_and_each_components_fates(
     tmp_path: Path,
 ) -> None:
-    """The twin's page: per-Component accounts and the drop counts, and NO fan-in fates.
+    """The twin's page: per-Component accounts, the drop counts, and every Component's fan-in.
 
     Three decisions meet here and none of them is legible from any other test.
 
     **The split summary is load-bearing rather than additional.** `unmapped` is dropped one rule
     before the counter, so it reads structurally zero in every per-Component matrix — a page
-    rendering it from the counting object would state a falsehood about the data, since those reads
-    existed and left earlier. It lives in this artifact, and the per-Component share beside it is
-    the number the whole chimera exercise exists to produce: the bacterial fraction of a well,
-    readable without opening an `.h5ad`.
+    rendering only that number would state a falsehood about the data, since those reads existed and
+    left earlier. It lives in this artifact, and the per-Component share beside it is the number the
+    whole chimera exercise exists to produce: the bacterial fraction of a well, readable without
+    opening an `.h5ad`.
 
-    **`read_fan_in` is absent, and the absence is the claim.** The twin's fan-in artifact carries a
-    `{component}`, so reporting it means a Component loop and per-Component key prefixes to render
-    exactly the two numbers that do not compare across run types. Declining them is what deletes a
-    `CompiledPipeline.components` field and a reader signature change rather than paying for both,
-    and the stated cost is this: a chimeric run's page carries no gene-assignment fate at all.
+    **The fan-in is read once per Component, by the reader the plain twin already has.** The twin's
+    fan-in artifact carries a `{component}`, so the Component loop lives in the registry and each
+    object goes through the plate reader unchanged — the `obs` columns are the same columns, written
+    by the same counter. What the loop adds is the key: two organisms' fates, fragment counts and
+    saturation sit side by side on one cell's row, which is exactly what a shared key space could not
+    do. The two objects here hold different fragment sets so that a collision is a wrong NUMBER and
+    not merely a missing column.
 
-    **It arrives through the cell's ONE artifact**, which is what the twin's bundle is one key wider
-    than the base's for: the split summary is reclaimed once that bundle carries it, so the numbers
-    below reach the page only if the absorption kept them intact.
+    **The caveat travels with every one of those columns**, because a rate on one Component's object
+    rides a denominator the split already took the unplaced records out of, and rendered beside a
+    single-assembly page's column of the same name it is not the same measurement. Nothing on this
+    half is headline either: the Component axis is N-wide, so the at-a-glance strip stays the cell's
+    own.
 
-    The payload is written by the REAL splitter over the synthetic chimeric plate above, not by hand:
-    what a summary key is called is the writer's fact, so a reader driven from a hand-built dict
-    could only ever agree with itself.
+    **All of it arrives through the cell's ONE artifact plus those objects**, which is what the twin's
+    bundle is one key wider than the base's for: the split summary is reclaimed once that bundle
+    carries it, so the numbers below reach the page only if the absorption kept them intact.
+
+    Every payload is written by the REAL splitter and the REAL counter over the synthetic plates
+    above, not by hand: what a summary key or an `obs` column is called is the writer's fact, so a
+    reader driven from a hand-built dict could only ever agree with itself.
     """
-    round_trip = _split(tmp_path, "plain")
-    results = tmp_path / "results"
-    for sample in ("cell_a", "cell_b"):
-        _bundled_cell(results, tmp_path / "staging", sample, split=round_trip.stats.to_dict())
+    results, round_trip, fragments = _chimeric_plate_results(tmp_path)
+    components = list(fragments)
 
-    stats = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"])
+    stats = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"], components)
 
     assert stats is not None and stats.complete
     cell_a = _by_key(stats.samples[0])
@@ -6194,11 +6231,93 @@ def test_a_chimeric_plate_reports_what_left_at_the_split_and_never_a_gene_assign
     # E. coli, so a bar here would be a figure invented at review.
     assert {_levels(stats.samples[0])[m] for m in cell_a if m.startswith("split_")} == {"none"}
     assert stats.findings == []
-    # No fan-in reader, so no counting fate reaches the page at all — the stated cost, asserted.
+    # The counter's half, once per Component and under nobody else's key: a bare fate key would be
+    # whichever object happened to be read last, which is the collision this whole shape avoids.
     assert not set(FATES) & set(cell_a)
-    # Columns read in pipeline order: what STAR did, then what the split then did with it.
+    # What the plain twin's reader says about the same row, to compare the hints against: the caveat
+    # is APPENDED to what the counter wrote and never replaces it, so what the number measures stays
+    # the counter's sentence and what a per-Component reading of it is NOT is the registry's.
+    plain = _by_key(fate_metrics(dict.fromkeys(FATES, 1) | {N_FRAGMENTS: 4}, "cell_x"))
+    for component, total in fragments.items():
+        assert {f"{fate}_{component}" for fate in FATES} <= set(cell_a)
+        # Two Components, two different fragment sets, both intact on one row.
+        assert cell_a[f"{N_FRAGMENTS}_{component}"].value == total
+        assert f"{SATURATION}_{component}" in cell_a
+        assert component in cell_a[f"{N_FRAGMENTS}_{component}"].label
+        # And the caveat on every one of them — `unmapped` most of all, since that is the fate the
+        # split takes out one rule early and the caveat is what says where those records went.
+        for fate in FATES:
+            assert cell_a[f"{fate}_{component}"].hint == (
+                f"{plain[fate].hint} {PER_COMPONENT_CAVEAT}"
+            )
+    # The whole Component's numbers, off the synthetic plate whose every fate is known by
+    # construction: 17 fragments, 4 of them multiply placed. That fate is the one the argument for
+    # shipping no reader at all rested on half of — it read a structural zero until the split began
+    # keeping multiply-placed records, and it is a real measurement now.
+    first = components[0]
+    assert cell_a[f"multimapping_{first}"].value == pytest.approx(4 / len(_PLATE))
+    assert cell_a[f"no_feature_{first}"].value == pytest.approx(2 / len(_PLATE))
+    assert cell_a[f"{SATURATION}_{first}"].value == pytest.approx(1 - 3 / 5)
+    # The at-a-glance strip stays the cell's own: the Component axis is N-wide, so promoting these
+    # would put an unbounded number of columns in a strip whose whole job is being small.
+    assert {m.key for m in stats.samples[0].metrics if m.headline} == {
+        "umi_tagged",
+        "uniquely_mapped",
+        "unmapped_too_short",
+    }
+    # Columns read in pipeline order: what STAR did, then the split, then what each Component's
+    # counter made of what the split handed it.
     keys = [key for key, _ in stats.columns]
     assert keys.index("uniquely_mapped") < keys.index("split_dropped_unmapped")
+    assert keys.index("split_dropped_unmapped") < keys.index(f"no_feature_{components[0]}")
+    assert keys.index(f"no_feature_{components[0]}") < keys.index(f"no_feature_{components[1]}")
+
+
+def test_one_components_missing_object_costs_its_own_columns_and_names_what_is_owed(
+    tmp_path: Path,
+) -> None:
+    """A Chimera has N counting objects, so one of them failing must cost N-1 nothing.
+
+    The per-sample half of this registry has always said a corrupt artifact costs its own row; the
+    fan-in half says the same one arity out, and on a Chimera there is a third: a plate's fan-in is
+    one file per Component, and the organism that was counted has to keep its numbers when the one
+    beside it did not. A reader that opened them as a set would drop both.
+
+    Both ways of losing one are here because they are different answers, and the run state is where
+    the difference shows: an object nobody wrote is still OWED and says so through the declaration,
+    while an object that is there and will not parse is a read failure and names the file to go and
+    look at. Neither costs the page.
+    """
+    results, round_trip, fragments = _chimeric_plate_results(tmp_path)
+    counted, lost = fragments
+    (results / PLATE_COMPONENT_H5AD.format(component=lost)).write_bytes(b"not an h5ad at all")
+
+    stats = read_pipeline_stats(
+        "map/star-umi-chimera", results, ["cell_a", "cell_b"], [counted, lost]
+    )
+
+    assert stats is not None
+    cell_a = _by_key(stats.samples[0])
+    assert {f"{fate}_{counted}" for fate in FATES} <= set(cell_a)
+    assert not {f"{fate}_{lost}" for fate in FATES} & set(cell_a)
+    assert "uniquely_mapped" in cell_a  # ...and the cell's own bundle, untouched by either
+    assert any(PLATE_COMPONENT_H5AD.format(component=lost) in note for note in stats.notes), (
+        stats.notes
+    )
+    assert stats.missing_deliverables == []  # it is there; it is unreadable, which is not the same
+
+    # The other way: never written at all. Owed on the run state, silent in the notes, and the
+    # Component beside it keeps every column.
+    only_one, _, _ = _chimeric_plate_results(tmp_path / "partial", wrote=[counted])
+
+    partial = read_pipeline_stats(
+        "map/star-umi-chimera", only_one, ["cell_a", "cell_b"], [counted, lost]
+    )
+
+    assert partial is not None and partial.state == "failed"
+    assert partial.missing_deliverables == [PLATE_COMPONENT_H5AD.format(component=lost)]
+    assert partial.notes == []
+    assert {f"{fate}_{counted}" for fate in FATES} <= set(_by_key(partial.samples[0]))
 
 
 def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> None:

@@ -1516,8 +1516,9 @@ def _finish_a_chimeric_plate(
 
     The per-cell bundle is what says a cell finished, so it is what a finished cell leaves here: the
     alignment log this used to write is folded into it and reclaimed by the run. The objects are
-    written empty on purpose: the chimeric twin ships no fan-in reader, so nothing opens them, and
-    what is under test is whether the file the module DECLARED is there at all.
+    written empty on purpose: the twin's fan-in reader opens each of them and notes the ones it
+    cannot parse, which costs those Components their columns and nothing else, and what is under test
+    here is the half no column can answer — whether the file the module DECLARED is there at all.
     """
     import gzip
 
