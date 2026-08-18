@@ -61,6 +61,9 @@ class RecordSelection(StrEnum):
     drops the records that never aligned. ``unique`` and ``multi`` partition ``mapped``: every
     primary mapped record is in one of them and no record is in both, so the two archives together
     hold what one mixed archive holds and duplicate no bytes.
+
+    A selection that needs a caveat carries it in :data:`_SELECT_CAVEAT`, so the file states its own
+    terms rather than relying on a reader having found this docstring.
     """
 
     primary = "primary"
@@ -78,6 +81,20 @@ _SELECT_ARGS: dict[RecordSelection, list[str]] = {
     RecordSelection.mapped: ["-F", "0x104"],
     RecordSelection.unique: ["-F", "0x104", "-e", "[NH]==1"],
     RecordSelection.multi: ["-F", "0x104", "-e", "[NH]>1"],
+}
+
+#: What a selection has to say about itself ON the file, as a SAM ``@CO`` header line. Only ``multi``
+#: has anything: a multiply-placed fragment was emitted at ONE of the loci it fitted, chosen by the
+#: aligner among equals, so a record in that archive is a placement and not an assignment. Reading it
+#: as an assignment is the mistake the whole partition exists to make hard, and a docstring cannot
+#: travel with a CRAM a user copied to a laptop — the name says which population it is and this says
+#: what a row in it means. ASCII and one line, because a ``@CO`` value is one line of text and this
+#: crosses awk, a locale and a CRAM header on its way in.
+_SELECT_CAVEAT: dict[RecordSelection, str] = {
+    RecordSelection.multi: (
+        "seqforge: multiply-placed records. A record here means one of this fragment's possible "
+        "loci is this one; it never means the fragment belongs here."
+    ),
 }
 
 
@@ -127,7 +144,17 @@ def _ensure_fai(fasta: Path, workdir: Path) -> Path:
 #: ``/^@/`` is a sound header test rather than a convenient guess: the SAM specification restricts a
 #: QNAME's first character to ``[!-?A-~]``, which excludes ``@`` (0x40) by construction. So no
 #: alignment line can begin with one, and no header line can be missed.
-_RENAME_QNAME = r'BEGIN{FS=OFS="\t"} /^@/{print; next} {n++; $1="r" n; print}'
+#:
+#: It also STAMPS the selection's caveat, because this is the one stage that already reads the header
+#: and writes it back: a ``@CO`` line goes in where the header ends, which is the first alignment
+#: line, or the end of a stream that has none. ``caveat`` arrives through ``-v`` and is EMPTY unless
+#: the selection has something to say, so the default archive's program and argv are what they were.
+_RENAME_QNAME = (
+    r'BEGIN{FS=OFS="\t"} /^@/{print; next} '
+    r'!stamped{if(caveat!="") print "@CO", caveat; stamped=1} '
+    r'{n++; $1="r" n; print} '
+    r'END{if(!stamped && caveat!="") print "@CO", caveat}'
+)
 
 
 def bam_to_cram(
@@ -162,6 +189,8 @@ def bam_to_cram(
        samtools has no flag for this — ``--output-fmt-option lossy_names=1`` was measured and saves
        exactly zero bytes — so the rewrite happens in the stream. ``awk`` is in the pinned
        ``align-rna`` image (it is what the measurement itself used), so this adds no dependency.
+       It is also where the selection's caveat becomes a ``@CO`` header line, since this stage is
+       already reading the header and writing it back: no reheader pass, no second file.
     3. ``samtools view -C -T`` — the CRAM encoder, unchanged, still not embedding the reference.
 
     Every stage is multi-threaded (``--threads``) so a fat node is actually used, and **every stage's
@@ -192,7 +221,8 @@ def _encode(bam: Path, ref: Path, out: Path, threads: int, selection: RecordSele
     # `-T` names that reference; no embed_ref -> smallest CRAM.
     nthreads = str(threads)
     select = ["samtools", "view", "-h", *_SELECT_ARGS[selection], "--threads", nthreads, str(bam)]
-    rename = ["awk", _RENAME_QNAME]
+    caveat = _SELECT_CAVEAT.get(selection)
+    rename = ["awk", *(["-v", f"caveat={caveat}"] if caveat else []), _RENAME_QNAME]
     encode = ["samtools", "view", "-C", "-T", str(ref), "--threads", nthreads, "-o", str(out), "-"]
     try:
         # Each stage hands its read end to the next and then drops this process's copy. Holding one

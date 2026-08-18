@@ -10,13 +10,15 @@
 #
 # **A full standalone copy, and that is FORCED rather than preferred.** Composition copies exactly
 # one `.smk` into the run directory, so an `include:`d fragment would be neither copied nor eligible
-# as the default target. FOUR RULES differ out of the ~580 lines below -- `rule all`, the new
-# `rule split_chimera`, `rule umi_count`, and this header; the imports and the two module constants
-# that serve them move with those, and `rule star_umi_map`'s prose gained a sentence about the
-# per-Component figures its flags now feed. What is byte-identical is every COMMAND: genome index
-# resolution, the shared genome load, UMI extraction, the mapping invocation and CRAM conversion,
-# `--outSAMmultNmax 1` included -- the split's keep rule never asks where a multimapper's other loci
-# are, so that flag's measured justification survives intact. Stated as commands rather than as lines
+# as the default target. FIVE THINGS differ out of everything below -- `rule all`, the new
+# `rule split_chimera`, `rule umi_count`, `rule unique_to_cram`, and this header; the imports and the
+# module constants that serve them move with those, and `rule star_umi_map`'s prose gained a sentence
+# about the per-Component figures its flags now feed. What is byte-identical is every other COMMAND:
+# genome index resolution, the shared genome load, UMI extraction, the mapping invocation and the
+# multiply-placed archive's conversion, `--outSAMmultNmax 1` included -- the split's keep rule never
+# asks where a multimapper's other loci are, so that flag's measured justification survives intact.
+# `rule unique_to_cram` differs in the one way the whole module exists for: it is per Component, off
+# that Component's split BAM, against that Component's own reference. Stated as commands, not lines,
 # because prose drifts between two copies and a rendered command line does not: what keeps the copies
 # in step is DERIVED from the module
 # registry rather than typed beside them -- the shared-genome lifecycle sweep, the wiring gate, the
@@ -31,11 +33,18 @@
 # `combined.<component>.h5ad` per Component rather than one merged object whose columns are two
 # organisms' genes with nothing saying which reads were whose.
 #
-# **The split sits BESIDE the CRAM, not upstream of it.** `umi_to_cram` reads the PRE-split chimeric
-# BAM, so a chimeric run's archive keeps every multimapper and is strictly MORE complete than a
-# single-assembly run's -- and peak disk drops slightly, because the chimeric BAM is freed as soon as
-# the CRAM and the split have both consumed it instead of living until the fan-in. Per-Component BAMs
-# are `temp()`; the per-cell split summary beside them is not.
+# **The RETAINED ARCHIVE IS PARTITIONED BY MAPPABILITY, and on a Chimera the halves are not the same
+# shape.** Per cell and per Component, `rule unique_to_cram` re-encodes that Component's split BAM as
+# a CRAM against that Component's OWN reference -- single-species names, order and lengths, openable
+# in a browser and by any single-species tool the user already owns, which is what the split was
+# always doing and `temp()` was always throwing away. Beside them, ONE multiply-placed CRAM per cell
+# in the Chimera's coordinates, Component-blind because one emitted record cannot say whether a
+# fragment's other loci are in the same organism. Together the two halves are exactly every primary
+# mapped record, so the whole-Chimera archive they replace is GONE rather than kept beside them:
+# nothing is lost and no bytes are duplicated. `rule multiplaced_to_cram` reads the PRE-split chimeric
+# BAM, so the split and it both consume what the aligner wrote -- and peak disk drops slightly,
+# because that BAM is freed as soon as both have consumed it instead of living until the fan-in.
+# Per-Component BAMs are `temp()`; the per-cell split summary beside them is not.
 #
 # **Every per-Component figure files a cross-organism ambiguity under ONE organism**, which follows
 # from the split's keep rule -- a mapped, primary alignment, however many loci the fragment was
@@ -140,6 +149,18 @@ LOADED_FLAG = f"{OUTDIR}/index/{ASSEMBLY}.loaded"
 # writes it and the rule that reads it must name the same path and a second spelling is the copy that
 # points at cells which are not there while the ids still look right.
 SPLIT_BAM = f"{OUTDIR}/{{sample}}/{{sample}}.{{component}}.bam"
+
+# THE RETAINED ARCHIVE, PARTITIONED BY MAPPABILITY, and on a Chimera the two halves are not the same
+# shape. The UNIQUELY-PLACED half is per Component, cut from that Component's split BAM, so it is
+# spelled in one assembly's chromosome names and lengths and opens in a browser and in any
+# single-species tool the user already owns. The MULTIPLY-PLACED half is ONE file per cell in the
+# Chimera's own coordinates and is Component-blind: a multiply-placed fragment has no Component, since
+# one emitted record cannot say whether the rest of its locus set is in the same organism, so filing
+# it per Component would state an assignment the data does not support. Together they are exactly
+# every primary mapped record, which is why the whole-Chimera archive they replace is gone rather than
+# kept beside them.
+COMPONENT_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.{{component}}.unique.cram"
+MULTIPLACED_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.multiplaced.cram"
 
 
 def fastqs(sample, role):
@@ -286,13 +307,17 @@ def read_files_type(sample):
 
 rule all:
     input:
-        # ONE object PER COMPONENT over every cell, and a CRAM per cell. Each h5ad is demanded by
-        # NAME rather than as a directory, and here that carries a second load: a rule whose output
-        # is a folder is satisfied by a folder, which is how a counting job that wrote three cells of
-        # 1440 exits 0 -- and, one arity out, how a chimeric run that counted two Components of three
-        # exits 0 with an organism silently missing. Naming each one closes both.
+        # ONE object PER COMPONENT over every cell, one UNIQUELY-PLACED archive per cell PER
+        # COMPONENT, and one MULTIPLY-PLACED archive per cell. Each h5ad is demanded by NAME rather
+        # than as a directory, and here that carries a second load: a rule whose output is a folder
+        # is satisfied by a folder, which is how a counting job that wrote three cells of 1440 exits
+        # 0 -- and, one arity out, how a chimeric run that counted two Components of three exits 0
+        # with an organism silently missing. Naming each one closes both. The archives are named for
+        # the same reason: nothing downstream consumes either half, so a Component whose archive
+        # stopped being written would simply stop appearing.
         expand(f"{OUTDIR}/{PLATE_COMPONENT_H5AD}", component=COMPONENTS),
-        expand(f"{OUTDIR}/{{sample}}/{{sample}}.cram", sample=SAMPLES),
+        expand(COMPONENT_CRAM, sample=SAMPLES, component=COMPONENTS),
+        expand(MULTIPLACED_CRAM, sample=SAMPLES),
         # Per-cell QC needs no target -- STAR writes `Log.final.out` into each cell's directory
         # unasked, and the split summary is written by a rule every h5ad above depends on, so a plate
         # that finishes has written one per cell. The report's readers find both there.
@@ -549,8 +574,8 @@ rule star_umi_map:
         # Bare `Within`, never `Within KeepPairs`. The second token keeps an unmapped record
         # adjacent to its mate in UNSORTED output only, and this rule writes coordinate-sorted
         # output -- so it would buy nothing and would state an intent this module does not have.
-        # The retained archive does not grow to pay for the extra records either: `umi_to_cram`
-        # names the record selection that drops them again.
+        # The retained archives do not grow to pay for the extra records either: each names a
+        # record selection, and neither selection holds a record that never aligned.
         r"""
         # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)
         rm -rf {params.prefix}_STARtmp
@@ -568,33 +593,41 @@ rule star_umi_map:
         """
 
 
-rule umi_to_cram:
-    """Compact one cell's coordinate-sorted BAM into a CRAM, then let `temp()` drop the BAM.
+rule multiplaced_to_cram:
+    """One cell's MULTIPLY-PLACED records, in ONE file, in the CHIMERA's own coordinates.
+
+    **Component-blind, and that is the decision this rule carries.** A multiply-placed fragment has
+    no Component: `--outSAMmultNmax 1` means one record reaches this BAM, and that record cannot say
+    whether the rest of the fragment's locus set is in the same organism. Splitting this population
+    per Component would therefore file a cross-organism fragment under one species with nothing on
+    the file saying so, and a Component-blind file BESIDE per-Component ones would buy no
+    information, since a suffixed name also names only the representative's Component. So it stays
+    one file per cell, spelled the way the Chimera is spelled. The pilot measured that population's
+    cross-organism share at a fraction of a percentage point on this pair; the approximation is
+    accepted deliberately and is stated here rather than discovered.
+
+    **Cut from the PRE-split BAM**, beside `rule split_chimera` rather than downstream of it, so the
+    split and the archive both consume what the aligner actually wrote. That is also the peak-disk
+    half of this module's ordering decision: the chimeric BAM is freed once every consumer has
+    finished instead of living until the fan-in.
+
+    **A record here is a PLACEMENT and not an assignment**, and that caveat rides the artifact rather
+    than this docstring: the name says which population, and the converter stamps the sentence into
+    the CRAM header, which is what survives the file being copied somewhere this module is not.
 
     The converter is reused rather than rebuilt, and that is the largest single thing carrying the
     UMI in a tag bought: its QNAME rewrite touches field 1 only and rebuilds the record tab-joined,
-    so every tag survives and its -16.2% comes back. A UMI carried in the read name would have been
-    destroyed by exactly that rewrite.
-
-    It does not sort -- STAR did. `container:`, unlike the extractor and the counter, because this
-    verb shells out to samtools, which comes from the pinned image and not from whatever the
-    submitting shell happened to have.
-
-    The retained CRAM is not a FASTQ substitute: the tagged mate lost its structural prefix before
-    STAR ever saw it, because the tag, the UMI and the motif are not genomic. The same property the
-    droplet chain already records -- and the reason `--selection mapped` is right here rather than
-    merely smaller. A file that already cannot give the reads back gains nothing by carrying the
-    ones that never aligned, and it would grow by exactly the share of the library that did not,
-    which on a bacteria-fed worm is not a rounding error. `rule star_umi_map` asks STAR for those
-    records so the SPLIT and the COUNTER can measure them; this rule is where they stop. The
-    selection is NAMED and not a filter spelled out again: `mapped` is the archive's default plus
-    the drop of what never aligned, so this file is what it was before that flag existed.
+    so every tag survives and its -16.2% comes back. It does not sort -- STAR did. `container:`,
+    unlike the extractor and the counter, because this verb shells out to samtools, which comes from
+    the pinned image and not from whatever the submitting shell happened to have. This rule is
+    byte-identical to the base module's, deliberately: a multiply-placed fragment is the same thing
+    on both arms, so the same cell processed both ways holds it in the same place.
     """
     input:
         bam=rules.star_umi_map.output.bam,
     output:
-        cram=f"{OUTDIR}/{{sample}}/{{sample}}.cram",
-        crai=f"{OUTDIR}/{{sample}}/{{sample}}.cram.crai",
+        cram=MULTIPLACED_CRAM,
+        crai=f"{MULTIPLACED_CRAM}.crai",
     container: config["container"]
     threads: config["threads"]
     params:
@@ -602,21 +635,20 @@ rule umi_to_cram:
     shell:
         r"""
         seqforge io cram --bam {input.bam} --assembly {params.assembly} \
-             --out {output.cram} --threads {threads} --selection mapped
+             --out {output.cram} --threads {threads} --selection multi
         """
 
 
 rule split_chimera:
     """One cell's chimeric BAM into one BAM per Component, each spelled for a single assembly.
 
-    **BESIDE the CRAM rather than upstream of it**, and that is the decision this rule carries. Both
-    this and `umi_to_cram` consume the same pre-split `temp()` BAM, so the archive is made from the
-    file STAR actually wrote: it keeps every multimapper and is strictly MORE complete than a
-    single-assembly run's, instead of inheriting this rule's filter. Splitting first would buy
-    per-Component CRAMs readable against a bare Component -- and the Chimera had to exist to produce
-    the run at all, so "readable without it" is not a property anyone here is short of. Peak disk also
-    falls slightly: the chimeric BAM is freed once BOTH consumers finish rather than living until the
-    fan-in.
+    **BESIDE the multiply-placed archive rather than upstream of it**, and that is the ordering this
+    rule carries. Both this and `multiplaced_to_cram` consume the same pre-split `temp()` BAM, so the
+    split and that archive both see what STAR actually wrote rather than one inheriting the other's
+    filter -- which matters most for exactly the population that has no Component to be filed under.
+    Peak disk also falls: the chimeric BAM is freed once both consumers finish rather than living
+    until the fan-in. The UNIQUELY-placed half is downstream instead, one rule per Component, because
+    single-species coordinates are the whole point of it and only this rule can produce them.
 
     It follows `rule umi_extract` in kind and therefore in shape. A `shell:` calling a seqforge verb,
     because `snakemake -n -p` renders every shell block while planning and cannot see inside a `run:`,
@@ -627,7 +659,7 @@ rule split_chimera:
     buffer, and a ten-million-record BAM streams in constant memory.
 
     `threads:` is the share of the machine this job takes, and it is HANDED OVER rather than merely
-    reserved. The same figure its sibling `umi_to_cram` declares -- the two run against each other
+    reserved. The same figure `multiplaced_to_cram` declares -- the two run against each other
     over one BAM, so a plate's width should not depend on which of them got there first. What the
     verb spends it on is the BGZF codec and nothing else, divided across the outputs: the record loop
     is one stateless pass and stays on one core whatever this says, while the block compression
@@ -651,16 +683,18 @@ rule split_chimera:
     -- a Component whose own chromosome names already carry a doubled underscore forces a longer run
     than the default, and only the record knows.
 
-    **Two outputs, and only the BAMs are reclaimed.** They are `temp()` and consumed by exactly one
-    rule each, so the whole plate's per-Component BAMs never coexist with the objects counted from
-    them. The summary beside them is deliberately NOT `temp()`: it is the durable account of what left
-    and where it went, and it is where `unmapped` LIVES for a chimeric run -- it reads structurally
-    zero in every h5ad below, because those records leave here, one rule before the counter. It is
-    also where a fragment that half aligned is accounted for: the mate that landed is kept, its
-    partner is not in the file to balance it, and the summary states that count per Component rather
-    than letting a lopsided output look like a healthy one. Nothing demands it in `rule all` and
-    nothing needs to: this rule is upstream of every matrix, so a plate that finishes has written one
-    per cell.
+    **Two outputs, and only the BAMs are reclaimed.** They are `temp()`, consumed by the fan-in and
+    by that Component's archive, so a Component's BAM goes as soon as both have read it and the whole
+    plate's never coexist with the objects counted from them. What OUTLIVES them is the archive, which
+    is that BAM's uniquely-placed records re-encoded against the Component's own reference: the
+    split's spelling is kept without keeping the split's bytes. The summary beside them is NOT
+    `temp()`: it is the durable account of what left and where it went, and it is where `unmapped`
+    LIVES for a chimeric run -- it reads structurally zero in every h5ad below, because those records
+    leave here, one rule before the counter. It is also where a fragment that half aligned is
+    accounted for: the mate that landed is kept, its partner is not in the file to balance it, and
+    the summary states that count per Component rather than letting a lopsided output look like a
+    healthy one. Nothing demands it in `rule all` and nothing needs to: this rule is upstream of
+    every matrix, so a plate that finishes has written one per cell.
     """
     input:
         bam=rules.star_umi_map.output.bam,
@@ -680,6 +714,43 @@ rule split_chimera:
         seqforge io split-chimera {params.outputs} \
              --bam {input.bam} --assembly {params.assembly} --summary {output.summary} \
              --threads {threads}
+        """
+
+
+rule unique_to_cram:
+    """One cell's UNIQUELY-PLACED records for ONE Component, in that assembly's own coordinates.
+
+    **The durable per-Component archive, and the reason the split's output is worth keeping.** The
+    split already writes each Component's records with the chromosome names, the `@SQ` order and the
+    lengths a run against the bare Component would have written -- and rewrites the BINARY reference
+    dictionary with them, so a record resolves to the chromosome its name says rather than to
+    whichever slot the Chimera had it in. Those BAMs are `temp()`, so until now that work was thrown
+    away and what survived was one archive under `chrI<sep>ce11`-style names that a browser, a
+    counter and any script the user already owns all refuse. Encoding each one against its OWN
+    reference is what makes this file openable with nothing but that Component to hand.
+
+    **Uniquely placed only.** The split's keep rule is mapped and primary, so its output carries the
+    multiply-placed records too, marked by the hit-count tag they already carry; `--selection unique`
+    is what leaves them to the file that says what they are. The two halves together are exactly
+    every primary mapped record, so no bytes are duplicated and nothing is lost.
+
+    **`--assembly` is the COMPONENT here and never the Chimera**, which is the one command in this
+    module that differs from its base twin's for a reason other than arity: the reference these
+    records are a difference from is that Component's FASTA. Both Components of the built Chimera
+    resolve to one standalone, with a `.fai` beside it -- checked on the cluster before this rule was
+    written, because a Component that did not resolve would have made these archives BAM.
+    """
+    input:
+        bam=SPLIT_BAM,
+    output:
+        cram=COMPONENT_CRAM,
+        crai=f"{COMPONENT_CRAM}.crai",
+    container: config["container"]
+    threads: config["threads"]
+    shell:
+        r"""
+        seqforge io cram --bam {input.bam} --assembly {wildcards.component} \
+             --out {output.cram} --threads {threads} --selection unique
         """
 
 
