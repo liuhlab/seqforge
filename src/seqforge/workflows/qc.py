@@ -25,7 +25,16 @@ from typing import Any, get_args
 
 from ..models.processing import SoloFeature
 from .h5ad import STAR_FINAL_LOG, _gene_axis, _stackable
-from .metrics import Finding, Metric, SampleStats, count, fmt_pct, fraction, knee_points
+from .metrics import (
+    Finding,
+    Metric,
+    SampleStats,
+    count,
+    fmt_pct,
+    fraction,
+    knee_points,
+    sequencing_saturation,
+)
 
 #: What ``rule qc_bundle`` names its output, per sample: ``<sample>.qc.json.gz``. Here rather than in
 #: ``starsolo.smk`` so the rule and the post-run reader both consume the name instead of restating it
@@ -504,14 +513,7 @@ def metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
                 exact=True,
                 hint="Distinct genes with at least one count across all cells.",
             ),
-            fraction(
-                "saturation",
-                "Sequencing saturation",
-                _summary_get(summary, feature, "Sequencing Saturation"),
-                group="duplication",
-                hint="Share of reads that were a repeat of a molecule already seen. Not a pass/fail "
-                "— it says whether sequencing deeper would find anything new.",
-            ),
+            sequencing_saturation(_summary_get(summary, feature, "Sequencing Saturation")),
             fraction(
                 "q30_cb_umi",
                 "Q30 in CB+UMI",

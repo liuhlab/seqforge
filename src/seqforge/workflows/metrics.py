@@ -493,6 +493,29 @@ def count(
     )
 
 
+def sequencing_saturation(value: float | None) -> Metric | None:
+    """Sequencing saturation, spelled once for every module that reports one.
+
+    The **only** named metric in this file, and it is here for the reason the others are not: two
+    modules produce it. The droplet page reads STARsolo's own figure out of a summary; the plate page
+    computes the same ratio in its counter, because there is no STARsolo to read it from. Both are
+    one minus deduplicated molecules over the gene-assigned reads carrying a usable tag, so they
+    belong in one column of one table under one sentence — and a hint restated in the second module
+    is the copy that drifts, leaving a reader comparing two numbers they were told mean one thing.
+
+    Ungraded, in both. What saturation *should* be is a property of how deep somebody chose to
+    sequence, so a bar here would grade a decision nobody made wrongly.
+    """
+    return fraction(
+        "saturation",
+        "Sequencing saturation",
+        value,
+        group="duplication",
+        hint="Share of reads that were a repeat of a molecule already seen. Not a pass/fail — it "
+        "says whether sequencing deeper would find anything new.",
+    )
+
+
 def ratio(
     key: str,
     label: str,
@@ -579,4 +602,5 @@ __all__ = [
     "grade",
     "knee_points",
     "ratio",
+    "sequencing_saturation",
 ]
