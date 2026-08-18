@@ -4129,7 +4129,16 @@ class _Fragment:
     end: int
     umi: str = ""
     hits: int = 1
+    #: Only one mate of this fragment aligned. Two records: the survivor, flagged mate-unmapped, and
+    #: the dead mate written AT the survivor's coordinates with no placement of its own — the shape
+    #: an aligner asked to emit what it could not place writes, and the one that makes a dead mate
+    #: attributable to a Component at all.
     mate_unmapped: bool = False
+    #: Which mate of a half-mapped pair is the one that aligned. Meaningless without
+    #: `mate_unmapped`, and it exists because a plate whose survivors are all FIRST mates cannot
+    #: tell a check that subtracts each side's own singletons from one that subtracts one side's
+    #: from both.
+    survivor: int = 1
     #: Neither mate aligned anywhere. One record, no reference, `uT` saying why — the shape STAR
     #: writes for a pair it could not place, and the one a chimera split has to DROP rather than
     #: rewrite, because its RNEXT still names a suffixed chromosome the output header will not have.
@@ -4147,7 +4156,7 @@ class _Fragment:
 
 
 def _segments(header: Any, frag: _Fragment) -> list[Any]:
-    """One `_Fragment` -> its BAM records: two mates, or one when it or its mate never aligned."""
+    """One `_Fragment` -> its BAM records: two mates, or one when neither of them aligned."""
     import pysam
 
     span = frag.end - frag.start
@@ -4176,13 +4185,33 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
         rec.set_tags(tags)
         return rec
 
+    def stranded(flag: int) -> Any:
+        """The mate that did not align, at its PARTNER's coordinates and with no CIGAR of its own.
+
+        What an aligner asked to emit what it could not place writes for the dead half of a
+        half-mapped pair, and the shape is the whole point: the record is unmapped, so nothing may
+        read a placement off it, and it names its partner's chromosome, so something can read the
+        organism off it. `NH` is zero because nothing was placed.
+        """
+        rec = pysam.AlignedSegment(header)
+        rec.query_name = frag.name
+        rec.query_sequence = "A" * _READ_LEN
+        rec.query_qualities = pysam.qualitystring_to_array("I" * _READ_LEN)
+        rec.flag = flag
+        tid = header.get_tid(frag.contig)
+        rec.reference_id = rec.next_reference_id = tid
+        rec.reference_start = rec.next_reference_start = frag.start
+        rec.set_tags([("NH", 0, "i"), ("uT", "4", "A")])
+        return rec
+
     if frag.unmapped:
         # PAIRED | UNMAPPED | MATE_UNMAPPED | READ1, and no coordinates at all.
         return [build(frag.start, 1 | 4 | 8 | 64, frag.start, 0)]
     if frag.mate_unmapped:
-        # PAIRED | MATE_UNMAPPED | READ1, and no second record: STAR writes none unless asked to,
-        # so the flag on this one is the only evidence that the fragment did not align.
-        return [build(frag.start, 1 | 8 | 64, frag.start, 0)]
+        # PAIRED | MATE_UNMAPPED for the mate that landed, PAIRED | UNMAPPED for the one that did
+        # not, and the READ1/READ2 bits go whichever way round this fragment says.
+        live, dead = (64, 128) if frag.survivor == 1 else (128, 64)
+        return [build(frag.start, 1 | 8 | live, frag.start, 0), stranded(1 | 4 | dead)]
     return [
         build(frag.start, 1 | 2 | 32 | 64 | frag.extra_flags, mate_start, span),
         build(mate_start, 1 | 2 | 16 | 128 | frag.extra_flags, frag.start, -span),
@@ -4875,16 +4904,20 @@ def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the
 # than an `external` test nobody runs, and it is also the limit of what it proves. That STAR produces
 # the BAM shape assumed here is not under test; the aligner is not the thing being exercised.
 #
-# **Seven assertions, and the set is measured rather than argued.** A prototype wrote a splitter to
-# this contract, broke it eighteen ways on purpose, and kept only the assertions that were the ONLY
-# thing catching a defect. Four candidates are deliberately absent. Routing — "every uniquely-placed
-# read lands in the Component it came from", the headline bar — catches nothing once the name split
+# **The set of assertions is measured rather than argued.** A prototype wrote a splitter to this
+# contract, broke it eighteen ways on purpose, and kept only the assertions that were the ONLY thing
+# catching a defect. Four candidates are deliberately absent. Routing — "every uniquely-placed read
+# lands in the Component it came from", the headline bar — catches nothing once the name split
 # is liulab-genome's: a record's Component is then a pure function of its RNAME, and every
 # constructible misrouting refuses or crashes before any assertion runs. Reads-in-equals-kept-plus-
 # dropped is strictly subsumed by the per-reason drop counts. Mate-in-same-Component is the
 # splitter's own runtime refusal, which fires before an output exists to assert over. And nothing
 # asserts an ambiguous route, because assigning a spanning template to its best-scoring Component
 # was rejected outright — there is no such route to have an opinion about.
+#
+# What the eighteen could not reach is a check that has stopped firing, since a splitter that never
+# refuses passes every assertion over its outputs. So the two end-of-run checks are each shown going
+# red as well, against a BAM doctored to lose a population no aligner would lose.
 
 
 @dataclass(frozen=True)
@@ -4950,7 +4983,14 @@ def _chimeric_plate(chimera: _Chimera) -> tuple[_Fragment, ...]:
 
     Nothing here is computed from the splitter's own arithmetic: each row states its kind, and the
     counts the assertions below carry are read off this list by hand — two records per fragment, one
-    for the unmapped pair, so a two-Component shape is 8 kept and 13 dropped out of 21 records in.
+    for the pair that never aligned, so a two-Component shape is 18 kept and 15 dropped out of 33
+    records in.
+
+    **Three half-mapped fragments per Component, and the 2:1 split between the mate sides is the
+    load-bearing part.** They make each Component's first-mate and second-mate counts differ — five
+    against four — which is what a real plate does and what used to make this whole step refuse. Two
+    on one side and one on the other so that a check subtracting one side's singletons from both, or
+    from only its own side, is red rather than accidentally right.
     """
     separator = chimera.separator
     fragments: list[_Fragment] = []
@@ -4962,11 +5002,21 @@ def _chimeric_plate(chimera: _Chimera) -> tuple[_Fragment, ...]:
             # Component declares, so a tid remap that only ever gets index zero right goes red.
             _Fragment(f"{component.name}_unique_first", first, 100, 160),
             _Fragment(f"{component.name}_unique_last", last, 200, 260),
-            # Dropped, one category each, and only the first of the three can occur under the flags
-            # the aligner runs with today.
+            # Also kept, and MARKED rather than dropped: the hit-count tag it already carries is
+            # what lets the counter separate it later, so nothing here needs a second file.
             _Fragment(f"{component.name}_multi", first, 300, 360, hits=2),
+            # Dropped, one category each, and neither can occur under the flags the aligner runs
+            # with today — counted apart so that a flag moving says so instead of moving reads.
             _Fragment(f"{component.name}_secondary", first, 400, 460, extra_flags=_SECONDARY),
             _Fragment(f"{component.name}_supp", first, 500, 560, extra_flags=_SUPPLEMENTARY),
+            # Half aligned: the survivor is kept and counted as a singleton, its dead mate is
+            # dropped as unmapped and counted again as this Component's second derivation of the
+            # same number.
+            _Fragment(f"{component.name}_half_first_a", first, 600, 660, mate_unmapped=True),
+            _Fragment(f"{component.name}_half_first_b", last, 700, 760, mate_unmapped=True),
+            _Fragment(
+                f"{component.name}_half_second", first, 800, 860, mate_unmapped=True, survivor=2
+            ),
         ]
     fragments.append(_Fragment("never_aligned", "", 0, 0, unmapped=True))
     return tuple(fragments)
@@ -5008,9 +5058,29 @@ def _split(tmp_path: Path, label: str) -> _Round:
     return _Round(chimera, bam, fragments, outputs, stats)
 
 
+def _doctored(source: Path, target: Path, gone: Callable[[Any], bool]) -> Path:
+    """A copy of a chimeric BAM with every record `gone` is true of simply absent from it.
+
+    Both callers build a file no aligner writes, and that is the point: the two end-of-run checks
+    stand against a file that has quietly lost a whole population, with the header and every
+    surviving record still perfectly well formed and nothing on the page saying anything left.
+    """
+    with pysam.AlignmentFile(str(source), "rb") as inp:
+        with pysam.AlignmentFile(str(target), "wb", header=inp.header) as out:
+            for record in inp.fetch(until_eof=True):
+                if not gone(record):
+                    out.write(record)
+    return target
+
+
 def _kept(fragments: Sequence[_Fragment]) -> list[_Fragment]:
-    """The plate's mapped, uniquely-placed, primary fragments — the keep rule, read off the rows."""
-    return [f for f in fragments if not f.unmapped and not f.extra_flags and f.hits == 1]
+    """The plate's mapped, primary fragments — the keep rule, read off the rows.
+
+    `hits` is deliberately not consulted: a fragment placed at more than one locus is routed by its
+    representative record's Component and marked, not dropped, so leaving that clause in would let
+    this helper agree with a splitter that had never widened.
+    """
+    return [f for f in fragments if not f.unmapped and not f.extra_flags]
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
@@ -5062,6 +5132,10 @@ def test_every_kept_record_resolves_to_the_chromosome_it_actually_sits_on(
     record resolves, and every read is on the wrong chromosome. Resolving each record's name through
     the output's own header is what catches it — and it only catches it on the SECOND Component,
     whose indexes are the ones that had to move at all.
+
+    It is also where a multiply-placed fragment's two mates are shown ARRIVING, both of them, in the
+    output for the Component its records name: keeping them is what lets the counter separate that
+    population from the hit-count tag rather than from a file this step would otherwise write.
     """
     round_trip = _split(tmp_path, label)
     separator = round_trip.chimera.separator
@@ -5073,43 +5147,113 @@ def test_every_kept_record_resolves_to_the_chromosome_it_actually_sits_on(
             if split_suffixed(frag.contig, separator)[1] == component
             # Both mates, and they are on the same chromosome: the keep rule is per record, so an
             # output missing one of a pair is a different failure than an output missing a name.
-            for placed in [(frag.name, split_suffixed(frag.contig, separator)[0])] * 2
+            # One mate only where one mate is all the aligner placed.
+            for placed in [(frag.name, split_suffixed(frag.contig, separator)[0])]
+            * (1 if frag.mate_unmapped else 2)
         )
         with pysam.AlignmentFile(str(path), "rb") as split:
             assert sorted((r.query_name, r.reference_name) for r in split) == expected
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
-def test_both_mates_of_a_kept_template_are_kept_so_read1_equals_read2(
+def test_a_singleton_is_subtracted_from_its_own_side_before_the_mates_are_compared(
     tmp_path: Path, label: str
 ) -> None:
-    """Nothing is held and nothing is halved: a template survives whole or not at all.
+    """A healthy plate whose first and second mates DIFFER is split rather than refused.
 
-    Both mates carry one NH and sit on one chromosome, which is the fact that lets the filter be
-    stateless — no name sort, no buffer. The failure it stands against is a keep rule written as
-    `is_read1`, which loses every second mate at exit 0 and halves a library nobody re-counts.
+    This asserted mate counts were equal and it was wrong on real data: where only one mate aligned
+    the survivor is kept — correctly, it is a mapped primary alignment — and no partner is in the
+    file to balance it. The arithmetic closed exactly, with no residual, and a pilot lost sixteen of
+    sixteen cells to it. What is compared now is the PAIRED REMAINDER, each side less its own
+    singletons, which is still a per-record flag test and two more counters: nothing is held.
+
+    Five first mates and four second per Component, read off the plate, and the split returning at
+    all is half the claim.
     """
-    round_trip = _split(tmp_path, label)
-    assert round_trip.stats.read1 == round_trip.stats.read2 == dict.fromkeys(round_trip.outputs, 2)
+    stats = _split(tmp_path, label).stats
+    outputs = set(stats.kept)
+    assert stats.read1 == dict.fromkeys(outputs, 5)
+    assert stats.read2 == dict.fromkeys(outputs, 4)
+    # Three of those records have no partner, two on the first side and one on the second, so what
+    # is left on either side is three whole pairs.
+    assert stats.singletons == dict.fromkeys(outputs, 3)
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
-def test_every_dropped_record_is_counted_under_the_reason_it_was_dropped_for(
+def test_the_summary_accounts_for_every_record_the_split_was_handed(
     tmp_path: Path, label: str
 ) -> None:
-    """Four discard categories under one keep rule, each counted apart.
+    """The whole payload at once: what was kept, what that was made of, and why the rest went.
 
-    Only multimapping can occur under the flags the aligner runs with today, and the other three are
-    counted anyway so the rule degrades legibly if a flag moves: a category that starts firing says
-    so here, rather than reads quietly going missing. Two records per fragment, one for the pair
-    that never aligned — see the plate.
+    Three discard categories under one keep rule, each counted apart so the rule degrades legibly if
+    a flag moves — a category that starts firing says so here rather than reads quietly going
+    missing. Multiply-placed is NOT one of them any more: those records are in an output, marked by
+    the hit-count tag they carry, and the count of them is an account of what a Component KEPT
+    rather than of what it lost.
+
+    Kept plus dropped is exactly the records that came in; `multiplaced` and `singletons` are
+    subsets of `kept` and deliberately do not enter that sum. Every number is read off the plate's
+    own rows by hand.
     """
-    assert _split(tmp_path, label).stats.dropped == {
-        "unmapped": 1,
-        "secondary": 4,
-        "supplementary": 4,
-        "multimapping": 4,
+    round_trip = _split(tmp_path, label)
+    names = sorted(c.name for c in round_trip.chimera.components)
+    assert round_trip.stats.to_dict() == {
+        "seqforge": seqforge_version,
+        "separator": round_trip.chimera.separator,
+        "records_in": 33,
+        "kept": dict.fromkeys(names, 9),
+        "read1": dict.fromkeys(names, 5),
+        "read2": dict.fromkeys(names, 4),
+        "multiplaced": dict.fromkeys(names, 2),
+        "singletons": dict.fromkeys(names, 3),
+        # Three unmapped records per Component are the dead mates of its half-mapped pairs, and the
+        # odd one is the template neither mate of which aligned anywhere.
+        "dropped": {"unmapped": 7, "secondary": 4, "supplementary": 4},
     }
+
+
+def test_the_paired_remainder_still_refuses_an_output_that_was_genuinely_halved(
+    tmp_path: Path,
+) -> None:
+    """The replacement check has teeth: a check that cannot be shown going red is not a check.
+
+    Subtracting singletons is what stops a healthy plate refusing, and the risk of the change is
+    that it stops refusing anything at all. So the second mates are removed from the file with
+    nothing anywhere saying they left — not a mate that did not align, which announces itself on the
+    survivor's flag, but records missing from a file that still claims they are there. That is the
+    halving the check was written for, and it still fires.
+    """
+    chimera = _CHIMERAS["plain"]
+    bam = _chimeric_bam(tmp_path / "plain.bam", chimera, _chimeric_plate(chimera))
+    halved = _doctored(
+        bam, tmp_path / "halved.bam", lambda r: bool(r.is_read2 and not r.is_unmapped)
+    )
+    outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
+    with pytest.raises(SplitError, match="first and second mates"):
+        split_chimera(halved, outputs, chimera.separator)
+
+
+def test_the_two_derivations_of_the_half_mapped_count_are_compared_rather_than_assumed(
+    tmp_path: Path,
+) -> None:
+    """One number counted from either end of the same population, and a disagreement is a refusal.
+
+    A survivor carries the mate-unmapped flag; its dead mate is written at the survivor's own
+    coordinates and so names a Component too. Both counts come off the plate above and agree, which
+    is proved by every other case here returning at all — what needs its own case is that they are
+    genuinely INDEPENDENT, so here the placeless records are taken out of the file, which is what an
+    aligner that was never asked to emit them leaves behind. The mate counts still balance, because
+    nothing a kept record carries has changed; only the second derivation collapses, and the refusal
+    is the difference between this check and comparing raw mate counts.
+    """
+    chimera = _CHIMERAS["plain"]
+    bam = _chimeric_bam(tmp_path / "plain.bam", chimera, _chimeric_plate(chimera))
+    silent = _doctored(
+        bam, tmp_path / "silent.bam", lambda r: bool(r.is_unmapped and not r.mate_is_unmapped)
+    )
+    outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
+    with pytest.raises(SplitError, match="counted two ways"):
+        split_chimera(silent, outputs, chimera.separator)
 
 
 def test_a_component_the_caller_named_no_output_for_is_refused_rather_than_dropped(
@@ -5484,16 +5628,16 @@ def test_an_unreadable_summary_costs_its_own_columns_and_names_the_file_it_could
 def test_a_chimeric_plate_reports_what_left_at_the_split_and_never_a_gene_assignment_fate(
     tmp_path: Path,
 ) -> None:
-    """The twin's page: per-Component shares and the four drop counts, and NO fan-in fates.
+    """The twin's page: per-Component accounts and the drop counts, and NO fan-in fates.
 
     Three decisions meet here and none of them is legible from any other test.
 
-    **The split summary is load-bearing rather than additional.** `unmapped` and `multimapping` are
-    dropped one rule before the counter, so both read structurally zero in every per-Component
-    matrix — a page rendering them from the counting object would state a falsehood about the data,
-    since those reads existed and left earlier. They live in this artifact, and the per-Component
-    share beside them is the number the whole chimera exercise exists to produce: the bacterial
-    fraction of a well, readable without opening an `.h5ad`.
+    **The split summary is load-bearing rather than additional.** `unmapped` is dropped one rule
+    before the counter, so it reads structurally zero in every per-Component matrix — a page
+    rendering it from the counting object would state a falsehood about the data, since those reads
+    existed and left earlier. It lives in this artifact, and the per-Component share beside it is
+    the number the whole chimera exercise exists to produce: the bacterial fraction of a well,
+    readable without opening an `.h5ad`.
 
     **`read_fan_in` is absent, and the absence is the claim.** The twin's fan-in artifact carries a
     `{component}`, so reporting it means a Component loop and per-Component key prefixes to render
@@ -5536,28 +5680,28 @@ def test_a_chimeric_plate_reports_what_left_at_the_split_and_never_a_gene_assign
     assert stats is not None and stats.complete
     cell_a = _by_key(stats.samples[0])
     assert "uniquely_mapped" in cell_a  # STAR's half, on the same row and not a row of its own
-    # Every Component of the Chimera gets BOTH columns: what it kept, and that as a share of the
-    # records that came in — read off `_chimeric_plate`'s rows by hand, 21 records in of which 4 kept
-    # per Component. The count is what lets the page close (every kept plus the four drops is the 21)
-    # and the share is what compares across cells of different depth; neither derives from the other
-    # without a denominator that is not on the page.
-    kept = round_trip.stats.kept
-    assert set(kept) == {c.name for c in round_trip.chimera.components}
-    for component, n in kept.items():
+    # Every Component of the Chimera gets four columns, each a different question: what it kept,
+    # that as a share of the records that came in, how much of it was multiply placed, and how many
+    # of its records have no mate in the file. Read off `_chimeric_plate`'s rows by hand — 33
+    # records in, 9 kept per Component. The kept count is what lets the page close (every kept plus
+    # every drop is the 33) and the share is what compares across cells of different depth; the
+    # other two are accounts of what is INSIDE the kept count and so add nothing to that sum.
+    stats_out = round_trip.stats
+    assert set(stats_out.kept) == {c.name for c in round_trip.chimera.components}
+    for component, n in stats_out.kept.items():
         assert cell_a[f"split_kept_{component}"].value == n
-        assert cell_a[f"split_share_{component}"].value == pytest.approx(
-            n / round_trip.stats.records_in
-        )
-    assert sum(kept.values()) + sum(round_trip.stats.dropped.values()) == (
-        round_trip.stats.records_in
+        assert cell_a[f"split_share_{component}"].value == pytest.approx(n / stats_out.records_in)
+        assert cell_a[f"split_multiplaced_{component}"].value == stats_out.multiplaced[component]
+        assert cell_a[f"split_singletons_{component}"].value == stats_out.singletons[component]
+    assert sum(stats_out.kept.values()) + sum(stats_out.dropped.values()) == (
+        stats_out.records_in
     ), "the page's own columns have to add back up to the records the BAM held"
-    # ...and all four reasons, always present, because an absent key and a zero are different claims
-    # and only one of them is a measurement.
+    # ...and every reason, always present, because an absent key and a zero are different claims and
+    # only one of them is a measurement.
     assert {r: cell_a[f"split_dropped_{r}"].value for r in DROP_REASONS} == {
-        "unmapped": 1,
+        "unmapped": 7,
         "secondary": 4,
         "supplementary": 4,
-        "multimapping": 4,
     }
     # Nothing the split says is graded: nobody has measured what share of a worm plate SHOULD be
     # E. coli, so a bar here would be a figure invented at review.
@@ -5567,7 +5711,7 @@ def test_a_chimeric_plate_reports_what_left_at_the_split_and_never_a_gene_assign
     assert not set(FATES) & set(cell_a)
     # Columns read in pipeline order: what STAR did, then what the split then did with it.
     keys = [key for key, _ in stats.columns]
-    assert keys.index("uniquely_mapped") < keys.index("split_dropped_multimapping")
+    assert keys.index("uniquely_mapped") < keys.index("split_dropped_unmapped")
 
 
 def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> None:

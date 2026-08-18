@@ -37,11 +37,14 @@
 # the CRAM and the split have both consumed it instead of living until the fan-in. Per-Component BAMs
 # are `temp()`; the per-cell split summary beside them is not.
 #
-# **Every per-Component figure is over uniquely-placed reads only**, which is the split's keep rule
-# and is stated here because a reader will otherwise read it as a regression: a read ambiguous ACROSS
-# organisms is indistinguishable from a within-organism repeat, so a bacterial fraction read off these
-# matrices is a LOWER BOUND. Two of the four read fates -- `unmapped` and `multimapping` -- therefore
-# go structurally zero in a chimeric `.h5ad`, and the per-cell split summary is where they now live.
+# **Every per-Component figure files a cross-organism ambiguity under ONE organism**, which follows
+# from the split's keep rule -- a mapped, primary alignment, however many loci the fragment was
+# placed at -- and is stated here because a reader will otherwise read it as a regression: one
+# emitted record cannot say whether the rest of a fragment's locus set is in the same organism, so a
+# read ambiguous ACROSS organisms is indistinguishable from a within-organism repeat and lands in
+# exactly one Component's count. The split summary carries each Component's count of them beside its
+# share, so the size of that population is on the page. One of the four read fates -- `unmapped` --
+# goes structurally zero in a chimeric `.h5ad`, and that summary is where it now lives.
 #
 # **The memory figures below are the base's, carried over IDENTICAL, and they are honestly
 # UNMEASURED.** A chimeric index is larger than any one Component's and nobody has measured one; the
@@ -651,10 +654,13 @@ rule split_chimera:
     **Two outputs, and only the BAMs are reclaimed.** They are `temp()` and consumed by exactly one
     rule each, so the whole plate's per-Component BAMs never coexist with the objects counted from
     them. The summary beside them is deliberately NOT `temp()`: it is the durable account of what left
-    and where it went, and it is where `unmapped` and `multimapping` LIVE for a chimeric run -- both
-    read structurally zero in every h5ad below, because those reads leave here, one rule before the
-    counter. Nothing demands it in `rule all` and nothing needs to: this rule is upstream of every
-    matrix, so a plate that finishes has written one per cell.
+    and where it went, and it is where `unmapped` LIVES for a chimeric run -- it reads structurally
+    zero in every h5ad below, because those records leave here, one rule before the counter. It is
+    also where a fragment that half aligned is accounted for: the mate that landed is kept, its
+    partner is not in the file to balance it, and the summary states that count per Component rather
+    than letting a lopsided output look like a healthy one. Nothing demands it in `rule all` and
+    nothing needs to: this rule is upstream of every matrix, so a plate that finishes has written one
+    per cell.
     """
     input:
         bam=rules.star_umi_map.output.bam,
