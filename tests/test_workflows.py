@@ -78,7 +78,9 @@ from seqforge.workflows.fragments import read_metrics as read_fragments_metrics
 from seqforge.workflows.h5ad import (
     SOLO_FEATURE_OUTPUT,
     STAR_BAM,
+    STAR_JUNCTIONS,
     STAR_LOG_FILES,
+    STAR_PROGRESS_LOGS,
     H5adError,
     h5ad_suffixes,
     raw_files,
@@ -337,8 +339,15 @@ def test_star_run_files_are_the_logs_the_bundle_reads_and_the_bam_is_separate() 
     must pass, because STAR refuses to put the `CB`/`UB` barcode tags in anything but the sorted BAM.
     Get this literal wrong and `starsolo_count` declares an output STAR never writes: the rule fails
     after the whole alignment has been paid for.
+
+    WHICH of the four is which is asserted separately from the set, because the set cannot say: the
+    junction table and the progress logs have opposite fates — bulk keeps the first as an output and
+    sweeps the second two — and a constant holding the other one's filename would leave the union
+    below byte-identical while a finished bulk run kept the wrong file.
     """
     assert set(STAR_LOG_FILES) == {"Log.final.out", "Log.out", "Log.progress.out", "SJ.out.tab"}
+    assert STAR_JUNCTIONS == "SJ.out.tab"
+    assert set(STAR_PROGRESS_LOGS) == {"Log.out", "Log.progress.out"}
     assert STAR_BAM == "Aligned.sortedByCoord.out.bam"
     assert STAR_BAM not in STAR_LOG_FILES
 
@@ -1109,7 +1118,7 @@ def test_every_registered_module_wires_into_a_runnable_dag(
 def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
-    """Two invariants every STAR workflow owes, read off ONE rendered plan.
+    """Three invariants every STAR workflow owes, read off ONE rendered plan.
 
     STAR's index is per-process and resident for the life of the job, so N mapping jobs running at
     once on one machine cost N copies of it. A composed pipeline runs on ONE machine (ADR-0051),
@@ -1124,7 +1133,12 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     anywhere else — a `shell:` literal is source, and a source claim about a command is not a claim
     about a command.
 
-    Six claims, and a dry run is the only thing that can make any of them:
+    The scratch is the third, and it rides here for the same reason: what the load rule hands STAR
+    as an output prefix is a fact about a command, and the run-files STAR leaves under that prefix
+    are the difference between a finished pipeline directory a reader can sort into output and
+    scratch and one where they cannot.
+
+    Seven claims, and a dry run is the only thing that can make any of them:
 
     1. **The load is a job.** A rule unreachable from `rule all` plans nothing, and this one is
        reachable only through the mapping rule's inputs — there is no target naming it.
@@ -1159,6 +1173,13 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
        rendering one cell's id onto every cell's records would satisfy any test that only asked
        whether the flag was there.
 
+    7. **Both load invocations write their run-files outside the deliverable**, under a directory the
+       block creates and destroys. STAR writes a log, a progress log and a `_STARtmp/` under every
+       prefix it is given and cleans up none of it, so the prefix these two used to carry left nine
+       undeclared entries beside the index and the flag. The prefix is an argument on a rendered
+       command line, which is the only place this is checkable at all, and reading it here is what
+       makes the claim cover a fourth workflow the day it ships.
+
     Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
     copied into each workflow file rather than factored out, so a fourth STAR workflow must be
     covered the day it ships rather than the day someone remembers to add it. `map/chromap` is absent
@@ -1187,6 +1208,23 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     load = rendered["load_genome"][""]
     assert load.index("--genomeLoad Remove") < load.index("--genomeLoad LoadAndExit"), load
     assert "|| true" in load, "removing a segment that is not there is a STAR error and a no-op"
+
+    # ...and NEITHER invocation writes its run-files into the pipeline directory. STAR drops a log, a
+    # progress log and a `_STARtmp/` under every prefix it is handed and removes none of them, so a
+    # prefix under `results/` left nine undeclared entries beside this rule's two real outputs. Both
+    # prefixes must therefore name a directory the block itself creates and destroys: a prefix
+    # pointed somewhere safer, or a glob sweep afterwards, is a mechanism that has to stay configured
+    # correctly, and this one cannot leak whatever a future STAR decides to write.
+    scratch = re.search(r"(\w+)=\$\(mktemp -d\)", load)
+    assert scratch, f"{module}'s genome load writes under a prefix it did not create:\n{load}"
+    made = f'"${scratch.group(1)}"'
+    prefixes = re.findall(r"--outFileNamePrefix (\S+)", load)
+    assert len(prefixes) == 2 and all(p.startswith(made) for p in prefixes), (
+        f"{module}'s genome load leaves STAR run-files inside the deliverable: {prefixes}"
+    )
+    assert f"rm -rf {made}" in load, (
+        f"{module}'s genome load makes an aligner scratch directory that outlives the rule:\n{load}"
+    )
 
     # WHICH rule maps is read off the rendered commands too, so this never has to name a rule per
     # module: the mapping rule is the one whose command runs STAR's aligner.
@@ -1701,6 +1739,83 @@ def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_t
     assert written["tagged"] == sum(counts.values())  # every synthetic read here carries the tag
 
 
+def _bulk_run_dir(directory: Path, samples: Sequence[str]) -> None:
+    """Write a runnable BULK pipeline directory by hand — a paired-end library, one run per sample.
+
+    The bulk twin of :func:`_plate_run_dir`, and hand-written for the same reason: a ``.smk`` is
+    configuration in, rules out, so a config nobody composed is what makes the plan below a proof
+    about the MODULE rather than about the composer agreeing with itself. Completeness needs no
+    assertion of its own — a key the module reads and this does not carry is a `KeyError` while
+    snakemake reads the module, and :func:`~conftest.snakemake_dry_run` refuses a non-zero plan.
+
+    Paired-end and nothing else, because what a `star_count` job declares does not branch on the
+    mate count: the layout's two shapes are the subject of the compose tests that emit them.
+    """
+    module = get_module("map/star")
+    config: dict[str, object] = {
+        "bulk": {"quantMode": "GeneCounts"},
+        "container": "docker://example/align-rna",
+        "genome": {"assembly": "sacCer3", "annotation": "ensembl_R64-1-1"},
+        "mem_mb": 8 * 1024,
+        "outdir": "results",
+        "read_files_in": {"mate1": "R1", "mate2": "R2"},
+        "threads": 4,
+        "units_tsv": "units.tsv",
+    }
+    rows = ["\t".join(("sample_id", "run", "lane", "read_id", "path"))]
+    for sample in samples:
+        for read_id in ("R1", "R2"):
+            path = f"fastq/{sample}_{read_id}.fastq.gz"
+            (directory / "fastq").mkdir(parents=True, exist_ok=True)
+            (directory / path).write_bytes(b"")
+            rows.append("\t".join((sample, sample, "", read_id, path)))
+    (directory / "units.tsv").write_text("\n".join(rows) + "\n")
+    (directory / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=True))
+    shutil.copy2(module.snakefile, directory / module.snakefile.name)
+    (directory / "Snakefile").write_text(core.render_wrapper(module.name, module.snakefile.name))
+
+
+def test_the_bulk_module_keeps_the_junctions_it_can_use_and_sweeps_the_logs_nothing_reads(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """What a finished bulk run leaves in a sample's directory, off the plan that would leave it.
+
+    `star_count` declared the counts alone, so everything else STAR wrote sat there undeclared and a
+    reader had nothing telling them which files were the point. Two decisions close that, and both
+    are legible only in a plan: a DECLARED output appears under the job's `output:`, and `temp()` is
+    announced as a removal snakemake would perform. Source says neither — `temp()` around a name is
+    an expression, and what it *does* depends on whether anything downstream still needs the file.
+
+    **The junction table is kept and the two progress logs are not**, which is one judgement about
+    depth rather than a preference: a splice junction called from a bulk library's coverage is
+    analyzable, and the same file for one plate cell at ~1M reads is noise (which is why the twins
+    summarize it instead). Nothing reads `Log.out` or `Log.progress.out` after a run at any depth.
+
+    The removals are asserted as a SET, so the claim is two-sided in one assertion: a module that
+    swept the junction table, or the final log the report reads off disk with no rule in between,
+    goes red here just as loudly as one that stopped sweeping a progress log.
+    """
+    samples = ["S1", "S2"]
+    _bulk_run_dir(tmp_path, samples)
+
+    plan = dry_run(tmp_path)
+
+    declared = planned_paths(plan, "output")["star_count"]
+    assert {f"results/{s}/ReadsPerGene.out.tab" for s in samples} <= declared, declared
+    assert {f"results/{s}/{STAR_JUNCTIONS}" for s in samples} <= declared, (
+        f"the bulk module declares no junction table, so a file a user can analyze at this depth "
+        f"leaves the run undeclared and unnamed:\n{sorted(declared)}"
+    )
+    removed = {
+        line.split()[-1]
+        for line in plan.splitlines()
+        if line.startswith("Would remove temporary output")
+    }
+    assert removed == {f"results/{s}/{f}" for s in samples for f in STAR_PROGRESS_LOGS}, (
+        f"a finished bulk run sweeps exactly the two logs nothing reads; it swept {sorted(removed)}"
+    )
+
+
 @pytest.mark.parametrize("module_name", star_modules())
 def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one_place(
     module_name: str,
@@ -1713,6 +1828,12 @@ def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one
     rendering shows is the ORDER — marking a stale segment after the load is a load that inherits it
     — nor that the command lives in the helper alone, where a second copy is a second chance to fix
     one.
+
+    The release's own scratch is the third such half. A handler fires on no plan, so where the
+    release writes STAR's run-files is unreadable anywhere but here, and it is the invocation that
+    runs when the run is OVER: a prefix under the results tree drops a log and a `_STARtmp/` into a
+    directory whose owner has already started reading it. Asserted as "the prefix names a directory
+    this command makes and removes", which is what makes it a mechanism rather than a setting.
 
     The lifecycle is COPIED into each workflow file rather than factored out, because composition
     copies exactly one `.smk` into a run directory and an included fragment would be neither copied
@@ -1728,6 +1849,21 @@ def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one
     )
     after = source[source.index("\nonsuccess:") :]
     assert "--genomeLoad Remove" not in after, "the command belongs to the helper, not to a handler"
+
+    # The helper hands its command to `shell()` as a Python literal, so the source spells the shell's
+    # own double quotes escaped. Unescaped once here, because what is being read is the command.
+    helper = source[source.index("def release_genome_segment(") : source.index("\nonsuccess:")]
+    helper = helper.replace('\\"', '"')
+    scratch = re.search(r"(\w+)=\$\(mktemp -d\)", helper)
+    assert scratch, f"the release writes under a prefix it did not create:\n{helper}"
+    made = f'"${scratch.group(1)}"'
+    prefixes = re.findall(r"--outFileNamePrefix (\S+)", helper)
+    assert prefixes and all(p.startswith(made) for p in prefixes), (
+        f"{module_name}'s release leaves STAR run-files inside the deliverable: {prefixes}"
+    )
+    assert f"rm -rf {made}" in helper, (
+        f"{module_name}'s release makes an aligner scratch directory that outlives it:\n{helper}"
+    )
 
 
 def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:

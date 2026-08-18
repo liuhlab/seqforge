@@ -62,9 +62,6 @@ PRIMARY = config["primary_feature"]
 # index rather than inside it -- a file under another rule's directory output is a child of that
 # output, which snakemake refuses to build a DAG for at all.
 LOADED_FLAG = f"{OUTDIR}/index/{ASSEMBLY}.loaded"
-# Where STAR writes the small logs its load and unload invocations produce. Beside the index for the
-# same reason, and prefixed so they never collide with a sample's.
-LOAD_PREFIX = f"{OUTDIR}/index/_genome_{ASSEMBLY}_"
 
 
 def fastqs(sample, role):
@@ -211,6 +208,15 @@ rule load_genome:
     The same idiom `starsolo_count` already opens with (`rm -rf ..._STARtmp`), one level up: clear
     the stale thing you cannot otherwise reach, then do the work.
 
+    **Neither invocation writes into the pipeline directory.** STAR drops a log, a progress log and a
+    `_STARtmp/` under whatever prefix it is handed and removes none of them, so these two used to
+    leave nine undeclared entries beside the index and the flag, with nothing saying which two of
+    the eleven were output. The prefix is therefore a directory this block MAKES and destroys.
+    Pointing it somewhere else inside the run directory, or sweeping afterwards by glob, both work
+    only for as long as they stay configured correctly; a scratch that cannot outlive the shell has
+    nothing to configure and nothing to sweep. The `trap` is what covers the failing path, which is
+    the path that leaves the most behind.
+
     **Nothing verifies separately that the sharing happened, and that is deliberate.** If the index
     cannot be loaded STAR exits non-zero, this rule fails and snakemake stops -- which covers a bad
     index path and a kernel refusing the segment. A container namespacing IPC (apptainer does not by
@@ -230,16 +236,18 @@ rule load_genome:
         # beside the largest allocation on the machine without knowing it is there. The recipe's whole
         # figure, which is an upper bound on this residency -- see `index_mem_mb`.
         mem_mb=lambda wildcards, attempt: index_mem_mb(config["mem_mb"], attempt),
-    params:
-        prefix=LOAD_PREFIX,
     shell:
         r"""
+        # STAR's run-files go to a directory made here and destroyed here, so none of them can reach
+        # the pipeline directory. The trap fires on the failing path too.
+        scratch=$(mktemp -d)
+        trap 'rm -rf "$scratch"' EXIT
         # Defensive: marks any stale segment for destruction. Attached jobs keep running; a segment
         # that is not there is a no-op we must not fail on.
         STAR --genomeDir {input.index} --genomeLoad Remove \
-             --outFileNamePrefix {params.prefix}remove_ > /dev/null 2>&1 || true
+             --outFileNamePrefix "$scratch"/remove_ > /dev/null 2>&1 || true
         STAR --genomeDir {input.index} --genomeLoad LoadAndExit \
-             --outFileNamePrefix {params.prefix}
+             --outFileNamePrefix "$scratch"/
         """
 
 
@@ -478,13 +486,16 @@ def release_genome_segment():
     entry and declaring the outputs that replace it.
 
     Written once because the two paths release the SAME segment the same way, and two byte-identical
-    copies is two chances to fix one of them: the prefix, the redirect and the trailing `|| true`
+    copies is two chances to fix one of them: the scratch, the redirect and the trailing `|| true`
     have to stay together, and the copy that lost the `|| true` would turn a finished run into a
-    failed one.
+    failed one. The scratch is the arrangement `load_genome` argues for, on the path where it matters
+    most: this command runs when the run is OVER, so a run-file left under the output prefix would
+    land in a directory a user is already reading.
     """
     shell(
+        "scratch=$(mktemp -d); trap 'rm -rf \"$scratch\"' EXIT; "
         f"STAR --genomeDir {OUTDIR}/index/{ASSEMBLY} --genomeLoad Remove "
-        f"--outFileNamePrefix {LOAD_PREFIX}unload_ > /dev/null 2>&1 || true"
+        '--outFileNamePrefix "$scratch"/unload_ > /dev/null 2>&1 || true'
     )
 
 
