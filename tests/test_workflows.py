@@ -1441,6 +1441,14 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     # segment for destruction before loading, and every mapping job attaches instead of loading.
     assert "--genomeLoad Remove" in plan and "--genomeLoad LoadAndExit" in plan
     assert "--genomeLoad LoadAndKeep" in plan
+    # The fragments that never aligned are IN the aligner's output. Without this the counter's first
+    # fate is not a small number, it is an unreachable branch: the counter measures what the BAM
+    # holds, so every plate object carried an unmapped column that was structurally zero. `Within`
+    # and never `Within KeepPairs` — the second token only orders an unmapped record beside its mate
+    # in UNSORTED output, and this module writes sorted output, so it would claim an intent the
+    # module does not have.
+    assert "--outSAMunmapped Within" in plan
+    assert "KeepPairs" not in plan, plan
     # ...and the geometry the extractor is handed is the ONE derived value, not six numbers.
     assert f"--geometry {_PLATE_GEOMETRY}" in plan
     # The paired half of what this layout decides, and its mirror is the test below. The extraction
@@ -1454,7 +1462,12 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     # none of them, so the one job that runs after every cell has finished counted a whole plate on
     # one core of an allocation it was holding whole. Read off the rendered command, because a rule
     # whose `threads:` and whose command line disagree is exactly what that looked like.
-    assert "--threads 4" in _rendered_shell(plan)["umi_count"][""]
+    rendered = _rendered_shell(plan)
+    assert "--threads 4" in rendered["umi_count"][""]
+    # ...and the archive is of the MAPPED records, so it does not grow to carry what the flag above
+    # added: the same input produces the same CRAM it did before those records were emitted. A NAMED
+    # selection rather than a filter respelled here, so a misspelling is refused at the verb's gate.
+    assert "--selection mapped" in rendered["umi_to_cram"]["cell_a"], rendered["umi_to_cram"]
 
 
 def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_component(
@@ -1515,6 +1528,13 @@ def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_comp
     # The CRAM is made from the PRE-split BAM: the file STAR wrote, not a per-Component one.
     cram = rendered["umi_to_cram"]["cell_a"]
     assert f"--bam results/cell_a/{STAR_BAM}" in cram, cram
+    # The twin asks for the unmapped records too, and drops them at the archive exactly as the base
+    # does — the same pair of flags, because the two modules' commands are the half that may not
+    # diverge. `Within` and never `Within KeepPairs`: mate adjacency is an UNSORTED-output ordering
+    # and this module writes sorted output.
+    assert "--outSAMunmapped Within" in plan
+    assert "KeepPairs" not in plan, plan
+    assert "--selection mapped" in cram, cram
 
     # The split takes the same BAM, one `<component>=<path>` per Component, and the CHIMERA.
     split = rendered["split_chimera"]["cell_a"]
@@ -4087,6 +4107,11 @@ _PLATE: tuple[_Fragment, ...] = (
     _Fragment("ambiguous_exon", "chr1", 4660, 4690),
     _Fragment("ambiguous_intron", "chr1", 4520, 4560),
     _Fragment("mate_never_aligned", "chr1", 120, 180, umi="AAAAAAAA", mate_unmapped=True),
+    # ...and neither mate anywhere: one record, no coordinates. This is the OTHER half of the
+    # unmapped test — the half nothing could reach until the aligner was asked to emit the records
+    # it could not place within its output, which is why that fate was a structural zero on every
+    # plate object written before then rather than a small number.
+    _Fragment("never_aligned", "", 0, 0, unmapped=True),
 )
 
 
@@ -4199,8 +4224,15 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
 ) -> None:
     """The whole counting rule at once, against a plate whose every fate is known by construction.
 
-    Thirteen fragments, four counted matrices and four fates; every number below is read off the
+    Fourteen fragments, four counted matrices and four fates; every number below is read off the
     fixture's own comments rather than recomputed here.
+
+    Both ways a fragment can fail to align are in the plate, and the second of them is why the count
+    is two: a record whose own placement is missing, and one standing for a pair whose mate's is.
+    The first cannot occur in an aligner's output unless the aligner was asked for it, so the branch
+    that reads it sat unreachable, and a plate object's unmapped column was a zero that meant
+    nothing. Counting them apart is not the point — a fragment either aligned or it did not — so
+    they share the fate rather than splitting it.
     """
     db, cells = _plate(tmp_path)
     adata = count_plate(cells, read_annotation(db))
@@ -4210,7 +4242,7 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
 
     assert int(row[N_FRAGMENTS]) == len(_PLATE)
     assert {fate: int(row[fate]) for fate in FATES} == {
-        "unmapped": 1,  # mate_never_aligned
+        "unmapped": 2,  # mate_never_aligned, and never_aligned
         "multimapping": 1,  # NH == 2
         "no_feature": 2,  # the scaffold, and the intergenic fragment
         "ambiguous": 2,  # two exonic genes, then two gene bodies and no exon
@@ -5083,11 +5115,11 @@ def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_alignment_lo
     # STAR's half is still there, untouched: this is one row per cell and not two.
     assert "uniquely_mapped" in cell_a
     # ...and the counter's half, off the synthetic plate whose every fate is known by construction:
-    # 13 fragments, of which 1 unmapped, 1 multimapping, 2 no-feature and 2 ambiguous.
+    # 14 fragments, of which 2 unmapped, 1 multimapping, 2 no-feature and 2 ambiguous.
     assert cell_a[N_FRAGMENTS].value == len(_PLATE)
     assert cell_a["no_feature"].value == pytest.approx(2 / len(_PLATE))
     assert cell_a["ambiguous"].value == pytest.approx(2 / len(_PLATE))
-    assert cell_a["unmapped"].value == pytest.approx(1 / len(_PLATE))
+    assert cell_a["unmapped"].value == pytest.approx(2 / len(_PLATE))
     assert cell_a["multimapping"].value == pytest.approx(1 / len(_PLATE))
     # Every fate the counter records has a column and a label a human can read, checked against
     # `FATES` itself rather than against a list here — a fifth fate must not reach the page unnamed.

@@ -553,7 +553,9 @@ def _count_fragment(record: AlignedSegment, annotation: Annotation, counts: Cell
     """Decide one fragment's fate and, if it has one, its gene and its bucket."""
     # Both mates aligned or the fragment is unmapped -- the reference's rule, read off the flags
     # this record already carries rather than off the pair it no longer has. A fragment whose two
-    # records the aligner omitted entirely is invisible here, and that is a property of the BAM.
+    # records the aligner omitted entirely is invisible here, and that is a property of the BAM:
+    # the modules that feed this counter ask STAR to write what it could not place WITHIN its
+    # output, which is what makes this branch a measurement instead of one that never fires.
     if record.is_unmapped or (record.is_paired and record.mate_is_unmapped):
         counts.fates["unmapped"] += 1
         return

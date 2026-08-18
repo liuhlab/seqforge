@@ -34,4 +34,10 @@ could only see the one it took, and it ignores prose, which the regex did not. T
 key: the old scan reported a bare `solo` because a docstring mentioned `config["solo"]`. **Amended
 2026-08-11 (#370):** the re-measurement landed and the two figures were not floors but ceilings —
 `--limitBAMsortRAM` is a cap, so adding it lowered the peak. The decision stands; only the guess
-about which way the unmeasured error ran was wrong.
+about which way the unmeasured error ran was wrong. **Amended 2026-08-18 (#434):** the two plate
+twins' argv gains `--outSAMunmapped Within`, recorded here because this is where the aligner's line
+is decided rather than in a neighbouring record. Bare `Within` and never `Within KeepPairs`: the
+second token orders an unmapped record beside its mate in unsorted output only, which a
+coordinate-sorted module cannot use. Without it the counter's first read fate had no branch that
+could execute, and the retained archive names the `mapped` selection so it does not grow to carry
+records nothing placed.
