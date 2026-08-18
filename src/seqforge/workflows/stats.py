@@ -15,7 +15,8 @@ The seam is :class:`StatsSpec`: where one sample's artifact lives, and how to tu
                                                            the alignment log and a junction summary
                            + the fan-in artifact           one h5ad over the plate, one row per cell
     map/star-umi-chimera   <sample>.qc.json.gz             the same, plus the split summary
-                           and NO fan-in reader            argued on the entry itself
+                           + the fan-in artifact           one h5ad per COMPONENT, read by the same
+                                                           reader and keyed per Component
 
 Five artifacts, five vocabularies, and no shared column set — the ATAC summary has no
 whitelist-match rate and no per-barcode vector, so an scATAC page speaks about fragments and never
@@ -47,16 +48,26 @@ piece of it, so a cell's QC is one file a reader opens and one entry here. :attr
 stays a tuple: a module whose chain leaves two durable accounts states two filenames rather than
 having one adapter open a sibling, and a sample missing one keeps the other.
 
-**One module reads a SECOND artifact, and what is new about that one is its ARITY, not its name.**
-``map/star-umi`` counts its whole plate in one job and writes one ``.h5ad`` whose ``obs`` carries
-every cell's read fates — a **fan-in artifact**: dataset-scoped as a file, sample-scoped as data. A
-per-sample reader cannot express it, since there is no sample in its path; so the spec's last
+**Both plate twins read a SECOND artifact, and what is new about that one is its ARITY, not its
+name.** ``map/star-umi`` counts its whole plate in one job and writes one ``.h5ad`` whose ``obs``
+carries every cell's read fates — a **fan-in artifact**: dataset-scoped as a file, sample-scoped as
+data. A per-sample reader cannot express it, since there is no sample in its path; so the spec's last
 reader is plural in the other direction (:attr:`StatsSpec.read_fan_in`), handed the file and the
 sample list once and returning one :class:`SampleStats` per row, which :func:`read_pipeline_stats`
 merges into what the per-sample artifacts said. Its filename is deliberately **not** a field on the
 spec: ``Workflow.fan_in_artifact`` already declares it and the rule that produces it reads that same
 constant, so spelling it here would be a third owner of one name — the exact drift the imports below
 exist to prevent.
+
+**The chimeric twin's fan-in is that artifact once per Component, and it is read by the SAME
+reader.** Its declared name carries a ``{component}``, so :func:`_read_fan_in` expands it exactly as
+:func:`_missing_deliverables` does, opens each object with the twin's own reader, and re-keys what
+comes back per Component (:func:`_per_component`) — so two organisms' fates, fragment counts and
+saturation sit on one cell's row instead of overwriting each other. A second reader was the
+alternative and it would have been the plate reader with a prefix argument: the ``obs`` columns are
+the same columns, written by the same counter, and what differs is only how many objects there are.
+Every column it produces carries :data:`PER_COMPONENT_CAVEAT`, because a rate measured on one
+Component's object is not the rate of the same name on a single-assembly page.
 
 The spec carries a second thing the same way: the module's **cross-checks**, the rules that read a
 metric back and say which *decision* looks wrong. Same registry, same guard, one level in — a module
@@ -142,12 +153,17 @@ class StatsSpec:
     field can be added without touching every spec — and :data:`MODULES_WITHOUT_CROSS_CHECKS` is what
     stops that default from being a silent one.
 
-    ``read_fan_in`` is the plural reader, for the one module whose pipeline also produces a
+    ``read_fan_in`` is the plural reader, for the modules whose pipeline also produces a
     **fan-in artifact**: ``(the artifact, the sample list) -> one SampleStats per row``, opened once
     and merged into the rows above. It carries **no filename of its own** — the module's
     ``fan_in_artifact`` is the single owner of that, and :func:`read_pipeline_stats` asks the
     registry for it — so this field says only *how* to read the thing, never *where* it is.
     ``None`` for the three per-sample-end-to-end modules, which is the default and the common case.
+
+    It says nothing about **how many** of that artifact there are either, which is what lets both
+    plate twins name one reader: a declared name carrying a ``{component}`` is expanded per Component
+    by :func:`_read_fan_in`, and the reader is handed one object at a time and never learns that it
+    was one of several.
     """
 
     artifacts: tuple[SampleArtifact, ...]
@@ -208,8 +224,8 @@ _SPECS: dict[str, StatsSpec] = {
         artifacts=(SampleArtifact(f"{{sample}}{_QC_SUFFIX}", _read_plate_cell),),
         read_fan_in=_read_plate_stats,
     ),
-    # The chimeric twin: the plate module's spec, one key wider inside the same artifact, and MINUS
-    # its fan-in reader.
+    # The chimeric twin: the plate module's spec, one key wider inside the same artifact, and its
+    # fan-in read once per Component.
     #
     # What its bundle gains is the per-cell split summary, read last so the page reads left to right
     # in pipeline order — extraction, then alignment, then the split that follows it. It is
@@ -222,22 +238,29 @@ _SPECS: dict[str, StatsSpec] = {
     # bundle rather than as a second entry here, which is what makes the twin's bundle downstream of
     # its split: on a chimeric run, "N of M finished" counts cells whose split ran.
     #
-    # **`read_fan_in` is absent, and that is argued rather than deferred.** This module's
-    # `fan_in_artifact` carries a `{component}`, so reporting the fan-in means looping over
-    # Components and giving every cell's row N colliding sets of fate keys under per-Component
-    # prefixes — and the numbers bought that way are precisely the ones that do not compare across
-    # run types: one of the four fates is structurally zero here and every surviving rate, the
-    # headline one included, rides a smaller denominator. Rendered beside a single-assembly run's
-    # page they are not the same measurement. The stated cost is that a chimeric run's page shows no
-    # gene-assignment fates at all; they are in each object's `obs` for anyone who wants them.
+    # **`read_fan_in` is the base's reader, and naming it here is the whole change.** This module's
+    # `fan_in_artifact` carries a `{component}`, so the loop over Components lives in `_read_fan_in`
+    # and each object is read by the same function that reads a single-assembly plate's — the
+    # columns are the same columns, written by the same counter, and a second reader would have been
+    # that one with a prefix argument. What the loop then does is re-key per Component, so two
+    # organisms' fates sit side by side on one cell's row rather than one overwriting the other.
     #
-    # Declining the READER does not decline the ARTIFACT. Whether each Component's object was written
-    # is a fact this module still answers, through the same `fan_in_artifact` declaration and the
-    # Component list the recipe composed against — so a chimeric run that counted two organisms of
-    # three reports as failed and names the third, while its page stays free of numbers that would
-    # not compare.
+    # The reader shipped as ABSENT for a while, on the argument that two of the four fates were
+    # structurally zero here and every surviving rate rode a smaller denominator, so the numbers
+    # would not compare with a single-assembly page's. Half of that has since gone: the split keeps
+    # multiply-placed records, so that fate fires for real. What is left is one fate — `unmapped`,
+    # dropped at the split — and the denominator, and both are stated on every column this half
+    # produces (`PER_COMPONENT_CAVEAT`) rather than paid for by shipping no numbers at all. A page
+    # showing nothing was the more expensive answer: a reader who wants a chimeric cell's gene
+    # assignment had to open an `.h5ad` per Component to get it.
+    #
+    # Reading the artifact does not change what MISSING one means. Whether each Component's object
+    # was written is still answered from the same `fan_in_artifact` declaration and the Component
+    # list the recipe composed against, so a chimeric run that counted two organisms of three still
+    # reports as failed and names the third — now with the two that landed on the page.
     "map/star-umi-chimera": StatsSpec(
         artifacts=(SampleArtifact(f"{{sample}}{_QC_SUFFIX}", _read_plate_cell),),
+        read_fan_in=_read_plate_stats,
     ),
 }
 
@@ -322,11 +345,97 @@ def _merged(held: SampleStats | None, arriving: SampleStats) -> SampleStats:
     return held.model_copy(update={"metrics": [*held.metrics, *arriving.metrics]})
 
 
+#: The sentence every per-Component column of a fan-in artifact carries. A **Chimera**'s counting
+#: objects are one per Component and each was counted over that Component's records alone, so the
+#: familiar column names mean something narrower here than they do on a single-assembly page — and a
+#: reader comparing the two without being told would be comparing two different measurements.
+#:
+#: Two facts, and the first is the one that makes the second unavoidable: whatever the aligner did
+#: not place is dropped at the **split**, one rule before the counter, so ``unmapped`` reads
+#: structurally zero in every per-Component object and lives in this row's split summary instead —
+#: which means every other fate on this half of the row is a share of a denominator that already had
+#: those records taken out of it. Carried on the metric rather than as a note on the page, because a
+#: caveat that is not beside the number is a caveat nobody reads at the moment they need it.
+PER_COMPONENT_CAVEAT = (
+    "Measured on this Component's own counting object, so it is a share of the fragments that "
+    "reached that Component and not of the cell's: whatever the aligner did not place left at the "
+    "split one rule earlier and is counted in this row's split summary instead. Not the same "
+    "measurement as the column of this name on a single-assembly page."
+)
+
+
+def _per_component(stats: SampleStats, component: str) -> SampleStats:
+    """One Component's reading of a fan-in artifact, re-keyed so N of them fit on one row.
+
+    A **Chimera**'s counting objects carry the same ``obs`` columns as a single-assembly plate's —
+    same counter, same names — so merging two of them unchanged would give every cell one set of
+    fates, whichever Component happened to be read last. The key gains the Component and the label
+    leads with it, which is the shape the split summary's per-Component columns already use, so the
+    two halves of a chimeric row read the same way.
+
+    **No ``headline``, whatever the reader marked.** The Component axis is N-wide by construction, so
+    promoting these would put an unbounded number of columns into a strip whose whole job is being
+    small — the argument ``split_metrics`` makes for its own per-Component columns, and the reason a
+    chimeric page's at-a-glance strip is the per-cell bundle's and nothing else.
+
+    Every hint gains :data:`PER_COMPONENT_CAVEAT`, appended rather than replacing what the reader
+    wrote: what the number measures is still the counter's fact to state, and what a per-Component
+    reading of it is NOT is this module's.
+    """
+    return stats.model_copy(
+        update={
+            "metrics": [
+                metric.model_copy(
+                    update={
+                        "key": f"{metric.key}_{component}",
+                        "label": f"{component} {metric.label}",
+                        "hint": f"{metric.hint} {PER_COMPONENT_CAVEAT}".strip(),
+                        "headline": False,
+                    }
+                )
+                for metric in stats.metrics
+            ]
+        }
+    )
+
+
+def _read_one_fan_in(
+    read: Callable[[Path, Sequence[str]], dict[str, SampleStats]],
+    path: Path,
+    name: str,
+    samples: Sequence[str],
+    notes: list[str],
+) -> dict[str, SampleStats]:
+    """One fan-in object opened once — ``{}`` when it never landed, and a note when it will not parse.
+
+    An artifact that is there and unreadable costs a note and nothing else, exactly as a per-sample
+    one does: every cell keeps the half of its row its own bundle gave it, and on a Chimera every
+    Component that DID parse keeps its columns. The note names the expanded filename rather than the
+    declared pattern, because "which file could not be read" is the whole reason it exists and one
+    Component of three is not an answer a pattern can give.
+
+    An artifact that is simply not there is silent here on purpose: it is missing, not unreadable,
+    and :func:`_missing_deliverables` is what says so — through the same declaration, on the run
+    state, where a reader looks for what a run still owes.
+    """
+    if not path.is_file():
+        return {}
+    try:
+        return read(path, samples)
+    except _UNREADABLE as exc:
+        notes.append(
+            f"{name}: the pipeline's dataset-wide artifact could not be read "
+            f"({type(exc).__name__}), so no sample below carries what it measured"
+        )
+        return {}
+
+
 def _read_fan_in(
     module: str,
     spec: StatsSpec,
     results_dir: Path,
     samples: Sequence[str],
+    components: Sequence[str],
     notes: list[str],
 ) -> dict[str, SampleStats]:
     """One module's **fan-in artifact**, opened ONCE — or ``{}`` when it has none, or none landed.
@@ -337,31 +446,35 @@ def _read_fan_in(
     one name — the rule the artifact table above states, applied to the one artifact with no
     ``{sample}`` in it.
 
-    Once, and not once per sample, because the artifact is one object over the whole plate: 1440
-    cells means 1440 rows in one file, and re-opening it per row would turn a single read into a
-    quadratic one for a page showing five columns.
+    Once per object, and not once per sample, because the artifact is one object over the whole
+    plate: 1440 cells means 1440 rows in one file, and re-opening it per row would turn a single read
+    into a quadratic one for a page showing five columns.
+
+    **A name carrying a ``{component}`` is expanded once per Component**, which is the arity the
+    twin's ``rule all`` demands and the arity :func:`_missing_deliverables` already reads it at. Each
+    object goes through the module's own reader — the plate reader, unchanged, because a Component's
+    object is a plate's object counted over fewer records — and what comes back is re-keyed by
+    :func:`_per_component` before being folded in, so a cell's row carries every organism's numbers
+    side by side. With no Component to expand it there is nothing to open and nothing is: a config
+    that lost the key owes its deliverables under their own pattern on the run state, and inventing a
+    path out of an unexpanded name here would only produce a file that cannot exist.
 
     A module declaring a reader and no artifact is refused by :func:`_check_registry` at build time,
     which is what the ``artifact is None`` arm here is: the narrowing that fact implies, not a
     silent skip of a job somebody asked for.
-
-    An artifact that is there and unreadable costs a note and nothing else, exactly as a per-sample
-    one does — every cell keeps the half of its row the alignment log gave it.
     """
     artifact = get_module(module).fan_in_artifact
     if spec.read_fan_in is None or artifact is None:
         return {}
-    path = results_dir / artifact
-    if not path.is_file():
-        return {}
-    try:
-        return spec.read_fan_in(path, samples)
-    except _UNREADABLE as exc:
-        notes.append(
-            f"{artifact}: the pipeline's dataset-wide artifact could not be read "
-            f"({type(exc).__name__}), so no sample below carries what it measured"
-        )
-        return {}
+    if "{component}" not in artifact:
+        return _read_one_fan_in(spec.read_fan_in, results_dir / artifact, artifact, samples, notes)
+    merged: dict[str, SampleStats] = {}
+    for component in components:
+        name = artifact.format(component=component)
+        read = _read_one_fan_in(spec.read_fan_in, results_dir / name, name, samples, notes)
+        for sample, row in read.items():
+            merged[sample] = _merged(merged.get(sample), _per_component(row, component))
+    return merged
 
 
 def _missing_deliverables(module: str, results_dir: Path, components: Sequence[str]) -> list[str]:
@@ -418,7 +531,9 @@ def read_pipeline_stats(
     A module with a **fan-in artifact** is read from both, and the join is a **union**: a sample is
     reported if ANY source has it. A cell whose ``Log.final.out`` is missing but whose row is in
     the plate object was counted — it has fates, a fragment count and a matrix column — and dropping
-    it would report a plate as thinner than the object on disk says it is.
+    it would report a plate as thinner than the object on disk says it is. On a **Chimera** that
+    artifact is one object per **Component**, read the same way and keyed per Component, so a cell's
+    row carries both organisms' numbers rather than whichever was opened last.
 
     **What is SHOWN and what is FINISHED are two questions**, and they came apart the first time a
     module reported from a mid-pipeline artifact. Every source that landed puts its columns on the
@@ -429,10 +544,11 @@ def read_pipeline_stats(
 
     **And what is FINISHED is still not whether the RUN finished.** Every contracted cell can land
     its alignment log while the object the whole plate fans in to was never written — the run that
-    reported every cell done and no matrix at all. ``components`` is what that check needs and the
-    only reason it is a parameter: the twin's deliverable is named once per **Component**, so the
-    Chimera the recipe composed against decides how many objects were demanded. Empty for every
-    per-sample module and for a plain reference, which is the default and the common case.
+    reported every cell done and no matrix at all. ``components`` is what that check needs: the
+    twin's deliverable is named once per **Component**, so the Chimera the recipe composed against
+    decides how many objects were demanded — and, for the same reason and off the same list, how many
+    there are to open and read. Empty for every per-sample module and for a plain reference, which is
+    the default and the common case.
     """
     spec = _SPECS.get(module)
     if spec is None or not results_dir.is_dir():
@@ -462,7 +578,7 @@ def read_pipeline_stats(
     # two halves of ONE row and not two rows: the alignment log says what STAR did with this cell's
     # reads, the plate object says what the counter then did with its fragments, and a page carrying
     # them as separate rows would be a page where every cell appears twice.
-    fan_in = _read_fan_in(module, spec, results_dir, samples, notes)
+    fan_in = _read_fan_in(module, spec, results_dir, samples, components, notes)
     found: list[SampleStats] = []
     for sample in samples:
         # Either source alone is a row. Contracted order is kept by walking `samples` rather than by
@@ -606,6 +722,7 @@ def _fan_in_artifact(module: str) -> str | None:
 __all__ = [
     "MODULES_WITHOUT_CROSS_CHECKS",
     "MODULES_WITHOUT_STATS",
+    "PER_COMPONENT_CAVEAT",
     "CrossCheck",
     "SampleArtifact",
     "StatsSpec",
