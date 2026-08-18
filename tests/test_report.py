@@ -412,7 +412,8 @@ def test_the_compile_verdict_and_the_pipeline_run_state_are_two_different_badges
     states = re.findall(r'class="([^"]*\blvl-state\b[^"]*)"', page)
     assert len(states) == 1, "one run-state badge on the page, for the one pipeline that ran"
     assert "lvl-bad" in states[0].split(), (
-        f"a pipeline that wrote nothing readable is the third state, tinted bad: {states[0]}"
+        f"a pipeline that wrote nothing readable is a failed run, and failure is the one tint this "
+        f"block wears: {states[0]}"
     )
     assert not (set(states[0].split()) & set(verdicts[0].split())), (
         "the two badges share a class, so a reader cannot tell which question is being answered"
@@ -1476,6 +1477,9 @@ def test_the_report_verb_passes_the_results_flag_through_and_summarises_the_pipe
     `pipeline_stats` sits BESIDE `kind`/`exit` in the JSON summary and is never folded into them —
     "the compiler succeeded" and "the pipeline succeeded" are two judgements, and a machine consumer
     that could only read one of them would have no way left to ask which it was being told.
+
+    The run state rides in that same envelope as a value a caller compares rather than interprets,
+    which is what a script gating on the run needs and cannot get from a pair of counts.
     """
     samples = _finish_a_starsolo_pipeline(own_workspace, outdir="elsewhere")
 
@@ -1489,9 +1493,109 @@ def test_the_report_verb_passes_the_results_flag_through_and_summarises_the_pipe
     assert conclusion["kind"] == "compiled"  # the COMPILE verdict, untouched
     assert conclusion["pipeline_stats"] == {
         "module": "map/starsolo",
+        "run_state": "finished",
         "samples_finished": len(samples),
         "samples_expected": len(samples),
+        "missing_deliverables": [],
     }
+
+
+def _finish_a_chimeric_plate(
+    ws: Path,
+    *,
+    components: tuple[str, ...] = ("ce11", "ecHT115"),
+    wrote: tuple[str, ...] | None = None,
+) -> tuple[Path, list[str]]:
+    """Make the compiled pipeline look like a finished chimeric plate; return its results dir + cells.
+
+    The two edits `_finish_a_starsolo_pipeline` makes, plus the one this module needs because its
+    deliverable is not per-sample: the copied module becomes `star-umi-chimera.smk` (so the owner
+    reports the chimeric twin), the composed config gains the Component list that twin's `rule all`
+    expands its deliverable over, one alignment log lands per contracted cell, and one counting
+    object lands per Component in `wrote` — defaulting to every Component, i.e. a run that finished.
+
+    The objects are written empty on purpose: the chimeric twin ships no fan-in reader, so nothing
+    opens them, and what is under test is whether the file the module DECLARED is there at all.
+    """
+    from seqforge.pipeline import CompiledPipeline
+    from seqforge.workflows import PLATE_COMPONENT_H5AD
+
+    pipeline = CompiledPipeline.discover(ws)
+    assert pipeline is not None, "the fixture workspace should already be composed"
+    for smk in pipeline.directory.glob("*.smk"):
+        smk.rename(smk.with_name("star-umi-chimera.smk"))
+    config = yaml.safe_load(pipeline.config_path.read_text())
+    config["genome"]["components"] = list(components)
+    pipeline.config_path.write_text(yaml.safe_dump(config))
+
+    samples = pipeline.samples
+    assert samples, "the composed config should carry its own sample list"
+    for sample in samples:
+        out = pipeline.results_dir / sample / "Log.final.out"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text("".join(f"  {k} |\t{v}\n" for k, v in _STAR_FINAL_LOG.items()))
+    for component in components if wrote is None else wrote:
+        (pipeline.results_dir / PLATE_COMPONENT_H5AD.format(component=component)).write_bytes(b"")
+    return pipeline.results_dir, samples
+
+
+def test_a_run_is_finished_only_when_every_declared_deliverable_is_on_disk(
+    own_workspace: Path,
+) -> None:
+    """The failed arm that rendered as every cell finished while both headline objects were absent.
+
+    Every cell finishing is the sample half of the question and it cannot see the other half: the
+    object a whole plate fans in to has no sample in its path, so no count of cells is short when it
+    was never written. The state reads what the module DECLARED it would leave instead — once per
+    Component, because that is the arity the twin's `rule all` demands — so a run that counted one
+    organism of two is failed and names the organism that is missing.
+
+    Asserted on the collected model and not on markup: what is under test is the reader's verdict,
+    and the page is only one of the things that carry it.
+    """
+    results, samples = _finish_a_chimeric_plate(own_workspace)
+
+    whole = collect_report(own_workspace).assays[0].pipeline_stats
+    assert whole is not None
+    assert whole.n_found == len(samples) == whole.n_expected
+    assert whole.missing_deliverables == []
+    assert whole.state == "finished"
+
+    (results / "combined.ecHT115.h5ad").unlink()
+
+    lost = collect_report(own_workspace).assays[0].pipeline_stats
+    assert lost is not None
+    # Not one cell is short, which is precisely why the count could never have caught this.
+    assert lost.n_found == len(samples) == lost.n_expected
+    assert lost.state == "failed"
+    assert lost.missing_deliverables == ["combined.ecHT115.h5ad"]
+
+
+def test_a_failed_run_reaches_the_page_and_the_machine_summary_and_still_exits_zero(
+    own_workspace: Path,
+) -> None:
+    """A caller gates on the field; this verb's exit code keeps answering "did I render".
+
+    Merging the two is what leaves a script unable to tell a broken render from a broken run, and it
+    is the argument the cross-check's alerts already settled one envelope over: what a reader learns
+    about a run it did not perform is reported, never enforced.
+
+    The page is asserted here and not in the test above because these are two claims — that the
+    reader decides the state, and that both surfaces carry the decision it made.
+    """
+    _finish_a_chimeric_plate(own_workspace, wrote=("ce11",))
+
+    result = runner.invoke(app, ["report", "-C", str(own_workspace), "--no-timestamp"])
+
+    assert result.exit_code == 0, result.stdout
+    stats = json.loads(result.stdout)["conclusion"][0]["pipeline_stats"]
+    assert stats["run_state"] == "failed"
+    assert stats["missing_deliverables"] == ["combined.ecHT115.h5ad"]
+    assert stats["samples_finished"] == stats["samples_expected"]
+
+    pane = _pane((own_workspace / "seqforge" / "report.html").read_text(), "results")
+    assert "Failed." in pane
+    assert "combined.ecHT115.h5ad" in pane  # what to re-run, named on the page as well
 
 
 def _finish_a_bulk_pipeline(ws: Path, *, outdir: str) -> list[str]:
@@ -1911,20 +2015,28 @@ def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Pa
     assert ">0</td>" not in thin_row and ">0.0%</td>" not in thin_row  # never a manufactured zero
 
 
-def test_a_partial_run_still_renders_what_landed_and_says_how_much_did(own_workspace: Path) -> None:
-    """Unchanged by the redesign, and re-asserted because a table is a new place to lose it.
+def test_a_partial_run_is_a_failed_run_and_still_renders_what_landed(own_workspace: Path) -> None:
+    """There is no third answer: a run that did not produce what was demanded is a failure.
 
     A listing can say what landed and can never say what is missing, so the count comes from the
     composed config's own sample list. Two of three finished: both rows render, and the page says so
     rather than looking like a complete run with a short table.
+
+    What changed is the verdict over that account. A partial run used to draw its own amber middle
+    state, which is exactly the limbo a reader had to grade for themselves — "is two of three fine?"
+    is not a question a page should leave open. It is `failed`, tinted like every other failure, with
+    how far the run got as the reason rather than as the verdict.
     """
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
     stats = _land_bundles(results, {"S1": _QC_SUMMARY, "S2": _QC_SUMMARY})
     partial = stats.model_copy(update={"n_expected": 3})
+    assert partial.state == "failed"
+
     pane = _pane(_render_with_stats(own_workspace, partial), "results")
 
     assert "2 of 3 samples finished" in pane
-    assert 'class="lvl-warn lvl-state' in pane  # a partial run is one of the two tinted states
+    assert 'class="lvl-bad lvl-state' in pane  # the failed run's one tint, not a middle state
+    assert "lvl-warn lvl-state" not in pane
     assert pane.count('<th scope="row"') == 2  # what landed is there, in full
 
 

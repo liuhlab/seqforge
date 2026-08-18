@@ -1119,30 +1119,37 @@ def _pipeline_state(stats: PipelineStats) -> str:
     finish", and the two disagree exactly when it matters: a workspace stays ``compiled`` and green
     while three of twenty samples are still missing. One badge for both facts is how that goes unseen.
 
-    Three states, not two. Nothing readable at all is its own — it is reached only when artifacts
-    landed and every one of them was corrupt, so "what landed is below" would point at an empty
-    section, and a partial-run tint would understate a pipeline that produced nothing usable.
+    **Two states and no third**, because a run that did not produce what was demanded is a failure
+    and not a limbo a reader has to grade for themselves. What used to be an amber middle — some
+    samples landed, some did not — is a failed run that says how far it got; the run's state and the
+    account of what went wrong are one block, and the state leads it.
 
     A finished run is drawn in **no colour at all**, like an ``ok`` cell: the page tints what wants
-    looking at, and "everything worked" does not. That leaves exactly two tinted things on this tab,
-    which is what makes either of them mean something.
+    looking at, and "everything worked" does not. So the only tint this block can wear is the failed
+    one, which is what makes it mean something when it is there.
     """
-    if stats.complete:
-        level, icon, text = "ok", "✓", f"all {stats.n_found} sample(s) finished"
-    elif stats.n_found == 0:
-        level, icon, text = (
-            "bad",
-            "✗",
-            f"<b>No readable result for any of the {stats.n_expected} contracted samples.</b> "
-            "The artifacts below were written and could not be parsed.",
-        )
+    if stats.state == "finished":
+        level, icon, text = "ok", "✓", f"<b>Finished.</b> All {stats.n_found} sample(s) finished."
     else:
-        level, icon, text = (
-            "warn",
-            "◐",
-            f"<b>{stats.n_found} of {stats.n_expected} samples finished.</b> What landed is below; "
-            "the rest were contracted by the composed config and have not been written.",
-        )
+        why = []
+        if not stats.samples:
+            why.append(
+                f"No readable result for any of the {stats.n_expected} contracted samples. "
+                "The artifacts below were written and could not be parsed."
+            )
+        elif not stats.complete:
+            why.append(
+                f"{stats.n_found} of {stats.n_expected} samples finished. What landed is below; "
+                "the rest were contracted by the composed config and have not been written."
+            )
+        if stats.missing_deliverables:
+            # Named, and each name is what the pipeline's own `rule all` demanded — so a reader
+            # re-runs the thing that is missing rather than the plate that already finished.
+            named = ", ".join(
+                f'<code class="font-mono">{esc(name)}</code>' for name in stats.missing_deliverables
+            )
+            why.append(f"Demanded and not produced: {named}.")
+        level, icon, text = "bad", "✗", "<b>Failed.</b> " + " ".join(why)
     state = (
         f'<div class="lvl-{level} lvl-state mb-4 flex items-start gap-3 rounded-lg py-3 pr-4 pl-3 '
         f'text-sm"><span class="lvl-flag" aria-hidden="true">{icon}</span>'

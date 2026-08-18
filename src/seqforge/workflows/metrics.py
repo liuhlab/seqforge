@@ -57,6 +57,13 @@ Level = Literal["ok", "warn", "bad", "none"]
 #: guess which. The group is declared at the call site, beside ``hint`` and ``headline``.
 MetricGroup = Literal["input", "barcode", "alignment", "counts", "duplication", "cells"]
 
+#: How one execution of a composed Snakefile ended — and it is **two** values, closed. A run that did
+#: not produce what was demanded is a failure, not an ``unfinished`` a reader has to interpret, and
+#: there is no ``skipped``: nothing in this system skips a deliverable, and a state with no producer
+#: is surface for nothing. Should a skip producer ever appear it declares itself then, as skipped
+#: **and** finished, never as limbo.
+RunState = Literal["finished", "failed"]
+
 
 class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -321,6 +328,16 @@ class PipelineStats(_Frozen):
     module: str
     n_expected: int
     n_found: int
+    #: The **dataset-scoped** deliverables the module declared and that are not on disk — the fan-in
+    #: artifact, once per **Component** where the module produces one per Component. Empty for a
+    #: pipeline that is per-sample end to end, which declares no such deliverable at all.
+    #:
+    #: The per-sample side is deliberately NOT listed here: what a sample owes is already answered by
+    #: ``n_found``/``n_expected``, and spelling 1440 unwritten cell artifacts into a field a page
+    #: renders and a verb dumps trades one readable number for a wall. What this names is what no
+    #: count can name — an object the whole deposit fans in to, absent while every cell finished,
+    #: which is exactly the shape that rendered as a clean page over a run that produced nothing.
+    missing_deliverables: list[str] = Field(default_factory=list)
     samples: list[SampleStats] = Field(default_factory=list)
     #: ``(key, label)`` in display order — the General-Statistics column set for this module. A union
     #: across samples, so a sample missing one metric leaves a gap rather than dropping the column.
@@ -338,7 +355,7 @@ class PipelineStats(_Frozen):
 
     @property
     def complete(self) -> bool:
-        """Every contracted sample landed and parsed — the only state the page tints green.
+        """Every contracted sample landed and parsed — the sample half of :attr:`state`.
 
         ``n_expected > 0`` is load-bearing: a config carrying no sample list at all would otherwise
         satisfy ``0 == 0`` and report a pipeline that produced nothing as one that finished
@@ -346,6 +363,21 @@ class PipelineStats(_Frozen):
         the work is done.
         """
         return self.n_expected > 0 and self.n_found == self.n_expected
+
+    @property
+    def state(self) -> RunState:
+        """Did this run produce what it was asked for — the only two answers there are.
+
+        Both halves are required and neither is enough: every contracted sample finished, AND every
+        deliverable the module declared for the whole deposit is on disk. The second is what the
+        first cannot see — a plate can finish all 16 cells and write no matrix at all, which is
+        precisely the run that reported ``16/16`` with nothing to show for it.
+
+        Derived rather than stored, so it cannot drift from the two facts it reads. A run still
+        going is ``failed`` here and that is the decision, not an oversight: a third answer is a
+        limbo a reader has to interpret, and this page is read after a run, not during one.
+        """
+        return "finished" if self.complete and not self.missing_deliverables else "failed"
 
 
 # ---- formatting ---------------------------------------------------------------------------------
@@ -530,6 +562,7 @@ __all__ = [
     "Level",
     "Metric",
     "MetricGroup",
+    "RunState",
     "SEVERITY_PHRASE",
     "SampleStats",
     "Scope",

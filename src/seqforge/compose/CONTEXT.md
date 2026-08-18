@@ -131,6 +131,15 @@ sample.
 _Avoid_: merged output, aggregate, summary (all three read as a *derived* second copy — a fan-in
 artifact is the primary result); combined file; and never for the **Manifest**
 
+**Run state**:
+How one execution of a **Compiled pipeline** ended: `finished` when every **Sample** finished *and*
+every **Fan-in artifact** the **Workflow module** declared is on disk — once per **Component** where
+it carries one — and `failed` otherwise. Two values and no third, and the reader that renders it
+never gates on it: a report's exit code answers whether it could render, and nothing else.
+_Avoid_: unfinished, partial, in progress (a run that did not produce what was demanded is failed,
+not a limbo to interpret); skipped (nothing here skips a deliverable); and the compile's verdict,
+which says how the COMPILER ended and is a different judgement on the same page
+
 **Absent**:
 Why a benchmark case produced no grade: the corpus does not hold its package. A standing fact about
 the corpus, published rather than hidden, and the `skip_kind` that never poisons a rate.
