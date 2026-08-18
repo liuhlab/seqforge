@@ -93,11 +93,14 @@ from .metrics import count as count_metric
 if TYPE_CHECKING:  # pragma: no cover — a runtime dep; keeps the import cost off compose
     from pysam import AlignedSegment, AlignmentHeader
 
-#: What one split's summary is called, under the cell's own directory. **Public because it has a
-#: reader as well as a writer**, which is the line ``fragments.QC_SUFFIX`` already draws: the rule
-#: declares the file by importing this, and whatever reads the counts back finds them by importing
-#: the same name. A second spelling anywhere is the one that fails in silence — a reader that finds
-#: nothing looks exactly like a split that never ran, so nothing raises and nobody is told.
+#: What one split's summary is called, under the cell's own directory. **Public because more than one
+#: rule names it**, which is the line ``fragments.QC_SUFFIX`` already draws: the rule that writes it
+#: and the rule that folds it into that cell's QC bundle both declare the path by importing this. A
+#: second spelling anywhere is the one that fails in silence — a consumer that finds nothing looks
+#: exactly like a split that never ran, so nothing raises and nobody is told.
+#:
+#: The file itself is reclaimed once the bundle carries it, so what OUTLIVES a run is the payload
+#: :func:`split_metrics` reads out of that bundle rather than this file.
 SPLIT_SUFFIX = ".split.json"
 
 #: Why a record was not kept, in the order the keep rule tests for them. Public because it is the
@@ -626,28 +629,12 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     return SampleStats(sample_id=sample, metrics=[m for m in built if m is not None])
 
 
-def read_split_summary(path: Path, sample: str) -> SampleStats:
-    """Load one ``<sample>.split.json`` and normalise it.
-
-    The thin half of the adapter, in the shape ``extract.read_extract_summary`` established: loading
-    lives beside the code that WRITES the file so the registry hands over a path and gets metrics
-    back, and the judgement lives in :func:`split_metrics`, which needs no file to test. Raises
-    ``OSError``/``ValueError`` if the bytes are unusable, so one bad summary costs its own columns
-    and not the whole page.
-    """
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, Mapping):
-        raise ValueError(f"{path} is not a chimera split summary")
-    return split_metrics(payload, sample)
-
-
 __all__ = [
     "DROP_REASONS",
     "SPLIT_SUFFIX",
     "SplitError",
     "SplitStats",
     "parse_outputs",
-    "read_split_summary",
     "split_chimera",
     "split_metrics",
 ]

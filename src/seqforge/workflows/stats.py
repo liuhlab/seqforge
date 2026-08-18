@@ -10,14 +10,14 @@ The seam is :class:`StatsSpec`: where one sample's artifact lives, and how to tu
     map/starsolo           <sample>.qc.json.gz             gzipped JSON, by `rule qc_bundle`
     map/chromap            <sample>.fragments.qc.json.gz   gzipped JSON, by `rule fragments_qc`
     map/star               Log.final.out                   plain text, written by STAR itself
-    map/star-umi           Log.final.out                   the same, one per cell
-                           + <sample>.umi-extract.json     what the UMI extraction saw, per cell
+    map/star-umi           <sample>.qc.json.gz             one per CELL, by that module's own
+                                                           `rule qc_bundle`: the extraction summary,
+                                                           the alignment log and a junction summary
                            + the fan-in artifact           one h5ad over the plate, one row per cell
-    map/star-umi-chimera   the two per-cell files above
-                           + <sample>.split.json           what left for which Component, per cell
+    map/star-umi-chimera   <sample>.qc.json.gz             the same, plus the split summary
                            and NO fan-in reader            argued on the entry itself
 
-Six artifacts, six vocabularies, and no shared column set — the ATAC summary has no
+Five artifacts, five vocabularies, and no shared column set — the ATAC summary has no
 whitelist-match rate and no per-barcode vector, so an scATAC page speaks about fragments and never
 about cells, a bulk page speaks about mapping and never about barcodes, and a plate's counting object
 speaks about fragments that reached no gene, which none of the other three measured. That divergence
@@ -38,17 +38,16 @@ a test fails if a registered module appears in neither it nor :data:`_SPECS`. Th
 ``module == "map/starsolo"`` branch in the collector — is the same silent fall-through that
 ``read_layout_kind`` and ``param_block`` already exist to prevent.
 
-**A module's per-sample artifacts are PLURAL**, because a pipeline is a chain and more than one link
-of it can leave a durable account behind. ``map/star-umi`` leaves two: STAR's own alignment log, and
-the summary the UMI extraction writes a step earlier — two files, two vocabularies, and neither is a
-version of the other. They are two entries in :attr:`StatsSpec.artifacts` rather than one adapter
-that opens a sibling, so the registry still states every filename it reads and a sample missing one
-of them keeps the other. The metrics merge; the row does not split. Its chimeric twin leaves a
-**third** — the per-cell split summary — which is the one artifact on this page that is load-bearing
-rather than additional: one of the four read fates leaves the pipeline at the split, so a chimeric
-run's ``unmapped`` exists nowhere else.
+**A module's per-sample artifacts are PLURAL, and a chain may COLLAPSE them into one** — which is
+what the plate twins do, and why the field stays a tuple over a registry where every entry is now a
+single name. They used to read two files and three: STAR's own alignment log,
+the summary the extraction wrote a step earlier, and on a Chimera the split's account of what left.
+All of it is now folded into one bundle per cell by a rule downstream of every step that wrote a
+piece of it, so a cell's QC is one file a reader opens and one entry here. :attr:`StatsSpec.artifacts`
+stays a tuple: a module whose chain leaves two durable accounts states two filenames rather than
+having one adapter open a sibling, and a sample missing one keeps the other.
 
-**One module reads a THIRD artifact, and what is new about that one is its ARITY, not its name.**
+**One module reads a SECOND artifact, and what is new about that one is its ARITY, not its name.**
 ``map/star-umi`` counts its whole plate in one job and writes one ``.h5ad`` whose ``obs`` carries
 every cell's read fates — a **fan-in artifact**: dataset-scoped as a file, sample-scoped as data. A
 per-sample reader cannot express it, since there is no sample in its path; so the spec's last
@@ -77,17 +76,14 @@ from .fragments import QC_SUFFIX as _FRAGMENTS_QC_SUFFIX
 from .fragments import read_metrics as _read_fragments
 from .h5ad import STAR_FINAL_LOG
 from .metrics import Finding, PipelineStats, SampleStats
-from .qc import QC_SUFFIX as _STARSOLO_QC_SUFFIX
+from .qc import QC_SUFFIX as _QC_SUFFIX
 from .qc import chemistry_rule as _starsolo_chemistry_rule
 from .qc import gene_model_rule as _starsolo_gene_model_rule
 from .qc import read_metrics as _read_starsolo
+from .qc import read_plate_metrics as _read_plate_cell
 from .qc import read_star_log as _read_star_log
 from .qc import solo_features_rule as _starsolo_solo_features_rule
-from .split import SPLIT_SUFFIX as _SPLIT_SUFFIX
-from .split import read_split_summary as _read_split_summary
 from .umite.count import read_plate_stats as _read_plate_stats
-from .umite.extract import EXTRACT_SUFFIX as _EXTRACT_SUFFIX
-from .umite.extract import read_extract_summary as _read_extract_summary
 
 #: One cross-check rule: one sample's metrics in, zero or more :class:`Finding` out. Pure by
 #: signature — there is no path, no manifest and no writer in it — which is what makes a threshold
@@ -111,13 +107,18 @@ class SampleArtifact:
     failure is a reader handed a file it does not understand.
 
     ``finishes`` is whether this file LANDING means the pipeline is done with this sample. True for
-    a module's terminal artifact, which is every module's only one — and false for an artifact a
-    mid-pipeline rule writes, which is evidence ABOUT a sample and not evidence that the sample is
-    finished. The distinction did not exist while every artifact was terminal, and the first
-    mid-pipeline one made it load-bearing: ``n_found`` feeds ``PipelineStats.complete``, which the
-    page renders as a green "all N samples finished", so counting an extraction summary there would
-    tint a plate that has not yet aligned a single cell. What is shown is still the union of every
-    artifact that landed; only what counts as FINISHED is narrower.
+    a module's terminal artifact — and false for an artifact a mid-pipeline rule writes, which is
+    evidence ABOUT a sample and not evidence that the sample is finished. ``n_found`` feeds
+    ``PipelineStats.complete``, which the page renders as a green "all N samples finished", so an
+    artifact written halfway down a chain counted there tints a plate that has not finished one.
+    What is shown is still the union of every artifact that landed; only what counts as FINISHED is
+    narrower.
+
+    **Every shipped module names one terminal artifact today, and the field is what makes that a
+    claim rather than an assumption.** The plate twins used to report from mid-pipeline files and to
+    carry ``finishes`` on the aligner's log — which is how a run whose every downstream step failed
+    reported every cell finished. Folding those files into one bundle per cell moved the flag onto
+    the artifact that is written last; a module that adds a second, earlier account says so here.
     """
 
     filename: str
@@ -130,10 +131,10 @@ class StatsSpec:
     """How one **Workflow module**'s finished artifacts are found, read, and cross-checked.
 
     ``artifacts`` is every per-sample file the pipeline leaves behind, in the order their columns
-    should appear. Usually one; two for the plate module, whose extraction step writes a summary of
-    its own a whole rule before STAR writes an alignment log. A sample's metrics are the
-    concatenation of what each artifact that landed gave it, so a missing one costs its columns and
-    never the row.
+    should appear. One for every shipped module today, which is a fact about those pipelines rather
+    than about this type: a chain whose links each leave a durable account states each of them, and a
+    sample's metrics are the concatenation of what each artifact that landed gave it, so a missing
+    one costs its columns and never the row.
 
     ``checks`` is the second half and it rides on the same spec deliberately: a rule that reads
     ``valid_barcodes`` back is a fact about the module that WROTE ``valid_barcodes``, so the metric
@@ -168,7 +169,7 @@ class StatsSpec:
 #: anyone asked — which is exactly why the entry is a bare filename with no ``{sample}`` in it.
 _SPECS: dict[str, StatsSpec] = {
     "map/starsolo": StatsSpec(
-        artifacts=(SampleArtifact(f"{{sample}}{_STARSOLO_QC_SUFFIX}", _read_starsolo),),
+        artifacts=(SampleArtifact(f"{{sample}}{_QC_SUFFIX}", _read_starsolo),),
         checks=(
             _starsolo_chemistry_rule,
             _starsolo_gene_model_rule,
@@ -179,23 +180,22 @@ _SPECS: dict[str, StatsSpec] = {
         artifacts=(SampleArtifact(f"{{sample}}{_FRAGMENTS_QC_SUFFIX}", _read_fragments),)
     ),
     "map/star": StatsSpec(artifacts=(SampleArtifact(STAR_FINAL_LOG, _read_star_log),)),
-    # The plate module reports from the same file `map/star` does, and for the same reason: it runs
-    # one STAR job per cell, and STAR writes `Log.final.out` into that cell's directory unasked. A
-    # cell IS a sample here, so `<results>/<sample>/Log.final.out` is already this reader's shape
-    # with no new rule and no per-cell QC bundle to invent.
+    # The plate module reports from ONE artifact per cell, the same suffix `map/starsolo` reports
+    # from and a different shape inside it: a cell IS a sample here, so `<results>/<sample>/` holds
+    # one bundle carrying what the extraction saw, what the aligner then did, and a summary of the
+    # junctions it called. It used to read STAR's `Log.final.out` where it lay plus the extraction
+    # summary beside it; both are now folded in and reclaimed, so a finished plate leaves one file
+    # per cell instead of four and a reader looks in one place.
     #
-    # Its SECOND per-sample artifact is a rule earlier and is the only account of a step the pipeline
-    # otherwise erases: the uBAM the extraction produces is `temp()`, so once the aligner has consumed
-    # it, how many fragments carried a tag at all — the per-cell readout of whether the chemistry
-    # behaved — exists nowhere but this file. STAR's log cannot say it; it never saw an untagged read
-    # as anything but a read. Ordered before the log so a page reads left to right in pipeline order.
+    # **`finishes` is on the bundle, and that is the point rather than a consequence.** It sat on
+    # STAR's log, which STAR writes the moment it finishes aligning — so a cell counted as finished
+    # while every step after the aligner was still to come, and a run whose split refused for every
+    # cell rendered as "all N cells finished" with nothing downstream on disk. The bundle is written
+    # by a rule downstream of every per-cell step, so it cannot make that claim early.
     #
-    # It is the module's FIRST rule, so it is also the first artifact that is not evidence a cell
-    # finished — `finishes=False`, or a plate whose extraction has outrun STAR renders as done.
-    #
-    # It is also the only module with a THIRD half, and that half is where its counting decisions
+    # It is also the only module with a SECOND half, and that half is where its counting decisions
     # are: the fan-in writes every cell's read fates into the combined object's `obs`, and those say
-    # what neither per-sample artifact can — how many fragments reached no gene, and why. They arrive
+    # what the per-cell bundle cannot — how many fragments reached no gene, and why. They arrive
     # through `read_fan_in` rather than as another `artifacts` entry because that artifact has no
     # sample in its path at all: it is one file for the deposit, holding one row per cell.
     #
@@ -205,24 +205,22 @@ _SPECS: dict[str, StatsSpec] = {
     # registry rather than restating it. Three readers, one owner — a rename reaches every one of
     # them or fails at import.
     "map/star-umi": StatsSpec(
-        artifacts=(
-            SampleArtifact(f"{{sample}}{_EXTRACT_SUFFIX}", _read_extract_summary, finishes=False),
-            SampleArtifact(STAR_FINAL_LOG, _read_star_log),
-        ),
+        artifacts=(SampleArtifact(f"{{sample}}{_QC_SUFFIX}", _read_plate_cell),),
         read_fan_in=_read_plate_stats,
     ),
-    # The chimeric twin: the plate module's spec PLUS one artifact and MINUS its fan-in reader.
+    # The chimeric twin: the plate module's spec, one key wider inside the same artifact, and MINUS
+    # its fan-in reader.
     #
-    # The artifact it gains is the per-cell split summary, ordered last so the page reads left to
-    # right in pipeline order — extraction, then alignment, then the split that follows it. It is
+    # What its bundle gains is the per-cell split summary, read last so the page reads left to right
+    # in pipeline order — extraction, then alignment, then the split that follows it. It is
     # **load-bearing rather than decorative**: `unmapped` reads structurally zero in every
     # per-Component matrix, because those records are dropped at the split one rule before the
-    # counter, and this file is where they now live, beside each Component's count of the records
+    # counter, and that summary is where they now live, beside each Component's count of the records
     # placed at more than one locus, which the split marks and keeps. It also carries the number the
     # whole chimera exercise exists to produce — each Component's share of this cell — so a
-    # bacterial fraction is readable without opening an `.h5ad`. `finishes=False`, like the
-    # extraction summary and for the same reason: it is a mid-pipeline account, so `finishes` stays
-    # on STAR's log and "N of M finished" means the same thing on a chimeric run as on a plain one.
+    # bacterial fraction is readable without opening an `.h5ad`. It reaches the page as a key of the
+    # bundle rather than as a second entry here, which is what makes the twin's bundle downstream of
+    # its split: on a chimeric run, "N of M finished" counts cells whose split ran.
     #
     # **`read_fan_in` is absent, and that is argued rather than deferred.** This module's
     # `fan_in_artifact` carries a `{component}`, so reporting the fan-in means looping over
@@ -239,11 +237,7 @@ _SPECS: dict[str, StatsSpec] = {
     # three reports as failed and names the third, while its page stays free of numbers that would
     # not compare.
     "map/star-umi-chimera": StatsSpec(
-        artifacts=(
-            SampleArtifact(f"{{sample}}{_EXTRACT_SUFFIX}", _read_extract_summary, finishes=False),
-            SampleArtifact(STAR_FINAL_LOG, _read_star_log),
-            SampleArtifact(f"{{sample}}{_SPLIT_SUFFIX}", _read_split_summary, finishes=False),
-        ),
+        artifacts=(SampleArtifact(f"{{sample}}{_QC_SUFFIX}", _read_plate_cell),),
     ),
 }
 
@@ -272,7 +266,8 @@ MODULES_WITHOUT_STATS: frozenset[str] = frozenset()
 #: defensible threshold does not ship, and declaring that out loud is a supported answer rather than
 #: a gap. Any name here leaves this set the day a rule for it can be argued.
 #: ``map/star-umi`` joins them on the same argument read off the artifacts rather than off the assay.
-#: Its per-cell half is STAR's own alignment log, which carries no barcode-match rate at all, so
+#: Its per-cell half is the aligner's own log, folded into that cell's bundle and carrying no
+#: barcode-match rate at all, so
 #: every barcode rule the droplet module cross-checks with is a number that is not there. Its
 #: fan-in half DOES carry a gene-assignment number — the share of fragments landing on no feature —
 #: and it still ships no rule, because a rule is a THRESHOLD and nobody has measured one: what share
@@ -428,9 +423,9 @@ def read_pipeline_stats(
     **What is SHOWN and what is FINISHED are two questions**, and they came apart the first time a
     module reported from a mid-pipeline artifact. Every source that landed puts its columns on the
     page; only a source that ``finishes`` counts toward ``n_found``, and ``n_found`` is what
-    ``complete`` — the "all N samples finished" half of the state — is read off. An extraction
-    summary is a real row and is not a finished cell, so a plate whose extraction has outrun its
-    aligner shows every cell's tagged fraction under an honest "3 of 1440".
+    ``complete`` — the "all N samples finished" half of the state — is read off. A cell whose bundle
+    is not there is not a finished cell, however much of its chain ran: the twins' bundle is written
+    downstream of every per-cell step, so a plate whose split refused is honestly "0 of 1440".
 
     **And what is FINISHED is still not whether the RUN finished.** Every contracted cell can land
     its alignment log while the object the whole plate fans in to was never written — the run that

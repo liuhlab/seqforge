@@ -5,7 +5,8 @@
 # emits `config.yaml` + `units.tsv` and selects this module by id `map/star-umi`; it NEVER writes
 # rule source.
 #
-# The chain is per cell `extract -> STAR -> one coordinate-sorted BAM`, and then ONCE
+# The chain is per cell `extract -> STAR -> one sorted BAM -> two archives + ONE QC artifact`, and
+# then ONCE
 # `count(N BAMs) -> one combined .h5ad`. That fan-in is what makes this module a different shape from
 # the three beside it, and it is DECLARED on the module (`fan_in_artifact`) rather than left to be
 # discovered from the rule graph. Snakemake fans in natively and `rule all` already expands over
@@ -39,10 +40,14 @@
 # importable, so arithmetic written here could never be unit-tested, only run. `PLATE_H5AD` is the
 # name the module registry DECLARES as this pipeline's dataset-scoped deliverable, so the
 # declaration and the rule that produces it cannot come apart. `EXTRACT_SUFFIX` is the same contract
-# for the per-cell extraction summary: the extractor writes it, the report finds it, and this rule
-# declares it -- one owner, imported three times, never spelled twice.
+# for the per-cell extraction summary: the extractor writes it, the bundle rule folds it in, and both
+# declare it -- one owner, imported, never spelled twice. `QC_SUFFIX` names the ONE artifact a
+# finished cell leaves, and it is the droplet module's constant unchanged: same artifact kind, same
+# suffix, one owner. The aligner's own run files come from `h5ad` for the same reason -- STAR writes
+# four of them per cell and this module declares all four, so the filenames belong to the constant
+# that already had three readers rather than to a literal here.
 from seqforge.workflows import PLATE_H5AD
-from seqforge.workflows.h5ad import STAR_BAM
+from seqforge.workflows.h5ad import STAR_BAM, STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRESS_LOGS
 from seqforge.workflows.memory import (
     PLATE_RETRIES,
     bam_sort_ram,
@@ -50,6 +55,7 @@ from seqforge.workflows.memory import (
     index_mem_mb,
     per_cell_mem_mb,
 )
+from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
 from seqforge.workflows.units import mate_role as units_mate_role
@@ -83,6 +89,19 @@ LOADED_FLAG = f"{OUTDIR}/index/{ASSEMBLY}.loaded"
 # populations in the same places.
 UNIQUE_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.unique.cram"
 MULTIPLACED_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.multiplaced.cram"
+
+# ONE QC ARTIFACT PER CELL, shaped the way the droplet pipeline's already is. A finished cell used to
+# leave four files -- an extraction summary, the aligner's end-of-run log, and two progress logs
+# nothing reads -- plus a junction table nobody can analyze one cell at a time; this is the file that
+# absorbs all of them, so somebody reading a cell's QC looks in one place and everything it took in
+# becomes reclaimable. Spelled ONCE, here, because `rule all` demands it and a rule writes it.
+CELL_QC = f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}"
+
+# The two logs STAR writes as a run PROCEEDS, declared so the bundle can consume them and `temp()`
+# can then drop them -- automatic, DAG-ordered cleanup rather than a manual `rm`, and a declared
+# output STAR did not write is a loud rule failure rather than a file nobody notices. `expand` fills
+# `f` and leaves `sample` a wildcard, which is snakemake's usual double escape.
+STAR_PROGRESS = expand(f"{OUTDIR}/{{{{sample}}}}/{{f}}", f=list(STAR_PROGRESS_LOGS))
 
 
 def fastqs(sample, role):
@@ -234,11 +253,13 @@ rule all:
         # rule whose output is a folder is satisfied by a folder, which is how a counting job that
         # wrote three cells of 1440 exits 0. The two archives are demanded by name for the same
         # reason one arity down -- neither is anyone's input, so a half that stopped being produced
-        # would simply stop appearing. Per-cell QC needs no target -- STAR writes `Log.final.out`
-        # into each cell's directory unasked, and the report's reader finds it there.
+        # would simply stop appearing. The per-cell QC bundle is demanded for that same reason and
+        # one more: it is what the report reads a cell's row from AND what says the cell finished, so
+        # a plate that reached `rule all` has one per cell or is not a finished plate at all.
         f"{OUTDIR}/{PLATE_H5AD}",
         expand(UNIQUE_CRAM, sample=SAMPLES),
         expand(MULTIPLACED_CRAM, sample=SAMPLES),
+        expand(CELL_QC, sample=SAMPLES),
 
 
 rule genome_index:
@@ -369,11 +390,13 @@ rule umi_extract:
     rule's to state, and the mate list is also what `read_files_type` reads. `units.tsv` joins them,
     because the command now opens it.
 
-    **Two outputs, and only one of them is reclaimed.** The uBAM is consumed and deleted; the summary
-    beside it is the durable account of what the extraction saw, and it is declared here rather than
-    derived by the verb so that one path is stated once and snakemake owns removing it after a failed
-    job. Nothing demands it in `rule all` and nothing needs to: this rule is upstream of every cell's
-    archive, so a plate that finishes has written one per cell.
+    **Two outputs, and BOTH are reclaimed** -- for two different reasons, which is why they are two
+    lines. The uBAM is consumed by the aligner and deleted; the summary beside it is the account of
+    what the extraction saw, and it survives only until `rule qc_bundle` folds it into this cell's
+    one QC artifact. What the extraction measured still outlives the records it measured, which is
+    the whole point of writing it: it now does so inside the bundle rather than beside it, so a
+    finished cell leaves one file rather than four. Both are declared here rather than derived by
+    the verb so that a path is stated once and snakemake owns removing it after a failed job.
     """
     input:
         units=UNITS_TSV,
@@ -383,10 +406,11 @@ rule umi_extract:
         # Consumed by exactly one rule (the mapping below), so snakemake deletes it the moment that
         # job finishes -- 1440 uBAMs never coexist with 1440 alignments.
         ubam=temp(f"{OUTDIR}/{{sample}}/{{sample}}.unaligned.bam"),
-        # And NOT `temp()`, which is the whole point of it: what the extraction measured has to
-        # outlive the records it measured. `workflows.umite.extract` argues why those numbers are
-        # worth keeping; what belongs here is that the uBAM above is the reason they need a file.
-        summary=f"{OUTDIR}/{{sample}}/{{sample}}{EXTRACT_SUFFIX}",
+        # `temp()` because it has a CONSUMER now: `rule qc_bundle` reads this cell's counts into the
+        # one artifact the cell keeps, so what the extraction measured outlives the records it
+        # measured without leaving a second file to reason about. `workflows.umite.extract` argues
+        # why those numbers are worth keeping at all.
+        summary=temp(f"{OUTDIR}/{{sample}}/{{sample}}{EXTRACT_SUFFIX}"),
     params:
         # The whole extraction geometry as one value, derived by compose from the element
         # coordinates: which read is tagged, the anchor and where it is declared, the UMI's offset
@@ -461,6 +485,18 @@ rule star_umi_map:
         # keeps it until ALL have finished and then deletes it. That is the 2x peak disk the single
         # sort avoids doubling again.
         bam=temp(f"{OUTDIR}/{{sample}}/{STAR_BAM}"),
+        # THE ALIGNER'S RUN FILES, DECLARED. STAR writes all four whether or not anyone asks, so
+        # until now they sat in a cell's directory undeclared -- a rule that wrote more than it said
+        # it did, and a reader with nothing telling them which files were the point. Each is
+        # `temp()` because `rule qc_bundle` folds it into this cell's one QC artifact: the end-of-run
+        # summary is what the report's alignment columns are read from, and the junction table is
+        # reduced to counts there, because a junction call from one cell at ~1M reads is not
+        # analyzable and 784 of these tables is roughly a gigabyte of a plate nothing opens. (The
+        # bulk module keeps ITS table for exactly the inverse reason -- depth.) The two progress
+        # logs nothing reads at any depth ride along so that they, too, are gone by the end.
+        log=temp(f"{OUTDIR}/{{sample}}/{STAR_FINAL_LOG}"),
+        progress=temp(STAR_PROGRESS),
+        junctions=temp(f"{OUTDIR}/{{sample}}/{STAR_JUNCTIONS}"),
     container: config["container"]
     threads: config["threads"]
     retries: PLATE_RETRIES
@@ -581,6 +617,50 @@ rule multiplaced_to_cram:
         r"""
         seqforge io cram --bam {input.bam} --assembly {params.assembly} \
              --out {output.cram} --threads {threads} --selection multi
+        """
+
+
+rule qc_bundle:
+    """Fold everything one cell's chain wrote into ONE gzipped JSON, then let `temp()` drop the rest.
+
+    **The droplet module's finalize step, one arity in.** A cell used to leave an extraction summary,
+    the aligner's end-of-run log and two progress logs nothing reads, beside a junction table nobody
+    can analyze at one cell's depth -- four files per cell and 1440 cells, with no artifact saying
+    "this is the cell's QC". This rule consumes all of them and writes one, so a reader looks in one
+    place and everything it took in becomes reclaimable. The verb is the SAME `io qc-bundle` the
+    droplet module calls: one artifact kind, one suffix, one command surface, with the shape decided
+    by which arguments are given rather than by a second verb.
+
+    **The junctions arrive as a SUMMARY.** Storing the table would put roughly a gigabyte back into a
+    784-cell plate's bundles for a file nothing downstream reads; the counts it reduces to still say
+    how much splicing the cell showed and how much of it the annotation already knew.
+
+    **This is also what says a cell FINISHED.** That claim used to sit on the aligner's log, which
+    STAR writes the moment it stops aligning -- so a cell counted as finished with every step after
+    the aligner still to come, which is exactly how a run whose downstream rules all failed reported
+    every cell done. This rule is downstream of the whole per-cell chain, so it cannot say that
+    early. The report reads it through `workflows/stats.py`, which finds it by the same constant.
+
+    A `shell:` calling a seqforge verb rather than a `run:` block, like every other rule here:
+    `snakemake -n -p` renders every shell block while planning and cannot see inside a `run:`. No
+    `container:` -- this is Python over small text files and shells out to nothing.
+    """
+    input:
+        extract=rules.umi_extract.output.summary,
+        log=rules.star_umi_map.output.log,
+        progress=rules.star_umi_map.output.progress,
+        junctions=rules.star_umi_map.output.junctions,
+    output:
+        CELL_QC,
+    params:
+        # The cell's own directory: a cell IS a sample here, so this is where STAR left the run
+        # files above and what the verb reads them from.
+        run_dir=lambda wc: f"{OUTDIR}/{wc.sample}",
+        assembly=ASSEMBLY,
+    shell:
+        r"""
+        seqforge io qc-bundle --run-dir {params.run_dir} --sample {wildcards.sample} \
+             --extract {input.extract} --assembly {params.assembly} --out {output}
         """
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import cast
+from typing import NoReturn, cast
 
 import typer
 
@@ -205,45 +205,79 @@ def io_h5ad(
 
 @io_app.command("qc-bundle")
 def io_qc_bundle(
-    solo_dir: Path = typer.Option(..., "--solo-dir", help="A STARsolo `Solo.out` directory."),
     run_dir: Path = typer.Option(
         ..., "--run-dir", help="The sample directory holding STAR's Log.*.out / SJ.out.tab."
-    ),
-    features: str = typer.Option(
-        ..., "--features", help="The run's --soloFeatures, space-separated."
     ),
     sample: str = typer.Option(..., "--sample", help="Sample id, recorded in the bundle."),
     out: Path = typer.Option(..., "--out", help="Output path for the gzipped JSON bundle."),
     assembly: str | None = typer.Option(
         None, "--assembly", help="UCSC assembly id, recorded for CRAM-reference provenance."
     ),
+    solo_dir: Path | None = typer.Option(
+        None, "--solo-dir", help="A STARsolo `Solo.out` directory. Droplet runs only."
+    ),
+    features: str | None = typer.Option(
+        None, "--features", help="The run's --soloFeatures, space-separated. Droplet runs only."
+    ),
+    extract: Path | None = typer.Option(
+        None, "--extract", help="One plate cell's UMI-extraction summary. Plate runs only."
+    ),
+    split: Path | None = typer.Option(
+        None, "--split", help="One plate cell's chimera split summary. Chimeric plate runs only."
+    ),
 ) -> None:
-    """Bundle STARsolo's stats + run logs into one gzipped JSON — a finalize step of the pipeline.
+    """Bundle one sample's stats + run logs into one gzipped JSON — a finalize step of the pipeline.
 
-    Called by `starsolo.smk`'s `qc_bundle` rule (a `shell:`, so compose's wiring gate sees it). Exit 3
-    if a file STAR was supposed to write is missing.
+    ONE verb for one artifact kind, with one suffix and one owner. `--solo-dir` and `--features` are
+    a droplet sample's, `--extract` and `--split` are a plate cell's, and which pair is given decides
+    which bundle is built — a second verb would be a second surface for one artifact. Called by the
+    `qc_bundle` rule of `starsolo.smk` and of both plate twins (a `shell:`, so compose's wiring gate
+    sees it). Exit 2 on a mixed or incomplete pair, exit 3 if a file the pipeline was supposed to
+    write is missing.
     """
     from ..models.processing import SoloFeature
     from ..workflows.h5ad import SOLO_FEATURE_OUTPUT
-    from ..workflows.qc import QcError, write_qc_bundle
+    from ..workflows.qc import QcError, write_plate_qc_bundle, write_qc_bundle
 
-    requested = features.split()
-    unknown = [f for f in requested if f not in SOLO_FEATURE_OUTPUT]
-    if unknown:
-        typer.echo(
-            json.dumps({"error": f"unknown --soloFeatures value(s): {sorted(set(unknown))}"}),
-            err=True,
-        )
+    def refuse(message: str) -> NoReturn:
+        typer.echo(json.dumps({"error": message}), err=True)
         raise typer.Exit(2)
-    try:
-        written = write_qc_bundle(
-            solo_dir,
-            run_dir,
-            cast(list[SoloFeature], requested),
-            out,
-            sample=sample,
-            assembly=assembly,
+
+    droplet = [n for n, v in (("--solo-dir", solo_dir), ("--features", features)) if v is not None]
+    plate = [n for n, v in (("--extract", extract), ("--split", split)) if v is not None]
+    if droplet and plate:
+        refuse(
+            f"{droplet} is a droplet sample's and {plate} a plate cell's; "
+            f"one bundle is one shape or the other"
         )
+    if droplet and len(droplet) < 2:
+        refuse("a droplet bundle needs both --solo-dir and --features")
+    if not droplet and extract is None:
+        refuse("a plate bundle needs --extract, the cell's UMI-extraction summary")
+
+    try:
+        if solo_dir is not None and features is not None:
+            requested = features.split()
+            unknown = [f for f in requested if f not in SOLO_FEATURE_OUTPUT]
+            if unknown:
+                refuse(f"unknown --soloFeatures value(s): {sorted(set(unknown))}")
+            written = write_qc_bundle(
+                solo_dir,
+                run_dir,
+                cast(list[SoloFeature], requested),
+                out,
+                sample=sample,
+                assembly=assembly,
+            )
+        else:
+            written = write_plate_qc_bundle(
+                run_dir,
+                out,
+                sample=sample,
+                assembly=assembly,
+                extract=cast(Path, extract),
+                split=split,
+            )
     except QcError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc
