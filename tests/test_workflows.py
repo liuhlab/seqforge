@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import math
 import re
 import shutil
 import subprocess
@@ -144,8 +145,12 @@ from seqforge.workflows.stats import (
 from seqforge.workflows.umite.count import (
     FATES,
     LAYERS,
+    MULTIMAPPING_CAVEAT,
+    MULTIMAPPING_HITS,
+    MULTIMAPPING_LAYER,
     N_FRAGMENTS,
     PRIMARY_MATRIX,
+    SATURATION,
     UmiCountError,
     _step_index,
     correct_umis,
@@ -4264,7 +4269,20 @@ _PLATE: tuple[_Fragment, ...] = (
     _Fragment("a_intron_read", "chr1", 300, 360),
     _Fragment("b_exon", "chr1", 2120, 2180, umi="CCCCCCCC"),
     # NH says two loci. One record, primary, over an exon — which the reference counts into GENE_A.
+    # It reaches no counted matrix, and it IS placed: GENE_A's body is one of the loci it could have
+    # come from, so the placement layer credits it there.
     _Fragment("multimapper", "chr1", 120, 180, umi="TTTTTTTT", hits=2),
+    # The same UMI at three loci, this time BETWEEN GENE_A's exons — which is why the placement
+    # layer is over gene bodies: an intronic multimapper is still in the gene. One molecule with the
+    # one above, so the layer credits GENE_A once and not twice.
+    _Fragment("multimapper_intron", "chr1", 300, 360, umi="TTTTTTTT", hits=3),
+    # Four loci, and its representative span covers the bodies of GENE_C and GENE_D at once: the
+    # ambiguity rule the counted matrices already use, so it is placed in neither.
+    _Fragment("multimapper_two_genes", "chr1", 4520, 4560, umi="CCCCCCCC", hits=4),
+    # Multiply placed and untagged, so it is in the fate and in the locus distribution and in no
+    # matrix at all — the placement layer is deduplicated molecules, which an untagged read has none
+    # of, and mixing raw reads into it would make the ratio against `umi_combined` meaningless.
+    _Fragment("multimapper_read", "chr1", 2120, 2180, hits=2),
     # Aligned to a scaffold no GTF line mentions, and to a gap between genes: both `_no_feature`.
     _Fragment("scaffold", "chrUn_synthetic", 50, 110),
     _Fragment("intergenic", "chr1", 8000, 8060),
@@ -4295,6 +4313,18 @@ def _row(adata: ad.AnnData, sample: str, gene: str, layer: str | None = None) ->
     )
 
 
+def _matrix_bytes(adata: ad.AnnData, layer: str | None = None) -> tuple[bytes, bytes, bytes]:
+    """One count matrix as the three buffers a CSR *is*: values, columns, and row starts.
+
+    Comparing these rather than two whole `.h5ad` files is what lets "this matrix did not move" be
+    asserted between two objects that differ elsewhere on purpose — the fates and the new layer.
+    All three buffers, because equal values in different places is exactly the failure a values-only
+    comparison would call identical.
+    """
+    matrix = _counts(adata, layer)
+    return matrix.data.tobytes(), matrix.indices.tobytes(), matrix.indptr.tobytes()
+
+
 def _frame(table: object) -> Any:
     """`adata.obs`/`adata.var` are declared as a union with a lazy on-disk table.
 
@@ -4302,6 +4332,12 @@ def _frame(table: object) -> Any:
     than with a cast at every call site — the same move `_counts` makes for a matrix.
     """
     return table
+
+
+def _hits(adata: ad.AnnData) -> Any:
+    """The per-cell locus-count array off `obsm`, narrowed the way `_frame` narrows a table."""
+    obsm: Any = adata.obsm
+    return obsm[MULTIMAPPING_HITS]
 
 
 def test_the_annotation_is_read_from_the_built_database_with_no_gtf_parse(tmp_path: Path) -> None:
@@ -4389,7 +4425,7 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
 ) -> None:
     """The whole counting rule at once, against a plate whose every fate is known by construction.
 
-    Fourteen fragments, four counted matrices and four fates; every number below is read off the
+    Seventeen fragments, five counted matrices and four fates; every number below is read off the
     fixture's own comments rather than recomputed here.
 
     Both ways a fragment can fail to align are in the plate, and the second of them is why the count
@@ -4408,7 +4444,7 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
     assert int(row[N_FRAGMENTS]) == len(_PLATE)
     assert {fate: int(row[fate]) for fate in FATES} == {
         "unmapped": 2,  # mate_never_aligned, and never_aligned
-        "multimapping": 1,  # NH == 2
+        "multimapping": 4,  # every fragment whose NH is above one, placed or not
         "no_feature": 2,  # the scaffold, and the intergenic fragment
         "ambiguous": 2,  # two exonic genes, then two gene bodies and no exon
     }
@@ -4419,12 +4455,25 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
     # ...and an untagged fragment never reaches a UMI matrix, nor a tagged one a read matrix.
     assert _row(adata, "cell_a", "GENE_A", "read_exon") == 1
     assert _row(adata, "cell_a", "GENE_A", "read_intron") == 1
-    # The multimapper's gene, and both ambiguous ones, stay at zero in every matrix — all five of
-    # them, counted off `LAYERS` rather than written out, so a sixth matrix is not silently unasserted.
+    # Both ambiguous genes stay at zero in every matrix — all six of them, counted off `LAYERS`
+    # rather than written out, so a seventh matrix is not silently unasserted. That covers the
+    # multiply-placed fragment over both their bodies too: the placement layer reuses the counted
+    # matrices' ambiguity rule rather than inventing a looser one, so it credits neither.
     for gene in ("GENE_C", "GENE_D"):
         assert [_row(adata, "cell_a", gene, layer) for layer in (None, *LAYERS)] == [0] * (
             1 + len(LAYERS)
         )
+
+    # Where the ambiguity went. GENE_A's body is one of the loci two multiply-placed fragments could
+    # have come from — one over an exon and one between them — and they carry one UMI between them,
+    # so the layer credits it ONE molecule, deduplicated exactly as every other UMI matrix is.
+    assert _row(adata, "cell_a", "GENE_A", MULTIMAPPING_LAYER) == 1
+    # ...and the untagged one is in no matrix at all, GENE_B's included.
+    assert _row(adata, "cell_a", "GENE_B", MULTIMAPPING_LAYER) == 0
+    # How many loci each of them had, as the per-cell array whose column IS the locus count: two
+    # fragments at two loci, one at three, one at four. It sums back to the fate that counted them.
+    assert list(_hits(adata)[0]) == [0, 0, 2, 1, 1]
+    assert int(_hits(adata)[0].sum()) == int(row["multimapping"])
 
     # The second cell is a different row, not a copy of the first.
     assert _row(adata, "cell_b", "GENE_B") == 1
@@ -4721,7 +4770,7 @@ def test_umi_correction_by_neighbour_index_answers_what_the_full_scan_answers() 
     assert ragged > 50, "the generator stopped producing UMIs of unequal length"
 
 
-def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
+def test_the_object_is_x_plus_five_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
     tmp_path: Path,
 ) -> None:
     """The deliverable's shape, which is the half of this ticket no wrong number would show.
@@ -4731,10 +4780,16 @@ def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as
     columns in a matrix whose other 55 335 columns really are genes, which is what forced a
     correction in its output shape.
 
-    Five matrices and not six: the grid is (UMI | read) x (exon | intron | combined), and the sixth
-    cell is deliberately absent. An untagged read has nothing to deduplicate by and the reference
-    never tries, so a combined READ matrix is `read_exon + read_intron` exactly — a layer that earns
-    nothing, kept out on the same rule that lets the combined UMI matrix in.
+    Five matrices of expression and not six: that grid is (UMI | read) x (exon | intron | combined),
+    and its sixth cell is deliberately absent. An untagged read has nothing to deduplicate by and the
+    reference never tries, so a combined READ matrix is `read_exon + read_intron` exactly — a layer
+    that earns nothing, kept out on the same rule that lets the combined UMI matrix in.
+
+    The sixth layer is off that grid entirely: it holds where the fragments no matrix may credit were
+    PLACED, and its caveat is on the object rather than only in the module that wrote it, because a
+    reader who opens this file years from now has the object and not the source. Adding it to
+    expression is the one mistake it exists to make hard, so the sentence that forbids that has to
+    arrive with the bytes.
     """
     db, cells = _plate(tmp_path)
     out = write_umi_counts(cells, db, tmp_path / "plate" / "counts.h5ad")
@@ -4742,7 +4797,13 @@ def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as
 
     assert list(adata.obs_names) == ["cell_a", "cell_b"]  # the order the cells were handed over
     assert _layer_names(adata) == set(LAYERS)
-    assert set(LAYERS) == {"umi_intron", "umi_combined", "read_exon", "read_intron"}
+    assert set(LAYERS) == {
+        "umi_intron",
+        "umi_combined",
+        "read_exon",
+        "read_intron",
+        MULTIMAPPING_LAYER,
+    }
     # The derivable cell of the grid, asserted as absent BY NAME: a reader adding two read columns
     # gets the right answer, and a sixth matrix would only be a second place for it to be wrong.
     assert "read_combined" not in _layer_names(adata)
@@ -4752,10 +4813,97 @@ def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as
         == 2
     )
     assert adata.uns["primary_matrix"] == PRIMARY_MATRIX
+    # The caveat is discoverable from the object ALONE, and it names the layer it is about — so a
+    # reader who found the layer first can find the sentence, and neither can be renamed alone.
+    assert adata.uns["multimapping_caveat"] == MULTIMAPPING_CAVEAT
+    assert MULTIMAPPING_LAYER in MULTIMAPPING_CAVEAT
     assert set(adata.var_names) == {"GENE_A", "GENE_B", "GENE_C", "GENE_D"}
-    assert set(adata.obs.columns) == {*FATES, N_FRAGMENTS}
+    assert set(adata.obs.columns) == {*FATES, N_FRAGMENTS, SATURATION}
+    # ...and the one per-cell figure that is a vector rather than a scalar, which is why it is the
+    # only thing here on `obsm`: one column per locus count, so `obs` could not have held it.
+    assert _hits(adata).shape == (2, 5)
     assert _frame(adata.var).loc["GENE_B", "gene_name"] == "beta"
     _counts(adata)  # sparse in the object and not only on disk: a plate is almost entirely zeros
+
+
+def test_placing_the_multimappers_leaves_every_counted_matrix_byte_identical(
+    tmp_path: Path,
+) -> None:
+    """The claim that makes attributing ambiguity safe, proved rather than promised.
+
+    Excluding multiply-placed fragments from expression is worth +10.2% of a real cell's primary UMI
+    matrix, which is more than the entire improvement the reference tool is published for — so the
+    layer that says which genes they fell in may not put a single count back. It is written from the
+    branch that had already returned, and the two objects below are the same plate with and without
+    that population: every matrix that is expression comes out byte-for-byte the same, and only the
+    fate, the locus distribution and the placement layer differ.
+
+    Bytes and not values, for the reason the recount test below compares files rather than numbers: a
+    CSR that agrees on every value while disagreeing on where they sit is a matrix that moved.
+    """
+    db, cells = _plate(tmp_path)
+    annotation = read_annotation(db)
+    before = _synthetic_bam(
+        tmp_path / "before.bam", tuple(frag for frag in _PLATE if frag.hits == 1)
+    )
+
+    placed = count_plate([("cell_a", cells[0][1])], annotation)
+    unplaced = count_plate([("cell_a", before)], annotation)
+
+    for layer in (None, *(name for name in LAYERS if name != MULTIMAPPING_LAYER)):
+        assert _matrix_bytes(placed, layer) == _matrix_bytes(unplaced, layer), layer
+    # ...and this really is the same plate MINUS that population rather than two plates that never
+    # had one: a fixture whose multiply-placed rows had gone would satisfy every comparison above
+    # vacuously, which is the way a claim about them stops being a claim without going red.
+    assert int(_frame(placed.obs).loc["cell_a", "multimapping"]) == 4
+    assert int(_frame(unplaced.obs).loc["cell_a", "multimapping"]) == 0
+    assert _matrix_bytes(placed, MULTIMAPPING_LAYER) != _matrix_bytes(unplaced, MULTIMAPPING_LAYER)
+
+
+def test_saturation_is_the_molecules_over_the_gene_assigned_fragments_that_carried_a_umi(
+    tmp_path: Path,
+) -> None:
+    """One number under one definition, computed where the deduplication that decides it happens.
+
+    The droplet page reads this ratio out of STARsolo's summary and this one computes it, so the two
+    have to be the same arithmetic over the same population or a reader comparing a plate against a
+    droplet sample is comparing two things sharing a word. It is deduplicated molecules over the
+    fragments that reached a gene carrying a UMI — the positional definition, distinct start
+    coordinates over reads, is a different number and would need the chimera split to hold a set per
+    cell, which is the streaming property that keeps a plate's memory flat.
+
+    Every figure below is read off the fixture. `umi_combined` is the molecule count because it is
+    the only matrix that counts a UMI seen both exonically and intronically ONCE; the deep cell is
+    where that matters, since adding its exon and intron matrices reports three molecules where one
+    was sequenced, and 0.7 saturation for a library that reached 0.9.
+    """
+    db, cells = _plate(tmp_path)
+    annotation = read_annotation(db)
+    adata = count_plate(cells, annotation)
+    obs = _frame(adata.obs)
+
+    # cell_a: five fragments reached a gene carrying a UMI — "AAAAAAAA" three times on GENE_A,
+    # "GGGGGGGG" once there, "CCCCCCCC" once on GENE_B — and they are three molecules.
+    assert float(obs.loc["cell_a", SATURATION]) == pytest.approx(1 - 3 / 5)
+    # cell_b is one fragment and one molecule: nothing was sequenced twice, and that is a real zero
+    # rather than a missing measurement.
+    assert float(obs.loc["cell_b", SATURATION]) == 0.0
+
+    # ...and it rises with duplication: ten tagged fragments on one gene that correct to a single
+    # molecule is a cell where nine reads in ten found nothing new.
+    deep = count_plate(
+        [("deep", _synthetic_bam(tmp_path / "deep.bam", _SPLIT_NEIGHBOURS))], annotation
+    )
+    assert float(_frame(deep.obs).loc["deep", SATURATION]) == pytest.approx(1 - 1 / 10)
+
+    # A cell with no tagged fragment on any gene has no ratio at all rather than a zero — the
+    # denominator is the arithmetic with no answer, and the page then omits the column for that cell
+    # instead of reporting a saturation nobody measured.
+    untagged = _synthetic_bam(
+        tmp_path / "untagged.bam", (_Fragment("read_only", "chr1", 120, 180),)
+    )
+    empty = count_plate([("untagged", untagged)], annotation)
+    assert math.isnan(float(_frame(empty.obs).loc["untagged", SATURATION]))
 
 
 def test_counting_the_same_plate_twice_gives_a_byte_identical_h5ad(tmp_path: Path) -> None:
@@ -5395,12 +5543,15 @@ def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_alignment_lo
     # STAR's half is still there, untouched: this is one row per cell and not two.
     assert "uniquely_mapped" in cell_a
     # ...and the counter's half, off the synthetic plate whose every fate is known by construction:
-    # 14 fragments, of which 2 unmapped, 1 multimapping, 2 no-feature and 2 ambiguous.
+    # 17 fragments, of which 2 unmapped, 4 multimapping, 2 no-feature and 2 ambiguous.
     assert cell_a[N_FRAGMENTS].value == len(_PLATE)
     assert cell_a["no_feature"].value == pytest.approx(2 / len(_PLATE))
     assert cell_a["ambiguous"].value == pytest.approx(2 / len(_PLATE))
     assert cell_a["unmapped"].value == pytest.approx(2 / len(_PLATE))
-    assert cell_a["multimapping"].value == pytest.approx(1 / len(_PLATE))
+    assert cell_a["multimapping"].value == pytest.approx(4 / len(_PLATE))
+    # Saturation arrives from the same object under the key the droplet page uses, which is the whole
+    # point of computing it here rather than inventing a second word for it.
+    assert cell_a[SATURATION].value == pytest.approx(1 - 3 / 5)
     # Every fate the counter records has a column and a label a human can read, checked against
     # `FATES` itself rather than against a list here — a fifth fate must not reach the page unnamed.
     assert set(FATES) <= set(cell_a)
@@ -5410,8 +5561,8 @@ def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_alignment_lo
     # says that out loud, where an invented threshold would tint a page nobody could act on.
     assert {_levels(stats.samples[0])[fate] for fate in FATES} == {"none"}
     assert stats.findings == []
-    # Ten columns is past the width at which the report folds a table behind a control, so which of
-    # these survives the fold is a decision: depth, and the fate that implicates the gene model.
+    # Eleven columns is past the width at which the report folds a table behind a control, so which
+    # of these survives the fold is a decision: depth, and the fate that implicates the gene model.
     assert {m.key for m in stats.samples[0].metrics if m.headline} == {
         "uniquely_mapped",
         "unmapped_too_short",
@@ -5729,6 +5880,15 @@ def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> N
     # And a fate the object never carried is absent too, never a zero: an older plate object written
     # before a fate existed did not measure zero of them, it measured nothing.
     assert {m.key: m.value for m in counted.metrics} == {N_FRAGMENTS: 4, "unmapped": 0.25}
+
+    # A saturation the counter wrote as `nan` is that same absence arriving as a float rather than as
+    # a gap — a cell with nothing tagged to deduplicate has no ratio, and `nan%` on a page is worse
+    # than no column. A real zero is a measurement and stays.
+    absent = fate_metrics({N_FRAGMENTS: 4, SATURATION: float("nan")}, "cell_z")
+    assert {m.key for m in absent.metrics} == {N_FRAGMENTS}
+    assert {m.key: m.value for m in fate_metrics({SATURATION: 0.0}, "cell_w").metrics} == {
+        SATURATION: 0.0
+    }
 
 
 # ---- the plate-assay UMI extractor ---------------------------------------------------------------

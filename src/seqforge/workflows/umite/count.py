@@ -23,13 +23,16 @@ row here and the number follows; there is nothing else to remember.
 | ``layers["umi_combined"]`` | UMIs, exon and intron deduplicated together | ``U`` under ``--combine_unspliced`` |
 | ``layers["read_exon"]`` | untagged reads, exonic | ``RE`` |
 | ``layers["read_intron"]`` | untagged reads, intronic | ``RI`` |
+| ``layers["umi_multimapping_placement"]`` | UMIs of multiply-placed fragments, over gene bodies | — |
 
 ``obs`` is indexed by **sample id**, which is what makes the h5ad row and the per-cell CRAM filename
 join, and the four read fates are ``obs`` **columns**. The reference carries them as four extra
 *gene* columns (``_unmapped``, ``_multimapping``, ``_no_feature``, ``_ambiguous``) in a table whose
 other 55 335 columns are genes — a per-cell scalar dressed as a feature, which is what forced a
 correction in its output shape. As columns they need no leading underscore either: the underscore
-was there to keep them out of the gene id namespace, and they are not in it any more.
+was there to keep them out of the gene id namespace, and they are not in it any more. Sequencing
+saturation is a column beside them, and how many loci each multiply-placed fragment had is an
+``obsm`` array — a per-cell vector rather than a scalar, so it is the one figure ``obs`` cannot hold.
 
 **A matrix is materialised when it cannot be derived from the others, and only then.** That is why
 the combined UMI matrix is here and a combined *read* matrix is not: reads carry no UMI and are
@@ -73,6 +76,17 @@ same cell realigned with the flag as the only difference gains **+10.2%** on its
 reproduces the reference's *intent* rather than its mechanism, is immune to the aligner flag, and
 lets the flag stay.
 
+**And they are attributed as well as excluded.** They are 6.1%–40.5% of a plate's fragments across
+libraries of one strain, one protocol and one sequencing run, and nothing said which genes were
+absorbing them. So the branch that excludes them also does the gene-body lookup and accumulates into
+a layer of its own — over BODIES rather than exons, because the question is which gene these are in
+and an intronic one should still be attributed, and because the gene-body figure is already a matrix
+beside it (``umi_combined``) so the ratio between them is one division. What that layer counts is a
+**placement**, which is the caveat its name and :data:`MULTIMAPPING_CAVEAT` both carry: a count in a
+gene says one of the loci this fragment could have come from is that gene, never that the fragment is
+that gene's. Nothing about the other matrices moves — the layer is written from the branch that
+already returned, so a fragment excluded from expression is still excluded from it.
+
 **The input is coordinate-sorted, so there is no name adjacency to pair on.** There is exactly one
 sort in this pipeline and adding a name sort would cost a full extra pass and double the peak disk,
 because every per-cell BAM has to survive until the fan-in finishes. So nothing here reconstructs a
@@ -99,6 +113,7 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import closing
 from dataclasses import dataclass
+from math import isnan
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -108,7 +123,7 @@ from scipy.sparse import coo_matrix, csr_matrix
 # Aliased for the reason `fragments.py` aliases it: `count_bam`/`count_plate` already use the word
 # for what this module does, and a helper that silently means something else inside one function is
 # how a wrong number gets written.
-from ..metrics import Metric, MetricGroup, SampleStats, fraction
+from ..metrics import Metric, MetricGroup, SampleStats, fraction, sequencing_saturation
 from ..metrics import count as count_metric
 
 if TYPE_CHECKING:  # pragma: no cover — both are runtime deps; keeps import cost off compose
@@ -143,13 +158,49 @@ COUNT_RATIO_THRESHOLD = 2
 #: intronic | combined*, so the word is already the one this project reasons in. zUMIs calls it
 #: ``inex`` and the reference calls it ``U`` (under ``--combine_unspliced``); both are names you have
 #: to have read the tool to expand, which is exactly what the sentence above declines to ship.
+#:
+#: ``umi_multimapping_placement`` is the odd one out and says so in its own name. Every other matrix
+#: here is expression; that one is where a fragment the counter refused to credit to any gene was
+#: PLACED, which is a different kind of number under the same axes. ``placement`` is the word that
+#: keeps the two apart at the point a reader picks a layer — a name spelling only the population
+#: (``umi_multimapping``) invites exactly the addition :data:`MULTIMAPPING_CAVEAT` forbids.
 PRIMARY_MATRIX = "umi_exon"
-LAYERS: tuple[str, ...] = ("umi_intron", "umi_combined", "read_exon", "read_intron")
+MULTIMAPPING_LAYER = "umi_multimapping_placement"
+LAYERS: tuple[str, ...] = (
+    "umi_intron",
+    "umi_combined",
+    "read_exon",
+    "read_intron",
+    MULTIMAPPING_LAYER,
+)
+
+#: The sentence that has to travel WITH that layer. The caveat is on the object — ``uns`` — and not
+#: only in this file, because the object outlives the session that wrote it and reaches readers who
+#: will never open this module. It names the layer by substitution rather than by repeating the
+#: string, so the two cannot drift apart.
+MULTIMAPPING_CAVEAT = (
+    f"{MULTIMAPPING_LAYER} counts a deduplicated molecule in a gene when ONE of the loci its "
+    f"fragment could have come from is that gene's body. It is where ambiguity was placed, not "
+    f"expression: never add it to {PRIMARY_MATRIX} or to any other layer, and read it as a share "
+    f"of umi_combined on the same gene."
+)
+
+#: How many loci each multiply-placed fragment had, per cell: an ``obsm`` array whose column ``n`` is
+#: how many of that cell's fragments carried ``NH == n``. The locus count IS the column index, so
+#: nothing has to ship a second array of labels for a reader to know what a column means — and
+#: columns 0 and 1 are structurally empty, which is the price of that and is a few bytes a cell.
+MULTIMAPPING_HITS = "multimapping_hits"
 
 #: The four ways a fragment fails to reach a gene, in the order they are decided. Per-cell scalars,
 #: so they are ``obs`` columns; :data:`N_FRAGMENTS` is here so they can be read as rates.
 FATES: tuple[str, ...] = ("unmapped", "multimapping", "no_feature", "ambiguous")
 N_FRAGMENTS = "n_fragments"
+
+#: Sequencing saturation, per cell: one minus this cell's deduplicated molecules over the fragments
+#: that reached a gene carrying a UMI. An ``obs`` column rather than a key on the per-cell QC bundle,
+#: because the bundle is written a rule EARLIER than the counter and physically cannot carry a number
+#: only deduplication produces. A cell with no such fragment has no saturation rather than a zero.
+SATURATION = "saturation"
 
 
 # --------------------------------------------------------------------------------------------
@@ -376,14 +427,27 @@ class CellCounts:
     ``umi_exon``/``umi_intron`` are kept as ``gene -> umi -> observations`` rather than as sets
     because the correction step needs the counts: a neighbour is absorbed into a seed only when the
     seed is the more abundant of the two, and a set has thrown that away.
+
+    ``umi_multimapping`` is the same shape for the fragments none of the three above may hold, and
+    there is one bucket rather than an exonic and an intronic one because its assignment is the gene
+    BODY: a multiply-placed fragment inside an intron is in the gene, and splitting it by exon would
+    be asking a question about a locus nobody claims the fragment came from.
+
+    ``umi_fragments`` is the saturation denominator and is counted where the assignment is made
+    rather than derived afterwards — it is the fragments that reached a gene carrying a UMI, which no
+    matrix recovers once each bucket has been deduplicated.
     """
 
     umi_exon: dict[int, dict[str, int]]
     umi_intron: dict[int, dict[str, int]]
     read_exon: dict[int, int]
     read_intron: dict[int, int]
+    umi_multimapping: dict[int, dict[str, int]]
     fates: dict[str, int]
     n_fragments: int
+    umi_fragments: int
+    #: How many loci each multiply-placed fragment claimed: ``NH`` -> how many fragments carried it.
+    hits: dict[int, int]
 
 
 def _fragment_span(record: AlignedSegment) -> tuple[int, int]:
@@ -517,8 +581,11 @@ def count_bam(bam: Path, annotation: Annotation) -> CellCounts:
         umi_intron=defaultdict(dict),
         read_exon=defaultdict(int),
         read_intron=defaultdict(int),
+        umi_multimapping=defaultdict(dict),
         fates=dict.fromkeys(FATES, 0),
         n_fragments=0,
+        umi_fragments=0,
+        hits=defaultdict(int),
     )
     if not bam.exists():
         raise UmiCountError(
@@ -561,8 +628,10 @@ def _count_fragment(record: AlignedSegment, annotation: Annotation, counts: Cell
         return
     # Absent means one locus. The tag, not the bundle length: with one record emitted per
     # multimapper the bundle is length 1 and the reference calls it unique.
-    if record.has_tag(HITS_TAG) and int(record.get_tag(HITS_TAG)) > 1:
+    if record.has_tag(HITS_TAG) and (hits := int(record.get_tag(HITS_TAG))) > 1:
         counts.fates["multimapping"] += 1
+        counts.hits[hits] += 1
+        _place_multimapping(record, annotation, counts)
         return
 
     contig = str(record.reference_name)
@@ -585,12 +654,39 @@ def _count_fragment(record: AlignedSegment, annotation: Annotation, counts: Cell
 
     umi = str(record.get_tag(UMI_TAG)) if record.has_tag(UMI_TAG) else ""
     if umi:
+        counts.umi_fragments += 1
         bucket = counts.umi_exon if spliced else counts.umi_intron
         bucket[gene][umi] = bucket[gene].get(umi, 0) + 1
     elif spliced:
         counts.read_exon[gene] += 1
     else:
         counts.read_intron[gene] += 1
+
+
+def _place_multimapping(record: AlignedSegment, annotation: Annotation, counts: CellCounts) -> None:
+    """Where a multiply-placed fragment's REPRESENTATIVE locus fell, if exactly one gene owns it.
+
+    Called from the branch that has already decided this fragment's fate, and it decides nothing:
+    the fate stays ``multimapping``, no other bucket is touched, and everything the primary matrices
+    hold is what they held before this function existed. That is the property that makes attributing
+    ambiguity safe at all — the measured inflation excluding these fragments prevents (+10.2% on one
+    real cell's primary UMI matrix) is untouched, because exclusion is still what happens to them.
+
+    **The ambiguity rule is the one the matrices already use**, not a second one: a span over more
+    than one gene body belongs to none of them, so it is dropped here exactly as it would be dropped
+    from expression. There is no exonic branch, because the body is the question — and no read
+    matrix, because a fragment with nothing to deduplicate by cannot be compared against the
+    deduplicated matrix this layer exists to be divided by.
+    """
+    umi = str(record.get_tag(UMI_TAG)) if record.has_tag(UMI_TAG) else ""
+    if not umi:
+        return
+    start, end = _fragment_span(record)
+    bodies = annotation.gene_bodies(str(record.reference_name), start, end)
+    if len(bodies) != 1:
+        return
+    bucket = counts.umi_multimapping[next(iter(bodies))]
+    bucket[umi] = bucket.get(umi, 0) + 1
 
 
 def _combined_umis(counts: CellCounts) -> dict[int, int]:
@@ -645,6 +741,10 @@ def deduplicate(counts: CellCounts) -> dict[str, dict[int, int]]:
     carries nothing to deduplicate by and the reference never tries (``umicount.py:407``), so
     ``read_exon + read_intron`` is exact — a derivable layer would be one more matrix to write, keep
     consistent and explain, in exchange for an addition.
+
+    The multiply-placed fragments are deduplicated the same way and by the same function, which is
+    what makes their layer divisible by ``umi_combined``: two matrices of molecules over one gene
+    axis, differing only in whether the aligner could say where the molecule came from.
     """
     return {
         PRIMARY_MATRIX: {g: len(correct_umis(u)) for g, u in counts.umi_exon.items() if u},
@@ -652,7 +752,34 @@ def deduplicate(counts: CellCounts) -> dict[str, dict[int, int]]:
         "umi_combined": _combined_umis(counts),
         "read_exon": {g: n for g, n in counts.read_exon.items() if n},
         "read_intron": {g: n for g, n in counts.read_intron.items() if n},
+        MULTIMAPPING_LAYER: {
+            g: len(correct_umis(u)) for g, u in counts.umi_multimapping.items() if u
+        },
     }
+
+
+def _saturation(matrices: Mapping[str, Mapping[int, int]], umi_fragments: int) -> float | None:
+    """One minus this cell's molecules over the gene-assigned fragments that carried a UMI.
+
+    **The droplet pipeline's definition, not a second one under its name.** STARsolo reports the
+    same ratio over the same population — reads with a usable tag that reached a gene, against the
+    molecules they deduplicated to — so the two numbers sit in one table and mean one thing. The
+    positional definition (distinct start coordinates over reads) was rejected: it is a different
+    number under the same word, and producing it would make the chimera split hold a set of distinct
+    keys for a whole cell, which is the streaming property that keeps a plate's memory flat.
+
+    ``umi_combined`` is the molecule count because it is the only one that counts a UMI seen both
+    exonically and intronically on a gene ONCE; summing the exon and intron matrices would report
+    more molecules than were sequenced and understate saturation. The multiply-placed fragments are
+    in neither term — they never reached a gene, so they are not in the denominator, and the layer
+    that places them is not expression, so it is not in the numerator.
+
+    A cell whose fragments all went untagged or ungenned has no ratio rather than a zero: the
+    denominator is the one that has no answer, and a rendered ``0%`` is a number a reader acts on.
+    """
+    if not umi_fragments:
+        return None
+    return 1.0 - (sum(matrices["umi_combined"].values()) / umi_fragments)
 
 
 # --------------------------------------------------------------------------------------------
@@ -676,9 +803,24 @@ _FORK = "fork"
 #: has no worker running when it writes here.
 _INHERITED_ANNOTATION: Annotation | None = None
 
-#: One cell's answer: its matrices, its four read fates, and how many fragments it was. Everything
-#: the plate object takes from a cell, and deliberately nothing else — see :func:`_count_cell`.
-_Counted = tuple[dict[str, dict[int, int]], dict[str, int], int]
+
+@dataclass(frozen=True)
+class _Counted:
+    """One cell's answer. Everything the plate object takes from a cell, and deliberately nothing
+    else — see :func:`_count_cell`, which is where what is NOT here dies.
+
+    A record rather than a tuple because it grew a fifth field: an anonymous 5-tuple unpacked in
+    four places is where a plate silently gets one cell's saturation against another's fates.
+    """
+
+    matrices: dict[str, dict[int, int]]
+    fates: dict[str, int]
+    n_fragments: int
+    #: ``NH`` -> how many of this cell's fragments carried it. Kilobytes: a cell has as many entries
+    #: as the aligner's multimapping limit allows, whatever its depth.
+    hits: dict[int, int]
+    #: ``None`` where the cell had no gene-assigned fragment carrying a UMI to divide by.
+    saturation: float | None
 
 
 def _count_cell(bam: Path, annotation: Annotation) -> _Counted:
@@ -698,10 +840,24 @@ def _count_cell(bam: Path, annotation: Annotation) -> _Counted:
     deeper than that. A plate that carried them all back would hold every cell's at once for the
     life of the run: on the deposit this counter sizes for, gigabytes, and the term that would bind
     the fan-in's memory request first. What survives the worker is what the object is written from
-    and nothing more — the matrices, the four fates, and the fragment total.
+    and nothing more — the matrices, the four fates, the fragment total, the hit-count distribution
+    and one float.
+
+    **Saturation is computed here for the same reason**: it is one minus a deduplicated figure over
+    a raw one, and the deduplicated figure exists only between :func:`deduplicate` returning and this
+    frame ending. A parent that wanted it would have to be handed the per-gene molecule totals of
+    every cell, which is the matrix it is already being handed, or the raw observations, which are
+    the object this function exists to let die.
     """
     counts = count_bam(bam, annotation)
-    return deduplicate(counts), counts.fates, counts.n_fragments
+    matrices = deduplicate(counts)
+    return _Counted(
+        matrices=matrices,
+        fates=counts.fates,
+        n_fragments=counts.n_fragments,
+        hits=dict(counts.hits),
+        saturation=_saturation(matrices, counts.umi_fragments),
+    )
 
 
 def _count_inherited(bam: Path) -> _Counted:
@@ -796,6 +952,21 @@ def _matrix(rows: Sequence[Mapping[int, int]], n_genes: int) -> csr_matrix:
     return matrix.tocsr()
 
 
+def _hit_counts(counted: Sequence[_Counted]) -> np.ndarray:
+    """Every cell's hit-count distribution as one cells x (loci + 1) array, column ``n`` = ``NH n``.
+
+    Dense on purpose. The width is the deepest ``NH`` anywhere on the plate — bounded by the
+    aligner's own multimapping limit and single digits in practice — so the whole array is a few
+    kilobytes for a plate of thousands of cells, and a sparse encoding of that costs more to explain
+    than to store. Two columns minimum, so a plate with nothing multiply placed still has a column
+    for the case, and a reader indexing ``[:, 2]`` gets zeros rather than an ``IndexError``.
+    """
+    width = max(2, max((max(cell.hits, default=0) for cell in counted), default=0) + 1)
+    return np.array(
+        [[cell.hits.get(n, 0) for n in range(width)] for cell in counted], dtype=np.int32
+    )
+
+
 def count_plate(
     cells: Sequence[tuple[str, Path]], annotation: Annotation, workers: int = 1
 ) -> anndata.AnnData:
@@ -807,6 +978,12 @@ def count_plate(
     fragment total, and both are ``obs`` columns here. A figure spelled twice is the copy that goes
     stale, and this one was also the largest object in the module — see :func:`_count_cell`, which
     is now where a cell's observations are last alive.
+
+    **On a chimeric run this is called once per Component**, over that Component's per-cell BAMs, so
+    every per-cell figure below — the fates, the saturation, the hit-count distribution and the
+    placement layer — comes out per Component without this function knowing the word. That is the
+    shape the ambiguity question wants: two organisms' libraries saturate at different rates, and one
+    object holding both could only report their average.
 
     Row order is the caller's, never a sort and never the order the filesystem answered in: the
     composer hands the cells over in its own sample order, and the h5ad row is the sample id. That
@@ -830,7 +1007,7 @@ def count_plate(
         )
 
     counted = _count_cells(cells, annotation, workers)
-    entries = [entry for entry, _, _ in counted]
+    entries = [cell.matrices for cell in counted]
     n_genes = len(annotation.gene_ids)
 
     adata = ad.AnnData(X=_matrix([e[PRIMARY_MATRIX] for e in entries], n_genes))
@@ -840,9 +1017,17 @@ def count_plate(
     for layer in LAYERS:
         adata.layers[layer] = _matrix([e[layer] for e in entries], n_genes)
     for fate in FATES:
-        adata.obs[fate] = np.array([fates[fate] for _, fates, _ in counted], dtype=np.int32)
-    adata.obs[N_FRAGMENTS] = np.array([n for _, _, n in counted], dtype=np.int32)
+        adata.obs[fate] = np.array([cell.fates[fate] for cell in counted], dtype=np.int32)
+    adata.obs[N_FRAGMENTS] = np.array([cell.n_fragments for cell in counted], dtype=np.int32)
+    # A cell with no ratio is `nan` and not a zero, which pandas carries and `fate_metrics` reads
+    # back as an absent metric rather than as a rendered `0.0%` somebody would act on.
+    adata.obs[SATURATION] = np.array(
+        [np.nan if cell.saturation is None else cell.saturation for cell in counted],
+        dtype=np.float64,
+    )
+    adata.obsm[MULTIMAPPING_HITS] = _hit_counts(counted)
     adata.uns["primary_matrix"] = PRIMARY_MATRIX
+    adata.uns["multimapping_caveat"] = MULTIMAPPING_CAVEAT
     return adata
 
 
@@ -941,8 +1126,10 @@ _FATE_METRICS: dict[str, tuple[str, MetricGroup, str]] = {
 }
 
 #: The one fate that belongs in the at-a-glance strip. This module's page carries its per-cell
-#: alignment log AND these five columns, which is past the width at which the report folds a table to
-#: its headline set — so what the folded view holds is a decision rather than an accident. Depth and
+#: alignment log AND the fates, the fragment total and saturation, which is past the width at which
+#: the report folds a table to its headline set — so what the folded view holds is a decision rather
+#: than an accident. Saturation is not in it either: it says whether sequencing deeper would pay,
+#: which is a question about the next run rather than about whether this one worked. Depth and
 #: STAR's mapping rate say whether the cell sequenced and aligned; this says whether what aligned
 #: could be counted at all, which is the one thing neither of the others reports and the one that
 #: implicates a decision (the gene model) rather than the library. The other three are one click
@@ -950,7 +1137,7 @@ _FATE_METRICS: dict[str, tuple[str, MetricGroup, str]] = {
 _HEADLINE_FATE = "no_feature"
 
 
-def fate_metrics(row: Mapping[str, int], sample: str) -> SampleStats:
+def fate_metrics(row: Mapping[str, float], sample: str) -> SampleStats:
     """One cell's ``obs`` row -> the metrics its page column shows. Pure — no file, no anndata.
 
     The fates are carried as **rates**, over :data:`N_FRAGMENTS`, which is what that column is on the
@@ -961,7 +1148,12 @@ def fate_metrics(row: Mapping[str, int], sample: str) -> SampleStats:
 
     A cell whose ``n_fragments`` is zero yields no rates at all rather than four zeros: dividing by it
     is the one arithmetic here that has no answer, and a rendered ``0.0%`` is a number a reader acts
-    on. Absent is absent, exactly as it is for a metric an artifact never carried.
+    on. Absent is absent, exactly as it is for a metric an artifact never carried — and a saturation
+    the counter wrote as ``nan`` is that same absence, arriving as a float instead of as a gap.
+
+    Saturation is built by the shared constructor rather than restated here, which is what makes the
+    droplet page's column and this one the same column: one key, one label, one sentence saying what
+    the number means, in the module both import.
     """
     total = row.get(N_FRAGMENTS)
     built: list[Metric | None] = [
@@ -988,22 +1180,29 @@ def fate_metrics(row: Mapping[str, int], sample: str) -> SampleStats:
                 headline=fate == _HEADLINE_FATE,
             )
         )
+    saturated = row.get(SATURATION)
+    built.append(
+        sequencing_saturation(None if saturated is None or isnan(saturated) else saturated)
+    )
     return SampleStats(sample_id=sample, metrics=[m for m in built if m is not None])
 
 
-def _obs_columns(adata: anndata.AnnData) -> dict[str, list[int]]:
-    """The fate columns the object actually carries, as plain ints. Absent columns stay absent.
+def _obs_columns(adata: anndata.AnnData) -> dict[str, list[float]]:
+    """The per-cell columns the object actually carries, as plain floats. Absent columns stay absent.
 
     Its own function because it is where anndata stops: ``adata.obs`` is declared as a union with a
     lazy on-disk table, so the narrowing happens once, at the boundary, and everything past it is
     plain Python the metric table can be tested against with no h5ad in the way. A column an older
     object was written without is simply missing from the result, and :func:`fate_metrics` then omits
     its metric instead of reporting a zero nobody counted.
+
+    Floats and not ints, because saturation is one: narrowing to int here would round every cell's
+    ratio to 0 and the page would report a plate that had sequenced nothing twice.
     """
     frame: Any = adata.obs
     return {
-        column: [int(value) for value in frame[column]]
-        for column in (*FATES, N_FRAGMENTS)
+        column: [float(value) for value in frame[column]]
+        for column in (*FATES, N_FRAGMENTS, SATURATION)
         if column in frame.columns
     }
 
@@ -1050,8 +1249,12 @@ __all__ = [
     "FATES",
     "HITS_TAG",
     "LAYERS",
+    "MULTIMAPPING_CAVEAT",
+    "MULTIMAPPING_HITS",
+    "MULTIMAPPING_LAYER",
     "N_FRAGMENTS",
     "PRIMARY_MATRIX",
+    "SATURATION",
     "UMI_TAG",
     "Annotation",
     "CellCounts",
