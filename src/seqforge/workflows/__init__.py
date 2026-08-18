@@ -23,6 +23,51 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.17 — a chimeric SMART-seq3 plate produces a complete, readable, single-species result set,
+#: and the run directory and the report tell the truth about what happened (#429). ONE bump for eight
+#: slices, deliberately: `run_id` folds this constant and not the module bytes, so paying it per slice
+#: would orphan a pipeline directory per slice and re-run a two-arm cluster pilot to prove each one.
+#: **The split accepts healthy data** (#435). It refused 16 of 16 cells of a mapped pilot on an
+#: end-of-run check asserting each output kept as many first mates as second — true premises, false
+#: conclusion, because where only one mate aligns the aligner omits the other and the survivor is a
+#: mapped primary alignment with no partner beside it. Such a survivor carries the mate-unmapped flag,
+#: so it is a singleton by construction: each side's own come off that side and the PAIRED REMAINDER
+#: is what must balance. The count is derived a second, independent way — placeless records sit at
+#: their live mate's coordinates, so they name a Component too — and the two are compared. Still a
+#: stateless per-record filter: two more counters, no buffer (ADR-0053).
+#: **The keep rule widens to mapped, primary.** Multiply-placed fragments are routed by their
+#: representative record's Component and MARKED rather than dropped, by the hit-count tag they already
+#: carry, so the counter separates the populations with no intermediate artifact and no Chimera
+#: concept. `multimapping` stops being a drop category; the summary gains each Component's
+#: multiply-placed share and its singleton count.
+#: **The aligner writes what it could not place** — `--outSAMunmapped Within` on both plate twins, so
+#: the counter's first fate stops being structurally zero on a plain run (#434, ADR-0049 amended).
+#: Not `Within KeepPairs`: that affects unsorted output only and these modules write sorted.
+#: **The retained archive is partitioned by mappability** (#436, ADR-0054). `umi_to_cram` is gone;
+#: `unique_to_cram` and `multiplaced_to_cram` replace it on both twins. On the chimeric twin the
+#: unique half is per Component off that Component's split BAM against that Component's own reference
+#: — single-species names, order, lengths and binary dictionary — while the multiply-placed half is
+#: ONE Component-blind file per cell in Chimera coordinates, cut from the pre-split BAM. Together they
+#: are exactly every primary mapped record, which is why the whole-Chimera archive is gone rather than
+#: kept beside them. `seqforge io cram` gained the record selection that makes this one verb
+#: (#433) and stamps the caveat as an `@CO` line on the ambiguous half.
+#: **One QC artifact per cell on both twins** (#438), absorbing the extraction summary, the aligner's
+#: final log — now a DECLARED output — its two progress logs, a junction SUMMARY and, on the chimeric
+#: twin, the split summary. Every original is `temp()`, which having a consumer is what makes legal.
+#: The junction TABLE is not stored: same artifact kind at eighty times the droplet arity is not the
+#: same trade-off, and the droplet bundle is untouched. What marks a cell finished moved onto the
+#: bundle, which is downstream of everything and so cannot report a cell finished the moment its
+#: aligner log appeared — the failure mode the pilot's clean-looking page was made of.
+#: **No aligner scratch inside the deliverable** (#431). The shared genome load and release write
+#: their run-files into a `mktemp -d` the same shell block destroys, on all four modules that load an
+#: index: a mechanism that cannot leak beats one that must be configured correctly. `map/star` keeps
+#: its junction table as a real output — analyzable at bulk depth, unlike a cell's — and sweeps the two
+#: progress logs nothing reads.
+#: **Off-module, riding the same bump:** the counter gains a gene-body, UMI-deduplicated
+#: multiply-placed layer, a per-cell locus-count distribution and per-cell saturation on the object it
+#: already writes, with the primary matrices byte-identical (#437); the chimeric twin gains the
+#: per-Component fan-in reader those columns need to reach a page (#439); and a report says `finished`
+#: or `failed` against the deliverables each module declares, with no third answer (#432, ADR-0052).
 #: 2026.8.16 — the plate route declares the read group its records name (#416). It was
 #: shipping INVALID SAM and had been since the uBAM arrived: `umite`'s extractor writes
 #: `@RG ID:<cell> SM:<cell>` into the uBAM and stamps `RG:Z:<cell>` on every record, and
@@ -457,7 +502,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.16"
+WORKFLOW_VERSION = "2026.8.17"
 
 _MODULE_DIR = Path(__file__).parent
 
