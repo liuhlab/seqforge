@@ -4569,21 +4569,26 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
         return rec
 
     def stranded(flag: int) -> Any:
-        """The mate that did not align, at its PARTNER's coordinates and with no CIGAR of its own.
+        """The mate that did not align: NO placement of its own, its partner's in its mate pointer.
 
         What an aligner asked to emit what it could not place writes for the dead half of a
-        half-mapped pair, and the shape is the whole point: the record is unmapped, so nothing may
-        read a placement off it, and it names its partner's chromosome, so something can read the
-        organism off it. `NH` is zero because nothing was placed.
+        half-mapped pair, and the split of the two fields is the whole point: `RNAME` is `*`, so
+        nothing may read a placement off this record, while `RNEXT` names the partner's chromosome,
+        so something can read the ORGANISM off it. `NH` is zero because nothing was placed.
+
+        **Read off a real chimeric BAM, not guessed.** This built the record with `RNAME` set as
+        well, which is the shape the SAM spec permits and STAR does not write; the check that reads
+        it therefore passed here and counted zero on a real cell, refusing 5440 healthy half-mapped
+        fragments. A fixture that flatters the code it feeds is worth nothing, so this one now
+        writes what the aligner was observed to write.
         """
         rec = pysam.AlignedSegment(header)
         rec.query_name = frag.name
         rec.query_sequence = "A" * _READ_LEN
         rec.query_qualities = pysam.qualitystring_to_array("I" * _READ_LEN)
         rec.flag = flag
-        tid = header.get_tid(frag.contig)
-        rec.reference_id = rec.next_reference_id = tid
-        rec.reference_start = rec.next_reference_start = frag.start
+        rec.next_reference_id = header.get_tid(frag.contig)
+        rec.next_reference_start = frag.start
         rec.set_tags([("NH", 0, "i"), ("uT", "4", "A")])
         return rec
 

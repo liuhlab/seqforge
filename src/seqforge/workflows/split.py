@@ -66,8 +66,8 @@ rather than watched on a real chimera.** The mate sits on this record's own comp
 record. Each output's PAIRED REMAINDER balances — first and second mates, each less that side's own
 singletons — checked once at the end. And the singleton count is derived a SECOND, independent way
 and the two are compared: asked to emit what it could not place, the aligner writes a dead mate as a
-placeless record at its live mate's coordinates, so that record names a Component too, and there
-must be exactly as many of them per Component as there are singletons. None of the three is here to
+placeless record whose MATE POINTER names its live partner's chromosome, so that record names a
+Component too, and there must be exactly as many of them per Component as there are singletons. None of the three is here to
 catch a bug in this module — the first turns an opaque dictionary lookup failure into a refusal that
 names the read and both components, the second turns a silently halved output into one that says so,
 and the third costs one more counter, no buffer, and is strictly stronger than comparing raw mate
@@ -407,13 +407,16 @@ def split_chimera(
                 records_in += 1
                 if record.is_unmapped:
                     dropped["unmapped"] += 1
-                    # ...and, on its way out, the second derivation of the singleton count. Asked to
-                    # emit what it could not place, the aligner writes a dead mate at its LIVE
-                    # mate's coordinates, so this record names the Component its partner landed on
-                    # even though nothing placed it. A record whose mate is unmapped too names no
-                    # Component and is no fragment's survivor, so it is not one of these.
-                    if not record.mate_is_unmapped and record.reference_id >= 0:
-                        dead_mates[owner[record.reference_id]] += 1
+                    # ...and, on its way out, the second derivation of the singleton count. Asked
+                    # to emit what it could not place, the aligner writes a dead mate with NO
+                    # placement of its own -- `RNAME` is `*` -- and its live mate's chromosome in
+                    # its MATE POINTER, which is the field this reads and the only one that names a
+                    # Component. Read off a real chimeric BAM, not off the aligner's source: the
+                    # first version of this check read `RNAME`, counted zero against 5440 flagged
+                    # survivors, and refused a healthy cell. A record whose mate is unmapped too
+                    # points nowhere and is no fragment's survivor, so it is not one of these.
+                    if not record.mate_is_unmapped and record.next_reference_id >= 0:
+                        dead_mates[owner[record.next_reference_id]] += 1
                     continue
                 if record.is_secondary:
                     dropped["secondary"] += 1
