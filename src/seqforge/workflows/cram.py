@@ -38,11 +38,64 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
+from enum import StrEnum
 from pathlib import Path
 
 
 class CramError(RuntimeError):
     """The BAM could not be converted (missing input, samtools failure, unreadable reference)."""
+
+
+class RecordSelection(StrEnum):
+    """Which of the aligner's records reach the archive, named once so no caller composes one.
+
+    A selection is a **flag filter and a tag expression together**, and the two halves are not
+    interchangeable. The expression can say how many loci a fragment was placed at; it cannot say
+    whether this record is a primary alignment, or whether the fragment aligned at all — an unmapped
+    record carries ``NH:i:1`` too, so ``[NH]==1`` on its own keeps one. Measured against the
+    ``align-rna`` image's samtools on a four-record SAM (one uniquely placed, one multiply placed,
+    that one's secondary, one unmapped, every record carrying ``NH``), which is also the fixture the
+    test of this table rebuilds.
+
+    ``primary`` is the default and is exactly what this converter has always done. ``mapped`` also
+    drops the records that never aligned. ``unique`` and ``multi`` partition ``mapped``: every
+    primary mapped record is in one of them and no record is in both, so the two archives together
+    hold what one mixed archive holds and duplicate no bytes.
+
+    A selection that needs a caveat carries it in :data:`_SELECT_CAVEAT`, so the file states its own
+    terms rather than relying on a reader having found this docstring.
+    """
+
+    primary = "primary"
+    mapped = "mapped"
+    unique = "unique"
+    multi = "multi"
+
+
+#: The ``samtools view`` arguments each selection *is*, spliced into the pipe's first stage. ``0x100``
+#: is secondary; ``0x104`` is secondary or unmapped. A malformed expression exits non-zero rather than
+#: matching nothing, so a wrong edit here surfaces through the per-stage status check in
+#: :func:`_encode` as a named error rather than as a silently short archive.
+_SELECT_ARGS: dict[RecordSelection, list[str]] = {
+    RecordSelection.primary: ["-F", "0x100"],
+    RecordSelection.mapped: ["-F", "0x104"],
+    RecordSelection.unique: ["-F", "0x104", "-e", "[NH]==1"],
+    RecordSelection.multi: ["-F", "0x104", "-e", "[NH]>1"],
+}
+
+#: What a selection has to say about itself ON the file, as a SAM ``@CO`` header line. Only ``multi``
+#: has anything: a multiply-placed fragment was emitted at ONE of the loci it fitted, chosen by the
+#: aligner among equals, so a record in that archive is a placement and not an assignment. Reading it
+#: as an assignment is the mistake the whole partition exists to make hard, and a docstring cannot
+#: travel with a CRAM a user copied to a laptop — the name says which population it is and this says
+#: what a row in it means. ASCII and one line, because a ``@CO`` value is one line of text and this
+#: crosses awk, a locale and a CRAM header on its way in.
+_SELECT_CAVEAT: dict[RecordSelection, str] = {
+    RecordSelection.multi: (
+        "seqforge: multiply-placed records. A record here means one of this fragment's possible "
+        "loci is this one; it never means the fragment belongs here."
+    ),
+}
 
 
 def _run(cmd: list[str]) -> None:
@@ -91,31 +144,53 @@ def _ensure_fai(fasta: Path, workdir: Path) -> Path:
 #: ``/^@/`` is a sound header test rather than a convenient guess: the SAM specification restricts a
 #: QNAME's first character to ``[!-?A-~]``, which excludes ``@`` (0x40) by construction. So no
 #: alignment line can begin with one, and no header line can be missed.
-_RENAME_QNAME = r'BEGIN{FS=OFS="\t"} /^@/{print; next} {n++; $1="r" n; print}'
+#:
+#: It also STAMPS the selection's caveat, because this is the one stage that already reads the header
+#: and writes it back: a ``@CO`` line goes in where the header ends, which is the first alignment
+#: line, or the end of a stream that has none. ``caveat`` arrives through ``-v`` and is EMPTY unless
+#: the selection has something to say, so the default archive's program and argv are what they were.
+_RENAME_QNAME = (
+    r'BEGIN{FS=OFS="\t"} /^@/{print; next} '
+    r'!stamped{if(caveat!="") print "@CO", caveat; stamped=1} '
+    r'{n++; $1="r" n; print} '
+    r'END{if(!stamped && caveat!="") print "@CO", caveat}'
+)
 
 
-def bam_to_cram(bam: Path, fasta: Path, out: Path, threads: int = 1) -> Path:
+def bam_to_cram(
+    bam: Path,
+    fasta: Path,
+    out: Path,
+    threads: int = 1,
+    selection: RecordSelection = RecordSelection.primary,
+) -> Path:
     """STAR's coordinate-sorted BAM -> ``out`` (CRAM) + ``out.crai``. Returns ``out``.
 
     Three stages in one pipe, so nothing intermediate is ever written to disk. Each was measured on
     one real lane (GSE208154 / SAMN29720279), and together they land 12% **below** the CRAM this
     shipped before it carried a barcode at all:
 
-    1. ``samtools view -h -F 0x100`` — primary alignments only. A secondary record re-states a read
-       we already have, at a locus we did not choose to believe. It measured −17.8% when it was the
+    1. ``samtools view -h`` carrying the ``selection``'s flags and expression — the records this
+       archive is *of*. The default, ``primary``, is ``-F 0x100`` and is byte-for-byte what this
+       function has always done: primary alignments only. A secondary record re-states a read we
+       already have, at a locus we did not choose to believe. It measured −17.8% when it was the
        thing removing them; **since #205 it removes nothing**, because ``starsolo.smk`` passes
        ``--outSAMmultNmax 1`` and STAR no longer writes a secondary record for the sort to carry —
        the saving is real and is now taken one stage earlier, in the aligner, where it also buys back
        the sort budget and the wall-clock. The flag stays anyway, and deliberately: it is a cheap
        invariant rather than a load-bearing filter, and it is what makes this function's output
        independent of how STAR happened to be invoked. Do not delete it for having stopped firing
-       (ADR-0023).
+       (ADR-0023). A caller wanting a narrower archive — the mapped records, or one side of the
+       mappability partition — names a :class:`RecordSelection` instead of growing a pipe of its own,
+       which is the whole reason the argument exists.
     2. ``awk`` — the read-name rewrite, −16.2%. Illumina names are 38 characters
        (``K00125:217:HCL2YBBXY:8:2111:24637:43374``) and mean nothing once the barcode is a ``CB`` /
        ``UB`` tag: the name was only ever the join key back to R1, and R1 is now in the record.
        samtools has no flag for this — ``--output-fmt-option lossy_names=1`` was measured and saves
        exactly zero bytes — so the rewrite happens in the stream. ``awk`` is in the pinned
        ``align-rna`` image (it is what the measurement itself used), so this adds no dependency.
+       It is also where the selection's caveat becomes a ``@CO`` header line, since this stage is
+       already reading the header and writing it back: no reheader pass, no second file.
     3. ``samtools view -C -T`` — the CRAM encoder, unchanged, still not embedding the reference.
 
     Every stage is multi-threaded (``--threads``) so a fat node is actually used, and **every stage's
@@ -135,18 +210,19 @@ def bam_to_cram(bam: Path, fasta: Path, out: Path, threads: int = 1) -> Path:
     # why there is a `with` at all. See `_ensure_fai`.
     with tempfile.TemporaryDirectory(prefix="seqforge-cram-") as tmp:
         ref = _ensure_fai(fasta, Path(tmp))
-        _encode(bam, ref, out, threads)
+        _encode(bam, ref, out, threads, selection)
     _run(["samtools", "index", "-@", str(threads), str(out)])
     return out
 
 
-def _encode(bam: Path, ref: Path, out: Path, threads: int) -> None:
+def _encode(bam: Path, ref: Path, out: Path, threads: int, selection: RecordSelection) -> None:
     """The three-stage pipe of :func:`bam_to_cram`, waited on and checked stage by stage."""
     # `-h` keeps the header: the encoder needs the @SQ lines to match sequences to the reference.
     # `-T` names that reference; no embed_ref -> smallest CRAM.
     nthreads = str(threads)
-    primary = ["samtools", "view", "-h", "-F", "0x100", "--threads", nthreads, str(bam)]
-    rename = ["awk", _RENAME_QNAME]
+    select = ["samtools", "view", "-h", *_SELECT_ARGS[selection], "--threads", nthreads, str(bam)]
+    caveat = _SELECT_CAVEAT.get(selection)
+    rename = ["awk", *(["-v", f"caveat={caveat}"] if caveat else []), _RENAME_QNAME]
     encode = ["samtools", "view", "-C", "-T", str(ref), "--threads", nthreads, "-o", str(out), "-"]
     try:
         # Each stage hands its read end to the next and then drops this process's copy. Holding one
@@ -155,7 +231,7 @@ def _encode(bam: Path, ref: Path, out: Path, threads: int) -> None:
         # status cannot report. Both handoffs need it, not just the first: an encoder that dies on a
         # full disk mid-file would otherwise leave awk writing into a pipe nobody drains, and the
         # `with` block waiting on awk.
-        with subprocess.Popen(primary, stdout=subprocess.PIPE) as filt:
+        with subprocess.Popen(select, stdout=subprocess.PIPE) as filt:
             assert filt.stdout is not None
             with subprocess.Popen(rename, stdin=filt.stdout, stdout=subprocess.PIPE) as renamer:
                 filt.stdout.close()
@@ -168,7 +244,7 @@ def _encode(bam: Path, ref: Path, out: Path, threads: int) -> None:
         failures = [
             f"{name} exited {code}"
             for name, code in (
-                ("samtools view (primary alignments)", filt.returncode),
+                (f"samtools view ({selection} records)", filt.returncode),
                 ("awk (read-name rewrite)", renamer.returncode),
                 ("samtools view (CRAM encode)", encoder.returncode),
             )
@@ -182,4 +258,4 @@ def _encode(bam: Path, ref: Path, out: Path, threads: int) -> None:
         ) from exc
 
 
-__all__ = ["CramError", "bam_to_cram"]
+__all__ = ["CramError", "RecordSelection", "bam_to_cram"]

@@ -17,7 +17,10 @@ import csv
 # importable, so three copies of that rule could only ever be checked by running three pipelines.
 # `memory` is that same move applied to what this module asks the scheduler for and what it lets STAR
 # sort in: two numbers that only mean anything together, so a constant and a closure written here
-# could never be unit-tested, only run against a sample deep enough to fail.
+# could never be unit-tested, only run against a sample deep enough to fail. The STAR filenames this
+# rule declares arrive the same way: `h5ad` owns every name STAR writes into a sample's directory,
+# and a fourth spelling of one here is the drift that has a rule declaring a file nothing produces.
+from seqforge.workflows.h5ad import STAR_JUNCTIONS, STAR_PROGRESS_LOGS
 from seqforge.workflows.memory import BULK_RETRIES, bam_sort_ram, bulk_mem_mb, index_mem_mb
 from seqforge.workflows.units import ordered_fastqs
 
@@ -39,9 +42,6 @@ READ_FILES_IN = config["read_files_in"]
 # index rather than inside it -- a file under another rule's directory output is a child of that
 # output, which snakemake refuses to build a DAG for at all.
 LOADED_FLAG = f"{OUTDIR}/index/{ASSEMBLY}.loaded"
-# Where STAR writes the small logs its load and unload invocations produce. Beside the index for the
-# same reason, and prefixed so they never collide with a sample's.
-LOAD_PREFIX = f"{OUTDIR}/index/_genome_{ASSEMBLY}_"
 
 
 def fastqs(sample, role):
@@ -140,6 +140,15 @@ rule load_genome:
     The same idiom `star_count` already opens with (`rm -rf ..._STARtmp`), one level up: clear the
     stale thing you cannot otherwise reach, then do the work.
 
+    **Neither invocation writes into the pipeline directory.** STAR drops a log, a progress log and a
+    `_STARtmp/` under whatever prefix it is handed and removes none of them, so these two used to
+    leave nine undeclared entries beside the index and the flag, with nothing saying which two of
+    the eleven were output. The prefix is therefore a directory this block MAKES and destroys.
+    Pointing it somewhere else inside the run directory, or sweeping afterwards by glob, both work
+    only for as long as they stay configured correctly; a scratch that cannot outlive the shell has
+    nothing to configure and nothing to sweep. The `trap` is what covers the failing path, which is
+    the path that leaves the most behind.
+
     **Nothing verifies separately that the sharing happened, and that is deliberate.** If the index
     cannot be loaded STAR exits non-zero, this rule fails and snakemake stops -- which covers a bad
     index path and a kernel refusing the segment. A container namespacing IPC (apptainer does not by
@@ -159,16 +168,18 @@ rule load_genome:
         # beside the largest allocation on the machine without knowing it is there. The recipe's whole
         # figure, which is an upper bound on this residency -- see `index_mem_mb`.
         mem_mb=lambda wildcards, attempt: index_mem_mb(config["mem_mb"], attempt),
-    params:
-        prefix=LOAD_PREFIX,
     shell:
         r"""
+        # STAR's run-files go to a directory made here and destroyed here, so none of them can reach
+        # the pipeline directory. The trap fires on the failing path too.
+        scratch=$(mktemp -d)
+        trap 'rm -rf "$scratch"' EXIT
         # Defensive: marks any stale segment for destruction. Attached jobs keep running; a segment
         # that is not there is a no-op we must not fail on.
         STAR --genomeDir {input.index} --genomeLoad Remove \
-             --outFileNamePrefix {params.prefix}remove_ > /dev/null 2>&1 || true
+             --outFileNamePrefix "$scratch"/remove_ > /dev/null 2>&1 || true
         STAR --genomeDir {input.index} --genomeLoad LoadAndExit \
-             --outFileNamePrefix {params.prefix}
+             --outFileNamePrefix "$scratch"/
         """
 
 
@@ -211,7 +222,17 @@ rule star_count:
         index=rules.genome_index.output,
         loaded=rules.load_genome.output,
     output:
-        f"{OUTDIR}/{{sample}}/ReadsPerGene.out.tab",
+        # Named one by one, and the names are the claim. This rule declared the counts alone, so a
+        # sample's directory ended a run holding several files STAR wrote with nothing saying which
+        # of them a reader was meant to keep. The junction table is one: a junction call is
+        # analyzable at bulk depth, unlike a single plate cell's, so it is a real output here and a
+        # summary line elsewhere. The two progress logs are not -- nothing reads either once the run
+        # is over -- so `temp()` drops them as soon as this job finishes and no manual `rm` is
+        # involved. The aligner's end-of-run summary is deliberately in neither list: it survives,
+        # and the report reads it off disk with no rule of ours in between (`workflows/stats.py`).
+        counts=f"{OUTDIR}/{{sample}}/ReadsPerGene.out.tab",
+        junctions=f"{OUTDIR}/{{sample}}/{STAR_JUNCTIONS}",
+        progress=temp(expand(f"{OUTDIR}/{{{{sample}}}}/{{f}}", f=list(STAR_PROGRESS_LOGS))),
     # liulab-runtime's `align-rna`, resolved by compose. See starsolo.smk's note: consuming their
     # artifact, not defining an env, and honoured only under `--software-deployment-method`.
     container: config["container"]
@@ -270,13 +291,16 @@ def release_genome_segment():
     entry and declaring the outputs that replace it.
 
     Written once because the two paths release the SAME segment the same way, and two byte-identical
-    copies is two chances to fix one of them: the prefix, the redirect and the trailing `|| true`
+    copies is two chances to fix one of them: the scratch, the redirect and the trailing `|| true`
     have to stay together, and the copy that lost the `|| true` would turn a finished run into a
-    failed one.
+    failed one. The scratch is the arrangement `load_genome` argues for, on the path where it matters
+    most: this command runs when the run is OVER, so a run-file left under the output prefix would
+    land in a directory a user is already reading.
     """
     shell(
+        "scratch=$(mktemp -d); trap 'rm -rf \"$scratch\"' EXIT; "
         f"STAR --genomeDir {OUTDIR}/index/{ASSEMBLY} --genomeLoad Remove "
-        f"--outFileNamePrefix {LOAD_PREFIX}unload_ > /dev/null 2>&1 || true"
+        '--outFileNamePrefix "$scratch"/unload_ > /dev/null 2>&1 || true'
     )
 
 

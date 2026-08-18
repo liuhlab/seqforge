@@ -17,10 +17,11 @@ from __future__ import annotations
 
 import gzip
 import json
+import math
 import re
 import shutil
 import subprocess
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from itertools import pairwise
 from pathlib import Path
@@ -64,7 +65,13 @@ from seqforge.workflows import (
     list_modules,
     memory,
 )
-from seqforge.workflows.cram import _RENAME_QNAME, CramError, bam_to_cram
+from seqforge.workflows.cram import (
+    _RENAME_QNAME,
+    _SELECT_CAVEAT,
+    CramError,
+    RecordSelection,
+    bam_to_cram,
+)
 from seqforge.workflows.fragments import (
     QC_SUFFIX,
     FragmentsError,
@@ -78,7 +85,10 @@ from seqforge.workflows.fragments import read_metrics as read_fragments_metrics
 from seqforge.workflows.h5ad import (
     SOLO_FEATURE_OUTPUT,
     STAR_BAM,
+    STAR_FINAL_LOG,
+    STAR_JUNCTIONS,
     STAR_LOG_FILES,
+    STAR_PROGRESS_LOGS,
     H5adError,
     h5ad_suffixes,
     raw_files,
@@ -116,13 +126,17 @@ from seqforge.workflows.qc import (
     NEAR_ZERO_VALID_BARCODES,
     POOR_GENE_ASSIGNMENT,
     QcError,
+    build_plate_qc_bundle,
     build_qc_bundle,
     chemistry_rule,
     gene_model_rule,
+    read_plate_metrics,
     read_star_log,
     solo_features_rule,
+    write_plate_qc_bundle,
     write_qc_bundle,
 )
+from seqforge.workflows.qc import QC_SUFFIX as QC_BUNDLE_SUFFIX
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
 from seqforge.workflows.split import (
@@ -135,6 +149,7 @@ from seqforge.workflows.split import (
 from seqforge.workflows.stats import (
     MODULES_WITHOUT_CROSS_CHECKS,
     MODULES_WITHOUT_STATS,
+    PER_COMPONENT_CAVEAT,
     modules_with_cross_checks,
     modules_with_stats,
     read_pipeline_stats,
@@ -142,8 +157,12 @@ from seqforge.workflows.stats import (
 from seqforge.workflows.umite.count import (
     FATES,
     LAYERS,
+    MULTIMAPPING_CAVEAT,
+    MULTIMAPPING_HITS,
+    MULTIMAPPING_LAYER,
     N_FRAGMENTS,
     PRIMARY_MATRIX,
+    SATURATION,
     UmiCountError,
     _step_index,
     correct_umis,
@@ -163,7 +182,6 @@ from seqforge.workflows.umite.extract import (
     extract_umis,
     find_tag,
     geometry_for_read,
-    read_extract_summary,
     tagged_read_geometry,
 )
 
@@ -337,8 +355,15 @@ def test_star_run_files_are_the_logs_the_bundle_reads_and_the_bam_is_separate() 
     must pass, because STAR refuses to put the `CB`/`UB` barcode tags in anything but the sorted BAM.
     Get this literal wrong and `starsolo_count` declares an output STAR never writes: the rule fails
     after the whole alignment has been paid for.
+
+    WHICH of the four is which is asserted separately from the set, because the set cannot say: the
+    junction table and the progress logs have opposite fates — bulk keeps the first as an output and
+    sweeps the second two — and a constant holding the other one's filename would leave the union
+    below byte-identical while a finished bulk run kept the wrong file.
     """
     assert set(STAR_LOG_FILES) == {"Log.final.out", "Log.out", "Log.progress.out", "SJ.out.tab"}
+    assert STAR_JUNCTIONS == "SJ.out.tab"
+    assert set(STAR_PROGRESS_LOGS) == {"Log.out", "Log.progress.out"}
     assert STAR_BAM == "Aligned.sortedByCoord.out.bam"
     assert STAR_BAM not in STAR_LOG_FILES
 
@@ -624,6 +649,215 @@ def test_a_missing_star_file_is_a_refusal_not_a_silent_gap(tmp_path: Path) -> No
         build_qc_bundle(solo, run_dir, features, sample="S1", assembly="ce11")
 
 
+# ---- the plate's own bundle: one artifact per CELL --------------------------------------------
+#
+# The second shape behind the same suffix and the same verb. A droplet sample and a plate cell leave
+# genuinely different files behind, so the key spaces are two builders rather than one with optional
+# keys — and what they share (the aligner's run files) is one private helper. The gates are the same
+# two the droplet bundle's are: the key space is what the rule's inputs reduce to, and the reader
+# beside the writer resolves every one of them.
+
+
+#: One cell's split summary, in the shape the splitter writes it through — :class:`SplitStats` owns
+#: the payload, so a renamed field there reddens whatever consumes this instead of passing.
+_CELL_SPLIT: dict[str, object] = SplitStats(
+    separator="__",
+    records_in=33,
+    kept={"tinyCe": 9, "tinyEc": 9},
+    read1={"tinyCe": 5, "tinyEc": 5},
+    read2={"tinyCe": 4, "tinyEc": 4},
+    multiplaced={"tinyCe": 2, "tinyEc": 1},
+    singletons={"tinyCe": 1, "tinyEc": 1},
+    dropped={"unmapped": 7, "secondary": 4, "supplementary": 4},
+).to_dict()
+
+
+def _finished_cell(
+    run_dir: Path, *, sample: str = "cell_a", split: Mapping[str, object] | None = None
+) -> tuple[Path, Path, Path | None]:
+    """One plate cell's directory as its own pipeline leaves it, and the paths the bundle rule names.
+
+    Returns ``(run_dir, extract summary, split summary or None)``. Every file in it is one a twin's
+    rule declares — the extraction summary, the aligner's four run files, and on the chimeric arm the
+    split's account — so the bundle built from this is the artifact those rules produce rather than a
+    shape invented here.
+    """
+    extract = run_dir / f"{sample}{EXTRACT_SUFFIX}"
+    _write(
+        extract,
+        json.dumps(
+            {
+                "sample": sample,
+                "geometry": _PLATE_GEOMETRY,
+                "fragments": 100,
+                "tagged": 27,
+                "untagged": 73,
+                "offsets": {"0": 26, "13": 1},
+            }
+        ),
+    )
+    _write(run_dir / STAR_FINAL_LOG, "".join(f"  {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()))
+    for name in STAR_PROGRESS_LOGS:
+        _write(run_dir / name, f"{name}: STAR version 2.7.11b\n")
+    # Three junctions: one annotated and canonical, one novel and non-canonical, one annotated on
+    # the other canonical motif — enough for every counter in the summary to differ from the row
+    # count, which is what makes the numbers below a measurement rather than three ways to say 3.
+    _write(
+        run_dir / STAR_JUNCTIONS,
+        "chrI\t100\t200\t1\t1\t1\t10\t2\t30\n"
+        "chrI\t500\t600\t2\t0\t0\t3\t0\t18\n"
+        "chrII\t900\t950\t1\t2\t1\t7\t1\t22\n",
+    )
+    summary = None
+    if split is not None:
+        summary = run_dir / f"{sample}{SPLIT_SUFFIX}"
+        _write(summary, json.dumps(split))
+    return run_dir, extract, summary
+
+
+def _bundled_cell(
+    results: Path, staging: Path, sample: str, *, split: Mapping[str, object] | None = None
+) -> Path:
+    """Land one cell's QC bundle under ``<results>/<sample>/``, built by the REAL writer.
+
+    The originals it absorbs are staged somewhere ELSE on purpose: a finished run has swept every one
+    of them, so a results directory still holding them is a state the pipeline cannot leave behind —
+    and a reader tested against it could be finding the originals rather than the bundle.
+    """
+    run_dir, extract, split_summary = _finished_cell(staging / sample, sample=sample, split=split)
+    return write_plate_qc_bundle(
+        run_dir,
+        results / sample / f"{sample}{QC_BUNDLE_SUFFIX}",
+        sample=sample,
+        assembly="sacCer3",
+        extract=extract,
+        split=split_summary,
+    )
+
+
+@pytest.mark.parametrize("chimeric", [False, True], ids=["plain", "chimeric"])
+def test_the_plate_bundle_absorbs_the_originals_and_summarizes_the_junctions(
+    tmp_path: Path, chimeric: bool
+) -> None:
+    """One artifact per cell, and the key space is the claim about what is in it.
+
+    A plate cell used to leave four files and a chimeric one five, beside a junction table nobody can
+    analyze at one cell's depth. This is what absorbs them, and every original becomes reclaimable
+    only because this carries it — so what a key is called is the artifact's format, and a key that
+    stops being written costs the page a column with nothing raising.
+
+    **The junctions arrive as a SUMMARY**, which is the one deliberate asymmetry between the two
+    shapes behind this suffix: a parsed table per sample is small change for ten droplet samples and
+    roughly a gigabyte across a 784-cell plate, for a file nothing downstream reads. The counts still
+    answer what the table was there for — how much splicing the cell showed, and how much of it the
+    annotation already knew.
+
+    **`split` is ABSENT on a plain plate rather than empty.** There was no split; an absent key and a
+    zero are different claims, and only one of them is a measurement.
+    """
+    run_dir, extract, split = _finished_cell(
+        tmp_path / "results" / "cell_a", split=_CELL_SPLIT if chimeric else None
+    )
+
+    bundle = build_plate_qc_bundle(
+        run_dir, sample="cell_a", assembly="ce11_ecHT115", extract=extract, split=split
+    )
+
+    assert set(bundle) == {
+        "sample",
+        "assembly",
+        "extract",
+        "log_final",
+        "log_out",
+        "log_progress",
+        "splice_junction_summary",
+    } | ({"split"} if chimeric else set())
+    assert (bundle["sample"], bundle["assembly"]) == ("cell_a", "ce11_ecHT115")
+    # Each absorbed summary is folded in VERBATIM, so the code that wrote it stays the only code
+    # that knows what its keys mean — one owner per artifact, at one remove.
+    assert bundle["extract"] == json.loads(extract.read_text())
+    assert split is None or bundle["split"] == json.loads(split.read_text())
+    # The aligner's end-of-run log, parsed the one way both bundles carry it (the shared helper).
+    log_final = bundle["log_final"]
+    assert isinstance(log_final, dict) and log_final["Uniquely mapped reads %"] == "88.42%"
+    assert "STAR version" in str(bundle["log_out"])
+    # ...and the junctions as counts, never as rows.
+    assert bundle["splice_junction_summary"] == {
+        "junctions": 3,
+        "annotated": 2,
+        "canonical": 2,
+        "unique_reads": 20,
+        "multi_reads": 3,
+    }
+
+    # A file the pipeline was supposed to write and did not is a refusal here, exactly as it is for
+    # the droplet bundle: once the originals are reclaimed this is the only surviving record, so a
+    # bundle silently missing a chapter is worse than a job that failed.
+    (run_dir / STAR_JUNCTIONS).unlink()
+    with pytest.raises(QcError, match=re.escape(STAR_JUNCTIONS)):
+        build_plate_qc_bundle(
+            run_dir, sample="cell_a", assembly="ce11_ecHT115", extract=extract, split=split
+        )
+
+
+def test_the_plate_bundle_the_writer_produces_is_the_one_its_reader_looks_up(
+    tmp_path: Path,
+) -> None:
+    """`build_plate_qc_bundle` decides the keys and `plate_metrics` looks them up — through the writer.
+
+    The droplet pair's contract, one artifact shape over, and it holds for the same reason: writer and
+    reader are in one file precisely so they cannot drift, and a reader driven from a hand-written
+    dict would keep resolving against the test's own dict while the page silently lost a column.
+
+    The chimeric arm, because it is the wider key space and contains the plain one. Every column a
+    cell's row can carry is pinned here — what the extraction saw, what the aligner did, and what left
+    at the split — since those are exactly the lookups that stop resolving on a rename.
+    """
+    run_dir, extract, split = _finished_cell(tmp_path / "results" / "cell_a", split=_CELL_SPLIT)
+
+    out = write_plate_qc_bundle(
+        run_dir,
+        tmp_path / f"cell_a{QC_BUNDLE_SUFFIX}",
+        sample="cell_a",
+        assembly="ce11_ecHT115",
+        extract=extract,
+        split=split,
+    )
+    sample = read_plate_metrics(out, "cell_a")
+    got = _by_key(sample)
+
+    assert set(got) == (
+        {"extract_fragments", "umi_tagged", "umi_anchor_drift"}
+        | {
+            "input_reads",
+            "input_read_length",
+            "uniquely_mapped",
+            "multi_loci",
+            "too_many_loci",
+            "unmapped_too_short",
+        }
+        | {
+            f"split_{account}_{component}"
+            for account in ("kept", "share", "multiplaced", "singletons")
+            for component in ("tinyCe", "tinyEc")
+        }
+        | {f"split_dropped_{reason}" for reason in DROP_REASONS}
+    )
+    assert got["extract_fragments"].value == 100
+    assert got["umi_tagged"].value == pytest.approx(0.27)
+    assert got["uniquely_mapped"].value == pytest.approx(0.8842)  # "88.42%" from the text log
+    assert got["split_kept_tinyEc"].value == 9
+    assert got["split_dropped_unmapped"].value == 7
+    # Columns read in pipeline order, which is the order a reader walks a cell in: what the FASTQs
+    # held, what the aligner then did with it, and what left at the split that follows.
+    keys = [m.key for m in sample.metrics]
+    assert (
+        keys.index("umi_tagged")
+        < keys.index("uniquely_mapped")
+        < keys.index("split_dropped_unmapped")
+    )
+
+
 # ================================================================================================
 # cram — BAM -> CRAM finalize
 # ================================================================================================
@@ -731,10 +965,13 @@ def test_cram_passes_the_reference_and_never_embeds_it(
     assert "embed_ref" not in flat
     # STAR sorted it; nothing here re-sorts, and no `-T`-less spill file can be left behind.
     assert not any(c[:2] == ["samtools", "sort"] for c in rec.calls)
-    # Primary alignments only, header kept (the encoder needs the @SQ lines), multi-threaded.
+    # Primary alignments only, header kept (the encoder needs the @SQ lines), multi-threaded. The
+    # default selection is the one the shipped rules invoke, so its argv is what "nothing on disk
+    # changes" means: today's flag, and no tag expression beside it.
     primary = next(c for c in rec.calls if "-F" in c)
     assert primary[:2] == ["samtools", "view"] and "-h" in primary
     assert primary[primary.index("-F") + 1] == "0x100"
+    assert "-e" not in primary
     assert primary[primary.index("--threads") + 1] == "8"
     # The read names are rewritten in the stream: `awk`, tab-delimited in AND out, headers passed
     # through untouched, and the new QNAME is a counter.
@@ -762,6 +999,12 @@ def test_the_read_name_rewrite_carries_every_header_line_into_the_retained_cram(
     comes out: `@RG` verbatim, tabs and all, and the alignment beneath it renamed. That is also why
     the converter needs no edit for the read group and must not get one — a stage that special-cased
     `@RG` would be a second owner of a fact the aligner already states.
+
+    The same stage is where a selection's caveat becomes a `@CO` line, so the second run is the
+    other half of the same claim: a caveat lands at the END of the header — after every line the
+    aligner wrote, so `@HD` stays first and no `@SQ` moves, and before the first alignment, so it is
+    header and not a malformed record — while no caveat leaves the stream exactly as it was, which
+    is what keeps the default archive's bytes the bytes it always had.
     """
     sam = tmp_path / "one.sam"
     sam.write_text(
@@ -780,15 +1023,116 @@ def test_the_read_name_rewrite_carries_every_header_line_into_the_retained_cram(
     assert out[:2] == ["@HD\tVN:1.6\tSO:coordinate", "@SQ\tSN:chrI\tLN:1000"]
     # ...and the rename it exists for still happens, on the alignment and on nothing above it.
     assert out[3].split("\t")[0] == "r1" and out[3].endswith("RG:Z:cell_a")
+    assert not any(line.startswith("@CO") for line in out), out
+
+    stamped = subprocess.run(
+        ["awk", "-v", "caveat=one of many loci", _RENAME_QNAME, str(sam)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    assert stamped[:3] == out[:3], stamped  # nothing the aligner wrote moves or is displaced
+    assert stamped[3] == "@CO\tone of many loci", stamped
+    assert stamped[4].split("\t")[0] == "r1", stamped
+
+
+@pytest.mark.external
+@pytest.mark.parametrize(
+    ("selection", "kept"),
+    [
+        (RecordSelection.primary, 3),
+        (RecordSelection.mapped, 2),
+        (RecordSelection.unique, 1),
+        (RecordSelection.multi, 1),
+    ],
+    ids=["primary", "mapped", "unique", "multi"],
+)
+def test_each_record_selection_keeps_exactly_the_records_it_names(
+    selection: RecordSelection, kept: int, tmp_path: Path
+) -> None:
+    """Four records — one of each kind the aligner writes — cut four ways by a REAL samtools.
+
+    A selection is a flag filter and a tag expression together, and this is the fixture that shows
+    why neither half can be dropped: the record that never aligned carries `NH:i:1` exactly like the
+    uniquely placed one, so `[NH]==1` alone keeps it and only the flag half can say a record aligned
+    at all. Asserting the argv instead would pass just as happily on a table that said `-F 0x4` or
+    `[NH]<2`, so the claim here is the count that comes back OUT of the archive, read with the
+    binary the rules actually run.
+
+    The counts are the partition claim at the scale it can be checked: `unique` plus `multi` is
+    exactly `mapped`, with nothing in both — so the two archives the plate modules write together
+    hold what one mixed archive holds and duplicate no bytes. And `primary`, the default, still
+    keeps the record that never aligned, which is the behaviour nothing on disk may lose here.
+
+    The caveat is checked on the same artifact, because that is the point of it: a record in the
+    multiply-placed archive means one of the fragment's possible loci is here and never that the
+    fragment belongs here, and a reader who copied the file somewhere else has only the file. So it
+    is read back OUT of the CRAM header rather than off the argv, and every other selection's
+    archive has to be free of it — a caveat on the uniquely-placed half would be saying something
+    untrue about it.
+    """
+    samtools = shutil.which("samtools")
+    if samtools is None or shutil.which("awk") is None:
+        pytest.skip("needs samtools and awk on PATH")
+
+    fasta = tmp_path / "ref.fa"
+    fasta.write_text(">chrI\n" + "ACGT" * 50 + "\n")
+    subprocess.run([samtools, "faidx", str(fasta)], check=True, capture_output=True)
+    sam = tmp_path / "four.sam"
+    sam.write_text(
+        "@HD\tVN:1.6\tSO:coordinate\n"
+        "@SQ\tSN:chrI\tLN:200\n"
+        # Uniquely placed, multiply placed, that one's secondary, never aligned — all carrying NH.
+        "u1\t0\tchrI\t1\t255\t4M\t*\t0\t0\tACGT\tIIII\tNH:i:1\n"
+        "m1\t0\tchrI\t11\t3\t4M\t*\t0\t0\tACGT\tIIII\tNH:i:2\n"
+        "m1\t256\tchrI\t21\t3\t4M\t*\t0\t0\tACGT\tIIII\tNH:i:2\n"
+        "n1\t4\t*\t0\t0\t*\t*\t0\t0\tACGT\tIIII\tNH:i:1\n"
+    )
+    bam = tmp_path / STAR_BAM
+    subprocess.run(
+        [samtools, "view", "-b", "-o", str(bam), str(sam)], check=True, capture_output=True
+    )
+
+    out = tmp_path / "S1" / "S1.cram"
+    bam_to_cram(bam, fasta, out, selection=selection)
+
+    counted = subprocess.run(
+        [samtools, "view", "-c", "-T", str(fasta), str(out)],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert int(counted) == kept
+
+    header = subprocess.run(
+        [samtools, "view", "-H", "-T", str(fasta), str(out)],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    caveat = _SELECT_CAVEAT.get(selection)
+    if caveat is None:
+        assert "@CO" not in header, header
+    else:
+        assert f"@CO\t{caveat}" in header, header
 
 
 @pytest.mark.parametrize(
-    ("fails", "named"),
-    [("-F", "primary alignments"), ("awk", "read-name rewrite"), ("-C", "CRAM encode")],
-    ids=["primary-filter", "read-name-rewrite", "cram-encoder"],
+    ("fails", "named", "selection"),
+    [
+        ("-F", "primary records", RecordSelection.primary),
+        ("awk", "read-name rewrite", RecordSelection.primary),
+        ("-C", "CRAM encode", RecordSelection.primary),
+        ("[NH]>1", "multi records", RecordSelection.multi),
+    ],
+    ids=["primary-filter", "read-name-rewrite", "cram-encoder", "tag-expression"],
 )
 def test_a_failure_in_any_stage_of_the_pipe_is_a_cram_error_that_names_it(
-    fails: str, named: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    fails: str,
+    named: str,
+    selection: RecordSelection,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A pipe reports the exit status of its LAST stage, so two of these three would pass silently.
 
@@ -796,6 +1140,13 @@ def test_a_failure_in_any_stage_of_the_pipe_is_a_cram_error_that_names_it(
     rewrite that died mid-file becomes a CRAM missing most of its reads — the silent-plausible-wrong
     class again, and expensive here because the BAM it came from is a `temp()` output that snakemake
     deletes the moment this rule succeeds. So each stage is waited on and named.
+
+    The last row is the selecting stage again with a selection that carries a tag expression, and it
+    is here because a malformed expression is the one new way that stage can die: samtools exits
+    non-zero on one rather than matching nothing, so the archive a wrong expression produces is a
+    named refusal and never a short file. The token it fails on is the expression itself, which no
+    other selection's argv contains — so the row also proves the expression reached samtools at all,
+    and that the error says WHICH selection was being cut.
     """
     _stub_samtools(monkeypatch, fails=fails)
     bam = tmp_path / STAR_BAM
@@ -806,7 +1157,7 @@ def test_a_failure_in_any_stage_of_the_pipe_is_a_cram_error_that_names_it(
 
     out = tmp_path / "S1" / "S1.cram"
     with pytest.raises(CramError, match=named):
-        bam_to_cram(bam, fasta, out, threads=2)
+        bam_to_cram(bam, fasta, out, threads=2, selection=selection)
 
 
 def test_a_missing_bam_refuses_before_touching_samtools(tmp_path: Path) -> None:
@@ -1109,7 +1460,7 @@ def test_every_registered_module_wires_into_a_runnable_dag(
 def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
-    """Two invariants every STAR workflow owes, read off ONE rendered plan.
+    """Three invariants every STAR workflow owes, read off ONE rendered plan.
 
     STAR's index is per-process and resident for the life of the job, so N mapping jobs running at
     once on one machine cost N copies of it. A composed pipeline runs on ONE machine (ADR-0051),
@@ -1124,7 +1475,12 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     anywhere else — a `shell:` literal is source, and a source claim about a command is not a claim
     about a command.
 
-    Six claims, and a dry run is the only thing that can make any of them:
+    The scratch is the third, and it rides here for the same reason: what the load rule hands STAR
+    as an output prefix is a fact about a command, and the run-files STAR leaves under that prefix
+    are the difference between a finished pipeline directory a reader can sort into output and
+    scratch and one where they cannot.
+
+    Seven claims, and a dry run is the only thing that can make any of them:
 
     1. **The load is a job.** A rule unreachable from `rule all` plans nothing, and this one is
        reachable only through the mapping rule's inputs — there is no target naming it.
@@ -1159,6 +1515,13 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
        rendering one cell's id onto every cell's records would satisfy any test that only asked
        whether the flag was there.
 
+    7. **Both load invocations write their run-files outside the deliverable**, under a directory the
+       block creates and destroys. STAR writes a log, a progress log and a `_STARtmp/` under every
+       prefix it is given and cleans up none of it, so the prefix these two used to carry left nine
+       undeclared entries beside the index and the flag. The prefix is an argument on a rendered
+       command line, which is the only place this is checkable at all, and reading it here is what
+       makes the claim cover a fourth workflow the day it ships.
+
     Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
     copied into each workflow file rather than factored out, so a fourth STAR workflow must be
     covered the day it ships rather than the day someone remembers to add it. `map/chromap` is absent
@@ -1187,6 +1550,23 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     load = rendered["load_genome"][""]
     assert load.index("--genomeLoad Remove") < load.index("--genomeLoad LoadAndExit"), load
     assert "|| true" in load, "removing a segment that is not there is a STAR error and a no-op"
+
+    # ...and NEITHER invocation writes its run-files into the pipeline directory. STAR drops a log, a
+    # progress log and a `_STARtmp/` under every prefix it is handed and removes none of them, so a
+    # prefix under `results/` left nine undeclared entries beside this rule's two real outputs. Both
+    # prefixes must therefore name a directory the block itself creates and destroys: a prefix
+    # pointed somewhere safer, or a glob sweep afterwards, is a mechanism that has to stay configured
+    # correctly, and this one cannot leak whatever a future STAR decides to write.
+    scratch = re.search(r"(\w+)=\$\(mktemp -d\)", load)
+    assert scratch, f"{module}'s genome load writes under a prefix it did not create:\n{load}"
+    made = f'"${scratch.group(1)}"'
+    prefixes = re.findall(r"--outFileNamePrefix (\S+)", load)
+    assert len(prefixes) == 2 and all(p.startswith(made) for p in prefixes), (
+        f"{module}'s genome load leaves STAR run-files inside the deliverable: {prefixes}"
+    )
+    assert f"rm -rf {made}" in load, (
+        f"{module}'s genome load makes an aligner scratch directory that outlives the rule:\n{load}"
+    )
 
     # WHICH rule maps is read off the rendered commands too, so this never has to name a rule per
     # module: the mapping rule is the one whose command runs STAR's aligner.
@@ -1345,21 +1725,45 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
 
     plan = dry_run(tmp_path)
 
-    for rule in ("load_genome", "umi_extract", "star_umi_map", "umi_to_cram", "umi_count"):
+    for rule in (
+        "load_genome",
+        "umi_extract",
+        "star_umi_map",
+        "unique_to_cram",
+        "multiplaced_to_cram",
+        "qc_bundle",
+        "umi_count",
+    ):
         assert rule in plan, f"the plan never reaches `{rule}`:\n{plan}"
     # The fan-in is ONE job over three cells, while the per-cell chain is one job each. That ratio is
     # the module's whole shape, and a per-cell counter followed by a merge would read as three here.
     assert re.search(r"^umi_extract\s+3\s*$", plan, re.M), plan
     assert re.search(r"^star_umi_map\s+3\s*$", plan, re.M), plan
+    assert re.search(r"^qc_bundle\s+3\s*$", plan, re.M), plan  # ONE QC artifact per CELL
     assert re.search(r"^umi_count\s+1\s*$", plan, re.M), plan
     assert re.search(r"^load_genome\s+1\s*$", plan, re.M), plan
-    # The deliverables `rule all` demands, by name: one object for the plate, one CRAM per cell.
+    # The deliverables `rule all` demands, by name: one object for the plate, BOTH halves of every
+    # cell's archive, and every cell's QC bundle. None of them is anyone's input, so one demanded by
+    # nothing would simply stop being produced — and one mixed archive per cell is what the two
+    # halves replace, which is why the name this asserted before must no longer be planned at all.
     assert f"results/{PLATE_H5AD}" in plan
-    assert all(f"results/{s}/{s}.cram" in plan for s in ("cell_a", "cell_b", "cell_c"))
+    cells = ("cell_a", "cell_b", "cell_c")
+    assert all(f"results/{s}/{s}.unique.cram" in plan for s in cells), plan
+    assert all(f"results/{s}/{s}.multiplaced.cram" in plan for s in cells), plan
+    assert all(f"results/{s}/{s}{QC_BUNDLE_SUFFIX}" in plan for s in cells), plan
+    assert not re.search(r"results/cell_a/cell_a\.cram\b", plan), plan
     # The shared-memory contract, rendered rather than merely written: the load rule marks any stale
     # segment for destruction before loading, and every mapping job attaches instead of loading.
     assert "--genomeLoad Remove" in plan and "--genomeLoad LoadAndExit" in plan
     assert "--genomeLoad LoadAndKeep" in plan
+    # The fragments that never aligned are IN the aligner's output. Without this the counter's first
+    # fate is not a small number, it is an unreachable branch: the counter measures what the BAM
+    # holds, so every plate object carried an unmapped column that was structurally zero. `Within`
+    # and never `Within KeepPairs` — the second token only orders an unmapped record beside its mate
+    # in UNSORTED output, and this module writes sorted output, so it would claim an intent the
+    # module does not have.
+    assert "--outSAMunmapped Within" in plan
+    assert "KeepPairs" not in plan, plan
     # ...and the geometry the extractor is handed is the ONE derived value, not six numbers.
     assert f"--geometry {_PLATE_GEOMETRY}" in plan
     # The paired half of what this layout decides, and its mirror is the test below. The extraction
@@ -1373,38 +1777,84 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     # none of them, so the one job that runs after every cell has finished counted a whole plate on
     # one core of an allocation it was holding whole. Read off the rendered command, because a rule
     # whose `threads:` and whose command line disagree is exactly what that looked like.
-    assert "--threads 4" in _rendered_shell(plan)["umi_count"][""]
+    rendered = _rendered_shell(plan)
+    assert "--threads 4" in rendered["umi_count"][""]
+    # ...and the archive is PARTITIONED BY MAPPABILITY: two files per cell, each cut from the one BAM
+    # STAR wrote by a NAMED selection rather than a filter respelled here, so a misspelling is refused
+    # at the verb's gate. Neither selection keeps a record that never aligned, so the pair does not
+    # grow to carry what the flag above added, and together they are every primary mapped record —
+    # nothing lost against the one mixed archive they replace, and no record in both.
+    unique, multi = rendered["unique_to_cram"]["cell_a"], rendered["multiplaced_to_cram"]["cell_a"]
+    assert "--selection unique" in unique and f"--bam results/cell_a/{STAR_BAM}" in unique, unique
+    assert "--selection multi" in multi and f"--bam results/cell_a/{STAR_BAM}" in multi, multi
+    assert "--out results/cell_a/cell_a.unique.cram" in unique, unique
+    assert "--out results/cell_a/cell_a.multiplaced.cram" in multi, multi
+    # ...and ONE QC artifact per cell, built by the verb the droplet module already calls — the same
+    # suffix and the same command surface, with the plate shape selected by the absence of the
+    # droplet arguments rather than by a second verb. `--split` is a chimeric cell's and is absent
+    # here, which is what makes "their absence means a plate bundle" a claim about THIS plan.
+    bundle = rendered["qc_bundle"]["cell_a"]
+    assert "--run-dir results/cell_a --sample cell_a" in bundle, bundle
+    assert f"--extract results/cell_a/cell_a{EXTRACT_SUFFIX}" in bundle, bundle
+    assert f"--out results/cell_a/cell_a{QC_BUNDLE_SUFFIX}" in bundle, bundle
+    assert "--solo-dir" not in bundle and "--features" not in bundle, bundle
+    assert "--split" not in bundle, bundle
+    # EVERY ORIGINAL IT ABSORBS IS RECLAIMED, which is what having a consumer makes legal: the
+    # extraction summary and all four of the aligner's run files are `temp()` and gone by the end,
+    # so a finished cell's directory holds the archives and one QC artifact rather than five more
+    # files with nothing saying which of them a reader was meant to keep. Read off the plan, because
+    # `temp()` around a name is an expression whose EFFECT depends on what still needs the file.
+    removed = {
+        line.split()[-1]
+        for line in plan.splitlines()
+        if line.startswith("Would remove temporary output")
+    }
+    absorbed = {
+        f"results/{s}/{f}" for s in cells for f in (f"{s}{EXTRACT_SUFFIX}", *STAR_LOG_FILES)
+    }
+    assert absorbed <= removed, sorted(absorbed - removed)
+    assert not any(QC_BUNDLE_SUFFIX in path for path in removed), sorted(removed)
 
 
-def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_component(
+def test_the_chimeric_twin_partitions_its_archives_beside_the_split_and_counts_per_component(
     tmp_path: Path, dry_run: DryRun
 ) -> None:
     """The twin's rule graph, off a rendered plan — the one thing no other test here can say.
 
     The wiring gate proves the twin PLANS; it renders every `shell:` and runs none, so a counting
-    command naming the wrong flag, a CRAM made from the wrong BAM or a matrix demanded as a folder
-    all pass it. Those are the four decisions this module exists to carry, so they are read off the
-    plan itself, from a hand-written config — which keeps the claim about the MODULE rather than
-    about the composer agreeing with itself, exactly as the base module's plan test argues.
+    command naming the wrong flag, an archive made from the wrong BAM or against the wrong reference,
+    and a matrix demanded as a folder all pass it. Those are the decisions this module exists to
+    carry, so they are read off the plan itself, from a hand-written config — which keeps the claim
+    about the MODULE rather than about the composer agreeing with itself, exactly as the base
+    module's plan test argues.
 
-    1. **The split sits BESIDE the CRAM.** `umi_to_cram` reads the pre-split chimeric BAM, so the
-       archive keeps every multimapper and is strictly MORE complete than a single-assembly run's.
-       Upstream of it the archive would inherit the split's filter, which is the price this ordering
-       dissolves rather than pays.
-    2. **`rule all` demands each Component's matrix BY NAME.** A rule whose output is a folder is
-       satisfied by a folder, which is how a counting job that wrote two Components of three exits 0
-       with an organism silently missing.
-    3. **The counting verb is handed a Component and the CHIMERA.** Exactly one of `--component` and
+    1. **The archive is partitioned by mappability, and the two halves are not the same shape.** The
+       uniquely-placed half is per Component, cut from that Component's split BAM and encoded against
+       that COMPONENT's reference, which is the only way the file speaks one assembly's chromosome
+       names. The multiply-placed half is one file per cell in Chimera coordinates, cut from the
+       PRE-split BAM: a multiply-placed fragment has no Component, so filing it under one would state
+       an assignment the data cannot support. Together they are exactly every primary mapped record,
+       which is why the whole-Chimera archive they replace is planned nowhere.
+    2. **The split still sits BESIDE the multiply-placed archive**, both reading the BAM STAR wrote,
+       so neither inherits the other's filter and the chimeric BAM is freed once both are done.
+    3. **`rule all` demands each Component's matrix and each archive BY NAME.** A rule whose output is
+       a folder is satisfied by a folder, which is how a counting job that wrote two Components of
+       three exits 0 with an organism silently missing; the archives are nobody's input, so a half
+       demanded by nothing would simply stop being produced.
+    4. **The counting verb is handed a Component and the CHIMERA.** Exactly one of `--component` and
        `--annotation` is legal, so rendering both is exit 2 rather than a precedence rule anyone has
        to remember — and the record saying what each Component contributed lives on the Chimera, so
        passing the Component as the assembly would resolve the wrong reference.
-    4. **N-agnostic**: one job per cell for the split, one per Component for the count, over one
-       config list. The counts below are the whole shape, and a Component loop written into the
-       module would read as the same number here only by coincidence.
+    5. **N-agnostic**: one job per cell for the split, one per cell PER COMPONENT for the unique
+       archive, one per Component for the count, over one config list. The counts below are the whole
+       shape, and a Component loop written into the module would read as the same number here only by
+       coincidence.
 
-    Plus the reclaim rule: the per-Component BAMs are `temp()` and the split summary is not, because
-    what the split MEASURED has to outlive the records it measured — it is where `unmapped` and
-    `multimapping` live once they have left the pipeline.
+    Plus the reclaim rule, which now reaches everything: the per-Component BAMs are `temp()` over two
+    readers, which keeps the split's spelling without keeping the split's bytes, and the split summary
+    is `temp()` too — what it MEASURED still outlives the records it measured, inside the cell's one
+    QC artifact rather than beside it. So a finished cell leaves its archives and that artifact, and
+    nothing else a rule wrote on the way.
     """
     components = ("tinyCe", "tinyEc")
     cells = ("cell_a", "cell_b", "cell_c")
@@ -1424,16 +1874,57 @@ def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_comp
     rendered = _rendered_shell(plan)
 
     assert re.search(r"^split_chimera\s+3\s*$", plan, re.M), plan
-    assert re.search(r"^umi_to_cram\s+3\s*$", plan, re.M), plan
+    # One multiply-placed archive per cell, not one per Component; the unique half is per both.
+    assert re.search(r"^multiplaced_to_cram\s+3\s*$", plan, re.M), plan
+    assert re.search(r"^unique_to_cram\s+6\s*$", plan, re.M), plan  # three cells x two Components
+    assert re.search(r"^qc_bundle\s+3\s*$", plan, re.M), (
+        plan
+    )  # ONE QC artifact per CELL, not per pair
     assert re.search(r"^umi_count\s+2\s*$", plan, re.M), plan  # one per Component, not one per cell
-    # Each Component's object, by name.
+    # Each Component's object, each archive and each cell's QC bundle, by name — and the one mixed
+    # archive these replace is planned nowhere, because the two halves together already hold every
+    # record it held.
     for component in components:
         assert f"results/combined.{component}.h5ad" in plan
-    assert all(f"results/{s}/{s}.cram" in plan for s in cells)
+        assert all(f"results/{s}/{s}.{component}.unique.cram" in plan for s in cells), plan
+    assert all(f"results/{s}/{s}.multiplaced.cram" in plan for s in cells), plan
+    assert all(f"results/{s}/{s}{QC_BUNDLE_SUFFIX}" in plan for s in cells), plan
+    assert not re.search(r"results/cell_a/cell_a\.cram\b", plan), plan
 
-    # The CRAM is made from the PRE-split BAM: the file STAR wrote, not a per-Component one.
-    cram = rendered["umi_to_cram"]["cell_a"]
+    # WHICH BAM each half is cut from, read off the dependency edges rather than off a command: the
+    # multiply-placed archive from the file STAR wrote, so it and the split see the same records; the
+    # uniquely-placed ones from the per-Component BAMs, which is the only file that carries a single
+    # assembly's names. This is the ordering decision, and a command string cannot state it.
+    inputs = planned_paths(plan, "input")
+    assert inputs["multiplaced_to_cram"] == {f"results/{s}/{STAR_BAM}" for s in cells}, inputs
+    assert inputs["unique_to_cram"] == {
+        f"results/{s}/{s}.{c}.bam" for s in cells for c in components
+    }, inputs
+
+    # The multiply-placed half's command is the base module's, verbatim, because a multiply-placed
+    # fragment is the same thing on both arms.
+    cram = rendered["multiplaced_to_cram"]["cell_a"]
     assert f"--bam results/cell_a/{STAR_BAM}" in cram, cram
+    assert f"--assembly {'_'.join(components)}" in cram, cram
+    assert "--selection multi" in cram, cram
+    # The twin asks for the unmapped records too, and drops them at the archive exactly as the base
+    # does — the same pair of flags, because the two modules' commands are the half that may not
+    # diverge. `Within` and never `Within KeepPairs`: mate adjacency is an UNSORTED-output ordering
+    # and this module writes sorted output.
+    assert "--outSAMunmapped Within" in plan
+    assert "KeepPairs" not in plan, plan
+
+    # The uniquely-placed half is per Component all the way down: this Component's BAM, this
+    # Component's assembly — never the Chimera's, which is the whole reason the file is readable
+    # against a bare Component — and the selection that leaves the ambiguous records to the file
+    # naming them. Read off the plan text rather than through the rendered-command index, because a
+    # job carrying two wildcards is keyed by neither.
+    for component in components:
+        assert f"--bam results/cell_a/cell_a.{component}.bam --assembly {component}" in plan, plan
+        assert (
+            f"--out results/cell_a/cell_a.{component}.unique.cram --threads 4 --selection unique"
+            in plan
+        ), plan
 
     # The split takes the same BAM, one `<component>=<path>` per Component, and the CHIMERA.
     split = rendered["split_chimera"]["cell_a"]
@@ -1461,9 +1952,33 @@ def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_comp
         # Every cell of the plate, for this Component and no other.
         assert all(f"{s}=results/{s}/{s}.{component}.bam" in command for s in cells), command
 
-    removed = [line for line in plan.splitlines() if line.startswith("Would remove temporary")]
-    assert any(f"cell_a.{components[0]}.bam" in line for line in removed), removed
-    assert not any(SPLIT_SUFFIX in line for line in removed), removed
+    # ONE QC artifact per cell here too, and its command is the base module's plus the one argument
+    # this arm has: what left for which Component. Same verb, same suffix, same file to open
+    # whichever arm a cell was processed on.
+    bundle = rendered["qc_bundle"]["cell_a"]
+    assert "--run-dir results/cell_a --sample cell_a" in bundle, bundle
+    assert f"--extract results/cell_a/cell_a{EXTRACT_SUFFIX}" in bundle, bundle
+    assert f"--split results/cell_a/cell_a{SPLIT_SUFFIX}" in bundle, bundle
+    assert f"--out results/cell_a/cell_a{QC_BUNDLE_SUFFIX}" in bundle, bundle
+    assert f"--assembly {'_'.join(components)}" in bundle, bundle
+
+    removed = {
+        line.split()[-1]
+        for line in plan.splitlines()
+        if line.startswith("Would remove temporary output")
+    }
+    assert any(f"cell_a.{components[0]}.bam" in path for path in removed), sorted(removed)
+    # EVERY ORIGINAL THE BUNDLE ABSORBS IS RECLAIMED, the split summary included — it used to be
+    # kept, because what it measured has to outlive the records it measured, and it now does that
+    # inside the bundle instead of beside it. So a finished cell's directory holds its archives and
+    # one QC artifact rather than five more files nothing points at.
+    absorbed = {
+        f"results/{s}/{f}"
+        for s in cells
+        for f in (f"{s}{EXTRACT_SUFFIX}", f"{s}{SPLIT_SUFFIX}", *STAR_LOG_FILES)
+    }
+    assert absorbed <= removed, sorted(absorbed - removed)
+    assert not any(QC_BUNDLE_SUFFIX in path for path in removed), sorted(removed)
 
 
 def test_the_three_prime_clip_takes_its_arity_from_the_same_fact_the_read_type_does(
@@ -1596,7 +2111,14 @@ def test_the_plate_module_plans_a_single_end_run_and_hands_the_extractor_no_mate
 
     plan = dry_run(tmp_path)
 
-    for rule in ("load_genome", "umi_extract", "star_umi_map", "umi_to_cram", "umi_count"):
+    for rule in (
+        "load_genome",
+        "umi_extract",
+        "star_umi_map",
+        "unique_to_cram",
+        "multiplaced_to_cram",
+        "umi_count",
+    ):
         assert rule in plan, f"the plan never reaches `{rule}`:\n{plan}"
     # The shape does not follow the layout: still one extraction a cell and still ONE fan-in.
     assert re.search(r"^umi_extract\s+2\s*$", plan, re.M), plan
@@ -1701,6 +2223,83 @@ def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_t
     assert written["tagged"] == sum(counts.values())  # every synthetic read here carries the tag
 
 
+def _bulk_run_dir(directory: Path, samples: Sequence[str]) -> None:
+    """Write a runnable BULK pipeline directory by hand — a paired-end library, one run per sample.
+
+    The bulk twin of :func:`_plate_run_dir`, and hand-written for the same reason: a ``.smk`` is
+    configuration in, rules out, so a config nobody composed is what makes the plan below a proof
+    about the MODULE rather than about the composer agreeing with itself. Completeness needs no
+    assertion of its own — a key the module reads and this does not carry is a `KeyError` while
+    snakemake reads the module, and :func:`~conftest.snakemake_dry_run` refuses a non-zero plan.
+
+    Paired-end and nothing else, because what a `star_count` job declares does not branch on the
+    mate count: the layout's two shapes are the subject of the compose tests that emit them.
+    """
+    module = get_module("map/star")
+    config: dict[str, object] = {
+        "bulk": {"quantMode": "GeneCounts"},
+        "container": "docker://example/align-rna",
+        "genome": {"assembly": "sacCer3", "annotation": "ensembl_R64-1-1"},
+        "mem_mb": 8 * 1024,
+        "outdir": "results",
+        "read_files_in": {"mate1": "R1", "mate2": "R2"},
+        "threads": 4,
+        "units_tsv": "units.tsv",
+    }
+    rows = ["\t".join(("sample_id", "run", "lane", "read_id", "path"))]
+    for sample in samples:
+        for read_id in ("R1", "R2"):
+            path = f"fastq/{sample}_{read_id}.fastq.gz"
+            (directory / "fastq").mkdir(parents=True, exist_ok=True)
+            (directory / path).write_bytes(b"")
+            rows.append("\t".join((sample, sample, "", read_id, path)))
+    (directory / "units.tsv").write_text("\n".join(rows) + "\n")
+    (directory / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=True))
+    shutil.copy2(module.snakefile, directory / module.snakefile.name)
+    (directory / "Snakefile").write_text(core.render_wrapper(module.name, module.snakefile.name))
+
+
+def test_the_bulk_module_keeps_the_junctions_it_can_use_and_sweeps_the_logs_nothing_reads(
+    tmp_path: Path, dry_run: DryRun
+) -> None:
+    """What a finished bulk run leaves in a sample's directory, off the plan that would leave it.
+
+    `star_count` declared the counts alone, so everything else STAR wrote sat there undeclared and a
+    reader had nothing telling them which files were the point. Two decisions close that, and both
+    are legible only in a plan: a DECLARED output appears under the job's `output:`, and `temp()` is
+    announced as a removal snakemake would perform. Source says neither — `temp()` around a name is
+    an expression, and what it *does* depends on whether anything downstream still needs the file.
+
+    **The junction table is kept and the two progress logs are not**, which is one judgement about
+    depth rather than a preference: a splice junction called from a bulk library's coverage is
+    analyzable, and the same file for one plate cell at ~1M reads is noise (which is why the twins
+    summarize it instead). Nothing reads `Log.out` or `Log.progress.out` after a run at any depth.
+
+    The removals are asserted as a SET, so the claim is two-sided in one assertion: a module that
+    swept the junction table, or the final log the report reads off disk with no rule in between,
+    goes red here just as loudly as one that stopped sweeping a progress log.
+    """
+    samples = ["S1", "S2"]
+    _bulk_run_dir(tmp_path, samples)
+
+    plan = dry_run(tmp_path)
+
+    declared = planned_paths(plan, "output")["star_count"]
+    assert {f"results/{s}/ReadsPerGene.out.tab" for s in samples} <= declared, declared
+    assert {f"results/{s}/{STAR_JUNCTIONS}" for s in samples} <= declared, (
+        f"the bulk module declares no junction table, so a file a user can analyze at this depth "
+        f"leaves the run undeclared and unnamed:\n{sorted(declared)}"
+    )
+    removed = {
+        line.split()[-1]
+        for line in plan.splitlines()
+        if line.startswith("Would remove temporary output")
+    }
+    assert removed == {f"results/{s}/{f}" for s in samples for f in STAR_PROGRESS_LOGS}, (
+        f"a finished bulk run sweeps exactly the two logs nothing reads; it swept {sorted(removed)}"
+    )
+
+
 @pytest.mark.parametrize("module_name", star_modules())
 def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one_place(
     module_name: str,
@@ -1713,6 +2312,12 @@ def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one
     rendering shows is the ORDER — marking a stale segment after the load is a load that inherits it
     — nor that the command lives in the helper alone, where a second copy is a second chance to fix
     one.
+
+    The release's own scratch is the third such half. A handler fires on no plan, so where the
+    release writes STAR's run-files is unreadable anywhere but here, and it is the invocation that
+    runs when the run is OVER: a prefix under the results tree drops a log and a `_STARtmp/` into a
+    directory whose owner has already started reading it. Asserted as "the prefix names a directory
+    this command makes and removes", which is what makes it a mechanism rather than a setting.
 
     The lifecycle is COPIED into each workflow file rather than factored out, because composition
     copies exactly one `.smk` into a run directory and an included fragment would be neither copied
@@ -1728,6 +2333,21 @@ def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one
     )
     after = source[source.index("\nonsuccess:") :]
     assert "--genomeLoad Remove" not in after, "the command belongs to the helper, not to a handler"
+
+    # The helper hands its command to `shell()` as a Python literal, so the source spells the shell's
+    # own double quotes escaped. Unescaped once here, because what is being read is the command.
+    helper = source[source.index("def release_genome_segment(") : source.index("\nonsuccess:")]
+    helper = helper.replace('\\"', '"')
+    scratch = re.search(r"(\w+)=\$\(mktemp -d\)", helper)
+    assert scratch, f"the release writes under a prefix it did not create:\n{helper}"
+    made = f'"${scratch.group(1)}"'
+    prefixes = re.findall(r"--outFileNamePrefix (\S+)", helper)
+    assert prefixes and all(p.startswith(made) for p in prefixes), (
+        f"{module_name}'s release leaves STAR run-files inside the deliverable: {prefixes}"
+    )
+    assert f"rm -rf {made}" in helper, (
+        f"{module_name}'s release makes an aligner scratch directory that outlives it:\n{helper}"
+    )
 
 
 def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:
@@ -3892,7 +4512,16 @@ class _Fragment:
     end: int
     umi: str = ""
     hits: int = 1
+    #: Only one mate of this fragment aligned. Two records: the survivor, flagged mate-unmapped, and
+    #: the dead mate written AT the survivor's coordinates with no placement of its own — the shape
+    #: an aligner asked to emit what it could not place writes, and the one that makes a dead mate
+    #: attributable to a Component at all.
     mate_unmapped: bool = False
+    #: Which mate of a half-mapped pair is the one that aligned. Meaningless without
+    #: `mate_unmapped`, and it exists because a plate whose survivors are all FIRST mates cannot
+    #: tell a check that subtracts each side's own singletons from one that subtracts one side's
+    #: from both.
+    survivor: int = 1
     #: Neither mate aligned anywhere. One record, no reference, `uT` saying why — the shape STAR
     #: writes for a pair it could not place, and the one a chimera split has to DROP rather than
     #: rewrite, because its RNEXT still names a suffixed chromosome the output header will not have.
@@ -3910,7 +4539,7 @@ class _Fragment:
 
 
 def _segments(header: Any, frag: _Fragment) -> list[Any]:
-    """One `_Fragment` -> its BAM records: two mates, or one when it or its mate never aligned."""
+    """One `_Fragment` -> its BAM records: two mates, or one when neither of them aligned."""
     import pysam
 
     span = frag.end - frag.start
@@ -3939,13 +4568,33 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
         rec.set_tags(tags)
         return rec
 
+    def stranded(flag: int) -> Any:
+        """The mate that did not align, at its PARTNER's coordinates and with no CIGAR of its own.
+
+        What an aligner asked to emit what it could not place writes for the dead half of a
+        half-mapped pair, and the shape is the whole point: the record is unmapped, so nothing may
+        read a placement off it, and it names its partner's chromosome, so something can read the
+        organism off it. `NH` is zero because nothing was placed.
+        """
+        rec = pysam.AlignedSegment(header)
+        rec.query_name = frag.name
+        rec.query_sequence = "A" * _READ_LEN
+        rec.query_qualities = pysam.qualitystring_to_array("I" * _READ_LEN)
+        rec.flag = flag
+        tid = header.get_tid(frag.contig)
+        rec.reference_id = rec.next_reference_id = tid
+        rec.reference_start = rec.next_reference_start = frag.start
+        rec.set_tags([("NH", 0, "i"), ("uT", "4", "A")])
+        return rec
+
     if frag.unmapped:
         # PAIRED | UNMAPPED | MATE_UNMAPPED | READ1, and no coordinates at all.
         return [build(frag.start, 1 | 4 | 8 | 64, frag.start, 0)]
     if frag.mate_unmapped:
-        # PAIRED | MATE_UNMAPPED | READ1, and no second record: STAR writes none unless asked to,
-        # so the flag on this one is the only evidence that the fragment did not align.
-        return [build(frag.start, 1 | 8 | 64, frag.start, 0)]
+        # PAIRED | MATE_UNMAPPED for the mate that landed, PAIRED | UNMAPPED for the one that did
+        # not, and the READ1/READ2 bits go whichever way round this fragment says.
+        live, dead = (64, 128) if frag.survivor == 1 else (128, 64)
+        return [build(frag.start, 1 | 8 | live, frag.start, 0), stranded(1 | 4 | dead)]
     return [
         build(frag.start, 1 | 2 | 32 | 64 | frag.extra_flags, mate_start, span),
         build(mate_start, 1 | 2 | 16 | 128 | frag.extra_flags, frag.start, -span),
@@ -3998,7 +4647,20 @@ _PLATE: tuple[_Fragment, ...] = (
     _Fragment("a_intron_read", "chr1", 300, 360),
     _Fragment("b_exon", "chr1", 2120, 2180, umi="CCCCCCCC"),
     # NH says two loci. One record, primary, over an exon — which the reference counts into GENE_A.
+    # It reaches no counted matrix, and it IS placed: GENE_A's body is one of the loci it could have
+    # come from, so the placement layer credits it there.
     _Fragment("multimapper", "chr1", 120, 180, umi="TTTTTTTT", hits=2),
+    # The same UMI at three loci, this time BETWEEN GENE_A's exons — which is why the placement
+    # layer is over gene bodies: an intronic multimapper is still in the gene. One molecule with the
+    # one above, so the layer credits GENE_A once and not twice.
+    _Fragment("multimapper_intron", "chr1", 300, 360, umi="TTTTTTTT", hits=3),
+    # Four loci, and its representative span covers the bodies of GENE_C and GENE_D at once: the
+    # ambiguity rule the counted matrices already use, so it is placed in neither.
+    _Fragment("multimapper_two_genes", "chr1", 4520, 4560, umi="CCCCCCCC", hits=4),
+    # Multiply placed and untagged, so it is in the fate and in the locus distribution and in no
+    # matrix at all — the placement layer is deduplicated molecules, which an untagged read has none
+    # of, and mixing raw reads into it would make the ratio against `umi_combined` meaningless.
+    _Fragment("multimapper_read", "chr1", 2120, 2180, hits=2),
     # Aligned to a scaffold no GTF line mentions, and to a gap between genes: both `_no_feature`.
     _Fragment("scaffold", "chrUn_synthetic", 50, 110),
     _Fragment("intergenic", "chr1", 8000, 8060),
@@ -4006,6 +4668,11 @@ _PLATE: tuple[_Fragment, ...] = (
     _Fragment("ambiguous_exon", "chr1", 4660, 4690),
     _Fragment("ambiguous_intron", "chr1", 4520, 4560),
     _Fragment("mate_never_aligned", "chr1", 120, 180, umi="AAAAAAAA", mate_unmapped=True),
+    # ...and neither mate anywhere: one record, no coordinates. This is the OTHER half of the
+    # unmapped test — the half nothing could reach until the aligner was asked to emit the records
+    # it could not place within its output, which is why that fate was a structural zero on every
+    # plate object written before then rather than a small number.
+    _Fragment("never_aligned", "", 0, 0, unmapped=True),
 )
 
 
@@ -4024,6 +4691,18 @@ def _row(adata: ad.AnnData, sample: str, gene: str, layer: str | None = None) ->
     )
 
 
+def _matrix_bytes(adata: ad.AnnData, layer: str | None = None) -> tuple[bytes, bytes, bytes]:
+    """One count matrix as the three buffers a CSR *is*: values, columns, and row starts.
+
+    Comparing these rather than two whole `.h5ad` files is what lets "this matrix did not move" be
+    asserted between two objects that differ elsewhere on purpose — the fates and the new layer.
+    All three buffers, because equal values in different places is exactly the failure a values-only
+    comparison would call identical.
+    """
+    matrix = _counts(adata, layer)
+    return matrix.data.tobytes(), matrix.indices.tobytes(), matrix.indptr.tobytes()
+
+
 def _frame(table: object) -> Any:
     """`adata.obs`/`adata.var` are declared as a union with a lazy on-disk table.
 
@@ -4031,6 +4710,12 @@ def _frame(table: object) -> Any:
     than with a cast at every call site — the same move `_counts` makes for a matrix.
     """
     return table
+
+
+def _hits(adata: ad.AnnData) -> Any:
+    """The per-cell locus-count array off `obsm`, narrowed the way `_frame` narrows a table."""
+    obsm: Any = adata.obsm
+    return obsm[MULTIMAPPING_HITS]
 
 
 def test_the_annotation_is_read_from_the_built_database_with_no_gtf_parse(tmp_path: Path) -> None:
@@ -4118,8 +4803,15 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
 ) -> None:
     """The whole counting rule at once, against a plate whose every fate is known by construction.
 
-    Thirteen fragments, four counted matrices and four fates; every number below is read off the
+    Seventeen fragments, five counted matrices and four fates; every number below is read off the
     fixture's own comments rather than recomputed here.
+
+    Both ways a fragment can fail to align are in the plate, and the second of them is why the count
+    is two: a record whose own placement is missing, and one standing for a pair whose mate's is.
+    The first cannot occur in an aligner's output unless the aligner was asked for it, so the branch
+    that reads it sat unreachable, and a plate object's unmapped column was a zero that meant
+    nothing. Counting them apart is not the point — a fragment either aligned or it did not — so
+    they share the fate rather than splitting it.
     """
     db, cells = _plate(tmp_path)
     adata = count_plate(cells, read_annotation(db))
@@ -4129,8 +4821,8 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
 
     assert int(row[N_FRAGMENTS]) == len(_PLATE)
     assert {fate: int(row[fate]) for fate in FATES} == {
-        "unmapped": 1,  # mate_never_aligned
-        "multimapping": 1,  # NH == 2
+        "unmapped": 2,  # mate_never_aligned, and never_aligned
+        "multimapping": 4,  # every fragment whose NH is above one, placed or not
         "no_feature": 2,  # the scaffold, and the intergenic fragment
         "ambiguous": 2,  # two exonic genes, then two gene bodies and no exon
     }
@@ -4141,12 +4833,25 @@ def test_every_fragment_of_the_synthetic_plate_lands_where_it_was_built_to_land(
     # ...and an untagged fragment never reaches a UMI matrix, nor a tagged one a read matrix.
     assert _row(adata, "cell_a", "GENE_A", "read_exon") == 1
     assert _row(adata, "cell_a", "GENE_A", "read_intron") == 1
-    # The multimapper's gene, and both ambiguous ones, stay at zero in every matrix — all five of
-    # them, counted off `LAYERS` rather than written out, so a sixth matrix is not silently unasserted.
+    # Both ambiguous genes stay at zero in every matrix — all six of them, counted off `LAYERS`
+    # rather than written out, so a seventh matrix is not silently unasserted. That covers the
+    # multiply-placed fragment over both their bodies too: the placement layer reuses the counted
+    # matrices' ambiguity rule rather than inventing a looser one, so it credits neither.
     for gene in ("GENE_C", "GENE_D"):
         assert [_row(adata, "cell_a", gene, layer) for layer in (None, *LAYERS)] == [0] * (
             1 + len(LAYERS)
         )
+
+    # Where the ambiguity went. GENE_A's body is one of the loci two multiply-placed fragments could
+    # have come from — one over an exon and one between them — and they carry one UMI between them,
+    # so the layer credits it ONE molecule, deduplicated exactly as every other UMI matrix is.
+    assert _row(adata, "cell_a", "GENE_A", MULTIMAPPING_LAYER) == 1
+    # ...and the untagged one is in no matrix at all, GENE_B's included.
+    assert _row(adata, "cell_a", "GENE_B", MULTIMAPPING_LAYER) == 0
+    # How many loci each of them had, as the per-cell array whose column IS the locus count: two
+    # fragments at two loci, one at three, one at four. It sums back to the fate that counted them.
+    assert list(_hits(adata)[0]) == [0, 0, 2, 1, 1]
+    assert int(_hits(adata)[0].sum()) == int(row["multimapping"])
 
     # The second cell is a different row, not a copy of the first.
     assert _row(adata, "cell_b", "GENE_B") == 1
@@ -4443,7 +5148,7 @@ def test_umi_correction_by_neighbour_index_answers_what_the_full_scan_answers() 
     assert ragged > 50, "the generator stopped producing UMIs of unequal length"
 
 
-def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
+def test_the_object_is_x_plus_five_layers_indexed_on_sample_id_with_the_fates_as_obs_columns(
     tmp_path: Path,
 ) -> None:
     """The deliverable's shape, which is the half of this ticket no wrong number would show.
@@ -4453,10 +5158,16 @@ def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as
     columns in a matrix whose other 55 335 columns really are genes, which is what forced a
     correction in its output shape.
 
-    Five matrices and not six: the grid is (UMI | read) x (exon | intron | combined), and the sixth
-    cell is deliberately absent. An untagged read has nothing to deduplicate by and the reference
-    never tries, so a combined READ matrix is `read_exon + read_intron` exactly — a layer that earns
-    nothing, kept out on the same rule that lets the combined UMI matrix in.
+    Five matrices of expression and not six: that grid is (UMI | read) x (exon | intron | combined),
+    and its sixth cell is deliberately absent. An untagged read has nothing to deduplicate by and the
+    reference never tries, so a combined READ matrix is `read_exon + read_intron` exactly — a layer
+    that earns nothing, kept out on the same rule that lets the combined UMI matrix in.
+
+    The sixth layer is off that grid entirely: it holds where the fragments no matrix may credit were
+    PLACED, and its caveat is on the object rather than only in the module that wrote it, because a
+    reader who opens this file years from now has the object and not the source. Adding it to
+    expression is the one mistake it exists to make hard, so the sentence that forbids that has to
+    arrive with the bytes.
     """
     db, cells = _plate(tmp_path)
     out = write_umi_counts(cells, db, tmp_path / "plate" / "counts.h5ad")
@@ -4464,7 +5175,13 @@ def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as
 
     assert list(adata.obs_names) == ["cell_a", "cell_b"]  # the order the cells were handed over
     assert _layer_names(adata) == set(LAYERS)
-    assert set(LAYERS) == {"umi_intron", "umi_combined", "read_exon", "read_intron"}
+    assert set(LAYERS) == {
+        "umi_intron",
+        "umi_combined",
+        "read_exon",
+        "read_intron",
+        MULTIMAPPING_LAYER,
+    }
     # The derivable cell of the grid, asserted as absent BY NAME: a reader adding two read columns
     # gets the right answer, and a sixth matrix would only be a second place for it to be wrong.
     assert "read_combined" not in _layer_names(adata)
@@ -4474,10 +5191,97 @@ def test_the_object_is_x_plus_four_layers_indexed_on_sample_id_with_the_fates_as
         == 2
     )
     assert adata.uns["primary_matrix"] == PRIMARY_MATRIX
+    # The caveat is discoverable from the object ALONE, and it names the layer it is about — so a
+    # reader who found the layer first can find the sentence, and neither can be renamed alone.
+    assert adata.uns["multimapping_caveat"] == MULTIMAPPING_CAVEAT
+    assert MULTIMAPPING_LAYER in MULTIMAPPING_CAVEAT
     assert set(adata.var_names) == {"GENE_A", "GENE_B", "GENE_C", "GENE_D"}
-    assert set(adata.obs.columns) == {*FATES, N_FRAGMENTS}
+    assert set(adata.obs.columns) == {*FATES, N_FRAGMENTS, SATURATION}
+    # ...and the one per-cell figure that is a vector rather than a scalar, which is why it is the
+    # only thing here on `obsm`: one column per locus count, so `obs` could not have held it.
+    assert _hits(adata).shape == (2, 5)
     assert _frame(adata.var).loc["GENE_B", "gene_name"] == "beta"
     _counts(adata)  # sparse in the object and not only on disk: a plate is almost entirely zeros
+
+
+def test_placing_the_multimappers_leaves_every_counted_matrix_byte_identical(
+    tmp_path: Path,
+) -> None:
+    """The claim that makes attributing ambiguity safe, proved rather than promised.
+
+    Excluding multiply-placed fragments from expression is worth +10.2% of a real cell's primary UMI
+    matrix, which is more than the entire improvement the reference tool is published for — so the
+    layer that says which genes they fell in may not put a single count back. It is written from the
+    branch that had already returned, and the two objects below are the same plate with and without
+    that population: every matrix that is expression comes out byte-for-byte the same, and only the
+    fate, the locus distribution and the placement layer differ.
+
+    Bytes and not values, for the reason the recount test below compares files rather than numbers: a
+    CSR that agrees on every value while disagreeing on where they sit is a matrix that moved.
+    """
+    db, cells = _plate(tmp_path)
+    annotation = read_annotation(db)
+    before = _synthetic_bam(
+        tmp_path / "before.bam", tuple(frag for frag in _PLATE if frag.hits == 1)
+    )
+
+    placed = count_plate([("cell_a", cells[0][1])], annotation)
+    unplaced = count_plate([("cell_a", before)], annotation)
+
+    for layer in (None, *(name for name in LAYERS if name != MULTIMAPPING_LAYER)):
+        assert _matrix_bytes(placed, layer) == _matrix_bytes(unplaced, layer), layer
+    # ...and this really is the same plate MINUS that population rather than two plates that never
+    # had one: a fixture whose multiply-placed rows had gone would satisfy every comparison above
+    # vacuously, which is the way a claim about them stops being a claim without going red.
+    assert int(_frame(placed.obs).loc["cell_a", "multimapping"]) == 4
+    assert int(_frame(unplaced.obs).loc["cell_a", "multimapping"]) == 0
+    assert _matrix_bytes(placed, MULTIMAPPING_LAYER) != _matrix_bytes(unplaced, MULTIMAPPING_LAYER)
+
+
+def test_saturation_is_the_molecules_over_the_gene_assigned_fragments_that_carried_a_umi(
+    tmp_path: Path,
+) -> None:
+    """One number under one definition, computed where the deduplication that decides it happens.
+
+    The droplet page reads this ratio out of STARsolo's summary and this one computes it, so the two
+    have to be the same arithmetic over the same population or a reader comparing a plate against a
+    droplet sample is comparing two things sharing a word. It is deduplicated molecules over the
+    fragments that reached a gene carrying a UMI — the positional definition, distinct start
+    coordinates over reads, is a different number and would need the chimera split to hold a set per
+    cell, which is the streaming property that keeps a plate's memory flat.
+
+    Every figure below is read off the fixture. `umi_combined` is the molecule count because it is
+    the only matrix that counts a UMI seen both exonically and intronically ONCE; the deep cell is
+    where that matters, since adding its exon and intron matrices reports three molecules where one
+    was sequenced, and 0.7 saturation for a library that reached 0.9.
+    """
+    db, cells = _plate(tmp_path)
+    annotation = read_annotation(db)
+    adata = count_plate(cells, annotation)
+    obs = _frame(adata.obs)
+
+    # cell_a: five fragments reached a gene carrying a UMI — "AAAAAAAA" three times on GENE_A,
+    # "GGGGGGGG" once there, "CCCCCCCC" once on GENE_B — and they are three molecules.
+    assert float(obs.loc["cell_a", SATURATION]) == pytest.approx(1 - 3 / 5)
+    # cell_b is one fragment and one molecule: nothing was sequenced twice, and that is a real zero
+    # rather than a missing measurement.
+    assert float(obs.loc["cell_b", SATURATION]) == 0.0
+
+    # ...and it rises with duplication: ten tagged fragments on one gene that correct to a single
+    # molecule is a cell where nine reads in ten found nothing new.
+    deep = count_plate(
+        [("deep", _synthetic_bam(tmp_path / "deep.bam", _SPLIT_NEIGHBOURS))], annotation
+    )
+    assert float(_frame(deep.obs).loc["deep", SATURATION]) == pytest.approx(1 - 1 / 10)
+
+    # A cell with no tagged fragment on any gene has no ratio at all rather than a zero — the
+    # denominator is the arithmetic with no answer, and the page then omits the column for that cell
+    # instead of reporting a saturation nobody measured.
+    untagged = _synthetic_bam(
+        tmp_path / "untagged.bam", (_Fragment("read_only", "chr1", 120, 180),)
+    )
+    empty = count_plate([("untagged", untagged)], annotation)
+    assert math.isnan(float(_frame(empty.obs).loc["untagged", SATURATION]))
 
 
 def test_counting_the_same_plate_twice_gives_a_byte_identical_h5ad(tmp_path: Path) -> None:
@@ -4626,16 +5430,20 @@ def test_each_cells_sample_id_travels_with_its_bam_instead_of_being_read_off_the
 # than an `external` test nobody runs, and it is also the limit of what it proves. That STAR produces
 # the BAM shape assumed here is not under test; the aligner is not the thing being exercised.
 #
-# **Seven assertions, and the set is measured rather than argued.** A prototype wrote a splitter to
-# this contract, broke it eighteen ways on purpose, and kept only the assertions that were the ONLY
-# thing catching a defect. Four candidates are deliberately absent. Routing — "every uniquely-placed
-# read lands in the Component it came from", the headline bar — catches nothing once the name split
+# **The set of assertions is measured rather than argued.** A prototype wrote a splitter to this
+# contract, broke it eighteen ways on purpose, and kept only the assertions that were the ONLY thing
+# catching a defect. Four candidates are deliberately absent. Routing — "every uniquely-placed read
+# lands in the Component it came from", the headline bar — catches nothing once the name split
 # is liulab-genome's: a record's Component is then a pure function of its RNAME, and every
 # constructible misrouting refuses or crashes before any assertion runs. Reads-in-equals-kept-plus-
 # dropped is strictly subsumed by the per-reason drop counts. Mate-in-same-Component is the
 # splitter's own runtime refusal, which fires before an output exists to assert over. And nothing
 # asserts an ambiguous route, because assigning a spanning template to its best-scoring Component
 # was rejected outright — there is no such route to have an opinion about.
+#
+# What the eighteen could not reach is a check that has stopped firing, since a splitter that never
+# refuses passes every assertion over its outputs. So the two end-of-run checks are each shown going
+# red as well, against a BAM doctored to lose a population no aligner would lose.
 
 
 @dataclass(frozen=True)
@@ -4701,7 +5509,14 @@ def _chimeric_plate(chimera: _Chimera) -> tuple[_Fragment, ...]:
 
     Nothing here is computed from the splitter's own arithmetic: each row states its kind, and the
     counts the assertions below carry are read off this list by hand — two records per fragment, one
-    for the unmapped pair, so a two-Component shape is 8 kept and 13 dropped out of 21 records in.
+    for the pair that never aligned, so a two-Component shape is 18 kept and 15 dropped out of 33
+    records in.
+
+    **Three half-mapped fragments per Component, and the 2:1 split between the mate sides is the
+    load-bearing part.** They make each Component's first-mate and second-mate counts differ — five
+    against four — which is what a real plate does and what used to make this whole step refuse. Two
+    on one side and one on the other so that a check subtracting one side's singletons from both, or
+    from only its own side, is red rather than accidentally right.
     """
     separator = chimera.separator
     fragments: list[_Fragment] = []
@@ -4713,11 +5528,21 @@ def _chimeric_plate(chimera: _Chimera) -> tuple[_Fragment, ...]:
             # Component declares, so a tid remap that only ever gets index zero right goes red.
             _Fragment(f"{component.name}_unique_first", first, 100, 160),
             _Fragment(f"{component.name}_unique_last", last, 200, 260),
-            # Dropped, one category each, and only the first of the three can occur under the flags
-            # the aligner runs with today.
+            # Also kept, and MARKED rather than dropped: the hit-count tag it already carries is
+            # what lets the counter separate it later, so nothing here needs a second file.
             _Fragment(f"{component.name}_multi", first, 300, 360, hits=2),
+            # Dropped, one category each, and neither can occur under the flags the aligner runs
+            # with today — counted apart so that a flag moving says so instead of moving reads.
             _Fragment(f"{component.name}_secondary", first, 400, 460, extra_flags=_SECONDARY),
             _Fragment(f"{component.name}_supp", first, 500, 560, extra_flags=_SUPPLEMENTARY),
+            # Half aligned: the survivor is kept and counted as a singleton, its dead mate is
+            # dropped as unmapped and counted again as this Component's second derivation of the
+            # same number.
+            _Fragment(f"{component.name}_half_first_a", first, 600, 660, mate_unmapped=True),
+            _Fragment(f"{component.name}_half_first_b", last, 700, 760, mate_unmapped=True),
+            _Fragment(
+                f"{component.name}_half_second", first, 800, 860, mate_unmapped=True, survivor=2
+            ),
         ]
     fragments.append(_Fragment("never_aligned", "", 0, 0, unmapped=True))
     return tuple(fragments)
@@ -4759,9 +5584,29 @@ def _split(tmp_path: Path, label: str) -> _Round:
     return _Round(chimera, bam, fragments, outputs, stats)
 
 
+def _doctored(source: Path, target: Path, gone: Callable[[Any], bool]) -> Path:
+    """A copy of a chimeric BAM with every record `gone` is true of simply absent from it.
+
+    Both callers build a file no aligner writes, and that is the point: the two end-of-run checks
+    stand against a file that has quietly lost a whole population, with the header and every
+    surviving record still perfectly well formed and nothing on the page saying anything left.
+    """
+    with pysam.AlignmentFile(str(source), "rb") as inp:
+        with pysam.AlignmentFile(str(target), "wb", header=inp.header) as out:
+            for record in inp.fetch(until_eof=True):
+                if not gone(record):
+                    out.write(record)
+    return target
+
+
 def _kept(fragments: Sequence[_Fragment]) -> list[_Fragment]:
-    """The plate's mapped, uniquely-placed, primary fragments — the keep rule, read off the rows."""
-    return [f for f in fragments if not f.unmapped and not f.extra_flags and f.hits == 1]
+    """The plate's mapped, primary fragments — the keep rule, read off the rows.
+
+    `hits` is deliberately not consulted: a fragment placed at more than one locus is routed by its
+    representative record's Component and marked, not dropped, so leaving that clause in would let
+    this helper agree with a splitter that had never widened.
+    """
+    return [f for f in fragments if not f.unmapped and not f.extra_flags]
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
@@ -4813,6 +5658,10 @@ def test_every_kept_record_resolves_to_the_chromosome_it_actually_sits_on(
     record resolves, and every read is on the wrong chromosome. Resolving each record's name through
     the output's own header is what catches it — and it only catches it on the SECOND Component,
     whose indexes are the ones that had to move at all.
+
+    It is also where a multiply-placed fragment's two mates are shown ARRIVING, both of them, in the
+    output for the Component its records name: keeping them is what lets the counter separate that
+    population from the hit-count tag rather than from a file this step would otherwise write.
     """
     round_trip = _split(tmp_path, label)
     separator = round_trip.chimera.separator
@@ -4824,43 +5673,113 @@ def test_every_kept_record_resolves_to_the_chromosome_it_actually_sits_on(
             if split_suffixed(frag.contig, separator)[1] == component
             # Both mates, and they are on the same chromosome: the keep rule is per record, so an
             # output missing one of a pair is a different failure than an output missing a name.
-            for placed in [(frag.name, split_suffixed(frag.contig, separator)[0])] * 2
+            # One mate only where one mate is all the aligner placed.
+            for placed in [(frag.name, split_suffixed(frag.contig, separator)[0])]
+            * (1 if frag.mate_unmapped else 2)
         )
         with pysam.AlignmentFile(str(path), "rb") as split:
             assert sorted((r.query_name, r.reference_name) for r in split) == expected
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
-def test_both_mates_of_a_kept_template_are_kept_so_read1_equals_read2(
+def test_a_singleton_is_subtracted_from_its_own_side_before_the_mates_are_compared(
     tmp_path: Path, label: str
 ) -> None:
-    """Nothing is held and nothing is halved: a template survives whole or not at all.
+    """A healthy plate whose first and second mates DIFFER is split rather than refused.
 
-    Both mates carry one NH and sit on one chromosome, which is the fact that lets the filter be
-    stateless — no name sort, no buffer. The failure it stands against is a keep rule written as
-    `is_read1`, which loses every second mate at exit 0 and halves a library nobody re-counts.
+    This asserted mate counts were equal and it was wrong on real data: where only one mate aligned
+    the survivor is kept — correctly, it is a mapped primary alignment — and no partner is in the
+    file to balance it. The arithmetic closed exactly, with no residual, and a pilot lost sixteen of
+    sixteen cells to it. What is compared now is the PAIRED REMAINDER, each side less its own
+    singletons, which is still a per-record flag test and two more counters: nothing is held.
+
+    Five first mates and four second per Component, read off the plate, and the split returning at
+    all is half the claim.
     """
-    round_trip = _split(tmp_path, label)
-    assert round_trip.stats.read1 == round_trip.stats.read2 == dict.fromkeys(round_trip.outputs, 2)
+    stats = _split(tmp_path, label).stats
+    outputs = set(stats.kept)
+    assert stats.read1 == dict.fromkeys(outputs, 5)
+    assert stats.read2 == dict.fromkeys(outputs, 4)
+    # Three of those records have no partner, two on the first side and one on the second, so what
+    # is left on either side is three whole pairs.
+    assert stats.singletons == dict.fromkeys(outputs, 3)
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
-def test_every_dropped_record_is_counted_under_the_reason_it_was_dropped_for(
+def test_the_summary_accounts_for_every_record_the_split_was_handed(
     tmp_path: Path, label: str
 ) -> None:
-    """Four discard categories under one keep rule, each counted apart.
+    """The whole payload at once: what was kept, what that was made of, and why the rest went.
 
-    Only multimapping can occur under the flags the aligner runs with today, and the other three are
-    counted anyway so the rule degrades legibly if a flag moves: a category that starts firing says
-    so here, rather than reads quietly going missing. Two records per fragment, one for the pair
-    that never aligned — see the plate.
+    Three discard categories under one keep rule, each counted apart so the rule degrades legibly if
+    a flag moves — a category that starts firing says so here rather than reads quietly going
+    missing. Multiply-placed is NOT one of them any more: those records are in an output, marked by
+    the hit-count tag they carry, and the count of them is an account of what a Component KEPT
+    rather than of what it lost.
+
+    Kept plus dropped is exactly the records that came in; `multiplaced` and `singletons` are
+    subsets of `kept` and deliberately do not enter that sum. Every number is read off the plate's
+    own rows by hand.
     """
-    assert _split(tmp_path, label).stats.dropped == {
-        "unmapped": 1,
-        "secondary": 4,
-        "supplementary": 4,
-        "multimapping": 4,
+    round_trip = _split(tmp_path, label)
+    names = sorted(c.name for c in round_trip.chimera.components)
+    assert round_trip.stats.to_dict() == {
+        "seqforge": seqforge_version,
+        "separator": round_trip.chimera.separator,
+        "records_in": 33,
+        "kept": dict.fromkeys(names, 9),
+        "read1": dict.fromkeys(names, 5),
+        "read2": dict.fromkeys(names, 4),
+        "multiplaced": dict.fromkeys(names, 2),
+        "singletons": dict.fromkeys(names, 3),
+        # Three unmapped records per Component are the dead mates of its half-mapped pairs, and the
+        # odd one is the template neither mate of which aligned anywhere.
+        "dropped": {"unmapped": 7, "secondary": 4, "supplementary": 4},
     }
+
+
+def test_the_paired_remainder_still_refuses_an_output_that_was_genuinely_halved(
+    tmp_path: Path,
+) -> None:
+    """The replacement check has teeth: a check that cannot be shown going red is not a check.
+
+    Subtracting singletons is what stops a healthy plate refusing, and the risk of the change is
+    that it stops refusing anything at all. So the second mates are removed from the file with
+    nothing anywhere saying they left — not a mate that did not align, which announces itself on the
+    survivor's flag, but records missing from a file that still claims they are there. That is the
+    halving the check was written for, and it still fires.
+    """
+    chimera = _CHIMERAS["plain"]
+    bam = _chimeric_bam(tmp_path / "plain.bam", chimera, _chimeric_plate(chimera))
+    halved = _doctored(
+        bam, tmp_path / "halved.bam", lambda r: bool(r.is_read2 and not r.is_unmapped)
+    )
+    outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
+    with pytest.raises(SplitError, match="first and second mates"):
+        split_chimera(halved, outputs, chimera.separator)
+
+
+def test_the_two_derivations_of_the_half_mapped_count_are_compared_rather_than_assumed(
+    tmp_path: Path,
+) -> None:
+    """One number counted from either end of the same population, and a disagreement is a refusal.
+
+    A survivor carries the mate-unmapped flag; its dead mate is written at the survivor's own
+    coordinates and so names a Component too. Both counts come off the plate above and agree, which
+    is proved by every other case here returning at all — what needs its own case is that they are
+    genuinely INDEPENDENT, so here the placeless records are taken out of the file, which is what an
+    aligner that was never asked to emit them leaves behind. The mate counts still balance, because
+    nothing a kept record carries has changed; only the second derivation collapses, and the refusal
+    is the difference between this check and comparing raw mate counts.
+    """
+    chimera = _CHIMERAS["plain"]
+    bam = _chimeric_bam(tmp_path / "plain.bam", chimera, _chimeric_plate(chimera))
+    silent = _doctored(
+        bam, tmp_path / "silent.bam", lambda r: bool(r.is_unmapped and not r.mate_is_unmapped)
+    )
+    outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
+    with pytest.raises(SplitError, match="counted two ways"):
+        split_chimera(silent, outputs, chimera.separator)
 
 
 def test_a_component_the_caller_named_no_output_for_is_refused_rather_than_dropped(
@@ -4940,53 +5859,32 @@ def test_a_template_whose_mate_sits_on_another_component_is_refused_by_name(tmp_
 # a hand-built AnnData that could only ever agree with itself.
 
 
-def _plate_results(
-    tmp_path: Path,
-    *,
-    logged: Sequence[str] = ("cell_a", "cell_b"),
-    extracted: Sequence[str] = (),
-) -> Path:
-    """A finished `map/star-umi` run on disk: the fan-in h5ad, plus per-cell artifacts.
+def _plate_results(tmp_path: Path, *, bundled: Sequence[str] = ("cell_a", "cell_b")) -> Path:
+    """A finished `map/star-umi` run on disk: the fan-in h5ad, plus one QC bundle per cell.
 
-    `logged` is which cells got as far as writing an alignment log — a preempted plate has cells the
-    counter measured and STAR's per-cell log did not survive for, which is exactly the union case.
-    `extracted` is which cells kept the summary the extraction wrote a rule earlier; it defaults to
-    none so the tests about the log/fan-in join stay about two artifacts and not three.
+    `bundled` is which cells got as far as writing that bundle — a preempted plate has cells the
+    counter measured and whose own artifact did not survive, which is exactly the union case. It is
+    ONE list because a finished cell leaves ONE file: the extraction summary and the alignment log
+    used to be two more artifacts here, and they are now two keys inside this one.
     """
     db, cells = _plate(tmp_path)
     results = tmp_path / "results"
     write_umi_counts(cells, db, results / PLATE_H5AD)
-    for sample in logged:
-        _write(
-            results / sample / "Log.final.out",
-            "".join(f"  {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()),
-        )
-    for sample in extracted:
-        _write(
-            results / sample / f"{sample}{EXTRACT_SUFFIX}",
-            json.dumps(
-                {
-                    "sample": sample,
-                    "geometry": _PLATE_GEOMETRY,
-                    "fragments": 100,
-                    "tagged": 27,
-                    "untagged": 73,
-                    "offsets": {"0": 26, "13": 1},
-                }
-            ),
-        )
+    for sample in bundled:
+        _bundled_cell(results, tmp_path / "staging", sample)
     return results
 
 
-def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_alignment_log(
+def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_qc_bundle(
     tmp_path: Path,
 ) -> None:
     """The counter's own verdicts are on the page, and they arrive from the artifact that has them.
 
-    A cell's alignment log says what STAR did with its reads and stops there — it cannot say how many
-    fragments reached no gene, or were ambiguous, or were dropped as multimappers, because the
-    counter had not run when STAR wrote it. Those are in the plate object's `obs`, one row per cell,
-    and until this landed they were written and read by nobody.
+    A cell's QC bundle says what its FASTQs held and what the aligner did with them, and stops there
+    — it cannot say how many fragments reached no gene, or were ambiguous, or were dropped as
+    multimappers, because the counter had not run when the cell's chain finished. Those are in the
+    plate object's `obs`, one row per cell, and until this landed they were written and read by
+    nobody.
 
     Carried as RATES over `n_fragments`, which is what that column is on the object for: cells on one
     plate differ by three orders of magnitude in depth, so a count of ambiguous fragments is not
@@ -5002,12 +5900,15 @@ def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_alignment_lo
     # STAR's half is still there, untouched: this is one row per cell and not two.
     assert "uniquely_mapped" in cell_a
     # ...and the counter's half, off the synthetic plate whose every fate is known by construction:
-    # 13 fragments, of which 1 unmapped, 1 multimapping, 2 no-feature and 2 ambiguous.
+    # 17 fragments, of which 2 unmapped, 4 multimapping, 2 no-feature and 2 ambiguous.
     assert cell_a[N_FRAGMENTS].value == len(_PLATE)
     assert cell_a["no_feature"].value == pytest.approx(2 / len(_PLATE))
     assert cell_a["ambiguous"].value == pytest.approx(2 / len(_PLATE))
-    assert cell_a["unmapped"].value == pytest.approx(1 / len(_PLATE))
-    assert cell_a["multimapping"].value == pytest.approx(1 / len(_PLATE))
+    assert cell_a["unmapped"].value == pytest.approx(2 / len(_PLATE))
+    assert cell_a["multimapping"].value == pytest.approx(4 / len(_PLATE))
+    # Saturation arrives from the same object under the key the droplet page uses, which is the whole
+    # point of computing it here rather than inventing a second word for it.
+    assert cell_a[SATURATION].value == pytest.approx(1 - 3 / 5)
     # Every fate the counter records has a column and a label a human can read, checked against
     # `FATES` itself rather than against a list here — a fifth fate must not reach the page unnamed.
     assert set(FATES) <= set(cell_a)
@@ -5017,9 +5918,11 @@ def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_alignment_lo
     # says that out loud, where an invented threshold would tint a page nobody could act on.
     assert {_levels(stats.samples[0])[fate] for fate in FATES} == {"none"}
     assert stats.findings == []
-    # Ten columns is past the width at which the report folds a table behind a control, so which of
-    # these survives the fold is a decision: depth, and the fate that implicates the gene model.
+    # Well past the width at which the report folds a table behind a control, so which of these
+    # survives the fold is a decision: the chemistry readout, mapping, depth, and the fate that
+    # implicates the gene model.
     assert {m.key for m in stats.samples[0].metrics if m.headline} == {
+        "umi_tagged",
         "uniquely_mapped",
         "unmapped_too_short",
         N_FRAGMENTS,
@@ -5030,15 +5933,15 @@ def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_alignment_lo
 def test_a_cell_the_counter_measured_is_reported_even_with_no_alignment_log_of_its_own(
     tmp_path: Path,
 ) -> None:
-    """The join is a UNION, because a missing per-cell log does not unmake a counted cell.
+    """The join is a UNION, because a missing per-cell artifact does not unmake a counted cell.
 
     An intersection is the tempting shape — merge the fan-in into the rows that landed — and it
-    silently shortens the plate: a cell whose `Log.final.out` was lost to a preemption still has a
-    row in the object, a fragment count and a column in every matrix, and reporting it as absent
-    would say the counter never saw it. `n_found` is how many cells one source or the other answered
-    for, which is what "how much landed" means once landing can happen twice.
+    silently shortens the plate: a cell whose QC bundle was lost to a preemption still has a row in
+    the object, a fragment count and a column in every matrix, and reporting it as absent would say
+    the counter never saw it. `n_found` is how many cells one source or the other answered for,
+    which is what "how much landed" means once landing can happen twice.
     """
-    results = _plate_results(tmp_path, logged=["cell_a"])
+    results = _plate_results(tmp_path, bundled=["cell_a"])
 
     stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
 
@@ -5108,7 +6011,7 @@ def test_the_registry_reads_the_fan_in_artifact_the_module_declares_and_never_sp
     db, cells = _plate(tmp_path)
     results = tmp_path / "results"
     write_umi_counts(cells, db, results / "plate-counts.h5ad")  # a plausible name, and not the one
-    _write(results / "cell_a" / "Log.final.out", "  Number of input reads |\t10\n")
+    _bundled_cell(results, tmp_path / "staging", "cell_a")
 
     stats = read_pipeline_stats("map/star-umi", results, ["cell_a"])
 
@@ -5139,23 +6042,23 @@ def test_a_corrupt_plate_object_costs_a_note_and_never_the_cells_that_did_land(
     assert any(PLATE_H5AD in note for note in stats.notes), stats.notes
 
 
-def test_three_artifacts_are_three_chapters_of_one_row_and_never_three_rows(
+def test_the_absorbed_summaries_still_reach_the_page_as_chapters_of_one_row(
     tmp_path: Path,
 ) -> None:
-    """The plate is the first module with TWO per-sample artifacts, and a cell is still one row.
+    """The extraction's numbers are inside the cell's bundle now, and a cell is still ONE row.
 
-    Each speaks about a different step and none is a version of another: the extraction summary says
-    what the FASTQs held and how much of it carried a tag, STAR's log says what it did with the reads
-    it was then handed, and the plate object says what the counter did with the fragments. A page
-    that carried them separately would show every cell two or three times.
+    Each chapter speaks about a different step and none is a version of another: the extraction says
+    what the FASTQs held and how much of it carried a tag, the aligner's log says what it did with
+    the reads it was then handed, and the plate object says what the counter did with the fragments.
+    A page that carried them separately would show every cell two or three times.
 
-    The tagged fraction is what the second artifact is for. It is the per-cell readout of whether the
-    chemistry behaved and no other artifact on a finished plate carries it — STAR never saw an
-    untagged read as anything but a read — so before this landed it reached the page from nowhere.
-    Columns read in pipeline order, which is the registry's declared order and not the order the
-    files happened to land in.
+    The tagged fraction is what makes this worth asserting after the collapse. It is the per-cell
+    readout of whether the chemistry behaved and no other artifact on a finished plate carries it —
+    the aligner never saw an untagged read as anything but a read — and its own file is now
+    reclaimed, so if the bundle did not carry it up it would reach the page from nowhere at all.
+    Columns read in pipeline order: the order the bundle's reader assembles them in, then the fan-in.
     """
-    results = _plate_results(tmp_path, extracted=["cell_a", "cell_b"])
+    results = _plate_results(tmp_path)
 
     stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
 
@@ -5174,151 +6077,247 @@ def test_three_artifacts_are_three_chapters_of_one_row_and_never_three_rows(
     assert keys.index("umi_tagged") < keys.index("uniquely_mapped") < keys.index("no_feature")
 
 
-def test_a_plate_that_has_only_extracted_is_reported_as_started_and_never_as_finished(
+def test_a_cell_whose_downstream_steps_never_ran_is_not_counted_as_finished(
     tmp_path: Path,
 ) -> None:
-    """What is SHOWN and what is FINISHED are two questions, and the first mid-pipeline artifact
-    is what pulled them apart.
+    """ "N of M finished" counts the artifact written LAST, and the failed arm is why it has to.
 
-    `n_found` feeds `PipelineStats.complete`, which the page renders as a green "all N samples
-    finished". Every artifact this registry read used to be the LAST thing its pipeline wrote, so
-    "some source answered" and "this sample is done" were the same fact and one number could serve
-    both. The extraction summary is the FIRST thing the plate writes: counting it would tint a plate
-    that has not aligned a single cell green, which is the one sentence a reader would act on
-    without checking. So its columns are on the page and its landing is not a finish.
+    That count used to be read off the aligner's own log, which STAR writes the moment it stops
+    aligning — so a chimeric run whose split then refused for every cell rendered "16 of 16 cells
+    finished" over a results directory holding no matrix at all. The bundle is written downstream of
+    the whole per-cell chain, so a cell that mapped and got no further is honestly not finished.
 
-    Both halves are asserted, because either alone is satisfiable by doing the wrong thing: dropping
-    the row entirely also stops the badge going green, and it would hide the very number the artifact
-    was added for.
+    The absorbed originals are left on disk for `cell_b` deliberately: what is asserted is that the
+    reader does not fall back to them. Emptying that directory instead would pass while the registry
+    still counted a log the aligner wrote before any of the work that matters.
     """
-    results = _plate_results(tmp_path, logged=[], extracted=["cell_a", "cell_b"])
-    (results / PLATE_H5AD).unlink()  # extraction ran; the aligner and the counter have not
+    results = tmp_path / "results"
+    _bundled_cell(results, tmp_path / "staging", "cell_a", split=_CELL_SPLIT)
+    # `cell_b` mapped and then its split refused, so its bundle rule never ran.
+    _finished_cell(results / "cell_b", sample="cell_b")
 
-    stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
+    stats = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"])
 
     assert stats is not None and not stats.complete
-    assert (stats.n_found, stats.n_expected) == (0, 2)
-    assert [s.sample_id for s in stats.samples] == ["cell_a", "cell_b"]
-    assert _by_key(stats.samples[0])["umi_tagged"].value == pytest.approx(0.27)
-
-    # ...and a cell whose alignment log then lands IS finished, so the distinction is about which
-    # artifact answered and not about the summary suppressing a count.
-    _write(results / "cell_a" / "Log.final.out", "  Number of input reads |\t10\n")
-    landed = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
-
-    assert landed is not None and (landed.n_found, landed.n_expected) == (1, 2)
-    assert len(landed.samples) == 2, "a cell that has only extracted still has a row"
+    assert (stats.n_found, stats.n_expected) == (1, 2)
+    assert [s.sample_id for s in stats.samples] == ["cell_a"]
+    assert (results / "cell_b" / STAR_FINAL_LOG).is_file(), (
+        "the fallback this test refuses has to be on disk, or it proves nothing"
+    )
 
 
-def test_an_unreadable_summary_costs_its_own_columns_and_names_the_file_it_could_not_read(
+def test_an_unreadable_bundle_costs_its_own_columns_and_names_the_file_it_could_not_read(
     tmp_path: Path,
 ) -> None:
-    """Two per-sample artifacts are two ways to be unreadable, so the note has to say which.
+    """Bad bytes cost their own columns, and the note has to say which file to go and look at.
 
-    The registry's note used to read "its QC artifact could not be read", which was total while a
-    module had one; with two it sends a reader looking through the wrong file. The rest is the rule
-    that has always held one artifact out: bad bytes cost their own columns, and this cell keeps
-    every column its alignment log and the plate object gave it.
+    A plate is 1440 cells, so "its QC artifact could not be read" is not a place to start looking —
+    and the cell's own artifact is now the only place the extraction and the alignment survive, so
+    losing it loses every column but the counter's. That half stays: the fan-in gave this cell its
+    fates and its fragment count, exactly as a corrupt fan-in leaves every cell what its own bundle
+    gave it.
     """
-    results = _plate_results(tmp_path, extracted=["cell_a", "cell_b"])
-    (results / "cell_a" / f"cell_a{EXTRACT_SUFFIX}").write_text("{not json")
+    results = _plate_results(tmp_path)
+    (results / "cell_a" / f"cell_a{QC_BUNDLE_SUFFIX}").write_bytes(b"not a gzip stream at all")
 
     stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
 
     assert stats is not None
     cell_a, cell_b = (_by_key(s) for s in stats.samples)
     assert "umi_tagged" not in cell_a and "umi_tagged" in cell_b
-    assert "uniquely_mapped" in cell_a and set(FATES) <= set(cell_a)
-    assert stats.notes == [f"cell_a: cell_a{EXTRACT_SUFFIX} could not be read (JSONDecodeError)"]
+    assert "uniquely_mapped" not in cell_a and "uniquely_mapped" in cell_b
+    assert set(FATES) <= set(cell_a), "the fan-in half of this cell's row must survive"
+    assert stats.notes == [f"cell_a: cell_a{QC_BUNDLE_SUFFIX} could not be read (BadGzipFile)"]
 
 
-def test_a_chimeric_plate_reports_what_left_at_the_split_and_never_a_gene_assignment_fate(
+def _chimeric_plate_results(
+    tmp_path: Path, *, wrote: Sequence[str] | None = None
+) -> tuple[Path, _Round, dict[str, int]]:
+    """A finished chimeric plate on disk: one QC bundle per cell, one counting object per Component.
+
+    Returns the results directory, the split round-trip whose summary each bundle absorbed, and how
+    many fragments each Component's object holds for `cell_a`. The two Components are counted over
+    DIFFERENT fragment sets deliberately — the whole plate against one gene's worth — so a reader
+    that let one Component's row overwrite the other's is red on a number rather than on a key set.
+
+    `wrote` is which Components got an object at all; a run that counted one organism of two is the
+    per-Component half of "a missing artifact costs its own columns".
+    """
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    round_trip = _split(tmp_path, "plain")
+    first, second = (c.name for c in round_trip.chimera.components)
+    db, whole = _plate(tmp_path)
+    thin = [
+        (sample, _synthetic_bam(tmp_path / f"{second}_{sample}.bam", _PLATE[6:7]))
+        for sample, _ in whole
+    ]
+    results = tmp_path / "results"
+    for component, cells in ((first, whole), (second, thin)):
+        if wrote is None or component in wrote:
+            write_umi_counts(cells, db, results / PLATE_COMPONENT_H5AD.format(component=component))
+    for sample in ("cell_a", "cell_b"):
+        _bundled_cell(results, tmp_path / "staging", sample, split=round_trip.stats.to_dict())
+    return results, round_trip, {first: len(_PLATE), second: 1}
+
+
+def test_a_chimeric_plate_reports_what_left_at_the_split_and_each_components_fates(
     tmp_path: Path,
 ) -> None:
-    """The twin's page: per-Component shares and the four drop counts, and NO fan-in fates.
+    """The twin's page: per-Component accounts, the drop counts, and every Component's fan-in.
 
     Three decisions meet here and none of them is legible from any other test.
 
-    **The split summary is load-bearing rather than additional.** `unmapped` and `multimapping` are
-    dropped one rule before the counter, so both read structurally zero in every per-Component
-    matrix — a page rendering them from the counting object would state a falsehood about the data,
-    since those reads existed and left earlier. They live in this artifact, and the per-Component
-    share beside them is the number the whole chimera exercise exists to produce: the bacterial
-    fraction of a well, readable without opening an `.h5ad`.
+    **The split summary is load-bearing rather than additional.** `unmapped` is dropped one rule
+    before the counter, so it reads structurally zero in every per-Component matrix — a page
+    rendering only that number would state a falsehood about the data, since those reads existed and
+    left earlier. It lives in this artifact, and the per-Component share beside it is the number the
+    whole chimera exercise exists to produce: the bacterial fraction of a well, readable without
+    opening an `.h5ad`.
 
-    **`read_fan_in` is absent, and the absence is the claim.** The twin's fan-in artifact carries a
-    `{component}`, so reporting it means a Component loop and per-Component key prefixes to render
-    exactly the two numbers that do not compare across run types. Declining them is what deletes a
-    `CompiledPipeline.components` field and a reader signature change rather than paying for both,
-    and the stated cost is this: a chimeric run's page carries no gene-assignment fate at all.
+    **The fan-in is read once per Component, by the reader the plain twin already has.** The twin's
+    fan-in artifact carries a `{component}`, so the Component loop lives in the registry and each
+    object goes through the plate reader unchanged — the `obs` columns are the same columns, written
+    by the same counter. What the loop adds is the key: two organisms' fates, fragment counts and
+    saturation sit side by side on one cell's row, which is exactly what a shared key space could not
+    do. The two objects here hold different fragment sets so that a collision is a wrong NUMBER and
+    not merely a missing column.
 
-    **`finishes` stays on STAR's log**, which is why the second half runs the same read with no log
-    on disk: "N of M finished" has to mean the same thing on a chimeric run as on a plain one, or a
-    plate whose split has outrun its alignment renders as done.
+    **The caveat travels with every one of those columns**, because a rate on one Component's object
+    rides a denominator the split already took the unplaced records out of, and rendered beside a
+    single-assembly page's column of the same name it is not the same measurement. Nothing on this
+    half is headline either: the Component axis is N-wide, so the at-a-glance strip stays the cell's
+    own.
 
-    The payload is written by the REAL splitter over the synthetic chimeric plate above, not by hand:
-    what a summary key is called is the writer's fact, so a reader driven from a hand-built dict
-    could only ever agree with itself.
+    **All of it arrives through the cell's ONE artifact plus those objects**, which is what the twin's
+    bundle is one key wider than the base's for: the split summary is reclaimed once that bundle
+    carries it, so the numbers below reach the page only if the absorption kept them intact.
+
+    Every payload is written by the REAL splitter and the REAL counter over the synthetic plates
+    above, not by hand: what a summary key or an `obs` column is called is the writer's fact, so a
+    reader driven from a hand-built dict could only ever agree with itself.
     """
-    round_trip = _split(tmp_path, "plain")
-    results = tmp_path / "results"
-    for sample in ("cell_a", "cell_b"):
-        _write(
-            results / sample / f"{sample}{SPLIT_SUFFIX}",
-            json.dumps(round_trip.stats.to_dict()),
-        )
+    results, round_trip, fragments = _chimeric_plate_results(tmp_path)
+    components = list(fragments)
 
-    started = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"])
-
-    # The split has landed for every cell and STAR's log has not, so there are rows and nothing is
-    # finished. Both halves matter: dropping the rows would also keep the badge off, and would hide
-    # the very numbers this artifact was added for.
-    assert started is not None and not started.complete
-    assert (started.n_found, started.n_expected) == (0, 2)
-    assert [s.sample_id for s in started.samples] == ["cell_a", "cell_b"]
-
-    for sample in ("cell_a", "cell_b"):
-        _write(
-            results / sample / "Log.final.out",
-            "".join(f"  {k} |\t{v}\n" for k, v in _HEALTHY_LOG.items()),
-        )
-    stats = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"])
+    stats = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"], components)
 
     assert stats is not None and stats.complete
     cell_a = _by_key(stats.samples[0])
     assert "uniquely_mapped" in cell_a  # STAR's half, on the same row and not a row of its own
-    # Every Component of the Chimera gets BOTH columns: what it kept, and that as a share of the
-    # records that came in — read off `_chimeric_plate`'s rows by hand, 21 records in of which 4 kept
-    # per Component. The count is what lets the page close (every kept plus the four drops is the 21)
-    # and the share is what compares across cells of different depth; neither derives from the other
-    # without a denominator that is not on the page.
-    kept = round_trip.stats.kept
-    assert set(kept) == {c.name for c in round_trip.chimera.components}
-    for component, n in kept.items():
+    # Every Component of the Chimera gets four columns, each a different question: what it kept,
+    # that as a share of the records that came in, how much of it was multiply placed, and how many
+    # of its records have no mate in the file. Read off `_chimeric_plate`'s rows by hand — 33
+    # records in, 9 kept per Component. The kept count is what lets the page close (every kept plus
+    # every drop is the 33) and the share is what compares across cells of different depth; the
+    # other two are accounts of what is INSIDE the kept count and so add nothing to that sum.
+    stats_out = round_trip.stats
+    assert set(stats_out.kept) == {c.name for c in round_trip.chimera.components}
+    for component, n in stats_out.kept.items():
         assert cell_a[f"split_kept_{component}"].value == n
-        assert cell_a[f"split_share_{component}"].value == pytest.approx(
-            n / round_trip.stats.records_in
-        )
-    assert sum(kept.values()) + sum(round_trip.stats.dropped.values()) == (
-        round_trip.stats.records_in
+        assert cell_a[f"split_share_{component}"].value == pytest.approx(n / stats_out.records_in)
+        assert cell_a[f"split_multiplaced_{component}"].value == stats_out.multiplaced[component]
+        assert cell_a[f"split_singletons_{component}"].value == stats_out.singletons[component]
+    assert sum(stats_out.kept.values()) + sum(stats_out.dropped.values()) == (
+        stats_out.records_in
     ), "the page's own columns have to add back up to the records the BAM held"
-    # ...and all four reasons, always present, because an absent key and a zero are different claims
-    # and only one of them is a measurement.
+    # ...and every reason, always present, because an absent key and a zero are different claims and
+    # only one of them is a measurement.
     assert {r: cell_a[f"split_dropped_{r}"].value for r in DROP_REASONS} == {
-        "unmapped": 1,
+        "unmapped": 7,
         "secondary": 4,
         "supplementary": 4,
-        "multimapping": 4,
     }
     # Nothing the split says is graded: nobody has measured what share of a worm plate SHOULD be
     # E. coli, so a bar here would be a figure invented at review.
     assert {_levels(stats.samples[0])[m] for m in cell_a if m.startswith("split_")} == {"none"}
     assert stats.findings == []
-    # No fan-in reader, so no counting fate reaches the page at all — the stated cost, asserted.
+    # The counter's half, once per Component and under nobody else's key: a bare fate key would be
+    # whichever object happened to be read last, which is the collision this whole shape avoids.
     assert not set(FATES) & set(cell_a)
-    # Columns read in pipeline order: what STAR did, then what the split then did with it.
+    # What the plain twin's reader says about the same row, to compare the hints against: the caveat
+    # is APPENDED to what the counter wrote and never replaces it, so what the number measures stays
+    # the counter's sentence and what a per-Component reading of it is NOT is the registry's.
+    plain = _by_key(fate_metrics(dict.fromkeys(FATES, 1) | {N_FRAGMENTS: 4}, "cell_x"))
+    for component, total in fragments.items():
+        assert {f"{fate}_{component}" for fate in FATES} <= set(cell_a)
+        # Two Components, two different fragment sets, both intact on one row.
+        assert cell_a[f"{N_FRAGMENTS}_{component}"].value == total
+        assert f"{SATURATION}_{component}" in cell_a
+        assert component in cell_a[f"{N_FRAGMENTS}_{component}"].label
+        # And the caveat on every one of them — `unmapped` most of all, since that is the fate the
+        # split takes out one rule early and the caveat is what says where those records went.
+        for fate in FATES:
+            assert cell_a[f"{fate}_{component}"].hint == (
+                f"{plain[fate].hint} {PER_COMPONENT_CAVEAT}"
+            )
+    # The whole Component's numbers, off the synthetic plate whose every fate is known by
+    # construction: 17 fragments, 4 of them multiply placed. That fate is the one the argument for
+    # shipping no reader at all rested on half of — it read a structural zero until the split began
+    # keeping multiply-placed records, and it is a real measurement now.
+    first = components[0]
+    assert cell_a[f"multimapping_{first}"].value == pytest.approx(4 / len(_PLATE))
+    assert cell_a[f"no_feature_{first}"].value == pytest.approx(2 / len(_PLATE))
+    assert cell_a[f"{SATURATION}_{first}"].value == pytest.approx(1 - 3 / 5)
+    # The at-a-glance strip stays the cell's own: the Component axis is N-wide, so promoting these
+    # would put an unbounded number of columns in a strip whose whole job is being small.
+    assert {m.key for m in stats.samples[0].metrics if m.headline} == {
+        "umi_tagged",
+        "uniquely_mapped",
+        "unmapped_too_short",
+    }
+    # Columns read in pipeline order: what STAR did, then the split, then what each Component's
+    # counter made of what the split handed it.
     keys = [key for key, _ in stats.columns]
-    assert keys.index("uniquely_mapped") < keys.index("split_dropped_multimapping")
+    assert keys.index("uniquely_mapped") < keys.index("split_dropped_unmapped")
+    assert keys.index("split_dropped_unmapped") < keys.index(f"no_feature_{components[0]}")
+    assert keys.index(f"no_feature_{components[0]}") < keys.index(f"no_feature_{components[1]}")
+
+
+def test_one_components_missing_object_costs_its_own_columns_and_names_what_is_owed(
+    tmp_path: Path,
+) -> None:
+    """A Chimera has N counting objects, so one of them failing must cost N-1 nothing.
+
+    The per-sample half of this registry has always said a corrupt artifact costs its own row; the
+    fan-in half says the same one arity out, and on a Chimera there is a third: a plate's fan-in is
+    one file per Component, and the organism that was counted has to keep its numbers when the one
+    beside it did not. A reader that opened them as a set would drop both.
+
+    Both ways of losing one are here because they are different answers, and the run state is where
+    the difference shows: an object nobody wrote is still OWED and says so through the declaration,
+    while an object that is there and will not parse is a read failure and names the file to go and
+    look at. Neither costs the page.
+    """
+    results, round_trip, fragments = _chimeric_plate_results(tmp_path)
+    counted, lost = fragments
+    (results / PLATE_COMPONENT_H5AD.format(component=lost)).write_bytes(b"not an h5ad at all")
+
+    stats = read_pipeline_stats(
+        "map/star-umi-chimera", results, ["cell_a", "cell_b"], [counted, lost]
+    )
+
+    assert stats is not None
+    cell_a = _by_key(stats.samples[0])
+    assert {f"{fate}_{counted}" for fate in FATES} <= set(cell_a)
+    assert not {f"{fate}_{lost}" for fate in FATES} & set(cell_a)
+    assert "uniquely_mapped" in cell_a  # ...and the cell's own bundle, untouched by either
+    assert any(PLATE_COMPONENT_H5AD.format(component=lost) in note for note in stats.notes), (
+        stats.notes
+    )
+    assert stats.missing_deliverables == []  # it is there; it is unreadable, which is not the same
+
+    # The other way: never written at all. Owed on the run state, silent in the notes, and the
+    # Component beside it keeps every column.
+    only_one, _, _ = _chimeric_plate_results(tmp_path / "partial", wrote=[counted])
+
+    partial = read_pipeline_stats(
+        "map/star-umi-chimera", only_one, ["cell_a", "cell_b"], [counted, lost]
+    )
+
+    assert partial is not None and partial.state == "failed"
+    assert partial.missing_deliverables == [PLATE_COMPONENT_H5AD.format(component=lost)]
+    assert partial.notes == []
+    assert {f"{fate}_{counted}" for fate in FATES} <= set(_by_key(partial.samples[0]))
 
 
 def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> None:
@@ -5336,6 +6335,15 @@ def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> N
     # And a fate the object never carried is absent too, never a zero: an older plate object written
     # before a fate existed did not measure zero of them, it measured nothing.
     assert {m.key: m.value for m in counted.metrics} == {N_FRAGMENTS: 4, "unmapped": 0.25}
+
+    # A saturation the counter wrote as `nan` is that same absence arriving as a float rather than as
+    # a gap — a cell with nothing tagged to deduplicate has no ratio, and `nan%` on a page is worse
+    # than no column. A real zero is a measurement and stays.
+    absent = fate_metrics({N_FRAGMENTS: 4, SATURATION: float("nan")}, "cell_z")
+    assert {m.key for m in absent.metrics} == {N_FRAGMENTS}
+    assert {m.key: m.value for m in fate_metrics({SATURATION: 0.0}, "cell_w").metrics} == {
+        SATURATION: 0.0
+    }
 
 
 # ---- the plate-assay UMI extractor ---------------------------------------------------------------
@@ -5975,7 +6983,7 @@ def test_the_summary_the_extractor_writes_is_the_one_the_report_reads_back(tmp_p
         [(_tagged("ACGTACGT"), _CDNA), (_tagged("TTTTGGCC", offset=13), _CDNA), (_CDNA, _CDNA)],
     )
 
-    sample = read_extract_summary(summary, "cell")
+    sample = extract_metrics(json.loads(summary.read_text()), "cell")
     got = {m.key: m for m in sample.metrics}
 
     assert got["extract_fragments"].value == 3

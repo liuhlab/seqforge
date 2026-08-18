@@ -5,7 +5,8 @@
 # emits `config.yaml` + `units.tsv` and selects this module by id `map/star-umi`; it NEVER writes
 # rule source.
 #
-# The chain is per cell `extract -> STAR -> one coordinate-sorted BAM`, and then ONCE
+# The chain is per cell `extract -> STAR -> one sorted BAM -> two archives + ONE QC artifact`, and
+# then ONCE
 # `count(N BAMs) -> one combined .h5ad`. That fan-in is what makes this module a different shape from
 # the three beside it, and it is DECLARED on the module (`fan_in_artifact`) rather than left to be
 # discovered from the rule graph. Snakemake fans in natively and `rule all` already expands over
@@ -39,10 +40,14 @@
 # importable, so arithmetic written here could never be unit-tested, only run. `PLATE_H5AD` is the
 # name the module registry DECLARES as this pipeline's dataset-scoped deliverable, so the
 # declaration and the rule that produces it cannot come apart. `EXTRACT_SUFFIX` is the same contract
-# for the per-cell extraction summary: the extractor writes it, the report finds it, and this rule
-# declares it -- one owner, imported three times, never spelled twice.
+# for the per-cell extraction summary: the extractor writes it, the bundle rule folds it in, and both
+# declare it -- one owner, imported, never spelled twice. `QC_SUFFIX` names the ONE artifact a
+# finished cell leaves, and it is the droplet module's constant unchanged: same artifact kind, same
+# suffix, one owner. The aligner's own run files come from `h5ad` for the same reason -- STAR writes
+# four of them per cell and this module declares all four, so the filenames belong to the constant
+# that already had three readers rather than to a literal here.
 from seqforge.workflows import PLATE_H5AD
-from seqforge.workflows.h5ad import STAR_BAM
+from seqforge.workflows.h5ad import STAR_BAM, STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRESS_LOGS
 from seqforge.workflows.memory import (
     PLATE_RETRIES,
     bam_sort_ram,
@@ -50,6 +55,7 @@ from seqforge.workflows.memory import (
     index_mem_mb,
     per_cell_mem_mb,
 )
+from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
 from seqforge.workflows.units import mate_role as units_mate_role
@@ -71,9 +77,31 @@ READ_FILES_IN = config["read_files_in"]
 # index rather than inside it -- a file under another rule's directory output is a child of that
 # output, which snakemake refuses to build a DAG for at all.
 LOADED_FLAG = f"{OUTDIR}/index/{ASSEMBLY}.loaded"
-# Where STAR writes the small logs its load and unload invocations produce. Beside the index for the
-# same reason, and prefixed so they never collide with a cell's.
-LOAD_PREFIX = f"{OUTDIR}/index/_genome_{ASSEMBLY}_"
+
+# THE RETAINED ARCHIVE, PARTITIONED BY MAPPABILITY: one cell's uniquely-placed records and one cell's
+# multiply-placed ones, as two files rather than one mixed one. Together they are exactly every
+# primary mapped record, so nothing is lost against the single archive they replace and no record is
+# in both -- the total on disk is what one mixed archive cost. The population a user trusts is the
+# one they open by default, and the ambiguous one is a file to open rather than a filter to compose
+# from memory. Spelled ONCE each, here, because `rule all` demands them and a rule writes them, and a
+# second spelling is the copy that names a file nobody produces while still looking right. The
+# chimeric twin partitions the same way, so the same cell processed both ways holds the same
+# populations in the same places.
+UNIQUE_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.unique.cram"
+MULTIPLACED_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.multiplaced.cram"
+
+# ONE QC ARTIFACT PER CELL, shaped the way the droplet pipeline's already is. A finished cell used to
+# leave four files -- an extraction summary, the aligner's end-of-run log, and two progress logs
+# nothing reads -- plus a junction table nobody can analyze one cell at a time; this is the file that
+# absorbs all of them, so somebody reading a cell's QC looks in one place and everything it took in
+# becomes reclaimable. Spelled ONCE, here, because `rule all` demands it and a rule writes it.
+CELL_QC = f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}"
+
+# The two logs STAR writes as a run PROCEEDS, declared so the bundle can consume them and `temp()`
+# can then drop them -- automatic, DAG-ordered cleanup rather than a manual `rm`, and a declared
+# output STAR did not write is a loud rule failure rather than a file nobody notices. `expand` fills
+# `f` and leaves `sample` a wildcard, which is snakemake's usual double escape.
+STAR_PROGRESS = expand(f"{OUTDIR}/{{{{sample}}}}/{{f}}", f=list(STAR_PROGRESS_LOGS))
 
 
 def fastqs(sample, role):
@@ -220,13 +248,18 @@ def read_files_type(sample):
 
 rule all:
     input:
-        # ONE object over every cell, and a CRAM per cell. The h5ad is the deliverable the fan-in
-        # produces and it is demanded by NAME rather than as a directory: a rule whose output is a
-        # folder is satisfied by a folder, which is how a counting job that wrote three cells of 1440
-        # exits 0. Per-cell QC needs no target -- STAR writes `Log.final.out` into each cell's
-        # directory unasked, and the report's reader finds it there.
+        # ONE object over every cell, and BOTH HALVES of that cell's archive. The h5ad is the
+        # deliverable the fan-in produces and it is demanded by NAME rather than as a directory: a
+        # rule whose output is a folder is satisfied by a folder, which is how a counting job that
+        # wrote three cells of 1440 exits 0. The two archives are demanded by name for the same
+        # reason one arity down -- neither is anyone's input, so a half that stopped being produced
+        # would simply stop appearing. The per-cell QC bundle is demanded for that same reason and
+        # one more: it is what the report reads a cell's row from AND what says the cell finished, so
+        # a plate that reached `rule all` has one per cell or is not a finished plate at all.
         f"{OUTDIR}/{PLATE_H5AD}",
-        expand(f"{OUTDIR}/{{sample}}/{{sample}}.cram", sample=SAMPLES),
+        expand(UNIQUE_CRAM, sample=SAMPLES),
+        expand(MULTIPLACED_CRAM, sample=SAMPLES),
+        expand(CELL_QC, sample=SAMPLES),
 
 
 rule genome_index:
@@ -283,6 +316,15 @@ rule load_genome:
     The same idiom the two shipped mapping rules already open with (`rm -rf ..._STARtmp`), one level
     up: clear the stale thing you cannot otherwise reach, then do the work.
 
+    **Neither invocation writes into the pipeline directory.** STAR drops a log, a progress log and a
+    `_STARtmp/` under whatever prefix it is handed and removes none of them, so these two used to
+    leave nine undeclared entries beside the index and the flag, with nothing saying which two of
+    the eleven were output. The prefix is therefore a directory this block MAKES and destroys.
+    Pointing it somewhere else inside the run directory, or sweeping afterwards by glob, both work
+    only for as long as they stay configured correctly; a scratch that cannot outlive the shell has
+    nothing to configure and nothing to sweep. The `trap` is what covers the failing path, which is
+    the path that leaves the most behind.
+
     **What it buys is one load per NODE.** On this rule's own node that is guaranteed; elsewhere
     `LoadAndKeep` gets there organically, since the first mapping job loads and the rest attach. What
     the explicit rule adds beyond that is the defensive removal, a loud failure point if the index
@@ -306,16 +348,18 @@ rule load_genome:
         # The one rule that holds the genome segment, and it asked for nothing until now -- so a
         # scheduler packed jobs beside the largest allocation on the node without knowing it existed.
         mem_mb=lambda wildcards, attempt: index_mem_mb(config["mem_mb"], attempt),
-    params:
-        prefix=LOAD_PREFIX,
     shell:
         r"""
+        # STAR's run-files go to a directory made here and destroyed here, so none of them can reach
+        # the pipeline directory. The trap fires on the failing path too.
+        scratch=$(mktemp -d)
+        trap 'rm -rf "$scratch"' EXIT
         # Defensive: marks any stale segment for destruction. Attached jobs keep running; a segment
         # that is not there is a no-op we must not fail on.
         STAR --genomeDir {input.index} --genomeLoad Remove \
-             --outFileNamePrefix {params.prefix}remove_ > /dev/null 2>&1 || true
+             --outFileNamePrefix "$scratch"/remove_ > /dev/null 2>&1 || true
         STAR --genomeDir {input.index} --genomeLoad LoadAndExit \
-             --outFileNamePrefix {params.prefix}
+             --outFileNamePrefix "$scratch"/
         """
 
 
@@ -346,11 +390,13 @@ rule umi_extract:
     rule's to state, and the mate list is also what `read_files_type` reads. `units.tsv` joins them,
     because the command now opens it.
 
-    **Two outputs, and only one of them is reclaimed.** The uBAM is consumed and deleted; the summary
-    beside it is the durable account of what the extraction saw, and it is declared here rather than
-    derived by the verb so that one path is stated once and snakemake owns removing it after a failed
-    job. Nothing demands it in `rule all` and nothing needs to: this rule is upstream of every cell's
-    CRAM, so a plate that finishes has written one per cell.
+    **Two outputs, and BOTH are reclaimed** -- for two different reasons, which is why they are two
+    lines. The uBAM is consumed by the aligner and deleted; the summary beside it is the account of
+    what the extraction saw, and it survives only until `rule qc_bundle` folds it into this cell's
+    one QC artifact. What the extraction measured still outlives the records it measured, which is
+    the whole point of writing it: it now does so inside the bundle rather than beside it, so a
+    finished cell leaves one file rather than four. Both are declared here rather than derived by
+    the verb so that a path is stated once and snakemake owns removing it after a failed job.
     """
     input:
         units=UNITS_TSV,
@@ -360,10 +406,11 @@ rule umi_extract:
         # Consumed by exactly one rule (the mapping below), so snakemake deletes it the moment that
         # job finishes -- 1440 uBAMs never coexist with 1440 alignments.
         ubam=temp(f"{OUTDIR}/{{sample}}/{{sample}}.unaligned.bam"),
-        # And NOT `temp()`, which is the whole point of it: what the extraction measured has to
-        # outlive the records it measured. `workflows.umite.extract` argues why those numbers are
-        # worth keeping; what belongs here is that the uBAM above is the reason they need a file.
-        summary=f"{OUTDIR}/{{sample}}/{{sample}}{EXTRACT_SUFFIX}",
+        # `temp()` because it has a CONSUMER now: `rule qc_bundle` reads this cell's counts into the
+        # one artifact the cell keeps, so what the extraction measured outlives the records it
+        # measured without leaving a second file to reason about. `workflows.umite.extract` argues
+        # why those numbers are worth keeping at all.
+        summary=temp(f"{OUTDIR}/{{sample}}/{{sample}}{EXTRACT_SUFFIX}"),
     params:
         # The whole extraction geometry as one value, derived by compose from the element
         # coordinates: which read is tagged, the anchor and where it is declared, the UMI's offset
@@ -394,8 +441,8 @@ rule star_umi_map:
     and `RG:Z:`, and `All` carried both. But STAR builds its output header from the genome and its
     own parameters -- it does not inherit the input BAM's -- so the `RG` that rode through named a
     group no `@RG` line introduced, which the SAM specification forbids. samtools and pysam tolerate
-    such a file; Picard and GATK refuse it, and the per-cell CRAM downstream of here is the RETAINED
-    artifact, so the malformed one is what shipped.
+    such a file; Picard and GATK refuse it, and the per-cell CRAMs downstream of here are the
+    RETAINED artifacts, so the malformed one is what shipped.
 
     `--outSAMattrRGline` is STAR's only input to an `@RG` header line, and setting it also makes
     STAR stamp its own `RG` on every record -- `RG` is not a word `--outSAMattributes` accepts, so
@@ -413,9 +460,9 @@ rule star_umi_map:
     one, exactly as the layout had a mate or did not. Unpaired records read as `SAM PE` crash, so
     a stale literal here would be loud -- but only after the index loaded and the plate was queued.
 
-    **ONE sort, and it is this one.** `--outSAMtype BAM SortedByCoordinate` serves both consumers:
-    the CRAM converter and the counter each read this file. A second `samtools sort -n` to give the
-    counter name adjacency would cost a full extra pass over every cell and a second BAM each --
+    **ONE sort, and it is this one.** `--outSAMtype BAM SortedByCoordinate` serves every consumer:
+    the two archive conversions and the counter each read this file. A second `samtools sort -n` to
+    give the counter name adjacency would cost a full pass over every cell and a second BAM each --
     2x peak disk, since every BAM has to survive until the fan-in finishes. The cost lands on the
     counter, which pairs mates from the flags and mate coordinates instead, and it is paid once.
 
@@ -434,10 +481,22 @@ rule star_umi_map:
         index=rules.genome_index.output,
         loaded=rules.load_genome.output,
     output:
-        # Two consumers -- the CRAM converter and the fan-in counter -- so snakemake keeps it until
-        # BOTH have finished and then deletes it. That is the 2x peak disk the single sort avoids
-        # doubling again.
+        # Three consumers -- the two halves of the archive and the fan-in counter -- so snakemake
+        # keeps it until ALL have finished and then deletes it. That is the 2x peak disk the single
+        # sort avoids doubling again.
         bam=temp(f"{OUTDIR}/{{sample}}/{STAR_BAM}"),
+        # THE ALIGNER'S RUN FILES, DECLARED. STAR writes all four whether or not anyone asks, so
+        # until now they sat in a cell's directory undeclared -- a rule that wrote more than it said
+        # it did, and a reader with nothing telling them which files were the point. Each is
+        # `temp()` because `rule qc_bundle` folds it into this cell's one QC artifact: the end-of-run
+        # summary is what the report's alignment columns are read from, and the junction table is
+        # reduced to counts there, because a junction call from one cell at ~1M reads is not
+        # analyzable and 784 of these tables is roughly a gigabyte of a plate nothing opens. (The
+        # bulk module keeps ITS table for exactly the inverse reason -- depth.) The two progress
+        # logs nothing reads at any depth ride along so that they, too, are gone by the end.
+        log=temp(f"{OUTDIR}/{{sample}}/{STAR_FINAL_LOG}"),
+        progress=temp(STAR_PROGRESS),
+        junctions=temp(f"{OUTDIR}/{{sample}}/{STAR_JUNCTIONS}"),
     container: config["container"]
     threads: config["threads"]
     retries: PLATE_RETRIES
@@ -453,9 +512,22 @@ rule star_umi_map:
     shell:
         # `--outSAMmultNmax 1` is a module literal for the same reason it is one in starsolo.smk: its
         # value varies with nothing. It writes only a top-scoring alignment, which is exactly the
-        # record `seqforge io cram`'s `-F 0x100` would keep, so the sort stops paying for records the
-        # next rule deletes. It is safe for the counts HERE because our counter reads `NH` directly
-        # rather than inferring multimapping from bundle length -- `NH` still counts every locus.
+        # record the archive's secondary-alignment filter would keep, so the sort stops paying for
+        # records the next rule deletes. It is safe for the counts HERE because our counter reads
+        # `NH` directly rather than inferring multimapping from bundle length -- `NH` still counts
+        # every locus.
+        #
+        # `--outSAMunmapped Within` puts the fragments that never aligned into the same BAM, and it
+        # is the only thing that can make the counter's FIRST fate a real number: that counter reads
+        # what the BAM holds, so a library with no unmapped record in it reports zero unmapped
+        # fragments and is indistinguishable from one where everything aligned. Every plate object
+        # written before this flag carried that column structurally empty.
+        #
+        # Bare `Within`, never `Within KeepPairs`. The second token keeps an unmapped record
+        # adjacent to its mate in UNSORTED output only, and this rule writes coordinate-sorted
+        # output -- so it would buy nothing and would state an intent this module does not have.
+        # The retained archives do not grow to pay for the extra records either: each names a
+        # record selection, and neither selection holds a record that never aligned.
         r"""
         # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)
         rm -rf {params.prefix}_STARtmp
@@ -468,17 +540,18 @@ rule star_umi_map:
              --outSAMtype BAM SortedByCoordinate \
              --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
              --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
-             --outSAMmultNmax 1
+             --outSAMmultNmax 1 \
+             --outSAMunmapped Within
         """
 
 
-rule umi_to_cram:
-    """Compact one cell's coordinate-sorted BAM into a CRAM, then let `temp()` drop the BAM.
+rule unique_to_cram:
+    """One cell's UNIQUELY-PLACED records, compacted into the archive a reader opens by default.
 
-    The converter is reused UNCHANGED, and that is the largest single thing carrying the UMI in a tag
-    bought: its QNAME rewrite touches field 1 only and rebuilds the record tab-joined, so every tag
-    survives and its -16.2% comes back. A UMI carried in the read name would have been destroyed by
-    exactly that rewrite.
+    The converter is reused rather than rebuilt, and that is the largest single thing carrying the
+    UMI in a tag bought: its QNAME rewrite touches field 1 only and rebuilds the record tab-joined,
+    so every tag survives and its -16.2% comes back. A UMI carried in the read name would have been
+    destroyed by exactly that rewrite.
 
     It does not sort -- STAR did. `container:`, unlike the extractor and the counter, because this
     verb shells out to samtools, which comes from the pinned image and not from whatever the
@@ -486,13 +559,22 @@ rule umi_to_cram:
 
     The retained CRAM is not a FASTQ substitute: the tagged mate lost its structural prefix before
     STAR ever saw it, because the tag, the UMI and the motif are not genomic. The same property the
-    droplet chain already records.
+    droplet chain already records -- and the reason a selection that drops what never aligned is
+    right here rather than merely smaller. A file that already cannot give the reads back gains
+    nothing by carrying the ones that never aligned, and it would grow by exactly the share of the
+    library that did not. `rule star_umi_map` asks STAR for those records so the COUNTER can measure
+    them; the archives are where they stop.
+
+    **The selection is NAMED and not a filter spelled out again**, so a misspelling is a refusal at
+    the verb's gate rather than a quietly wrong file. `unique` and the `multi` its sibling names are
+    a partition of the mapped records: every primary mapped record is in exactly one of the two, so
+    the pair holds what one mixed archive held and duplicates no bytes.
     """
     input:
         bam=rules.star_umi_map.output.bam,
     output:
-        cram=f"{OUTDIR}/{{sample}}/{{sample}}.cram",
-        crai=f"{OUTDIR}/{{sample}}/{{sample}}.cram.crai",
+        cram=UNIQUE_CRAM,
+        crai=f"{UNIQUE_CRAM}.crai",
     container: config["container"]
     threads: config["threads"]
     params:
@@ -500,7 +582,85 @@ rule umi_to_cram:
     shell:
         r"""
         seqforge io cram --bam {input.bam} --assembly {params.assembly} \
-             --out {output.cram} --threads {threads}
+             --out {output.cram} --threads {threads} --selection unique
+        """
+
+
+rule multiplaced_to_cram:
+    """One cell's MULTIPLY-PLACED records, in their own file, from the same BAM its sibling reads.
+
+    The other half of the partition, and a separate rule rather than a second command beside the
+    first: a shell block reports only its last command's status, so two conversions in one job would
+    make a failed first one an archive silently missing while the rule exits 0 -- the same
+    silent-plausible-wrong the converter's own pipe is waited on stage by stage to prevent.
+
+    **A record here is a PLACEMENT and not an assignment.** The aligner emits one of the loci the
+    fragment fitted, chosen among equals, so this file says where a fragment could be and never
+    where it belongs. That caveat rides the artifact rather than this docstring -- the name says
+    which population, and the converter stamps the sentence into the CRAM header, which is what
+    survives the file being copied somewhere this module is not.
+
+    The chimeric twin's copy of this rule is byte-identical, and that is deliberate: a multiply-
+    placed fragment has no Component to be filed under, so on both arms this is one file per cell
+    cut from what the aligner actually wrote.
+    """
+    input:
+        bam=rules.star_umi_map.output.bam,
+    output:
+        cram=MULTIPLACED_CRAM,
+        crai=f"{MULTIPLACED_CRAM}.crai",
+    container: config["container"]
+    threads: config["threads"]
+    params:
+        assembly=ASSEMBLY,
+    shell:
+        r"""
+        seqforge io cram --bam {input.bam} --assembly {params.assembly} \
+             --out {output.cram} --threads {threads} --selection multi
+        """
+
+
+rule qc_bundle:
+    """Fold everything one cell's chain wrote into ONE gzipped JSON, then let `temp()` drop the rest.
+
+    **The droplet module's finalize step, one arity in.** A cell used to leave an extraction summary,
+    the aligner's end-of-run log and two progress logs nothing reads, beside a junction table nobody
+    can analyze at one cell's depth -- four files per cell and 1440 cells, with no artifact saying
+    "this is the cell's QC". This rule consumes all of them and writes one, so a reader looks in one
+    place and everything it took in becomes reclaimable. The verb is the SAME `io qc-bundle` the
+    droplet module calls: one artifact kind, one suffix, one command surface, with the shape decided
+    by which arguments are given rather than by a second verb.
+
+    **The junctions arrive as a SUMMARY.** Storing the table would put roughly a gigabyte back into a
+    784-cell plate's bundles for a file nothing downstream reads; the counts it reduces to still say
+    how much splicing the cell showed and how much of it the annotation already knew.
+
+    **This is also what says a cell FINISHED.** That claim used to sit on the aligner's log, which
+    STAR writes the moment it stops aligning -- so a cell counted as finished with every step after
+    the aligner still to come, which is exactly how a run whose downstream rules all failed reported
+    every cell done. This rule is downstream of the whole per-cell chain, so it cannot say that
+    early. The report reads it through `workflows/stats.py`, which finds it by the same constant.
+
+    A `shell:` calling a seqforge verb rather than a `run:` block, like every other rule here:
+    `snakemake -n -p` renders every shell block while planning and cannot see inside a `run:`. No
+    `container:` -- this is Python over small text files and shells out to nothing.
+    """
+    input:
+        extract=rules.umi_extract.output.summary,
+        log=rules.star_umi_map.output.log,
+        progress=rules.star_umi_map.output.progress,
+        junctions=rules.star_umi_map.output.junctions,
+    output:
+        CELL_QC,
+    params:
+        # The cell's own directory: a cell IS a sample here, so this is where STAR left the run
+        # files above and what the verb reads them from.
+        run_dir=lambda wc: f"{OUTDIR}/{wc.sample}",
+        assembly=ASSEMBLY,
+    shell:
+        r"""
+        seqforge io qc-bundle --run-dir {params.run_dir} --sample {wildcards.sample} \
+             --extract {input.extract} --assembly {params.assembly} --out {output}
         """
 
 
@@ -579,13 +739,16 @@ def release_genome_segment():
     entry and declaring the outputs that replace it.
 
     Written once because the two paths release the SAME segment the same way, and two byte-identical
-    copies is two chances to fix one of them: the prefix, the redirect and the trailing `|| true`
+    copies is two chances to fix one of them: the scratch, the redirect and the trailing `|| true`
     have to stay together, and the copy that lost the `|| true` would turn a finished plate into a
-    failed run.
+    failed run. The scratch is the arrangement `load_genome` argues for, on the path where it matters
+    most: this command runs when the run is OVER, so a run-file left under the output prefix would
+    land in a directory a user is already reading.
     """
     shell(
+        "scratch=$(mktemp -d); trap 'rm -rf \"$scratch\"' EXIT; "
         f"STAR --genomeDir {OUTDIR}/index/{ASSEMBLY} --genomeLoad Remove "
-        f"--outFileNamePrefix {LOAD_PREFIX}unload_ > /dev/null 2>&1 || true"
+        '--outFileNamePrefix "$scratch"/unload_ > /dev/null 2>&1 || true'
     )
 
 

@@ -58,6 +58,32 @@ CLI_SURFACE = [
         ["io", "cram", "--bam", "in.bam", "--assembly", "hg38", "--out", "out.cram",
          "--sort-mem-mb", "8000"], 2, (), id="io-cram-has-no-sort-memory-knob",
     ),
+    # Which records the archive is OF is a closed set of names, not a filter the caller spells: a
+    # misspelling is refused at the gate rather than silently cutting a different archive. Argv alone
+    # decides it, before the assembly reaches a genome store this box may not have.
+    pytest.param(
+        ["io", "cram", "--bam", "in.bam", "--assembly", "hg38", "--out", "out.cram",
+         "--selection", "uniqe"], 2, (), id="io-cram-refuses-a-selection-it-does-not-define",
+    ),
+    # ONE verb builds both QC bundles, and which one is decided by the arguments: a droplet sample's
+    # `Solo.out` and feature list, or a plate cell's summaries. Mixing them is a caller who believes
+    # two things about what this sample is, and half a droplet pair is a caller who has said neither
+    # — both refused at the gate, because the alternative is a bundle whose shape nobody chose. Argv
+    # alone decides all three, before any file is opened.
+    pytest.param(
+        ["io", "qc-bundle", "--run-dir", "S1", "--sample", "S1", "--out", "S1.qc.json.gz",
+         "--solo-dir", "S1/Solo.out", "--extract", "S1.umi-extract.json"], 2, (),
+        id="io-qc-bundle-refuses-a-droplet-and-a-plate-argument-together",
+    ),
+    pytest.param(
+        ["io", "qc-bundle", "--run-dir", "S1", "--sample", "S1", "--out", "S1.qc.json.gz",
+         "--solo-dir", "S1/Solo.out"], 2, (),
+        id="io-qc-bundle-refuses-half-a-droplet-pair",
+    ),
+    pytest.param(
+        ["io", "qc-bundle", "--run-dir", "S1", "--sample", "S1", "--out", "S1.qc.json.gz"], 2, (),
+        id="io-qc-bundle-refuses-a-plate-cell-with-no-extraction-summary",
+    ),
     # Each cell's BAM arrives with the sample id that names its h5ad row, so a bare path is a bad
     # invocation — refused before the assembly is looked up, since a typo should not first cost a
     # genome resolution that may not be possible on this host at all.
@@ -2061,6 +2087,46 @@ def test_umi_extract_refuses_two_runs_whose_totals_agree_and_whose_files_do_not(
     assert result.exit_code == 3
     assert "runa_R2.fastq.gz" in result.stderr
     assert "paired by position" in result.stderr  # the existing refusal, applied within one pair
+
+
+def test_qc_bundle_builds_the_plate_shape_when_the_droplet_arguments_are_absent(
+    tmp_path: Path,
+) -> None:
+    """One verb, two shapes, and ABSENCE is what selects the plate one.
+
+    The twins' rule renders no `--solo-dir` and no `--features`, so their absence has to reach the
+    plate builder — and this is the only place that wiring is legible. The rendered plan proves the
+    command the rule writes and `tests/test_workflows.py` proves the bundle's key space; between
+    them sits the branch, and a verb that fell through to the droplet builder would exit 3 over a
+    `Solo.out` that is not there, which reads as a missing file rather than as the wrong shape.
+
+    Read back through the reader that the report uses, because a written file nobody can resolve a
+    column out of is the failure a `written` line on stdout cannot see.
+    """
+    from seqforge.workflows.h5ad import STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRESS_LOGS
+    from seqforge.workflows.qc import QC_SUFFIX, read_plate_metrics
+    from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
+
+    cell = tmp_path / "cell_42"
+    cell.mkdir()
+    extract = cell / f"cell_42{EXTRACT_SUFFIX}"
+    extract.write_text(json.dumps({"sample": "cell_42", "fragments": 40, "tagged": 10}))
+    (cell / STAR_FINAL_LOG).write_text(
+        "  Number of input reads |\t40\n  Uniquely mapped reads % |\t88.42%\n"
+    )
+    for name in STAR_PROGRESS_LOGS:
+        (cell / name).write_text("STAR version 2.7.11b\n")
+    (cell / STAR_JUNCTIONS).write_text("chrI\t100\t200\t1\t1\t1\t10\t2\t30\n")
+    out = tmp_path / f"cell_42{QC_SUFFIX}"
+
+    result = runner.invoke(app, ["io", "qc-bundle", "--run-dir", str(cell), "--sample", "cell_42",
+                                 "--extract", str(extract), "--out", str(out)])  # fmt: skip
+
+    assert result.exit_code == 0, result.stdout + result.stderr
+    assert json.loads(result.stdout)["written"] == str(out)
+    got = {m.key: m.value for m in read_plate_metrics(out, "cell_42").metrics}
+    assert got["extract_fragments"] == 40  # the absorbed extraction summary
+    assert got["uniquely_mapped"] == pytest.approx(0.8842)  # ...and the absorbed alignment log
 
 
 def test_umi_extract_refuses_a_run_whose_mate_the_table_does_not_carry(tmp_path: Path) -> None:

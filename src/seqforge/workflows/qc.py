@@ -1,11 +1,22 @@
-"""Bundle STARsolo's scattered stats + run logs into one gzipped JSON per sample.
+"""Bundle one sample's scattered stats + run logs into one gzipped JSON — a droplet one, or a cell's.
 
-This is a finalize step of ``map/starsolo``: once ``<sample>.h5ad`` captures the counts, STAR's small
-per-feature stat files, its knee-plot vectors, its run logs, and its splice-junction table are all
-that is worth keeping — and they are worth keeping, for a future experiment-level QC pass. STAR
+This is a finalize step of ``map/starsolo`` and of the two plate twins: once the counts are captured,
+the aligner's small stat files, its knee-plot vectors, its run logs and its junctions are all that is
+worth keeping — and they are worth keeping, for a future experiment-level QC pass. The aligner
 scatters them across ``Solo.out/<Feature>/`` and the sample directory as a dozen little text files;
 this collapses them into **one** self-describing ``<sample>.qc.json.gz`` and lets the rule that calls
 it ``temp()``-delete the originals.
+
+**Two builders, one suffix, one verb.** A droplet sample and a plate cell leave genuinely different
+files behind — one has a barcode whitelist, a cell filter and a knee vector, the other an extraction
+summary and, on a Chimera, a split summary — so the two key spaces are two functions rather than one
+with optional keys, which would push a "was this a plate?" branch into every reader path. What they
+share is the aligner's own run files, and that is a private helper both call rather than two copies.
+
+**The plate bundle summarizes the junctions; the droplet one stores the table.** The same artifact
+kind at eighty times the arity is not the same trade-off: a table per sample is small change for ten
+droplet samples and roughly a gigabyte for a 784-cell plate, on a file nothing downstream reads. So
+the twins keep the counts a junction table can be reduced to and the droplet bundle is unchanged.
 
 JSON (gzipped), not pickle, on purpose: a QC corpus that outlives any one code version must not be
 readable only by the exact class that wrote it. Text is portable, diffable, and language-agnostic;
@@ -19,22 +30,41 @@ from __future__ import annotations
 
 import gzip
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any, get_args
 
 from ..models.processing import SoloFeature
-from .h5ad import STAR_FINAL_LOG, _gene_axis, _stackable
-from .metrics import Finding, Metric, SampleStats, count, fmt_pct, fraction, knee_points
+from .h5ad import (
+    STAR_FINAL_LOG,
+    STAR_JUNCTIONS,
+    STAR_PROGRESS_LOGS,
+    _gene_axis,
+    _stackable,
+)
+from .metrics import (
+    Finding,
+    Metric,
+    SampleStats,
+    count,
+    fmt_pct,
+    fraction,
+    knee_points,
+    sequencing_saturation,
+)
+from .umite.extract import extract_metrics
 
-#: What ``rule qc_bundle`` names its output, per sample: ``<sample>.qc.json.gz``. Here rather than in
-#: ``starsolo.smk`` so the rule and the post-run reader both consume the name instead of restating it
-#: — the same discipline ``h5ad_suffixes`` keeps for the deliverables, and for the same reason: a
-#: suffix spelled in the rule and again in the reader is two owners, and the reader's copy fails
-#: silently (a report that finds nothing looks exactly like a pipeline that has not run). The shipped
-#: module imports it as of ``WORKFLOW_VERSION`` 2026.8.3, which is why this is public and why it is
-#: worth keeping public: adopting it there cost a version bump and an invalidated ``run_id`` for a
-#: change that altered no behaviour, and a repo-wide check now refuses the literal's return.
+#: What every ``rule qc_bundle`` names its output: ``<sample>.qc.json.gz``, per droplet sample and per
+#: plate cell. **One suffix for one artifact kind**, which is the same call the single verb behind
+#: them is: a reader meeting this name knows it holds one sample's QC and finds out which shape by
+#: reading it, rather than by a second suffix somebody has to keep in step with the first. Here rather
+#: than in ``starsolo.smk`` so the rule and the post-run reader both consume the name instead of
+#: restating it — the same discipline ``h5ad_suffixes`` keeps for the deliverables, and for the same
+#: reason: a suffix spelled in the rule and again in the reader is two owners, and the reader's copy
+#: fails silently (a report that finds nothing looks exactly like a pipeline that has not run). The
+#: shipped module imports it as of ``WORKFLOW_VERSION`` 2026.8.3, which is why this is public and why
+#: it is worth keeping public: adopting it there cost a version bump and an invalidated ``run_id``
+#: for a change that altered no behaviour, and a repo-wide check now refuses the literal's return.
 QC_SUFFIX = ".qc.json.gz"
 
 
@@ -106,6 +136,83 @@ def _read_lines(path: Path) -> list[str]:
     return [line for line in _read(path).splitlines() if line.strip()]
 
 
+def _payload(path: Path) -> dict[str, object]:
+    """One of the plate chain's small JSON summaries, as the mapping a bundle folds in VERBATIM.
+
+    Verbatim, and that is the whole design of the plate bundle: the extraction summary and the split
+    summary each have a pure ``payload -> metrics`` reader beside their own writer, so folding the
+    payload in unchanged keeps one owner of what each key means and leaves this file owning exactly
+    one new key per absorbed artifact. Re-deriving the numbers here would be a second reader of
+    somebody else's format, which is the drift this module is arranged to prevent.
+    """
+    payload = json.loads(_read(path))
+    if not isinstance(payload, dict):
+        raise QcError(f"{path} is not a JSON object; the step that wrote it did not finish")
+    return payload
+
+
+def _star_run_files(run_dir: Path) -> dict[str, object]:
+    """The aligner's end-of-run summary and its two progress logs — the half both bundles share.
+
+    A droplet sample and a plate cell hold genuinely different things, but every ``alignReads`` run
+    writes these three the same way, so they are parsed once here rather than in two builders that
+    could come to disagree about what a run log is. The filenames belong to the aligner-log constants
+    and are imported rather than spelled; the KEYS are this file's, because renaming one of those is
+    a change to the artifact's format.
+    """
+    parameter_dump, speed_table = STAR_PROGRESS_LOGS
+    return {
+        "log_final": _parse_log_final(_read(run_dir / STAR_FINAL_LOG)),
+        "log_out": _read(run_dir / parameter_dump),
+        "log_progress": _read(run_dir / speed_table),
+    }
+
+
+#: The ``SJ.out.tab`` columns the plate's junction summary reads, 0-based: the intron motif (``0`` is
+#: non-canonical), whether the junction is in the index's annotation, and the two read counts crossing
+#: it. Named because a bare ``fields[5]`` is unreadable and because a row shorter than the last of
+#: them is a row this cannot summarize.
+_SJ_MOTIF, _SJ_ANNOTATED, _SJ_UNIQUE, _SJ_MULTI = 4, 5, 6, 7
+
+
+def _summarise_sj(text: str) -> dict[str, int]:
+    """``SJ.out.tab`` reduced to the five counts a plate cell's junctions are worth keeping as.
+
+    **A summary and not the table**, which is the one deliberate asymmetry between the two bundles.
+    A cell at ~1M reads calls junctions nobody can analyze one cell at a time, and 784 of those
+    tables is roughly a gigabyte of a plate's deliverable that no reader opens; these counts are what
+    survives that, and they still answer the question a per-cell junction table was there for — how
+    much splicing this cell showed, and how much of it the annotation already knew.
+
+    A row too short to carry those columns, or carrying a value that is not an integer, is skipped
+    rather than raised on: this runs after the aligner exited 0, so a malformed row is a file some
+    other process touched, and losing one row's counts beats losing the bundle.
+    """
+    junctions = annotated = canonical = unique_reads = multi_reads = 0
+    for line in text.splitlines():
+        fields = line.split("\t")
+        if len(fields) <= _SJ_MULTI:
+            continue
+        try:
+            motif, known, unique, multi = (
+                int(fields[i]) for i in (_SJ_MOTIF, _SJ_ANNOTATED, _SJ_UNIQUE, _SJ_MULTI)
+            )
+        except ValueError:
+            continue
+        junctions += 1
+        annotated += known != 0
+        canonical += motif != 0
+        unique_reads += unique
+        multi_reads += multi
+    return {
+        "junctions": junctions,
+        "annotated": annotated,
+        "canonical": canonical,
+        "unique_reads": unique_reads,
+        "multi_reads": multi_reads,
+    }
+
+
 def build_qc_bundle(
     solo_dir: Path,
     run_dir: Path,
@@ -142,12 +249,54 @@ def build_qc_bundle(
             feat: _read_lines(solo_dir / feat / "filtered" / "barcodes.tsv")
             for feat in _gene_axis(features)
         },
-        "log_final": _parse_log_final(_read(run_dir / STAR_FINAL_LOG)),
-        "log_out": _read(run_dir / "Log.out"),
-        "log_progress": _read(run_dir / "Log.progress.out"),
-        "splice_junctions": _parse_sj(_read(run_dir / "SJ.out.tab")),
+        **_star_run_files(run_dir),
+        # The TABLE, and only here. A handful of droplet samples can afford one each, and the plate
+        # bundle beside it keeps the counts instead — the arity is the whole difference.
+        "splice_junctions": _parse_sj(_read(run_dir / STAR_JUNCTIONS)),
     }
     return bundle
+
+
+def build_plate_qc_bundle(
+    run_dir: Path,
+    *,
+    sample: str,
+    assembly: str | None,
+    extract: Path,
+    split: Path | None = None,
+) -> dict[str, object]:
+    """Every artifact one plate CELL left behind, as one JSON-serialisable dict.
+
+    ``run_dir`` is the cell's own directory — a cell IS a sample on the twins — holding the aligner's
+    run files. ``extract`` is the summary the extraction wrote a rule earlier, and ``split`` is the
+    chimeric twin's account of what left for which Component; both are folded in verbatim under one
+    key each, so their own readers stay the only code that knows what their keys mean.
+
+    ``split`` is ABSENT for a plain plate rather than empty, because there was no split: an absent
+    key and an empty one are different claims and only one of them is a measurement.
+
+    ``assembly`` is recorded for CRAM-reference provenance, as in the droplet bundle — a cell's two
+    archives pin the exact reference bytes by MD5 and this names which assembly that is. On a
+    chimeric run it is the Chimera, which is what the aligner was pointed at.
+    """
+    bundle: dict[str, object] = {
+        "sample": sample,
+        "assembly": assembly,
+        "extract": _payload(extract),
+        **_star_run_files(run_dir),
+        "splice_junction_summary": _summarise_sj(_read(run_dir / STAR_JUNCTIONS)),
+    }
+    if split is not None:
+        bundle["split"] = _payload(split)
+    return bundle
+
+
+def _dump(bundle: Mapping[str, object], out: Path) -> Path:
+    """Write one bundle as gzipped JSON to ``out``. Returns ``out``."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(out, "wt", encoding="utf-8") as fh:
+        json.dump(bundle, fh)
+    return out
 
 
 def write_qc_bundle(
@@ -159,20 +308,38 @@ def write_qc_bundle(
     sample: str,
     assembly: str | None = None,
 ) -> Path:
-    """Build the bundle and write it as gzipped JSON to ``out``. Returns ``out``."""
-    bundle = build_qc_bundle(solo_dir, run_dir, features, sample=sample, assembly=assembly)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with gzip.open(out, "wt", encoding="utf-8") as fh:
-        json.dump(bundle, fh)
-    return out
+    """Build the droplet bundle and write it as gzipped JSON to ``out``. Returns ``out``."""
+    return _dump(
+        build_qc_bundle(solo_dir, run_dir, features, sample=sample, assembly=assembly), out
+    )
+
+
+def write_plate_qc_bundle(
+    run_dir: Path,
+    out: Path,
+    *,
+    sample: str,
+    assembly: str | None = None,
+    extract: Path,
+    split: Path | None = None,
+) -> Path:
+    """Build one plate cell's bundle and write it as gzipped JSON to ``out``. Returns ``out``."""
+    return _dump(
+        build_plate_qc_bundle(
+            run_dir, sample=sample, assembly=assembly, extract=extract, split=split
+        ),
+        out,
+    )
 
 
 # ---- reading the bundle back --------------------------------------------------------------------
 #
-# The other half of the format contract, deliberately in this file. `build_qc_bundle` above decides
-# which STAR file lands under which key; everything below looks those keys up. Split across two
-# modules they would drift silently — a renamed key would keep writing and quietly stop reading, and
-# the page would lose a metric with nothing failing. Here, one file changes or one file breaks.
+# The other half of the format contract, deliberately in this file. The two builders above decide
+# which file lands under which key; everything below looks those keys up. Split across two modules
+# they would drift silently — a renamed key would keep writing and quietly stop reading, and the page
+# would lose a metric with nothing failing. Here, one file changes or one file breaks. That is also
+# why the plate reader lives beside the plate builder rather than beside the fan-in it reports with:
+# the pairing is per ARTIFACT, not per pipeline.
 
 
 def _as_number(value: object) -> float | None:
@@ -504,14 +671,7 @@ def metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
                 exact=True,
                 hint="Distinct genes with at least one count across all cells.",
             ),
-            fraction(
-                "saturation",
-                "Sequencing saturation",
-                _summary_get(summary, feature, "Sequencing Saturation"),
-                group="duplication",
-                hint="Share of reads that were a repeat of a molecule already seen. Not a pass/fail "
-                "— it says whether sequencing deeper would find anything new.",
-            ),
+            sequencing_saturation(_summary_get(summary, feature, "Sequencing Saturation")),
             fraction(
                 "q30_cb_umi",
                 "Q30 in CB+UMI",
@@ -586,6 +746,54 @@ def read_metrics(path: Path, sample: str) -> SampleStats:
     if not isinstance(bundle, Mapping):
         raise ValueError(f"{path} is not a QC bundle object")
     return metrics(bundle, sample)
+
+
+def plate_metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
+    """One plate cell's bundle -> its report row: the extraction, then the alignment, then the split.
+
+    **Pure**, like :func:`metrics`, and composed rather than written: each absorbed artifact keeps its
+    own ``payload -> metrics`` function beside its own writer, and this hands each one the payload the
+    builder folded in. So a column means the same thing whether it reached the page through a cell's
+    bundle or, as it did before the bundle existed, through the file itself.
+
+    In pipeline order, which is the order a reader wants to walk a cell in — what the FASTQs held and
+    how much of it carried a tag, what the aligner then did with those reads, and what left at the
+    split. A payload the bundle does not carry costs its columns and nothing else: a plain plate has
+    no split, and an older bundle may have no key a newer reader looks for.
+    """
+    # Imported HERE and not at the top of this file: the splitter reaches for the genome package
+    # while it is imported, and that package is not a dependency of the wheel — so spelling it above
+    # would make every droplet run's bundle verb, which has nothing to do with a Chimera, need an
+    # install it never needed before.
+    from .split import split_metrics
+
+    def chapter(key: str, adapter: Callable[[Mapping[str, Any], str], SampleStats]) -> list[Metric]:
+        payload = bundle.get(key)
+        return adapter(payload, sample).metrics if isinstance(payload, Mapping) else []
+
+    log_final = bundle.get("log_final")
+    return SampleStats(
+        sample_id=sample,
+        metrics=[
+            *chapter("extract", extract_metrics),
+            *(alignment_metrics(log_final) if isinstance(log_final, Mapping) else []),
+            *chapter("split", split_metrics),
+        ],
+    )
+
+
+def read_plate_metrics(path: Path, sample: str) -> SampleStats:
+    """Load one plate cell's ``<sample>.qc.json.gz`` and normalise it.
+
+    The thin half of the adapter, in the shape :func:`read_metrics` established: loading lives here so
+    the registry hands over a path and gets metrics back, and the judgement lives in
+    :func:`plate_metrics`, which needs no file to test.
+    """
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        bundle = json.load(fh)
+    if not isinstance(bundle, Mapping):
+        raise ValueError(f"{path} is not a QC bundle object")
+    return plate_metrics(bundle, sample)
 
 
 def read_star_log(path: Path, sample: str) -> SampleStats:
@@ -852,11 +1060,15 @@ __all__ = [
     "QcError",
     "alignment_metrics",
     "chemistry_rule",
+    "build_plate_qc_bundle",
     "build_qc_bundle",
     "gene_model_rule",
     "metrics",
+    "plate_metrics",
     "read_metrics",
+    "read_plate_metrics",
     "read_star_log",
     "solo_features_rule",
+    "write_plate_qc_bundle",
     "write_qc_bundle",
 ]

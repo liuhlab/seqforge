@@ -662,11 +662,13 @@ def _pipeline_stats(
 ) -> PipelineStats | None:
     """The finished pipeline's per-sample metrics, or ``None`` when there is nothing on disk to read.
 
-    Three facts, and all three are :class:`~seqforge.pipeline.CompiledPipeline`'s to answer rather
-    than this module's to re-derive: WHICH module ran, WHERE its outputs went, and WHICH samples it
-    was contracted to produce. That last one comes from the config the pipeline itself consumed and
-    never from a listing of the results tree, which is what makes a *partial* pipeline legible — a
-    listing can only say what finished, never what is missing.
+    Four facts, and all four are :class:`~seqforge.pipeline.CompiledPipeline`'s to answer rather
+    than this module's to re-derive: WHICH module ran, WHERE its outputs went, WHICH samples it
+    was contracted to produce, and — for a run against a **Chimera** — which **Component**s its
+    deliverable was demanded once per. The sample list comes from the config the pipeline itself
+    consumed and never from a listing of the results tree, which is what makes a *partial* pipeline
+    legible — a listing can only say what finished, never what is missing; the Component list comes
+    from the same config, and for the same reason.
 
     ``results_dir`` overrides the second: a pipeline run with ``snakemake --directory`` put its
     outputs somewhere this workspace cannot know, and that is a machine fact, so it arrives as a flag
@@ -695,7 +697,7 @@ def _pipeline_stats(
     from ..workflows.stats import read_pipeline_stats
 
     try:
-        return read_pipeline_stats(module, where, samples)
+        return read_pipeline_stats(module, where, samples, pipeline.components)
     except OSError:
         return None
 

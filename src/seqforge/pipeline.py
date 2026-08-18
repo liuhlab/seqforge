@@ -171,6 +171,20 @@ class CompiledPipeline:
         return [str(s) for s in declared] if isinstance(declared, list) else []
 
     @property
+    def components(self) -> list[str]:
+        """The **Component**s of the **Chimera** this pipeline was composed against, in config order.
+
+        ``[]`` for a run against a plain assembly, which is every run but a chimeric one — the key is
+        written only when the composer swapped in a chimera-aware twin, and the twin's own
+        ``rule all`` reads it to demand one object per Component. Read from the same place that rule
+        reads it, so a reader asking what was demanded and the pipeline that was told to produce it
+        are looking at one list rather than two.
+        """
+        genome = self.config.get("genome")
+        declared = genome.get("components") if isinstance(genome, dict) else None
+        return [str(c) for c in declared] if isinstance(declared, list) else []
+
+    @property
     def results_dir(self) -> Path:
         """Where the pipeline wrote its per-sample outputs: the config's ``outdir``, joined onto here.
 

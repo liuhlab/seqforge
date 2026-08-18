@@ -167,11 +167,24 @@ def _gene_axis(features: Sequence[SoloFeature]) -> list[SoloFeature]:
 #: rename that reaches every one of them or fails at import instead of silently at runtime.
 STAR_FINAL_LOG = "Log.final.out"
 
+#: The collapsed splice-junction table. Its own constant because its FATE is decided per module and
+#: the filename is not: bulk depth makes a junction call analyzable, so ``map/star`` declares this as
+#: a kept output of its mapping rule, while one plate cell's junctions are noise at ~1M reads and the
+#: droplet module folds them into its stats bundle instead.
+STAR_JUNCTIONS = "SJ.out.tab"
+
+#: The two logs STAR writes as a run PROCEEDS — the parameter dump it opens with, and the periodic
+#: speed table. Their own constant because they are the members of :data:`STAR_LOG_FILES` whose fate
+#: is NOT a per-module judgement: nothing reads either one once the run is over, so every module that
+#: declares them declares them ``temp()`` and a finished run has neither.
+STAR_PROGRESS_LOGS: tuple[str, ...] = ("Log.out", "Log.progress.out")
+
 #: STAR's per-run log/table files, written beside ``Solo.out`` at ``{OUTDIR}/{sample}/`` (not per
 #: feature). The alignment (:data:`STAR_BAM`) is deliberately **not** here: it is the CRAM rule's
 #: input, declared on its own, while these four are the stats bundle's. All are written by every
-#: ``alignReads`` run.
-STAR_LOG_FILES: tuple[str, ...] = (STAR_FINAL_LOG, "Log.out", "Log.progress.out", "SJ.out.tab")
+#: ``alignReads`` run. Assembled from the three constants above rather than spelled again, so the
+#: bundle's input list and the modules' per-file decisions cannot come to name different files.
+STAR_LOG_FILES: tuple[str, ...] = (STAR_FINAL_LOG, *STAR_PROGRESS_LOGS, STAR_JUNCTIONS)
 
 #: The coordinate-sorted alignment STAR writes under ``{OUTDIR}/{sample}/``. Its own constant because
 #: exactly one rule (``solo_to_cram``) consumes it, and the file naming has to come from somewhere.
@@ -467,7 +480,9 @@ __all__ = [
     "SOLO_FEATURE_OUTPUT",
     "STAR_BAM",
     "STAR_FINAL_LOG",
+    "STAR_JUNCTIONS",
     "STAR_LOG_FILES",
+    "STAR_PROGRESS_LOGS",
     "h5ad_suffixes",
     "raw_files",
     "solo_filtered_files",

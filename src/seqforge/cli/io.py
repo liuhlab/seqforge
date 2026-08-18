@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import cast
+from typing import NoReturn, cast
 
 import typer
 
 from ..io import DEFAULT_REGISTRY, HF_BENCHMARK_REPO, Orientation, default_registry
 from ..io.remote import NotYetImplemented, peek, resolve_accession
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
+from ..workflows.cram import CramError, RecordSelection, bam_to_cram
 from ..workspace import records_dir
 from ._common import _today
 from .root import io_app, onlist_app
@@ -204,45 +205,79 @@ def io_h5ad(
 
 @io_app.command("qc-bundle")
 def io_qc_bundle(
-    solo_dir: Path = typer.Option(..., "--solo-dir", help="A STARsolo `Solo.out` directory."),
     run_dir: Path = typer.Option(
         ..., "--run-dir", help="The sample directory holding STAR's Log.*.out / SJ.out.tab."
-    ),
-    features: str = typer.Option(
-        ..., "--features", help="The run's --soloFeatures, space-separated."
     ),
     sample: str = typer.Option(..., "--sample", help="Sample id, recorded in the bundle."),
     out: Path = typer.Option(..., "--out", help="Output path for the gzipped JSON bundle."),
     assembly: str | None = typer.Option(
         None, "--assembly", help="UCSC assembly id, recorded for CRAM-reference provenance."
     ),
+    solo_dir: Path | None = typer.Option(
+        None, "--solo-dir", help="A STARsolo `Solo.out` directory. Droplet runs only."
+    ),
+    features: str | None = typer.Option(
+        None, "--features", help="The run's --soloFeatures, space-separated. Droplet runs only."
+    ),
+    extract: Path | None = typer.Option(
+        None, "--extract", help="One plate cell's UMI-extraction summary. Plate runs only."
+    ),
+    split: Path | None = typer.Option(
+        None, "--split", help="One plate cell's chimera split summary. Chimeric plate runs only."
+    ),
 ) -> None:
-    """Bundle STARsolo's stats + run logs into one gzipped JSON — a finalize step of the pipeline.
+    """Bundle one sample's stats + run logs into one gzipped JSON — a finalize step of the pipeline.
 
-    Called by `starsolo.smk`'s `qc_bundle` rule (a `shell:`, so compose's wiring gate sees it). Exit 3
-    if a file STAR was supposed to write is missing.
+    ONE verb for one artifact kind, with one suffix and one owner. `--solo-dir` and `--features` are
+    a droplet sample's, `--extract` and `--split` are a plate cell's, and which pair is given decides
+    which bundle is built — a second verb would be a second surface for one artifact. Called by the
+    `qc_bundle` rule of `starsolo.smk` and of both plate twins (a `shell:`, so compose's wiring gate
+    sees it). Exit 2 on a mixed or incomplete pair, exit 3 if a file the pipeline was supposed to
+    write is missing.
     """
     from ..models.processing import SoloFeature
     from ..workflows.h5ad import SOLO_FEATURE_OUTPUT
-    from ..workflows.qc import QcError, write_qc_bundle
+    from ..workflows.qc import QcError, write_plate_qc_bundle, write_qc_bundle
 
-    requested = features.split()
-    unknown = [f for f in requested if f not in SOLO_FEATURE_OUTPUT]
-    if unknown:
-        typer.echo(
-            json.dumps({"error": f"unknown --soloFeatures value(s): {sorted(set(unknown))}"}),
-            err=True,
-        )
+    def refuse(message: str) -> NoReturn:
+        typer.echo(json.dumps({"error": message}), err=True)
         raise typer.Exit(2)
-    try:
-        written = write_qc_bundle(
-            solo_dir,
-            run_dir,
-            cast(list[SoloFeature], requested),
-            out,
-            sample=sample,
-            assembly=assembly,
+
+    droplet = [n for n, v in (("--solo-dir", solo_dir), ("--features", features)) if v is not None]
+    plate = [n for n, v in (("--extract", extract), ("--split", split)) if v is not None]
+    if droplet and plate:
+        refuse(
+            f"{droplet} is a droplet sample's and {plate} a plate cell's; "
+            f"one bundle is one shape or the other"
         )
+    if droplet and len(droplet) < 2:
+        refuse("a droplet bundle needs both --solo-dir and --features")
+    if not droplet and extract is None:
+        refuse("a plate bundle needs --extract, the cell's UMI-extraction summary")
+
+    try:
+        if solo_dir is not None and features is not None:
+            requested = features.split()
+            unknown = [f for f in requested if f not in SOLO_FEATURE_OUTPUT]
+            if unknown:
+                refuse(f"unknown --soloFeatures value(s): {sorted(set(unknown))}")
+            written = write_qc_bundle(
+                solo_dir,
+                run_dir,
+                cast(list[SoloFeature], requested),
+                out,
+                sample=sample,
+                assembly=assembly,
+            )
+        else:
+            written = write_plate_qc_bundle(
+                run_dir,
+                out,
+                sample=sample,
+                assembly=assembly,
+                extract=cast(Path, extract),
+                split=split,
+            )
     except QcError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc
@@ -306,6 +341,12 @@ def io_cram(
     assembly: str = typer.Option(..., "--assembly", help="UCSC assembly id; the CRAM reference."),
     out: Path = typer.Option(..., "--out", help="Output CRAM path ('.crai' is written beside it)."),
     threads: int = typer.Option(1, "--threads", help="samtools view/index threads."),
+    selection: RecordSelection = typer.Option(
+        RecordSelection.primary,
+        "--selection",
+        help="Which records the archive is of: primary (default) | mapped (also drops what never "
+        "aligned) | unique | multi (the two halves of the mappability partition).",
+    ),
 ) -> None:
     """Encode STAR's coordinate-sorted BAM as a CRAM against the liulab-genome reference.
 
@@ -313,9 +354,13 @@ def io_cram(
     the assembly id via `liulab-genome` (never a baked path), exactly as `rule genome_index` resolves
     the STAR index. Exit 3 on a samtools failure or an unresolvable reference.
 
+    `--selection` names which records the archive is of, and it defaults to what this verb has always
+    written: primary alignments. A caller wanting a narrower archive — the mapped records, or one side
+    of the mappability partition — names one instead of building a pipe beside this one.
+
     **It sorts nothing, and there is no memory knob, because there is no longer a sort.** The module
     asks STAR for `BAM SortedByCoordinate` — the only output STAR will put `CB`/`UB` in — so the BAM
-    arrives in order and what remains is a streaming pipe: drop the secondary alignments, rewrite each
+    arrives in order and what remains is a streaming pipe: keep the selected records, rewrite each
     read name to `r<N>`, encode CRAM. Nothing here buffers, so nothing here needs a budget. That
     deleted a whole re-sort pass over every BAM, and with it the `samtools.<pid>.<tid>.tmp.*` files a
     killed sort left in the pipeline directory: they were undeclared outputs, so snakemake could not
@@ -323,8 +368,6 @@ def io_cram(
     snakemake-owned directory would have fixed that too; a step that cannot leak beats a step that
     must be configured not to.
     """
-    from ..workflows.cram import CramError, bam_to_cram
-
     try:
         from genome import (
             Genome,  # untyped lab package; resolved here, off the strict workflow path
@@ -334,7 +377,7 @@ def io_cram(
         raise typer.Exit(3) from exc
     try:
         fasta = Path(str(Genome(assembly).fasta_path))
-        written = bam_to_cram(bam, fasta, out, threads=threads)
+        written = bam_to_cram(bam, fasta, out, threads=threads, selection=selection)
     except CramError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc

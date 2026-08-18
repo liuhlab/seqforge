@@ -9,19 +9,37 @@ already owns all refuse it, and a retained CRAM inherits the misspelling permane
 the undo — one pass over the chimeric BAM, one output per component, each carrying the chromosome
 names, the ``@SQ`` order and the lengths its own assembly declares.
 
-**The keep rule is one sentence: a mapped, uniquely-placed, primary alignment.** Four discard
-categories fall under it — ``NH > 1``, unmapped, secondary, supplementary — and each is counted
-separately even though only the first can occur under the flags the aligner runs with today.
-Counting them apart is what lets the rule degrade legibly when a flag changes: a category that
-starts firing says so in the summary, instead of quietly moving reads. Unmapped in particular is
-DROPPED rather than passed through — such a record's ``RNEXT`` still names its mate's *suffixed*
-chromosome, so rewriting ``RNAME`` alone would leave the pointer aimed at a sequence this output's
-header does not contain.
+**The keep rule is one sentence: a mapped, primary alignment.** Three discard categories fall under
+it — unmapped, secondary, supplementary — and each is counted separately even though only the first
+can occur under the flags the aligner runs with today. Counting them apart is what lets the rule
+degrade legibly when a flag changes: a category that starts firing says so in the summary, instead
+of quietly moving reads. Unmapped in particular is DROPPED rather than passed through — such a
+record's ``RNEXT`` still names its mate's *suffixed* chromosome, so rewriting ``RNAME`` alone would
+leave the pointer aimed at a sequence this output's header does not contain — and dropping it is why
+a chimeric object's unmapped fate reads structurally zero, with this summary the only place a
+chimeric run reports the number at all.
+
+**A fragment placed at more than one locus is NOT a discard category.** It is routed by its
+representative record's Component and kept, MARKED rather than dropped: the record already carries
+the aligner's hit-count tag, and that tag is what the counter downstream reads. Separating the two
+populations therefore costs no intermediate artifact here and puts no Chimera concept there. What is
+lost by keeping them is nothing that was ever measured — a read ambiguous across organisms is
+indistinguishable from a within-organism repeat on one emitted record, so the Component a
+multiply-placed record is filed under is its representative's and says nothing about the rest of the
+locus set.
 
 **The unit is the record, and nothing is held.** Both mates of a template carry the same ``NH`` (it
 counts placements of the template, not of one mate) and sit on the same chromosome, so a stateless
 per-record filter keeps a template together by construction. No name sort, no buffer, and a
 ten-million-record BAM streams.
+
+**A pair is not always whole, and the survivor is kept.** Where only one mate aligned, the record
+that did carries the mate-unmapped flag and has no partner beside it in the output: a **singleton**,
+by construction, since an unmapped mate is not in the file as an alignment. It is real evidence, and
+discarding it would cost the rarer organism most — its fragments are shorter and far more
+soft-clipped, and its share is the number a chimeric run exists to produce. So a singleton is kept,
+counted on the mate side it was kept on, and subtracted from that side before first and second mates
+are compared.
 
 **The work is a pure function of ``(bam, outputs, separator)`` and nothing else** — no ``Genome``
 call, no reference FASTA, no ``chrom.sizes``. Names, order AND lengths all come off the BAM's own
@@ -43,12 +61,17 @@ identity with a single-assembly run: the aligner's ``@PG …CL:`` and its ``@CO 
 both embed ``--genomeDir``, so identity would mean writing down a command line nobody ran. The bar is
 ``@SQ`` plus ``@HD``, and the aligner's own lines keep saying truthfully what produced the alignment.
 
-**Two runtime checks, because the two facts underneath this design were read off the aligner's
-source and nobody has yet watched them hold on a real chimera.** The mate sits on this record's own
-component, checked per record; and each output kept as many first mates as second, checked once at
-the end. Neither is here to catch a bug in this module — the first turns an opaque dictionary lookup
-failure into a refusal that names the read and both components, and the second turns a silently
-halved output into one that says so.
+**Three runtime checks, because the facts underneath this design were read off the aligner's source
+rather than watched on a real chimera.** The mate sits on this record's own component, checked per
+record. Each output's PAIRED REMAINDER balances — first and second mates, each less that side's own
+singletons — checked once at the end. And the singleton count is derived a SECOND, independent way
+and the two are compared: asked to emit what it could not place, the aligner writes a dead mate as a
+placeless record at its live mate's coordinates, so that record names a Component too, and there
+must be exactly as many of them per Component as there are singletons. None of the three is here to
+catch a bug in this module — the first turns an opaque dictionary lookup failure into a refusal that
+names the read and both components, the second turns a silently halved output into one that says so,
+and the third costs one more counter, no buffer, and is strictly stronger than comparing raw mate
+counts was, since a whole population disappearing from the file would leave those counts balanced.
 """
 
 from __future__ import annotations
@@ -70,17 +93,20 @@ from .metrics import count as count_metric
 if TYPE_CHECKING:  # pragma: no cover — a runtime dep; keeps the import cost off compose
     from pysam import AlignedSegment, AlignmentHeader
 
-#: What one split's summary is called, under the cell's own directory. **Public because it has a
-#: reader as well as a writer**, which is the line ``fragments.QC_SUFFIX`` already draws: the rule
-#: declares the file by importing this, and whatever reads the counts back finds them by importing
-#: the same name. A second spelling anywhere is the one that fails in silence — a reader that finds
-#: nothing looks exactly like a split that never ran, so nothing raises and nobody is told.
+#: What one split's summary is called, under the cell's own directory. **Public because more than one
+#: rule names it**, which is the line ``fragments.QC_SUFFIX`` already draws: the rule that writes it
+#: and the rule that folds it into that cell's QC bundle both declare the path by importing this. A
+#: second spelling anywhere is the one that fails in silence — a consumer that finds nothing looks
+#: exactly like a split that never ran, so nothing raises and nobody is told.
+#:
+#: The file itself is reclaimed once the bundle carries it, so what OUTLIVES a run is the payload
+#: :func:`split_metrics` reads out of that bundle rather than this file.
 SPLIT_SUFFIX = ".split.json"
 
 #: Why a record was not kept, in the order the keep rule tests for them. Public because it is the
 #: summary payload's key space: a reader that meets a reason it does not know is reading a newer
 #: split, and one that misses a reason is reading a payload written before that reason existed.
-DROP_REASONS = ("unmapped", "secondary", "supplementary", "multimapping")
+DROP_REASONS = ("unmapped", "secondary", "supplementary")
 
 #: The ``@PG`` record this module appends. One identifier, spelled once, because it is also what a
 #: later reader would look the line up by.
@@ -101,20 +127,34 @@ class SplitStats:
     separator: str
     records_in: int
     kept: dict[str, int]
-    #: First and second mates per output, kept apart rather than summed. Their equality is the check
-    #: that a keep rule testing one mate flag cannot pass, and it is unreadable once added together.
+    #: First and second mates per output, kept apart rather than summed. What is checked is their
+    #: PAIRED REMAINDER — each less its own singletons — and neither half of that is readable once
+    #: the two are added together.
     read1: dict[str, int]
     read2: dict[str, int]
+    #: Kept records the aligner placed at more than one locus, per output. A SHARE of ``kept``
+    #: rather than a category beside it: these records are in the BAM, marked by the hit-count tag
+    #: they carry, and this is the number that says how much of a Component's kept signal is
+    #: ambiguous without anyone re-reading the file to find out.
+    multiplaced: dict[str, int]
+    #: Kept records whose mate did not align, per output — a singleton has no partner in the file,
+    #: which is why first and second mates may legitimately differ. Its own line rather than folded
+    #: into a drop category, because nothing was dropped: the survivor is evidence and was kept.
+    singletons: dict[str, int]
     dropped: dict[str, int]
 
     def to_dict(self) -> dict[str, object]:
         """The summary payload — what the verb prints AND what lands on disk, one shape.
 
-        Every component that was asked for appears in ``kept``/``read1``/``read2`` even at zero, and
+        Every component that was asked for appears in every per-output account even at zero, and
         every reason appears in ``dropped`` even at zero: an absent key and a zero are different
         claims, and only one of them is a measurement. The seqforge version is stamped here rather
         than passed in, because it is provenance about the code that produced the numbers and is not
         something a caller can hold a stale copy of.
+
+        Every kept count plus every drop count is exactly ``records_in``. ``multiplaced`` and
+        ``singletons`` do NOT enter that sum — they are subsets of ``kept``, describing the records
+        that are in the outputs rather than a fate that took records out of them.
         """
         return {
             "seqforge": __version__,
@@ -123,6 +163,8 @@ class SplitStats:
             "kept": dict(sorted(self.kept.items())),
             "read1": dict(sorted(self.read1.items())),
             "read2": dict(sorted(self.read2.items())),
+            "multiplaced": dict(sorted(self.multiplaced.items())),
+            "singletons": dict(sorted(self.singletons.items())),
             "dropped": {reason: self.dropped[reason] for reason in DROP_REASONS},
         }
 
@@ -325,6 +367,15 @@ def split_chimera(
     kept: Counter[str] = Counter()
     read1: Counter[str] = Counter()
     read2: Counter[str] = Counter()
+    multiplaced: Counter[str] = Counter()
+    # Singletons by the mate side they were kept on, because the remainder check subtracts each
+    # side's own; their sum per Component is what the summary carries and what the second
+    # derivation below has to reproduce.
+    singleton1: Counter[str] = Counter()
+    singleton2: Counter[str] = Counter()
+    # The second derivation: placeless records whose mate DID align, per Component. Every counter
+    # here is one integer per output, so nothing grows with the input.
+    dead_mates: Counter[str] = Counter()
     dropped: Counter[str] = Counter({reason: 0 for reason in DROP_REASONS})
     records_in = 0
 
@@ -356,18 +407,19 @@ def split_chimera(
                 records_in += 1
                 if record.is_unmapped:
                     dropped["unmapped"] += 1
+                    # ...and, on its way out, the second derivation of the singleton count. Asked to
+                    # emit what it could not place, the aligner writes a dead mate at its LIVE
+                    # mate's coordinates, so this record names the Component its partner landed on
+                    # even though nothing placed it. A record whose mate is unmapped too names no
+                    # Component and is no fragment's survivor, so it is not one of these.
+                    if not record.mate_is_unmapped and record.reference_id >= 0:
+                        dead_mates[owner[record.reference_id]] += 1
                     continue
                 if record.is_secondary:
                     dropped["secondary"] += 1
                     continue
                 if record.is_supplementary:
                     dropped["supplementary"] += 1
-                    continue
-                # No NH is one placement: the tag is the aligner's statement that a read went
-                # somewhere else too, and its absence is not a missing measurement.
-                hits = int(record.get_tag("NH")) if record.has_tag("NH") else 1
-                if hits > 1:
-                    dropped["multimapping"] += 1
                     continue
 
                 component = owner[record.reference_id]
@@ -382,21 +434,52 @@ def split_chimera(
                 header_out, tids = restored[component]
                 writers[component].write(_rewritten(record, header_out, tids))
                 kept[component] += 1
+                # No NH is one placement: the tag is the aligner's statement that a read went
+                # somewhere else too, and its absence is not a missing measurement. It marks the
+                # record rather than removing it, so this is a count of what is IN the output.
+                if record.has_tag("NH") and int(record.get_tag("NH")) > 1:
+                    multiplaced[component] += 1
                 if record.is_read1:
                     read1[component] += 1
+                    if record.mate_is_unmapped:
+                        singleton1[component] += 1
                 if record.is_read2:
                     read2[component] += 1
+                    if record.mate_is_unmapped:
+                        singleton2[component] += 1
         finally:
             for writer in writers.values():
                 writer.close()
 
-    torn = {c: (read1[c], read2[c]) for c in sorted(outputs) if read1[c] != read2[c]}
+    singletons = {component: singleton1[component] + singleton2[component] for component in outputs}
+
+    torn = {
+        c: (read1[c] - singleton1[c], read2[c] - singleton2[c])
+        for c in sorted(outputs)
+        if read1[c] - singleton1[c] != read2[c] - singleton2[c]
+    }
     if torn:
         raise SplitError(
-            f"these outputs kept a different number of first and second mates, as "
-            f"component: (read1, read2) — {torn}. Both mates of a template carry one NH and sit on "
-            f"one chromosome, so a stateless filter keeps them together; a difference means that "
-            f"assumption is false for this aligner, and the split is not the thing to trust"
+            f"these outputs kept a different number of first and second mates once each side's own "
+            f"singletons were subtracted, as component: (paired read1, paired read2) — {torn}. A "
+            f"record whose mate did not align has no partner in this file and says so on its own "
+            f"flag, so it is taken off its own side first; what is left is whole pairs, and both "
+            f"mates of one carry a single hit count and sit on one chromosome, so a stateless "
+            f"filter keeps them together. A remainder that does not balance means that assumption "
+            f"is false for this aligner, and the split is not the thing to trust"
+        )
+
+    disagreed = {
+        c: (singletons[c], dead_mates[c]) for c in sorted(outputs) if singletons[c] != dead_mates[c]
+    }
+    if disagreed:
+        raise SplitError(
+            f"the fragments that half aligned were counted two ways and the two disagree, as "
+            f"component: (survivors carrying the mate-unmapped flag, placeless records whose mate "
+            f"did align) — {disagreed}. They are one population seen from either end, so the "
+            f"likeliest cause is an aligner that was never asked to write out what it could not "
+            f"place: with those records absent the second count is zero and nothing else here "
+            f"would say so"
         )
 
     stats = SplitStats(
@@ -405,6 +488,8 @@ def split_chimera(
         kept={component: kept[component] for component in outputs},
         read1={component: read1[component] for component in outputs},
         read2={component: read2[component] for component in outputs},
+        multiplaced={component: multiplaced[component] for component in outputs},
+        singletons=singletons,
         dropped=dict(dropped),
     )
     if summary is not None:
@@ -431,34 +516,33 @@ def _counted(payload: Mapping[str, Any], key: str) -> int | None:
 _DROP_HINTS: dict[str, str] = {
     "unmapped": "Records the aligner placed nowhere. Dropped rather than passed through — such a "
     "record's mate pointer still names a suffixed chromosome this output no longer declares — and "
-    "this is the only place a chimeric run reports them, since they never reach a matrix.",
+    "this is the only place a chimeric run reports them, since they never reach a matrix. The half "
+    "of them whose MATE did align is counted a second time beside each Component, as its "
+    "singletons.",
     "secondary": "Non-primary alignments of a read placed elsewhere too. Structurally absent under "
     "this pipeline's flags, so a number above zero means a flag moved rather than a library changed.",
     "supplementary": "Chimeric (split-read) alignment segments. Structurally absent under this "
     "pipeline's flags, like the secondaries above.",
-    "multimapping": "Records placed at more than one locus, ACROSS Components as well as within "
-    "one. This is where cross-organism ambiguity goes, and it is why every share above is a lower "
-    "bound; it is also the fate that reads zero in a chimeric matrix, because it leaves here.",
 }
 
 
 def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     """One cell's split summary -> the columns its report row shows. Pure — no file, no pysam.
 
-    **This is where a chimeric run's ``unmapped`` and ``multimapping`` LIVE**, and that is what makes
-    the adapter load-bearing rather than decorative. Those reads are dropped at the split, one rule
-    before the counter, so both fates read structurally zero in every per-Component matrix — a page
-    rendering them from the counting object would be stating a falsehood about the data, since the
-    reads existed and left earlier. They are counted here, by reason, and reported here.
+    **This is where a chimeric run's ``unmapped`` LIVES**, and that is what makes the adapter
+    load-bearing rather than decorative. Those reads are dropped at the split, one rule before the
+    counter, so that fate reads structurally zero in every per-Component matrix — a page rendering
+    it from the counting object would be stating a falsehood about the data, since the reads existed
+    and left earlier. They are counted here, by reason, and reported here.
 
-    **Two metrics per Component: what it kept, and that as a share of the records that came in.** The
-    share is the number the whole exercise exists to produce — the bacterial fraction of a well,
-    readable without opening an ``.h5ad`` — and it is a share because only a share compares between
-    two cells of different depths. The count is what makes the page CLOSE: every kept count plus the
-    four drop counts is exactly the records that came in, so a reader can see nothing went missing
-    without doing arithmetic on a denominator that is not shown. Neither is derivable from the other
-    here, which is the bar a column has to clear; both are over records rather than fragments,
-    because records are what this artifact counted.
+    **Four metrics per Component, and each is a different question.** What it KEPT, and that as a
+    SHARE of the records that came in: the share is the number the whole exercise exists to produce
+    — the bacterial fraction of a well, readable without opening an ``.h5ad`` — and it is a share
+    because only a share compares between two cells of different depths, while the count is what
+    makes the page CLOSE, since every kept count plus every drop count is exactly the records that
+    came in. Then how much of that was MULTIPLY PLACED, which is how much of the Component's kept
+    signal a reader may not treat as one locus; and how many SINGLETONS it holds, records whose mate
+    did not align, which is the population that used to make this whole step refuse.
 
     **Ungraded, every one of them.** Nobody has measured what share of a worm plate *should* be *E.
     coli*, so a bar here would be a figure invented at review — which is exactly what the module's
@@ -466,15 +550,24 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     is N-wide by construction, so promoting it would put an unbounded number of columns in a strip
     whose whole job is being small.
 
-    Each Component's share is a LOWER BOUND on that organism's presence, because the split keeps only
-    uniquely-placed reads: a read ambiguous across organisms is indistinguishable from a
-    within-organism repeat and is counted in ``multimapping`` beside them.
+    Each Component's share is neither a bound nor a clean assignment: multiply-placed records are
+    kept and filed under their representative record's Component, so a read ambiguous across
+    organisms is in exactly one Component's count with nothing on that record saying which others it
+    could have been. The multiply-placed count beside it is how large that population is.
     """
-    kept = payload.get("kept")
-    kept = kept if isinstance(kept, Mapping) else {}
+
+    def account(key: str) -> Mapping[str, Any]:
+        """One per-key mapping out of the payload, or an empty one — the same answer a summary
+        written before that key existed and a hand-edited one both earn, since neither measured it.
+        """
+        value = payload.get(key)
+        return value if isinstance(value, Mapping) else {}
+
+    kept = account("kept")
+    multiplaced = account("multiplaced")
+    singletons = account("singletons")
     records_in = _counted(payload, "records_in")
-    dropped = payload.get("dropped")
-    dropped = dropped if isinstance(dropped, Mapping) else {}
+    dropped = account("dropped")
 
     built: list[Metric | None] = []
     for component in sorted(kept):
@@ -485,19 +578,41 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
                 _counted(kept, component),
                 group="alignment",
                 exact=True,
-                hint=f"Alignment records that landed on {component} and were kept — mapped, uniquely "
-                f"placed, primary. These plus every other Component's, plus the four drop counts, are "
-                f"exactly the records this cell's chimeric BAM held.",
+                hint=f"Alignment records that landed on {component} and were kept — mapped, primary, "
+                f"however many loci the fragment was placed at. These plus every other Component's, "
+                f"plus the drop counts, are exactly the records this cell's chimeric BAM held.",
             ),
             fraction(
                 f"split_share_{component}",
                 f"{component} share",
                 (_counted(kept, component) or 0) / records_in if records_in else None,
                 group="alignment",
-                hint=f"The count beside this as a share of the records that came in — the figure that "
-                f"compares between two cells of different depths. A LOWER BOUND on {component}'s "
-                f"presence: a read ambiguous across Components is dropped as a multimapper rather "
-                f"than assigned to one.",
+                hint="The count beside this as a share of the records that came in — the figure that "
+                "compares between two cells of different depths. Not a clean assignment: a read "
+                "ambiguous across Components is filed under the one its emitted record landed on, "
+                "and the multiply-placed count beside this says how many such records there are.",
+            ),
+            count_metric(
+                f"split_multiplaced_{component}",
+                f"{component} multiply placed",
+                _counted(multiplaced, component),
+                group="alignment",
+                exact=True,
+                hint=f"Of the records kept for {component}, those the aligner placed at more than one "
+                f"locus — within this organism or across Components, with one emitted record unable "
+                f"to say which. They are IN the output, marked by the hit-count tag they carry, so "
+                f"the counter can separate them without a second file.",
+            ),
+            count_metric(
+                f"split_singletons_{component}",
+                f"{component} singletons",
+                _counted(singletons, component),
+                group="alignment",
+                exact=True,
+                hint=f"Of the records kept for {component}, those whose mate did not align and so "
+                f"have no partner in this file. Kept, because they are real evidence and dropping "
+                f"them would cost the shorter, more soft-clipped organism most — whose share is the "
+                f"number this whole step exists to produce.",
             ),
         ]
     built += [
@@ -514,28 +629,12 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     return SampleStats(sample_id=sample, metrics=[m for m in built if m is not None])
 
 
-def read_split_summary(path: Path, sample: str) -> SampleStats:
-    """Load one ``<sample>.split.json`` and normalise it.
-
-    The thin half of the adapter, in the shape ``extract.read_extract_summary`` established: loading
-    lives beside the code that WRITES the file so the registry hands over a path and gets metrics
-    back, and the judgement lives in :func:`split_metrics`, which needs no file to test. Raises
-    ``OSError``/``ValueError`` if the bytes are unusable, so one bad summary costs its own columns
-    and not the whole page.
-    """
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, Mapping):
-        raise ValueError(f"{path} is not a chimera split summary")
-    return split_metrics(payload, sample)
-
-
 __all__ = [
     "DROP_REASONS",
     "SPLIT_SUFFIX",
     "SplitError",
     "SplitStats",
     "parse_outputs",
-    "read_split_summary",
     "split_chimera",
     "split_metrics",
 ]

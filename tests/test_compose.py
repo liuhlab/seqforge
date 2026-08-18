@@ -1514,7 +1514,8 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
         ("load_genome", 1),
         ("umi_extract", PLATE_CELL_COUNT),
         ("star_umi_map", PLATE_CELL_COUNT),
-        ("umi_to_cram", PLATE_CELL_COUNT),
+        ("unique_to_cram", PLATE_CELL_COUNT),
+        ("multiplaced_to_cram", PLATE_CELL_COUNT),
         ("umi_count", 1),
     ):
         assert re.search(rf"^{rule}\s+{jobs}\s*$", plan_text, re.M), (
@@ -1525,8 +1526,13 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     # still plan a coherent DAG over the ones it kept.
     outdir = composed_plate.config["outdir"]
     assert f"{outdir}/{PLATE_H5AD}" in plan_text
-    missing = [c for c in composed_plate.cells if f"{outdir}/{c}/{c}.cram" not in plan_text]
-    assert not missing, f"{len(missing)} cells never reached a CRAM target: {missing[:5]}"
+    missing = [
+        c
+        for c in composed_plate.cells
+        if f"{outdir}/{c}/{c}.unique.cram" not in plan_text
+        or f"{outdir}/{c}/{c}.multiplaced.cram" not in plan_text
+    ]
+    assert not missing, f"{len(missing)} cells never reached both CRAM targets: {missing[:5]}"
 
     # The shared-index contract, rendered rather than merely written: the load marks any stale
     # segment for destruction before loading, and every mapping job ATTACHES instead of loading.
