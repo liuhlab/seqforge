@@ -13,14 +13,19 @@ net under a halved output. A dead mate now sits at its live mate's coordinates, 
 derived a second, independent way and the two compared — stronger than what it replaces, still
 nothing held, and it refuses a BAM whose aligner never wrote those records, saying so.
 
-**Amended 2026-08-18 (#440), on two things this was written without having watched.** A dead mate
-does not sit at its live mate's coordinates: STAR writes `RNAME` as `*` and the partner's chromosome
-in `RNEXT`, so the mate POINTER is the field that names a Component and the first version of the
-check read the wrong one, counting zero against 5440 flagged survivors. And with that corrected the
-comparison still refused a healthy cell, because it was made per Component: 5440 either way, split
-4929/511 by the survivors and 4928/512 by the pointers. Joining the two ends by name, 90 fragments
-had a survivor on one contig and a pointer on another, and every one of the 90 was multiply placed —
-the sentence the retained archive already makes, that such a fragment has no Component — and it
-cannot be filtered out here, because the dead record's hit count is zero. So the claim holds at the
-TOTAL, which is what is asserted; the per-Component pair is carried as a measurement, its gap the
-only report a chimeric run makes of half-mapped fragments whose loci span two organisms.
+**Amended 2026-08-18 (#440): the second derivation is a BOUND, not an equality.** Two things were
+written here without having been watched, and a pilot re-run falsified both. A dead mate does not
+sit at its live mate's coordinates — STAR writes `RNAME` as `*` and the partner's chromosome in
+`RNEXT`, so the mate POINTER is the field that names a Component, and the first version of the check
+read the wrong one and counted zero against 5440 flagged survivors. Corrected, the equality still
+refused healthy cells: per Component (5440 either way, 4929/511 by survivors and 4928/512 by
+pointers, all 90 disagreeing fragments multiply placed), and then in total (33026 survivors against
+33027 pointers, the extra a fully mapped three-locus pair that also left a placeless copy of one
+mate behind). Both are one fact, and it is the general one: **a per-fragment correspondence between
+the two ends does not survive multi-locus emission** — one representative of a locus set is
+written, so another member's dead half can be left with no survivor to answer it and can point at an
+organism the emitted alignment did not take. Filtering the multiply-placed out is not available statelessly,
+since the dead record's own hit count is zero. What is derivable is that every survivor is owed
+exactly one placeless record, so what is ASSERTED is `pointers >= survivors`; what is REPORTED is
+the per-Component pair, whose gap bounds the half-mapped fragments spanning two organisms, and the
+excess, which counts the placeless records belonging to fragments that did align.
