@@ -64,14 +64,30 @@ both embed ``--genomeDir``, so identity would mean writing down a command line n
 **Three runtime checks, because the facts underneath this design were read off the aligner's source
 rather than watched on a real chimera.** The mate sits on this record's own component, checked per
 record. Each output's PAIRED REMAINDER balances — first and second mates, each less that side's own
-singletons — checked once at the end. And the singleton count is derived a SECOND, independent way
-and the two are compared: asked to emit what it could not place, the aligner writes a dead mate as a
-placeless record whose MATE POINTER names its live partner's chromosome, so that record names a
-Component too, and there must be exactly as many of them per Component as there are singletons. None of the three is here to
-catch a bug in this module — the first turns an opaque dictionary lookup failure into a refusal that
-names the read and both components, the second turns a silently halved output into one that says so,
-and the third costs one more counter, no buffer, and is strictly stronger than comparing raw mate
-counts was, since a whole population disappearing from the file would leave those counts balanced.
+singletons — checked once at the end. And the half-mapped population is derived a SECOND,
+independent way and the two TOTALS are compared: asked to emit what it could not place, the aligner
+writes a dead mate as a placeless record whose MATE POINTER names its live partner's chromosome, so
+that record names a Component too, and both derivations must see the same number of fragments. None
+of the three is here to catch a bug in this module — the first turns an opaque dictionary lookup
+failure into a refusal that names the read and both components, the second turns a silently halved
+output into one that says so, and the third costs one more counter, no buffer, and is strictly
+stronger than comparing raw mate counts was, since a whole population disappearing from the file
+would leave those counts balanced.
+
+**The third check compares TOTALS and not Components, and a real chimera decided that.** It was
+written per Component and a pilot cell refused on it while counting 5440 half-mapped fragments from
+either end — the survivors attributing 4929/511 to the two organisms and the mate pointers 4928/512.
+Joining the two ends by read name found 90 fragments whose survivor sat on one contig and whose dead
+mate pointed at another, and every one of the 90 was placed at more than one locus; not one was
+unique. That is the same sentence the retained archive already makes: a multiply-placed fragment has
+no Component. Only one representative alignment is emitted, so the dead mate's pointer may name a
+different member of the locus set than the survivor took, and the two ends then name different
+organisms without anything being wrong. Restricting the comparison to uniquely-placed fragments is
+not available here — the dead record carries a hit count of zero and cannot say what its fragment's
+was, and recovering it means holding templates, which this module may not do. So the per-Component
+pair survives as a MEASUREMENT rather than an assertion, and the gap between the two attributions is
+a lower bound on the half-mapped fragments whose loci span two organisms: the only number a chimeric
+run reports about that population at all.
 """
 
 from __future__ import annotations
@@ -141,6 +157,13 @@ class SplitStats:
     #: which is why first and second mates may legitimately differ. Its own line rather than folded
     #: into a drop category, because nothing was dropped: the survivor is evidence and was kept.
     singletons: dict[str, int]
+    #: The same fragments counted from the other end: placeless records whose mate DID align, filed
+    #: under the Component their MATE POINTER names. A MEASUREMENT beside ``singletons``, never a
+    #: second spelling of it — the two TOTALS are asserted equal and the per-Component split is not,
+    #: because a fragment placed at more than one locus has no Component and its dead mate may point
+    #: at a different member of the locus set than the emitted alignment took. The gap between the
+    #: two attributions is a lower bound on the half-mapped fragments whose loci span two organisms.
+    mate_pointed: dict[str, int]
     dropped: dict[str, int]
 
     def to_dict(self) -> dict[str, object]:
@@ -154,7 +177,9 @@ class SplitStats:
 
         Every kept count plus every drop count is exactly ``records_in``. ``multiplaced`` and
         ``singletons`` do NOT enter that sum — they are subsets of ``kept``, describing the records
-        that are in the outputs rather than a fate that took records out of them.
+        that are in the outputs rather than a fate that took records out of them. Nor does
+        ``mate_pointed``, which is a share of the unmapped drop count and the one account here filed
+        under a Component its records POINT at rather than one they sit on.
         """
         return {
             "seqforge": __version__,
@@ -165,6 +190,7 @@ class SplitStats:
             "read2": dict(sorted(self.read2.items())),
             "multiplaced": dict(sorted(self.multiplaced.items())),
             "singletons": dict(sorted(self.singletons.items())),
+            "mate_pointed": dict(sorted(self.mate_pointed.items())),
             "dropped": {reason: self.dropped[reason] for reason in DROP_REASONS},
         }
 
@@ -370,7 +396,7 @@ def split_chimera(
     multiplaced: Counter[str] = Counter()
     # Singletons by the mate side they were kept on, because the remainder check subtracts each
     # side's own; their sum per Component is what the summary carries and what the second
-    # derivation below has to reproduce.
+    # derivation below has to reproduce in TOTAL.
     singleton1: Counter[str] = Counter()
     singleton2: Counter[str] = Counter()
     # The second derivation: placeless records whose mate DID align, per Component. Every counter
@@ -414,7 +440,10 @@ def split_chimera(
                     # Component. Read off a real chimeric BAM, not off the aligner's source: the
                     # first version of this check read `RNAME`, counted zero against 5440 flagged
                     # survivors, and refused a healthy cell. A record whose mate is unmapped too
-                    # points nowhere and is no fragment's survivor, so it is not one of these.
+                    # points nowhere and is no fragment's survivor, so it is not one of these. What
+                    # this count is compared against is the TOTAL and never one Component's, for the
+                    # reason the module docstring gives: on a multiply-placed fragment the two ends
+                    # may name different organisms and neither is wrong.
                     if not record.mate_is_unmapped and record.next_reference_id >= 0:
                         dead_mates[owner[record.next_reference_id]] += 1
                     continue
@@ -472,17 +501,19 @@ def split_chimera(
             f"is false for this aligner, and the split is not the thing to trust"
         )
 
-    disagreed = {
-        c: (singletons[c], dead_mates[c]) for c in sorted(outputs) if singletons[c] != dead_mates[c]
-    }
-    if disagreed:
+    mate_pointed = {component: dead_mates[component] for component in outputs}
+    survived, pointed = sum(singletons.values()), sum(mate_pointed.values())
+    if survived != pointed:
         raise SplitError(
-            f"the fragments that half aligned were counted two ways and the two disagree, as "
-            f"component: (survivors carrying the mate-unmapped flag, placeless records whose mate "
-            f"did align) — {disagreed}. They are one population seen from either end, so the "
+            f"the fragments that half aligned were counted two ways and the totals disagree: "
+            f"{survived} survivors carrying the mate-unmapped flag against {pointed} placeless "
+            f"records whose mate did align. They are one population seen from either end, so the "
             f"likeliest cause is an aligner that was never asked to write out what it could not "
             f"place: with those records absent the second count is zero and nothing else here "
-            f"would say so"
+            f"would say so. Only the totals are compared, because a fragment placed at more than "
+            f"one locus has no Component — its dead mate may point at a member of the locus set "
+            f"other than the one the emitted alignment took, so per Component the two attributions "
+            f"differ on real data and the summary carries both"
         )
 
     stats = SplitStats(
@@ -493,6 +524,7 @@ def split_chimera(
         read2={component: read2[component] for component in outputs},
         multiplaced={component: multiplaced[component] for component in outputs},
         singletons=singletons,
+        mate_pointed=mate_pointed,
         dropped=dict(dropped),
     )
     if summary is not None:
@@ -520,8 +552,8 @@ _DROP_HINTS: dict[str, str] = {
     "unmapped": "Records the aligner placed nowhere. Dropped rather than passed through — such a "
     "record's mate pointer still names a suffixed chromosome this output no longer declares — and "
     "this is the only place a chimeric run reports them, since they never reach a matrix. The half "
-    "of them whose MATE did align is counted a second time beside each Component, as its "
-    "singletons.",
+    "of them whose MATE did align is the same population as the singletons kept beside each "
+    "Component, seen from the other end and counted again as that Component's mate-pointed column.",
     "secondary": "Non-primary alignments of a read placed elsewhere too. Structurally absent under "
     "this pipeline's flags, so a number above zero means a flag moved rather than a library changed.",
     "supplementary": "Chimeric (split-read) alignment segments. Structurally absent under this "
@@ -538,7 +570,7 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     it from the counting object would be stating a falsehood about the data, since the reads existed
     and left earlier. They are counted here, by reason, and reported here.
 
-    **Four metrics per Component, and each is a different question.** What it KEPT, and that as a
+    **Five metrics per Component, and each is a different question.** What it KEPT, and that as a
     SHARE of the records that came in: the share is the number the whole exercise exists to produce
     — the bacterial fraction of a well, readable without opening an ``.h5ad`` — and it is a share
     because only a share compares between two cells of different depths, while the count is what
@@ -546,6 +578,13 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     came in. Then how much of that was MULTIPLY PLACED, which is how much of the Component's kept
     signal a reader may not treat as one locus; and how many SINGLETONS it holds, records whose mate
     did not align, which is the population that used to make this whole step refuse.
+
+    The fifth is the singleton count's other end — the MATE-POINTED records, dead mates whose
+    pointer named this Component — and it earns a column on an axis this docstring otherwise argues
+    for keeping narrow, because it is the only pair of numbers here that a reader must see TOGETHER.
+    Apart they are one population counted twice and the second adds nothing; side by side their gap
+    is a lower bound on the half-mapped fragments whose loci span two organisms, which no other
+    column on this page, and no ``obs`` column in any matrix downstream of it, reports at all.
 
     **Ungraded, every one of them.** Nobody has measured what share of a worm plate *should* be *E.
     coli*, so a bar here would be a figure invented at review — which is exactly what the module's
@@ -569,6 +608,7 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     kept = account("kept")
     multiplaced = account("multiplaced")
     singletons = account("singletons")
+    mate_pointed = account("mate_pointed")
     records_in = _counted(payload, "records_in")
     dropped = account("dropped")
 
@@ -616,6 +656,21 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
                 f"have no partner in this file. Kept, because they are real evidence and dropping "
                 f"them would cost the shorter, more soft-clipped organism most — whose share is the "
                 f"number this whole step exists to produce.",
+            ),
+            count_metric(
+                f"split_mate_pointed_{component}",
+                f"{component} mate-pointed",
+                _counted(mate_pointed, component),
+                group="alignment",
+                exact=True,
+                hint=f"The half-mapped fragments beside this one counted from the other end: "
+                f"records the aligner placed nowhere whose own mate DID align, and whose mate "
+                f"pointer names {component}. Over all Components the two totals agree or the split "
+                f"refuses; per Component they need not, because a fragment placed at more than one "
+                f"locus has no organism — its dead mate can point at a different member of the "
+                f"locus set than the alignment that was emitted. The gap against the singleton "
+                f"count beside this is therefore a lower bound on the half-mapped fragments whose "
+                f"loci span two organisms.",
             ),
         ]
     built += [

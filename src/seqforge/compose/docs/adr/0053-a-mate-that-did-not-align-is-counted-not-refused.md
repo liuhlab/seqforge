@@ -12,3 +12,15 @@ test is per record and no buffer may be bought here; an informational check, bec
 net under a halved output. A dead mate now sits at its live mate's coordinates, so the count is
 derived a second, independent way and the two compared — stronger than what it replaces, still
 nothing held, and it refuses a BAM whose aligner never wrote those records, saying so.
+
+**Amended 2026-08-18 (#440), on two things this was written without having watched.** A dead mate
+does not sit at its live mate's coordinates: STAR writes `RNAME` as `*` and the partner's chromosome
+in `RNEXT`, so the mate POINTER is the field that names a Component and the first version of the
+check read the wrong one, counting zero against 5440 flagged survivors. And with that corrected the
+comparison still refused a healthy cell, because it was made per Component: 5440 either way, split
+4929/511 by the survivors and 4928/512 by the pointers. Joining the two ends by name, 90 fragments
+had a survivor on one contig and a pointer on another, and every one of the 90 was multiply placed —
+the sentence the retained archive already makes, that such a fragment has no Component — and it
+cannot be filtered out here, because the dead record's hit count is zero. So the claim holds at the
+TOTAL, which is what is asserted; the per-Component pair is carried as a measurement, its gap the
+only report a chimeric run makes of half-mapped fragments whose loci span two organisms.
