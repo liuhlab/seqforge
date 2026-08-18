@@ -64,7 +64,13 @@ from seqforge.workflows import (
     list_modules,
     memory,
 )
-from seqforge.workflows.cram import _RENAME_QNAME, CramError, RecordSelection, bam_to_cram
+from seqforge.workflows.cram import (
+    _RENAME_QNAME,
+    _SELECT_CAVEAT,
+    CramError,
+    RecordSelection,
+    bam_to_cram,
+)
 from seqforge.workflows.fragments import (
     QC_SUFFIX,
     FragmentsError,
@@ -774,6 +780,12 @@ def test_the_read_name_rewrite_carries_every_header_line_into_the_retained_cram(
     comes out: `@RG` verbatim, tabs and all, and the alignment beneath it renamed. That is also why
     the converter needs no edit for the read group and must not get one — a stage that special-cased
     `@RG` would be a second owner of a fact the aligner already states.
+
+    The same stage is where a selection's caveat becomes a `@CO` line, so the second run is the
+    other half of the same claim: a caveat lands at the END of the header — after every line the
+    aligner wrote, so `@HD` stays first and no `@SQ` moves, and before the first alignment, so it is
+    header and not a malformed record — while no caveat leaves the stream exactly as it was, which
+    is what keeps the default archive's bytes the bytes it always had.
     """
     sam = tmp_path / "one.sam"
     sam.write_text(
@@ -792,6 +804,17 @@ def test_the_read_name_rewrite_carries_every_header_line_into_the_retained_cram(
     assert out[:2] == ["@HD\tVN:1.6\tSO:coordinate", "@SQ\tSN:chrI\tLN:1000"]
     # ...and the rename it exists for still happens, on the alignment and on nothing above it.
     assert out[3].split("\t")[0] == "r1" and out[3].endswith("RG:Z:cell_a")
+    assert not any(line.startswith("@CO") for line in out), out
+
+    stamped = subprocess.run(
+        ["awk", "-v", "caveat=one of many loci", _RENAME_QNAME, str(sam)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    assert stamped[:3] == out[:3], stamped  # nothing the aligner wrote moves or is displaced
+    assert stamped[3] == "@CO\tone of many loci", stamped
+    assert stamped[4].split("\t")[0] == "r1", stamped
 
 
 @pytest.mark.external
@@ -818,9 +841,16 @@ def test_each_record_selection_keeps_exactly_the_records_it_names(
     binary the rules actually run.
 
     The counts are the partition claim at the scale it can be checked: `unique` plus `multi` is
-    exactly `mapped`, with nothing in both — so the two archives the later tickets write together
+    exactly `mapped`, with nothing in both — so the two archives the plate modules write together
     hold what one mixed archive holds and duplicate no bytes. And `primary`, the default, still
     keeps the record that never aligned, which is the behaviour nothing on disk may lose here.
+
+    The caveat is checked on the same artifact, because that is the point of it: a record in the
+    multiply-placed archive means one of the fragment's possible loci is here and never that the
+    fragment belongs here, and a reader who copied the file somewhere else has only the file. So it
+    is read back OUT of the CRAM header rather than off the argv, and every other selection's
+    archive has to be free of it — a caveat on the uniquely-placed half would be saying something
+    untrue about it.
     """
     samtools = shutil.which("samtools")
     if samtools is None or shutil.which("awk") is None:
@@ -854,6 +884,18 @@ def test_each_record_selection_keeps_exactly_the_records_it_names(
         text=True,
     ).stdout.strip()
     assert int(counted) == kept
+
+    header = subprocess.run(
+        [samtools, "view", "-H", "-T", str(fasta), str(out)],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    caveat = _SELECT_CAVEAT.get(selection)
+    if caveat is None:
+        assert "@CO" not in header, header
+    else:
+        assert f"@CO\t{caveat}" in header, header
 
 
 @pytest.mark.parametrize(
@@ -1464,7 +1506,14 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
 
     plan = dry_run(tmp_path)
 
-    for rule in ("load_genome", "umi_extract", "star_umi_map", "umi_to_cram", "umi_count"):
+    for rule in (
+        "load_genome",
+        "umi_extract",
+        "star_umi_map",
+        "unique_to_cram",
+        "multiplaced_to_cram",
+        "umi_count",
+    ):
         assert rule in plan, f"the plan never reaches `{rule}`:\n{plan}"
     # The fan-in is ONE job over three cells, while the per-cell chain is one job each. That ratio is
     # the module's whole shape, and a per-cell counter followed by a merge would read as three here.
@@ -1472,9 +1521,15 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     assert re.search(r"^star_umi_map\s+3\s*$", plan, re.M), plan
     assert re.search(r"^umi_count\s+1\s*$", plan, re.M), plan
     assert re.search(r"^load_genome\s+1\s*$", plan, re.M), plan
-    # The deliverables `rule all` demands, by name: one object for the plate, one CRAM per cell.
+    # The deliverables `rule all` demands, by name: one object for the plate, and BOTH halves of every
+    # cell's archive. Neither half is anyone's input, so a half demanded by nothing would simply stop
+    # being produced — and one mixed archive per cell is what these two replace, which is why the name
+    # this asserted before must no longer be planned at all.
     assert f"results/{PLATE_H5AD}" in plan
-    assert all(f"results/{s}/{s}.cram" in plan for s in ("cell_a", "cell_b", "cell_c"))
+    cells = ("cell_a", "cell_b", "cell_c")
+    assert all(f"results/{s}/{s}.unique.cram" in plan for s in cells), plan
+    assert all(f"results/{s}/{s}.multiplaced.cram" in plan for s in cells), plan
+    assert not re.search(r"results/cell_a/cell_a\.cram\b", plan), plan
     # The shared-memory contract, rendered rather than merely written: the load rule marks any stale
     # segment for destruction before loading, and every mapping job attaches instead of loading.
     assert "--genomeLoad Remove" in plan and "--genomeLoad LoadAndExit" in plan
@@ -1502,41 +1557,56 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     # whose `threads:` and whose command line disagree is exactly what that looked like.
     rendered = _rendered_shell(plan)
     assert "--threads 4" in rendered["umi_count"][""]
-    # ...and the archive is of the MAPPED records, so it does not grow to carry what the flag above
-    # added: the same input produces the same CRAM it did before those records were emitted. A NAMED
-    # selection rather than a filter respelled here, so a misspelling is refused at the verb's gate.
-    assert "--selection mapped" in rendered["umi_to_cram"]["cell_a"], rendered["umi_to_cram"]
+    # ...and the archive is PARTITIONED BY MAPPABILITY: two files per cell, each cut from the one BAM
+    # STAR wrote by a NAMED selection rather than a filter respelled here, so a misspelling is refused
+    # at the verb's gate. Neither selection keeps a record that never aligned, so the pair does not
+    # grow to carry what the flag above added, and together they are every primary mapped record —
+    # nothing lost against the one mixed archive they replace, and no record in both.
+    unique, multi = rendered["unique_to_cram"]["cell_a"], rendered["multiplaced_to_cram"]["cell_a"]
+    assert "--selection unique" in unique and f"--bam results/cell_a/{STAR_BAM}" in unique, unique
+    assert "--selection multi" in multi and f"--bam results/cell_a/{STAR_BAM}" in multi, multi
+    assert "--out results/cell_a/cell_a.unique.cram" in unique, unique
+    assert "--out results/cell_a/cell_a.multiplaced.cram" in multi, multi
 
 
-def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_component(
+def test_the_chimeric_twin_partitions_its_archives_beside_the_split_and_counts_per_component(
     tmp_path: Path, dry_run: DryRun
 ) -> None:
     """The twin's rule graph, off a rendered plan — the one thing no other test here can say.
 
     The wiring gate proves the twin PLANS; it renders every `shell:` and runs none, so a counting
-    command naming the wrong flag, a CRAM made from the wrong BAM or a matrix demanded as a folder
-    all pass it. Those are the four decisions this module exists to carry, so they are read off the
-    plan itself, from a hand-written config — which keeps the claim about the MODULE rather than
-    about the composer agreeing with itself, exactly as the base module's plan test argues.
+    command naming the wrong flag, an archive made from the wrong BAM or against the wrong reference,
+    and a matrix demanded as a folder all pass it. Those are the decisions this module exists to
+    carry, so they are read off the plan itself, from a hand-written config — which keeps the claim
+    about the MODULE rather than about the composer agreeing with itself, exactly as the base
+    module's plan test argues.
 
-    1. **The split sits BESIDE the CRAM.** `umi_to_cram` reads the pre-split chimeric BAM, so the
-       archive keeps every multimapper and is strictly MORE complete than a single-assembly run's.
-       Upstream of it the archive would inherit the split's filter, which is the price this ordering
-       dissolves rather than pays.
-    2. **`rule all` demands each Component's matrix BY NAME.** A rule whose output is a folder is
-       satisfied by a folder, which is how a counting job that wrote two Components of three exits 0
-       with an organism silently missing.
-    3. **The counting verb is handed a Component and the CHIMERA.** Exactly one of `--component` and
+    1. **The archive is partitioned by mappability, and the two halves are not the same shape.** The
+       uniquely-placed half is per Component, cut from that Component's split BAM and encoded against
+       that COMPONENT's reference, which is the only way the file speaks one assembly's chromosome
+       names. The multiply-placed half is one file per cell in Chimera coordinates, cut from the
+       PRE-split BAM: a multiply-placed fragment has no Component, so filing it under one would state
+       an assignment the data cannot support. Together they are exactly every primary mapped record,
+       which is why the whole-Chimera archive they replace is planned nowhere.
+    2. **The split still sits BESIDE the multiply-placed archive**, both reading the BAM STAR wrote,
+       so neither inherits the other's filter and the chimeric BAM is freed once both are done.
+    3. **`rule all` demands each Component's matrix and each archive BY NAME.** A rule whose output is
+       a folder is satisfied by a folder, which is how a counting job that wrote two Components of
+       three exits 0 with an organism silently missing; the archives are nobody's input, so a half
+       demanded by nothing would simply stop being produced.
+    4. **The counting verb is handed a Component and the CHIMERA.** Exactly one of `--component` and
        `--annotation` is legal, so rendering both is exit 2 rather than a precedence rule anyone has
        to remember — and the record saying what each Component contributed lives on the Chimera, so
        passing the Component as the assembly would resolve the wrong reference.
-    4. **N-agnostic**: one job per cell for the split, one per Component for the count, over one
-       config list. The counts below are the whole shape, and a Component loop written into the
-       module would read as the same number here only by coincidence.
+    5. **N-agnostic**: one job per cell for the split, one per cell PER COMPONENT for the unique
+       archive, one per Component for the count, over one config list. The counts below are the whole
+       shape, and a Component loop written into the module would read as the same number here only by
+       coincidence.
 
     Plus the reclaim rule: the per-Component BAMs are `temp()` and the split summary is not, because
     what the split MEASURED has to outlive the records it measured — it is where `unmapped` and
-    `multimapping` live once they have left the pipeline.
+    `multimapping` live once they have left the pipeline. The BAMs now have two readers, and `temp()`
+    over two readers is what keeps the split's spelling without keeping the split's bytes.
     """
     components = ("tinyCe", "tinyEc")
     cells = ("cell_a", "cell_b", "cell_c")
@@ -1556,23 +1626,52 @@ def test_the_chimeric_twin_splits_beside_the_cram_and_counts_one_matrix_per_comp
     rendered = _rendered_shell(plan)
 
     assert re.search(r"^split_chimera\s+3\s*$", plan, re.M), plan
-    assert re.search(r"^umi_to_cram\s+3\s*$", plan, re.M), plan
+    # One multiply-placed archive per cell, not one per Component; the unique half is per both.
+    assert re.search(r"^multiplaced_to_cram\s+3\s*$", plan, re.M), plan
+    assert re.search(r"^unique_to_cram\s+6\s*$", plan, re.M), plan  # three cells x two Components
     assert re.search(r"^umi_count\s+2\s*$", plan, re.M), plan  # one per Component, not one per cell
-    # Each Component's object, by name.
+    # Each Component's object and each archive, by name — and the one mixed archive these replace is
+    # planned nowhere, because the two halves together already hold every record it held.
     for component in components:
         assert f"results/combined.{component}.h5ad" in plan
-    assert all(f"results/{s}/{s}.cram" in plan for s in cells)
+        assert all(f"results/{s}/{s}.{component}.unique.cram" in plan for s in cells), plan
+    assert all(f"results/{s}/{s}.multiplaced.cram" in plan for s in cells), plan
+    assert not re.search(r"results/cell_a/cell_a\.cram\b", plan), plan
 
-    # The CRAM is made from the PRE-split BAM: the file STAR wrote, not a per-Component one.
-    cram = rendered["umi_to_cram"]["cell_a"]
+    # WHICH BAM each half is cut from, read off the dependency edges rather than off a command: the
+    # multiply-placed archive from the file STAR wrote, so it and the split see the same records; the
+    # uniquely-placed ones from the per-Component BAMs, which is the only file that carries a single
+    # assembly's names. This is the ordering decision, and a command string cannot state it.
+    inputs = planned_paths(plan, "input")
+    assert inputs["multiplaced_to_cram"] == {f"results/{s}/{STAR_BAM}" for s in cells}, inputs
+    assert inputs["unique_to_cram"] == {
+        f"results/{s}/{s}.{c}.bam" for s in cells for c in components
+    }, inputs
+
+    # The multiply-placed half's command is the base module's, verbatim, because a multiply-placed
+    # fragment is the same thing on both arms.
+    cram = rendered["multiplaced_to_cram"]["cell_a"]
     assert f"--bam results/cell_a/{STAR_BAM}" in cram, cram
+    assert f"--assembly {'_'.join(components)}" in cram, cram
+    assert "--selection multi" in cram, cram
     # The twin asks for the unmapped records too, and drops them at the archive exactly as the base
     # does — the same pair of flags, because the two modules' commands are the half that may not
     # diverge. `Within` and never `Within KeepPairs`: mate adjacency is an UNSORTED-output ordering
     # and this module writes sorted output.
     assert "--outSAMunmapped Within" in plan
     assert "KeepPairs" not in plan, plan
-    assert "--selection mapped" in cram, cram
+
+    # The uniquely-placed half is per Component all the way down: this Component's BAM, this
+    # Component's assembly — never the Chimera's, which is the whole reason the file is readable
+    # against a bare Component — and the selection that leaves the ambiguous records to the file
+    # naming them. Read off the plan text rather than through the rendered-command index, because a
+    # job carrying two wildcards is keyed by neither.
+    for component in components:
+        assert f"--bam results/cell_a/cell_a.{component}.bam --assembly {component}" in plan, plan
+        assert (
+            f"--out results/cell_a/cell_a.{component}.unique.cram --threads 4 --selection unique"
+            in plan
+        ), plan
 
     # The split takes the same BAM, one `<component>=<path>` per Component, and the CHIMERA.
     split = rendered["split_chimera"]["cell_a"]
@@ -1735,7 +1834,14 @@ def test_the_plate_module_plans_a_single_end_run_and_hands_the_extractor_no_mate
 
     plan = dry_run(tmp_path)
 
-    for rule in ("load_genome", "umi_extract", "star_umi_map", "umi_to_cram", "umi_count"):
+    for rule in (
+        "load_genome",
+        "umi_extract",
+        "star_umi_map",
+        "unique_to_cram",
+        "multiplaced_to_cram",
+        "umi_count",
+    ):
         assert rule in plan, f"the plan never reaches `{rule}`:\n{plan}"
     # The shape does not follow the layout: still one extraction a cell and still ONE fan-in.
     assert re.search(r"^umi_extract\s+2\s*$", plan, re.M), plan
