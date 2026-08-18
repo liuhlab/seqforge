@@ -8,6 +8,9 @@ it shows was decided upstream by ``resolve``/``validate``/``compose``.
 Exit is ``0`` on a successful render regardless of what the dataset's verdict was: the reader's job is
 to render, and the dataset's state (compiled / blocked / needs-a-human) is carried *in* the page and in
 the stdout summary, not smuggled into this verb's exit code. Only a usage or I/O failure exits nonzero.
+That holds for the **run** state too — a run that failed is rendered and reported, and rendering it
+succeeded — which is what keeps "I could not render" distinguishable from "the run I rendered did not
+finish". A caller that wants to gate on the run reads the field.
 """
 
 from __future__ import annotations
@@ -91,8 +94,15 @@ def report_cmd(
                 if a.pipeline_stats is None
                 else {
                     "module": a.pipeline_stats.module,
+                    # Two values and no third, so a caller gates on a string compare rather than on
+                    # a count it has to interpret. It is NOT this verb's exit code and never will
+                    # be: rendering succeeded, which is what an exit code from a reader reports.
+                    "run_state": a.pipeline_stats.state,
                     "samples_finished": a.pipeline_stats.n_found,
                     "samples_expected": a.pipeline_stats.n_expected,
+                    # What was demanded and not produced, so the caller that gated on the state above
+                    # knows what to re-run without opening the page.
+                    "missing_deliverables": a.pipeline_stats.missing_deliverables,
                 },
                 # Which decision the pipeline's own numbers make look wrong, beside the numbers and
                 # never folded into the exit code above: an alert is advisory, and a finding that

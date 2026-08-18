@@ -229,10 +229,14 @@ _SPECS: dict[str, StatsSpec] = {
     # prefixes — and the numbers bought that way are precisely the ones that do not compare across
     # run types: two of the four fates are structurally zero here and every surviving rate, the
     # headline one included, rides a smaller denominator. Rendered beside a single-assembly run's
-    # page they are not the same measurement. Declining them DELETES a `CompiledPipeline.components`
-    # field and a `read_pipeline_stats` signature change rather than paying for both. The stated cost
-    # is that a chimeric run's page shows no gene-assignment fates at all; they are in each object's
-    # `obs` for anyone who wants them.
+    # page they are not the same measurement. The stated cost is that a chimeric run's page shows no
+    # gene-assignment fates at all; they are in each object's `obs` for anyone who wants them.
+    #
+    # Declining the READER does not decline the ARTIFACT. Whether each Component's object was written
+    # is a fact this module still answers, through the same `fan_in_artifact` declaration and the
+    # Component list the recipe composed against — so a chimeric run that counted two organisms of
+    # three reports as failed and names the third, while its page stays free of numbers that would
+    # not compare.
     "map/star-umi-chimera": StatsSpec(
         artifacts=(
             SampleArtifact(f"{{sample}}{_EXTRACT_SUFFIX}", _read_extract_summary, finishes=False),
@@ -364,8 +368,37 @@ def _read_fan_in(
         return {}
 
 
+def _missing_deliverables(module: str, results_dir: Path, components: Sequence[str]) -> list[str]:
+    """Which of the module's declared dataset-scoped deliverables are not on disk.
+
+    **Through the declaration, never through a second list.** ``Workflow.fan_in_artifact`` is what
+    the module states it produces for the whole deposit and what its ``rule all`` demands by name;
+    asking the registry here makes the run state read the same fact the pipeline was contracted on.
+    A hand-kept table of "what a finished run looks like" would be a third owner of that name, and
+    the failure of one is silent in the direction that matters: a deliverable nobody listed is a
+    deliverable nobody notices missing.
+
+    A name carrying a ``{component}`` is expanded once per **Component**, because that is the arity
+    the twin's ``rule all`` demands and a run that counted two organisms of three is a run with an
+    organism silently absent. An unexpandable name with no Component to expand it — a config that
+    lost the key — is reported as missing under its own pattern rather than as nothing owed at all:
+    "we cannot say what was demanded" is not "everything was produced".
+    """
+    artifact = _fan_in_artifact(module)
+    if artifact is None:
+        return []
+    if "{component}" in artifact:
+        demanded = [artifact.format(component=c) for c in components] or [artifact]
+    else:
+        demanded = [artifact]
+    return [name for name in demanded if not (results_dir / name).is_file()]
+
+
 def read_pipeline_stats(
-    module: str, results_dir: Path, samples: Sequence[str]
+    module: str,
+    results_dir: Path,
+    samples: Sequence[str],
+    components: Sequence[str] = (),
 ) -> PipelineStats | None:
     """Every finished sample of one compiled pipeline, or ``None`` when there is nothing to show.
 
@@ -394,9 +427,16 @@ def read_pipeline_stats(
     **What is SHOWN and what is FINISHED are two questions**, and they came apart the first time a
     module reported from a mid-pipeline artifact. Every source that landed puts its columns on the
     page; only a source that ``finishes`` counts toward ``n_found``, and ``n_found`` is what
-    ``complete`` — the green "all N samples finished" — is read off. An extraction summary is a real
-    row and is not a finished cell, so a plate whose extraction has outrun its aligner shows every
-    cell's tagged fraction under an honest "3 of 1440".
+    ``complete`` — the "all N samples finished" half of the state — is read off. An extraction
+    summary is a real row and is not a finished cell, so a plate whose extraction has outrun its
+    aligner shows every cell's tagged fraction under an honest "3 of 1440".
+
+    **And what is FINISHED is still not whether the RUN finished.** Every contracted cell can land
+    its alignment log while the object the whole plate fans in to was never written — the run that
+    reported every cell done and no matrix at all. ``components`` is what that check needs and the
+    only reason it is a parameter: the twin's deliverable is named once per **Component**, so the
+    Chimera the recipe composed against decides how many objects were demanded. Empty for every
+    per-sample module and for a plain reference, which is the default and the common case.
     """
     spec = _SPECS.get(module)
     if spec is None or not results_dir.is_dir():
@@ -474,8 +514,11 @@ def read_pipeline_stats(
         n_expected=len(samples),
         # How many samples the pipeline FINISHED, which is not how many rows are below: a sample
         # whose only artifact is a mid-pipeline one has real numbers to show and is not done, and
-        # `complete` tints the whole section green off this count.
+        # `complete` reads the sample half of the run state off this count.
         n_found=len(finished),
+        # The other half, and the one no count of samples can reach: what the module said it would
+        # leave for the whole deposit, and whether it is there.
+        missing_deliverables=_missing_deliverables(module, results_dir, components),
         samples=found,
         columns=columns,
         notes=notes,
