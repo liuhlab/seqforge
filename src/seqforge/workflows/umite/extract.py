@@ -143,15 +143,16 @@ _FLAG_UNPAIRED = 0x4
 #: docstring) rather than a missing argument.
 _UNBOUNDED = Budget(max_reads=2**62, max_bytes=2**62)
 
-#: What one cell's extraction summary is called, under that cell's own directory. **Public because it
-#: has a reader as well as a writer**, which is the line ``fragments.QC_SUFFIX`` already draws: the
-#: rule declares the file by importing this, and the pipeline-stats registry finds it by importing
-#: the same name. A second spelling anywhere is the one that fails in silence — a report that finds
-#: nothing looks exactly like a pipeline that never ran, so nothing raises and nobody is told.
+#: What one cell's extraction summary is called, under that cell's own directory. **Public because
+#: more than one rule names it**, which is the line ``fragments.QC_SUFFIX`` already draws: the rule
+#: that writes it and the rule that folds it into that cell's QC bundle both declare the path by
+#: importing this. A second spelling anywhere is the one that fails in silence — a consumer that
+#: finds nothing looks exactly like a pipeline that never ran, so nothing raises and nobody is told.
 #:
-#: Plain JSON rather than gzipped, unlike the two QC bundles: this is a handful of counts and a small
-#: histogram, so compressing it would cost a reader ``zcat`` and buy a few hundred bytes. It is also
-#: the artifact somebody opens by hand at 2am when a plate looks wrong.
+#: Plain JSON rather than gzipped: this is a handful of counts and a small histogram, so compressing
+#: it would cost a reader ``zcat`` and buy a few hundred bytes, and it is the file somebody opens by
+#: hand at 2am while a plate is still running. It is reclaimed once the cell's bundle carries the
+#: payload, so what outlives a finished run is what :func:`extract_metrics` reads out of THAT.
 EXTRACT_SUFFIX = ".umi-extract.json"
 
 
@@ -663,20 +664,6 @@ def extract_metrics(payload: Mapping[str, object], sample: str) -> SampleStats:
     return SampleStats(sample_id=sample, metrics=[m for m in built if m is not None])
 
 
-def read_extract_summary(path: Path, sample: str) -> SampleStats:
-    """Load one ``<sample>.umi-extract.json`` and normalise it.
-
-    The thin half of the adapter, in the shape ``fragments.read_metrics`` established: loading lives
-    here so the registry hands over a path and gets metrics back, and the judgement lives in
-    :func:`extract_metrics`, which needs no file to test. Raises ``OSError``/``ValueError`` if the
-    bytes are unusable, so one bad summary costs its own columns and not the whole page.
-    """
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, Mapping):
-        raise ValueError(f"{path} is not a UMI extraction summary")
-    return extract_metrics(payload, sample)
-
-
 def _header(sample: str) -> dict[str, object]:
     """The uBAM header: unsorted, no reference sequences, one read group naming the cell.
 
@@ -952,7 +939,6 @@ __all__ = [
     "find_tag",
     "geometry_for_elements",
     "geometry_for_read",
-    "read_extract_summary",
     "tagged_geometry",
     "tagged_read_geometry",
 ]

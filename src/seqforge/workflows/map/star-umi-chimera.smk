@@ -10,8 +10,9 @@
 #
 # **A full standalone copy, and that is FORCED rather than preferred.** Composition copies exactly
 # one `.smk` into the run directory, so an `include:`d fragment would be neither copied nor eligible
-# as the default target. FIVE THINGS differ out of everything below -- `rule all`, the new
-# `rule split_chimera`, `rule umi_count`, `rule unique_to_cram`, and this header; the imports and the
+# as the default target. SIX THINGS differ out of everything below -- `rule all`, the new
+# `rule split_chimera`, `rule umi_count`, `rule unique_to_cram`, `rule qc_bundle` (by one argument,
+# the split summary it also folds in), and this header; the imports and the
 # module constants that serve them move with those, and `rule star_umi_map`'s prose gained a sentence
 # about the per-Component figures its flags now feed. What is byte-identical is every other COMMAND:
 # genome index resolution, the shared genome load, UMI extraction, the mapping invocation and the
@@ -26,7 +27,8 @@
 # There is deliberately NO same-ness test against the base: its subject would be source text, which a
 # rename reddens falsely and an indirection passes falsely.
 #
-# The chain is per cell `extract -> STAR -> one coordinate-sorted CHIMERIC BAM`, and then, per cell,
+# The chain is per cell `extract -> STAR -> one sorted CHIMERIC BAM -> archives + ONE QC artifact`,
+# and then, per cell,
 # ONE new step: that BAM is SPLIT into one BAM per Component, each restored to the chromosome names,
 # the `@SQ` order and the lengths a run against the bare Component would have written. The counting
 # fan-in then runs ONCE PER COMPONENT against that Component's own annotation, so the deliverable is
@@ -44,7 +46,9 @@
 # nothing is lost and no bytes are duplicated. `rule multiplaced_to_cram` reads the PRE-split chimeric
 # BAM, so the split and it both consume what the aligner wrote -- and peak disk drops slightly,
 # because that BAM is freed as soon as both have consumed it instead of living until the fan-in.
-# Per-Component BAMs are `temp()`; the per-cell split summary beside them is not.
+# Per-Component BAMs are `temp()`, and so is the per-cell split summary beside them: what it MEASURED
+# outlives the run inside that cell's one QC artifact, which is where every per-cell account now
+# lands.
 #
 # **Every per-Component figure files a cross-organism ambiguity under ONE organism**, which follows
 # from the split's keep rule -- a mapped, primary alignment, however many loci the fragment was
@@ -101,11 +105,14 @@
 # declaration and the rule that produces it cannot come apart -- it is `PLATE_H5AD`'s discipline one
 # arity out, the `{component}` surviving into the rule's output as a snakemake wildcard.
 # `EXTRACT_SUFFIX` and `SPLIT_SUFFIX` are the same contract for the two per-cell summaries: the verb
-# writes each, the report finds it, and the rule declares it -- one owner, imported, never spelled
-# twice, which is what stops a reader that finds nothing from looking exactly like a run that never
-# happened.
+# writes each, the bundle rule folds it in, and both rules declare it -- one owner, imported, never
+# spelled twice, which is what stops a consumer that finds nothing from looking exactly like a run
+# that never happened. `QC_SUFFIX` names the ONE artifact a finished cell leaves, and it is the
+# droplet module's constant unchanged: same artifact kind, same suffix, one owner. The aligner's own
+# run files come from `h5ad` for the same reason -- STAR writes four of them per cell and this module
+# declares all four.
 from seqforge.workflows import PLATE_COMPONENT_H5AD
-from seqforge.workflows.h5ad import STAR_BAM
+from seqforge.workflows.h5ad import STAR_BAM, STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRESS_LOGS
 from seqforge.workflows.memory import (
     PLATE_RETRIES,
     bam_sort_ram,
@@ -113,6 +120,7 @@ from seqforge.workflows.memory import (
     index_mem_mb,
     per_cell_mem_mb,
 )
+from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.split import SPLIT_SUFFIX
 from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
@@ -161,6 +169,19 @@ SPLIT_BAM = f"{OUTDIR}/{{sample}}/{{sample}}.{{component}}.bam"
 # kept beside them.
 COMPONENT_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.{{component}}.unique.cram"
 MULTIPLACED_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.multiplaced.cram"
+
+# ONE QC ARTIFACT PER CELL, shaped the way the droplet pipeline's already is and identical to the
+# base twin's but for one key inside it: this arm's cell also has a split, and what left for which
+# Component is folded in beside what the extraction saw and what the aligner did. A finished cell
+# used to leave five files; it leaves this one. Spelled ONCE, here, because `rule all` demands it and
+# a rule writes it.
+CELL_QC = f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}"
+
+# The two logs STAR writes as a run PROCEEDS, declared so the bundle can consume them and `temp()`
+# can then drop them -- automatic, DAG-ordered cleanup rather than a manual `rm`, and a declared
+# output STAR did not write is a loud rule failure rather than a file nobody notices. `expand` fills
+# `f` and leaves `sample` a wildcard, which is snakemake's usual double escape.
+STAR_PROGRESS = expand(f"{OUTDIR}/{{{{sample}}}}/{{f}}", f=list(STAR_PROGRESS_LOGS))
 
 
 def fastqs(sample, role):
@@ -318,9 +339,11 @@ rule all:
         expand(f"{OUTDIR}/{PLATE_COMPONENT_H5AD}", component=COMPONENTS),
         expand(COMPONENT_CRAM, sample=SAMPLES, component=COMPONENTS),
         expand(MULTIPLACED_CRAM, sample=SAMPLES),
-        # Per-cell QC needs no target -- STAR writes `Log.final.out` into each cell's directory
-        # unasked, and the split summary is written by a rule every h5ad above depends on, so a plate
-        # that finishes has written one per cell. The report's readers find both there.
+        # ...and the per-cell QC bundle, demanded by name for the same reason and one more: it is
+        # what the report reads a cell's row from AND what says the cell finished. On this arm it is
+        # downstream of the split, so a plate whose split refused for every cell reports what it did
+        # -- no cell finished -- rather than counting a log the aligner wrote before any of it.
+        expand(CELL_QC, sample=SAMPLES),
 
 
 rule genome_index:
@@ -451,11 +474,13 @@ rule umi_extract:
     rule's to state, and the mate list is also what `read_files_type` reads. `units.tsv` joins them,
     because the command now opens it.
 
-    **Two outputs, and only one of them is reclaimed.** The uBAM is consumed and deleted; the summary
-    beside it is the durable account of what the extraction saw, and it is declared here rather than
-    derived by the verb so that one path is stated once and snakemake owns removing it after a failed
-    job. Nothing demands it in `rule all` and nothing needs to: this rule is upstream of every cell's
-    CRAM, so a plate that finishes has written one per cell.
+    **Two outputs, and BOTH are reclaimed** -- for two different reasons, which is why they are two
+    lines. The uBAM is consumed by the aligner and deleted; the summary beside it is the account of
+    what the extraction saw, and it survives only until `rule qc_bundle` folds it into this cell's
+    one QC artifact. What the extraction measured still outlives the records it measured, which is
+    the whole point of writing it: it now does so inside the bundle rather than beside it. Both are
+    declared here rather than derived by the verb so that a path is stated once and snakemake owns
+    removing it after a failed job.
     """
     input:
         units=UNITS_TSV,
@@ -465,10 +490,11 @@ rule umi_extract:
         # Consumed by exactly one rule (the mapping below), so snakemake deletes it the moment that
         # job finishes -- 1440 uBAMs never coexist with 1440 alignments.
         ubam=temp(f"{OUTDIR}/{{sample}}/{{sample}}.unaligned.bam"),
-        # And NOT `temp()`, which is the whole point of it: what the extraction measured has to
-        # outlive the records it measured. `workflows.umite.extract` argues why those numbers are
-        # worth keeping; what belongs here is that the uBAM above is the reason they need a file.
-        summary=f"{OUTDIR}/{{sample}}/{{sample}}{EXTRACT_SUFFIX}",
+        # `temp()` because it has a CONSUMER now: `rule qc_bundle` reads this cell's counts into the
+        # one artifact the cell keeps, so what the extraction measured outlives the records it
+        # measured without leaving a second file to reason about. `workflows.umite.extract` argues
+        # why those numbers are worth keeping at all.
+        summary=temp(f"{OUTDIR}/{{sample}}/{{sample}}{EXTRACT_SUFFIX}"),
     params:
         # The whole extraction geometry as one value, derived by compose from the element
         # coordinates: which read is tagged, the anchor and where it is declared, the UMI's offset
@@ -545,6 +571,18 @@ rule star_umi_map:
         # BOTH have finished and then deletes it. That is the 2x peak disk the single sort avoids
         # doubling again.
         bam=temp(f"{OUTDIR}/{{sample}}/{STAR_BAM}"),
+        # THE ALIGNER'S RUN FILES, DECLARED. STAR writes all four whether or not anyone asks, so
+        # until now they sat in a cell's directory undeclared -- a rule that wrote more than it said
+        # it did, and a reader with nothing telling them which files were the point. Each is
+        # `temp()` because `rule qc_bundle` folds it into this cell's one QC artifact: the end-of-run
+        # summary is what the report's alignment columns are read from, and the junction table is
+        # reduced to counts there, because a junction call from one cell at ~1M reads is not
+        # analyzable and 784 of these tables is roughly a gigabyte of a plate nothing opens. (The
+        # bulk module keeps ITS table for exactly the inverse reason -- depth.) The two progress
+        # logs nothing reads at any depth ride along so that they, too, are gone by the end.
+        log=temp(f"{OUTDIR}/{{sample}}/{STAR_FINAL_LOG}"),
+        progress=temp(STAR_PROGRESS),
+        junctions=temp(f"{OUTDIR}/{{sample}}/{STAR_JUNCTIONS}"),
     container: config["container"]
     threads: config["threads"]
     retries: PLATE_RETRIES
@@ -683,18 +721,19 @@ rule split_chimera:
     -- a Component whose own chromosome names already carry a doubled underscore forces a longer run
     than the default, and only the record knows.
 
-    **Two outputs, and only the BAMs are reclaimed.** They are `temp()`, consumed by the fan-in and
-    by that Component's archive, so a Component's BAM goes as soon as both have read it and the whole
-    plate's never coexist with the objects counted from them. What OUTLIVES them is the archive, which
-    is that BAM's uniquely-placed records re-encoded against the Component's own reference: the
-    split's spelling is kept without keeping the split's bytes. The summary beside them is NOT
-    `temp()`: it is the durable account of what left and where it went, and it is where `unmapped`
-    LIVES for a chimeric run -- it reads structurally zero in every h5ad below, because those records
-    leave here, one rule before the counter. It is also where a fragment that half aligned is
-    accounted for: the mate that landed is kept, its partner is not in the file to balance it, and
-    the summary states that count per Component rather than letting a lopsided output look like a
-    healthy one. Nothing demands it in `rule all` and nothing needs to: this rule is upstream of
-    every matrix, so a plate that finishes has written one per cell.
+    **Two outputs, and BOTH are reclaimed** -- for two different reasons. The BAMs are consumed by
+    the fan-in and by that Component's archive, so a Component's BAM goes as soon as both have read
+    it and the whole plate's never coexist with the objects counted from them. What OUTLIVES them is
+    the archive, which is that BAM's uniquely-placed records re-encoded against the Component's own
+    reference: the split's spelling is kept without keeping the split's bytes. The summary beside
+    them is the account of what left and where it went, and it is where `unmapped` LIVES for a
+    chimeric run -- it reads structurally zero in every h5ad below, because those records leave here,
+    one rule before the counter. It is also where a fragment that half aligned is accounted for: the
+    mate that landed is kept, its partner is not in the file to balance it, and the summary states
+    that count per Component rather than letting a lopsided output look like a healthy one. All of
+    that outlives the run inside this cell's QC bundle, which `rule qc_bundle` folds it into -- so
+    the numbers survive and the file does not, and a finished cell leaves one artifact rather than
+    five.
     """
     input:
         bam=rules.star_umi_map.output.bam,
@@ -702,7 +741,7 @@ rule split_chimera:
         # One per Component, with `{sample}` left standing: `allow_missing` is what keeps this a
         # per-cell rule while the Component axis is expanded here and the cell axis by `rule all`.
         bams=temp(expand(SPLIT_BAM, component=COMPONENTS, allow_missing=True)),
-        summary=f"{OUTDIR}/{{sample}}/{{sample}}{SPLIT_SUFFIX}",
+        summary=temp(f"{OUTDIR}/{{sample}}/{{sample}}{SPLIT_SUFFIX}"),
     threads: config["threads"]
     params:
         assembly=ASSEMBLY,
@@ -751,6 +790,55 @@ rule unique_to_cram:
         r"""
         seqforge io cram --bam {input.bam} --assembly {wildcards.component} \
              --out {output.cram} --threads {threads} --selection unique
+        """
+
+
+rule qc_bundle:
+    """Fold everything one cell's chain wrote into ONE gzipped JSON, then let `temp()` drop the rest.
+
+    **The base twin's rule plus one argument**, and that argument is this arm's whole difference:
+    `--split` hands the verb what left for which Component, so a chimeric cell's QC carries the
+    per-Component accounts beside what the extraction saw and what the aligner did. Everything else
+    is the base's, deliberately -- one artifact kind, one suffix, one verb, and the same file to open
+    whichever arm a cell was processed on.
+
+    A cell used to leave five files -- an extraction summary, the aligner's end-of-run log, two
+    progress logs nothing reads and the split summary -- beside a junction table nobody can analyze
+    at one cell's depth. This rule consumes all of them and writes one, so a reader looks in one
+    place and everything it took in becomes reclaimable. The junctions arrive as a SUMMARY: storing
+    the table would put roughly a gigabyte back into a 784-cell plate's bundles for a file nothing
+    downstream reads.
+
+    **This is also what says a cell FINISHED, and on this arm that is the load-bearing half.** The
+    claim used to sit on the aligner's log, which STAR writes the moment it stops aligning -- so the
+    arm whose split refused for every cell still reported every cell finished, with no matrix on
+    disk anywhere. This rule is downstream of the split, so it cannot say that early.
+
+    A `shell:` calling a seqforge verb rather than a `run:` block, like every other rule here:
+    `snakemake -n -p` renders every shell block while planning and cannot see inside a `run:`. No
+    `container:` -- this is Python over small text files and shells out to nothing.
+    """
+    input:
+        extract=rules.umi_extract.output.summary,
+        log=rules.star_umi_map.output.log,
+        progress=rules.star_umi_map.output.progress,
+        junctions=rules.star_umi_map.output.junctions,
+        split=rules.split_chimera.output.summary,
+    output:
+        CELL_QC,
+    params:
+        # The cell's own directory: a cell IS a sample here, so this is where STAR left the run
+        # files above and what the verb reads them from.
+        run_dir=lambda wc: f"{OUTDIR}/{wc.sample}",
+        # The CHIMERA, which is what the aligner was pointed at and therefore what this cell's
+        # multiply-placed archive is a difference from. The per-Component archives name their own
+        # Component, and that is the archive rule's fact rather than this bundle's.
+        assembly=ASSEMBLY,
+    shell:
+        r"""
+        seqforge io qc-bundle --run-dir {params.run_dir} --sample {wildcards.sample} \
+             --extract {input.extract} --split {input.split} \
+             --assembly {params.assembly} --out {output}
         """
 
 

@@ -1511,14 +1511,19 @@ def _finish_a_chimeric_plate(
     The two edits `_finish_a_starsolo_pipeline` makes, plus the one this module needs because its
     deliverable is not per-sample: the copied module becomes `star-umi-chimera.smk` (so the owner
     reports the chimeric twin), the composed config gains the Component list that twin's `rule all`
-    expands its deliverable over, one alignment log lands per contracted cell, and one counting
-    object lands per Component in `wrote` — defaulting to every Component, i.e. a run that finished.
+    expands its deliverable over, one QC bundle lands per contracted cell, and one counting object
+    lands per Component in `wrote` — defaulting to every Component, i.e. a run that finished.
 
-    The objects are written empty on purpose: the chimeric twin ships no fan-in reader, so nothing
-    opens them, and what is under test is whether the file the module DECLARED is there at all.
+    The per-cell bundle is what says a cell finished, so it is what a finished cell leaves here: the
+    alignment log this used to write is folded into it and reclaimed by the run. The objects are
+    written empty on purpose: the chimeric twin ships no fan-in reader, so nothing opens them, and
+    what is under test is whether the file the module DECLARED is there at all.
     """
+    import gzip
+
     from seqforge.pipeline import CompiledPipeline
     from seqforge.workflows import PLATE_COMPONENT_H5AD
+    from seqforge.workflows.qc import QC_SUFFIX
 
     pipeline = CompiledPipeline.discover(ws)
     assert pipeline is not None, "the fixture workspace should already be composed"
@@ -1531,9 +1536,10 @@ def _finish_a_chimeric_plate(
     samples = pipeline.samples
     assert samples, "the composed config should carry its own sample list"
     for sample in samples:
-        out = pipeline.results_dir / sample / "Log.final.out"
+        out = pipeline.results_dir / sample / f"{sample}{QC_SUFFIX}"
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text("".join(f"  {k} |\t{v}\n" for k, v in _STAR_FINAL_LOG.items()))
+        with gzip.open(out, "wt", encoding="utf-8") as fh:
+            json.dump({"sample": sample, "log_final": _STAR_FINAL_LOG}, fh)
     for component in components if wrote is None else wrote:
         (pipeline.results_dir / PLATE_COMPONENT_H5AD.format(component=component)).write_bytes(b"")
     return pipeline.results_dir, samples
