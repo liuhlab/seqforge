@@ -518,7 +518,10 @@ def sequencing_saturation(value: float | None) -> Metric | None:
 
 
 def genes_detected(
-    value: float | None, *, region: Literal["exon", "intron", "combined"]
+    value: float | None,
+    *,
+    region: Literal["exon", "intron", "combined"],
+    headline: bool = False,
 ) -> Metric | None:
     """Distinct genes seen anywhere in a sample, spelled once for every module that reports one.
 
@@ -541,6 +544,17 @@ def genes_detected(
     further than anything seqforge decided. The plate makes that sharper rather than merely
     theoretical: its column renders once per Component, so one threshold would be grading a bacterium
     against a worm's expectations in adjacent columns of the same row.
+
+    **Whether it is promoted is the caller's, which is why ``headline`` is a parameter and not a
+    constant here.** How much else a page already carries is a fact about that page: the droplet
+    module reports a dozen numbers a reader triages first and leaves this one in the full table,
+    while on a plate a sample IS a cell and how many genes it detected is close to the whole
+    question. Defaulting to off keeps the quiet answer the one a caller gets by saying nothing.
+
+    The hint is **sample-relative** for the same reason the region is a parameter. It read "across
+    all cells" while only the droplet page had it, which is a droplet sentence: one sample there is
+    a library of thousands of cells, and one sample on the plate page is one cell, where the phrase
+    would describe an aggregation nobody performed.
     """
     return count(
         "genes_detected",
@@ -548,9 +562,10 @@ def genes_detected(
         value,
         group="counts",
         exact=True,
-        hint="Distinct genes with at least one count across all cells. The word in the label is "
-        "which region of a gene those counts came from — an exonic total and one that includes "
-        "introns are two measurements, not two readings of one.",
+        hint="Distinct genes this sample counted at least once. The word in the label is which "
+        "region of a gene those counts came from — an exonic total and one that includes introns "
+        "are two measurements, not two readings of one.",
+        headline=headline,
     )
 
 
