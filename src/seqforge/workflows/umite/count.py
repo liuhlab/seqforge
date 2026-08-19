@@ -858,8 +858,13 @@ class _Counted:
     #: :attr:`saturation` is already one minus a share of the first: two callers summing the same
     #: layer is two derivations of one number, and the object would carry no evidence of which one
     #: a column came from.
+    #:
+    #: The gene field is spelled for the ``obs`` column it feeds and never ``n_genes``, because this
+    #: module already uses that word for the gene-axis WIDTH of every matrix — every gene in the
+    #: annotation, the same number for every cell on the plate. A per-cell count and a plate-wide
+    #: constant under one word is a reader deciding from context which of the two a line means.
     n_umis: int
-    n_genes: int
+    genes_detected: int
     #: ``None`` where the cell had no gene-assigned fragment carrying a UMI to divide by.
     saturation: float | None
 
@@ -908,7 +913,7 @@ def _count_cell(bam: Path, annotation: Annotation) -> _Counted:
         n_fragments=counts.n_fragments,
         hits=dict(counts.hits),
         n_umis=n_umis,
-        n_genes=len(molecules),
+        genes_detected=len(molecules),
         saturation=_saturation(n_umis, counts.umi_fragments),
     )
 
@@ -1073,7 +1078,7 @@ def count_plate(
         adata.obs[fate] = np.array([cell.fates[fate] for cell in counted], dtype=np.int32)
     adata.obs[N_FRAGMENTS] = np.array([cell.n_fragments for cell in counted], dtype=np.int32)
     adata.obs[N_UMIS] = np.array([cell.n_umis for cell in counted], dtype=np.int32)
-    adata.obs[GENES_DETECTED] = np.array([cell.n_genes for cell in counted], dtype=np.int32)
+    adata.obs[GENES_DETECTED] = np.array([cell.genes_detected for cell in counted], dtype=np.int32)
     # A cell with no ratio is `nan` and not a zero, which pandas carries and `fate_metrics` reads
     # back as an absent metric rather than as a rendered `0.0%` somebody would act on.
     adata.obs[SATURATION] = np.array(
