@@ -843,8 +843,10 @@ class _Counted:
     """One cell's answer. Everything the plate object takes from a cell, and deliberately nothing
     else — see :func:`_count_cell`, which is where what is NOT here dies.
 
-    A record rather than a tuple because it grew a fifth field: an anonymous 5-tuple unpacked in
-    four places is where a plate silently gets one cell's saturation against another's fates.
+    A record rather than a tuple because it outgrew one: an anonymous tuple unpacked in four places
+    is where a plate silently gets one cell's saturation against another's fates. The count of
+    fields is deliberately not stated here — it has drifted once already, and a field added is
+    exactly the moment nobody rereads the sentence above it.
     """
 
     matrices: dict[str, dict[int, int]]
