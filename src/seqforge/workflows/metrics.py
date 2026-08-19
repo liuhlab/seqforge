@@ -496,12 +496,13 @@ def count(
 def sequencing_saturation(value: float | None) -> Metric | None:
     """Sequencing saturation, spelled once for every module that reports one.
 
-    The **only** named metric in this file, and it is here for the reason the others are not: two
-    modules produce it. The droplet page reads STARsolo's own figure out of a summary; the plate page
-    computes the same ratio in its counter, because there is no STARsolo to read it from. Both are
-    one minus deduplicated molecules over the gene-assigned reads carrying a usable tag, so they
-    belong in one column of one table under one sentence — and a hint restated in the second module
-    is the copy that drifts, leaving a reader comparing two numbers they were told mean one thing.
+    One of the two named metrics in this file, and it is here for the reason the unnamed ones are
+    not: two modules produce it. The droplet page reads STARsolo's own figure out of a summary; the
+    plate page computes the same ratio in its counter, because there is no STARsolo to read it from.
+    Both are one minus deduplicated molecules over the gene-assigned reads carrying a usable tag, so
+    they belong in one column of one table under one sentence — and a hint restated in the second
+    module is the copy that drifts, leaving a reader comparing two numbers they were told mean one
+    thing.
 
     Ungraded, in both. What saturation *should* be is a property of how deep somebody chose to
     sequence, so a bar here would grade a decision nobody made wrongly.
@@ -513,6 +514,58 @@ def sequencing_saturation(value: float | None) -> Metric | None:
         group="duplication",
         hint="Share of reads that were a repeat of a molecule already seen. Not a pass/fail — it "
         "says whether sequencing deeper would find anything new.",
+    )
+
+
+def genes_detected(
+    value: float | None,
+    *,
+    region: Literal["exon", "intron", "combined"],
+    headline: bool = False,
+) -> Metric | None:
+    """Distinct genes seen anywhere in a sample, spelled once for every module that reports one.
+
+    The second named metric here, and for the same reason as the first: two modules produce it. The
+    droplet page reads STARsolo's own total out of a summary; the plate page counts it off the
+    matrices its own counter built, because there is no STARsolo to read it from. One column of one
+    table under one sentence, rather than a hint written twice and drifting.
+
+    **The region is a parameter because the two pages are not counting the same thing.** Which cell
+    of the counting grid a matrix belongs to — a unit crossed with a region — is what makes two gene
+    totals two measurements, and a page showing an exonic total beside a whole-gene-body one under a
+    single word "genes" invites the reader to compare them as though the difference were biology
+    rather than which region was counted. So the caller, which is the only code that knows what its
+    own matrix counted, says the region and the label carries it. It stays a bare region word here
+    and never a tool's feature name: an aligner's spelling is that aligner's fact, and translating it
+    is the caller's job precisely so this file never has to know one aligner from another.
+
+    **Ungraded, in both.** Nobody has measured how many genes a sample *should* detect, so a bar here
+    would be a figure invented at review; and the depth, the annotation and the organism each move it
+    further than anything seqforge decided. The plate makes that sharper rather than merely
+    theoretical: its column renders once per Component, so one threshold would be grading a bacterium
+    against a worm's expectations in adjacent columns of the same row.
+
+    **Whether it is promoted is the caller's, which is why ``headline`` is a parameter and not a
+    constant here.** How much else a page already carries is a fact about that page: the droplet
+    module reports a dozen numbers a reader triages first and leaves this one in the full table,
+    while on a plate a sample IS a cell and how many genes it detected is close to the whole
+    question. Defaulting to off keeps the quiet answer the one a caller gets by saying nothing.
+
+    The hint is **sample-relative** for the same reason the region is a parameter. It read "across
+    all cells" while only the droplet page had it, which is a droplet sentence: one sample there is
+    a library of thousands of cells, and one sample on the plate page is one cell, where the phrase
+    would describe an aggregation nobody performed.
+    """
+    return count(
+        "genes_detected",
+        f"Genes ({region})",
+        value,
+        group="counts",
+        exact=True,
+        hint="Distinct genes this sample counted at least once. The word in the label is which "
+        "region of a gene those counts came from — an exonic total and one that includes introns "
+        "are two measurements, not two readings of one.",
+        headline=headline,
     )
 
 
@@ -599,6 +652,7 @@ __all__ = [
     "fmt_pct",
     "fmt_ratio",
     "fraction",
+    "genes_detected",
     "grade",
     "knee_points",
     "ratio",

@@ -31,8 +31,9 @@ join, and the four read fates are ``obs`` **columns**. The reference carries the
 other 55 335 columns are genes — a per-cell scalar dressed as a feature, which is what forced a
 correction in its output shape. As columns they need no leading underscore either: the underscore
 was there to keep them out of the gene id namespace, and they are not in it any more. Sequencing
-saturation is a column beside them, and how many loci each multiply-placed fragment had is an
-``obsm`` array — a per-cell vector rather than a scalar, so it is the one figure ``obs`` cannot hold.
+saturation is a column beside them, what the cell YIELDED — its molecules and how many genes hold
+one — is two more, and how many loci each multiply-placed fragment had is an ``obsm`` array: a
+per-cell vector rather than a scalar, so it is the one figure ``obs`` cannot hold.
 
 **A matrix is materialised when it cannot be derived from the others, and only then.** That is why
 the combined UMI matrix is here and a combined *read* matrix is not: reads carry no UMI and are
@@ -123,7 +124,14 @@ from scipy.sparse import coo_matrix, csr_matrix
 # Aliased for the reason `fragments.py` aliases it: `count_bam`/`count_plate` already use the word
 # for what this module does, and a helper that silently means something else inside one function is
 # how a wrong number gets written.
-from ..metrics import Metric, MetricGroup, SampleStats, fraction, sequencing_saturation
+from ..metrics import (
+    Metric,
+    MetricGroup,
+    SampleStats,
+    fraction,
+    genes_detected,
+    sequencing_saturation,
+)
 from ..metrics import count as count_metric
 
 if TYPE_CHECKING:  # pragma: no cover — both are runtime deps; keeps import cost off compose
@@ -201,6 +209,25 @@ N_FRAGMENTS = "n_fragments"
 #: because the bundle is written a rule EARLIER than the counter and physically cannot carry a number
 #: only deduplication produces. A cell with no such fragment has no saturation rather than a zero.
 SATURATION = "saturation"
+
+#: What a cell YIELDED: its molecules, and how many genes any of them reached. Every column above is
+#: an account of how a fragment FAILED to reach a gene, so an object carrying only those says what
+#: went wrong and never what came out — and "did this well work" is the first question anybody asks
+#: of a plate.
+#:
+#: **Both are counted over ``umi_combined`` and never over ``X``.** That layer is the only one
+#: counting a UMI seen both exonically and intronically on a gene ONCE, which is the same argument
+#: :func:`_saturation` rests on — so the molecule total and the saturation beside it are two
+#: readings of one number rather than two derivations nothing forces to agree. The gene total is
+#: that layer's length, which is "genes with at least one molecule" exactly: :func:`_combined_umis`
+#: files a gene only when its merged bucket is non-empty, and a non-empty bucket corrects to at
+#: least one UMI.
+#:
+#: :data:`GENES_DETECTED` is spelled as the shared metric's own key because a column and the metric
+#: read off it are one string everywhere on this path; a second word for it would be a rename
+#: nothing catches.
+N_UMIS = "n_umis"
+GENES_DETECTED = "genes_detected"
 
 
 # --------------------------------------------------------------------------------------------
@@ -758,7 +785,7 @@ def deduplicate(counts: CellCounts) -> dict[str, dict[int, int]]:
     }
 
 
-def _saturation(matrices: Mapping[str, Mapping[int, int]], umi_fragments: int) -> float | None:
+def _saturation(molecules: int, umi_fragments: int) -> float | None:
     """One minus this cell's molecules over the gene-assigned fragments that carried a UMI.
 
     **The droplet pipeline's definition, not a second one under its name.** STARsolo reports the
@@ -774,12 +801,19 @@ def _saturation(matrices: Mapping[str, Mapping[int, int]], umi_fragments: int) -
     in neither term — they never reached a gene, so they are not in the denominator, and the layer
     that places them is not expression, so it is not in the numerator.
 
+    **It is HANDED that total rather than summing the layer itself**, which is the whole reason this
+    takes an int. The same figure is a column of its own on the object now, and a function that
+    re-derived it here would be a second account of how many molecules a cell has, agreeing with the
+    first only by coincidence — a page reporting a molecule count that its neighbouring ratio
+    contradicts is the failure this port was built to make unreachable. One derivation lives in
+    :func:`_count_cell`, and both readings come off it.
+
     A cell whose fragments all went untagged or ungenned has no ratio rather than a zero: the
     denominator is the one that has no answer, and a rendered ``0%`` is a number a reader acts on.
     """
     if not umi_fragments:
         return None
-    return 1.0 - (sum(matrices["umi_combined"].values()) / umi_fragments)
+    return 1.0 - (molecules / umi_fragments)
 
 
 # --------------------------------------------------------------------------------------------
@@ -809,8 +843,10 @@ class _Counted:
     """One cell's answer. Everything the plate object takes from a cell, and deliberately nothing
     else — see :func:`_count_cell`, which is where what is NOT here dies.
 
-    A record rather than a tuple because it grew a fifth field: an anonymous 5-tuple unpacked in
-    four places is where a plate silently gets one cell's saturation against another's fates.
+    A record rather than a tuple because it outgrew one: an anonymous tuple unpacked in four places
+    is where a plate silently gets one cell's saturation against another's fates. The count of
+    fields is deliberately not stated here — it has drifted once already, and a field added is
+    exactly the moment nobody rereads the sentence above it.
     """
 
     matrices: dict[str, dict[int, int]]
@@ -819,6 +855,18 @@ class _Counted:
     #: ``NH`` -> how many of this cell's fragments carried it. Kilobytes: a cell has as many entries
     #: as the aligner's multimapping limit allows, whatever its depth.
     hits: dict[int, int]
+    #: This cell's deduplicated molecules over ``umi_combined``, and how many genes hold one. Both
+    #: carried rather than recovered from :attr:`matrices` by whoever wants them, because
+    #: :attr:`saturation` is already one minus a share of the first: two callers summing the same
+    #: layer is two derivations of one number, and the object would carry no evidence of which one
+    #: a column came from.
+    #:
+    #: The gene field is spelled for the ``obs`` column it feeds and never ``n_genes``, because this
+    #: module already uses that word for the gene-axis WIDTH of every matrix — every gene in the
+    #: annotation, the same number for every cell on the plate. A per-cell count and a plate-wide
+    #: constant under one word is a reader deciding from context which of the two a line means.
+    n_umis: int
+    genes_detected: int
     #: ``None`` where the cell had no gene-assigned fragment carrying a UMI to divide by.
     saturation: float | None
 
@@ -840,23 +888,35 @@ def _count_cell(bam: Path, annotation: Annotation) -> _Counted:
     deeper than that. A plate that carried them all back would hold every cell's at once for the
     life of the run: on the deposit this counter sizes for, gigabytes, and the term that would bind
     the fan-in's memory request first. What survives the worker is what the object is written from
-    and nothing more — the matrices, the four fates, the fragment total, the hit-count distribution
-    and one float.
+    and nothing more — the matrices, the four fates, the fragment total, the hit-count distribution,
+    what the cell yielded and one float.
 
     **Saturation is computed here for the same reason**: it is one minus a deduplicated figure over
     a raw one, and the deduplicated figure exists only between :func:`deduplicate` returning and this
     frame ending. A parent that wanted it would have to be handed the per-gene molecule totals of
     every cell, which is the matrix it is already being handed, or the raw observations, which are
     the object this function exists to let die.
+
+    **And the molecule total is summed once, here, rather than by each of its two readers.** It is
+    a column on the object and it is the numerator of that ratio, and nothing about a page would
+    reveal a disagreement between the two: a reader sees a molecule count beside a saturation and
+    has no way to check that one was derived from the other. So the sum happens where the ratio is
+    built, and the ratio is handed the answer.
     """
     counts = count_bam(bam, annotation)
     matrices = deduplicate(counts)
+    # The one place this cell's molecules are counted. Everything that reports them -- the column,
+    # and the ratio the column's neighbour is one minus -- reads this, so the two cannot disagree.
+    molecules = matrices["umi_combined"]
+    n_umis = sum(molecules.values())
     return _Counted(
         matrices=matrices,
         fates=counts.fates,
         n_fragments=counts.n_fragments,
         hits=dict(counts.hits),
-        saturation=_saturation(matrices, counts.umi_fragments),
+        n_umis=n_umis,
+        genes_detected=len(molecules),
+        saturation=_saturation(n_umis, counts.umi_fragments),
     )
 
 
@@ -980,10 +1040,10 @@ def count_plate(
     is now where a cell's observations are last alive.
 
     **On a chimeric run this is called once per Component**, over that Component's per-cell BAMs, so
-    every per-cell figure below — the fates, the saturation, the hit-count distribution and the
-    placement layer — comes out per Component without this function knowing the word. That is the
-    shape the ambiguity question wants: two organisms' libraries saturate at different rates, and one
-    object holding both could only report their average.
+    every per-cell figure below — the fates, the yield, the saturation, the hit-count distribution
+    and the placement layer — comes out per Component without this function knowing the word. That is
+    the shape the ambiguity question wants: two organisms' libraries saturate at different rates and
+    detect different numbers of genes, and one object holding both could only report their average.
 
     Row order is the caller's, never a sort and never the order the filesystem answered in: the
     composer hands the cells over in its own sample order, and the h5ad row is the sample id. That
@@ -1019,6 +1079,8 @@ def count_plate(
     for fate in FATES:
         adata.obs[fate] = np.array([cell.fates[fate] for cell in counted], dtype=np.int32)
     adata.obs[N_FRAGMENTS] = np.array([cell.n_fragments for cell in counted], dtype=np.int32)
+    adata.obs[N_UMIS] = np.array([cell.n_umis for cell in counted], dtype=np.int32)
+    adata.obs[GENES_DETECTED] = np.array([cell.genes_detected for cell in counted], dtype=np.int32)
     # A cell with no ratio is `nan` and not a zero, which pandas carries and `fate_metrics` reads
     # back as an absent metric rather than as a rendered `0.0%` somebody would act on.
     adata.obs[SATURATION] = np.array(
@@ -1153,7 +1215,21 @@ def fate_metrics(row: Mapping[str, float], sample: str) -> SampleStats:
 
     Saturation is built by the shared constructor rather than restated here, which is what makes the
     droplet page's column and this one the same column: one key, one label, one sentence saying what
-    the number means, in the module both import.
+    the number means, in the module both import. The gene total is built by the same shared
+    constructor and for the same reason, naming the region it was counted over so it can never be
+    read against a droplet page's exonic total as though the gap were biology.
+
+    **The molecule total is built HERE and is not a named metric**, which is the rule that module
+    states: one producer, so a constructor there would be an indirection with a single call site,
+    and the sentence it carries has nowhere to drift to. Both are the yield — what the cell produced
+    rather than how its fragments failed to — and both are headline, because "did this well work"
+    is what a reader asks first and no share of a failure answers it.
+
+    **Neither is graded**, on the argument the fates are not graded on. Nobody has measured how many
+    molecules or how many genes a cell SHOULD yield: depth, chemistry, input and organism each move
+    both further than anything seqforge decided, and the chimeric twin renders each column once per
+    Component, where a single bar would grade a bacterium against a worm's expectations in adjacent
+    columns of one row.
     """
     total = row.get(N_FRAGMENTS)
     built: list[Metric | None] = [
@@ -1180,6 +1256,20 @@ def fate_metrics(row: Mapping[str, float], sample: str) -> SampleStats:
                 headline=fate == _HEADLINE_FATE,
             )
         )
+    built.append(
+        count_metric(
+            N_UMIS,
+            "UMI (combined)",
+            row.get(N_UMIS),
+            group="counts",
+            exact=True,
+            hint="Deduplicated molecules this cell counted into genes, over exons and introns "
+            "together — a UMI seen in both on one gene is one molecule. The saturation beside it "
+            "is one minus this number over the fragments that carried a UMI to a gene.",
+            headline=True,
+        )
+    )
+    built.append(genes_detected(row.get(GENES_DETECTED), region="combined", headline=True))
     saturated = row.get(SATURATION)
     built.append(
         sequencing_saturation(None if saturated is None or isnan(saturated) else saturated)
@@ -1202,7 +1292,7 @@ def _obs_columns(adata: anndata.AnnData) -> dict[str, list[float]]:
     frame: Any = adata.obs
     return {
         column: [float(value) for value in frame[column]]
-        for column in (*FATES, N_FRAGMENTS, SATURATION)
+        for column in (*FATES, N_FRAGMENTS, SATURATION, N_UMIS, GENES_DETECTED)
         if column in frame.columns
     }
 
@@ -1247,12 +1337,14 @@ def read_plate_stats(path: Path, samples: Sequence[str]) -> dict[str, SampleStat
 __all__ = [
     "COUNT_RATIO_THRESHOLD",
     "FATES",
+    "GENES_DETECTED",
     "HITS_TAG",
     "LAYERS",
     "MULTIMAPPING_CAVEAT",
     "MULTIMAPPING_HITS",
     "MULTIMAPPING_LAYER",
     "N_FRAGMENTS",
+    "N_UMIS",
     "PRIMARY_MATRIX",
     "SATURATION",
     "UMI_TAG",

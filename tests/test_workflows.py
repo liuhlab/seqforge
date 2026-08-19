@@ -156,11 +156,13 @@ from seqforge.workflows.stats import (
 )
 from seqforge.workflows.umite.count import (
     FATES,
+    GENES_DETECTED,
     LAYERS,
     MULTIMAPPING_CAVEAT,
     MULTIMAPPING_HITS,
     MULTIMAPPING_LAYER,
     N_FRAGMENTS,
+    N_UMIS,
     PRIMARY_MATRIX,
     SATURATION,
     UmiCountError,
@@ -3042,16 +3044,24 @@ def _bundle(summary: dict[str, object], log_final: dict[str, object]) -> dict[st
 
 
 def _finished_star_run(
-    tmp_path: Path, *, summary: dict[str, object], log_final: dict[str, object]
+    tmp_path: Path,
+    *,
+    summary: dict[str, object],
+    log_final: dict[str, object],
+    feature: SoloFeature = "Gene",
 ) -> tuple[Path, Path]:
     """A STAR output tree carrying STAR's REAL `Summary.csv` / `Log.final.out` labels.
 
     `_fake_run` writes a two-row summary and a made-up log key, which is enough for the bundle-shape
     tests above and useless here: the reader looks rows up by STAR's exact label, so a fixture that
     invents labels can only ever prove the reader finds nothing.
+
+    `feature` is which `soloFeatures` entry STAR counted over. Filing the SAME rows under a different
+    feature name is how a caller gets two runs that agree on every number and disagree only on what
+    the number is a count of — which is the one thing a fixture with a hard-wired `Gene` cannot say.
     """
-    solo, run_dir = _fake_run(tmp_path, ["Gene"])
-    _write(solo / "Gene" / "Summary.csv", "".join(f"{k},{v}\n" for k, v in summary.items()))
+    solo, run_dir = _fake_run(tmp_path, [feature])
+    _write(solo / feature / "Summary.csv", "".join(f"{k},{v}\n" for k, v in summary.items()))
     _write(run_dir / "Log.final.out", "".join(f"    {k} |\t{v}\n" for k, v in log_final.items()))
     return solo, run_dir
 
@@ -3235,6 +3245,30 @@ def test_the_bundle_the_writer_produces_is_the_one_the_reader_looks_up(tmp_path:
     # Which feature the headline numbers came from is stated, never implied: Gene and GeneFull
     # disagree by design, so a page that does not name the feature is showing an unlabelled number.
     assert "Gene" in sample.note
+    # The gene count says it again in its own label, because the note is a caption for the whole
+    # table and this is the number a reader quotes on its own. `Gene` counts exons.
+    assert got["genes_detected"].label == "Genes (exon)"
+
+    # The SAME summary rows, filed under the feature that counts gene bodies: one number, two words
+    # for it. That is what makes the label a function of the region rather than a constant nobody
+    # would notice was wrong — an exonic count can never surface under a word that says introns were
+    # included, whichever feature the run happened to count over.
+    body_solo, body_run = _finished_star_run(
+        tmp_path / "body",
+        summary=_HEALTHY_SUMMARY,
+        log_final=_HEALTHY_LOG,
+        feature="GeneFull",
+    )
+    body = _by_key(
+        read_starsolo_metrics(
+            write_qc_bundle(
+                body_solo, body_run, ["GeneFull"], tmp_path / "body.qc.json.gz", sample="S1"
+            ),
+            "S1",
+        )
+    )
+    assert body["genes_detected"].label == "Genes (combined)"
+    assert body["genes_detected"].value == got["genes_detected"].value == 21044
 
 
 def test_the_fragments_summary_the_writer_produces_is_the_one_the_reader_looks_up(
@@ -5197,6 +5231,11 @@ def test_the_object_is_x_plus_five_layers_indexed_on_sample_id_with_the_fates_as
     columns in a matrix whose other 55 335 columns really are genes, which is what forced a
     correction in its output shape.
 
+    Beside them, what the cell yielded: its molecules and how many genes any of them reached. Every
+    other `obs` column is an account of how a fragment FAILED to reach a gene, so an object carrying
+    only those can say what went wrong and never what came out — and the exhaustive column-set
+    assertion below is what makes adding one impossible to do silently.
+
     Five matrices of expression and not six: that grid is (UMI | read) x (exon | intron | combined),
     and its sixth cell is deliberately absent. An untagged read has nothing to deduplicate by and the
     reference never tries, so a combined READ matrix is `read_exon + read_intron` exactly — a layer
@@ -5235,7 +5274,21 @@ def test_the_object_is_x_plus_five_layers_indexed_on_sample_id_with_the_fates_as
     assert adata.uns["multimapping_caveat"] == MULTIMAPPING_CAVEAT
     assert MULTIMAPPING_LAYER in MULTIMAPPING_CAVEAT
     assert set(adata.var_names) == {"GENE_A", "GENE_B", "GENE_C", "GENE_D"}
-    assert set(adata.obs.columns) == {*FATES, N_FRAGMENTS, SATURATION}
+    assert set(adata.obs.columns) == {
+        *FATES,
+        N_FRAGMENTS,
+        SATURATION,
+        N_UMIS,
+        GENES_DETECTED,
+    }
+    # What a cell YIELDED, beside the four ways its fragments failed to. Read off `_PLATE` by hand:
+    # `cell_a`'s combined UMI matrix holds GENE_A twice — "AAAAAAAA", seen exonically twice and
+    # intronically once, and "GGGGGGGG" off the spanning fragment — and GENE_B once, so three
+    # molecules over two genes. Both are counted over `umi_combined` and never over `X`, which is
+    # what makes this total and the saturation beside it two readings of one number.
+    obs = _frame(adata.obs)
+    assert (int(obs.loc["cell_a", N_UMIS]), int(obs.loc["cell_a", GENES_DETECTED])) == (3, 2)
+    assert (int(obs.loc["cell_b", N_UMIS]), int(obs.loc["cell_b", GENES_DETECTED])) == (1, 1)
     # ...and the one per-cell figure that is a vector rather than a scalar, which is why it is the
     # only thing here on `obsm`: one column per locus count, so `obs` could not have held it.
     assert _hits(adata).shape == (2, 5)
@@ -6026,6 +6079,22 @@ def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_qc_bundle(
     # Saturation arrives from the same object under the key the droplet page uses, which is the whole
     # point of computing it here rather than inventing a second word for it.
     assert cell_a[SATURATION].value == pytest.approx(1 - 3 / 5)
+    # ...and what the cell yielded, which nothing above reports: three molecules over two genes,
+    # both counted over `umi_combined`.
+    assert (cell_a[N_UMIS].value, cell_a[GENES_DETECTED].value) == (3, 2)
+    # ONE DERIVATION, not two that happen to sit near each other. Saturation is one minus these
+    # molecules over the five fragments that reached a gene carrying a UMI, so the two columns of
+    # this row have to close on each other — a second `sum` over the matrices would let them drift
+    # and nothing on the page would say so.
+    assert cell_a[SATURATION].value == pytest.approx(1 - cell_a[N_UMIS].value / 5)
+    # Both name the region they were counted over. An exonic total and one that includes introns
+    # are two measurements, and the word in the label is the only thing keeping them apart.
+    assert cell_a[GENES_DETECTED].label == "Genes (combined)"
+    assert "combined" in cell_a[N_UMIS].label
+    # Neither is graded, for the reason nothing else on this page is: nobody has measured how many
+    # molecules or genes a cell SHOULD yield, and the chimeric twin renders both once per Component,
+    # where one bar would grade a bacterium against a worm's expectations on one row.
+    assert {_levels(stats.samples[0])[key] for key in (N_UMIS, GENES_DETECTED)} == {"none"}
     # Every fate the counter records has a column and a label a human can read, checked against
     # `FATES` itself rather than against a list here — a fifth fate must not reach the page unnamed.
     assert set(FATES) <= set(cell_a)
@@ -6036,14 +6105,17 @@ def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_qc_bundle(
     assert {_levels(stats.samples[0])[fate] for fate in FATES} == {"none"}
     assert stats.findings == []
     # Well past the width at which the report folds a table behind a control, so which of these
-    # survives the fold is a decision: the chemistry readout, mapping, depth, and the fate that
-    # implicates the gene model.
+    # survives the fold is a decision: the chemistry readout, mapping, depth, the fate that
+    # implicates the gene model, and what the cell yielded — the two numbers a reader quotes when
+    # asked whether a well worked at all, which no share of a failure can answer.
     assert {m.key for m in stats.samples[0].metrics if m.headline} == {
         "umi_tagged",
         "uniquely_mapped",
         "unmapped_too_short",
         N_FRAGMENTS,
         "no_feature",
+        N_UMIS,
+        GENES_DETECTED,
     }
 
 
@@ -6362,7 +6434,11 @@ def test_a_chimeric_plate_reports_what_left_at_the_split_and_each_components_fat
     # What the plain twin's reader says about the same row, to compare the hints against: the caveat
     # is APPENDED to what the counter wrote and never replaces it, so what the number measures stays
     # the counter's sentence and what a per-Component reading of it is NOT is the registry's.
-    plain = _by_key(fate_metrics(dict.fromkeys(FATES, 1) | {N_FRAGMENTS: 4}, "cell_x"))
+    plain = _by_key(
+        fate_metrics(
+            dict.fromkeys(FATES, 1) | {N_FRAGMENTS: 4, N_UMIS: 2, GENES_DETECTED: 2}, "cell_x"
+        )
+    )
     for component, total in fragments.items():
         assert {f"{fate}_{component}" for fate in FATES} <= set(cell_a)
         # Two Components, two different fragment sets, both intact on one row.
@@ -6370,11 +6446,11 @@ def test_a_chimeric_plate_reports_what_left_at_the_split_and_each_components_fat
         assert f"{SATURATION}_{component}" in cell_a
         assert component in cell_a[f"{N_FRAGMENTS}_{component}"].label
         # And the caveat on every one of them — `unmapped` most of all, since that is the fate the
-        # split takes out one rule early and the caveat is what says where those records went.
-        for fate in FATES:
-            assert cell_a[f"{fate}_{component}"].hint == (
-                f"{plain[fate].hint} {PER_COMPONENT_CAVEAT}"
-            )
+        # split takes out one rule early and the caveat is what says where those records went. What
+        # the Component yielded rides the same rule: a molecule total off one Component's object is
+        # a total over the records that reached that Component and not over the cell's.
+        for key in (*FATES, N_UMIS, GENES_DETECTED):
+            assert cell_a[f"{key}_{component}"].hint == f"{plain[key].hint} {PER_COMPONENT_CAVEAT}"
     # The whole Component's numbers, off the synthetic plate whose every fate is known by
     # construction: 17 fragments, 4 of them multiply placed. That fate is the one the argument for
     # shipping no reader at all rested on half of — it read a structural zero until the split began
@@ -6383,8 +6459,18 @@ def test_a_chimeric_plate_reports_what_left_at_the_split_and_each_components_fat
     assert cell_a[f"multimapping_{first}"].value == pytest.approx(4 / len(_PLATE))
     assert cell_a[f"no_feature_{first}"].value == pytest.approx(2 / len(_PLATE))
     assert cell_a[f"{SATURATION}_{first}"].value == pytest.approx(1 - 3 / 5)
+    # ...and what that Component yielded, from the same object and the same derivation: three
+    # molecules over two genes, against the thin Component's one and one. Two organisms' yields side
+    # by side on one row is the number the per-Component key exists to keep apart.
+    second = components[1]
+    assert (cell_a[f"{N_UMIS}_{first}"].value, cell_a[f"{GENES_DETECTED}_{first}"].value) == (3, 2)
+    assert (cell_a[f"{N_UMIS}_{second}"].value, cell_a[f"{GENES_DETECTED}_{second}"].value) == (
+        1,
+        1,
+    )
     # The at-a-glance strip stays the cell's own: the Component axis is N-wide, so promoting these
-    # would put an unbounded number of columns in a strip whose whole job is being small.
+    # would put an unbounded number of columns in a strip whose whole job is being small — which is
+    # what the counter marking its yield headline on the plain page makes a live question here.
     assert {m.key for m in stats.samples[0].metrics if m.headline} == {
         "umi_tagged",
         "uniquely_mapped",
