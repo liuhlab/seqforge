@@ -23,6 +23,25 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.18 — `rule umi_count` writes what each cell YIELDED and not only how its fragments
+#: failed (#445, ADR-0055). Two more `obs` columns on the plate object — `n_umis` and
+#: `genes_detected`, both counted over `umi_combined` — and the page reports them beside the four
+#: fates and the saturation, per Component on a chimeric plate.
+#: **The bump is owed by the ARTIFACT and not by a moved command line.** The rule's params, its
+#: declared outputs and every matrix it writes are byte-identical; what changed is the shape of the
+#: object that comes out of it, and an h5ad written before this beside one written after would
+#: otherwise both claim the same workflow produced them, with nothing on either saying which
+#: columns to expect.
+#: **The timing is why it landed here rather than later.** `run_id = H(dataset | processing | kb |
+#: workflow)` folds this constant, so a bump re-keys every dataset compiled afterwards — and
+#: nothing had yet been produced under 2026.8.17, because the release that set it had not been
+#: re-run. This bump therefore orphaned nothing, where the same two columns added after that re-run
+#: would have cost a second full two-arm plate run to recover the objects they changed.
+#: `REPORT_VERSION` does not move with it: the renderer is unchanged and a page's columns are a
+#: union discovered across the samples it was handed, so an object written before this still
+#: renders, two columns narrower. The molecule total on the page and the object's `X` disagree on
+#: purpose — `X` is the exonic matrix and the object says so — which is ADR-0055, and why both
+#: labels name the region they were counted over.
 #: 2026.8.17 — a chimeric SMART-seq3 plate produces a complete, readable, single-species result set,
 #: and the run directory and the report tell the truth about what happened (#429). ONE bump for eight
 #: slices, deliberately: `run_id` folds this constant and not the module bytes, so paying it per slice
@@ -502,7 +521,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.17"
+WORKFLOW_VERSION = "2026.8.18"
 
 _MODULE_DIR = Path(__file__).parent
 
