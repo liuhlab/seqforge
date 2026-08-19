@@ -32,7 +32,7 @@ import gzip
 import json
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, get_args
+from typing import Any, Literal, get_args
 
 from ..models.processing import SoloFeature
 from .h5ad import (
@@ -49,6 +49,7 @@ from .metrics import (
     count,
     fmt_pct,
     fraction,
+    genes_detected,
     knee_points,
     sequencing_saturation,
 )
@@ -427,6 +428,26 @@ HEALTHY_GENOME_MAPPING = 0.60
 #: counts something *broader* than exons, so the gap always has one direction.
 _EXONIC_FEATURE = "Gene"
 
+#: Which cell of the **counting grid** each feature counts over: STARsolo's vocabulary on the left,
+#: this project's region words on the right. The translation lives HERE and not beside the metric it
+#: feeds, for the reason the cross-check below gives about a valid barcode: "``GeneFull_Ex50pAS``
+#: counts introns" is a STARsolo fact, and a shared metric module that knew it would be the
+#: per-module branch this codebase's registry exists to prevent. The three ``GeneFull`` variants land
+#: on one region because they differ in how a read that could be exonic *or* intronic is settled — a
+#: tie-break inside the gene body, not a different part of it.
+#:
+#: A hand-written table, unlike :func:`_countable_features`' derived one, and safe to hand-write for
+#: the opposite reason: a feature missing from here costs the gene count its column, which a reader
+#: sees, where a missing entry there would have quietly dropped a feature out of a comparison. A
+#: guessed region would be the unsafe direction — a whole-gene-body total sitting under the word
+#: ``exon`` is the page stating something the run did not do.
+_FEATURE_REGION: Mapping[str, Literal["exon", "intron", "combined"]] = {
+    _EXONIC_FEATURE: "exon",
+    "GeneFull": "combined",
+    "GeneFull_Ex50pAS": "combined",
+    "GeneFull_ExonOverIntron": "combined",
+}
+
 
 def _countable_features() -> frozenset[str]:
     """Every ``SoloFeature`` that carries the cell-level rows these numbers come from.
@@ -582,6 +603,11 @@ def metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
 
     built: list[Metric | None] = []
     if feature is not None:
+        # A feature outside the region table is one nobody has told us what it counts. The gene total
+        # is then the one metric here that cannot be shown, because its label has to name a region
+        # and there is none to name; every other row is a number that means the same thing whatever
+        # STAR called the directory. So it drops out, the way an absent `Summary.csv` row does.
+        region = _FEATURE_REGION.get(feature)
         built += [
             count(
                 "reads",
@@ -663,14 +689,9 @@ def metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
                 warn=200,
                 hint="Genes detected in the median cell.",
             ),
-            count(
-                "genes_detected",
-                "Genes detected",
-                _summary_get(summary, feature, "Total {f} Detected"),
-                group="counts",
-                exact=True,
-                hint="Distinct genes with at least one count across all cells.",
-            ),
+            genes_detected(_summary_get(summary, feature, "Total {f} Detected"), region=region)
+            if region is not None
+            else None,
             sequencing_saturation(_summary_get(summary, feature, "Sequencing Saturation")),
             fraction(
                 "q30_cb_umi",

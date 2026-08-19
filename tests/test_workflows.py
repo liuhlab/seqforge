@@ -3042,16 +3042,24 @@ def _bundle(summary: dict[str, object], log_final: dict[str, object]) -> dict[st
 
 
 def _finished_star_run(
-    tmp_path: Path, *, summary: dict[str, object], log_final: dict[str, object]
+    tmp_path: Path,
+    *,
+    summary: dict[str, object],
+    log_final: dict[str, object],
+    feature: SoloFeature = "Gene",
 ) -> tuple[Path, Path]:
     """A STAR output tree carrying STAR's REAL `Summary.csv` / `Log.final.out` labels.
 
     `_fake_run` writes a two-row summary and a made-up log key, which is enough for the bundle-shape
     tests above and useless here: the reader looks rows up by STAR's exact label, so a fixture that
     invents labels can only ever prove the reader finds nothing.
+
+    `feature` is which `soloFeatures` entry STAR counted over. Filing the SAME rows under a different
+    feature name is how a caller gets two runs that agree on every number and disagree only on what
+    the number is a count of — which is the one thing a fixture with a hard-wired `Gene` cannot say.
     """
-    solo, run_dir = _fake_run(tmp_path, ["Gene"])
-    _write(solo / "Gene" / "Summary.csv", "".join(f"{k},{v}\n" for k, v in summary.items()))
+    solo, run_dir = _fake_run(tmp_path, [feature])
+    _write(solo / feature / "Summary.csv", "".join(f"{k},{v}\n" for k, v in summary.items()))
     _write(run_dir / "Log.final.out", "".join(f"    {k} |\t{v}\n" for k, v in log_final.items()))
     return solo, run_dir
 
@@ -3235,6 +3243,30 @@ def test_the_bundle_the_writer_produces_is_the_one_the_reader_looks_up(tmp_path:
     # Which feature the headline numbers came from is stated, never implied: Gene and GeneFull
     # disagree by design, so a page that does not name the feature is showing an unlabelled number.
     assert "Gene" in sample.note
+    # The gene count says it again in its own label, because the note is a caption for the whole
+    # table and this is the number a reader quotes on its own. `Gene` counts exons.
+    assert got["genes_detected"].label == "Genes (exon)"
+
+    # The SAME summary rows, filed under the feature that counts gene bodies: one number, two words
+    # for it. That is what makes the label a function of the region rather than a constant nobody
+    # would notice was wrong — an exonic count can never surface under a word that says introns were
+    # included, whichever feature the run happened to count over.
+    body_solo, body_run = _finished_star_run(
+        tmp_path / "body",
+        summary=_HEALTHY_SUMMARY,
+        log_final=_HEALTHY_LOG,
+        feature="GeneFull",
+    )
+    body = _by_key(
+        read_starsolo_metrics(
+            write_qc_bundle(
+                body_solo, body_run, ["GeneFull"], tmp_path / "body.qc.json.gz", sample="S1"
+            ),
+            "S1",
+        )
+    )
+    assert body["genes_detected"].label == "Genes (combined)"
+    assert body["genes_detected"].value == got["genes_detected"].value == 21044
 
 
 def test_the_fragments_summary_the_writer_produces_is_the_one_the_reader_looks_up(
