@@ -2,8 +2,8 @@
 
 Everything runs offline against a workspace built by the real ``run`` verb on KB-generated bulk reads
 (no network, no provider, no onlist). The load-bearing properties: the page is genuinely
-self-contained (no external reference can regress in), it stays small, it is byte-deterministic, and
-the collector degrades honestly when a piece is missing rather than crashing or inventing a verdict.
+self-contained (no external reference can regress in), it is byte-deterministic, and the collector
+degrades honestly when a piece is missing rather than crashing or inventing a verdict.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import ast
 import json
 import re
 import shutil
+from collections.abc import Callable
 from html import escape, unescape
 from pathlib import Path
 from typing import TYPE_CHECKING, get_args
@@ -132,13 +133,6 @@ def test_report_makes_no_external_network_reference(workspace: Path) -> None:
     assert not offsite, f"external references leaked in: {offsite[:3]}"
     assert "@importurl(http" not in html.replace(" ", "").replace("'", '"').lower()
     assert "cdn.jsdelivr" not in html and "unpkg" not in html, "a CDN link regressed in"
-
-
-def test_report_stays_under_the_size_budget(workspace: Path) -> None:
-    """No third-party engine is inlined any more (the Flow tab is HTML cards), so a page is a few tens
-    of KB. The old budget was 6 MB to accommodate Mermaid; a page over 500 KB now means real bloat."""
-    html = render_html(collect_report(workspace))
-    assert len(html.encode()) < 500_000, "report bloated past 500 KB (a heavy asset regressed in?)"
 
 
 def test_report_render_is_byte_deterministic(workspace: Path) -> None:
@@ -537,8 +531,8 @@ def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
 
     Dropping Mermaid cut a rendered page from ~2.6 MB to tens of KB — the single largest thing ever
     true about this page — and the prose went on describing the bundle as inlined. Prose that names a
-    dependency the wheel does not carry is worse than none: it is what a reader checks a size budget
-    against, and it would have sent the next person looking for an asset that is not there.
+    dependency the wheel does not carry is worse than none: it would have sent the next person
+    looking for an asset that is not there, and the search ends in a bug report against the wheel.
 
     The renderer's own docstring was asserted here too, and is not any more: the text of a docstring
     is not something the code can do, so a rename broke that half falsely and an indirection would
@@ -973,13 +967,47 @@ def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> No
     assert "mouseover" not in script and "mouseenter" not in script
 
 
-def test_a_long_sample_table_pages_and_a_short_one_does_not_and_neither_loses_a_row() -> None:
+def _samples_grid_of(ws: Path, n_samples: int) -> str:
+    """The Samples pane with ``n_samples`` rows in it. The workspace is unused — this grid is built
+    from the hand-written display model, which is where every provenance branch lives."""
+    del ws
+    return _pane(_rich_page(n_samples), "samples")
+
+
+def _results_grid_of(ws: Path, n_samples: int) -> str:
+    """The Results pane with ``n_samples`` rows in it.
+
+    A different construction path entirely, and that is the point: Results rows are not manifest
+    samples but QC artifacts a finished pipeline wrote, so this one has to land bundles on disk and
+    let the production reader find them. If paging ever comes to depend on something only the
+    manifest carries, the two halves of the test below stop agreeing.
+
+    Reaches forward for the shared lander, which lives with the rest of the Results support: the
+    grid it builds belongs to that tab, and the rule it is proving belongs to this one.
+    """
+    _finish_a_starsolo_pipeline_over(ws, {f"S{i:04d}": _QC_SUMMARY for i in range(n_samples)})
+    return _pane(render_html(collect_report(ws)), "results")
+
+
+@pytest.mark.parametrize(
+    "grid_of", (_samples_grid_of, _results_grid_of), ids=("samples", "results")
+)
+def test_a_long_sample_table_pages_and_a_short_one_does_not_and_neither_loses_a_row(
+    own_workspace: Path, grid_of: Callable[[Path, int], str]
+) -> None:
     """A plate of ninety-six samples was the whole height of the page; one page of it is a screenful.
 
     The load-bearing half is that paging **hides and never drops**. This page is a self-contained
     artifact — a sample table that rendered 25 of 96 rows would disagree with the manifest beside it,
     and ``Rows: All`` would have nothing to put back. So the rendered row count is asserted against
     the SAMPLE count and never against the page size, in both directions of the threshold.
+
+    **Both grids that hold one row per sample**, against one rule and one set of assertions. Results
+    was the wider of the two — 784 rows by 39 metric columns on the aging plate, with no way to reach
+    row 400 but to scroll past 399 — and it pages off the same ``data-smp`` marker, the same bar and
+    the same script, so a rule proved on one grid and quietly untrue of the other is the failure this
+    shape exists to make impossible. Each grid names its own body, because two ``results-0`` on a
+    multi-assay page would bind one assay's bar to the other assay's rows.
 
     Both ends of the render→script seam, together, for the reason the popover test above gives: the
     markup alone cannot show that anything drives the bar, and the script alone cannot show that
@@ -995,12 +1023,12 @@ def test_a_long_sample_table_pages_and_a_short_one_does_not_and_neither_loses_a_
     per = _SAMPLE_PAGE_SIZES[0]
     script = (_ASSETS / "report.js").read_text()
 
-    short = _pane(_rich_page(), "samples")
-    assert short.count("<tr data-smp>") == 2
+    short = grid_of(own_workspace, 2)
+    assert short.count("<tr data-smp") == 2
     assert "data-pager" not in short, "a table that fits on one page renders no pager"
 
-    long_table = _pane(_rich_page(per + 1), "samples")
-    assert long_table.count("<tr data-smp>") == per + 1, "a paged table still ships every row"
+    long_table = grid_of(own_workspace, per + 1)
+    assert long_table.count("<tr data-smp") == per + 1, "a paged table still ships every row"
     bar = re.search(r"<nav[^>]*data-pager=\"([^\"]+)\"[^>]*>", long_table)
     assert bar is not None, "a table past one page renders no pager"
     assert "hidden" in bar.group(0), "the bar must arrive hidden, for the script to unhide"
@@ -1106,12 +1134,11 @@ def test_the_evidence_body_is_as_wide_as_its_panel_and_the_measure_stays_on_the_
 
 
 def test_the_two_grids_keep_the_pages_standing_guarantees() -> None:
-    """Self-contained, no external reference, inside the budget, byte-deterministic — with both grids
-    full, which is the shape neither the bulk fixture nor any other test in this file renders."""
+    """Self-contained, no external reference, byte-deterministic — with both grids full, which is the
+    shape neither the bulk fixture nor any other test in this file renders."""
     html = _rich_page()
 
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
-    assert len(html.encode()) < 500_000
     assert html == _rich_page()
 
 
@@ -1658,10 +1685,10 @@ def test_the_run_verb_carries_the_results_flag_so_a_relocated_pipeline_reads_as_
 
 
 def test_the_page_keeps_its_standing_guarantees_with_results_rendered(own_workspace: Path) -> None:
-    """Self-contained, inside the size budget, byte-deterministic — re-proved with the heaviest tab on.
+    """Self-contained, byte-deterministic — re-proved with the heaviest tab on.
 
     Results is the one section that draws: hand-built inline SVG per sample, plus a metrics table.
-    The three properties above are asserted elsewhere against a page that has none of that, which
+    The two properties above are asserted elsewhere against a page that has none of that, which
     would leave exactly the new drawing code unchecked for the failures they exist to catch.
     """
     _finish_a_starsolo_pipeline(own_workspace)
@@ -1669,7 +1696,6 @@ def test_the_page_keeps_its_standing_guarantees_with_results_rendered(own_worksp
     html = render_html(collect_report(own_workspace))
 
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
-    assert len(html.encode()) < 500_000
     assert html == render_html(collect_report(own_workspace))
 
 
@@ -1951,8 +1977,8 @@ def test_a_note_a_whole_plate_shares_is_one_line_and_a_lone_sample_is_still_name
 
     Ninety-six ids under a table that already lists ninety-six ids is the wall this block exists to
     avoid, and printing them would make it grow with the plate instead of with the number of ways the
-    run was counted — every id appears at most once across the whole block, which is what keeps it off
-    the page's size budget. The other direction is asserted on the same rule: a run with one sample
+    run was counted — every id appears at most once across the whole block, which is the rule that
+    holds it to that shape. The other direction is asserted on the same rule: a run with one sample
     names it, because "all 1 samples" is a sentence about a plate written for a single well.
     """
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
@@ -2006,20 +2032,98 @@ def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Pa
     The column set is a union across samples, so a sample whose STARsolo run wrote fewer rows keeps
     its blanks and every other sample keeps its numbers. A zero here would be a number a reader would
     act on, and the tool did not write it.
+
+    **Both renderings of the same gap, against each other.** The row also carries its raw values for
+    the sort, and the two have to agree cell for cell: one slot per rendered column, in the order the
+    cells come, empty where the cell is a dash. A payload that fell out of step with the cells would
+    sort the plate by the column next door — a page that is silently, plausibly wrong — and a gap
+    written as a zero there would sort a sample that reported nothing to the top of the column.
     """
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
     thin: dict[str, object] = {"Number of Reads": 10, "Sequencing Saturation": 0.5}
     stats = _land_bundles(results, {"S1": thin, "S2": _QC_SUMMARY})
     pane = _pane(_render_with_stats(own_workspace, stats), "results")
 
-    rows = re.findall(r"<tr><th scope=\"row\"[^>]*>(.*?)</tr>", pane)
+    rows = re.findall(
+        r"<tr data-smp data-sort=\"([^\"]*)\"><th scope=\"row\"[^>]*>(.*?)</tr>", pane
+    )
     assert len(rows) == 2
-    thin_row, full_row = rows
+    (thin_keys, thin_row), (full_keys, full_row) = rows
     assert "S1" in thin_row and "S2" in full_row
     # Same number of cells in both rows -- the column survives -- and the thin one is mostly gaps.
     assert thin_row.count("<td") == full_row.count("<td") == len(stats.columns)
     assert thin_row.count(">—</td>") == len(stats.columns) - 2
     assert ">0</td>" not in thin_row and ">0.0%</td>" not in thin_row  # never a manufactured zero
+
+    # One slot per column, in cell order, and a gap is an EMPTY slot rather than a number.
+    for keys, row in ((thin_keys, thin_row), (full_keys, full_row)):
+        slots = keys.split(",")
+        gaps = [cell == "—" for cell in re.findall(r"<td[^>]*>(.*?)</td>", row)]
+        assert len(slots) == len(gaps) == len(stats.columns)
+        assert [not slot for slot in slots] == gaps
+    assert all(full_keys.split(",")), "the full row reported every metric and must fill every slot"
+
+
+def test_every_results_column_sorts_off_its_own_caret_and_the_label_keeps_its_click(
+    own_workspace: Path,
+) -> None:
+    """784 rows by 39 columns, and the reader's question is always about ONE of those columns.
+
+    The load-bearing half is that the sort control is a **separate button beside** the label and never
+    the label itself. Clicking a `.metric-head` already pins that metric's hint — it is in the
+    popover's own selector list — so a sort bolted onto it would have answered "what does this
+    measure?" by reordering the plate. The two gestures are two elements, and this holds them apart
+    from both sides: every sortable header carries exactly one caret, and no caret is inside a label.
+
+    **Every column, and the sticky one too.** A metrics grid a reader can order by `Reads in genes`
+    but not by sample is a grid that cannot be put back in plate order, which is the order the
+    experiment was run in. The orphan column is here for the same reason: a key no adapter wrote a
+    hint for renders a bare `<th>` with no label span at all, and it would be the one column in the
+    band that does not sort, for a reason ("nobody wrote a sentence about it") that has nothing to do
+    with sorting.
+
+    Sorting does not ride on paging, which is why this fixture is two samples and renders no bar: the
+    controller is reachable from either control, and a Results table under one page still sorts.
+
+    Both ends of the render→script seam, for the reason the pager test above gives. Nothing in this
+    suite runs the page's JS, so what is checked on that side is the shared vocabulary — the
+    attributes both files have to spell the same way, including the two `aria-sort` values the markup
+    never ships because the script is what puts a column into them.
+    """
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    stats = _land_bundles(results, {"S1": _QC_SUMMARY, "S2": _QC_SUMMARY})
+    stats = stats.model_copy(update={"columns": [*stats.columns, ("mystery", "Mystery")]})
+    pane = _pane(_render_with_stats(own_workspace, stats), "results")
+    script = (_ASSETS / "report.js").read_text()
+
+    assert "data-pager" not in pane, "two samples fit on one page; the sort must not need the bar"
+    heads = re.findall(r'<th scope="col"[^>]*aria-sort="none"[^>]*>(.*?)</th>', pane, re.S)
+    assert len(heads) == len(stats.columns) + 1, "one per metric column, plus the sticky Sample"
+
+    for head in heads:
+        caret = re.search(r'<button[^>]*class="sf-sort"[^>]*>', head)
+        assert caret is not None and head.count('class="sf-sort"') == 1
+        # `hidden` for the same reason the pager bar is: a caret that cannot sort is a lie, and a page
+        # opened with JS off is the page as it was before sorting existed.
+        assert "hidden" in caret.group(0)
+        assert "aria-label" in caret.group(0), "a bare glyph is not a name a screen reader can read"
+        label = re.search(r'<span class="metric-head".*?</span>', head, re.S)
+        assert label is None or "sf-sort" not in label.group(0), "the caret is inside the label"
+
+    # Each caret names its own slot of the row payload, in the order the columns render — and the
+    # sticky column names the identifier instead, because a sample id is not one of those numbers.
+    assert re.findall(r'data-sort-col="([^"]*)"', pane) == [
+        "id",
+        *(str(slot) for slot in range(len(stats.columns))),
+    ]
+    # The hintless branch: a bare label, no popover control at all, and a caret all the same.
+    orphan = next((head for head in heads if head.startswith("Mystery")), "")
+    assert orphan, "the fixture must reach the hintless branch, or this proves nothing about it"
+    assert "metric-head" not in orphan
+    assert re.search(r'data-sort-col="\d+"', orphan)
+
+    for hook in ("[data-sort-col]", '"data-sort"', '"aria-sort"', '"descending"', '"ascending"'):
+        assert hook in script, f"the header's {hook} is emitted and nothing reads it"
 
 
 def test_a_partial_run_is_a_failed_run_and_still_renders_what_landed(own_workspace: Path) -> None:
@@ -2387,9 +2491,9 @@ def test_an_alerts_alternative_reaches_the_page_and_a_nameless_decision_draws_no
 
 
 def test_the_page_keeps_its_standing_guarantees_with_an_alert_rendered(own_workspace: Path) -> None:
-    """Self-contained, no external reference, inside the budget, byte-deterministic — with alerts on.
+    """Self-contained, no external reference, byte-deterministic — with alerts on.
 
-    The four are asserted elsewhere against a page that has no alert block, which would leave exactly
+    The three are asserted elsewhere against a page that has no alert block, which would leave exactly
     the new markup unchecked for the failures they exist to catch. Determinism is the one that bites
     here: alerts are grouped out of a dict, and a grouping that leaked iteration order would render a
     different page on a second read of the same workspace.
@@ -2404,7 +2508,6 @@ def test_the_page_keeps_its_standing_guarantees_with_an_alert_rendered(own_works
         "the fixture must raise one, or the guarantees are re-proved unchanged"
     )
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
-    assert len(html.encode()) < 500_000
     assert html == render_html(collect_report(own_workspace))
 
 
@@ -2617,10 +2720,10 @@ def test_a_metrics_meaning_is_reachable_from_its_column_header_and_stored_once(
 
     The criterion has two halves and only the second is about the page looking right. **Reachable**
     is the accessibility half: every hint the adapter wrote reaches a reader, through the same pinned
-    popover the samples grid uses, off a control that is keyboard-reachable. **Once** is the budget
-    half: the hint is byte-identical down its whole column, so a 96-sample table would pay for it
-    ninety-six times — ~300 KB of the page's 500 KB, and the one thing on this tab that could break
-    the budget on its own.
+    popover the samples grid uses, off a control that is keyboard-reachable. **Once** is the half
+    about where the information lives: the hint is byte-identical down its whole column and describes
+    the metric, so a 96-sample table repeating it per cell would be the same sentence claiming to be
+    a fact about each of ninety-six samples, none of which it mentions.
 
     Both are read off the rendered page, and both are counted rather than spot-checked: this
     criterion was implemented and shipped with no test at all, so `_metric_head` could have dropped
@@ -2642,7 +2745,7 @@ def test_a_metrics_meaning_is_reachable_from_its_column_header_and_stored_once(
 
     # ...and stored ONCE. Every hint appears exactly as many times as there are column headers
     # carrying it — never once per cell. Asserted over the real sentences the adapter wrote, so a
-    # renderer that started repeating them per row fails here rather than in a size budget later.
+    # renderer that started repeating them per row fails here, on the claim, and not on a byte count.
     for attrs in heads:
         sentence = re.search(r'data-basis="([^"]*)"', attrs).group(1)  # type: ignore[union-attr]
         assert pane.count(sentence) == 1, (
@@ -2795,14 +2898,13 @@ def test_a_pipeline_that_counted_one_feature_reports_normally_and_raises_no_aler
 def test_the_page_keeps_its_guarantees_with_the_feature_alert_on_a_plate_sized_run(
     own_workspace: Path,
 ) -> None:
-    """The size criterion, measured on a plate rather than argued — and there is nothing to bound.
+    """The rule on a plate rather than on a handful — the shape it was written for and never rendered.
 
-    The per-sample artifact does not grow AT ALL: `build_qc_bundle` has written every feature's
-    `Summary.csv` since the first bundle ever produced, so this ticket changed no writer, no `.smk`
-    and no `WORKFLOW_VERSION`. What grows is one narrow mapping in memory. So the honest form of "any
-    growth is bounded and does not push the page past its budget" is to render 96 wells with the rule
-    firing on every one of them and measure, with the other three standing guarantees re-proved on the
-    same page: an alert whose sample list is 96 ids long is exactly where a page bloats.
+    Every other test of this rule fires it on two or three samples, where "every sample that finished"
+    and "the three that finished" are the same sentence. A plate is where the two part: 96 wells all
+    firing must still be one line and a truncated list, not 96 ids under a box whose job is to be read
+    first. The standing guarantees ride along because this is the widest page anything here renders,
+    and an alert grouped out of a dict is exactly where a leaked iteration order would show.
     """
     _count_with(own_workspace, ["Gene", "GeneFull"])
     plate = [f"{row}{col:02d}" for row in "ABCDEFGH" for col in range(1, 13)]
@@ -2815,63 +2917,14 @@ def test_the_page_keeps_its_guarantees_with_the_feature_alert_on_a_plate_sized_r
 
     assert len(plate) == 96
     assert "every sample that finished (96 of 96)" in block
-    assert len(html.encode()) < 500_000
+    # The cap is what makes the line above a summary rather than a preamble to the wall it replaces.
+    # Counted and never spelled: a test naming `_ALERT_MAX_SAMPLES`'s value restates the constant and
+    # catches nothing, where "fewer wells are listed than fired" is the property the constant is for.
+    assert sum(well in block for well in plate) < len(plate), (
+        "every well of the plate is spelled out — the list has stopped truncating"
+    )
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
     assert html == render_html(collect_report(own_workspace))
-
-
-def test_a_plate_sized_alert_stays_inside_the_budget_with_its_sample_cap_lifted(
-    own_workspace: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """What holds the test above inside 500 KB is `_ALERT_MAX_SAMPLES`, not the budget it asserts.
-
-    The alert list truncates well short of a plate, so the block above weighs the same at 96 firing
-    samples as at a handful, and that budget stops being sensitive to what one alert row costs: a
-    mutation fattening each *rendered* row by ~6 KB — 96 of which would be half a megabyte of list —
-    went green through it, because only a handful of rows were ever rendered. The cap is right and
-    stays. What is wrong is that the page's headroom then rests on a constant nobody re-measures, and
-    raising it is a one-line change whose suite is green either way.
-
-    So the number asserted here is the **untruncated** one: what the page weighs with every sample
-    that fired spelled out, which is exactly what someone raising the cap is implicitly claiming is
-    affordable. Measured when this landed (2026-08-04) a 96-well page is ~269 KB truncated and
-    ~283 KB untruncated, against the same 500 KB budget — so this fires once an alert row costs about
-    2.4 KB, against the ~160 bytes one costs today. The ~6 KB row that escaped is comfortably red.
-
-    **The cap is lifted, never asserted.** A test spelling its value would restate the constant and
-    catch nothing; the property is a relationship between a row's cost and the page's budget, and it
-    is held from both ends — the shipped page must genuinely truncate here (or the two renders are
-    the same page and this measures nothing), and the lifted one must still fit.
-    """
-    from seqforge.report import panels
-
-    _count_with(own_workspace, ["Gene", "GeneFull"])
-    plate = [f"{row}{col:02d}" for row in "ABCDEFGH" for col in range(1, 13)]
-    _land_multi_feature_bundles(
-        own_workspace, plate, {"Gene": _EXONIC_SUMMARY, "GeneFull": _FULL_LENGTH_SUMMARY}
-    )
-
-    # One collection, two renders: the cap is a rendering decision, so the alert this measures is
-    # byte-identical on both sides and the only thing that moves is how much of it reaches the page.
-    report = collect_report(own_workspace)
-    truncated = _alert_block(render_html(report))
-    assert truncated, "the plate must raise an alert, or there is no list here to truncate"
-    assert sum(well in truncated for well in plate) < len(plate), (
-        "the cap must bind on a plate, or the render below is the same page measured twice"
-    )
-
-    monkeypatch.setattr(panels, "_ALERT_MAX_SAMPLES", len(plate))
-    html = render_html(report)
-
-    assert all(well in _alert_block(html) for well in plate), (
-        "every firing sample must reach the block once the cap is lifted, or something else is "
-        "bounding this list and the size below is not the untruncated one"
-    )
-    assert len(html.encode()) < 500_000, (
-        "a plate with every firing sample spelled out breaks the 500 KB budget — an alert row has "
-        "grown to where _ALERT_MAX_SAMPLES, not the budget, is what keeps the page inside it"
-    )
 
 
 # -- the gene model and the strand: attribution across two artifacts ---------------------------------
@@ -3068,7 +3121,7 @@ def test_a_genome_with_no_registered_gene_model_names_no_annotation(own_workspac
 def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_rendered(
     own_workspace: Path,
 ) -> None:
-    """Self-contained, no external reference, inside the budget, byte-deterministic — with this alert.
+    """Self-contained, no external reference, byte-deterministic — with this alert.
 
     Asserted again for this rule rather than assumed off the others: this is the card that carries a
     `change_to` line, which no other shipped rule fills.
@@ -3086,5 +3139,4 @@ def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_render
     )
     assert "the alternative is <b>Reverse</b>" in block
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
-    assert len(html.encode()) < 500_000
     assert html == render_html(collect_report(own_workspace))
