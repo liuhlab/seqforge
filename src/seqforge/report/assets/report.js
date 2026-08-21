@@ -211,10 +211,9 @@
     function keyOf(group, col) {
       var first = group[0];
       if (col === SORT_BY_ID) {
-        var cell = first.cells[0];
-        // `.smp-sid` where the row identifier is wrapped (the Samples grid puts a caret and an
-        // accession in the same cell); the cell itself where it is the whole cell, as on Results.
-        return (cell.querySelector(".smp-sid") || cell).textContent.trim();
+        // The sticky cell IS the identifier and nothing else, so the key is simply its text: there
+        // is no slot to read, because an identifier is not one of the row payload's numbers.
+        return first.cells[0].textContent.trim();
       }
       var slot = (first.getAttribute("data-sort") || "").split(",")[col];
       return slot ? parseFloat(slot) : NaN;
@@ -275,7 +274,10 @@
 
         page = 0; // the reader asked who is highest, and the answer is on the first page
         apply();
-        toTop();
+        // Only where the grid pages: a table short enough to render no bar is already showing the
+        // reader every row, and there is nowhere for the top to be. The pager's own two calls need
+        // no such guard — an arrow only exists on a grid that has a bar to draw it.
+        if (bar) toTop();
       });
     });
 
