@@ -139,6 +139,12 @@ DROP_REASONS = ("unmapped", "secondary", "supplementary")
 #: later reader would look the line up by.
 _PROGRAM_ID = "seqforge-split-chimera"
 
+#: SAM's word for a tag holding an ARRAY rather than one value — the aligner's junction attributes
+#: are the two this file meets. Named because :func:`_rewritten` tests for it and the letter alone
+#: says nothing: what makes it the exception there is that it is the one declared type a writer
+#: cannot be handed back, since the subtype is the array's own element width.
+_ARRAY_TAG_TYPE = "B"
+
 
 class SplitError(RuntimeError):
     """The BAM cannot be split as asked: an unexplainable chromosome, a partial request, a torn pair."""
@@ -346,6 +352,15 @@ def _rewritten(record: AlignedSegment, header: AlignmentHeader, tids: Mapping[in
     A record is copied field by field rather than handed to the writer as it stands, because what
     changes is not a field but the dictionary the record's reference INDEXES into: the same tid means
     a different chromosome under the new header, and both mates' indexes have to move together.
+
+    The tags come over WITH the types they were declared with, which is what asking for the value
+    type buys: SAM writes an integer at whatever width holds it, so a tag handed back as a bare
+    value is re-declared from that value and a record correct on the way in is narrowed on the way
+    out. An ARRAY tag — the aligner's junction attributes are two — cannot come back that way,
+    because its declared type is only the letter `B` and the writer has nothing to do with that: the
+    subtype is the element width, and an array already carries it as its own typecode. So the letter
+    is dropped for exactly those and kept for everything else. Which is not a special case so much as
+    the two halves of one rule — hand back what the reader could not infer, and nothing it could.
     """
     import pysam
 
@@ -364,7 +379,12 @@ def _rewritten(record: AlignedSegment, header: AlignmentHeader, tids: Mapping[in
     # sequence is assigned, so the obvious order silently writes a record with no base qualities.
     out.query_sequence = record.query_sequence
     out.query_qualities = record.query_qualities
-    out.set_tags(record.get_tags(with_value_type=True))
+    out.set_tags(
+        [
+            (tag, value) if kind == _ARRAY_TAG_TYPE else (tag, value, kind)
+            for tag, value, kind in record.get_tags(with_value_type=True)
+        ]
+    )
     return out
 
 

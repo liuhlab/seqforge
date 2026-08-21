@@ -21,6 +21,7 @@ import math
 import re
 import shutil
 import subprocess
+from array import array
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from itertools import pairwise
@@ -4606,6 +4607,13 @@ def _annotation_db(tmp_path: Path) -> Path:
 _SECONDARY = 0x100
 _SUPPLEMENTARY = 0x800
 
+#: The element widths the aligner writes its junction attributes at, in the order the attribute list
+#: names them: one signed byte per motif, one 32-bit integer per coordinate. Beside the attribute
+#: names rather than restating them, so that a plate here carries whatever the composer is actually
+#: asking STAR for — and a third attribute added there arrives as a missing width rather than as a
+#: fixture that quietly kept writing two.
+_JUNCTION_WIDTHS = dict(zip(JUNCTION_ATTRIBUTES, ("b", "i"), strict=True))
+
 
 @dataclass(frozen=True)
 class _Fragment:
@@ -4668,7 +4676,15 @@ class _Fragment:
 
 
 def _segments(header: Any, frag: _Fragment) -> list[Any]:
-    """One `_Fragment` -> its BAM records: two mates, or one when neither of them aligned."""
+    """One `_Fragment` -> its BAM records: two mates, or one when neither of them aligned.
+
+    Every PLACED record carries the aligner's junction attributes, because every STAR module now
+    asks for them. They are the only tags here that are not scalars — SAM type `B`, arrays — and
+    the reason this fixture states them: a record built without one cannot exercise a code path
+    that rebuilds a record tag by tag, and the chimera splitter's did, so it went to a cluster
+    carrying a crash on the first record of the first cell. A record the aligner could not place
+    gets none of them, which is also what STAR writes.
+    """
     import pysam
 
     span = frag.end - frag.start
@@ -4695,6 +4711,13 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
         if frag.unmapped:
             tags.append(("uT", "4", "A"))
         rec.set_tags(tags)
+        if not rec.is_unmapped:
+            # Set apart from the list above because they cannot go through it: `set_tags` refuses a
+            # `B` spelled out as a type letter, and an array needs no letter — its own typecode IS
+            # the subtype. `-1` is what the aligner writes for an alignment that crossed no
+            # junction, which is every alignment on this plate: no row here has an `N` in its CIGAR.
+            for attribute, width in _JUNCTION_WIDTHS.items():
+                rec.set_tag(attribute, array(width, [-1]))
         return rec
 
     def stranded(flag: int, pointer: str) -> Any:
@@ -5888,6 +5911,58 @@ def test_every_kept_record_resolves_to_the_chromosome_it_actually_sits_on(
         )
         with pysam.AlignmentFile(str(path), "rb") as split:
             assert sorted((r.query_name, r.reference_name) for r in split) == expected
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_a_kept_records_tags_arrive_whole_and_still_declare_the_types_they_were_written_with(
+    tmp_path: Path, label: str
+) -> None:
+    """A record is rebuilt tag by tag here, so every tag has to survive the rebuild AS IT WAS.
+
+    Two ways to lose one, and they are opposites, which is why this asserts twice. An ARRAY tag —
+    the aligner's junction attributes — cannot be handed back through the same three-part form a
+    scalar goes back through: the array's element width is the SAM subtype, there is no type letter
+    for the writer to take, and offering one raises rather than writing a narrower tag. Drop the
+    type letter for everything instead and the arrays go through fine while every scalar integer
+    silently comes back declared at whatever width its VALUE happens to fit in, which is a lossy
+    rewrite of a file that was already correct. So the declared type of each scalar is compared as
+    well as its value, and the arrays are compared on element width rather than on contents, since
+    two arrays of different widths holding the same numbers are equal in Python and not in a BAM.
+
+    This is asserted against the CHIMERIC record each output record came from rather than against a
+    list written here, so a tag the fixture grows later is carried into the claim rather than
+    silently exempted from it.
+
+    The fixture is the whole reason this shipped: nothing synthetic here carried an array tag, so
+    the rebuild path was never handed one, and the first plate to reach a cluster with the junction
+    attributes turned on died on the first record of the first cell.
+    """
+    round_trip = _split(tmp_path, label)
+    with pysam.AlignmentFile(str(round_trip.source), "rb") as chimeric:
+        source = {
+            (record.query_name, record.flag): record.get_tags(with_value_type=True)
+            for record in chimeric.fetch(until_eof=True)
+        }
+
+    seen = 0
+    for component, path in round_trip.outputs.items():
+        with pysam.AlignmentFile(str(path), "rb") as split:
+            for record in split:
+                came_from = source[(record.query_name, record.flag)]
+                assert record.get_tags(with_value_type=True) == came_from, (
+                    f"{component}/{record.query_name} lost or re-declared a tag on the way out"
+                )
+                # An array is what SAM's array type comes BACK as, so a tag that lost its arrayness
+                # drops out of this map and the comparison below misses a key rather than passing.
+                widths = {
+                    tag: value.typecode
+                    for tag, value, _ in record.get_tags(with_value_type=True)
+                    if isinstance(value, array)
+                }
+                assert widths == _JUNCTION_WIDTHS, widths
+                seen += 1
+    # Nothing here passes on an output nobody wrote a record to.
+    assert seen == sum(round_trip.stats.kept.values())
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
