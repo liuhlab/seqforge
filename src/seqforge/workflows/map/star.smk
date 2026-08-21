@@ -20,8 +20,13 @@ import csv
 # could never be unit-tested, only run against a sample deep enough to fail. The STAR filenames this
 # rule declares arrive the same way: `h5ad` owns every name STAR writes into a sample's directory,
 # and a fourth spelling of one here is the drift that has a rule declaring a file nothing produces.
+#
+# `splice_args` is the same move applied to STAR's junction flags: they vary with nothing, they are
+# identical in all four STAR modules, and a flag list spelled once per module is the drift the
+# STARsolo argv owner was created to end. It renders as ONE params slot below.
 from seqforge.workflows.h5ad import STAR_JUNCTIONS, STAR_PROGRESS_LOGS
 from seqforge.workflows.memory import BULK_RETRIES, bam_sort_ram, bulk_mem_mb, index_mem_mb
+from seqforge.workflows.splice_args import splice_shell_args
 from seqforge.workflows.units import ordered_fastqs
 
 
@@ -261,6 +266,10 @@ rule star_count:
         # each mate is its runs comma-joined, so a sample pooled across runs maps in one pass; only
         # the mates the layout HAS are passed, so a single-end library renders STAR's single-end form.
         reads=lambda wc: readfilesin(wc.sample, *mates()),
+        # STAR's junction flags, rendered by their one owner and interpolated whole. They vary with
+        # nothing, so they are module literals rather than anything's to choose -- and they are the
+        # same tokens in all four STAR modules, which is why no module spells them.
+        splice=splice_shell_args(),
     shell:
         r"""
         # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)
@@ -271,7 +280,8 @@ rule star_count:
              --quantMode {params.bulk[quantMode]} \
              --outFileNamePrefix {params.prefix} \
              --outSAMtype BAM SortedByCoordinate \
-             --limitBAMsortRAM {resources.bam_sort_ram_bytes}
+             --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
+             {params.splice}
         """
 
 

@@ -139,6 +139,7 @@ from seqforge.workflows.qc import (
 from seqforge.workflows.qc import QC_SUFFIX as QC_BUNDLE_SUFFIX
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
+from seqforge.workflows.splice_args import JUNCTION_ATTRIBUTES, splice_argv
 from seqforge.workflows.split import (
     DROP_REASONS,
     SPLIT_SUFFIX,
@@ -1470,7 +1471,7 @@ def test_every_registered_module_wires_into_a_runnable_dag(
 def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
-    """Three invariants every STAR workflow owes, read off ONE rendered plan.
+    """Four invariants every STAR workflow owes, read off ONE rendered plan.
 
     STAR's index is per-process and resident for the life of the job, so N mapping jobs running at
     once on one machine cost N copies of it. A composed pipeline runs on ONE machine (ADR-0051),
@@ -1490,7 +1491,13 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     are the difference between a finished pipeline directory a reader can sort into output and
     scratch and one where they cannot.
 
-    Seven claims, and a dry run is the only thing that can make any of them:
+    The junction decision is the fourth, and it is the sharpest case of the same argument. Three of
+    these modules interpolate it as ONE `params:` slot and the fourth calls the renderer, so every
+    way of asking the question in Python asks the renderer what the renderer says. Only a rendered
+    plan can say whether the tokens reached a command line, which is exactly the failure a module
+    that dropped its slot would have.
+
+    Eight claims, and a dry run is the only thing that can make any of them:
 
     1. **The load is a job.** A rule unreachable from `rule all` plans nothing, and this one is
        reachable only through the mapping rule's inputs — there is no target naming it.
@@ -1531,6 +1538,15 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
        undeclared entries beside the index and the flag. The prefix is an argument on a rendered
        command line, which is the only place this is checkable at all, and reading it here is what
        makes the claim cover a fourth workflow the day it ships.
+
+    8. **Every mapping invocation states the junction filters and carries the junction attributes**
+       (#463), so no module quietly keeps STAR's defaults — at which the intron-length check is dead
+       code and a novel junction needs a 5 bp anchor. The filters are read off the RENDERER rather
+       than typed here, because the value is not the claim: a hand-typed string would go red for a
+       number someone deliberately moved, while what can actually happen is a module rendering none
+       of them, and only a plan can tell the two apart. The attributes are asserted as membership in
+       whatever list the command names, because the module that spells its own list carries `CB`/`UB`
+       in it and the three that do not carry STAR's default four — one claim over both shapes.
 
     Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
     copied into each workflow file rather than factored out, so a fourth STAR workflow must be
@@ -1589,6 +1605,27 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     jobs = next(iter(mapping.values()))
     assert all("--genomeLoad LoadAndKeep" in cmd for cmd in jobs.values()), jobs
     assert all(re.search(r"--limitBAMsortRAM \d+", cmd) for cmd in jobs.values()), jobs
+
+    # The junction filters, as the ONE renderer spells them -- a module that kept STAR's defaults
+    # renders none of these, and at those defaults the intron-length check is dead code and a novel
+    # junction needs a 5 bp anchor. `sam_attributes=None` because the attribute list is the half that
+    # legitimately differs per module and is checked as membership just below.
+    filters = " ".join(splice_argv(sam_attributes=None))
+    for wildcard, cmd in jobs.items():
+        assert filters in cmd, (
+            f"{module} maps {wildcard} on STAR's junction defaults -- `{filters}` is nowhere on the "
+            f"command it renders, so a read whose only support is a 9 bp anchor is placed and the "
+            f"gap it opens is bounded by the contig:\n{cmd}"
+        )
+        # ...and the record can say afterwards WHICH junction it crossed. Membership, not the whole
+        # list: `map/starsolo` states its own attributes and carries `CB`/`UB` among them, while the
+        # other three carry STAR's default four -- the junction pair is what all four owe.
+        attributes = re.search(r"--outSAMattributes ((?:\w+ )*\w+)", cmd)
+        assert attributes and set(JUNCTION_ATTRIBUTES) <= set(attributes.group(1).split()), (
+            f"{module} maps {wildcard} without {list(JUNCTION_ATTRIBUTES)} on its attribute list, so "
+            f"no junction in the retained alignment can be checked against the annotation and the "
+            f"artifact population stays bracketed rather than counted:\n{cmd}"
+        )
 
     # The read group, per job, against the job's OWN wildcard -- which is the cell on the routes that
     # owe it, and is the value the retained CRAM will name. A module that rendered the flag from a
@@ -7479,7 +7516,7 @@ def test_the_recipe_figure_buys_a_sort_and_the_ratio_is_what_a_small_genome_must
 
 
 # ================================================================================================
-# the clip flags, judged by the binary that has to accept them rather than by the binary's own help
+# the rendered flags, judged by the binary that has to accept them rather than by the binary's own help
 # ================================================================================================
 #
 # STAR's shipped help is stale relative to STAR's shipped code, in BOTH directions, and this project
@@ -7578,7 +7615,7 @@ def _star_parameter_verdict(star: str, workdir: Path, flags: Sequence[str]) -> s
 
 
 @pytest.mark.external
-def test_every_clip_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_accepts(
+def test_every_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_accepts(
     tmp_path: Path,
 ) -> None:
     """The entries say which trimmer runs; only the binary can say the combination is legal.
@@ -7595,6 +7632,18 @@ def test_every_clip_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_acc
     for is a real thing the code can do: an entry pairing a trimmer with a clip at an end that trimmer
     will not take is refused at parameter initialization, BEFORE the genome loads, which is every
     sample of a deposit dying after its queue wait over a flag nobody typed.
+
+    **The junction flags ride the same invocation** (#463), and the reason is the same one that put
+    the clips here: what a chemistry hands STAR is a combination, not a flag, and a combination is
+    what STAR judges. They come from their renderer rather than being typed, so the binary is asked
+    about what compose builds; and because the clips are what differs from one entry to the next,
+    the sweep asks whether the junction decision is legal beside every clip pairing we ship rather
+    than the same question eleven times.
+
+    That renders the attribute list in its DEFAULT form, which is the three inline modules' and not
+    this one's: `map/starsolo` adds `CB`/`UB`, and STAR takes those only beside a sorted BAM, which
+    the scaffolding below deliberately does not write. The junction pair is what is under test and it
+    is identical in both forms.
     """
     star = shutil.which("STAR")
     if star is None:
@@ -7605,7 +7654,7 @@ def test_every_clip_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_acc
         spec = kb.load_spec(tech)
         if spec.require_backend().module != "map/starsolo":
             continue
-        flags = _rendered_clip_flags(spec)
+        flags = [*_rendered_clip_flags(spec), *splice_argv()]
         assert "--clipAdapterType" in flags, (
             f"{tech}: renders no trimmer at all, so the rule's subscript is a KeyError on a compute "
             f"node and this invocation would prove nothing about the chemistry"
@@ -7614,7 +7663,7 @@ def test_every_clip_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_acc
 
         verdict = _star_parameter_verdict(star, tmp_path, flags)
         assert _STAR_REACHED_THE_GENOME in verdict, (
-            f"{tech}: STAR refuses the clip flags this chemistry renders -- {' '.join(flags)} -- so "
+            f"{tech}: STAR refuses the flags this chemistry renders -- {' '.join(flags)} -- so "
             f"every sample of a deposit on it would fail at parameter initialization, before a "
             f"genome is even opened. STAR said: {verdict}"
         )

@@ -45,7 +45,9 @@
 # finished cell leaves, and it is the droplet module's constant unchanged: same artifact kind, same
 # suffix, one owner. The aligner's own run files come from `h5ad` for the same reason -- STAR writes
 # four of them per cell and this module declares all four, so the filenames belong to the constant
-# that already had three readers rather than to a literal here.
+# that already had three readers rather than to a literal here. `splice_args` is that same move on
+# STAR's junction flags: they vary with nothing and are identical in all four STAR modules, so they
+# have one owner and reach the shell block below as ONE params slot.
 from seqforge.workflows import PLATE_H5AD
 from seqforge.workflows.h5ad import STAR_BAM, STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRESS_LOGS
 from seqforge.workflows.memory import (
@@ -56,6 +58,7 @@ from seqforge.workflows.memory import (
     per_cell_mem_mb,
 )
 from seqforge.workflows.qc import QC_SUFFIX
+from seqforge.workflows.splice_args import splice_shell_args
 from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
 from seqforge.workflows.units import mate_role as units_mate_role
@@ -509,6 +512,10 @@ rule star_umi_map:
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         read_files_type=lambda wc: read_files_type(wc.sample),
         read_through_clip=lambda wc: read_through_clip(wc.sample),
+        # STAR's junction flags, rendered by their one owner and interpolated whole. Unlike the clip
+        # above they follow nothing about the cell -- they vary with nothing at all -- so they are
+        # module literals, and the same tokens reach the other three STAR modules from that owner.
+        splice=splice_shell_args(),
     shell:
         # `--outSAMmultNmax 1` is a module literal for the same reason it is one in starsolo.smk: its
         # value varies with nothing. It writes only a top-scoring alignment, which is exactly the
@@ -541,7 +548,8 @@ rule star_umi_map:
              --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
              --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
              --outSAMmultNmax 1 \
-             --outSAMunmapped Within
+             --outSAMunmapped Within \
+             {params.splice}
         """
 
 

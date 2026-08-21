@@ -69,6 +69,15 @@ run never spans machines.
 _Avoid_: shared memory, segment, cached index — each names the mechanism rather than the thing; also
 genome index, which is the on-disk directory `liulab-genome` owns and is what gets loaded
 
+**Anchor**:
+The matched block on one side of a junction — the bases an alignment actually places to hold up the
+gap it opens. It is the property a fabricated intron is identified by (9–13 bp of anchor under a
+gap of hundreds of kilobases), which is why the aligner's overhang minimums are the fix and a
+length cap only the backstop.
+_Avoid_: overhang — STAR's own word for the same block and the spelling of two of its flags, so it
+reads as a parameter rather than as the thing the parameter bounds; and never STAR's *anchor* in
+`winAnchor*`, which is a low-multimapping seed used to open a window and an unrelated object
+
 **Chimera**:
 One `liulab-genome` reference built from several **Component** assemblies, whose chromosome names
 each carry a component suffix at a separator that reference recorded. A **Recipe** states one by
