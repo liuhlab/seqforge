@@ -672,6 +672,8 @@ _CELL_SPLIT: dict[str, object] = SplitStats(
     singletons={"tinyCe": 1, "tinyEc": 1},
     mate_pointed={"tinyCe": 0, "tinyEc": 2},
     excess_pointers=0,
+    unanswered_survivors=0,
+    multiplaced_singletons=0,
     dropped={"unmapped": 7, "secondary": 4, "supplementary": 4},
 ).to_dict()
 
@@ -845,9 +847,10 @@ def test_the_plate_bundle_the_writer_produces_is_the_one_its_reader_looks_up(
             for account in ("kept", "share", "multiplaced", "singletons", "mate_pointed")
             for component in ("tinyCe", "tinyEc")
         }
-        # Cell-wide and not per Component, because the bound it measures the slack in has no
-        # Component either.
-        | {"split_excess_pointers"}
+        # Cell-wide and not per Component, because the bound they measure the slack in has no
+        # Component either — and they are two signs of one difference, so a cell shows a number in
+        # at most one of them.
+        | {"split_excess_pointers", "split_unanswered_survivors"}
         | {f"split_dropped_{reason}" for reason in DROP_REASONS}
     )
     assert got["extract_fragments"].value == 100
@@ -4561,6 +4564,13 @@ class _Fragment:
     #: tell a check that subtracts each side's own singletons from one that subtracts one side's
     #: from both.
     survivor: int = 1
+    #: The dead mate of a half-mapped fragment is NOT in the file: ONE record, the survivor, flagged
+    #: mate-unmapped with nothing anywhere to answer it. Meaningless without `mate_unmapped`, and
+    #: only a MULTIPLY-placed fragment can take this shape, so the rows that use it carry `hits`
+    #: above one. The aligner emits one representative of a locus set and writes an unmapped mate
+    #: only for the member it emitted, so a survivor from any other member is the whole of what its
+    #: fragment leaves behind. Read off three cells of a 784-cell plate that refused on exactly this.
+    dead_mate_absent: bool = False
     #: Neither mate aligned anywhere. One record, no reference, `uT` saying why — the shape STAR
     #: writes for a pair it could not place, and the one a chimera split has to DROP rather than
     #: rewrite, because its RNEXT still names a suffixed chromosome the output header will not have.
@@ -4658,10 +4668,10 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
         # PAIRED | MATE_UNMAPPED for the mate that landed, PAIRED | UNMAPPED for the one that did
         # not, and the READ1/READ2 bits go whichever way round this fragment says.
         live, dead = (64, 128) if frag.survivor == 1 else (128, 64)
-        return [
-            build(frag.start, 1 | 8 | live, frag.start, 0),
-            stranded(1 | 4 | dead, frag.dead_mate_contig or frag.contig),
-        ]
+        survivor = build(frag.start, 1 | 8 | live, frag.start, 0)
+        if frag.dead_mate_absent:
+            return [survivor]
+        return [survivor, stranded(1 | 4 | dead, frag.dead_mate_contig or frag.contig)]
     pair = [
         build(frag.start, 1 | 2 | 32 | 64 | frag.extra_flags, mate_start, span),
         build(mate_start, 1 | 2 | 16 | 128 | frag.extra_flags, frag.start, -span),
@@ -5860,8 +5870,10 @@ def test_the_summary_accounts_for_every_record_the_split_was_handed(
 
     Kept plus dropped is exactly the records that came in; `multiplaced`, `singletons` and
     `mate_pointed` are subsets of it — the first two of `kept`, the third of the unmapped drops —
-    and deliberately do not enter that sum, nor does `excess_pointers`, which is a difference
-    between two of them. Every number is read off the plate's own rows by hand.
+    and deliberately do not enter that sum, nor do `excess_pointers` and `unanswered_survivors`,
+    which are the two signs of one difference between two of them, nor
+    `multiplaced_singletons`, which is the intersection of two of them and the bound the second sign
+    is allowed to reach. Every number is read off the plate's own rows by hand.
 
     **`singletons` and `mate_pointed` are NOT one population, at any granularity**, which is what
     this plate's last two rows are for. Per Component the cross-pointing row separates them: four
@@ -5884,6 +5896,11 @@ def test_the_summary_accounts_for_every_record_the_split_was_handed(
         "singletons": {here: 4, there: 3},
         "mate_pointed": {here: 4, there: 4},
         "excess_pointers": 1,
+        # Nothing is short on this plate, and exactly one of its survivors was placed at more than
+        # one locus — the row whose dead mate points at the other organism. That one is the whole of
+        # what a shortfall here would be allowed to be.
+        "unanswered_survivors": 0,
+        "multiplaced_singletons": 1,
         # Three unmapped records per Component are the dead mates of its half-mapped pairs, one more
         # is the cross-pointing fragment's, one is the spare the whole multi-locus pair left behind,
         # and the odd one is the template neither mate of which aligned anywhere.
@@ -5915,15 +5932,19 @@ def test_the_paired_remainder_still_refuses_an_output_that_was_genuinely_halved(
 @pytest.mark.parametrize(
     ("case", "gone"),
     [
-        # What an aligner never asked to emit unmapped records leaves behind: zero against seven.
-        # This is the failure the check exists for, and it shipped broken once.
+        # What an aligner never asked to emit unmapped records leaves behind: zero against seven,
+        # where one survivor was placed at more than one locus and six were not. This is the failure
+        # the check exists for, and it shipped broken once.
         ("every", lambda r: bool(r.is_unmapped and not r.mate_is_unmapped)),
-        # And two of them only, so that the bound is shown to be a bound rather than a test for
-        # zero: six against seven refuses on a file that still has most of the population in it.
+        # And four of them only, so that the bound is shown to be a bound rather than a test for
+        # zero: four against seven refuses on a file that still has half the population in it,
+        # because the three that are short are three more than multi-locus emission can account for.
         (
-            "two",
+            "some",
             lambda r: bool(
-                r.is_unmapped and not r.mate_is_unmapped and r.query_name.endswith("_half_first_a")
+                r.is_unmapped
+                and not r.mate_is_unmapped
+                and r.query_name.endswith(("_half_first_a", "_half_first_b"))
             ),
         ),
     ],
@@ -5931,18 +5952,22 @@ def test_the_paired_remainder_still_refuses_an_output_that_was_genuinely_halved(
 def test_the_placeless_records_are_required_to_cover_the_survivors_rather_than_assumed(
     tmp_path: Path, case: str, gone: Callable[[Any], bool]
 ) -> None:
-    """A survivor is owed a placeless record, and a SHORTFALL is a refusal.
+    """A uniquely placed survivor is owed a placeless record, and a SHORTFALL past the multiply
+    placed ones is a refusal.
 
     A survivor carries the mate-unmapped flag; the mate it names has no placement of its own and
     reaches a Component only through its mate pointer. The plate above proves what the check may no
     longer claim — the two counts are not one population at any granularity, since a multiply-placed
-    fragment's two ends can name different organisms and a fragment that aligned whole can still
-    leave a dead half behind — so what needs its own case is the direction that stays asserted, and
-    it is the placeless records going missing: an aligner that was never asked to emit them writes a
-    file exactly like the first one here. That is also what makes the two counts INDEPENDENT rather
-    than one number read twice. The mate counts still balance in both, because nothing a kept record
-    carries has changed; only the placeless side falls, and the refusal is the difference between
-    this check and comparing raw mate counts.
+    fragment's two ends can name different organisms, a fragment that aligned whole can still leave
+    a dead half behind, and a multiply-placed survivor can be the only record of its fragment in the
+    file — so what needs its own case is what is still asserted, and it is the placeless records
+    going missing beyond that: an aligner that was never asked to emit them writes a file exactly
+    like the first one here. Every survivor removed from here is uniquely placed, which is what makes
+    the shortfall inexplicable and not merely large; the plate holds one multiply-placed survivor, so
+    a file one short of its survivors is accepted and these are three and seven short. That is also
+    what makes the two counts INDEPENDENT rather than one number read twice. The mate counts still
+    balance in both, because nothing a kept record carries has changed; only the placeless side
+    falls, and the refusal is the difference between this check and comparing raw mate counts.
     """
     chimera = _CHIMERAS["plain"]
     bam = _chimeric_bam(tmp_path / "plain.bam", chimera, _chimeric_plate(chimera))
@@ -5950,6 +5975,58 @@ def test_the_placeless_records_are_required_to_cover_the_survivors_rather_than_a
     outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
     with pytest.raises(SplitError, match="counted two ways"):
         split_chimera(silent, outputs, chimera.separator)
+
+
+def test_a_multiply_placed_survivor_whose_dead_mate_was_never_written_is_counted_not_refused(
+    tmp_path: Path,
+) -> None:
+    """The other sign of the same emission artifact: a SHORTFALL within the multiply-placed
+    survivors is split and measured.
+
+    Three cells of a 784-cell plate refused with exactly one survivor unanswered, and in each the
+    survivor was mapped, primary, flagged mate-unmapped and placed at more than one locus, with no
+    record of its dead mate anywhere in the file — against tens of thousands of placeless records
+    the aligner had plainly written. That is the mirror of the row the plate above already carries:
+    one representative of a locus set is emitted, so a locus that WAS emitted can leave a dead half
+    behind that no survivor is owed, and a locus that was NOT emitted takes its dead half with it and
+    leaves a survivor nothing answers. Both are one number with two signs, which is why this file
+    needs TWO such fragments to show a shortfall at all — the first is cancelled by the spare dead
+    mate the plate's fully mapped multi-locus pair leaves behind, and only the second runs the total
+    short. Built as the aligner writes it rather than by deleting records from a healthy file: what
+    is claimed here is that a real BAM is accepted, and a doctored one could not make that claim.
+    """
+    chimera = _CHIMERAS["plain"]
+    here = chimera.components[0]
+    contig = suffixed(here.chromosomes[0][0], here.name, chimera.separator)
+    orphaned = tuple(
+        _Fragment(
+            f"{here.name}_half_multi_orphan_{n}",
+            contig,
+            1100 + 100 * n,
+            1160 + 100 * n,
+            hits=2,
+            mate_unmapped=True,
+            dead_mate_absent=True,
+        )
+        for n in range(2)
+    )
+    bam = _chimeric_bam(tmp_path / "orphaned.bam", chimera, (*_chimeric_plate(chimera), *orphaned))
+    outputs = {c.name: tmp_path / f"{c.name}.bam" for c in chimera.components}
+
+    stats = split_chimera(bam, outputs, chimera.separator)
+
+    # Nine survivors against eight placeless records, and the shortfall is reported on its own line
+    # rather than tolerated inside the check — which is the same treatment the excess gets, and the
+    # reason the excess reads zero here instead of the one the plate alone would have shown.
+    assert stats.singletons == {here.name: 6, chimera.components[1].name: 3}
+    assert (stats.unanswered_survivors, stats.excess_pointers) == (1, 0)
+    # ...against a bound of three, which is what makes one short explicable rather than merely
+    # small: the two rows above plus the plate's own multiply-placed survivor.
+    assert stats.multiplaced_singletons == 3
+    # And the survivors are IN the output — a fragment whose dead mate was never written is still a
+    # mapped primary alignment, and the rarer organism is where dropping it would cost most.
+    with pysam.AlignmentFile(str(outputs[here.name]), "rb") as split:
+        assert {f.name for f in orphaned} <= {record.query_name for record in split}
 
 
 def test_a_component_the_caller_named_no_output_for_is_refused_rather_than_dropped(
@@ -6412,11 +6489,13 @@ def test_a_chimeric_plate_reports_what_left_at_the_split_and_each_components_fat
     assert sum(stats_out.kept.values()) + sum(stats_out.dropped.values()) == (
         stats_out.records_in
     ), "the page's own columns have to add back up to the records the BAM held"
-    # ...plus one column that is the cell's and not a Component's: how far the placeless records ran
-    # past the survivors each is owed to. One on this plate, from the fully mapped multi-locus pair
-    # that left a spare dead mate behind, and it reaches the page as a number rather than being
-    # absorbed as slack inside the check that lets it through.
+    # ...plus two columns that are the cell's and not a Component's, the two signs of how far the
+    # placeless records ran past the survivors each uniquely placed one is owed. One over on this
+    # plate, from the fully mapped multi-locus pair that left a spare dead mate behind, and none
+    # short; both reach the page as numbers rather than being absorbed as slack inside the check
+    # that lets them through, and a cell can only ever show one of them.
     assert cell_a["split_excess_pointers"].value == 1
+    assert cell_a["split_unanswered_survivors"].value == 0
     # ...and every reason, always present, because an absent key and a zero are different claims and
     # only one of them is a measurement.
     assert {r: cell_a[f"split_dropped_{r}"].value for r in DROP_REASONS} == {

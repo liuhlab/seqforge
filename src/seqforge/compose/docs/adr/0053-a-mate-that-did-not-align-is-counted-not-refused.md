@@ -29,3 +29,21 @@ since the dead record's own hit count is zero. What is derivable is that every s
 exactly one placeless record, so what is ASSERTED is `pointers >= survivors`; what is REPORTED is
 the per-Component pair, whose gap bounds the half-mapped fragments spanning two organisms, and the
 excess, which counts the placeless records belonging to fragments that did align.
+
+**Amended 2026-08-21 (#451): the bound is two-sided, and only a UNIQUELY placed survivor is owed
+anything.** "Every survivor is owed exactly one placeless record" reads as an entailment from the
+flag and is not one; the same emission policy that produced the excess above produces its mirror,
+and three cells of a 784-cell plate came up exactly one short — each shortfall a survivor whose own
+hit count was above one and whose dead mate is in no file, against 52366 placeless records the
+aligner plainly did write, so the refusal's stated diagnosis was false as well as its premise. A
+locus that WAS emitted leaves a dead half no survivor is owed; a locus that was NOT emitted takes its
+dead half with it. So what is ASSERTED is `survivors - pointers <= multiply-placed survivors`,
+one more streamed counter, and both signs of the difference are REPORTED — as two non-negative
+counts, because at most one can be non-zero and every reader of these payloads, including those
+already on disk, takes a count as non-negative. Demoting the check to informational lost: zero
+pointers against a survivor population no multiply-placed count can cover is still the aligner flag
+this exists to catch. A fixed tolerance lost twice over: it is a number invented at review that
+nobody can read afterwards, and the deficit is a population that scales with the plate, not a
+constant. What the bound cannot do is attribute — in a total, a uniquely placed survivor's missing
+dead mate is forgiven up to that many — and separating them needs the dead record's own hit count,
+which is zero, or per-template state, which this module may not hold.
