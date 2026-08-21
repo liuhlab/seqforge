@@ -68,6 +68,24 @@ class ComposeError(RuntimeError):
     """The manifest cannot be compiled (unknown chemistry/module, or an unresolvable whitelist)."""
 
 
+class AlreadyComposed(ComposeError):
+    """This pairing's pipeline directory is already occupied, so there is nothing to write.
+
+    A ``ComposeError`` subclass, so ``seqforge compose`` refuses it with the exit code every other
+    compile failure carries and no caller has to learn a second one. It is a distinct type only
+    because ``seqforge run`` chains the compile and must tell "already there" — its cache hit, and
+    the only stage-resume signal a composed directory has — apart from "cannot be compiled". Catching
+    the base class for that would swallow an unknown chemistry and re-run the pipeline anyway.
+
+    Carries the :attr:`directory`, because the one thing a caller does with this is read what is in
+    there.
+    """
+
+    def __init__(self, message: str, *, directory: Path) -> None:
+        super().__init__(message)
+        self.directory = directory
+
+
 #: The run wrapper: **the deliverable**. A user submits this file.
 #:
 #: It is data, not code: it names a hand-written module and points it at a config. There is no
@@ -440,6 +458,25 @@ def compose(
     pipeline = CompiledPipeline(
         pipeline_dir(workspace, readable(processing.processing_id, rid), subdir=subdir)
     )
+    # A pipeline directory is written ONCE, and composition never edits one. `run_id` folds the
+    # workflow stamp the RECIPE recorded, so a recipe on disk keeps its directory across every bump:
+    # an edit to a shipped module re-composed different bytes into a name asserting they were the
+    # same bytes, beside a `results/` the previous ones produced, and said nothing. That was the
+    # silent path.
+    #
+    # The test is OCCUPANCY and nothing finer — not the two stamps, not the bytes. Comparing stamps
+    # would refuse the common bump that edits no module at all; comparing bytes would make seqforge
+    # the judge of whether a directory's contents are stale, and they may be a hand edit whose owner
+    # knows exactly why it is there. Either way the answer is the same and it is the user's to give:
+    # nothing here is seqforge's to overwrite.
+    if pipeline.directory.exists() and any(pipeline.directory.iterdir()):
+        raise AlreadyComposed(
+            f"{pipeline.directory} is already composed, and a pipeline directory is written once. "
+            f"Delete it to compose this recipe again — the outputs under it were produced by what "
+            f"is in it now — or run `seqforge processing new` for a recipe that keys to a directory "
+            f"of its own.",
+            directory=pipeline.directory,
+        )
     pipeline.directory.mkdir(parents=True, exist_ok=True)
 
     # The whitelists are NOT written here. `rule onlist` builds each one when a job needs it and

@@ -29,9 +29,9 @@ optional fields on one.
 ``{sample}.<suffix>`` convention can only express artifacts a seqforge rule names, and ``map/star``
 has no QC bundle rule at all: STAR writes ``Log.final.out`` into the sample directory unasked, it
 carries no sample name, and nothing in ``star.smk`` declares or deletes it. So bulk reports with no
-new rule, no ``WORKFLOW_VERSION`` bump, and therefore no ``run_id`` invalidation and no reprocessing
-of anything already compiled. Under a suffix convention that artifact would have been inexpressible
-and re-derived by a rule instead, at the cost of recompiling every dataset.
+new rule and no ``WORKFLOW_VERSION`` bump — nothing already composed has to be re-authored to get
+them. Under a suffix convention that artifact would have been inexpressible and re-derived by a
+rule instead, at the cost of a new recipe for every dataset that wanted the reports.
 
 A fourth aligner adds one dict entry and one ``(Path, str) -> SampleStats`` function. It does not
 touch ``report/``, and it cannot be forgotten: :data:`MODULES_WITHOUT_STATS` is an explicit list, and
@@ -179,8 +179,8 @@ class StatsSpec:
 #: ``chromap.smk`` each read the same constant this file does, so the rule, the writer and the reader
 #: are one owner rather than three. A repo-wide check keeps it that way
 #: (``test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns``), which matters because the
-#: cost of closing it was real: editing a shipped module invalidates every ``run_id``, so it is not a
-#: rename anyone would repeat casually. ``map/star`` has no such second owner and never will:
+#: cost of closing it was real: editing a shipped module leaves every recipe on disk keyed to the
+#: module it was written against, so it is not a rename anyone would repeat casually. ``map/star`` has no such second owner and never will:
 #: no rule names :data:`~seqforge.workflows.h5ad.STAR_FINAL_LOG`, because STAR writes it whether or not
 #: anyone asked — which is exactly why the entry is a bare filename with no ``{sample}`` in it.
 _SPECS: dict[str, StatsSpec] = {

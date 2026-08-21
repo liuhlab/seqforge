@@ -64,8 +64,10 @@ from .umite.extract import extract_metrics
 #: reason: a suffix spelled in the rule and again in the reader is two owners, and the reader's copy
 #: fails silently (a report that finds nothing looks exactly like a pipeline that has not run). The
 #: shipped module imports it as of ``WORKFLOW_VERSION`` 2026.8.3, which is why this is public and why
-#: it is worth keeping public: adopting it there cost a version bump and an invalidated ``run_id``
-#: for a change that altered no behaviour, and a repo-wide check now refuses the literal's return.
+#: it is worth keeping public: adopting it there cost a version bump for a change that altered no
+#: behaviour. A bump re-keys nothing already on disk, so the price is a new recipe for whoever
+#: wants the edit in a pipeline already composed — and a repo-wide check now refuses the
+#: literal's return.
 QC_SUFFIX = ".qc.json.gz"
 
 
@@ -731,7 +733,8 @@ def metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
     # carried every feature's `Summary.csv` since the first one ever written — the table above shows
     # ONE of them because `_pick_feature` selects, and this is the rest of what was already on disk,
     # carried up narrow. Nothing in the writer changed to make it available, so no artifact grew and
-    # no `run_id` was invalidated; what was missing was a reader that looked at more than one column.
+    # no `WORKFLOW_VERSION` bump was owed; what was missing was a reader that looked at more than
+    # one column.
     per_feature = {
         feat: value
         for feat in sorted(set(summary) & _countable_features())
@@ -829,8 +832,9 @@ def read_star_log(path: Path, sample: str) -> SampleStats:
     The alternative was a ``qc_bundle``-shaped rule for ``map/star``, which would have given both
     pipelines one artifact shape to read. It was rejected because STAR writes this file unasked and
     nothing in ``star.smk`` declares or deletes it: reading it as it lies means bulk reports with no
-    rule change, hence no ``WORKFLOW_VERSION`` bump, hence no ``run_id`` invalidation and no
-    reprocessing of anything already compiled. That is what a
+    rule change and hence no ``WORKFLOW_VERSION`` bump — so a pipeline already composed gets them
+    without being re-authored, where a new rule would have cost a new recipe to everyone who
+    wanted them. That is what a
     :class:`~seqforge.workflows.stats.StatsSpec` carrying a *filename* rather than a suffix buys, and
     this is the artifact it was shaped for.
 

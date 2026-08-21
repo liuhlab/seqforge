@@ -617,6 +617,41 @@ def test_run_defaults_fastq_dir_to_the_common_root_for_a_subdir_layout(tmp_path:
         assert path.is_file(), f"units path does not exist: {path}"
 
 
+def test_a_second_run_over_one_workspace_reuses_the_pipeline_it_already_composed(
+    tmp_path: Path,
+) -> None:
+    """A composed pipeline directory is `compose`'s cache entry, and `run` resumes from it (#447).
+
+    `compose` refuses to write into an occupied pipeline directory, always — that is the silent
+    overwrite closed. But `run` re-runs: it is how the report is re-rendered once the pipeline has
+    been submitted, and the pipeline's outputs live UNDER the directory the refusal names, so passing
+    the refusal through would make "delete it" the price of a re-rendered page.
+
+    The second summary must say it reused rather than composed, because a `run` that quietly
+    recomposed and a `run` that quietly reused are indistinguishable from an exit code.
+    """
+    spec = kb.load_spec("bulk-rnaseq")
+    reads = kb.generate_reads(spec, n=600, seed=0)
+    f1, f2 = tmp_path / "s_R1.fastq.gz", tmp_path / "s_R2.fastq.gz"
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
+    argv = ["run", str(f1), str(f2), "--organism", "559292", "--assembly", "sacCer3",
+            "--annotation", "ensembl", "--no-llm", "-C", str(tmp_path)]  # fmt: skip
+
+    first = runner.invoke(app, argv)
+    assert first.exit_code == 0, first.stdout
+    second = runner.invoke(app, argv)
+    assert second.exit_code == 0, second.stdout
+
+    composed = json.loads(first.stdout)["stages"]["compose"]
+    reused = json.loads(second.stdout)["stages"]["compose"]
+    assert "reused" in reused and "reused" not in composed
+    assert reused["snakefile_path"] == composed["snakefile_path"], (
+        "the pairing names the directory, so a reuse that landed anywhere but where the first "
+        "compile wrote would be resuming from somebody else's pipeline"
+    )
+
+
 def test_run_refuses_without_a_genome(tmp_path: Path) -> None:
     """The one real decision has no safe default: no --assembly, no instruction -> exit 2, not a guess.
 

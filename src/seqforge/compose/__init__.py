@@ -10,7 +10,7 @@ their toolchain exists — otherwise ``skip``, never a silent ``pass``.
 from __future__ import annotations
 
 from .admission import Admission, admit
-from .core import ComposeError, ComposePlan, compose, plan
+from .core import AlreadyComposed, ComposeError, ComposePlan, compose, plan
 from .gates import e2e_gate, wiring_gate
 from .params import RECIPE_PARAM_KEYS, param_owners, params_gate, processing_params, render_param
 
@@ -34,6 +34,7 @@ __all__ = [
     "plan",
     "ComposePlan",
     "ComposeError",
+    "AlreadyComposed",
     "Admission",
     "admit",
     "params_gate",

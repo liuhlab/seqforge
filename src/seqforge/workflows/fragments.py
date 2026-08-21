@@ -67,8 +67,10 @@ _TABIX_SUFFIX = ".fragments.tsv.gz.tbi"
 #: report that finds nothing looks exactly like a pipeline that never ran, so nothing raises and
 #: nobody is told. ``rule fragments_qc`` in ``chromap.smk`` imports it as of ``WORKFLOW_VERSION``
 #: 2026.8.3, so the rule that declares the file, the function that writes it and the reader that
-#: finds it are one owner. That adoption cost a version bump and an invalidated ``run_id`` for a
-#: change that altered no behaviour, and a repo-wide check now refuses the literal's return.
+#: finds it are one owner. That adoption cost a version bump for a change that altered no
+#: behaviour. A bump re-keys nothing already on disk, so the price is a new recipe for whoever
+#: wants the edit in a pipeline already composed — and a repo-wide check now refuses the
+#: literal's return.
 QC_SUFFIX = ".fragments.qc.json.gz"
 
 
