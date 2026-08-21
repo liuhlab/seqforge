@@ -21,13 +21,18 @@ from __future__ import annotations
 #:
 #: 2026.8.3 — **the Results table is reachable**. It pages, the way Samples already did: a bar under
 #: it says which rows are showing, offers 25/50/100/All, and steps. On the in-house aging plate that
-#: table is 784 rows deep, and reaching row 400 meant scrolling past 399. Nothing is hidden that was
-#: not already there — every row still ships in the page, ``All`` puts the whole grid back, and a
-#: table that fits on one screenful renders no bar at all. It is the same control, the same marker and
-#: the same script the Samples grid has used since the design system landed; what changed is that a
-#: row of results is now something the page admits is a sample. The page also stops policing its own
-#: weight: a fixed byte budget for an artifact whose size is one row per sample was a number that had
-#: never been checked against a plate, and the report is read by people, not shipped anywhere.
+#: table is 784 rows deep, and reaching row 400 meant scrolling past 399. And it **sorts** — a caret
+#: beside every column's label, including the sample column, cycling highest-first, lowest-first and
+#: back to the order the run arrived in. That last one is the point of three states rather than two:
+#: a reader who has finished asking which wells are worst can put the plate back. The sort reads the
+#: raw numbers rather than the printed ones, orders every row and then lets the pager take the first
+#: page of it, and sends a sample that never reported a metric to the end of that column either way —
+#: a gap is not a large number or a small one. Sample names sort the way a human counts, so ``day3``
+#: comes before ``day11``. Nothing is hidden that was not already there: every row still ships in the
+#: page, ``All`` puts the whole grid back, and a table that fits on one screenful renders no bar at
+#: all. The page also stops policing its own weight: a fixed byte budget for an artifact whose size is
+#: one row per sample was a number that had never been checked against a plate, and the report is read
+#: by people, not shipped anywhere.
 #:
 #: 2026.8.2 — **the cross-check**. Results gains an alert block between the run state and the metrics
 #: table: the compiler joins what it decided to what came back and says which DECISION looks wrong,

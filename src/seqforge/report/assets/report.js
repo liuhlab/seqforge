@@ -1,8 +1,9 @@
 /* seqforge report — one self-contained script, inlined at render.
  *
- * Drives the tab shell, the assay switcher, the light/dark toggle, the sample-row drawers, and the
- * click-to-pin provenance popover. No network, no framework — just a few DOM handlers. The Flow tab is
- * plain HTML cards laid out by CSS, so there is no diagram engine to load.
+ * Drives the tab shell, the assay switcher, the light/dark toggle, the sample-row drawers, the paging
+ * and sorting of the two sample grids, and the click-to-pin provenance popover. No network, no
+ * framework — just a few DOM handlers. The Flow tab is plain HTML cards laid out by CSS, so there is
+ * no diagram engine to load.
  */
 (function () {
   "use strict";
@@ -93,48 +94,82 @@
     });
   }
 
-  // ---- samples table paging ---------------------------------------------------------------------
+  // ---- sample grids: paging and sorting ---------------------------------------------------------
   // A plate of ninety-six samples was five thousand pixels of table, and a reader who wanted sample 40
-  // scrolled past thirty-nine to reach it. This shows one page of rows at a time.
+  // scrolled past thirty-nine to reach it; the Results grid on the in-house aging plate is 784 rows
+  // deep. So a grid shows one page of rows at a time, and lets a reader put the rows they want on the
+  // first page by sorting a column.
+  //
+  // ONE controller owns both, per <tbody>, because they are two halves of one answer: a sort decides
+  // the order of every row and paging decides which slice of that order shows. Two handlers could not
+  // agree on it — a pager that had grouped the rows once, at load, would go on slicing an order the
+  // table had stopped being in, and the symptom would be a page of rows that are not the ones the
+  // header says are showing.
   //
   // It HIDES, it never drops: every row is in the HTML whatever page is showing, so the file is as
   // complete offline as it was, "Rows: All" is one click, and a browser find that lands on a hidden
-  // row still has the row to land on once the reader shows it. The bar itself is `hidden` in the
+  // row still has the row to land on once the reader shows it. Both controls are `hidden` in the
   // markup and unhidden here, so a page opened without this script is the page as it always was.
-  function initSamplePagers() {
-    document.querySelectorAll("[data-pager]").forEach(function (bar) {
-      var body = document.getElementById(bar.getAttribute("data-pager"));
-      if (!body) return;
 
-      // One sample is a PAIR of rows — the summary and its files drawer — and only the first carries
-      // `data-smp`. Grouping as "a marked row plus everything after it until the next" means the two
-      // move together and the pager never counts rows.
-      var groups = [];
-      [].forEach.call(body.rows, function (tr) {
-        if (tr.hasAttribute("data-smp")) groups.push([tr]);
-        else if (groups.length) groups[groups.length - 1].push(tr);
-      });
-      if (!groups.length) return;
+  // Digit-aware, because the plate's ids are `day3_CF_1`, `day11_N2_16_2`, ... and a plain string sort
+  // reads `day11` as less than `day3`. That IS the arrival order the reader is sorting to escape, so a
+  // sort that reproduced it would be a control that does nothing on the one table it was built for.
+  var NATURAL =
+    window.Intl && Intl.Collator
+      ? new Intl.Collator(undefined, { numeric: true }).compare
+      : function (a, b) { return a < b ? -1 : a > b ? 1 : 0; };
 
-      var status = bar.querySelector("[data-pager-status]");
-      var nav = bar.querySelector("[data-pager-nav]");
-      var at = bar.querySelector("[data-pager-at]");
-      var picker = bar.querySelector("[data-pager-size]");
-      var steps = bar.querySelectorAll("[data-pager-step]");
-      var page = 0;
+  // The one `data-sort-col` that is not an index into a row's payload — see `_SORT_BY_ID`.
+  var SORT_BY_ID = "id";
 
-      function perPage() {
-        var n = parseInt(picker.value, 10);
-        return n > 0 ? n : groups.length; // "All" is 0 in the markup, and every row here
-      }
+  // One sample is a PAIR of rows — the summary and its files drawer — and only the first carries
+  // `data-smp`. Grouping as "a marked row plus everything after it until the next" means the two move
+  // together, which is what lets a sort reorder SAMPLES rather than rows, and what lets the pager
+  // page them without ever counting rows.
+  function groupsOf(body) {
+    var groups = [];
+    [].forEach.call(body.rows, function (tr) {
+      if (tr.hasAttribute("data-smp")) groups.push([tr]);
+      else if (groups.length) groups[groups.length - 1].push(tr);
+    });
+    return groups;
+  }
 
-      function apply() {
+  function initGrid(body) {
+    // The order the page arrived in, kept for the whole session: it is what the third click of a
+    // column restores, and every sort is computed FROM it rather than from the last sort, so the
+    // same column and direction always produce the same table.
+    var arrival = groupsOf(body);
+    if (!arrival.length) return;
+    var order = arrival;
+
+    var bar = body.id ? document.querySelector('[data-pager="' + body.id + '"]') : null;
+    var table = body.closest("table");
+    var carets = table ? [].slice.call(table.querySelectorAll("[data-sort-col]")) : [];
+    if (!bar && !carets.length) return;
+
+    var status = bar && bar.querySelector("[data-pager-status]");
+    var nav = bar && bar.querySelector("[data-pager-nav]");
+    var at = bar && bar.querySelector("[data-pager-at]");
+    var picker = bar && bar.querySelector("[data-pager-size]");
+    var steps = bar ? [].slice.call(bar.querySelectorAll("[data-pager-step]")) : [];
+    var page = 0;
+
+    function perPage() {
+      var n = parseInt(picker.value, 10);
+      return n > 0 ? n : order.length; // "All" is 0 in the markup, and every row here
+    }
+
+    // A table under one page renders no bar at all, and still sorts — so paging is a branch here
+    // rather than the reason this function runs.
+    function apply() {
+      if (bar) {
         var per = perPage();
-        var pages = Math.ceil(groups.length / per);
+        var pages = Math.ceil(order.length / per);
         page = Math.min(Math.max(page, 0), pages - 1);
         var first = page * per;
-        var last = Math.min(first + per, groups.length);
-        groups.forEach(function (rows, i) {
+        var last = Math.min(first + per, order.length);
+        order.forEach(function (rows, i) {
           var off = i < first || i >= last;
           rows.forEach(function (tr) { tr.classList.toggle("smp-off", off); });
         });
@@ -142,31 +177,109 @@
         // row of every pair, and one attribute meaning two things would close a reader's open drawer
         // every time they paged past it and back.
         status.textContent =
-          "Showing " + (first + 1) + "–" + last + " of " + groups.length + " samples";
+          "Showing " + (first + 1) + "–" + last + " of " + order.length + " samples";
         at.textContent = "Page " + (page + 1) + " of " + pages;
         nav.hidden = pages < 2; // "Page 1 of 1" beside two dead arrows says nothing
         steps.forEach(function (btn) {
           var to = page + parseInt(btn.getAttribute("data-pager-step"), 10);
           btn.disabled = to < 0 || to >= pages;
         });
-        closeProvenance(); // it is pinned beside a cell that may not be on this page any more
       }
+      closeProvenance(); // it is pinned beside a cell that may not be on this page any more
+    }
 
-      // The top of the table, landed under the sticky band rather than beneath it: a reader who
-      // pressed Next at the bottom of one page is asking for the top of the next. The band's height
-      // is MEASURED and never assumed — the whole reason the header and the tab bar are one sticky
-      // element is that no number for it can be written down and stay true.
-      function toTop() {
-        var region = body.closest(".sf-scroll-x") || body;
-        var band = document.querySelector("[data-sticky-band]");
-        var top =
-          region.getBoundingClientRect().top +
-          window.scrollY -
-          (band ? band.getBoundingClientRect().height : 0) -
-          8;
-        window.scrollTo(0, Math.max(0, top));
+    // The top of the table, landed under the sticky band rather than beneath it: a reader who
+    // pressed Next at the bottom of one page is asking for the top of the next, and one who just
+    // sorted a column is asking for whatever is now at the top of it. The band's height is MEASURED
+    // and never assumed — the whole reason the header and the tab bar are one sticky element is that
+    // no number for it can be written down and stay true.
+    function toTop() {
+      var region = body.closest(".sf-scroll-x") || body;
+      var band = document.querySelector("[data-sticky-band]");
+      var top =
+        region.getBoundingClientRect().top +
+        window.scrollY -
+        (band ? band.getBoundingClientRect().height : 0) -
+        8;
+      window.scrollTo(0, Math.max(0, top));
+    }
+
+    // The key rides on the <tr>: one `data-sort` holding this row's RAW values in the order its cells
+    // were emitted, comma-separated, empty where the sample has a gap. The rendered text cannot stand
+    // in for it — a count reaches the cell as `207.9M`, and the precision a sort needs is gone by
+    // then — and the sticky column has no slot at all, because an identifier is not a number.
+    function keyOf(group, col) {
+      var first = group[0];
+      if (col === SORT_BY_ID) {
+        var cell = first.cells[0];
+        // `.smp-sid` where the row identifier is wrapped (the Samples grid puts a caret and an
+        // accession in the same cell); the cell itself where it is the whole cell, as on Results.
+        return (cell.querySelector(".smp-sid") || cell).textContent.trim();
       }
+      var slot = (first.getAttribute("data-sort") || "").split(",")[col];
+      return slot ? parseFloat(slot) : NaN;
+    }
 
+    // A gap goes to the END in both directions. A sample that never reported a metric does not hold
+    // the largest value in that column, and it does not hold the smallest one either.
+    function isGap(k) { return typeof k === "number" && isNaN(k); }
+
+    function sortedBy(col, dir) {
+      var keyed = arrival.map(function (g, i) { return { g: g, i: i, k: keyOf(g, col) }; });
+      keyed.sort(function (a, b) {
+        if (isGap(a.k) || isGap(b.k)) {
+          return isGap(a.k) && isGap(b.k) ? a.i - b.i : isGap(a.k) ? 1 : -1;
+        }
+        var c = typeof a.k === "string" ? NATURAL(a.k, b.k) : a.k - b.k;
+        return c ? c * dir : a.i - b.i; // ties keep arrival order, so one click is one table
+      });
+      return keyed.map(function (e) { return e.g; });
+    }
+
+    // Three glyphs for three states, and `aria-sort` on the <th> for the same three: a column header
+    // that announced itself as a button would have stopped being a column header, so the state is on
+    // the header and the control beside the label.
+    function mark(btn, state) {
+      var th = btn.closest("th");
+      if (th) {
+        th.setAttribute(
+          "aria-sort",
+          state < 0 ? "descending" : state > 0 ? "ascending" : "none"
+        );
+      }
+      btn.textContent = state < 0 ? "▾" : state > 0 ? "▴" : "⇅";
+    }
+
+    var sortState = 0; // -1 descending, 1 ascending, 0 the order the page arrived in
+    var sortCaret = null;
+
+    carets.forEach(function (btn) {
+      btn.hidden = false;
+      btn.addEventListener("click", function () {
+        // none → descending → ascending → none, and the third click is the way back. Descending
+        // first because on a table of metrics the question is nearly always who is highest. One
+        // column at a time: a second sort clears the first, because two live sorts is a rule no
+        // reader can recover off the page.
+        sortState = btn === sortCaret ? (sortState < 0 ? 1 : 0) : -1;
+        sortCaret = sortState ? btn : null;
+        carets.forEach(function (other) { mark(other, other === sortCaret ? sortState : 0); });
+
+        // EVERY row is sorted and the pager then re-slices — never the visible page, which would
+        // sort twenty-five rows and call it the top of the plate.
+        order = sortState ? sortedBy(btn.getAttribute("data-sort-col"), sortState) : arrival;
+        var frag = document.createDocumentFragment();
+        order.forEach(function (rows) {
+          rows.forEach(function (tr) { frag.appendChild(tr); });
+        });
+        body.appendChild(frag); // one reflow, and appending a row already here MOVES it
+
+        page = 0; // the reader asked who is highest, and the answer is on the first page
+        apply();
+        toTop();
+      });
+    });
+
+    if (bar) {
       steps.forEach(function (btn) {
         btn.addEventListener("click", function () {
           page += parseInt(btn.getAttribute("data-pager-step"), 10);
@@ -178,10 +291,24 @@
         page = 0; // 25→100 keeps the rows you were looking at; anything else lands you nowhere
         apply();
       });
-
       bar.hidden = false;
-      apply();
+    }
+    apply();
+  }
+
+  // A grid reaches this from either end — it has a pager, or it has sort carets, or both — so both
+  // ways in are collected and deduplicated rather than wiring one <tbody> twice.
+  function initSampleGrids() {
+    var bodies = [];
+    function want(body) { if (body && bodies.indexOf(body) < 0) bodies.push(body); }
+    document.querySelectorAll("[data-pager]").forEach(function (bar) {
+      want(document.getElementById(bar.getAttribute("data-pager")));
     });
+    document.querySelectorAll("[data-sort-col]").forEach(function (btn) {
+      var table = btn.closest("table");
+      want(table && table.tBodies.length ? table.tBodies[0] : null);
+    });
+    bodies.forEach(initGrid);
   }
 
   // ---- provenance popover -----------------------------------------------------------------------
@@ -343,8 +470,8 @@
     initTheme();
     initTabs();
     initRowToggles();
-    initProvPopover(); // before the pagers: it is what gives them a popover to close
-    initSamplePagers();
+    initProvPopover(); // before the grids: it is what gives them a popover to close
+    initSampleGrids();
   }
 
   if (document.readyState === "loading") {

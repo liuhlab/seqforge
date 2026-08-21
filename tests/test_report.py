@@ -1024,11 +1024,11 @@ def test_a_long_sample_table_pages_and_a_short_one_does_not_and_neither_loses_a_
     script = (_ASSETS / "report.js").read_text()
 
     short = grid_of(own_workspace, 2)
-    assert short.count("<tr data-smp>") == 2
+    assert short.count("<tr data-smp") == 2
     assert "data-pager" not in short, "a table that fits on one page renders no pager"
 
     long_table = grid_of(own_workspace, per + 1)
-    assert long_table.count("<tr data-smp>") == per + 1, "a paged table still ships every row"
+    assert long_table.count("<tr data-smp") == per + 1, "a paged table still ships every row"
     bar = re.search(r"<nav[^>]*data-pager=\"([^\"]+)\"[^>]*>", long_table)
     assert bar is not None, "a table past one page renders no pager"
     assert "hidden" in bar.group(0), "the bar must arrive hidden, for the script to unhide"
@@ -2032,20 +2032,98 @@ def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Pa
     The column set is a union across samples, so a sample whose STARsolo run wrote fewer rows keeps
     its blanks and every other sample keeps its numbers. A zero here would be a number a reader would
     act on, and the tool did not write it.
+
+    **Both renderings of the same gap, against each other.** The row also carries its raw values for
+    the sort, and the two have to agree cell for cell: one slot per rendered column, in the order the
+    cells come, empty where the cell is a dash. A payload that fell out of step with the cells would
+    sort the plate by the column next door — a page that is silently, plausibly wrong — and a gap
+    written as a zero there would sort a sample that reported nothing to the top of the column.
     """
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
     thin: dict[str, object] = {"Number of Reads": 10, "Sequencing Saturation": 0.5}
     stats = _land_bundles(results, {"S1": thin, "S2": _QC_SUMMARY})
     pane = _pane(_render_with_stats(own_workspace, stats), "results")
 
-    rows = re.findall(r"<tr data-smp><th scope=\"row\"[^>]*>(.*?)</tr>", pane)
+    rows = re.findall(
+        r"<tr data-smp data-sort=\"([^\"]*)\"><th scope=\"row\"[^>]*>(.*?)</tr>", pane
+    )
     assert len(rows) == 2
-    thin_row, full_row = rows
+    (thin_keys, thin_row), (full_keys, full_row) = rows
     assert "S1" in thin_row and "S2" in full_row
     # Same number of cells in both rows -- the column survives -- and the thin one is mostly gaps.
     assert thin_row.count("<td") == full_row.count("<td") == len(stats.columns)
     assert thin_row.count(">—</td>") == len(stats.columns) - 2
     assert ">0</td>" not in thin_row and ">0.0%</td>" not in thin_row  # never a manufactured zero
+
+    # One slot per column, in cell order, and a gap is an EMPTY slot rather than a number.
+    for keys, row in ((thin_keys, thin_row), (full_keys, full_row)):
+        slots = keys.split(",")
+        gaps = [cell == "—" for cell in re.findall(r"<td[^>]*>(.*?)</td>", row)]
+        assert len(slots) == len(gaps) == len(stats.columns)
+        assert [not slot for slot in slots] == gaps
+    assert all(full_keys.split(",")), "the full row reported every metric and must fill every slot"
+
+
+def test_every_results_column_sorts_off_its_own_caret_and_the_label_keeps_its_click(
+    own_workspace: Path,
+) -> None:
+    """784 rows by 39 columns, and the reader's question is always about ONE of those columns.
+
+    The load-bearing half is that the sort control is a **separate button beside** the label and never
+    the label itself. Clicking a `.metric-head` already pins that metric's hint — it is in the
+    popover's own selector list — so a sort bolted onto it would have answered "what does this
+    measure?" by reordering the plate. The two gestures are two elements, and this holds them apart
+    from both sides: every sortable header carries exactly one caret, and no caret is inside a label.
+
+    **Every column, and the sticky one too.** A metrics grid a reader can order by `Reads in genes`
+    but not by sample is a grid that cannot be put back in plate order, which is the order the
+    experiment was run in. The orphan column is here for the same reason: a key no adapter wrote a
+    hint for renders a bare `<th>` with no label span at all, and it would be the one column in the
+    band that does not sort, for a reason ("nobody wrote a sentence about it") that has nothing to do
+    with sorting.
+
+    Sorting does not ride on paging, which is why this fixture is two samples and renders no bar: the
+    controller is reachable from either control, and a Results table under one page still sorts.
+
+    Both ends of the render→script seam, for the reason the pager test above gives. Nothing in this
+    suite runs the page's JS, so what is checked on that side is the shared vocabulary — the
+    attributes both files have to spell the same way, including the two `aria-sort` values the markup
+    never ships because the script is what puts a column into them.
+    """
+    results = own_workspace / "seqforge" / "pipeline-elsewhere"
+    stats = _land_bundles(results, {"S1": _QC_SUMMARY, "S2": _QC_SUMMARY})
+    stats = stats.model_copy(update={"columns": [*stats.columns, ("mystery", "Mystery")]})
+    pane = _pane(_render_with_stats(own_workspace, stats), "results")
+    script = (_ASSETS / "report.js").read_text()
+
+    assert "data-pager" not in pane, "two samples fit on one page; the sort must not need the bar"
+    heads = re.findall(r'<th scope="col"[^>]*aria-sort="none"[^>]*>(.*?)</th>', pane, re.S)
+    assert len(heads) == len(stats.columns) + 1, "one per metric column, plus the sticky Sample"
+
+    for head in heads:
+        caret = re.search(r'<button[^>]*class="sf-sort"[^>]*>', head)
+        assert caret is not None and head.count('class="sf-sort"') == 1
+        # `hidden` for the same reason the pager bar is: a caret that cannot sort is a lie, and a page
+        # opened with JS off is the page as it was before sorting existed.
+        assert "hidden" in caret.group(0)
+        assert "aria-label" in caret.group(0), "a bare glyph is not a name a screen reader can read"
+        label = re.search(r'<span class="metric-head".*?</span>', head, re.S)
+        assert label is None or "sf-sort" not in label.group(0), "the caret is inside the label"
+
+    # Each caret names its own slot of the row payload, in the order the columns render — and the
+    # sticky column names the identifier instead, because a sample id is not one of those numbers.
+    assert re.findall(r'data-sort-col="([^"]*)"', pane) == [
+        "id",
+        *(str(slot) for slot in range(len(stats.columns))),
+    ]
+    # The hintless branch: a bare label, no popover control at all, and a caret all the same.
+    orphan = next((head for head in heads if head.startswith("Mystery")), "")
+    assert orphan, "the fixture must reach the hintless branch, or this proves nothing about it"
+    assert "metric-head" not in orphan
+    assert re.search(r'data-sort-col="\d+"', orphan)
+
+    for hook in ("[data-sort-col]", '"data-sort"', '"aria-sort"', '"descending"', '"ascending"'):
+        assert hook in script, f"the header's {hook} is emitted and nothing reads it"
 
 
 def test_a_partial_run_is_a_failed_run_and_still_renders_what_landed(own_workspace: Path) -> None:

@@ -1332,6 +1332,16 @@ def _stats_table(stats: PipelineStats, index: int) -> str:
     assays each carrying a ``results-0`` would bind one assay's bar to the other assay's rows, and the
     only symptom would be a page that pages the table nobody is looking at.
 
+    **The sort key rides on the row, not on the cell**: one ``data-sort`` holding this row's raw
+    :attr:`~seqforge.workflows.metrics.Metric.value` floats in the order the cells are emitted,
+    comma-separated, with an empty slot where the sample has a gap. Per cell it would be the same
+    number twice in each of a plate's thirty thousand cells, on a ``<td>`` that is deliberately lean —
+    measured at +418–657 KB on the aging plate against +254 KB here. Read back off the rendered text
+    it would be wrong rather than merely fat: ``fmt_count`` writes 207 852 331 as ``207.9M``, and the
+    precision a sort needs is gone by the time a number reaches a cell. The fold only *hides* columns,
+    so a slot's position is the same folded and unfolded and the header's ``data-sort-col`` can be a
+    plain index into it.
+
     **Group structure is rule and label, never a second hue.** The bands are a header row of
     ``colspan`` cells separated by a hairline; the group also rides on ``data-group`` so the page
     carries it verbatim, as an attribute rather than as a ``grp-{group}`` class. A computed class
@@ -1348,13 +1358,17 @@ def _stats_table(stats: PipelineStats, index: int) -> str:
     ``colspan`` is a count and a band cannot span columns that are not being shown.
     """
     bands = _banded_columns(stats)
-    n_columns = sum(len(columns) for _group, columns in bands)
-    n_headline = sum(1 for _group, columns in bands for column in columns if column[2])
+    # The bands flattened back out, once: this is the order the header cells, the body cells and every
+    # row's sort payload are all emitted in, and reading it from one list is what makes "slot 12 of
+    # `data-sort` is the column `data-sort-col="12"` heads" true by construction rather than by care.
+    flat = [column for _group, columns in bands for column in columns]
+    n_columns = len(flat)
+    n_headline = sum(1 for _key, _label, headline, _hint in flat if headline)
     folds = n_columns >= _FOLD_MIN_COLUMNS and 0 < n_headline < n_columns
 
     band_row, first_folded = "", True
-    for index, (group, columns) in enumerate(bands):
-        rule = "" if index == 0 else " border-l border-line"
+    for band, (group, columns) in enumerate(bands):
+        rule = "" if band == 0 else " border-l border-line"
         heads = sum(1 for column in columns if column[2])
         if folds and heads:
             band_row += _band_cell(
@@ -1364,32 +1378,32 @@ def _stats_table(stats: PipelineStats, index: int) -> str:
         band_row += _band_cell(group, len(columns), ("grp-extra" if folds else "") + rule)
 
     head_row = "".join(
-        _metric_head(label, hint, extra=folds and not headline)
-        for _group, columns in bands
-        for _key, label, headline, hint in columns
+        _metric_head(label, hint, slot=slot, extra=folds and not headline)
+        for slot, (_key, label, headline, hint) in enumerate(flat)
     )
     rows = ""
     for sample in stats.samples:
         by_key = {m.key: m for m in sample.metrics}
+        found = [(by_key.get(key), headline) for key, _label, headline, _hint in flat]
         cells = "".join(
-            _metric_cell(by_key.get(key), extra=folds and not headline)
-            for _group, columns in bands
-            for key, _label, headline, _hint in columns
+            _metric_cell(metric, extra=folds and not headline) for metric, headline in found
         )
         # Nothing but the sticky column, and nothing in the sticky column but the identifier. The
         # seven undo-utilities that used to sit here — left, ink, 14px, normal case, normal tracking,
         # wrapping — were all arguing with a `.sf-scroll-x th` that meant to style column heads; that
         # rule now says `thead`. The per-sample note that used to ride beside the id is
         # `_counting_notes`, under the table.
+        keys = ",".join(_sort_key(metric) for metric, _headline in found)
         rows += (
-            f'<tr data-smp><th scope="row" class="sf-col-sticky">{esc(sample.sample_id)}</th>'
-            f"{cells}</tr>"
+            f'<tr data-smp data-sort="{esc(keys)}">'
+            f'<th scope="row" class="sf-col-sticky">{esc(sample.sample_id)}</th>{cells}</tr>'
         )
 
     body_id = f"results-{index}"
     table = (
         '<div class="sf-scroll-x"><table class="w-full text-sm tabular-nums">'
-        '<thead><tr><th scope="col" rowspan="2" class="sf-col-sticky align-bottom">Sample</th>'
+        '<thead><tr><th scope="col" rowspan="2" class="sf-col-sticky align-bottom" '
+        f'aria-sort="none">Sample{_sort_caret("sample name", _SORT_BY_ID)}</th>'
         f"{band_row}</tr><tr>{head_row}</tr></thead>"
         f'<tbody id="{esc(body_id)}">{rows}</tbody></table></div>'
     )
@@ -1475,7 +1489,50 @@ def _band_cell(group: MetricGroup, span: int, cls: str) -> str:
     )
 
 
-def _metric_head(label: str, hint: str, *, extra: bool) -> str:
+#: The one ``data-sort-col`` that is not an index into a row's payload. The sticky column holds an
+#: identifier and not a number, so its key is the row's own name and its comparator is the digit-aware
+#: one — ``day3`` before ``day9`` before ``day11``, which is the order the plate was pipetted in and
+#: the one a plain string sort destroys.
+_SORT_BY_ID = "id"
+
+
+def _sort_caret(label: str, slot: str) -> str:
+    """The handle that sorts a column: a button **beside** the header's label, never the label itself.
+
+    Clicking a ``.metric-head`` already pins that metric's hint, and one gesture cannot mean two
+    things — a reader asking what "Reads in genes" measures would have reordered the plate under
+    themselves. So the control is its own element, and a real ``<button>`` rather than a span wearing
+    a role, because Enter and Space are then the browser's job and not this page's.
+
+    ``role="button"`` still never reaches the ``<th>``, for the reason :func:`_metric_head` gives: a
+    column header that announces itself as a button has stopped being a column header. The sort state
+    rides on the ``<th>`` as ``aria-sort``, which is the attribute a screen reader already reads
+    there, so the state is announced where it belongs and is not stored a second time.
+
+    Ships **hidden**, like the pager bar and for the same reason: a caret that cannot sort is a lie,
+    and a page opened with JS off is the page as it was before sorting existed. ``report.js`` unhides
+    it and owns all three glyphs; the name it keeps is the same in every state, because which way the
+    column is pointing is what ``aria-sort`` says.
+    """
+    return (
+        f'<button type="button" class="sf-sort" hidden data-sort-col="{esc(slot)}" '
+        f'aria-label="Sort by {esc(label)}">⇅</button>'
+    )
+
+
+def _sort_key(metric: Metric | None) -> str:
+    """One slot of a row's sort payload: the metric's raw value, or **nothing** where there is a gap.
+
+    ``repr`` and not a format string — it is the shortest text that reads back as the same float, and
+    the cell beside it could not stand in for it: ``display`` is what a human reads, and by then
+    207 852 331 says ``207.9M``. An empty slot means the sample never reported this metric, which is
+    neither a large number nor a small one, and the script sends it to the end whichever way the
+    column is sorted.
+    """
+    return "" if metric is None else repr(metric.value)
+
+
+def _metric_head(label: str, hint: str, *, slot: int, extra: bool) -> str:
     """A column header that reaches its metric's ``hint`` through the samples table's own popover.
 
     Not a native ``title=``: a hint is a whole sentence of domain knowledge ("a near-zero valid-barcode
@@ -1491,14 +1548,21 @@ def _metric_head(label: str, hint: str, *, extra: bool) -> str:
     ``role="button"`` sits on a span *inside* the ``<th>``, never on the ``<th>``: a column header that
     announces itself as a button has stopped being a column header, and screen-reader table navigation
     is the thing a wide metrics table needs most.
+
+    Every column sorts, including the few an adapter declares with no hint at all — those render a
+    bare label and would otherwise be the one column in the band a reader could not reorder, for a
+    reason ("nobody wrote a sentence about it") that has nothing to do with sorting. So the caret is
+    emitted on both branches and the label's span on only one of them.
     """
     cls = "align-bottom text-right" + (" grp-extra" if extra else "")
+    caret = _sort_caret(label, str(slot))
     if not hint:
-        return f'<th scope="col" class="{cls}">{esc(label)}</th>'
+        return f'<th scope="col" class="{cls}" aria-sort="none">{esc(label)}{caret}</th>'
     return (
-        f'<th scope="col" class="{cls}"><span class="metric-head" role="button" tabindex="0" '
+        f'<th scope="col" class="{cls}" aria-sort="none">'
+        f'<span class="metric-head" role="button" tabindex="0" '
         f'data-key="{esc(label)}" data-value="" data-basis="{esc(hint)}" '
-        f'data-source="" data-quote="">{esc(label)}</span></th>'
+        f'data-source="" data-quote="">{esc(label)}</span>{caret}</th>'
     )
 
 

@@ -543,6 +543,27 @@
     color: var(--sf-accent);
     text-decoration-color: var(--sf-accent);
   }
+
+  /* The sort handle, BESIDE that label and never on it: clicking a `.metric-head` pins the metric's
+   * hint, and one gesture cannot mean two things. Thirty-nine of these sit across the header of a
+   * plate's results grid, so the idle state is the page's faintest ink — a row of carets as loud as
+   * the numbers is a header competing with the table under it.
+   *
+   * The sorted column's caret takes the accent, and it is drawn off `aria-sort` on the `<th>` rather
+   * than off a class the script also sets: the state has one home, it is the one a screen reader
+   * already reads there, and a caret that looked sorted while the header said `none` is a page
+   * disagreeing with itself. */
+  .sf-sort {
+    @apply ml-1 cursor-pointer align-middle font-mono text-xs leading-none;
+    color: var(--sf-faint);
+  }
+  .sf-sort:hover {
+    color: var(--sf-accent);
+  }
+  th[aria-sort="ascending"] .sf-sort,
+  th[aria-sort="descending"] .sf-sort {
+    color: var(--sf-accent);
+  }
 }
 
 /* ── the two dense grids: the sample-metadata table and the evidence matrix ────────────────────────
