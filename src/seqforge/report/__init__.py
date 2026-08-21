@@ -25,8 +25,9 @@ from __future__ import annotations
 #: beside every column's label, including the sample column, cycling highest-first, lowest-first and
 #: back to the order the run arrived in. That last one is the point of three states rather than two:
 #: a reader who has finished asking which wells are worst can put the plate back. The sort reads the
-#: raw numbers rather than the printed ones, orders every row and then lets the pager take the first
-#: page of it, and sends a sample that never reported a metric to the end of that column either way —
+#: numbers behind the cells rather than the printed ones — at the precision those cells can show, so
+#: an exact count keeps every digit — orders every row and then lets the pager take the first page of
+#: it, and sends a sample that never reported a metric to the end of that column either way —
 #: a gap is not a large number or a small one. Sample names sort the way a human counts, so ``day3``
 #: comes before ``day11``. Nothing is hidden that was not already there: every row still ships in the
 #: page, ``All`` puts the whole grid back, and a table that fits on one screenful renders no bar at
