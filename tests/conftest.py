@@ -682,11 +682,17 @@ def _manifest_from(paths: list[Path], tech: str, reg: OnlistRegistry) -> Dataset
 
 
 #: An assembly name SPELLED like a chimera's — two Components, in the order the name spells them.
-#: Nothing looks it up: compose reads a chimera off the name alone, so a two-part name is all it
-#: takes to plan a chimeric run with no built reference, no shipped table row and nothing on disk.
-#: The names are deliberately not `ce11_ecHT115`, the one real Chimera, so that nothing here can be
-#: mistaken for a claim that this test reached it.
-CHIMERIC_ASSEMBLY = "tinyCe_tinyEc"
+#: Compose reads a chimera off the NAME alone and the genome resolves inside a `run:` block, so this
+#: still plans a whole chimeric run with no built reference and nothing on disk.
+#:
+#: It names the one real Chimera, where it used to name a fabricated one so that nothing could be
+#: mistaken for a claim that a test reached it. What a fabricated name cannot do is carry an INTRON
+#: CAP: the policy fills that per Component from liulab-genome's shipped table, and a name the table
+#: does not list reads back as no cap at all — which would pin the twin's route to the uncapped case
+#: forever, and no rendered plan could then show a Chimera taking the maximum over its Components.
+#: The route reads one offline table row, exactly as the plain route already does for the assembly's
+#: taxid, and reaches no reference by either name.
+CHIMERIC_ASSEMBLY = "ce11_ecHT115"
 
 #: The ordinary, single-Component assembly every non-chimeric plan in this suite composes against.
 #: Named so that :func:`planning_route` can hand it back without becoming a second spelling of

@@ -32,6 +32,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from .splice_args import JUNCTION_ATTRIBUTES, splice_argv
+
 #: STAR's ``--outSAMtype`` as `starsolo.smk` ships it.
 #:
 #: **Coordinate-sorted rather than unsorted, and that is not tidiness.** STARsolo writes only the
@@ -139,6 +141,12 @@ CELLRANGER_PARITY: tuple[str, ...] = (
 #: arbitrary number that reads as data, and all four multimapper matrices are FRACTIONAL, which breaks
 #: pseudobulk. The diagnostic that would justify revisiting it (``Features.stats`` MultiFeature)
 #: already ships in every QC bundle.
+#:
+#: The junction pair rides at the end and is `workflows/splice_args.py`'s, SPLICED IN rather than
+#: spelled again: this is the one module that states its own attribute list, so its list is where the
+#: two tags have to land, and the alternative — typing them here as well — is the second spelling
+#: that this file exists to not have. `CB` and `UB` stay, because the barcode lives solely in the
+#: mate STARsolo peels off and the retained alignment has no other way to carry it.
 SAM_WRITE_PATH: tuple[str, ...] = (
     "--outSAMmultNmax",
     "1",
@@ -149,6 +157,7 @@ SAM_WRITE_PATH: tuple[str, ...] = (
     "nM",
     "CB",
     "UB",
+    *JUNCTION_ATTRIBUTES,
 )
 
 
@@ -316,6 +325,7 @@ def starsolo_argv(
     out_prefix: str,
     threads: int,
     bam_sort_ram_bytes: int | None,
+    intron_max: int | None,
     out_sam_type: Sequence[str] = SHIPPED_OUT_SAM_TYPE,
     genome_load: str = SHIPPED_GENOME_LOAD,
     sys_shell: str | None = None,
@@ -357,6 +367,12 @@ def starsolo_argv(
     flag has to escalate per retry attempt, so it reaches the shell as :data:`SORT_CAP_SHELL` instead.
     An instrument passes the number — omitting it is what left the memory instrument running without
     the flag that bounds STAR's memory.
+
+    ``intron_max`` is the assembly's junction bound, and it is REQUIRED with ``None`` a legal value
+    for the same reason the sort cap above is: every caller has to answer, so that "this assembly has
+    no registered cap" and "this caller forgot to look" cannot arrive as the same command line. It is
+    the recipe's, read out of the composed config by whoever renders — the module off
+    ``config["genome"]``, the instrument off the plan it composed — and never derived here.
     """
     onlists = (whitelist,) if isinstance(whitelist, (str, Path)) else tuple(whitelist)
     return (
@@ -390,6 +406,11 @@ def starsolo_argv(
         *str(solo["soloFeatures"]).split(),
         *clip_adapter(solo),
         *CELLRANGER_PARITY,
+        # The junction decision, from the one file that renders it for every STAR module -- the three
+        # that spell their argv inline take the same tokens through a `params:` slot. `None` because
+        # this module states its own `--outSAMattributes` below, junction pair included, and two
+        # attribute lists on one command line is the later one silently winning.
+        *splice_argv(intron_max=intron_max, sam_attributes=None),
         "--outFileNamePrefix",
         out_prefix,
         "--outSAMtype",

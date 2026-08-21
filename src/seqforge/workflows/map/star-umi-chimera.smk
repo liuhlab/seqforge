@@ -110,7 +110,9 @@
 # that never happened. `QC_SUFFIX` names the ONE artifact a finished cell leaves, and it is the
 # droplet module's constant unchanged: same artifact kind, same suffix, one owner. The aligner's own
 # run files come from `h5ad` for the same reason -- STAR writes four of them per cell and this module
-# declares all four.
+# declares all four. `splice_args` is that same move on STAR's junction flags: they vary with nothing
+# and are identical in all four STAR modules, so they have one owner and reach the shell block below
+# as ONE params slot.
 from seqforge.workflows import PLATE_COMPONENT_H5AD
 from seqforge.workflows.h5ad import STAR_BAM, STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRESS_LOGS
 from seqforge.workflows.memory import (
@@ -121,6 +123,7 @@ from seqforge.workflows.memory import (
     per_cell_mem_mb,
 )
 from seqforge.workflows.qc import QC_SUFFIX
+from seqforge.workflows.splice_args import splice_shell_args
 from seqforge.workflows.split import SPLIT_SUFFIX
 from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
@@ -132,15 +135,22 @@ UNITS = load_units(UNITS_TSV)
 # this is what units.tsv actually carries; they agree by construction because compose writes both.
 SAMPLES = sorted({u["sample_id"] for u in UNITS})
 OUTDIR = config["outdir"]
-ASSEMBLY = config["genome"]["assembly"]
-ANNOTATION = config["genome"]["annotation"]
+GENOME = config["genome"]
+ASSEMBLY = GENOME["assembly"]
+ANNOTATION = GENOME["annotation"]
+# The longest gap STAR may open on this Chimera, recorded in the recipe by the processing policy: the
+# MAXIMUM over its Components, because the aligner takes one value for the whole run and cannot bound
+# a gap per contig. `.get`, not a subscript, and that is the whole mechanism by which a chimera with
+# an uncharacterised Component emits no flag instead of refusing to compose -- the scanner that
+# derives `required_config` counts a subscript and not a `.get`.
+INTRON_MAX = GENOME.get("intron_length_cap")
 # The Chimera's Components, in the order the assembly name spells them, read at PARSE time from the
 # one config key compose emits for a chimeric run. It is a plain list of names and no I/O at all,
 # which is what lets `snakemake -n` plan this whole module with no built reference anywhere on disk.
 # What is NOT here is each Component's annotation: a merged annotation does not record what fed it,
 # so that fact is not recoverable from the name and cannot be a config key -- `rule umi_count` hands
 # the counting verb a Component and the verb reads the completion record inside its own job.
-COMPONENTS = config["genome"]["components"]
+COMPONENTS = GENOME["components"]
 UMI = config["umi"]
 READ_FILES_IN = config["read_files_in"]
 
@@ -595,6 +605,14 @@ rule star_umi_map:
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         read_files_type=lambda wc: read_files_type(wc.sample),
         read_through_clip=lambda wc: read_through_clip(wc.sample),
+        # STAR's junction flags, rendered by their one owner and interpolated whole. Unlike the clip
+        # above they follow nothing about the cell: the filters vary with nothing at all and are
+        # module literals, and the length bound varies with the ASSEMBLY, which for a Chimera is the
+        # loosest of its Components. A Chimera does not soften either half: an intron-free Component
+        # is exactly where a junction on a short anchor is spurious by construction, and it carries
+        # the signature at 100% -- and it is also where the cap cannot bind at all, which is what
+        # makes the anchor filters the fix and the cap the backstop.
+        splice=splice_shell_args(intron_max=INTRON_MAX),
     shell:
         # `--outSAMmultNmax 1` is a module literal for the same reason it is one in starsolo.smk: its
         # value varies with nothing. It writes only a top-scoring alignment, which is exactly the
@@ -627,7 +645,8 @@ rule star_umi_map:
              --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
              --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
              --outSAMmultNmax 1 \
-             --outSAMunmapped Within
+             --outSAMunmapped Within \
+             {params.splice}
         """
 
 

@@ -41,3 +41,15 @@ second token orders an unmapped record beside its mate in unsorted output only, 
 coordinate-sorted module cannot use. Without it the counter's first read fate had no branch that
 could execute, and the retained archive names the `mapped` selection so it does not grow to carry
 records nothing placed.
+
+**Amended 2026-08-21 (#463):** the decision above generalises past STARsolo, and `splice_args.py` is
+where. STAR's junction flags — `--outFilterType BySJout`, the two overhang minimums, and `jM jI` on
+the attribute list — are identical in all four STAR modules and vary with nothing, so spelling them
+in each is the same failure this record already priced: three of the four render their argv in a
+`shell:` block, and the fourth and fifth copy of one list is where a flag goes missing without
+anyone deciding. Two owners rather than one, and the split is by what a list IS rather than by which
+module holds it: STARsolo's argv is one module's whole command line, the junction flags are one
+decision shared by four. The three inline modules take the second as a single `params:` slot and
+`starsolo_argv` calls the same renderer, which is what keeps the `shell:` blocks with nothing left
+in them to drop. The junction attributes are spelled once, in the renderer, and `SAM_WRITE_PATH`
+splices them into the one attribute list a module states for itself.

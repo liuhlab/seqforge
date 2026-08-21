@@ -21,6 +21,7 @@ import math
 import re
 import shutil
 import subprocess
+from array import array
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from itertools import pairwise
@@ -52,6 +53,7 @@ from conftest import (
 from seqforge import __version__ as seqforge_version
 from seqforge import kb
 from seqforge.compose import compose, core
+from seqforge.manifest import intron_length_cap
 from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
 from seqforge.models.processing import RuntimeEnv, SoloFeature
 from seqforge.workflows import (
@@ -139,6 +141,7 @@ from seqforge.workflows.qc import (
 from seqforge.workflows.qc import QC_SUFFIX as QC_BUNDLE_SUFFIX
 from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
+from seqforge.workflows.splice_args import JUNCTION_ATTRIBUTES, splice_argv
 from seqforge.workflows.split import (
     DROP_REASONS,
     SPLIT_SUFFIX,
@@ -1470,7 +1473,7 @@ def test_every_registered_module_wires_into_a_runnable_dag(
 def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
-    """Three invariants every STAR workflow owes, read off ONE rendered plan.
+    """Four invariants every STAR workflow owes, read off ONE rendered plan.
 
     STAR's index is per-process and resident for the life of the job, so N mapping jobs running at
     once on one machine cost N copies of it. A composed pipeline runs on ONE machine (ADR-0051),
@@ -1490,7 +1493,13 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     are the difference between a finished pipeline directory a reader can sort into output and
     scratch and one where they cannot.
 
-    Seven claims, and a dry run is the only thing that can make any of them:
+    The junction decision is the fourth, and it is the sharpest case of the same argument. Three of
+    these modules interpolate it as ONE `params:` slot and the fourth calls the renderer, so every
+    way of asking the question in Python asks the renderer what the renderer says. Only a rendered
+    plan can say whether the tokens reached a command line, which is exactly the failure a module
+    that dropped its slot would have.
+
+    Nine claims, and a dry run is the only thing that can make any of them:
 
     1. **The load is a job.** A rule unreachable from `rule all` plans nothing, and this one is
        reachable only through the mapping rule's inputs — there is no target naming it.
@@ -1531,6 +1540,29 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
        undeclared entries beside the index and the flag. The prefix is an argument on a rendered
        command line, which is the only place this is checkable at all, and reading it here is what
        makes the claim cover a fourth workflow the day it ships.
+
+    8. **Every mapping invocation states the junction filters and carries the junction attributes**
+       (#463), so no module quietly keeps STAR's defaults — at which the intron-length check is dead
+       code and a novel junction needs a 5 bp anchor. The filters are read off the RENDERER rather
+       than typed here, because the value is not the claim: a hand-typed string would go red for a
+       number someone deliberately moved, while what can actually happen is a module rendering none
+       of them, and only a plan can tell the two apart. The attributes are asserted as membership in
+       whatever list the command names, because the module that spells its own list carries `CB`/`UB`
+       in it and the three that do not carry STAR's default four — one claim over both shapes.
+
+    9. **The junction bound is the RECIPE's**, and it is the one claim here whose answer differs by
+       route. A route whose recipe carries an intron cap renders `--alignIntronMax` and
+       `--alignMatesGapMax` at that value, and one whose recipe carries none renders neither — the
+       second being what keeps an assembly the lab has not characterised aligning exactly as it does
+       today. Both cases are covered because the routes really differ: the chimeric twin composes
+       against the one real **Chimera** and so carries the maximum over its **Component**s, while the
+       three plain routes compose against an assembly the shipped table does not list.
+
+       Taken from the recipe rather than typed, so what can go red is a module dropping the value or
+       the composer emitting one nobody recorded — and never a number someone deliberately moved.
+       The pair is asserted CONTIGUOUSLY with the filters above, from one call to the renderer,
+       because setting the intron maximum without the mate gap is the half-application STAR's own
+       source carries an unfixed-issue comment about.
 
     Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
     copied into each workflow file rather than factored out, so a fourth STAR workflow must be
@@ -1589,6 +1621,38 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     jobs = next(iter(mapping.values()))
     assert all("--genomeLoad LoadAndKeep" in cmd for cmd in jobs.values()), jobs
     assert all(re.search(r"--limitBAMsortRAM \d+", cmd) for cmd in jobs.values()), jobs
+
+    # The junction decision, as the ONE renderer spells it -- a module that kept STAR's defaults
+    # renders none of these, and at those defaults the intron-length check is dead code and a novel
+    # junction needs a 5 bp anchor. The length bound comes from the RECIPE this route composed, so
+    # this is the same claim for a capped assembly and an uncapped one and neither case is written
+    # out here. `sam_attributes=None` because the attribute list is the half that legitimately
+    # differs per module and is checked as membership just below.
+    cap = processing.processing.genome.value.intron_length_cap
+    filters = " ".join(splice_argv(intron_max=cap, sam_attributes=None))
+    for wildcard, cmd in jobs.items():
+        assert filters in cmd, (
+            f"{module} maps {wildcard} on STAR's junction defaults -- `{filters}` is nowhere on the "
+            f"command it renders, so a read whose only support is a 9 bp anchor is placed and the "
+            f"gap it opens is bounded by the contig:\n{cmd}"
+        )
+        # ...and the other direction, which is the half a substring check cannot make: an assembly
+        # the lab has not characterised gets NO bound rather than one nobody chose. A module reading
+        # the key with a subscript, or a composer emitting it unconditionally, lands here.
+        assert cap is not None or "--alignIntronMax" not in cmd, (
+            f"{module} maps {wildcard} under an intron bound its recipe records none of, so an "
+            f"unfilled row in the shipped table is imposing a number on an assembly nobody "
+            f"characterised:\n{cmd}"
+        )
+        # ...and the record can say afterwards WHICH junction it crossed. Membership, not the whole
+        # list: `map/starsolo` states its own attributes and carries `CB`/`UB` among them, while the
+        # other three carry STAR's default four -- the junction pair is what all four owe.
+        attributes = re.search(r"--outSAMattributes ((?:\w+ )*\w+)", cmd)
+        assert attributes and set(JUNCTION_ATTRIBUTES) <= set(attributes.group(1).split()), (
+            f"{module} maps {wildcard} without {list(JUNCTION_ATTRIBUTES)} on its attribute list, so "
+            f"no junction in the retained alignment can be checked against the annotation and the "
+            f"artifact population stays bracketed rather than counted:\n{cmd}"
+        )
 
     # The read group, per job, against the job's OWN wildcard -- which is the cell on the routes that
     # owe it, and is the value the retained CRAM will name. A module that rendered the flag from a
@@ -4543,6 +4607,13 @@ def _annotation_db(tmp_path: Path) -> Path:
 _SECONDARY = 0x100
 _SUPPLEMENTARY = 0x800
 
+#: The element widths the aligner writes its junction attributes at, in the order the attribute list
+#: names them: one signed byte per motif, one 32-bit integer per coordinate. Beside the attribute
+#: names rather than restating them, so that a plate here carries whatever the composer is actually
+#: asking STAR for — and a third attribute added there arrives as a missing width rather than as a
+#: fixture that quietly kept writing two.
+_JUNCTION_WIDTHS = dict(zip(JUNCTION_ATTRIBUTES, ("b", "i"), strict=True))
+
 
 @dataclass(frozen=True)
 class _Fragment:
@@ -4605,7 +4676,15 @@ class _Fragment:
 
 
 def _segments(header: Any, frag: _Fragment) -> list[Any]:
-    """One `_Fragment` -> its BAM records: two mates, or one when neither of them aligned."""
+    """One `_Fragment` -> its BAM records: two mates, or one when neither of them aligned.
+
+    Every PLACED record carries the aligner's junction attributes, because every STAR module now
+    asks for them. They are the only tags here that are not scalars — SAM type `B`, arrays — and
+    the reason this fixture states them: a record built without one cannot exercise a code path
+    that rebuilds a record tag by tag, and the chimera splitter's did, so it went to a cluster
+    carrying a crash on the first record of the first cell. A record the aligner could not place
+    gets none of them, which is also what STAR writes.
+    """
     import pysam
 
     span = frag.end - frag.start
@@ -4632,6 +4711,13 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
         if frag.unmapped:
             tags.append(("uT", "4", "A"))
         rec.set_tags(tags)
+        if not rec.is_unmapped:
+            # Set apart from the list above because they cannot go through it: `set_tags` refuses a
+            # `B` spelled out as a type letter, and an array needs no letter — its own typecode IS
+            # the subtype. `-1` is what the aligner writes for an alignment that crossed no
+            # junction, which is every alignment on this plate: no row here has an `N` in its CIGAR.
+            for attribute, width in _JUNCTION_WIDTHS.items():
+                rec.set_tag(attribute, array(width, [-1]))
         return rec
 
     def stranded(flag: int, pointer: str) -> Any:
@@ -5825,6 +5911,58 @@ def test_every_kept_record_resolves_to_the_chromosome_it_actually_sits_on(
         )
         with pysam.AlignmentFile(str(path), "rb") as split:
             assert sorted((r.query_name, r.reference_name) for r in split) == expected
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_a_kept_records_tags_arrive_whole_and_still_declare_the_types_they_were_written_with(
+    tmp_path: Path, label: str
+) -> None:
+    """A record is rebuilt tag by tag here, so every tag has to survive the rebuild AS IT WAS.
+
+    Two ways to lose one, and they are opposites, which is why this asserts twice. An ARRAY tag —
+    the aligner's junction attributes — cannot be handed back through the same three-part form a
+    scalar goes back through: the array's element width is the SAM subtype, there is no type letter
+    for the writer to take, and offering one raises rather than writing a narrower tag. Drop the
+    type letter for everything instead and the arrays go through fine while every scalar integer
+    silently comes back declared at whatever width its VALUE happens to fit in, which is a lossy
+    rewrite of a file that was already correct. So the declared type of each scalar is compared as
+    well as its value, and the arrays are compared on element width rather than on contents, since
+    two arrays of different widths holding the same numbers are equal in Python and not in a BAM.
+
+    This is asserted against the CHIMERIC record each output record came from rather than against a
+    list written here, so a tag the fixture grows later is carried into the claim rather than
+    silently exempted from it.
+
+    The fixture is the whole reason this shipped: nothing synthetic here carried an array tag, so
+    the rebuild path was never handed one, and the first plate to reach a cluster with the junction
+    attributes turned on died on the first record of the first cell.
+    """
+    round_trip = _split(tmp_path, label)
+    with pysam.AlignmentFile(str(round_trip.source), "rb") as chimeric:
+        source = {
+            (record.query_name, record.flag): record.get_tags(with_value_type=True)
+            for record in chimeric.fetch(until_eof=True)
+        }
+
+    seen = 0
+    for component, path in round_trip.outputs.items():
+        with pysam.AlignmentFile(str(path), "rb") as split:
+            for record in split:
+                came_from = source[(record.query_name, record.flag)]
+                assert record.get_tags(with_value_type=True) == came_from, (
+                    f"{component}/{record.query_name} lost or re-declared a tag on the way out"
+                )
+                # An array is what SAM's array type comes BACK as, so a tag that lost its arrayness
+                # drops out of this map and the comparison below misses a key rather than passing.
+                widths = {
+                    tag: value.typecode
+                    for tag, value, _ in record.get_tags(with_value_type=True)
+                    if isinstance(value, array)
+                }
+                assert widths == _JUNCTION_WIDTHS, widths
+                seen += 1
+    # Nothing here passes on an output nobody wrote a record to.
+    assert seen == sum(round_trip.stats.kept.values())
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
@@ -7479,7 +7617,7 @@ def test_the_recipe_figure_buys_a_sort_and_the_ratio_is_what_a_small_genome_must
 
 
 # ================================================================================================
-# the clip flags, judged by the binary that has to accept them rather than by the binary's own help
+# the rendered flags, judged by the binary that has to accept them rather than by the binary's own help
 # ================================================================================================
 #
 # STAR's shipped help is stale relative to STAR's shipped code, in BOTH directions, and this project
@@ -7578,7 +7716,7 @@ def _star_parameter_verdict(star: str, workdir: Path, flags: Sequence[str]) -> s
 
 
 @pytest.mark.external
-def test_every_clip_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_accepts(
+def test_every_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_accepts(
     tmp_path: Path,
 ) -> None:
     """The entries say which trimmer runs; only the binary can say the combination is legal.
@@ -7595,6 +7733,25 @@ def test_every_clip_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_acc
     for is a real thing the code can do: an entry pairing a trimmer with a clip at an end that trimmer
     will not take is refused at parameter initialization, BEFORE the genome loads, which is every
     sample of a deposit dying after its queue wait over a flag nobody typed.
+
+    **The junction flags ride the same invocation** (#463), and the reason is the same one that put
+    the clips here: what a chemistry hands STAR is a combination, not a flag, and a combination is
+    what STAR judges. They come from their renderer rather than being typed, so the binary is asked
+    about what compose builds; and because the clips are what differs from one entry to the next,
+    the sweep asks whether the junction decision is legal beside every clip pairing we ship rather
+    than the same question eleven times.
+
+    That renders the attribute list in its DEFAULT form, which is the three inline modules' and not
+    this one's: `map/starsolo` adds `CB`/`UB`, and STAR takes those only beside a sorted BAM, which
+    the scaffolding below deliberately does not write. The junction pair is what is under test and it
+    is identical in both forms.
+
+    **The intron bound rides the same invocation, at a registered value rather than at none.** The
+    flag pair is legal only in combination — an intron maximum without a mate gap maximum is the
+    half-application STAR's own source carries an unfixed-issue comment about — and a sweep that
+    passed no cap would ask the binary about the one command line the pair is absent from. The value
+    is a real assembly's, through the same policy function that writes it into a recipe, so what the
+    binary judges is what a worm plate submits.
     """
     star = shutil.which("STAR")
     if star is None:
@@ -7605,7 +7762,7 @@ def test_every_clip_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_acc
         spec = kb.load_spec(tech)
         if spec.require_backend().module != "map/starsolo":
             continue
-        flags = _rendered_clip_flags(spec)
+        flags = [*_rendered_clip_flags(spec), *splice_argv(intron_max=intron_length_cap("ce11"))]
         assert "--clipAdapterType" in flags, (
             f"{tech}: renders no trimmer at all, so the rule's subscript is a KeyError on a compute "
             f"node and this invocation would prove nothing about the chemistry"
@@ -7614,7 +7771,7 @@ def test_every_clip_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_acc
 
         verdict = _star_parameter_verdict(star, tmp_path, flags)
         assert _STAR_REACHED_THE_GENOME in verdict, (
-            f"{tech}: STAR refuses the clip flags this chemistry renders -- {' '.join(flags)} -- so "
+            f"{tech}: STAR refuses the flags this chemistry renders -- {' '.join(flags)} -- so "
             f"every sample of a deposit on it would fail at parameter initialization, before a "
             f"genome is even opened. STAR said: {verdict}"
         )

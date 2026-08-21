@@ -15,6 +15,7 @@ from pathlib import Path
 
 from genome.metadata import assembly_metadata
 
+from ..compose.chimera import components
 from ..harvest.prep import normalize_prep_type as _normalize_prep_type
 from ..kb.schema import Spec
 from ..models.assertion import Assertion
@@ -326,6 +327,44 @@ def resolve_features(
     return default, "inferred", ["policy:default-solo-features"], warnings
 
 
+def intron_length_cap(assembly: str) -> int | None:
+    """The longest gap an aligner may open on ``assembly``, or ``None`` where nothing bounds it.
+
+    Read off liulab-genome's shipped table, which owns the values and the rationale behind each one.
+    An unlisted assembly reads back ``None`` and that is an ANSWER: the lab has not characterised it,
+    so no number is imposed and the aligner keeps its own defaults. An unfilled row must change
+    nothing, which is why every caller downstream renders absence as absence rather than owing a key.
+
+    **A Chimera takes the maximum over its Components, derived rather than typed**, so a chimera
+    registered upstream tomorrow works the day it exists and nothing here has to be told about it.
+    The reason it is a maximum: a cap is ONE value for the whole run — an aligner cannot bound a gap
+    per contig — so it must be safe for every component at once, and the two errors are not
+    symmetric. Too tight destroys real biology on the component with the longest introns; too loose
+    merely fails to help on the others, where the anchor filters still do the discriminating. So the
+    loosest component sets the value.
+
+    ``None`` is not a missing number here, it is an UNBOUNDED one, and that is what settles the
+    partial case with no branch: the maximum of a bound and no bound is no bound, so a chimera one of
+    whose components is uncharacterised has no cap and emits no flag. A component nobody has
+    characterised is exactly the case where a neighbour's number would be invented rather than
+    chosen.
+
+    Splitting the name is `compose.chimera`'s wrapper over liulab-genome's own splitter rather than a
+    second reading of the spelling rule — not-a-chimera comes back as a value, and a plain assembly
+    pays one call that tells it to stop. That is the one thing the taxid beside this deliberately
+    does NOT do, and the asymmetry is real rather than drift: splitting cannot answer an identity,
+    because picking one component's organism to stand for a two-organism reference would be an
+    invention, while splitting is precisely how a bound over a union is computed.
+    """
+    caps: list[int] = []
+    for name in components(assembly) or (assembly,):
+        cap = assembly_metadata(name).intron_length_cap
+        if cap is None:
+            return None
+        caps.append(cap)
+    return max(caps)
+
+
 def resolve_processing(
     *,
     spec: Spec,
@@ -426,14 +465,24 @@ def resolve_processing(
     # cases fall out with no branch here: an assembly the table does not list is legal and simply has
     # no identifiers, and a Chimera's row carries a BLANK taxid on purpose because it is more than one
     # organism. Both read back `None`, and `None` is what keeps the narrow check silent. Splitting a
-    # chimera into components to answer it would drag the compose context in here and was rejected;
-    # consume liulab-genome, never reimplement a slice of it.
+    # chimera into components to answer it was rejected, and it stays rejected on the SEMANTIC
+    # ground rather than on the cost of the split: picking one component's organism to stand for a
+    # two-organism reference is an invention, so there is no answer to compute. (The objection used
+    # to be stated as the dependency it would cost. That half is now paid — `intron_length_cap`
+    # below splits the same name through `compose.chimera`, one thin wrapper over liulab-genome's
+    # own splitter, which is consuming upstream and not reimplementing a slice of it.)
+    #
+    # The intron cap sits beside it and comes off the same shipped table for the same reason — a fact
+    # about the assembly, recorded so it rides into `run_id` — and then parts company on exactly that
+    # case: a chimera has no taxid, because a taxid is an identity, and does have a cap, because a cap
+    # is a bound and a bound over a union is the maximum of its components'.
     section = ProcessingSection(
         genome=EvidencedGenome(
             value=GenomeRef(
                 assembly=assembly,
                 annotation_name=ov.annotation_name,
                 ncbi_taxid=assembly_metadata(assembly).ncbi_taxid,
+                intron_length_cap=intron_length_cap(assembly),
             ),
             basis=genome_basis,
             evidence=genome_evidence,

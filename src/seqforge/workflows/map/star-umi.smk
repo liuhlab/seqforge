@@ -45,7 +45,9 @@
 # finished cell leaves, and it is the droplet module's constant unchanged: same artifact kind, same
 # suffix, one owner. The aligner's own run files come from `h5ad` for the same reason -- STAR writes
 # four of them per cell and this module declares all four, so the filenames belong to the constant
-# that already had three readers rather than to a literal here.
+# that already had three readers rather than to a literal here. `splice_args` is that same move on
+# STAR's junction flags: they vary with nothing and are identical in all four STAR modules, so they
+# have one owner and reach the shell block below as ONE params slot.
 from seqforge.workflows import PLATE_H5AD
 from seqforge.workflows.h5ad import STAR_BAM, STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRESS_LOGS
 from seqforge.workflows.memory import (
@@ -56,6 +58,7 @@ from seqforge.workflows.memory import (
     per_cell_mem_mb,
 )
 from seqforge.workflows.qc import QC_SUFFIX
+from seqforge.workflows.splice_args import splice_shell_args
 from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
 from seqforge.workflows.units import mate_role as units_mate_role
@@ -66,8 +69,15 @@ UNITS = load_units(UNITS_TSV)
 # this is what units.tsv actually carries; they agree by construction because compose writes both.
 SAMPLES = sorted({u["sample_id"] for u in UNITS})
 OUTDIR = config["outdir"]
-ASSEMBLY = config["genome"]["assembly"]
-ANNOTATION = config["genome"]["annotation"]
+GENOME = config["genome"]
+ASSEMBLY = GENOME["assembly"]
+ANNOTATION = GENOME["annotation"]
+# The longest gap STAR may open on this assembly, recorded in the recipe by the processing policy off
+# liulab-genome's shipped table. `.get`, not a subscript, and that is the whole mechanism by which an
+# assembly the lab has not characterised emits no flag instead of refusing to compose: the scanner
+# that derives `required_config` counts a subscript and not a `.get`, so a subscript here would make
+# the composer owe this key for every dataset in the corpus.
+INTRON_MAX = GENOME.get("intron_length_cap")
 UMI = config["umi"]
 READ_FILES_IN = config["read_files_in"]
 
@@ -509,6 +519,11 @@ rule star_umi_map:
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         read_files_type=lambda wc: read_files_type(wc.sample),
         read_through_clip=lambda wc: read_through_clip(wc.sample),
+        # STAR's junction flags, rendered by their one owner and interpolated whole. Unlike the clip
+        # above they follow nothing about the cell: the filters vary with nothing at all and are
+        # module literals, and the length bound varies with the ASSEMBLY, which is one value for the
+        # whole plate. The same owner renders both for the other three STAR modules.
+        splice=splice_shell_args(intron_max=INTRON_MAX),
     shell:
         # `--outSAMmultNmax 1` is a module literal for the same reason it is one in starsolo.smk: its
         # value varies with nothing. It writes only a top-scoring alignment, which is exactly the
@@ -541,7 +556,8 @@ rule star_umi_map:
              --outSAMattrRGline ID:{wildcards.sample} SM:{wildcards.sample} \
              --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
              --outSAMmultNmax 1 \
-             --outSAMunmapped Within
+             --outSAMunmapped Within \
+             {params.splice}
         """
 
 
