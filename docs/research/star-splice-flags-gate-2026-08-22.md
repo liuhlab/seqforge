@@ -172,10 +172,43 @@ change whose two-stage `BySJout` mapping should cost time.
 The likely mechanism is recorded in #459 as a second-order *benefit* of the tight cap rather than a
 performance prediction: setting `--alignIntronMax` re-derives `winBinNbits` (50,000 → 14), dropping
 the per-step window reach from ~589,824 bp to ~147,456 bp, so the transitive window merging that
-fabricates the gaps is suppressed rather than merely bounded. Less window to search is less work.
-**This is one observation on one cell set and the attribution is not established** — nothing here
-separates the cap's contribution from `BySJout`'s, and no sizing or scheduling decision should rest
-on it without its own measurement.
+fabricates the gaps is suppressed rather than merely bounded.
+
+**The obvious confound is ruled out, and the per-cell shape is why.** The treatment ran third on a
+node with ~89 GB free, after three passes over the same inputs, so a warm page cache is the first
+thing to suspect. But page-cache warming is not cell-specific: it would lift every cell by about the
+same factor. STAR's own figures, read from each cell's QC bundle (`log_final`), do not have that
+shape — the speedup ranges 2.04x to 5.02x and tracks how much of each cell's splicing was
+unannotated before the change:
+
+| cell | reads | speed before | speed after | speedup | annotated splices, before → after | unmapped: too short |
+|---|---|---|---|---|---|---|
+| `day1_N2_1` | 9,039,826 | 115.4 | 235.8 | **2.04x** | 94.8% → 98.4% | 6.76% → 6.84% |
+| `day5_N2_5` | 13,942,003 | 100.6 | 229.2 | **2.28x** | 97.3% → 99.2% | 6.62% → 6.69% |
+| `day9_N2_9` | 11,950,655 | 77.7 | 195.6 | **2.52x** | 97.6% → 99.4% | 8.64% → 8.72% |
+| `day13_CF_1` | 12,607,492 | 12.1 | 60.9 | **5.02x** | **71.4% → 98.5%** | 44.78% → 45.01% |
+
+Speed is STAR's `Mapping speed, Million of reads per hour`. `day13_CF_1` — the most degraded library,
+the one #459 measures as worst on every axis, and the only cell where more than a quarter of splices
+were unannotated — is both the slowest before and the biggest gainer. The cells already mapping
+against ~97% annotated junctions gain about half as much.
+
+That shape fits where STAR actually spends the time, which is stitching rather than seed-finding:
+`stitchWindowAligns` recurses over the seeds in a window branching include/exclude, so cost is
+superlinear in seeds per window. A window grown transitively to a megabase on a compact genome
+accumulates spurious seeds to combine; a 50,000 bp window does not. The cell with the most phantom
+junctions had the most to combine.
+
+**`% unmapped: too short` moves by +0.08 to +0.23 percentage points**, so the time is not being saved
+by STAR giving up on reads — which is the same conclusion the counted-UMI gate reaches from the other
+end.
+
+**What is still not established** is the split between the two flags. `BySJout` is a two-stage
+mapping and should *cost* time, which means the cap's own contribution is larger than the headline
+2.6x rather than smaller; but the annotated-fraction jump on `day13_CF_1` (71.4% → 98.5%) is partly
+`BySJout` rejecting alignments whose junctions failed the filter, and nothing here separates the two.
+A third arm setting only the cap would settle it. No sizing or scheduling decision should rest on
+this without that arm.
 
 ## Method — the exact commands
 
