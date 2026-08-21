@@ -143,10 +143,13 @@ from seqforge.workflows.qc import metrics as starsolo_metrics
 from seqforge.workflows.qc import read_metrics as read_starsolo_metrics
 from seqforge.workflows.splice_args import JUNCTION_ATTRIBUTES, splice_argv
 from seqforge.workflows.split import (
+    _PROGRAM_ID,
     DROP_REASONS,
     SPLIT_SUFFIX,
     SplitError,
     SplitStats,
+    _restored,
+    _rewritten,
     split_chimera,
 )
 from seqforge.workflows.stats import (
@@ -4673,6 +4676,23 @@ class _Fragment:
     #: the leftover belongs to another locus of the same set, so the row using it carries `hits`
     #: above one. Meaningless together with `mate_unmapped`, whose fragment has no mapped pair.
     stray_pointer_contig: str = ""
+    #: This fragment's SURVIVOR names no mate at all: `RNEXT` `*` and `PNEXT` 0, rather than the
+    #: contig it sits on. Meaningless without `mate_unmapped`, and SAM permits it — a pointer is a
+    #: claim about where the mate went, and a record whose mate went nowhere may decline to make
+    #: one. It is here because the two ways of producing a kept record fail differently on it: a
+    #: record assembled field by field leaves an unset pointer unset because it never assigns one,
+    #: while a record COPIED arrives already carrying the source's value, so the remap has to move a
+    #: SET pointer and leave an unset one alone. A plate whose every kept record points somewhere
+    #: cannot tell those apart, and the remap that looks an unset pointer up in a table it is not in
+    #: would ship green.
+    survivor_pointer_unset: bool = False
+    #: A record-level `PG` aux tag on this fragment's PLACED records, naming the program that wrote
+    #: the alignment. Opt-in per row rather than on every record because `_segments` is shared with
+    #: the counting plate above, whose own tag assertions have nothing to do with it. It is here
+    #: because a record's own `PG` and the header's `@PG` block are two different things one word
+    #: apart: the split APPENDS a header line and must leave the tag exactly as it found it, and a
+    #: plate carrying no such tag cannot tell a rewrite that drops it from one that keeps it.
+    program: str = ""
 
 
 def _segments(header: Any, frag: _Fragment) -> list[Any]:
@@ -4702,12 +4722,22 @@ def _segments(header: Any, frag: _Fragment) -> list[Any]:
             rec.reference_start = start
             rec.mapping_quality = 255
             rec.cigarstring = f"{_READ_LEN}M"
-            rec.next_reference_id = header.get_tid(frag.mate_contig) if frag.mate_contig else tid
-            rec.next_reference_start = mate
+            if frag.survivor_pointer_unset:
+                # No mate pointer at all, which is a different record from one pointing at itself:
+                # `*` and 0 on the wire, and the remap has to leave both where they are.
+                rec.next_reference_id = -1
+                rec.next_reference_start = -1
+            else:
+                rec.next_reference_id = (
+                    header.get_tid(frag.mate_contig) if frag.mate_contig else tid
+                )
+                rec.next_reference_start = mate
             rec.template_length = tlen
         tags: list[tuple[str, object, str]] = [("NH", frag.hits, "i")]
         if frag.umi:
             tags.append(("UB", frag.umi, "Z"))
+        if frag.program and not rec.is_unmapped:
+            tags.append(("PG", frag.program, "Z"))
         if frag.unmapped:
             tags.append(("uT", "4", "A"))
         rec.set_tags(tags)
@@ -5729,7 +5759,10 @@ def _chimeric_plate(chimera: _Chimera) -> tuple[_Fragment, ...]:
         fragments += [
             # Kept: mapped, uniquely placed, primary. The second one is on the LAST contig its
             # Component declares, so a tid remap that only ever gets index zero right goes red.
-            _Fragment(f"{component.name}_unique_first", first, 100, 160),
+            # The first carries a record-level `PG` naming the aligner, which is a tag like any
+            # other and is NOT the header line this module appends beside the aligner's own — the
+            # one row that can tell a split that confused them apart from one that did not.
+            _Fragment(f"{component.name}_unique_first", first, 100, 160, program="STAR"),
             _Fragment(f"{component.name}_unique_last", last, 200, 260),
             # Also kept, and MARKED rather than dropped: the hit-count tag it already carries is
             # what lets the counter separate it later, so nothing here needs a second file.
@@ -5740,9 +5773,18 @@ def _chimeric_plate(chimera: _Chimera) -> tuple[_Fragment, ...]:
             _Fragment(f"{component.name}_supp", first, 500, 560, extra_flags=_SUPPLEMENTARY),
             # Half aligned: the survivor is kept and counted as a singleton, its dead mate is
             # dropped as unmapped and counted again as this Component's second derivation of the
-            # same number.
+            # same number. The second of the two declines to name a mate at all — the survivor's own
+            # `RNEXT` is `*` — which changes no count here and is the only kept record on the plate
+            # whose reference remap has an index to leave ALONE rather than to move.
             _Fragment(f"{component.name}_half_first_a", first, 600, 660, mate_unmapped=True),
-            _Fragment(f"{component.name}_half_first_b", last, 700, 760, mate_unmapped=True),
+            _Fragment(
+                f"{component.name}_half_first_b",
+                last,
+                700,
+                760,
+                mate_unmapped=True,
+                survivor_pointer_unset=True,
+            ),
             _Fragment(
                 f"{component.name}_half_second", first, 800, 860, mate_unmapped=True, survivor=2
             ),
@@ -5841,6 +5883,31 @@ def _kept(fragments: Sequence[_Fragment]) -> list[_Fragment]:
     return [f for f in fragments if not f.unmapped and not f.extra_flags]
 
 
+def _restored_columns(columns: Sequence[str], separator: str) -> list[str]:
+    """One CHIMERIC record's SAM columns -> the columns the split owes for it, all eleven-plus.
+
+    The whole contract in one expression: exactly two columns move, and they are both NAMES —
+    `RNAME` and `RNEXT`, each stripped of the Component suffix that made the chimeric reference
+    interpretable and makes this output unusable. Everything else is the record it came in as, down
+    to the byte: the flag, the coordinate, the mapping quality, the CIGAR, the mate coordinate, the
+    template length, the sequence, the base qualities, and every tag column in the order they were
+    written.
+
+    `RNEXT` has two spellings that are not names and must survive as themselves. `=` says the mate
+    is on this record's own reference and is a name the writer re-derives rather than stores, and
+    `*` says there is no pointer at all — one to leave alone rather than to strip, and one to leave
+    alone rather than to look up in a table it is not in.
+    """
+    rnext = columns[6]
+    return [
+        *columns[:2],
+        split_suffixed(columns[2], separator)[0],
+        *columns[3:6],
+        rnext if rnext in ("=", "*") else split_suffixed(rnext, separator)[0],
+        *columns[7:],
+    ]
+
+
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
 def test_each_component_comes_back_with_the_header_a_single_assembly_run_would_have_written(
     tmp_path: Path, label: str
@@ -5877,6 +5944,63 @@ def test_each_component_comes_back_with_the_header_a_single_assembly_run_would_h
                 f"{component}'s @SQ is not what a run against the bare assembly would have written"
             )
             assert split.header.to_dict()["HD"] == chimeric_hd
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_the_split_appends_one_program_line_beside_the_aligners_and_touches_no_records_own(
+    tmp_path: Path, label: str
+) -> None:
+    """The `@PG` path, which is two claims one word apart: a HEADER line and a record's own TAG.
+
+    The header test above is silent on both. Its comparison artifact is a hand-written
+    single-assembly header carrying no `@PG` block at all, so it asserts `@SQ` and `@HD` and would
+    pass just as happily on an output that appended this module's line twice, appended none, or
+    dropped the aligner's on the way — and the tag test below it compares an output record's tags
+    against the chimeric record's, which says nothing about a header. So what is asserted here is
+    what neither reaches: the aligner's own history survives verbatim and IN PLACE, exactly one line
+    is appended after it, that line is this module's by the identifier the module itself spells, and
+    it chains onto what it found rather than starting a second unrelated history.
+
+    Then the other half, which is the one word away: a record's own `PG` aux TAG names the program
+    that produced that alignment, and the split produced no alignment. It is a tag like any other
+    and must come out as it went in — neither re-pointed at the line this module just appended, nor
+    grown on a record that never carried one. The tag test below compares every tag against its
+    source record, so once the plate carries such a tag that comparison covers a moved or dropped
+    one; what is not covered anywhere is whether the plate carries one AT ALL, and a hazard nothing
+    exercises looks exactly like a hazard that was cleared. So the coverage is asserted here, beside
+    the header claim it belongs with, and the tag comparison is repeated only because it is the same
+    expression that says no record grew a tag it never had.
+    """
+    round_trip = _split(tmp_path, label)
+    with pysam.AlignmentFile(str(round_trip.source), "rb") as chimeric:
+        aligner = chimeric.header.to_dict()["PG"]
+        tagged = {
+            (record.query_name, record.flag): record.get_tag("PG")
+            for record in chimeric.fetch(until_eof=True)
+            if record.has_tag("PG")
+        }
+    # A plate with no such tag would let every claim below about one pass over nothing.
+    assert tagged, "the plate has stopped carrying a record-level PG tag"
+
+    for component, path in round_trip.outputs.items():
+        with pysam.AlignmentFile(str(path), "rb") as split:
+            program = split.header.to_dict()["PG"]
+            assert program[: len(aligner)] == aligner, (
+                f"{component} did not carry the aligner's own history through unchanged"
+            )
+            appended = program[len(aligner) :]
+            assert [entry["ID"] for entry in appended] == [_PROGRAM_ID]
+            assert appended[0]["PP"] == aligner[-1]["ID"], "the appended line chains onto nothing"
+            carried = {
+                (record.query_name, record.flag): (
+                    record.get_tag("PG") if record.has_tag("PG") else None
+                )
+                for record in split
+            }
+        assert carried == {key: tagged.get(key) for key in carried}, (
+            f"{component} moved a record's own PG tag, or handed one to a record that had none"
+        )
+        assert any(value is not None for value in carried.values())
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
@@ -5963,6 +6087,145 @@ def test_a_kept_records_tags_arrive_whole_and_still_declare_the_types_they_were_
                 seen += 1
     # Nothing here passes on an output nobody wrote a record to.
     assert seen == sum(round_trip.stats.kept.values())
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_a_kept_record_comes_out_as_it_went_in_with_only_its_two_name_columns_moved(
+    tmp_path: Path, label: str
+) -> None:
+    """Every column of every emitted record, against the record it came from. Two of them move.
+
+    The tag test above is one column group of eleven-plus, and the resolution test above it is one
+    column. Between them a kept record could lose its base qualities, shift its coordinate, come out
+    with a mangled CIGAR, drop its template length, or fail to move its mate pointer, and every
+    assertion on this plate would still be green — a record's tags and its reference name say nothing
+    about the eight fields between them. So this compares the SAM line itself, column by column,
+    against the chimeric line the record was read from, and the expectation is stated as an
+    operation on that line rather than as a table written here: two name columns stripped of their
+    Component suffix, and everything else identical.
+
+    On the RECORD PAYLOAD rather than on the file, deliberately. Each output's header differs from
+    the chimeric header by construction — that is what the split is for — so a file-level comparison
+    could only ever be against a golden copy, which would have to be regenerated by whatever it is
+    meant to be checking. A record's own line has no such circularity: it is the same claim a
+    thousand-fold, once per record, and nothing about the header can mask a change to it.
+    """
+    round_trip = _split(tmp_path, label)
+    separator = round_trip.chimera.separator
+    with pysam.AlignmentFile(str(round_trip.source), "rb") as chimeric:
+        source = {
+            (record.query_name, record.flag): record.to_string().split("\t")
+            for record in chimeric.fetch(until_eof=True)
+        }
+
+    seen = 0
+    for component, path in round_trip.outputs.items():
+        with pysam.AlignmentFile(str(path), "rb") as split:
+            for record in split:
+                came_from = source[(record.query_name, record.flag)]
+                assert record.to_string().split("\t") == _restored_columns(came_from, separator), (
+                    f"{component}/{record.query_name} came out as something other than its own "
+                    f"chimeric line with the two name columns stripped"
+                )
+                seen += 1
+    assert seen == sum(round_trip.stats.kept.values())
+
+
+@pytest.mark.parametrize("label", sorted(_CHIMERAS))
+def test_a_kept_record_that_names_no_mate_still_names_none_once_it_is_written_out(
+    tmp_path: Path, label: str
+) -> None:
+    """A survivor whose `RNEXT` is `*` keeps it, and the plate is shown to hold one at all.
+
+    An unset mate pointer is the one reference index on a kept record that must NOT be remapped, and
+    the two ways of producing that record fail differently on it. Assembling a record field by field
+    leaves an unset pointer unset by never assigning one — the omission is the correct behaviour, so
+    a rewrite could stop testing for it and still be right. COPYING the record hands the remap a
+    value that is already there, and the same omission is now a bug of the opposite kind: the copy
+    keeps whatever the source said, so the patch has to move a set pointer and leave `-1` alone, and
+    the natural mistake is to look `-1` up in a table whose keys are all reference indexes.
+
+    Its teeth are the COVERAGE assertion, and that is why this is its own case rather than a row of
+    the payload comparison above. That comparison would go red for the same defect today, and it
+    would go silently green tomorrow on a plate that had lost the row that produces such a record —
+    a hazard that looks cleared while nothing exercises it is worse than one nobody claimed. So the
+    unset pointers are counted here, on the way in and again on the way out.
+    """
+    round_trip = _split(tmp_path, label)
+    with pysam.AlignmentFile(str(round_trip.source), "rb") as chimeric:
+        pointerless = {
+            (record.query_name, record.flag)
+            for record in chimeric.fetch(until_eof=True)
+            if not record.is_unmapped and record.next_reference_id < 0
+        }
+    assert pointerless, "the plate has stopped carrying a kept record with no mate pointer"
+
+    seen = set()
+    for path in round_trip.outputs.values():
+        with pysam.AlignmentFile(str(path), "rb") as split:
+            for record in split:
+                key = (record.query_name, record.flag)
+                if key not in pointerless:
+                    continue
+                rnext, pnext = record.to_string().split("\t")[6:8]
+                assert (rnext, pnext) == ("*", "0"), (
+                    f"{record.query_name} was handed a mate pointer the aligner never wrote"
+                )
+                seen.add(key)
+    assert seen == pointerless
+
+
+def test_a_rewritten_record_still_writes_its_restored_names_after_the_source_file_is_closed(
+    tmp_path: Path,
+) -> None:
+    """The header-ownership hazard: a rewritten record outliving the file its source came from.
+
+    A pysam record is not free-standing — it carries the header that explains its reference indexes,
+    and a record obtained by copying one stays associated with the SOURCE file's header rather than
+    the restored one it is about to be written under. What makes that safe is that a writer resolves
+    names against the FILE's header and never against the record's: the record contributes the index,
+    the output header contributes the dictionary, and the index has already been moved to point into
+    that dictionary. And what makes it safe after the source file is CLOSED is that the copy holds
+    the source header by reference, so closing the file does not take the header with it.
+
+    Neither half is visible in a normal split, where the source is open for the whole pass and every
+    record is written the moment it is rewritten. So this pulls the two apart on purpose — rewrite,
+    close the source, only then open the writer — which is the order any batching or any parallel
+    routing of the loop would eventually produce, and the order that would surface a record holding a
+    pointer into a freed header as a wrong name or a crash rather than as a coincidence that held.
+
+    The SECOND Component, because its reference indexes are the ones that had to move at all: a
+    record read under the chimeric header and resolved under the wrong dictionary lands on a
+    different chromosome that is still perfectly in range.
+
+    The payload comparison at the end is not a second copy of the test above it — what it asks is
+    whether the record survived the CLOSE, so what it catches alone is a payload that was right when
+    it was rewritten and decayed before it was written. Whether the rewrite was right in the first
+    place is the other test's question, and it is asked over every record rather than over one.
+    """
+    chimera = _CHIMERAS["plain"]
+    bam = _chimeric_bam(tmp_path / "plain.bam", chimera, _chimeric_plate(chimera))
+    component = chimera.components[-1]
+    out = tmp_path / "written_late.bam"
+
+    with pysam.AlignmentFile(str(bam), "rb") as source:
+        header, tids = _restored(source.header.to_dict(), component.name, out, chimera.separator)
+        record = next(
+            r
+            for r in source.fetch(until_eof=True)
+            if not r.is_unmapped and not r.is_secondary and not r.is_supplementary
+            if r.reference_id in tids
+        )
+        payload = record.to_string().split("\t")
+        rewritten = _rewritten(record, header, tids)
+
+    with pysam.AlignmentFile(str(out), "wb", header=header) as writer:
+        writer.write(rewritten)
+
+    with pysam.AlignmentFile(str(out), "rb") as written:
+        (back,) = list(written)
+    assert back.reference_name == split_suffixed(payload[2], chimera.separator)[0]
+    assert back.to_string().split("\t") == _restored_columns(payload, chimera.separator)
 
 
 @pytest.mark.parametrize("label", sorted(_CHIMERAS))
