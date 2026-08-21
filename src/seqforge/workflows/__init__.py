@@ -35,6 +35,16 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.19 — every STAR module states its junction policy instead of inheriting STAR's defaults
+#: (#459, #461, ADR-0056). Three literals from one renderer — `--outFilterType BySJout`, the ENCODE
+#: overhang pair, and `jM jI` on the attribute list — plus a per-assembly `--alignIntronMax` and
+#: `--alignMatesGapMax` the processing policy reads off liulab-genome's table and copies into the
+#: recipe. At the old default there was NO intron-length check at all, so the bound on a novel
+#: intron was the contig, and a compact genome collected megabase gaps held up by 9-13 bp anchors.
+#: **This one moves command lines, which is exactly why the stamp has to move**: a pairing that
+#: aligns differently must not keep the identity of one that did not. A recipe already on disk keeps
+#: its own directory — `run_id` folds the stamp the RECIPE recorded, not this constant — so taking up
+#: the new behaviour means writing a new recipe, and no composed pipeline is silently re-aligned.
 #: 2026.8.18 — `rule umi_count` writes what each cell YIELDED and not only how its fragments
 #: failed (#445, ADR-0055). Two more `obs` columns on the plate object — `n_umis` and
 #: `genes_detected`, both counted over `umi_combined` — and the page reports them beside the four
@@ -541,7 +551,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.18"
+WORKFLOW_VERSION = "2026.8.19"
 
 _MODULE_DIR = Path(__file__).parent
 
