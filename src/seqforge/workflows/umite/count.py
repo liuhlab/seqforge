@@ -1159,8 +1159,11 @@ def parse_cells(pairs: Sequence[str]) -> list[tuple[str, Path]]:
 #:
 #: No thresholds, on any of them. `map/star-umi` is in `MODULES_WITHOUT_CROSS_CHECKS` on exactly this
 #: argument: what share of fragments landing on no feature is *wrong* depends on the annotation, and
-#: nobody has measured a bar for it. An ungraded number a reader can compare across cells beats an
-#: invented bar they learn to ignore.
+#: nobody has measured a bar for it. The `multimapping` fate HAS now been measured across a whole
+#: plate (``docs/research/``) and still earns none: its share is chiefly a proxy for how much
+#: ribosomal RNA a library carried — an assembly artifact times a prep variable — rather than a
+#: quality axis of its own, and grading a proxy is worse than grading the thing it proxies. An
+#: ungraded number a reader can compare across cells beats an invented bar they learn to ignore.
 _FATE_METRICS: dict[str, tuple[str, MetricGroup, str]] = {
     "unmapped": (
         "Unmapped",

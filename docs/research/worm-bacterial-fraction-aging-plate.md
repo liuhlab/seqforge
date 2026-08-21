@@ -54,8 +54,10 @@ Plate-wide bracket: **lower 4.928% <= point 5.886% <= upper 37.521%.**
 
 The ceiling is near-vacuous by construction — **32.593% of kept records are multiply placed**, and the
 upper bound charges every one to the bacterium when on a worm library they are overwhelmingly
-within-worm repeats. **Quote 4.93%-5.89% as the working range.** The 37.5% figure means only "a third
-of the library could not be resolved to one locus at all".
+within-worm repeats. [Which repeats is now measured](multimapper-composition-aging-plate.md):
+chiefly the collapsed chrI 45S rDNA array, ~53% of placed molecules. **Quote 4.93%-5.89% as the
+working range.** The 37.5% figure means only "a third of the library could not be resolved to one
+locus at all".
 
 Lower and point stay tightly coupled at every age (day1 0.185/0.212, day15 17.47/21.94), so no
 conclusion below depends on which end is read.
