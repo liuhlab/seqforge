@@ -605,8 +605,8 @@ def ratio(
 # ---- the knee vector ----------------------------------------------------------------------------
 
 #: How many points of a knee vector reach the page. STAR writes one integer per barcode — on a 10x v3
-#: whitelist that is ~6.8 million lines, and the whole report is one self-contained HTML with a 500 KB
-#: budget. 200 points draw the same curve at a few KB.
+#: whitelist that is ~6.8 million lines, and the whole report is one self-contained HTML page that
+#: inlines every asset it draws. 200 points draw the same curve at a few KB.
 MAX_KNEE_POINTS = 200
 
 

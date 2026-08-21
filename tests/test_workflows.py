@@ -3700,7 +3700,7 @@ def test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between(
 
 
 def test_the_knee_vector_is_capped_and_log_spaced_so_the_page_stays_in_budget() -> None:
-    """One integer per whitelist barcode (~6.8M on 10x v3) against a 500 KB self-contained page.
+    """One integer per whitelist barcode (~6.8M on 10x v3) against one self-contained page.
 
     Log-spaced and not uniform because the plot is read on log axes: uniform sampling spends almost
     every point on the flat tail and draws the knee — the one feature anybody looks at — as two

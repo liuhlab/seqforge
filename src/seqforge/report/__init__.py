@@ -19,6 +19,16 @@ from __future__ import annotations
 #: stamped in the footer, which is the whole reason it is worth bumping: a page found on a shared
 #: drive months later has to be able to say which design drew it.
 #:
+#: 2026.8.3 — **the Results table is reachable**. It pages, the way Samples already did: a bar under
+#: it says which rows are showing, offers 25/50/100/All, and steps. On the in-house aging plate that
+#: table is 784 rows deep, and reaching row 400 meant scrolling past 399. Nothing is hidden that was
+#: not already there — every row still ships in the page, ``All`` puts the whole grid back, and a
+#: table that fits on one screenful renders no bar at all. It is the same control, the same marker and
+#: the same script the Samples grid has used since the design system landed; what changed is that a
+#: row of results is now something the page admits is a sample. The page also stops policing its own
+#: weight: a fixed byte budget for an artifact whose size is one row per sample was a number that had
+#: never been checked against a plate, and the report is read by people, not shipped anywhere.
+#:
 #: 2026.8.2 — **the cross-check**. Results gains an alert block between the run state and the metrics
 #: table: the compiler joins what it decided to what came back and says which DECISION looks wrong,
 #: naming the manifest or recipe field and the value it currently carries. Advisory and non-mutating
@@ -40,7 +50,7 @@ from __future__ import annotations
 #: a General-Statistics table tinted by each metric's own verdict, a per-sample headline strip, and
 #: hand-built inline-SVG knee plots. The tab is omitted from the strip entirely when no assay has
 #: results, so a compiled-but-not-yet-run workspace renders exactly the page it rendered before.
-REPORT_VERSION = "2026.8.2"
+REPORT_VERSION = "2026.8.3"
 
 from .collect import collect_report  # noqa: E402
 from .render import render_html  # noqa: E402

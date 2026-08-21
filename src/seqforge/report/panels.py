@@ -160,6 +160,66 @@ def _panel(title: str, body: str, *, sub: str = "") -> str:
     return f'<section class="sf-panel"><h2 class="sf-panel-h">{esc(title)}</h2>{sub_html}{body}</section>'
 
 
+#: The page sizes a table of samples offers, smallest first — and the first one is the default, so
+#: there is one number here and not two. Twenty-five dense rows is about a screen and a half at the
+#: viewport this page is written for; a plate of ninety-six is five thousand pixels of scroll, which
+#: is the length that made the reader who wants sample 40 travel past thirty-nine.
+#:
+#: **Why a threshold over the sample count is admissible here** when ``_STRIP_MAX_SAMPLES`` was not,
+#: which is the same question :data:`_FOLD_MIN_COLUMNS` answers for its own: paging is a **view**,
+#: never a truncation. Every row still ships in the HTML, the script hides the ones that are not on
+#: the current page, and ``All`` puts the table back the way it was. The threshold that had to go
+#: chose between two *different renderings* of the same data depending on how much of a pipeline had
+#: finished, so the same page reread an hour later said something else; a bar that appears once there
+#: is more than a screenful under it is a control over rows the reader can already see. That is also
+#: why the Results table may use it while its row count still moves: the rows it pages are the rows
+#: it has, and none of them is ever dropped.
+_SAMPLE_PAGE_SIZES = (25, 50, 100)
+
+
+def _sample_pager(body_id: str, n_samples: int) -> str:
+    """The bar under a table of samples: which rows are showing, how many at a time, and prev/next.
+
+    Both grids that hold one row per sample use it — Samples and Results — off the one ``data-smp``
+    marker that says where a sample starts, so paging a second table cost the script nothing.
+
+    Rendered **hidden**, and ``report.js`` is what unhides it. A control that pages a table is a lie
+    without the script that pages it, so a page opened with JS off shows every row and no bar — which
+    is the page exactly as it was before paging existed. Nothing here is a fallback; it is the same
+    contract ``.tab``/``.pane`` already have with that file.
+
+    No new component: the two steppers are the header's own ``.sf-icon-btn`` and the size picker its
+    ``.sf-select``, so the table's chrome is drawn in the vocabulary the page's chrome already uses.
+    The script finds every part by ``data-*`` and never by a class, so restyling the bar cannot
+    silently unhook it.
+    """
+    if n_samples <= _SAMPLE_PAGE_SIZES[0]:
+        return ""
+    sizes = "".join(
+        f'<option value="{n}">{n}</option>' for n in _SAMPLE_PAGE_SIZES if n < n_samples
+    )
+    return (
+        '<nav class="mt-3 flex flex-wrap items-center gap-3 text-sm text-dim" hidden '
+        f'data-pager="{esc(body_id)}" aria-label="Sample table pages">'
+        # `role="status"` and not `aria-live` alone: a reader who cannot see the table change still
+        # hears which rows are now under them.
+        '<span role="status" data-pager-status></span>'
+        '<span class="flex-1"></span>'
+        '<label class="flex items-center gap-2">Rows'
+        f'<select class="sf-select" data-pager-size>{sizes}'
+        f'<option value="0">All {n_samples}</option></select></label>'
+        '<span class="flex items-center gap-2" data-pager-nav>'
+        '<button type="button" class="sf-icon-btn disabled:cursor-default disabled:opacity-40" '
+        'data-pager-step="-1" '
+        'aria-label="Previous page of samples">‹</button>'
+        '<span class="tabular-nums" data-pager-at></span>'
+        '<button type="button" class="sf-icon-btn disabled:cursor-default disabled:opacity-40" '
+        'data-pager-step="1" '
+        'aria-label="Next page of samples">›</button>'
+        "</span></nav>"
+    )
+
+
 # ---- overview -----------------------------------------------------------------------------------
 
 
@@ -368,25 +428,6 @@ def _basis_legend() -> str:
     )
 
 
-#: The page sizes the samples table offers, smallest first — and the first one is the default, so
-#: there is one number here and not two. Twenty-five dense rows is about a screen and a half at the
-#: viewport this page is written for; a plate of ninety-six is five thousand pixels of scroll, which
-#: is the length that made the reader who wants sample 40 travel past thirty-nine.
-#:
-#: **Why a threshold over the sample count is admissible here** when ``_STRIP_MAX_SAMPLES`` was not,
-#: which is the same question :data:`_FOLD_MIN_COLUMNS` answers for its own: ``assay.samples`` is read
-#: out of the **manifest**, which is immutable and content-addressed — the count is fixed the moment
-#: the dataset compiles and cannot move afterwards. The threshold that had to go keyed off how many
-#: QC artifacts a *running pipeline* had landed, so the same page reread an hour later was a different
-#: page. A threshold over what the data IS is a design; one over how a run is going is a bug.
-#:
-#: Paging is a **view**, never a truncation: every row still ships in the HTML, the script hides the
-#: ones that are not on the current page, and ``All`` puts the table back the way it was. That is what
-#: makes it admissible at all — a page that dropped rows would be a page whose sample table disagreed
-#: with the manifest beside it.
-_SAMPLE_PAGE_SIZES = (25, 50, 100)
-
-
 def samples_pane(assay: AssayReport, index: int) -> str:
     if not assay.samples:
         return _panel("Samples", '<p class="sf-empty">no samples resolved for this assay.</p>')
@@ -416,46 +457,6 @@ def samples_pane(assay: AssayReport, index: int) -> str:
         _basis_legend() + table + _sample_pager(body_id, assay.n_samples),
         sub=f"{assay.n_samples} sample(s). Click any value to see — and copy — what supports it; open "
         "a row (▸) for its files, their read structure, and the exact quotes.",
-    )
-
-
-def _sample_pager(body_id: str, n_samples: int) -> str:
-    """The bar under the samples table: which rows are showing, how many at a time, and prev/next.
-
-    Rendered **hidden**, and ``report.js`` is what unhides it. A control that pages a table is a lie
-    without the script that pages it, so a page opened with JS off shows every row and no bar — which
-    is the page exactly as it was before paging existed. Nothing here is a fallback; it is the same
-    contract ``.tab``/``.pane`` already have with that file.
-
-    No new component: the two steppers are the header's own ``.sf-icon-btn`` and the size picker its
-    ``.sf-select``, so the table's chrome is drawn in the vocabulary the page's chrome already uses.
-    The script finds every part by ``data-*`` and never by a class, so restyling the bar cannot
-    silently unhook it.
-    """
-    if n_samples <= _SAMPLE_PAGE_SIZES[0]:
-        return ""
-    sizes = "".join(
-        f'<option value="{n}">{n}</option>' for n in _SAMPLE_PAGE_SIZES if n < n_samples
-    )
-    return (
-        '<nav class="mt-3 flex flex-wrap items-center gap-3 text-sm text-dim" hidden '
-        f'data-pager="{esc(body_id)}" aria-label="Sample table pages">'
-        # `role="status"` and not `aria-live` alone: a reader who cannot see the table change still
-        # hears which rows are now under them.
-        '<span role="status" data-pager-status></span>'
-        '<span class="flex-1"></span>'
-        '<label class="flex items-center gap-2">Rows'
-        f'<select class="sf-select" data-pager-size>{sizes}'
-        f'<option value="0">All {n_samples}</option></select></label>'
-        '<span class="flex items-center gap-2" data-pager-nav>'
-        '<button type="button" class="sf-icon-btn disabled:cursor-default disabled:opacity-40" '
-        'data-pager-step="-1" '
-        'aria-label="Previous page of samples">‹</button>'
-        '<span class="tabular-nums" data-pager-at></span>'
-        '<button type="button" class="sf-icon-btn disabled:cursor-default disabled:opacity-40" '
-        'data-pager-step="1" '
-        'aria-label="Next page of samples">›</button>'
-        "</span></nav>"
     )
 
 
@@ -1052,10 +1053,10 @@ _ORPHAN_GROUP: MetricGroup = "input"
 #: outcome is a bug; a threshold over a module's shape is a design.
 _FOLD_MIN_COLUMNS = 8
 
-#: How many knee panels reach the page. Each is ~3.5 KB of polyline (200 points, capped upstream by
-#: ``knee_points``) and the whole report has a 500 KB budget, so an unbounded per-sample plot is the
-#: one thing on this tab that can blow it — a 96-well plate would spend 340 KB drawing curves nobody
-#: compares by eye past the first two dozen. Truncation is stated on the page, never silent.
+#: How many knee panels reach the page. Two dozen is already past what anyone compares by eye, and
+#: past it the cost is real rather than nominal: each panel is ~3.5 KB of polyline (200 points, capped
+#: upstream by ``knee_points``), so a 96-well plate would spend 340 KB drawing curves nobody reads.
+#: Truncation is stated on the page, never silent.
 _KNEE_MAX_FIGURES = 24
 
 #: The knee figure's drawing box in SVG user units. The page never sets a pixel width — the CSS grid
@@ -1067,7 +1068,7 @@ _KNEE_W, _KNEE_H = 320.0, 190.0
 _KNEE_L, _KNEE_R, _KNEE_T, _KNEE_B = 42.0, 16.0, 10.0, 34.0
 
 
-def results_pane(assay: AssayReport) -> str:
+def results_pane(assay: AssayReport, index: int) -> str:
     """What the composed pipeline actually produced — or an honest note that it has not run.
 
     Every assay gets one of these even when there is nothing to show, so switching tabs in a
@@ -1101,7 +1102,7 @@ def results_pane(assay: AssayReport) -> str:
             "read. The pipeline ran; what it produced is unparseable."
         )
     else:
-        body = _stats_table(stats)
+        body = _stats_table(stats, index)
         sub = (
             f"Read back from the finished pipeline's own QC artifacts by {stats.module} — one row "
             "per sample, one column per metric. Click a column header for what that metric measures "
@@ -1324,12 +1325,18 @@ def _banded_columns(stats: PipelineStats) -> list[tuple[MetricGroup, list[_Colum
     return [(group, columns) for group, columns in grouped.items() if columns]
 
 
-def _stats_table(stats: PipelineStats) -> str:
+def _stats_table(stats: PipelineStats, index: int) -> str:
     """Rows are samples, columns are ``columns`` grouped into bands, verdict is on the cell.
 
     The column set is a union across samples, so the lookup is by key and a sample that never reported
     one leaves that cell blank. Never a zero: a zero here is a number a reader would act on, and the
     tool did not write it.
+
+    One row is one sample, which is exactly what ``data-smp`` means on the Samples grid — so marking
+    the rows and naming the body is the whole of paging here, and :func:`_sample_pager` and the script
+    are shared verbatim rather than reimplemented. ``index`` is what keeps the body's id unique: two
+    assays each carrying a ``results-0`` would bind one assay's bar to the other assay's rows, and the
+    only symptom would be a page that pages the table nobody is looking at.
 
     **Group structure is rule and label, never a second hue.** The bands are a header row of
     ``colspan`` cells separated by a hairline; the group also rides on ``data-group`` so the page
@@ -1340,10 +1347,11 @@ def _stats_table(stats: PipelineStats) -> str:
 
     **The fold is one control for the whole table, not one per band** (:data:`_FOLD_MIN_COLUMNS`),
     and it is a checkbox and its label rather than a ``<details>`` or a script: ``<details>`` cannot
-    wrap a subset of a row's ``<td>``s, two tables would duplicate every headline column, and
-    ``report.js`` is another ticket's file. The header's band cells are emitted twice when the table
-    folds — once at the headline ``colspan`` and once at the full one — because a ``colspan`` is a
-    count and a band cannot span columns that are not being shown.
+    wrap a subset of a row's ``<td>``s, two tables would duplicate every headline column, and a script
+    would leave the hidden columns behind a control that a page opened with JS off cannot work —
+    where the pager under the table is free to simply not appear. The header's band cells are emitted
+    twice when the table folds — once at the headline ``colspan`` and once at the full one — because a
+    ``colspan`` is a count and a band cannot span columns that are not being shown.
     """
     bands = _banded_columns(stats)
     n_columns = sum(len(columns) for _group, columns in bands)
@@ -1380,16 +1388,20 @@ def _stats_table(stats: PipelineStats) -> str:
         # rule now says `thead`. The per-sample note that used to ride beside the id is
         # `_counting_notes`, under the table.
         rows += (
-            f'<tr><th scope="row" class="sf-col-sticky">{esc(sample.sample_id)}</th>{cells}</tr>'
+            f'<tr data-smp><th scope="row" class="sf-col-sticky">{esc(sample.sample_id)}</th>'
+            f"{cells}</tr>"
         )
 
+    body_id = f"results-{index}"
     table = (
         '<div class="sf-scroll-x"><table class="w-full text-sm tabular-nums">'
         '<thead><tr><th scope="col" rowspan="2" class="sf-col-sticky align-bottom">Sample</th>'
-        f"{band_row}</tr><tr>{head_row}</tr></thead><tbody>{rows}</tbody></table></div>"
+        f"{band_row}</tr><tr>{head_row}</tr></thead>"
+        f'<tbody id="{esc(body_id)}">{rows}</tbody></table></div>'
     )
+    pager = _sample_pager(body_id, len(stats.samples))
     if not folds:
-        return _LEVEL_LEGEND + table + _counting_notes(stats)
+        return _LEVEL_LEGEND + table + pager + _counting_notes(stats)
     control = (
         '<label class="grp-btn mt-3 inline-flex cursor-pointer items-center gap-2 text-sm '
         'font-semibold text-accent"><input type="checkbox" class="grp-fold sr-only">'
@@ -1397,7 +1409,13 @@ def _stats_table(stats: PipelineStats) -> str:
         f'metrics</span><span class="grp-extra"><span aria-hidden="true">▾ </span>Show the '
         f"{n_headline} headline metrics</span></label>"
     )
-    return f'{_LEVEL_LEGEND}<div class="grp-scope">{table}{control}</div>{_counting_notes(stats)}'
+    # The bar goes directly under the table it pages, inside the fold's scope: the `:has()` selector
+    # is on the scope div and every fold target is inside the table, so nothing in the bar can be
+    # caught by it and the order within the scope is free.
+    return (
+        f'{_LEVEL_LEGEND}<div class="grp-scope">{table}{pager}{control}</div>'
+        f"{_counting_notes(stats)}"
+    )
 
 
 def _counting_notes(stats: PipelineStats) -> str:
@@ -1421,7 +1439,7 @@ def _counting_notes(stats: PipelineStats) -> str:
     Below the table where the legend is above it, because the two are read at different moments: a
     legend says how a tint grades and is wanted before the numbers, this is wanted after one of them
     surprises you. Each sample id appears at most once across the whole block, so it grows with the
-    table it sits under and can never be the thing that pushes the page past its size budget.
+    number of ways the run was counted and never with the plate.
     """
     groups: dict[str, list[str]] = {}
     for sample in stats.samples:
@@ -1471,11 +1489,10 @@ def _metric_head(label: str, hint: str, *, extra: bool) -> str:
     email — which a transient tooltip can be neither, and which never appears at all on touch. Sharing
     the popover costs one selector in ``report.js`` and gives both tables one behaviour.
 
-    The hint hangs off the header and not the cell, for two reasons that agree. It describes the
-    metric and is byte-identical down the whole column, so per cell it is a lie about where the
-    information lives; and repeating a ~200-character sentence in every cell of a 96-sample ×
-    15-metric table is ~300 KB against a 500 KB page budget — the one thing on this tab that could
-    break it.
+    The hint hangs off the header and not the cell because it describes the **metric**: it is
+    byte-identical down the whole column, so storing it per cell is a lie about where the information
+    lives — the same sentence claiming to be a fact about each of ninety-six samples, none of which
+    it mentions. It is stored once because there is one of it.
 
     ``role="button"`` sits on a span *inside* the ``<th>``, never on the ``<th>``: a column header that
     announces itself as a button has stopped being a column header, and screen-reader table navigation
@@ -1532,8 +1549,8 @@ def _knee_panel(stats: PipelineStats) -> str:
     if not figures:
         return ""
     trunc = (
-        f" Showing {len(shown)} of {len(kneed)} samples — the page has a size budget, and two dozen "
-        "panels is already past what anyone compares by eye."
+        f" Showing {len(shown)} of {len(kneed)} samples — two dozen panels is already past what "
+        "anyone compares by eye, and each one is drawn inline into this page."
         if len(shown) < len(kneed)
         else ""
     )
@@ -1646,7 +1663,7 @@ def assay_section(assay: AssayReport, index: int) -> str:
         ("samples", samples_pane(assay, index)),
         ("evidence", evidence_pane(assay)),
         ("pipeline", pipeline_pane(assay)),
-        ("results", results_pane(assay)),
+        ("results", results_pane(assay, index)),
     ]
     body = "".join(
         f'<div class="pane{" active" if name == "overview" else ""}" data-tab="{name}">{html}</div>'

@@ -2,8 +2,8 @@
 
 Everything runs offline against a workspace built by the real ``run`` verb on KB-generated bulk reads
 (no network, no provider, no onlist). The load-bearing properties: the page is genuinely
-self-contained (no external reference can regress in), it stays small, it is byte-deterministic, and
-the collector degrades honestly when a piece is missing rather than crashing or inventing a verdict.
+self-contained (no external reference can regress in), it is byte-deterministic, and the collector
+degrades honestly when a piece is missing rather than crashing or inventing a verdict.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import ast
 import json
 import re
 import shutil
+from collections.abc import Callable
 from html import escape, unescape
 from pathlib import Path
 from typing import TYPE_CHECKING, get_args
@@ -132,13 +133,6 @@ def test_report_makes_no_external_network_reference(workspace: Path) -> None:
     assert not offsite, f"external references leaked in: {offsite[:3]}"
     assert "@importurl(http" not in html.replace(" ", "").replace("'", '"').lower()
     assert "cdn.jsdelivr" not in html and "unpkg" not in html, "a CDN link regressed in"
-
-
-def test_report_stays_under_the_size_budget(workspace: Path) -> None:
-    """No third-party engine is inlined any more (the Flow tab is HTML cards), so a page is a few tens
-    of KB. The old budget was 6 MB to accommodate Mermaid; a page over 500 KB now means real bloat."""
-    html = render_html(collect_report(workspace))
-    assert len(html.encode()) < 500_000, "report bloated past 500 KB (a heavy asset regressed in?)"
 
 
 def test_report_render_is_byte_deterministic(workspace: Path) -> None:
@@ -973,13 +967,47 @@ def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> No
     assert "mouseover" not in script and "mouseenter" not in script
 
 
-def test_a_long_sample_table_pages_and_a_short_one_does_not_and_neither_loses_a_row() -> None:
+def _samples_grid_of(ws: Path, n_samples: int) -> str:
+    """The Samples pane with ``n_samples`` rows in it. The workspace is unused — this grid is built
+    from the hand-written display model, which is where every provenance branch lives."""
+    del ws
+    return _pane(_rich_page(n_samples), "samples")
+
+
+def _results_grid_of(ws: Path, n_samples: int) -> str:
+    """The Results pane with ``n_samples`` rows in it.
+
+    A different construction path entirely, and that is the point: Results rows are not manifest
+    samples but QC artifacts a finished pipeline wrote, so this one has to land bundles on disk and
+    let the production reader find them. If paging ever comes to depend on something only the
+    manifest carries, the two halves of the test below stop agreeing.
+
+    Reaches forward for the shared lander, which lives with the rest of the Results support: the
+    grid it builds belongs to that tab, and the rule it is proving belongs to this one.
+    """
+    _finish_a_starsolo_pipeline_over(ws, {f"S{i:04d}": _QC_SUMMARY for i in range(n_samples)})
+    return _pane(render_html(collect_report(ws)), "results")
+
+
+@pytest.mark.parametrize(
+    "grid_of", (_samples_grid_of, _results_grid_of), ids=("samples", "results")
+)
+def test_a_long_sample_table_pages_and_a_short_one_does_not_and_neither_loses_a_row(
+    own_workspace: Path, grid_of: Callable[[Path, int], str]
+) -> None:
     """A plate of ninety-six samples was the whole height of the page; one page of it is a screenful.
 
     The load-bearing half is that paging **hides and never drops**. This page is a self-contained
     artifact — a sample table that rendered 25 of 96 rows would disagree with the manifest beside it,
     and ``Rows: All`` would have nothing to put back. So the rendered row count is asserted against
     the SAMPLE count and never against the page size, in both directions of the threshold.
+
+    **Both grids that hold one row per sample**, against one rule and one set of assertions. Results
+    was the wider of the two — 784 rows by 39 metric columns on the aging plate, with no way to reach
+    row 400 but to scroll past 399 — and it pages off the same ``data-smp`` marker, the same bar and
+    the same script, so a rule proved on one grid and quietly untrue of the other is the failure this
+    shape exists to make impossible. Each grid names its own body, because two ``results-0`` on a
+    multi-assay page would bind one assay's bar to the other assay's rows.
 
     Both ends of the render→script seam, together, for the reason the popover test above gives: the
     markup alone cannot show that anything drives the bar, and the script alone cannot show that
@@ -995,11 +1023,11 @@ def test_a_long_sample_table_pages_and_a_short_one_does_not_and_neither_loses_a_
     per = _SAMPLE_PAGE_SIZES[0]
     script = (_ASSETS / "report.js").read_text()
 
-    short = _pane(_rich_page(), "samples")
+    short = grid_of(own_workspace, 2)
     assert short.count("<tr data-smp>") == 2
     assert "data-pager" not in short, "a table that fits on one page renders no pager"
 
-    long_table = _pane(_rich_page(per + 1), "samples")
+    long_table = grid_of(own_workspace, per + 1)
     assert long_table.count("<tr data-smp>") == per + 1, "a paged table still ships every row"
     bar = re.search(r"<nav[^>]*data-pager=\"([^\"]+)\"[^>]*>", long_table)
     assert bar is not None, "a table past one page renders no pager"
@@ -1951,8 +1979,8 @@ def test_a_note_a_whole_plate_shares_is_one_line_and_a_lone_sample_is_still_name
 
     Ninety-six ids under a table that already lists ninety-six ids is the wall this block exists to
     avoid, and printing them would make it grow with the plate instead of with the number of ways the
-    run was counted — every id appears at most once across the whole block, which is what keeps it off
-    the page's size budget. The other direction is asserted on the same rule: a run with one sample
+    run was counted — every id appears at most once across the whole block, which is the rule that
+    holds it to that shape. The other direction is asserted on the same rule: a run with one sample
     names it, because "all 1 samples" is a sentence about a plate written for a single well.
     """
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
@@ -2012,7 +2040,7 @@ def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Pa
     stats = _land_bundles(results, {"S1": thin, "S2": _QC_SUMMARY})
     pane = _pane(_render_with_stats(own_workspace, stats), "results")
 
-    rows = re.findall(r"<tr><th scope=\"row\"[^>]*>(.*?)</tr>", pane)
+    rows = re.findall(r"<tr data-smp><th scope=\"row\"[^>]*>(.*?)</tr>", pane)
     assert len(rows) == 2
     thin_row, full_row = rows
     assert "S1" in thin_row and "S2" in full_row
@@ -2617,10 +2645,10 @@ def test_a_metrics_meaning_is_reachable_from_its_column_header_and_stored_once(
 
     The criterion has two halves and only the second is about the page looking right. **Reachable**
     is the accessibility half: every hint the adapter wrote reaches a reader, through the same pinned
-    popover the samples grid uses, off a control that is keyboard-reachable. **Once** is the budget
-    half: the hint is byte-identical down its whole column, so a 96-sample table would pay for it
-    ninety-six times — ~300 KB of the page's 500 KB, and the one thing on this tab that could break
-    the budget on its own.
+    popover the samples grid uses, off a control that is keyboard-reachable. **Once** is the half
+    about where the information lives: the hint is byte-identical down its whole column and describes
+    the metric, so a 96-sample table repeating it per cell would be the same sentence claiming to be
+    a fact about each of ninety-six samples, none of which it mentions.
 
     Both are read off the rendered page, and both are counted rather than spot-checked: this
     criterion was implemented and shipped with no test at all, so `_metric_head` could have dropped
@@ -2642,7 +2670,7 @@ def test_a_metrics_meaning_is_reachable_from_its_column_header_and_stored_once(
 
     # ...and stored ONCE. Every hint appears exactly as many times as there are column headers
     # carrying it — never once per cell. Asserted over the real sentences the adapter wrote, so a
-    # renderer that started repeating them per row fails here rather than in a size budget later.
+    # renderer that started repeating them per row fails here, on the claim, and not on a byte count.
     for attrs in heads:
         sentence = re.search(r'data-basis="([^"]*)"', attrs).group(1)  # type: ignore[union-attr]
         assert pane.count(sentence) == 1, (
