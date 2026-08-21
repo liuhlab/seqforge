@@ -4,10 +4,20 @@ Researched 2026-08-21 after a stack of reads in `day9_N2_9.ce11.unique.bam` (in-
 Smart-seq3 aging plate, 784 worms, `ce11`, mapped by `map/star-umi` / `map/star-umi-chimera` against
 the chimeric `ce11_ecHT115` reference) turned out to carry CIGARs like `12M94511N8M130S` — a 150 bp
 read with 20 aligned bases, `MAPQ 255`, `NH:1`, `nM:0`, `AS:36`, mate at `chrII:4,035,578` (−),
-`TLEN 94531`, flagged a proper pair. **No decision is taken here.** This records what STAR's defaults
+`TLEN 94531`, flagged a proper pair. **No decision was taken here.** This records what STAR's defaults
 are, what the worm's introns actually look like, what other pipelines set, what each counter does
-with such a read, and what a change would cost — so that a record can be written against numbers
+with such a read, and what a change would cost — so that a record could be written against numbers
 instead of against intuition.
+
+**It since was, and the change shipped.** The census this fed is
+[#459](https://github.com/liuhlab/seqforge/issues/459), the buildable plan
+[#461](https://github.com/liuhlab/seqforge/issues/461); §7.1–§7.4 landed in
+[#467](https://github.com/liuhlab/seqforge/pull/467), recorded in
+[ADR-0056](../adr/0056-an-aligner-bound-is-a-genome-table-fact-copied-into-the-recipe.md) and in
+`liulab-genome`'s ADR-0010; §8's proposed measurement was run
+([`star-splice-flags-gate-2026-08-22.md`](star-splice-flags-gate-2026-08-22.md)). Tense and status
+claims below are reconciled against those. **The reasoning is not** — the argument for each value is
+unchanged by having been taken.
 
 ## Provenance of the numbers in this document — read before citing any of them
 
@@ -33,8 +43,9 @@ session rather than hearsay. The methods:
   subsamples for the distributions.
 - Intron statistics of the **installed** annotations: `awk` over the GTFs under
   `/share/lhqlab/liulab_data/genome/{ce11,sacCer3,mm39,hg38}`, taking per-transcript gaps between
-  consecutive exons. This is the file-specific measurement that §3.3 shows disagrees with every
-  canonical annotation — that disagreement is a finding, not an error in either measurement.
+  consecutive exons. The first pass of this one was **wrong**, and §3.3 is the diagnosis; §3.1 carries
+  the corrected table and states plainly that the installed files agree with the canonical
+  annotations after all.
 - Plate fates: `anndata.read_h5ad` over `combined.{ce11,ecHT115}.h5ad`, summing the `obs` fate
   columns across all 784 cells.
 
@@ -47,6 +58,11 @@ the bad pass and should be dropped.
 **Anything resting on Tier 3 alone is marked in place, and §9 lists what further verification would
 settle.** No conclusion in §7 depends on Tier 3 alone.
 
+**Two figures landed after this was finalised, both Tier 3 in kind:** §3.1's corrected per-annotation
+table, re-measured 2026-08-22 against the same installed files and quoted from #459's body, and §8's
+gate result, which is [`star-splice-flags-gate-2026-08-22.md`](star-splice-flags-gate-2026-08-22.md)
+and carries its own method and provenance — nothing of it is restated here beyond the headline.
+
 ## The one-sentence answer
 
 **Nothing is broken and nothing is a bug: STAR's shipped defaults impose no intron-length check at
@@ -57,25 +73,29 @@ and the only hard bound is the chromosome — while the score charges *log₂* o
 GT/AG motif.** On a genome whose median annotated intron is **66 bp**, that makes any anchor of ≥3–5
 matched bases a net score *gain*, and the plate's real CIGARs — gaps to **1,049,334 bp** on a genome
 whose longest annotated intron is 100,912 bp — are the aligner correctly maximising a function nobody
-configured for this organism. Our three STAR modules set no splice parameter at all, and
-`umite/count.py` then spans the fabricated gap contiguously, so one such read consumes 94.5 kb of
-chrII (21 gene bodies) and is filed `ambiguous`. **The fix is a short-anchor filter, not a tight
-intron cap** (§7): the artifact's signature is a 9–13 bp anchor, and the annotation cannot tell you
-where to put a length threshold because a GTF's maximum is a floor on biology, not a ceiling.
+configured for this organism. All four of our STAR modules set no splice parameter at all when this
+was written, and `umite/count.py` spans the fabricated gap contiguously, so one such read consumes
+94.5 kb of chrII (21 gene bodies) and is filed `ambiguous`. **The fix is a short-anchor filter, not a
+tight intron cap** (§7): the artifact's signature is a 9–13 bp anchor, and the annotation cannot tell
+you where to put a length threshold because a GTF's maximum is a floor on biology, not a ceiling.
+That is what shipped in #467, and the gate agreed with the ordering — the intron-free component's
+spliced fraction collapsed while the two residual cells' longest gaps sat *under* the cap.
 
 ---
 
-## 0. What the repo actually does today — verified, not taken on trust
+## 0. What the repo did when this was written — verified, not taken on trust
+
+The first row is the one #467 changed; everything else in this section still holds.
 
 | claim | verdict | where |
 |---|---|---|
-| `map/star`, `map/star-umi`, `map/star-umi-chimera` set **no** splice/intron parameter | **confirmed** | [`star.smk:268`](../../src/seqforge/workflows/map/star.smk), [`star-umi.smk:533`](../../src/seqforge/workflows/map/star-umi.smk), [`star-umi-chimera.smk:620`](../../src/seqforge/workflows/map/star-umi-chimera.smk) |
+| all four STAR modules — `map/star`, `map/star-umi`, `map/star-umi-chimera`, `map/starsolo` — set **no** splice/intron parameter | **confirmed**, and reversed by #467 (§7) | [`star.smk:268`](../../src/seqforge/workflows/map/star.smk), [`star-umi.smk:533`](../../src/seqforge/workflows/map/star-umi.smk), [`star-umi-chimera.smk:620`](../../src/seqforge/workflows/map/star-umi-chimera.smk), [`starsolo_args.py`](../../src/seqforge/workflows/starsolo_args.py) |
 | the plate twins pass a Tn5 3′ clip | **confirmed** — `--clip3pAdapterSeq CTGTCTCTTATACACATCT --clip3pAdapterMMp 0.1`, rendered per mate by `read_through_clip` (`star-umi.smk:229`) | ADR-0048, [`smartseq3-tn5-read-through.md`](smartseq3-tn5-read-through.md) |
 | `_fragment_span()` returns a **contiguous** interval that does not excise `N` gaps | **confirmed** — `count.py:480`; for a proper pair it is `(start, max(end, start+TLEN))`, and `pysam`'s `reference_end` already spans `N` | [`umite/count.py`](../../src/seqforge/workflows/umite/count.py) |
 | `_count_fragment()` calls `exonic(contig,start,end)` then `gene_bodies(...)`, filing >1 gene as `ambiguous` | **confirmed** — `count.py:646–684` | same |
 | the aligner is pinned at STAR **2.7.11b** | confirmed — `pyproject.toml:167`, `star = "2.7.11b.*"` | — |
 
-The full argv the plate twins run, with nothing elided:
+The full argv the plate twins ran at the time, with nothing elided:
 
 ```text
 STAR --runMode alignReads --genomeDir … --runThreadN … --genomeLoad LoadAndKeep \
@@ -86,12 +106,17 @@ STAR --runMode alignReads --genomeDir … --runThreadN … --genomeLoad LoadAndK
      --outSAMattrRGline … --limitBAMsortRAM … --outSAMmultNmax 1 --outSAMunmapped Within
 ```
 
-Every alignment-geometry decision in that line is a STAR default nobody chose.
+Every alignment-geometry decision in that line was a STAR default nobody chose. Since #467 the same
+line carries `--outFilterType BySJout --alignSJoverhangMin 8 --alignSJDBoverhangMin 1
+--alignIntronMax 50000 --alignMatesGapMax 50000` and `jM jI` on the attribute list, rendered from one
+place ([`workflows/splice_args.py`](../../src/seqforge/workflows/splice_args.py)) for all four
+modules.
 
 One consequence worth naming immediately: **the plate's existing junction QC is structurally blind
 to this artifact.** `qc.py:_summarise_sj` reads `SJ.out.tab`, and `SJ.out.tab` is already filtered by
 `--outSJfilterOverhangMin` (`30 12 12 12`), so a junction with an 8 bp overhang never appears in it.
-The BAM has the read; the QC summary cannot see it.
+The BAM has the read; the QC summary cannot see it. `BySJout` closes exactly this by making the two
+agree about which junctions exist (§7.1).
 
 ---
 
@@ -231,7 +256,8 @@ Three sub-questions, answered:
   versionGenome 2.7.4a). Since 18 > the default `winBinNbits` of 16, the clamp at
   `Genome_genomeLoad.cpp:393` does **not** fire and the 2¹⁶ × 9 arithmetic above holds unmodified.
 - **Does `--limitSjdbInsertNsj` matter?** No. It bounds on-the-fly junction insertion, and none of
-  the three modules passes `--sjdbGTFfile` or `--sjdbFileChrStartEnd` at *mapping* time. (It **was**
+  the four modules passes `--sjdbGTFfile` or `--sjdbFileChrStartEnd` at *mapping* time — still true
+  after #467. (It **was**
   passed at *index build*, so the annotation is in the sjdb — which is what makes §1.5's annotated
   exemption real.)
 - **Could the sjdb path explain the megabase gaps?** No. `sjAlignSplit()` reproduces whatever
@@ -341,7 +367,9 @@ annotated long introns for reads that seed on the inserted sequence.
 **The exemption is partial and should not be overstated.** A read whose two anchors are seeded
 genomically and stitched through the *general* path hits the cap at line 100 before the code that
 would have recognised the junction as annotated (lines 198–231). A long annotated intron is therefore
-reliably recoverable, but not unconditionally so. This is unmeasured; §8 proposes how to size it.
+reliably recoverable, but not unconditionally so. This is unmeasured directly; what bounds it is the
+gate's Gate 2, where the whole change cost the worm component **−0.038%** of counted UMIs at worst
+(§8), so whatever this case costs, it is inside that.
 
 ---
 
@@ -385,7 +413,8 @@ the canonical break-even — which is why the default admits precisely this clas
 
 Reconstruction from the formula above, showing the score *with* the phantom gap against the score of
 the same read with the short anchor dropped (i.e. soft-clipped instead). Motif is unknown for every
-one of these — `jM` is not in our BAM — so all three canonical classes are shown.
+one of these — `jM` was not in the BAM these were read from — so all three canonical classes are
+shown.
 
 | CIGAR | anchor | gap(s) | Δ score if GT/AG | if GC/AG | if non-canonical |
 |---|---|---|---|---|---|
@@ -443,22 +472,36 @@ Measurements were made independently, by different people, with different tools,
 files. One of them was wrong, and §3.3 — how that was caught and what caused it — is the most useful
 thing in this section.
 
-### 3.1 The plate-side measurement — WITHDRAWN, see §3.3
+### 3.1 The plate-side measurement — WITHDRAWN, and the pass that replaced it
 
 An `awk` pass over the GTFs installed at `/share/lhqlab/liulab_data/genome` on `ircbc` produced a
 per-annotation intron table for ce11/WS298, sacCer3, mm39 and hg38. **Every figure in it was
-plus-strand only and none of it should be cited.** The pass streamed exon lines in file order and
-recorded a gap only when the next exon's start exceeded the previous exon's end; WormBase lists exons
-in **transcription** order, so for every minus-strand transcript the differences were negative and
-silently recorded nothing. A corrected pass was in flight when this document was finalised; until it
-lands, **§3.2's Ensembl-derived figures are the worm/human/mouse numbers this document stands
-behind**, and they were never affected.
+plus-strand only, and not one of them is printed anywhere in this document.** The pass streamed exon
+lines in file order and recorded a gap only when the next exon's start exceeded the previous exon's
+end; WormBase and GENCODE list exons in **transcription** order, so for every minus-strand transcript
+the differences were negative and silently recorded nothing. §3.3 is the diagnosis, and it is the
+most transferable finding here.
 
-What survives from the withdrawn table is only its qualitative shape, which the corrected canonical
-figures independently support: STAR's ~590 kb per-step budget is **~6× the longest annotated worm
-intron** and **two orders of magnitude beyond the longest yeast intron**, while for human and mouse
-it sits just about at the top of the real distribution. **The default is mammal-calibrated**, and
-seqforge never overrides it for anything.
+**The corrected pass**, sorting each transcript's exons by coordinate before differencing, is
+#459's table, re-measured 2026-08-22 against the same installed files:
+
+| genome | annotation | n introns | median | p99 | p99.99 | **longest** |
+|---|---|---|---|---|---|---|
+| **ce11** | WormBase WS298 | 204,769 | **79** | 4,450 | 19,396 | **100,912** |
+| **sacCer3** | ensGene v101 | 380 | 116 | 2,483 | 2,483 | **2,483** |
+| mm39 | GENCODE vM39 | 1,836,308 | 1,390 | 67,330 | 358,705 | 2,908,816 |
+| hg38 | GENCODE v50 | 2,775,379 | 1,624 | 81,163 | 388,136 | 1,240,120 |
+
+Per-transcript, so comparable to §3.2's per-transcript column and not to its unique-intron one; the
+chimeric `ce11_ecHT115` GTF actually used for the plate gives identical ce11 figures. **The installed
+files agree with the canonical annotations** — 100,912 either way, p99.99 at 19,396 either way —
+which is the other half of §3.3's finding: the disagreement was in the pass, never in the file. §3.2's
+Ensembl figures carried the argument meanwhile, and nothing in §7 moved when this landed.
+
+The shape the withdrawn table got right qualitatively, and the corrected one confirms: STAR's ~590 kb
+per-step budget is **~6× the longest annotated worm intron** and **two orders of magnitude beyond the
+longest yeast intron**, while for human and mouse it sits just about at the top of the real
+distribution. **The default is mammal-calibrated**, and seqforge overrode it for nothing until #467.
 
 ### 3.2 Independent checks against Ensembl, WS298 itself, and UCSC
 
@@ -549,8 +592,10 @@ X  exon        12808216 12808318  -  exon_number "1"      <-- 5' exon
 X  exon        12707218 12707303  -  exon_number "2"      <-- next exon, 100,912 bp downstream in coordinate
 ```
 
-**Why this is the most transferable thing here.** §7.3 considers and then retracts *deriving* the intron cap from the
-registered GTF rather than hard-coding an organism constant. Deriving a cap means differencing exon
+**Why this is the most transferable thing here.** §7.3 considers and then retracts *deriving* the
+intron cap from the registered GTF rather than hard-coding an organism constant — a retraction both
+records that shipped went on to state as a decision (ADR-0056; `liulab-genome`'s ADR-0010). Deriving
+a cap means differencing exon
 coordinates — which is exactly the operation that just failed, silently, in a way that produced a
 plausible-looking number 14% below the truth and no error at all. A derived cap must therefore sort
 exons per transcript before differencing, be validated against a curated value for at least one
@@ -804,7 +849,7 @@ so the manual's "Both ends of the paired-end read are checked for overlaps" is l
 loop, and the mate gap is likewise not an interval. Multimappers never reach the loop at all
 (`if (nA>1) { quants->geneCounts.cMulti++; }`).
 
-**So the bulk arm (`map/star`, which is the only module using `--quantMode GeneCounts`) does not
+**So the bulk pipeline (`map/star`, which is the only module using `--quantMode GeneCounts`) does not
 inherit our counter's span problem.** On the IGV read it would report `N_noFeature`, because neither
 block is exonic (§5.1). Its exposure to this artifact is a *misassignment* risk when one block lands
 in a real exon, not the 94.5 kb-wide ambiguity the plate counter suffers.
@@ -844,7 +889,8 @@ is the most sensitive of the surveyed engines to this artifact, by construction 
 covers the inner mate gap, which a union of two mate intervals does not). The cost is that a
 fabricated `N` gap is indistinguishable from a real fragment span.
 
-**This is one read.** How much of the plate looks like this is unmeasured; §8 is how to find out.
+**This is one read.** How much of the plate looks like this was unmeasured when this was written; §8
+is how it was found out, and what the answer turned out to be.
 
 ---
 
@@ -902,7 +948,7 @@ merging is **chromosome-clamped** (§1.2), a junction from a gene to the SL1 arr
 leader can only ever be soft-clipped or emitted as a chimera.
 
 **4. Chimeric output is off, so even the cross-chromosome case is a soft clip.** `chimSegmentMin`
-defaults to 0 and none of the three modules sets it, so STAR emits no chimeric alignments at all. And
+defaults to 0 and none of the four modules sets it, so STAR emits no chimeric alignments at all. And
 a 22 nt SL1 seed matches ~110 genomic loci in the real repeat, far above `winAnchorMultimapNmax 50`,
 so it cannot even *create or extend* a window.
 
@@ -967,28 +1013,32 @@ stated plainly rather than discovered later.
 ### 6.4 The free control: E. coli has no introns
 
 The plate is mapped against the chimeric `ce11_ecHT115` reference. **Bacteria have no spliceosomal
-introns, so *any* `N` gap on the `ecHT115` arm is definitionally spurious** — there is no biological
-process that can produce one, and no annotation that could excuse one. That makes the bacterial arm
-a built-in false-positive assay, already present in every plate BAM, requiring no new run:
+introns, so *any* `N` gap on the `ecHT115` **Component** is definitionally spurious** — there is no
+biological process that can produce one, and no annotation that could excuse one. That makes the
+bacterial component a built-in false-positive assay, already present in every plate BAM, requiring no
+new run:
 
-- the **rate** of spliced records per aligned record on the E. coli arm is a direct estimate of the
+- the **rate** of spliced records per aligned record on the E. coli component is a direct estimate of the
   aligner's phantom-junction rate at this read length and this adapter load;
 - the **length distribution** of those gaps calibrates what "too long" means empirically rather than
   from annotation;
 - the **anchor-length distribution** of those gaps says exactly where to put `alignSJoverhangMin`.
 
 This is the single most useful measurement available and it is cheap (§8e). Its one limitation: the
-E. coli arm carries a different sequence composition and a much smaller replicon (~4.6 Mb versus
-~15 Mb per worm chromosome), so the chance-match rate per window is not identical to the worm's. It
-bounds the phenomenon; it does not transfer as an exact rate.
+E. coli component carries a different sequence composition and a much smaller replicon (~4.6 Mb
+versus ~15 Mb per worm chromosome), so the chance-match rate per window is not identical to the
+worm's. It bounds the phenomenon; it does not transfer as an exact rate.
+
+**It was run twice** — as #459's census, where every spliced E. coli record in all three cells sits on
+a ≤25 bp anchor, at 100%; then as Gate 1 of the change, the falsifiable half of what gated #467 (§8).
 
 ### 6.5 Criteria that discriminate real from artifact, for one read
 
 Ordered by how much each decides:
 
 1. **Is the junction annotated?** `jM ≥ 20` (annotated) versus `1/2` (novel GT/AG) versus `0`
-   (non-canonical). Requires `jM` in `--outSAMattributes`, which we do not currently ask for. This
-   one criterion resolves most cases.
+   (non-canonical). Requires `jM` in `--outSAMattributes`, which we did not ask for until #467 and
+   now do on every module (§7.4). This one criterion resolves most cases.
 2. **How long is the shorter anchor?** Real junctions have long anchors on both sides. Eight bases is
    at the noise floor: ~9 chance matches inside 589,824 bp (§2.2). Twelve is 0.035.
    `outSJfilterOverhangMin`'s own threshold for a GT/AG junction is **12**.
@@ -1005,24 +1055,33 @@ Ordered by how much each decides:
 7. **How much headroom does the alignment have over the filter?** `AS = 36` against a threshold of
    `0.66 × 54 ≈ 35` is an alignment that exists only because the denominator shrank.
 
-The IGV read fails 2, 3 (in the weak sense), 4, 6 and 7; criterion 1 cannot be evaluated from what we
-currently write.
+The IGV read fails 2, 3 (in the weak sense), 4, 6 and 7; criterion 1 could not be evaluated from what
+the archives held, which is the whole argument for §7.4.
 
 ---
 
 ## 7. Recommendations, with the source for each value
 
-None of these is a decision; each is a candidate with its price named. **They are ordered by how
-much of the real work each does**, which is not the order intuition suggests: the artifact signature
-is a short anchor (9–13 bp), not a particular gap length, so the junction filters lead and the intron
-cap — the flag everyone reaches for first — is third and deliberately loose. Note also that the
-modules are **generic across organisms**, so a worm-shaped constant does not belong in a `shell:` block —
-`--alignIntronMax` is recipe-shaped (`processing.yaml`), while the overhang and filter-type flags are
-organism-independent and could be module literals. ADR-0049 also matters: STARsolo's argv already has
-one owner (`workflows/starsolo_args.py`) and the three map modules do not, so adding flags in three
-places re-creates exactly the drift that record was written about.
+None of these was a decision when it was written; each was a candidate with its price named. **They
+are ordered by how much of the real work each does**, which is not the order intuition suggests: the
+artifact signature is a short anchor (9–13 bp), not a particular gap length, so the junction filters
+lead and the intron cap — the flag everyone reaches for first — is third and deliberately loose. Note
+also that the modules are **generic across organisms**, so a worm-shaped constant does not belong in a
+`shell:` block — `--alignIntronMax` is recipe-shaped (`processing.yaml`), while the overhang and
+filter-type flags are organism-independent and could be module literals. ADR-0049 also matters:
+STARsolo's argv already has one owner (`workflows/starsolo_args.py`) and the other three map modules
+do not, so adding flags in three places re-creates exactly the drift that record was written about.
+
+**§7.1–§7.4 shipped in #467, in the shape this paragraph anticipated**, under the plan in #461: three
+module literals, and an intron pair read per-assembly from `liulab-genome`'s table into
+`processing.yaml` and so into `run_id` (ADR-0056; `liulab-genome`'s ADR-0010). ADR-0049 mattered as
+expected, so all four modules read **one** renderer,
+[`workflows/splice_args.py`](../../src/seqforge/workflows/splice_args.py), rather than three `shell:`
+blocks. §7.5 did not ship, and says why.
 
 ### 7.1 `--outFilterType BySJout` — organism-independent, and it closes the QC blind spot
+
+**Shipped** in #467 as a module literal, on all four STAR modules.
 
 **Value:** `BySJout`. **Source:** STAR manual §3.3.2, ENCODE long-RNA standard; the manual's gloss is
 "reduces the number of ''spurious'' junctions", and §17 defines it as "keep only those reads that
@@ -1037,7 +1096,9 @@ blind spot** by making `SJ.out.tab` and the BAM agree about which junctions exis
 
 **Risks and costs:**
 - **Two-stage mapping.** Reads whose best alignment contains a novel junction are held and re-mapped
-  (`STAR.cpp:203–220`). Cost on a 784-cell plate is **unmeasured**.
+  (`STAR.cpp:203–220`). Cost on a 784-cell plate is still **unmeasured**. On the gate's four cells the
+  wall clock went the *other* way — 29 m 33 s against the control's 1 h 15 m 38 s — but that run
+  changed four flags at once and the attribution is not established (§8).
 - **Junction support is pooled per STAR run, i.e. per CELL on a plate.** A novel GT/AG junction needs
   only `countUnique ≥ 1`, so the count gate does not bite; the overhang and gap gates do. Annotated
   junctions are exempt outright (`*oneSJ.annot>0`), and with the GTF in the index nearly all real
@@ -1051,6 +1112,10 @@ blind spot** by making `SJ.out.tab` and the BAM agree about which junctions exis
   cost for anyone doing novel-isoform discovery on this data.
 
 ### 7.2 `--alignSJoverhangMin` / `--alignSJDBoverhangMin` — the flag that actually matches the signature
+
+**Shipped** in #467 as module literals, at ENCODE's `8` and `1`, on all four STAR modules — with the
+caveat below taken rather than argued away: `8` does not reach the observed anchors, and `BySJout` is
+what closes that gap, since the junction filter it enforces uses a 12 bp GT/AG overhang threshold.
 
 **Values:** ENCODE uses `8` and `1`. **Sources:** STAR manual §3.3.2;
 `ENCODE-DCC/rna-seq-pipeline/src/align.py`.
@@ -1076,7 +1141,7 @@ discriminating work, and §7.3's cap does not. Rank effort accordingly.
 
 **This flag's job is to exclude the structurally impossible, not to discriminate artifacts.** That
 distinction is the whole of this subsection. Discrimination belongs to §7.1 and §7.2; the cap exists
-only so that STAR has *some* hard check where today it has none (§1.2). Setting it tight enough to
+only so that STAR has *some* hard check where it had none at all (§1.2). Setting it tight enough to
 separate artifacts from biology would be using the wrong instrument, and would fail silently in the
 one direction that cannot be audited.
 
@@ -1087,9 +1152,10 @@ ceiling** — and a cap set at or near it is wrong in kind, not merely short of 
 invisible: a read from a real-but-unannotated long intron simply stops aligning, is filed `too
 short`, and nothing anywhere reports that a length rule caused it.
 
-**Decision (hq, 2026-08-21): `--alignIntronMax 50000` and `--alignMatesGapMax 50000` for ce11.**
-This section previously recommended 200,000–300,000 on margin grounds. Two facts moved it, and both
-are stronger than the margin argument:
+**Decision (hq, 2026-08-21): `--alignIntronMax 50000` and `--alignMatesGapMax 50000` for ce11** —
+**shipped** in #467, and rendered on the plate's chimera as the maximum over its components (`ce11`
+50,000, `ecHT115` 1) rather than typed. This section previously recommended 200,000–300,000 on margin
+grounds. Two facts moved it, and both are stronger than the margin argument:
 
 **1. The organism's own curators are tighter.** WormBase's production RNA-seq pipeline
 ([`RNASeq.pm`](https://github.com/WormBase/wormbase-pipeline/blob/master/scripts/Modules/RNASeq.pm)
@@ -1110,7 +1176,7 @@ the cost of ~19% of the artifacts removed (1,347 vs 1,605 reads on `day9_N2_9`).
 | longest annotated worm intron | 100,912 (§3.3) | a **floor** on reality, never the target |
 | p99.99 of worm introns | 19,396 | the cap sits **2.6×** above this |
 | annotated introns above 25,000 | **3 of 204,769** | the whole cost, and all three are sjdb-exempt |
-| today's effective ceiling | ~15.3 Mb (chrII, §1.2) | what we run now |
+| the effective ceiling before #467 | ~15.3 Mb (chrII, §1.2) | what we ran |
 | tightening factor | **~300×** | |
 | longest gap observed | 1,049,334 | excluded by a wide margin |
 
@@ -1119,7 +1185,8 @@ the cost of ~19% of the artifacts removed (1,347 vs 1,605 reads on `day9_N2_9`).
 per-step window reach falls from 589,824 bp to ~147,456 bp, so the tight cap suppresses the
 **transitive merging of §1.2** rather than only the final gap length. The earlier draft counted
 "200,000 leaves `winBinNbits` untouched" as a point in its favour; that reading was backwards for
-this failure mode.
+this failure mode. The gate's unexpected 2.6× speedup is consistent with this and is the only
+evidence either way, and it is one observation on one cell set with four flags moving together (§8).
 
 **Set both flags.** `alignIntronMax` alone leaves the mate gap uncapped while still redefining the
 binning — STAR's own source carries an `ISSUE - to be fixed in STAR3` comment on exactly that.
@@ -1131,12 +1198,15 @@ go away — it is bounded only by how empty the tail is (3 introns above 25 kb; 
 **The cap is still the backstop, not the fix.** §7.1 and §7.2 identify these reads by anchor length,
 which is what the measured signature actually is (9–13 bp anchor, 66–122 bp soft-clip; 100% of the
 E. coli control). A cap cannot discriminate an artifact from biology; it can only exclude the
-structurally impossible.
+structurally impossible. **The gate says so directly:** the two E. coli cells that did not reach zero
+kept their residual under gaps of 16,093 and 39,244 bp — *below* the 50,000 cap, so the cap could not
+have excluded them and only the anchor filters were ever going to (§8).
 
 **Trans-splicing does not argue for loosening it further** — §6.1a works this through: outrons are
 60–500 bp, operon spacing ~100 bp, and for 98.5% of genes an SL-leader junction cannot be an `N` gap
 at all. The one exception, the 1.46% of protein-coding genes within merge reach of the chrV SL1
-array, is bounded by that array's position and is far inside a 200 kb cap.
+array, is bounded by that array's position and is far inside any cap considered here, 50,000
+included.
 
 **The same logic on the other genomes, and a measured illustration that these values are conventions
 rather than truths.** ENCODE's widely-copied `--alignIntronMax 1000000` is **below** the longest
@@ -1164,13 +1234,18 @@ computing the cap from the annotation being indexed. That idea now has two indep
    computed.
 
 If a per-organism value is wanted, it should be **a small table of deliberately loose round numbers
-with a recorded rationale**, not a `max()` over a file.
+with a recorded rationale**, not a `max()` over a file. That is what shipped, and both halves of the
+retraction are now recorded as decisions: `liulab-genome`'s ADR-0010 for why the table carries a
+hand-set column and derives nothing, ADR-0056 for why seqforge reads it.
 
-**An unresolved tension, recorded rather than settled.** Genome facts belong to `liulab-genome`, not
-to seqforge — which is an argument for the per-organism value living there. But a hand-set loose
-constant is a *different kind of fact* from a derived one: it is a policy choice about aligner
-behaviour, not a property of the assembly, and it is not obvious that it belongs in the same place.
-**This document does not resolve that; it is a record's job.**
+**A tension this document left open, and where it was settled.** Genome facts belong to
+`liulab-genome`, not to seqforge — an argument for the per-organism value living there. But a
+hand-set loose constant is a *different kind of fact* from a derived one: it is a policy choice about
+aligner behaviour, not a property of the assembly, and it was not obvious it belonged in the same
+place. **ADR-0056 settled it**: the bound is a property of the *reference*, so it is registered
+upstream and then **copied** into `processing.yaml` — because `run_id` folds no pin on
+`liulab-genome`, and a value read at run time would let one edited table cell change how a dataset
+aligns while two compiled pipelines kept one identity.
 
 **Remaining risks, whatever value is chosen:**
 - **Set both, not one.** With `alignMatesGapMax` left at 0 the mate gap stays uncapped by the
@@ -1178,14 +1253,21 @@ behaviour, not a property of the assembly, and it is not obvious that it belongs
   calls this an `ISSUE` (§1.1). Setting both makes the number you chose the number that applies.
 - **Annotated long introns are largely but not wholly exempt** (§1.5) — a second reason to stay loose,
   since the exemption cannot be relied on for reads stitched genomically.
-- **`winBinNbits` is redefined as a side effect.** At `alignIntronMax 200000` on ce11:
-  `floor(log2(200000/4)+0.5) = 16`, so `winBinNbits` is unchanged at 16 and `winFlankNbins` becomes
-  `200000/65536+1 = 4`, `winAnchorDistNbins` 8 (at 300,000: still 16, and 5/10) — i.e. a loose cap
-  barely perturbs the windowing,
-  whereas a 25,000 cap would have dropped `winBinNbits` to 13. **The loose value is also the less
-  invasive one**, which is a point in its favour that the tight value did not have.
+- **`winBinNbits` is redefined as a side effect**, and how much depends on the value: at 200,000 on
+  ce11 `floor(log2(200000/4)+0.5) = 16`, unchanged from the default, while 50,000 gives 14 and a
+  25,000 cap would give 13. The earlier draft counted the loose value's *non*-perturbation as a point
+  in its favour; the paragraph above retracts that, because suppressing the transitive merging is the
+  point rather than a side effect to minimise.
 
 ### 7.4 `--outSAMattributes` — yes, extend it with `jM jI`
+
+**Shipped** in #467, on all four modules — with one word of this subsection withdrawn. It is
+**not costless**, and the cost was not in alignments: `jM`/`jI` are the first SAM type-`B` **array**
+tags this pipeline has ever carried, and `split.py::_rewritten` fed pysam the bare `'B'` its own
+reader reports for an array, which `set_tags` rejects. Every `split_chimera` job on a chimeric plate
+died. Pre-existing code the new tags made reachable for the first time, fixed in `6d441c7`. **The
+gating run found it and the unit suite did not**, because no synthetic fixture record carried a
+non-scalar tag — which is the part worth carrying forward.
 
 **Value:** `NH HI AS nM jM jI` (i.e. `Standard` plus the two junction attributes; `NM MD` optional and
 costlier). **Source:** `parametersDefault` — `jM` is "intron motifs for all junctions (i.e. N in
@@ -1193,7 +1275,7 @@ CIGAR): 0: non-canonical; 1: GT/AG, 2: CT/AC, 3: GC/AG, 4: CT/GC, 5: AT/AC, 6: G
 junctions database is used, and a junction is annotated, 20 is added to its motif value**"; `jI` is
 "start and end of introns for all junctions (1-based)".
 
-This is the cheapest recommendation here and the only one that costs no alignments. §2.2 could not
+This is the cheapest recommendation here and the only one that costs no *alignments*. §2.2 could not
 close because `AS` alone cannot say whether a junction was annotated, canonical or not — and for
 three of the six CIGARs the answer decides whether STAR preferred the phantom at all. §6.5's first
 and best discriminator is exactly `jM`. Without it, the BAM records that a megabase gap happened and
@@ -1204,7 +1286,12 @@ refuses to say what kind.
 `--outSAMattributes`, so naming attributes explicitly does not disturb the `UB` tag the plate modules
 depend on. Costs: a few bytes per spliced record in BAM and CRAM.
 
-### 7.5 `--peOverlapNbasesMin` — relevant, and §6.3 raises its priority
+### 7.5 `--peOverlapNbasesMin` — relevant, still open, and deliberately not in #467
+
+**The one recommendation here that did not ship, and it is still a good idea.** #461 scoped it out on
+this subsection's own grounds — it changes alignment for *every* read rather than the pathological
+ones, and no pipeline surveyed in §4 enables it — so it needs its own measurement rather than a place
+inside someone else's gate.
 
 The manual (§11 "Merging of overlapping mates") says it "improves mapping accuracy for paired-end
 libraries with short insert sizes, where many reads have overlapping mates", merging mates and
@@ -1216,11 +1303,9 @@ real bases is a fully dovetailed, insert-shorter-than-read fragment, which is th
 algorithm exists for. Merging the mates first would give STAR one ~20 bp sequence to place instead of
 two, removing the paired-end degrees of freedom that let it build a "proper pair" spanning 94.5 kb.
 
-But: it is off by default, no Smart-seq3 or worm pipeline read in §4 turns it on, and it changes
-alignment for *every* read rather than for the pathological ones. **Candidate for its own
-measurement, not part of this fix.**
+But: it is off by default, and no Smart-seq3 or worm pipeline read in §4 turns it on.
 
-### 7.6 What NOT to do
+### 7.6 What NOT to do — all six held, and #467 took none of them on
 
 - **Do not adopt the ENCODE set wholesale.** Take `BySJout`, `alignSJoverhangMin` and
   `alignSJDBoverhangMin` from it; leave its intron numbers behind — and note they do not even fit
@@ -1233,22 +1318,42 @@ measurement, not part of this fix.**
 - **Do not raise `alignIntronMin`.** It is inert on worm (§3.4).
 - **Do not set `alignIntronMax` near the longest annotated intron, and do not derive it from a GTF.**
   §7.3 — the annotation's maximum is a floor on biology, not a ceiling, and the derivation fails
-  silently in the tight direction.
+  silently in the tight direction. Both halves are now recorded: `liulab-genome`'s ADR-0010 and
+  ADR-0056.
 - **Do not lead with the cap.** It is a structural bound; the anchor filter and `BySJout` are what
   actually discriminate (§7.2).
 - **Do not quote 589,824 as the intron ceiling.** §1.2.
 
 ---
 
-## 8. The measurement that would size the blast radius
+## 8. The measurement that sized the blast radius
 
-**Status: (a)–(e) have been run on the plate; (f) has not.** The read-side census results and their
-caveats are in §9's first substantive bullet — including the correction that a first pass compared
-gap lengths lexicographically (`awk`'s `substr` returns a string; it needs `+0`), which put `N`>20 kb
-at 8–16% where the corrected figure is ~0.2%. **Every gap figure quoted anywhere in this document is
-from the corrected pass.** The commands are kept here because they are the method behind those
-numbers and because (f) still needs running. All are read-only and belong in a Slurm job, never on a
-login node.
+**It was run, and it is not restated here.**
+[`star-splice-flags-gate-2026-08-22.md`](star-splice-flags-gate-2026-08-22.md) is the plate counted
+twice — the four censused cells realigned with the candidate flags as the only difference, both
+components, on `cpu02` under an existing allocation. **Both gates passed.** The intron-free
+component's spliced fraction fell from **0.132–2.764% to 0.0000–0.0097%**, two of four cells reaching
+exactly zero; the worm component's counted UMIs moved **−0.038% at worst** against a one-percent
+ceiling, and *rose* on one cell. That write-up carries the per-cell fate tables, the two arms' SHAs,
+the exact commands and the `split_chimera` failure §7.4 records — read it there rather than here.
+
+Two of its findings bear directly on this document's argument and are cited in place: the E. coli
+residual sits *below* the cap, so only the anchor filters could have caught it (§7.3), and the
+treatment ran 2.6× faster than the control, which nothing here separates from `BySJout` (§7.1, §7.3).
+
+**The read-side census came first, and it brackets rather than answers.** Run 2026-08-21 over `-s
+0.05` subsamples: gaps beyond the installed GTF's longest intron are **0.16–1.37%** of unique reads
+per cell, and spliced reads on a `≤12 bp` anchor are **18%** of spliced reads (42.8% in the most
+degraded cell). The first is a floor — a fabricated gap shorter than a real intron is not separable
+by length — and the second a ceiling, because a short overhang against an *annotated* junction is
+legitimate and STAR permits it deliberately. Neither is the number that decided anything, which is
+why (f) exists.
+
+**The commands are kept because they are the method behind those two figures** and nothing else
+records them. They also carry the correction that a first pass compared gap lengths lexicographically
+(`awk`'s `substr` returns a string; it needs `+0`), which put `N`>20 kb at 8–16% where the corrected
+figure is ~0.2%. **Every gap figure quoted anywhere in this document is from the corrected pass.** All
+are read-only and belong in a Slurm job, never on a login node.
 
 **(a) Every `N` gap in one cell's unique BAM, as a distribution.**
 
@@ -1319,7 +1424,7 @@ samtools view -F 0x904 day9_N2_9.ce11.unique.bam \
 **(e) The E. coli false-positive rate — the cheapest and most decisive number here (§6.4).**
 
 ```sh
-# every N gap on the intron-free arm of the chimeric reference; every one is spurious by construction
+# every N gap on the intron-free Component of the chimeric reference; every one is spurious by construction
 EC=$(samtools idxstats day9_N2_9.chimera.bam | awk '$1 ~ /ecHT115|NC_/ {print $1}')
 samtools view -F 0x904 day9_N2_9.chimera.bam $EC \
 | awk 'BEGIN{OFS="\t"} { c=$6; g=0; m=1e9; sp=0
@@ -1331,60 +1436,57 @@ samtools view -F 0x904 day9_N2_9.chimera.bam $EC \
        END{ printf "ecoli aligned=%d  with N gap=%d  (%.4f%% — ALL spurious)\n", n, spl, 100*spl/n }'
 ```
 
-Repeat on the worm arm and subtract: the difference is an upper bound on how much of the worm's
+Repeat on the worm component and subtract: the difference is an upper bound on how much of the worm's
 spliced signal is real.
 
-**(f) Plate-wide, and against the `ambiguous` fate.** The fate is only observable through the counter,
-so this is a controlled re-count on a handful of cells rather than a BAM statistic:
-
-```sh
-# realign N cells twice — the candidate flags are the ONLY difference — then count each arm
-seqforge io umi-count \
-  $(for s in "${CELLS[@]}"; do printf '%s=%s/%s.bam ' "$s" "$ARM" "$s"; done) \
-  --assembly ce11 --annotation <registered-gtf-name> --out "$ARM.h5ad" --threads 8
-
-# then, in python: compare obs["ambiguous"] / obs["n_fragments"] between the two h5ads,
-# plus obs["no_feature"], and X.sum() per cell so a fate that merely MOVED is visible
-```
-
-**Deliberately not proposed:** a whole-plate rerun. A dozen cells spanning the plate's depth range
-answer the question, and the two arms differ in one flag.
+**(f) Plate-wide, and against the `ambiguous` fate.** This is the one that decided the change, and it
+was run as written — a controlled re-count on a handful of cells rather than a BAM statistic, because
+the fate is only observable through the counter. Four cells, not the whole plate. The commands as
+actually run, and every number they produced, are in the gate write-up.
 
 ---
 
-## 9. What is not settled
+## 9. What is still not settled
 
+Reconciled 2026-08-22, when #459 closed. The blast radius, the corrected annotation table, and where
+the cap's value lives were on this list and are not any more — §8, §3.1 and ADR-0056 respectively.
+What is left:
+
+- **`_fragment_span` still spans the `N` gap.** §5.1 and §7.6: ours is the only engine of five
+  surveyed that hands the counter a contiguous interval including the gap, and its docstring argues
+  for that on independent grounds (it also covers the inner mate gap). #461 put it out of scope
+  deliberately — an aligner artifact is not a reason to change a counter — and the gate's `ambiguous`
+  improvements are the aligner emitting fewer phantom gaps, not the counter handling them
+  differently. Still its own question, and it gets *worse* on human and mouse.
+- **`--peOverlapNbasesMin` on this chemistry** (§7.5) — the recommendation here that did not ship.
+  Promoted by the mirrored-CIGAR signature of §6.3, and it needs its own measurement because it
+  changes alignment for every read.
+- **The ENCODE mismatch pair** (`outFilterMismatchNmax 999`, `outFilterMismatchNoverReadLmax 0.04`).
+  Not adopted: it is a mismatch policy, and it interacts with the Tn5 clip's effect on the
+  read-length denominator (§1.3), which nobody has measured.
+- **Raising `sjdbScore`.** It is the bonus for crossing an *annotated* junction, so raising it makes
+  annotated junctions more competitive against phantom novel ones — a plausible direction, pointing
+  opposite to ENCODE's `sjdbScore 1`, and entirely unmeasured.
+- **`day13_CF_1`'s confound.** The cell worst on every axis in the census is also the most degraded
+  library, and it is the oldest age point of an aging study — so library quality and the biological
+  variable move together, and nothing here separates them. Worth a full-plate age trend; not done.
+- **`sacCer3` has no registered cap**, and ships unfilled by design (#461's Further Notes): its
+  longest annotated intron is 2,483 bp over 380 introns, and no curator's pipeline backs a number the
+  way WormBase backs the worm's. Either it earns a rationale of the same standard or yeast keeps
+  today's behaviour. Do not invent a number to fill the cell.
+- **Whether *cox-6B*'s 22 bp 5′ exon is a spliced leader** (§3.3, §6.1a). Testable by comparing that
+  exon's sequence to SL1; nobody has. If it is, the second-longest "intron" in the worm genome is an
+  annotation artifact of trans-splicing, and the top of the tail is thinner still.
+- **What `BySJout` costs at plate scale.** Two-stage mapping, per cell, 784 of them. On the gate's
+  four cells the wall clock went the other way, by 2.6×, with four flags moving at once — an
+  observation, not a cost model.
+- **Which motif class each observed junction has** (§2.2), and **the mate CIGARs** behind §2.3's four
+  consistent readings. Both are now unanswerable rather than merely unanswered: the archives they were
+  read from predate `jM`, and under the shipped flags those junctions no longer form, so only a
+  deliberate realignment at the *old* settings with `jM` on could recover them. Nobody needs to.
+- **How often a long *annotated* worm intron is stitched genomically rather than through the sjdb
+  path** (§1.5) — the only case where a cap costs real alignments. Not measured directly; bounded in
+  aggregate by Gate 2's −0.038%.
 - **scRecounter's STAR version is loosely pinned** (`envs/star.yml`: `star=2.7`, no lockfile) and its
   built container lives in a private Arc registry, so §4.1 describes the *source*, not a verified
   running binary. Nothing in §4.1's argument depends on the patch version.
-- **The blast radius on the real plate — now partly measured, and the remainder is the hard part.**
-  The read-side census in §8 was run on 2026-08-21 over `-s 0.05` subsamples of six cells: gaps
-  beyond the installed GTF's longest intron are **0.16–1.37%** of unique reads per cell, and spliced
-  reads on a `<=12 bp` anchor are **18%** of spliced reads (42.8% in the most degraded cell). Those
-  two bracket the answer rather than give it: the first is a floor, because a fabricated gap shorter
-  than a real intron is not separable by length; the second is a ceiling, because a short overhang
-  against an *annotated* junction is legitimate and STAR permits it deliberately
-  (`--alignSJDBoverhangMin 3`). **Closing the bracket needs each junction checked against the
-  annotation, which the archives cannot support today because `jM`/`jI` are not emitted** (§7.4) —
-  so this is an argument for that flag, not merely a gap in this document. What remains entirely
-  unrun is §8's realign-and-compare arm: nobody has counted a plate twice and diffed the fates, so
-  the *matrix-level* cost of the artifact is still unknown, and it is the one that decides §7.
-- **Which motif class each observed junction has** (§2.2). `jM` is not in the BAM, and for three of
-  the six CIGARs the answer decides whether STAR preferred the phantom at all. Unresolvable
-  retrospectively without realigning.
-- **The mate CIGARs**, hence the exact per-pair arithmetic. §2.3 gives four consistent readings and
-  cannot choose between them from `AS` alone.
-- **What `BySJout` costs on a 784-cell plate.** Two-stage mapping, per cell, with the index in shared
-  memory — plausibly cheap, entirely unmeasured.
-- **How often a long *annotated* worm intron is stitched genomically rather than through the sjdb
-  path** (§1.5), which is the only case where a cap costs real alignments.
-- **The corrected per-annotation intron table for the installed GTFs** (ce11/WS298, sacCer3, mm39,
-  hg38). §3.1's figures were withdrawn as plus-strand-only; a corrected pass was in flight when this
-  was finalised. Nothing in §7 depends on it — §3.2's Ensembl figures carry the argument — but the
-  installed-file numbers are what a future derived value would have read.
-- **Whether *cox-6B*'s 22 bp 5′ exon is a spliced leader** (§6.1a). Testable by comparing that exon's
-  sequence to SL1; nobody has. If it is, the second-longest "intron" in the worm genome is an
-  annotation artifact of trans-splicing, which would make the top of the tail thinner still.
-- **`--peOverlapNbasesMin` on this chemistry** (§7.5) — plausible, promoted by §6.3, unmeasured.
-- **Whether any of this belongs in the modules at all, or in the recipe.** §7.3 states the tension;
-  it does not resolve it. That is a record's job.
