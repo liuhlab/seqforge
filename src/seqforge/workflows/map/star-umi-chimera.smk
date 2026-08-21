@@ -719,11 +719,13 @@ rule split_chimera:
     reserved. The same figure `multiplaced_to_cram` declares -- the two run against each other
     over one BAM, so a plate's width should not depend on which of them got there first. What the
     verb spends it on is the BGZF codec and nothing else, divided across the outputs: the record loop
-    is one stateless pass and stays on one core whatever this says, while the block compression
-    underneath it is where writing several BAMs actually spends its wall-clock. Asking the scheduler
-    for cores and then handing the verb none of them is the shape this module's own history records
-    on `umi_count`, where a whole plate was counted on one core inside an allocation sized for the
-    rest.
+    is one stateless pass and stays on one core whatever this says, and the loop is where this rule's
+    wall-clock went -- the block compression underneath it measured 12.2% of the pass against the
+    loop's 81.4%, and was that cheap only because it is threaded and overlaps behind a serial
+    producer. So this figure buys the cheaper half of the pass -- and handing it over is still the
+    point, because asking the scheduler for cores and then handing the verb none of them is the shape
+    this module's own history records on `umi_count`, where a whole plate was counted on one core
+    inside an allocation sized for the rest.
 
     Whether one wide split beats several narrow ones on a real plate is UNMEASURED, and the recipe's
     own figure is what is passed rather than a number invented here.

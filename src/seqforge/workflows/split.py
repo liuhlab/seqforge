@@ -103,6 +103,7 @@ survivor population that multiply-placed survivors are only ever a fraction of.
 
 from __future__ import annotations
 
+import copy
 import json
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -138,12 +139,6 @@ DROP_REASONS = ("unmapped", "secondary", "supplementary")
 #: The ``@PG`` record this module appends. One identifier, spelled once, because it is also what a
 #: later reader would look the line up by.
 _PROGRAM_ID = "seqforge-split-chimera"
-
-#: SAM's word for a tag holding an ARRAY rather than one value — the aligner's junction attributes
-#: are the two this file meets. Named because :func:`_rewritten` tests for it and the letter alone
-#: says nothing: what makes it the exception there is that it is the one declared type a writer
-#: cannot be handed back, since the subtype is the array's own element width.
-_ARRAY_TAG_TYPE = "B"
 
 
 class SplitError(RuntimeError):
@@ -346,45 +341,41 @@ def _restored(
     return pysam.AlignmentHeader.from_dict(header), tids
 
 
-def _rewritten(record: AlignedSegment, header: AlignmentHeader, tids: Mapping[int, int]) -> Any:
-    """One kept record, rebuilt against the restored header so its references resolve there.
+def _rewritten(record: AlignedSegment, tids: Mapping[int, int]) -> Any:
+    """One kept record, copied, with its reference indexes moved into the restored dictionary.
 
-    A record is copied field by field rather than handed to the writer as it stands, because what
-    changes is not a field but the dictionary the record's reference INDEXES into: the same tid means
-    a different chromosome under the new header, and both mates' indexes have to move together.
+    Nothing about the record changes except where its references POINT: the same tid means a
+    different chromosome under the restored header, so the record's own index moves and its mate's
+    moves with it. Everything else — the flag, the coordinate, the CIGAR, the sequence, the base
+    qualities, the template length, and every aux tag at the width it was declared at — survives
+    because it is never taken apart. A copy has no field list to fall behind the record's, and no tag
+    is re-declared from its value, so nothing here can narrow an integer or widen an array.
 
-    The tags come over WITH the types they were declared with, which is what asking for the value
-    type buys: SAM writes an integer at whatever width holds it, so a tag handed back as a bare
-    value is re-declared from that value and a record correct on the way in is narrowed on the way
-    out. An ARRAY tag — the aligner's junction attributes are two — cannot come back that way,
-    because its declared type is only the letter `B` and the writer has nothing to do with that: the
-    subtype is the element width, and an array already carries it as its own typecode. So the letter
-    is dropped for exactly those and kept for everything else. Which is not a special case so much as
-    the two halves of one rule — hand back what the reader could not infer, and nothing it could.
+    **An unset mate pointer is left exactly as it is.** ``-1`` is not a reference index but a record
+    saying its mate went nowhere, and it is no key of the map; a copy arrives already carrying it, so
+    the patch has to move a SET pointer and let that one alone — which is the opposite failure from
+    the one a field-by-field rebuild had, where an unset pointer stayed unset by never being assigned.
+
+    **What comes back is for a WRITER and for nothing else.** pysam will not let a record's header be
+    reassigned, so the copy stays associated with the SOURCE file's header: call ``reference_name`` or
+    ``to_string()`` on the returned object and the moved index is resolved against the chimeric
+    dictionary, which answers with a suffixed name — and, the index having already moved, not even
+    the one the record was read from. What lands on disk is
+    right because :meth:`AlignmentFile.write` resolves names against the FILE's header — the record
+    contributes the index, the output header contributes the dictionary — and the only thing between
+    that and a bug is that the sole caller hands this straight to the writer for the Component whose
+    map it was rewritten through. The copy also holds that source header by reference, so it stays
+    readable after the source file is closed.
+
+    Copied rather than rebuilt because the rebuild was 81.4% of this rule's wall time, and reading
+    every aux tag back as ``(tag, value, type)`` tuples to re-declare it was 54.8% on its own. Method
+    and tables: the split-timing collection kept with the plate it was measured on,
+    ``aging_SS3/script/metrics784/split_timing/``.
     """
-    import pysam
-
-    out = pysam.AlignedSegment(header)
-    out.query_name = record.query_name
-    out.flag = record.flag
+    out = copy.copy(record)
     out.reference_id = tids[record.reference_id]
-    out.reference_start = record.reference_start
-    out.mapping_quality = record.mapping_quality
-    out.cigartuples = record.cigartuples
     if record.next_reference_id >= 0:
         out.next_reference_id = tids[record.next_reference_id]
-        out.next_reference_start = record.next_reference_start
-    out.template_length = record.template_length
-    # Sequence before qualities, and not the other way round: pysam clears the qualities whenever a
-    # sequence is assigned, so the obvious order silently writes a record with no base qualities.
-    out.query_sequence = record.query_sequence
-    out.query_qualities = record.query_qualities
-    out.set_tags(
-        [
-            (tag, value) if kind == _ARRAY_TAG_TYPE else (tag, value, kind)
-            for tag, value, kind in record.get_tags(with_value_type=True)
-        ]
-    )
     return out
 
 
@@ -438,9 +429,13 @@ def split_chimera(
     happened and the caller still gets the numbers back, they simply do not outlive the process.
 
     **``threads`` buys BGZF codec threads and nothing else, because there is nothing else to buy.**
-    The record loop is one stateless pass and stays on one core whatever this says; what scales is
-    the block compression underneath it, which is where the wall-clock of writing several BAMs
-    actually goes. So the figure is DIVIDED across the outputs rather than handed to each of them:
+    The record loop is one stateless pass and stays on one core whatever this says — and the loop is
+    where the wall-clock went, not the block compression underneath it. Measured on the
+    implementation that rebuilt each kept record, the codec was 12.2% of this pass against the loop's
+    81.4%, and it was that cheap only because it is threaded and overlaps behind a serial producer:
+    take most of the loop away, as copying the record does, and the codec's share of a much smaller
+    wall rises without anything having been bought. So the figure is DIVIDED across the outputs
+    rather than handed to each of them:
     ``n`` writers each opening a pool of ``n`` is ``n²`` codec threads against an allocation of
     ``n``, and oversubscribing a scheduler that was told a number is worse than ignoring the number
     — which is the other failure available here, and the one this repo has already paid for once,
@@ -540,8 +535,8 @@ def split_chimera(
                         f"output, and assigning it to one would turn a cross-species ambiguity into "
                         f"a confident read"
                     )
-                header_out, tids = restored[component]
-                writers[component].write(_rewritten(record, header_out, tids))
+                _, tids = restored[component]
+                writers[component].write(_rewritten(record, tids))
                 kept[component] += 1
                 # No NH is one placement: the tag is the aligner's statement that a read went
                 # somewhere else too, and its absence is not a missing measurement. It marks the

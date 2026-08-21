@@ -6217,7 +6217,7 @@ def test_a_rewritten_record_still_writes_its_restored_names_after_the_source_fil
             if r.reference_id in tids
         )
         payload = record.to_string().split("\t")
-        rewritten = _rewritten(record, header, tids)
+        rewritten = _rewritten(record, tids)
 
     with pysam.AlignmentFile(str(out), "wb", header=header) as writer:
         writer.write(rewritten)
