@@ -685,6 +685,10 @@ _RENDER: dict[str, Any] = {
     "whitelist": "wl.txt",
     "out_prefix": "out/",
     "threads": 4,
+    # The renderer requires the assembly's junction bound of every caller, `None` included, so that
+    # "no cap is registered" and "the caller forgot to look" cannot render the same command line.
+    # These cases are about the flag sets around it, so they state the absent one.
+    "intron_max": None,
 }
 
 

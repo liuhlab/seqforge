@@ -37,11 +37,25 @@ class GenomeRef(BaseModel):
     scATAC index is built from the FASTA alone, and the deliverable is a fragments file, not a count
     matrix, so there is no GTF to name (and nothing would read it). Every counting pipeline (STAR /
     STARsolo) requires it, which the processing policy enforces per-pipeline.
+
+    ``ncbi_taxid`` and ``intron_length_cap`` are both facts about the ASSEMBLY, copied off
+    liulab-genome's shipped table by the processing policy — never anything a user states and never a
+    copy of the dataset's own organism. They are recorded rather than looked up at run time because
+    this file is inside ``run_id``: a value read from the table by a rule would let an upstream edit
+    change how a dataset aligns while two compiled pipelines kept one identity.
+
+    They differ on a chimera, and the difference is the point. A taxid is an IDENTITY, and a chimera
+    is more than one organism, so its row carries none and this field stays ``None``. A cap is a
+    BOUND, and a bound over a union of components is the maximum of theirs, so a chimera has one
+    whenever every component does.
     """
 
     assembly: str
     annotation_name: str | None = None
     ncbi_taxid: NcbiTaxid | None = None
+    #: The longest gap STAR may open, in bp, or ``None`` where the lab has not characterised this
+    #: assembly — at which the aligner keeps its own defaults and no flag is emitted at all.
+    intron_length_cap: int | None = None
 
 
 class EvidencedGenome(Evidenced[GenomeRef]):

@@ -325,6 +325,7 @@ def starsolo_argv(
     out_prefix: str,
     threads: int,
     bam_sort_ram_bytes: int | None,
+    intron_max: int | None,
     out_sam_type: Sequence[str] = SHIPPED_OUT_SAM_TYPE,
     genome_load: str = SHIPPED_GENOME_LOAD,
     sys_shell: str | None = None,
@@ -366,6 +367,12 @@ def starsolo_argv(
     flag has to escalate per retry attempt, so it reaches the shell as :data:`SORT_CAP_SHELL` instead.
     An instrument passes the number — omitting it is what left the memory instrument running without
     the flag that bounds STAR's memory.
+
+    ``intron_max`` is the assembly's junction bound, and it is REQUIRED with ``None`` a legal value
+    for the same reason the sort cap above is: every caller has to answer, so that "this assembly has
+    no registered cap" and "this caller forgot to look" cannot arrive as the same command line. It is
+    the recipe's, read out of the composed config by whoever renders — the module off
+    ``config["genome"]``, the instrument off the plan it composed — and never derived here.
     """
     onlists = (whitelist,) if isinstance(whitelist, (str, Path)) else tuple(whitelist)
     return (
@@ -403,7 +410,7 @@ def starsolo_argv(
         # that spell their argv inline take the same tokens through a `params:` slot. `None` because
         # this module states its own `--outSAMattributes` below, junction pair included, and two
         # attribute lists on one command line is the later one silently winning.
-        *splice_argv(sam_attributes=None),
+        *splice_argv(intron_max=intron_max, sam_attributes=None),
         "--outFileNamePrefix",
         out_prefix,
         "--outSAMtype",

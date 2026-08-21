@@ -267,6 +267,18 @@ def plan(
         "assembly": intent.genome.value.assembly,
         "annotation": intent.genome.value.annotation_name,
     }
+    if intent.genome.value.intron_length_cap is not None:
+        # COPIED from the recipe, never looked up here: the value the pipeline aligns under has to be
+        # the one the recipe recorded, or an edit to an upstream table would change the alignment of a
+        # dataset whose `run_id` did not move. The policy read it off the shipped assembly table when
+        # it wrote the recipe, and that copy is what puts it inside the processing hash.
+        #
+        # Conditional for the same reason `components` below is: a config key is a byte of the
+        # compiled pipeline and every byte is hashed into the directory the run lives in, so a key
+        # that appeared unconditionally would re-key every pipeline in the corpus to say nothing.
+        # The modules read it with `.get`, which is what makes an unregistered assembly emit no flag
+        # rather than refuse to compose.
+        genome["intron_length_cap"] = intent.genome.value.intron_length_cap
     config: dict[str, object] = {
         "chemistry": list(chemistry),
         "genome": genome,

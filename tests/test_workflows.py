@@ -52,6 +52,7 @@ from conftest import (
 from seqforge import __version__ as seqforge_version
 from seqforge import kb
 from seqforge.compose import compose, core
+from seqforge.manifest import intron_length_cap
 from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
 from seqforge.models.processing import RuntimeEnv, SoloFeature
 from seqforge.workflows import (
@@ -1497,7 +1498,7 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     plan can say whether the tokens reached a command line, which is exactly the failure a module
     that dropped its slot would have.
 
-    Eight claims, and a dry run is the only thing that can make any of them:
+    Nine claims, and a dry run is the only thing that can make any of them:
 
     1. **The load is a job.** A rule unreachable from `rule all` plans nothing, and this one is
        reachable only through the mapping rule's inputs — there is no target naming it.
@@ -1547,6 +1548,20 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
        of them, and only a plan can tell the two apart. The attributes are asserted as membership in
        whatever list the command names, because the module that spells its own list carries `CB`/`UB`
        in it and the three that do not carry STAR's default four — one claim over both shapes.
+
+    9. **The junction bound is the RECIPE's**, and it is the one claim here whose answer differs by
+       route. A route whose recipe carries an intron cap renders `--alignIntronMax` and
+       `--alignMatesGapMax` at that value, and one whose recipe carries none renders neither — the
+       second being what keeps an assembly the lab has not characterised aligning exactly as it does
+       today. Both cases are covered because the routes really differ: the chimeric twin composes
+       against the one real **Chimera** and so carries the maximum over its **Component**s, while the
+       three plain routes compose against an assembly the shipped table does not list.
+
+       Taken from the recipe rather than typed, so what can go red is a module dropping the value or
+       the composer emitting one nobody recorded — and never a number someone deliberately moved.
+       The pair is asserted CONTIGUOUSLY with the filters above, from one call to the renderer,
+       because setting the intron maximum without the mate gap is the half-application STAR's own
+       source carries an unfixed-issue comment about.
 
     Parametrized over :func:`~conftest.star_modules`, DERIVED from the registry: the lifecycle is
     copied into each workflow file rather than factored out, so a fourth STAR workflow must be
@@ -1606,16 +1621,27 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     assert all("--genomeLoad LoadAndKeep" in cmd for cmd in jobs.values()), jobs
     assert all(re.search(r"--limitBAMsortRAM \d+", cmd) for cmd in jobs.values()), jobs
 
-    # The junction filters, as the ONE renderer spells them -- a module that kept STAR's defaults
+    # The junction decision, as the ONE renderer spells it -- a module that kept STAR's defaults
     # renders none of these, and at those defaults the intron-length check is dead code and a novel
-    # junction needs a 5 bp anchor. `sam_attributes=None` because the attribute list is the half that
-    # legitimately differs per module and is checked as membership just below.
-    filters = " ".join(splice_argv(sam_attributes=None))
+    # junction needs a 5 bp anchor. The length bound comes from the RECIPE this route composed, so
+    # this is the same claim for a capped assembly and an uncapped one and neither case is written
+    # out here. `sam_attributes=None` because the attribute list is the half that legitimately
+    # differs per module and is checked as membership just below.
+    cap = processing.processing.genome.value.intron_length_cap
+    filters = " ".join(splice_argv(intron_max=cap, sam_attributes=None))
     for wildcard, cmd in jobs.items():
         assert filters in cmd, (
             f"{module} maps {wildcard} on STAR's junction defaults -- `{filters}` is nowhere on the "
             f"command it renders, so a read whose only support is a 9 bp anchor is placed and the "
             f"gap it opens is bounded by the contig:\n{cmd}"
+        )
+        # ...and the other direction, which is the half a substring check cannot make: an assembly
+        # the lab has not characterised gets NO bound rather than one nobody chose. A module reading
+        # the key with a subscript, or a composer emitting it unconditionally, lands here.
+        assert cap is not None or "--alignIntronMax" not in cmd, (
+            f"{module} maps {wildcard} under an intron bound its recipe records none of, so an "
+            f"unfilled row in the shipped table is imposing a number on an assembly nobody "
+            f"characterised:\n{cmd}"
         )
         # ...and the record can say afterwards WHICH junction it crossed. Membership, not the whole
         # list: `map/starsolo` states its own attributes and carries `CB`/`UB` among them, while the
@@ -7644,6 +7670,13 @@ def test_every_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_accepts(
     this one's: `map/starsolo` adds `CB`/`UB`, and STAR takes those only beside a sorted BAM, which
     the scaffolding below deliberately does not write. The junction pair is what is under test and it
     is identical in both forms.
+
+    **The intron bound rides the same invocation, at a registered value rather than at none.** The
+    flag pair is legal only in combination — an intron maximum without a mate gap maximum is the
+    half-application STAR's own source carries an unfixed-issue comment about — and a sweep that
+    passed no cap would ask the binary about the one command line the pair is absent from. The value
+    is a real assembly's, through the same policy function that writes it into a recipe, so what the
+    binary judges is what a worm plate submits.
     """
     star = shutil.which("STAR")
     if star is None:
@@ -7654,7 +7687,7 @@ def test_every_flag_a_starsolo_chemistry_renders_is_one_the_pinned_star_accepts(
         spec = kb.load_spec(tech)
         if spec.require_backend().module != "map/starsolo":
             continue
-        flags = [*_rendered_clip_flags(spec), *splice_argv()]
+        flags = [*_rendered_clip_flags(spec), *splice_argv(intron_max=intron_length_cap("ce11"))]
         assert "--clipAdapterType" in flags, (
             f"{tech}: renders no trimmer at all, so the rule's subscript is a KeyError on a compute "
             f"node and this invocation would prove nothing about the chemistry"

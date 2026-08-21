@@ -50,7 +50,14 @@ def _load_units(path):
 UNITS = _load_units(config["units_tsv"])
 SAMPLES = sorted({u["sample_id"] for u in UNITS})
 OUTDIR = config["outdir"]
-ASSEMBLY = config["genome"]["assembly"]
+GENOME = config["genome"]
+ASSEMBLY = GENOME["assembly"]
+# The longest gap STAR may open on this assembly, recorded in the recipe by the processing policy off
+# liulab-genome's shipped table. `.get`, not a subscript, and that is the whole mechanism by which an
+# assembly the lab has not characterised emits no flag instead of refusing to compose: the scanner
+# that derives `required_config` counts a subscript and not a `.get`, so a subscript here would make
+# the composer owe this key for every dataset in the corpus.
+INTRON_MAX = GENOME.get("intron_length_cap")
 SOLO = config["solo"]
 # STAR takes --soloFeatures as N space-separated values and writes one Solo.out/<Feature>/ per value.
 FEATURES = SOLO["soloFeatures"].split()
@@ -172,7 +179,7 @@ rule genome_index:
         directory(f"{OUTDIR}/index/{ASSEMBLY}"),
     params:
         assembly=ASSEMBLY,
-        annotation=config["genome"]["annotation"],
+        annotation=GENOME["annotation"],
     run:
         from pathlib import Path
 
@@ -362,6 +369,10 @@ rule starsolo_count:
             whitelist=input.whitelist,
             out_prefix=f"{OUTDIR}/{wc.sample}/",
             threads=threads,
+            # The assembly's junction bound, from the recipe. Stated even when it is `None`, because
+            # the renderer requires it: "this assembly has no registered cap" and "this module forgot
+            # to ask" must not be able to arrive at STAR as the same command line.
+            intron_max=INTRON_MAX,
         ),
     shell:
         # STAR's whole command line is `workflows/starsolo_args.py`'s. Every literal that used to be

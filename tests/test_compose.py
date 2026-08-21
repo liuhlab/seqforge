@@ -891,10 +891,15 @@ def test_a_chimeric_assembly_swaps_to_a_declared_twin_and_refuses_against_every_
     assert isinstance(genome, dict)
     assert genome["components"] == ["ce11", "ecHT115"]
     assert genome["assembly"] == "ce11_ecHT115"
+    # ...and the Chimera's intron bound, which is the second conditional key here and the contrast
+    # worth reading beside the annotations below: it is the MAXIMUM over the Components' registered
+    # caps, so it IS offline-recoverable from the name plus the shipped table, and the recipe records
+    # it rather than a rule looking it up while the run is under way.
+    assert genome["intron_length_cap"] == 50000
     # Per-Component annotations are deliberately NOT a config key: a merged annotation does not
     # record what fed it, so the fact is not offline-recoverable and the counting verb reads it off
     # the completion record at run time.
-    assert set(genome) == {"assembly", "annotation", "components"}
+    assert set(genome) == {"assembly", "annotation", "components", "intron_length_cap"}
 
 
 def test_policy_takes_the_runtime_env_from_the_module_that_needs_it() -> None:

@@ -38,7 +38,14 @@ def _load_units(path):
 UNITS = _load_units(config["units_tsv"])
 SAMPLES = sorted({u["sample_id"] for u in UNITS})
 OUTDIR = config["outdir"]
-ASSEMBLY = config["genome"]["assembly"]
+GENOME = config["genome"]
+ASSEMBLY = GENOME["assembly"]
+# The longest gap STAR may open on this assembly, recorded in the recipe by the processing policy off
+# liulab-genome's shipped table. `.get`, not a subscript, and that is the whole mechanism by which an
+# assembly the lab has not characterised emits no flag instead of refusing to compose: the scanner
+# that derives `required_config` counts a subscript and not a `.get`, so a subscript here would make
+# the composer owe this key for every dataset in the corpus.
+INTRON_MAX = GENOME.get("intron_length_cap")
 READ_FILES_IN = config["read_files_in"]
 
 # The shared genome segment is loaded once and attached by every mapping job, so the rule that loads
@@ -109,7 +116,7 @@ rule genome_index:
         directory(f"{OUTDIR}/index/{ASSEMBLY}"),
     params:
         assembly=ASSEMBLY,
-        annotation=config["genome"]["annotation"],
+        annotation=GENOME["annotation"],
     run:
         from pathlib import Path
 
@@ -266,10 +273,11 @@ rule star_count:
         # each mate is its runs comma-joined, so a sample pooled across runs maps in one pass; only
         # the mates the layout HAS are passed, so a single-end library renders STAR's single-end form.
         reads=lambda wc: readfilesin(wc.sample, *mates()),
-        # STAR's junction flags, rendered by their one owner and interpolated whole. They vary with
-        # nothing, so they are module literals rather than anything's to choose -- and they are the
-        # same tokens in all four STAR modules, which is why no module spells them.
-        splice=splice_shell_args(),
+        # STAR's junction flags, rendered by their one owner and interpolated whole. The filters vary
+        # with nothing, so they are module literals rather than anything's to choose; the length
+        # bound varies with the assembly, so it arrives as the argument below and renders as nothing
+        # at all where the recipe carries none.
+        splice=splice_shell_args(intron_max=INTRON_MAX),
     shell:
         r"""
         # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)

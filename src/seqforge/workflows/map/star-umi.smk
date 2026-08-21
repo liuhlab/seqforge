@@ -69,8 +69,15 @@ UNITS = load_units(UNITS_TSV)
 # this is what units.tsv actually carries; they agree by construction because compose writes both.
 SAMPLES = sorted({u["sample_id"] for u in UNITS})
 OUTDIR = config["outdir"]
-ASSEMBLY = config["genome"]["assembly"]
-ANNOTATION = config["genome"]["annotation"]
+GENOME = config["genome"]
+ASSEMBLY = GENOME["assembly"]
+ANNOTATION = GENOME["annotation"]
+# The longest gap STAR may open on this assembly, recorded in the recipe by the processing policy off
+# liulab-genome's shipped table. `.get`, not a subscript, and that is the whole mechanism by which an
+# assembly the lab has not characterised emits no flag instead of refusing to compose: the scanner
+# that derives `required_config` counts a subscript and not a `.get`, so a subscript here would make
+# the composer owe this key for every dataset in the corpus.
+INTRON_MAX = GENOME.get("intron_length_cap")
 UMI = config["umi"]
 READ_FILES_IN = config["read_files_in"]
 
@@ -513,9 +520,10 @@ rule star_umi_map:
         read_files_type=lambda wc: read_files_type(wc.sample),
         read_through_clip=lambda wc: read_through_clip(wc.sample),
         # STAR's junction flags, rendered by their one owner and interpolated whole. Unlike the clip
-        # above they follow nothing about the cell -- they vary with nothing at all -- so they are
-        # module literals, and the same tokens reach the other three STAR modules from that owner.
-        splice=splice_shell_args(),
+        # above they follow nothing about the cell: the filters vary with nothing at all and are
+        # module literals, and the length bound varies with the ASSEMBLY, which is one value for the
+        # whole plate. The same owner renders both for the other three STAR modules.
+        splice=splice_shell_args(intron_max=INTRON_MAX),
     shell:
         # `--outSAMmultNmax 1` is a module literal for the same reason it is one in starsolo.smk: its
         # value varies with nothing. It writes only a top-scoring alignment, which is exactly the

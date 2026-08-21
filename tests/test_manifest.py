@@ -356,16 +356,27 @@ def test_a_template_is_portable_but_a_bound_one_refuses_a_foreign_dataset(tmp_pa
 
 
 @pytest.mark.parametrize(
-    ("assembly", "annotation", "taxid", "codes"),
+    ("assembly", "annotation", "taxid", "cap", "codes"),
     [
-        pytest.param("sacCer3", "ensembl", 559292, [], id="the-datasets-own-organism"),
-        pytest.param("ce11", "WS298", 6239, ["GENOME_ORGANISM_MISMATCH"], id="a-worm-genome"),
-        pytest.param("ce11_ecHT115", "WS298", None, [], id="a-chimera-is-more-than-one-organism"),
-        pytest.param("no_such_assembly", "ensembl", None, [], id="the-table-does-not-list-it"),
+        pytest.param("sacCer3", "ensembl", 559292, None, [], id="the-datasets-own-organism"),
+        pytest.param(
+            "ce11", "WS298", 6239, 50000, ["GENOME_ORGANISM_MISMATCH"], id="a-worm-genome"
+        ),
+        pytest.param(
+            "ce11_ecHT115", "WS298", None, 50000, [], id="a-chimera-is-more-than-one-organism"
+        ),
+        pytest.param(
+            "no_such_assembly", "ensembl", None, None, [], id="the-table-does-not-list-it"
+        ),
     ],
 )
 def test_validate_processing_blocks_a_genome_organism_mismatch(
-    built_v3: Built, assembly: str, annotation: str, taxid: int | None, codes: list[str]
+    built_v3: Built,
+    assembly: str,
+    annotation: str,
+    taxid: int | None,
+    cap: int | None,
+    codes: list[str],
 ) -> None:
     """A wrong-but-VALID assembly is the worst failure this system can produce: STAR aligns, exits 0,
     and emits a plausible matrix in the wrong coordinate space. Every other check catches something
@@ -382,11 +393,23 @@ def test_validate_processing_blocks_a_genome_organism_mismatch(
     chimera is more than one organism, so no single taxid is the answer, and an assembly the upstream
     table does not list is legal and simply unidentified. The check stays deliberately narrow rather
     than growing a refusal for either.
+
+    **The intron cap rides these rows because it has the same source and the same author** — a fact
+    about the assembly, off the same shipped table, written by the policy into the same recipe field
+    so that it rides into `run_id` rather than being looked up while a pipeline runs. Sharing the
+    rows is what makes the ONE case they disagree on legible instead of implicit: on the chimera the
+    taxid is `None` and the cap is a number, because a taxid is an IDENTITY and a chimera is more
+    than one organism, while a cap is a BOUND and a bound over a union is the maximum of its
+    components' — here the worm's 50,000 against the bacterium's 1. The unlisted row is where they
+    agree, and for the same reason: neither is knowable, and neither is guessed.
     """
     manifest, _ = built_v3  # organism = 559292 (yeast)
     p = _processing(manifest, assembly=assembly, annotation=annotation)
     assert p.processing.genome.value.ncbi_taxid == taxid, (
         "the taxid is the ASSEMBLY's, not the dataset's"
+    )
+    assert p.processing.genome.value.intron_length_cap == cap, (
+        "the cap is the ASSEMBLY's, and a chimera's is the maximum over its Components"
     )
 
     report = validate_processing(p, dataset=manifest)
@@ -687,6 +710,38 @@ def test_an_instruction_from_a_reference_doc_never_becomes_an_instruction() -> N
     assert instructions_from_assertions([a], instruction_docs=frozenset()) == ([], [])
     ins, _ = instructions_from_assertions([a], instruction_docs=frozenset({"e" * 64}))
     assert [i.field for i in ins] == [_QUANT]
+
+
+def test_every_genome_fact_but_the_assembly_is_derived_rather_than_instructable() -> None:
+    """The recipe's genome reference is one field a user may state and the rest read off a table.
+
+    `assembly` is the claim a paper actually makes ("aligned to ce11"), and it is the only one. The
+    others are facts about that assembly, looked up once by the policy and written down: the
+    annotation is a liulab-genome REGISTRY name, a vocabulary no paper writes in, and the taxid and
+    the intron cap come off the shipped table beside it. Asking a model for any of them would only
+    invite a guess at a value that is already known, and an instructed one would let a document
+    override what the table says about a reference it did not choose.
+
+    So the closed instructable surface is unchanged **by construction** rather than by anyone
+    remembering: the claim here is derived from the model, and a genome fact added tomorrow is
+    covered the day its field lands rather than the day someone adds a row. What goes red is a
+    widening — a new dotted key on the whitelist, which is a decision and belongs in a record, not a
+    line in a dict.
+    """
+    from seqforge.manifest import INSTRUCTABLE_FIELDS
+    from seqforge.models.processing import GenomeRef
+
+    derived = {f"processing.genome.{name}" for name in GenomeRef.model_fields} - {
+        "processing.genome.assembly"
+    }
+    assert "processing.genome.intron_length_cap" in derived, (
+        "the genome reference lost the intron cap, so this test now proves nothing about it"
+    )
+    assert not derived & INSTRUCTABLE_FIELDS, (
+        f"{sorted(derived & INSTRUCTABLE_FIELDS)} is derived from the shipped assembly table and is "
+        f"now instructable, so a document can contradict what the table says about a reference it "
+        f"did not choose"
+    )
 
 
 def _with_file(

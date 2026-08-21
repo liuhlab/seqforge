@@ -58,6 +58,7 @@ from .manifest import (
     ProcessingInputs,
     fill_manifest,
     fill_processing,
+    intron_length_cap,
     validate_manifest,
 )
 from .models.dataset import DatasetManifest, SampleGroup
@@ -547,6 +548,7 @@ def run_starsolo(
     barcode_fq: Path | Sequence[Path],
     whitelist: Path,
     solo: dict[str, object],
+    intron_max: int | None,
     outdir: Path,
     threads: int = 8,
     cost: dict[str, object] | None = None,
@@ -590,6 +592,13 @@ def run_starsolo(
       under is the cap a recipe of that size would run under. It defaults to the recipe default.
     - ``extra_args`` is what a measurement adds to itself, and is never a claim about what ships.
 
+    ``intron_max`` is NOT one of those four: it is the assembly's junction bound, which the module
+    reads from the composed config and this call has to state because the renderer requires it of
+    every caller. Stated rather than defaulted for the reason this whole function exists — an
+    instrument that quietly omitted a flag the module ships is what left the memory measurement
+    running without `--limitBAMsortRAM`. Its source is the assembly the params above were composed
+    for, so the two cannot answer differently.
+
     Keep that in mind before adding an argument here: this is a measuring device pointed at STAR, and
     it is NOT evidence about the pipeline. If you want a claim about what users run, put it in
     `run_composed` — or, now, in the renderer both of them share.
@@ -610,6 +619,7 @@ def run_starsolo(
             out_prefix=f"{outdir}/",
             threads=threads,
             bam_sort_ram_bytes=bam_sort_ram(mem_mb),
+            intron_max=intron_max,
             out_sam_type=out_sam_type,
             # PRIVATE, where the module attaches to a shared copy. The module's `load_genome` rule
             # creates the segment and its handlers release it; nothing here does either, so a shared
@@ -1569,6 +1579,10 @@ def run_cost_sweep(
                 barcode_fq=bc_fq,
                 whitelist=wl_path,
                 solo=solo,
+                # The same assembly the params above were composed for, through the same policy
+                # function that wrote the cap into the recipe — so the sweep runs the bound a real
+                # run of this assembly runs, and cannot price a command nobody submits.
+                intron_max=intron_length_cap(assets.assembly),
                 outdir=outdir,
                 threads=threads,
                 cost=cost,

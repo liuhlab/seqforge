@@ -18,11 +18,20 @@ three inline modules interpolate :func:`splice_shell_args` as ONE `params:` slot
 :func:`~seqforge.workflows.starsolo_args.starsolo_argv` calls :func:`splice_argv`. There is one place
 left to drop a flag from and it is this file.
 
-**Everything here varies with NOTHING, which is what makes it a module literal.** The rule is the one
+**Three of these vary with NOTHING, which is what makes them module literals.** The rule is the one
 the plate module's read-through renderer already states: a value that differs between two chemistries
 belongs to the chemistry's entry in the knowledge base, and a value that differs between none is the
-module's. A flag that varied with the ASSEMBLY would be neither, and would arrive as an argument to
-the function below rather than as a fifth spelling of the same list.
+module's. The intron cap is the fourth and it is neither — it varies with the ASSEMBLY — so it
+arrives as an ARGUMENT to the function below rather than as a fifth spelling of the same list, from
+the one place an assembly's facts are recorded: the recipe's genome reference, which the processing
+policy filled from liulab-genome's shipped table (`manifest.policy.intron_length_cap`).
+
+**The argument is required and its value may be `None`**, which is the difference between a module
+that has no cap and a module that forgot to ask for one. A default would make the second silent, and
+silence is precisely the failure this file exists to prevent: a slot the module has to place is a
+slot the module can misplace, and four modules each have to place this one. Stated required, a module
+that drops it dies where every plan in the suite renders, at parse time, rather than aligning a worm
+against the contig.
 """
 
 from __future__ import annotations
@@ -56,12 +65,14 @@ JUNCTION_ATTRIBUTES: tuple[str, ...] = ("jM", "jI")
 
 
 def splice_argv(
-    *, sam_attributes: Sequence[str] | None = STANDARD_SAM_ATTRIBUTES
+    *,
+    intron_max: int | None,
+    sam_attributes: Sequence[str] | None = STANDARD_SAM_ATTRIBUTES,
 ) -> tuple[str, ...]:
     """The junction flags every STAR module ships, in order, **excluding the binary and everything else**.
 
-    Three filters and an attribute list, and the ordering below is the ordering of how much
-    discrimination each buys — which is not the order intuition suggests.
+    Three filters, a length bound and an attribute list, and the ordering below is the ordering of how
+    much discrimination each buys — which is not the order intuition suggests.
 
     ``--outFilterType BySJout`` does the most work and is organism-independent. Under STAR's default
     ``Normal`` the junction filters (`outSJfilterOverhangMin`, 12 bp for a canonical GT/AG motif, and
@@ -80,6 +91,25 @@ def splice_argv(
     reach the observed anchors.** STAR's stitching test is ``< min + shift``, so at a repeat shift of
     0 an exactly-8 bp anchor still passes, and the census found anchors from 8 to 21 bp. ``BySJout``
     is what closes that gap, since the junction filter it enforces uses the 12 bp threshold above.
+
+    ``intron_max`` is the assembly's, and it is the BACKSTOP rather than the fix: it excludes the
+    structurally impossible, while the anchor filters above do the discriminating. It is deliberately
+    a loose round number with a recorded rationale and never derived from an annotation — a catalogue
+    of transcripts someone observed is a FLOOR on what biology does, so reading a ceiling off its
+    longest entry is category-incorrect however carefully computed, and it fails silently in the
+    tight direction when it is computed wrong. On an intron-free component it cannot bind at all,
+    which is the clearest demonstration available that it is not the fix.
+
+    **Both flags or neither, and never one.** ``--alignIntronMax`` alone leaves the mate gap
+    uncapped while still redefining STAR's window binning as a side effect — STAR's own source
+    carries an `ISSUE - to be fixed in STAR3` comment on exactly that — so a mate pair could still
+    span what a single read may not. That side effect is the second-order benefit and worth the
+    record: the cap re-derives `winBinNbits` (50,000 -> 14), which drops the per-step window reach
+    from ~589,824 bp to ~147,456 bp, so a tight cap SUPPRESSES the transitive window merging that
+    fabricates the gap rather than only bounding the gap it fabricated.
+
+    ``None`` renders neither flag, which is an assembly the lab has not characterised: an unfilled
+    row must change nothing rather than impose a number nobody chose.
 
     ``sam_attributes`` is what this module writes BESIDE :data:`JUNCTION_ATTRIBUTES`, defaulting to
     STAR's own four because naming an attribute replaces the default set rather than extending it.
@@ -102,6 +132,16 @@ def splice_argv(
         "1",
         *(
             ()
+            if intron_max is None
+            else (
+                "--alignIntronMax",
+                str(intron_max),
+                "--alignMatesGapMax",
+                str(intron_max),
+            )
+        ),
+        *(
+            ()
             if sam_attributes is None
             else ("--outSAMattributes", *sam_attributes, *JUNCTION_ATTRIBUTES)
         ),
@@ -115,6 +155,10 @@ def splice_shell_args(**kwargs: Any) -> str:
     command line are unguarded by construction. Joining here rather than in three Snakefiles is what
     collapses that exposure to a single tested call, and it is why the three inline modules take one
     slot rather than one per flag: a slot the module has to place is a slot the module can misplace.
+
+    Everything is forwarded, so ``intron_max`` stays required through here too: a module calling this
+    with no arguments raises where its `params:` block is evaluated, which is when the Snakefile is
+    parsed and therefore in every plan the suite renders.
     """
     return shlex.join(splice_argv(**kwargs))
 
