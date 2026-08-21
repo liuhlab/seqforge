@@ -1,4 +1,4 @@
-# What the multimappers are: the chrI rDNA array, 53% of placed molecules, and an 8x spread that rRNA leads but does not explain
+# What the multimappers are: the chrI rDNA array, two copies counted three ways, and an 8x spread that rRNA leads but does not explain
 
 Measured 2026-08-21 for [#427](https://github.com/liuhlab/seqforge/issues/427), on the same run as
 [the bacterial-fraction measurement](worm-bacterial-fraction-aging-plate.md): the in-house SMART-seq3
@@ -16,12 +16,16 @@ rather than asserts.
 
 ## The one-sentence answer
 
-**The multiply-placed bucket is chiefly ribosomal RNA: the assembly makes those reads ambiguous, and
-library prep sets how many of them there are.** ce11 collapses the 45S rDNA array into a few
-near-identical copies at the chrI terminus, so an rRNA read can never map uniquely; how large the
-resulting bucket is per library is rRNA carry-over, which varies ~8x across one plate. Neither half
-alone is the answer. rRNA is the **largest single identified driver** of the spread and not the
-explanation of it — rho^2 = 22% against the headline statistic, with the rest unaccounted for.
+**The multiply-placed bucket is chiefly ribosomal RNA, and three things make it what it is: the
+assembly collapses the 45S array into ~2.1 near-identical copies at the chrI terminus so an rRNA read
+can never map uniquely, the recipe leaves the mate gap unbounded so those two copies yield three
+legal pairings and NH=3, and library prep sets how many such reads a library carries — a carry-over
+that varies ~8x across one plate.**
+
+No one of the three is the answer by itself, and the middle one governs only the **count** — whether
+a fragment's placements number two or three — never whether the fragment was ambiguous at all. rRNA
+is the **largest single identified driver** of the spread and not the explanation of it — rho^2 = 22%
+against the headline statistic, with the rest unaccounted for.
 
 ## 1. Two statistics share the name, and they are not interchangeable
 
@@ -46,8 +50,9 @@ under 50%.
 
 The worked example makes it obvious. **`day17_DA_1`** reports STAR **7.90%** against counter
 **47.88%**, because it is a near-pure bacterial library: **656,460** ce11 records against
-**28,273,805** ecHT115 records, out of 23,276,339 STAR input reads. Its ce11 counter legitimately saw
-1.354% of the input, so its 47.88% is a share of almost nothing and says nothing about the worm.
+**28,273,805** ecHT115 records. Its counter's own `n_fragments` is **315,143** against 23,276,339
+STAR input reads — **1.354%** — so its 47.88% is a share of almost nothing and says nothing about
+the worm.
 
 **Consequence: never quote the counter-share maximum (69.235%, `day5_N2_26`) bare** — that cell's
 counter saw 18.9% of its reads. The STAR maximum is unaffected and is the one to quote.
@@ -91,7 +96,8 @@ STAR's pick among near-identical copies, not as abundance:
 | 10 | Y45F10C.2 | protein_coding | 1.452 | 64,850 | 56 |
 
 **Ranks 1, 2, 3 and 5 are the one chrI 45S repeat unit, and together they are 53.09% of all
-placement.** The rest is the well-known tandem and paralogous families — vitellogenins (`vit-3/4/5`),
+placement** — rank 5 included, because `rrn-3.56` is the previous repeat's 26S tail rather than a
+gene family of its own (§3). The rest is the well-known tandem and paralogous families — vitellogenins (`vit-3/4/5`),
 histones (`his-56/57/58/66`), small heat-shock (`hsp-16.11/48/49`), `nspc`, `pud`, and the adjacent
 `F23A7.4`/`F23A7.8` pair, both ~205 bp and 560 bp apart on chrX. Top 30 is **80.571%** of plate
 placement.
@@ -102,21 +108,107 @@ are in the top 5 of all 784 cells. But below rank 3 the ordering moves: the medi
 correlates with the plate profile at rho **0.707** only. Both halves are true and a claim that quotes
 one without the other is wrong.
 
-## 3. Why NH=3 dominates
+## 3. Why NH=3: two copies counted three ways
 
-<!-- PENDING: NH=3 mechanism, to be filled from the tiling probe -->
+**NH=3 is not three copies of anything. It is two copies counted three ways, because this recipe
+bounds no mate gap.** The assembly supplies the ambiguity; the pairing sets how many ways it is
+counted.
 
-Established so far, as observations rather than as an explanation:
+**What this section is for, and what it does not touch.** *81% of multiply-placed fragments hit three
+loci* invites the inference that the array holds three copies. It holds **~2.1**, and the third
+placement is an artifact of pairing across the two — a reader who does not know that will over-count
+the array, and preventing exactly that is the value of the finding. **The effect is confined to the
+shape of the NH histogram, which is a diagnostic.** The cross-copy pairing arises only when each mate
+already has two or more placements of its own, so **an unbounded mate gap cannot turn a
+uniquely-placed fragment into a multiply-placed one** and cannot reach the primary matrices at all.
+rRNA is dropped from downstream analysis by design, and the rRNA metric proposed below is a QC
+number, so an NH shift on rRNA reads moves nothing anyone acts on.
 
-- **NH is capped at 10** because the module passes no `--outFilterMultimapNmax` and STAR's default is
-  10. Reads above the cap are filtered to `too_many_loci` (0.1-0.8% throughout), so **the NH=10 bin
-  is a real bin and not a catch-all**, and the mean NH below is exact conditional on that filter.
-- **Plate mean NH = 2.9210.** Per cell: mean NH median 2.925 (min 2.794, max 4.722); % at NH==2
-  median 14.889; % at NH==3 median 82.357.
-- A control probe pushing synthetic 150 bp genomic tiles of these five genes through the plate's own
-  STAR index returned **NH=2** for the two 18S copies, **NH=1** for most of 26S, and **NH=1** for
-  100/100 control tiles from `III__ce11:6000000-6015000`. **So NH=3 is not explained by annotated rDNA
-  copy number**, and why it dominates is the open question this section will answer.
+**The array is ~2.1 tandem copies of a 7,197 bp unit**, and the period reads straight off the GTF:
+`rrn-1.2` start minus `rrn-1.1` start is 15,069,280 - 15,062,083 = **7,197**. Carry it back and
+`rrn-3.56` start + 7,197 = 15,067,496, which lands inside `rrn-3.1` — so **`rrn-3.56` is the previous
+unit's 26S tail and not a separate gene family**, and its `pseudogene` label is an artifact of
+annotating a collapsed array.
+
+A single **mate** off that unit therefore has **two** placements, which is exactly what the 150 bp
+single-end tiling probe reported and why it read as a contradiction. But STAR places a **pair**, and
+this recipe bounds no mate gap: at `alignMatesGapMax 0` STAR derives its own as
+`(2^winBinNbits) * winAnchorDistNbins` and states the result verbatim in its log — **589,824 bp**,
+eighty times the repeat period. With two copies 7,197 bp apart, **three pairings are legal and score
+identically**: both mates in copy A, both in copy B, and mate 1 in A with mate 2 in B. The reciprocal
+is RF-oriented and is not emitted. Three, exactly — `k(k+1)/2` for a k-copy tandem repeat at k=2.
+
+Real reads, 2e6 pairs per cell, the plate's own index and flags, every placement emitted. **The
+single-end rows are contrast only; the plate's NH is a paired-end number**, and the two are never one
+series:
+
+| run | multimapping fragments | NH=2 % | NH=3 % |
+|---|---|---|---|
+| `day17_N2_12`, paired-end, as the plate ran it | 808,835 | 14.10 | **83.45** |
+| `day17_N2_12`, single-end, mate 1, same reads | 870,937 | 92.51 | 3.73 |
+| `day17_N2_7`, paired-end | 120,152 | 33.10 | 44.85 |
+| `day17_N2_7`, single-end, mate 1 | 148,035 | 65.66 | 15.08 |
+
+Sweeping the bound on synthetic error-free pairs at a fixed 300 bp fragment, **the step lands on the
+repeat period to the base pair**:
+
+| `alignMatesGapMax` | NH=3 % |
+|---|---|
+| 500 | 0.55 |
+| 7,196 | 14.41 |
+| **7,197** | **84.28** |
+| 7,198 | 84.28 |
+| 20,000 | 85.61 |
+
+And the three loci sit where the mechanism says they sit. `day17_N2_12`, 674,989 NH=3 fragments over
+3,703 distinct triples; each locus is named by its leftmost mate, so two entries share a window
+wherever two of the three placements share that mate:
+
+| fragments | % | the three loci |
+|---|---|---|
+| 485,159 | 71.88 | `I:15062000` [rrn-1.1] \| `I:15062000` [rrn-1.1] \| `I:15069000` [rrn-1.2] |
+| 96,676 | 14.32 | `I:15062000` [rrn-1.1] \| `I:15062000` [rrn-1.1] \| `I:15070000` [rrn-1.2] |
+| 25,159 | 3.73 | `I:15063000` [rrn-1.1] \| `I:15063000` [rrn-1.1] \| `I:15070000` [rrn-1.2] |
+| 10,748 | 1.59 | `I:15060000` [rrn-3.56] \| same \| `I:15067000` [rrn-3.1] |
+| 7,958 | 1.18 | three *E. coli* HT115 contigs — genuine 3-copy rRNA operons, not an artifact |
+
+**99.94%** of the NH=3 fragments touching the locus (644,650 of 645,051) carry exactly one cross-copy
+placement against two same-copy ones, and `|TLEN|` on that cross-copy placement spikes at 7,200
+(452,962 fragments) and 7,400 (179,875) — one repeat period plus the insert.
+
+**Three alternatives are ruled out, with numbers:**
+
+- **Read length is not it.** Single-end tiles at 150 / 100 / 75 bp give NH=3 at **4.78 / 7.62 /
+  8.96%** against a target near 83%. The premise underneath that hypothesis is wrong as well: raw
+  reads are uniformly **150 bp** — the CRAM SEQ histogram is 150 -> 5,195,331 records and 128 ->
+  1,138,148, which is 150 minus the 22 bp SMART-seq3 tag and UMI — and the 208-230 bp "per pair"
+  figure that invited the hypothesis is STAR's **post-adapter-clip whole-library average**, the same
+  statistic `input_read_length` reports in §4.
+- **A third diverged copy is not it.** All three placements of **95.6%** of NH=3 fragments lie inside
+  `I__ce11:15,059,000-15,072,434`.
+- **Soft-clipping is not it.** 1,666,275 records at the locus are plain `150M`, and an adapter-free
+  synthetic paired set reproduces the effect at 85.61%.
+
+**The re-alignment reproduces the plate**, which is what licenses reading any of this back onto the
+784 cells: NH=3 at 83.45% against the shipped `day17_N2_12.multiplaced.cram`'s **83.39%** (6,673,399
+of 8,002,315), and multimapper rates of 40.57% against the plate's 40.52% for `day17_N2_12` and 6.04%
+against 6.06% for `day17_N2_7`.
+
+Two facts from the plate itself survive unchanged and bound all of the above. **NH is capped at 10**,
+because the module passes no `--outFilterMultimapNmax` and STAR's default is 10; reads above the cap
+are filtered to `too_many_loci` (0.1-0.8% throughout), so **the NH=10 bin is a real bin and not a
+catch-all** and the mean NH is exact conditional on that filter. And **plate mean NH = 2.9210**, with
+per-cell mean NH median 2.925 (min 2.794, max 4.722), % at NH==2 median 14.889 and % at NH==3 median
+82.357 — a plate sitting almost entirely on the k=2 arithmetic above.
+
+**How the probe was run, because two of these constraints shape what it can say.** The shipped
+`*.multiplaced.cram` **cannot be re-paired**: `cram.py` rewrites every QNAME to a fresh sequential id,
+and the file carries 8,002,315 records under 8,002,315 distinct names. So the probe started from
+**raw FASTQ** and re-extracted with the plate's own geometry, which is what makes it genuinely
+paired. The subsample is 2e6 pairs per cell (pairs 1,000,001-3,000,000) and reproduces the shipped
+multimapper rate to within 0.1 pp, so every NH percentage here carries noise at about that scale. The
+synthetic set fixes the fragment at 300 bp and uses error-free reads: it isolates the mechanism, and
+the real-data rows show it at scale.
 
 ## 4. The spread does not track what a reader would expect
 
@@ -204,8 +296,8 @@ identified driver, and nothing like the explanation.
 
 Two things travel with that number.
 
-**The strict share is a floor.** `rrn-3.56` sits inside the 45S repeat and the GTF calls it
-`pseudogene`. Widening to the repeat unit (chrI:15,058,000-15,073,000, 30 genes) moves plate placement
+**The strict share is a floor.** `rrn-3.56` is one repeat period below `rrn-1.1` and is the previous
+unit's 26S tail (§3), but the GTF calls it `pseudogene`. Widening to the repeat unit (chrI:15,058,000-15,073,000, 30 genes) moves plate placement
 share 49.530% -> **53.13%** and the median 51.354% -> **55.19%**, and barely moves either correlation.
 The definition is worth ~4 points and somebody has to choose it.
 
@@ -276,6 +368,19 @@ one-repo change:
   already holds. Doing it at mapping means either masking the rDNA — which changes what the data IS,
   the wrong side of the parse/count split — or opening an annotation the counter already has open.
 
+**One thing this measurement reports without acting on it: why §3's shape is still what a rerun would
+show.** Current `main` bounds the mate gap — `splice_args.py` emits `--alignMatesGapMax` at the same
+value as `--alignIntronMax`, both from the assembly's `intron_length_cap` — and this plate's own
+assembly does receive it. `intron_length_cap` derives a chimera's cap as the maximum over its
+components rather than reading a typed row, so `ce11_ecHT115` is max(`ce11` 50,000, `ecHT115` 1) =
+**50,000**; the empty cell upstream is correct for a chimera and is not a gap. **50,000 bp against a
+repeat period of 7,197 bp is far looser than the repeat**, so the cross-copy pairing stays legal and
+the NH histogram keeps the shape §3 describes. That is a statement about scales rather than about the
+bound: an intron is a gap *within* one mate's alignment while a mate gap is the distance *between*
+mates, and a cap chosen to accommodate real worm introns has no reason to land near a 7 kb tandem
+repeat. Nothing here proposes changing it, and — per §3 — nothing downstream of the NH histogram
+depends on the difference.
+
 ## Caveats
 
 1. **Chimeric arm only.** This run is chimeric, and the measurement cannot separate any contribution
@@ -291,13 +396,16 @@ one-repo change:
    2026.8.19, whose commit message is "the workflow stamp moves, because these modules align
    differently". The expectation is that this barely moves rRNA — rRNA is intron-free and the
    ambiguity is copy-number driven — but the paralogue tail could shift, and **this measurement does
-   not test that.**
+   not test that.** The same bump also began bounding the mate gap, the parameter §3 turns on; at
+   50,000 bp against a 7,197 bp period that bound leaves the pairing §3 describes intact, but **that
+   is reasoned from the flag's value and not measured under it.**
 4. **The placement layer's denominator is small.** 36,732,376 molecules is **1.18%** of the NH
    denominator and 7.07% of `umi_combined`; it covers only UMI-tagged fragments whose representative
    span falls in exactly one gene body. The denominator belongs beside every percentage read off it.
-5. **`--outSAMmultNmax` was not changed**, in-tree or out. The locus *set* is therefore not measured
-   here at all; the ticket's step 3 was judged not demanded, because the classes are recognisable
-   from the representative alone.
+5. **`--outSAMmultNmax` was not changed for the plate**, in-tree or out, so nothing in §1, §2 or
+   §4-§8 sees more than one representative record per fragment. §3's probe is the exception and is a
+   re-alignment rather than the plate: it emits every placement, which is how the locus triples were
+   read, and it covers two cells at a 2e6-pair subsample.
 6. **[#443](https://github.com/liuhlab/seqforge/issues/443) corroborates on a narrow slice and is not
    the answer.** It measured NH on cross-contig half-mapped fragments of `day1_N2_7`, none of which
    had NH=1.
@@ -310,5 +418,6 @@ one-repo change:
 `contrast_day17_N2_7_vs_12.tsv`, `contrast_top15_genes.tsv`, `contrast_composition_vs_quantity.tsv`,
 `nh_histogram_plate.tsv`, `nh_per_cell.tsv`, `nh_profile_by_tercile.tsv`,
 `denominator_gap_per_cell.tsv`, `per_cell_multimapper.tsv`, plus `README.md`. Scripts:
-`plate_stats.py`, `followup.py`, `rdna_ext.py`, `denom.py`. The tiling probe of §3 is under
+`plate_stats.py`, `followup.py`, `rdna_ext.py`, `denom.py`. §3's probe — the tiling runs, the
+paired and single-end re-alignments, and the mate-gap sweep — is under
 `aging_SS3/script/metrics427/nh3/`.
