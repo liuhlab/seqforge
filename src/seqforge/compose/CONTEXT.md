@@ -44,7 +44,9 @@ dataset id
 and stored inside neither input. It names the pipeline directory, so two recipes over one dataset
 cannot overwrite each other. Its `kb` term is a content hash of the one spec that decided the
 config, not a repository-wide version, so a release that leaves this chemistry's processing alone
-leaves this pairing's identity alone.
+leaves this pairing's identity alone. Its `workflow` term is the opposite: the stamp the
+**recipe** recorded, not the running one, so a module edit leaves every recipe already on disk
+keyed where it was, and taking up new module behaviour means a new recipe.
 _Avoid_: build id, job id, provenance id; and never for `RunResolution.run_id`, which is a
 filename-derived **Run** key
 
@@ -53,7 +55,9 @@ One `(manifest, recipe)` pairing made runnable — the directory `compose` write
 config, the **Units table**, a copy of the **Workflow module**, and the exclusion record when a
 sample was kept out), and the execution of that Snakefile. One word for both, because the directory
 is where the execution's outputs land: what `compose` wrote is a function of the `run_id` naming it,
-and what the execution wrote is not.
+and what the execution wrote is not. **Written once.** Composition refuses an occupied directory
+rather than re-staging into it, on occupancy alone and never on a comparison; `run` treats one as
+this stage's cache hit and resumes from it.
 _Avoid_: **Run**, which is one *sequencing* run, and `run_id`, which names the pairing rather than
 its execution; also build, job, workflow run
 

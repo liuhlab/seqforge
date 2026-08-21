@@ -4,8 +4,20 @@ The composer selects a module by id and emits its ``config.yaml`` + ``units.tsv`
 rule source. Aligner *environments* and genome *indexes* belong to ``liulab-runtime`` / ``liulab-genome``
 and resolve at run time — a module names an env and an assembly id, never a path.
 
-``WORKFLOW_VERSION`` is CalVer and is folded into a manifest's provenance so a compiled config is
-bound to the exact module source that will run it.
+``WORKFLOW_VERSION`` is CalVer and is stamped into a **recipe's** provenance when the recipe is
+written, so a compiled config is bound to the module source it was authored against.
+
+**What a bump does, stated once, here.** ``run_id`` folds the stamp the RECIPE RECORDED, never the
+live constant. So a bump re-keys nothing: every recipe already on disk keeps its stamp, its
+``run_id`` and its pipeline directory, and the alignments under that directory stay where they are
+and stay findable. A bump changes only what the NEXT recipe records. The way to take up new module
+behaviour is therefore to author a new recipe — composing the old one again does not silently
+re-stage the new bytes over the old, it refuses, because a pipeline directory is written once.
+
+That is the whole cost model, and it is the opposite of the one this log's older entries assumed
+(#447). They priced an edit as "one round of ``run_id`` invalidation", meaning every composed dataset
+re-keyed itself and reprocessed. Nothing ever did that. The real price of editing a shipped module is
+paid per pipeline that wants the edit, by whoever wants it, in a new recipe.
 """
 
 from __future__ import annotations
@@ -331,13 +343,15 @@ if TYPE_CHECKING:
 #: Full tables: `docs/research/smartseq3-tn5-read-through.md`.
 #: 2026.8.8 — `rule umi_count`'s docstring stops counting the matrices it writes (#338, from #333).
 #: **Prose only: no rule, no param, no output changes, and a pipeline recompiled under this version
-#: produces byte-identical config and units.** The bump is unavoidable anyway — `run_id =
-#: H(dataset | processing | kb | workflow)` and editing a shipped `.smk` at all moves the workflow
-#: axis, so a comment costs one round of `run_id` invalidation exactly like a rule would. That price
-#: is why the sentence was left wrong when 2026.8.7's release made it wrong, and why the fix is to
-#: REMOVE the fact rather than correct it: the count lived in three prose spots and a table, one spot
-#: drifted to four matrices for a release that shipped five, and correcting it would have bought the
-#: same invalidation for the same exposure again on the next layer. The table on
+#: produces byte-identical config and units.** The bump is unavoidable anyway — editing a shipped
+#: `.smk` at all moves the workflow axis of `run_id`, so a comment is owed a bump exactly like a
+#: rule is. What that costs is NOT a round of `run_id` invalidation — nothing already on disk
+#: re-keys, see this module's docstring — it is that the shipped module and every recipe written
+#: before it are now a version apart for the sake of a sentence. That price is why the sentence was
+#: left wrong when 2026.8.7's release made it wrong, and why the fix is to REMOVE the fact rather
+#: than correct it: the count lived in three prose spots and a table, one spot drifted to four
+#: matrices for a release that shipped five, and correcting it would have bought the same drift for
+#: the same exposure again on the next layer. The table on
 #: `workflows.umite.count` now says how many there are and nothing else does, so the next matrix
 #: added cannot make a shipped file lie and no `WORKFLOW_VERSION` bump is owed for prose again.
 #: 2026.8.7 — `rule umi_extract` renders the **Units table** and the wildcard, and NO file (#327,
@@ -385,8 +399,9 @@ if TYPE_CHECKING:
 #: with `.get`, not a subscript, so `keys_read_by` stops making it a key the composer owes for every
 #: bulk dataset — the same optional/required line starsolo.smk draws between `soloBarcodeReadLength`
 #: and `soloCBmatchWLtype`. A two-mate library renders the byte-identical command line it did before;
-#: the bump is owed anyway, because editing a shipped module invalidates
-#: `run_id = H(dataset | processing | kb | workflow)` whatever the edit was.
+#: the bump is owed anyway, because editing a shipped module moves the workflow axis of
+#: `run_id = H(dataset | processing | kb | workflow)` whatever the edit was — for the recipes
+#: written after it, which are the only ones a bump reaches.
 #: 2026.8.4 — `units.tsv` gains a `lane` column and `fastqs` orders a sample's files by
 #: `(run, lane, path)` (#263, ADR-0027). A run is now lane-blind, so a four-lane library is ONE run
 #: and the `run` column no longer orders anything within it — lexical path order silently took over
@@ -403,10 +418,13 @@ if TYPE_CHECKING:
 #: — verified by diffing the whole `snakemake -n -p` plan for a composed 10x v3 and a composed 10x
 #: Multiome ATAC pipeline across the change — so no rule, no shell command, no config key and no
 #: emitted config value differs. The bump is therefore deliberate rather than incidental: editing a
-#: shipped module invalidates `run_id = H(dataset | processing | kb | workflow)` whatever the edit
-#: was, and a dataset already composed recomposes into a fresh directory with empty results and
-#: re-runs. Paying it now is the cheap moment — 2026.8.2 landed days ago and already invalidated
-#: everything — and paying it at all is the point: those constants went public with a reader beside
+#: shipped module moves the workflow axis of `run_id = H(dataset | processing | kb | workflow)`
+#: whatever the edit was. **What it does NOT do is re-key a dataset already composed** — this entry
+#: claimed such a dataset recomposes into a fresh directory with empty results and re-runs, and that
+#: was never true (#447): the recipe keeps the stamp it recorded, keeps its directory, and composing
+#: it again refuses rather than re-staging over it. Doing this in the same week as 2026.8.2 was
+#: still the cheap moment, because a reader comparing two adjacent releases has one version gap to
+#: explain rather than two — and paying it at all is the point: those constants went public with a reader beside
 #: the writer, and "adopt them on the next edit for a real reason" is a rule somebody has to
 #: remember. A repo-wide check now fails on any shipped `.smk` carrying a suffix its Python owner
 #: publishes, so the second spelling cannot come back
@@ -451,14 +469,16 @@ if TYPE_CHECKING:
 #: than a load-bearing filter. The sort arithmetic left the `.smk` for `workflows/memory.py`
 #: (`STARSOLO_RETRIES`, `escalated_mem_mb`, `bam_sort_ram`), where it is importable and unit-tested
 #: instead of being a lambda only a real retry ever renders. No new config key — `mem_mb` is the same
-#: key it always was, read now as the FIRST attempt's request. The bump invalidates
+#: key it always was, read now as the FIRST attempt's request. The bump moves the workflow axis of
 #: `run_id = H(dataset | processing | kb | workflow)`, which is the axis that exists for "the module
-#: changed" (ADR-0005); why the escalation ends in a loud failure rather than a bigger default, and
+#: changed" (ADR-0005) — for recipes written after it, since the stamp a recipe RECORDED is what is
+#: hashed; why the escalation ends in a loud failure rather than a bigger default, and
 #: the four alternatives rejected on the way there, is ADR-0023.
 #: 2026.8.1 — the retained CRAM carries the BARCODE, and the counts become CellRanger-comparable
-#: (#198). Five changes, deliberately in ONE bump: `run_id = H(dataset | processing | kb | workflow)`,
-#: so five merges would mean five rounds of run_id invalidation and five reprocessing passes over the
-#: same ~920 GiB. (a) `starsolo_count` writes `--outSAMtype BAM SortedByCoordinate` with
+#: (#198). Five changes, deliberately in ONE bump: five merges would mean five stamps, so a plate
+#: chasing all five would have been re-authored and reprocessed up to five times over the same
+#: ~920 GiB. The cost falls on whoever wants the edit rather than on the corpus, and it falls once
+#: per bump they chase. (a) `starsolo_count` writes `--outSAMtype BAM SortedByCoordinate` with
 #: `--outSAMattributes NH HI AS nM CB UB` — STAR refuses CB/UB in anything but the sorted BAM, and
 #: without them the CRAM we retained could not recount, could not be re-quantified, and could not be
 #: re-run under another tool; measured 12% SMALLER than the barcode-less CRAM it replaces. It also

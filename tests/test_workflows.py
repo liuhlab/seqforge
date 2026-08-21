@@ -3654,8 +3654,8 @@ def test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between(
 
     STAR writes `Log.final.out` unasked, and no rule in the shipped `star.smk` declares, consumes or
     deletes it — asserted here rather than assumed, because that absence is the entire claim. So bulk
-    reports with no `.smk` edit, hence no `WORKFLOW_VERSION` bump, hence no `run_id` invalidated and
-    nothing already compiled reprocessed. A `{sample}.<suffix>` convention could not have expressed
+    reports with no `.smk` edit and hence no `WORKFLOW_VERSION` bump, so a pipeline already composed
+    gets them without being re-authored. A `{sample}.<suffix>` convention could not have expressed
     this artifact at all: it carries no sample name and no rule of ours names it.
 
     The filename is spelled out below rather than imported from `h5ad`, deliberately. A test reading
@@ -3972,9 +3972,9 @@ def test_the_bundle_always_carried_every_feature_and_the_reader_now_carries_the_
     assert "SJ" not in sample.feature_reads_in_genes
     # The measurement behind "any growth in the per-sample artifact is bounded": there is NONE. The
     # writer emitted every feature's `Summary.csv` before this ticket and emits exactly the same keys
-    # after it, so the bytes on disk did not move and no `run_id` was invalidated. Asserted as a set,
-    # so a writer that started emitting a per-feature block to serve this reader goes red here rather
-    # than quietly costing every already-compiled dataset a reprocess.
+    # after it, so the bytes on disk did not move and no `WORKFLOW_VERSION` bump was owed. Asserted as
+    # a set, so a writer that started emitting a per-feature block to serve this reader goes red here
+    # rather than quietly costing anyone who wanted it a re-authored recipe and a reprocess.
     with gzip.open(out, "rt", encoding="utf-8") as fh:
         written = json.load(fh)
     assert set(written) == {

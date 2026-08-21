@@ -1264,14 +1264,18 @@ def test_a_plate_composes_its_reads_by_role_whichever_order_the_layout_lists_the
 
     So both orders are composed and the two configs must agree. One direction alone would pass under
     an order-based dispatch for whichever order happened to be written first.
+
+    A workspace each, because the two orders key to one `run_id` — listing order is not a fact about
+    the data — and a pipeline directory is written once.
     """
     for tagged_first in (True, False):
         manifest, processing = plate(tagged_first=tagged_first)
-        result = compose(manifest, processing, registry=synth_bulk_pe.registry, workspace=tmp_path)
+        workspace = tmp_path / f"tagged-first-{tagged_first}"
+        result = compose(manifest, processing, registry=synth_bulk_pe.registry, workspace=workspace)
         assert result.modules[0].name == "map/star-umi"
         assert result.gate["params"].status == "pass", result.gate["params"].reason
 
-        config = yaml.safe_load((tmp_path / result.config_path).read_text())
+        config = yaml.safe_load((workspace / result.config_path).read_text())
         assert config["read_files_in"] == {"umi_cdna": "R1", "cdna": "R2"}, (
             f"tagged_first={tagged_first} placed the roles by order, not by role"
         )
@@ -2446,18 +2450,25 @@ def test_a_kb_edit_re_keys_the_compile_only_when_it_reaches_an_emitted_byte(
     The last two assertions are the untouched half of the old test, and they hold for every row: the
     manifest is an input to none of this, so neither the dataset hash nor its own recorded
     `kb_version` may move whatever the knowledge base does. That is ADR-0032's property.
+
+    A workspace each, because the non-re-keying rows key to one directory and a pipeline directory is
+    written once. Composing them side by side is the better observation anyway: the shared identity
+    is read off the two workspace-relative paths rather than off a second write landing on the first,
+    and the byte comparison below stops being "the overwrite changed nothing" and becomes "the two
+    compiles emit the same bytes", which is the claim it was always making.
     """
     manifest, reg = built_v3
     processing = _processing(manifest)
     tech = manifest.library.chemistry.value[0]
     dataset_hash = manifest.provenance.dataset_hash
     recorded_kb = manifest.provenance.kb_version
+    first_ws, second_ws = tmp_path / "first", tmp_path / "second"
 
-    before = compose(manifest, processing, registry=reg, workspace=tmp_path)
-    emitted = (tmp_path / before.config_path).read_text()
+    before = compose(manifest, processing, registry=reg, workspace=first_ws)
+    emitted = (first_ws / before.config_path).read_text()
 
     edit(monkeypatch, tech)
-    after = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    after = compose(manifest, processing, registry=reg, workspace=second_ws)
     # Where the edit either arrived or did not, and between them these two cover every
     # knowledge-base fact a compile can read: `ComposePlan.spec` IS the object `compose` hands to
     # `spec_content_hash`, and `ComposeResult.kb_version` is the live version string it stamps. A row
@@ -2472,19 +2483,17 @@ def test_a_kb_edit_re_keys_the_compile_only_when_it_reaches_an_emitted_byte(
             "a param that reaches the config must land in its own directory; sharing one is the "
             "silent overwrite ADR-0037 exists to stop"
         )
-        assert (tmp_path / before.config_path).is_file() and (
-            tmp_path / after.config_path
-        ).is_file(), (
-            "both compiles must survive — re-keying that deletes the earlier run is not re-keying"
-        )
+        assert (first_ws / before.config_path).is_file() and (
+            second_ws / after.config_path
+        ).is_file(), "a row that re-keys must still have produced two compiles to compare"
     else:
         assert after.config_path == before.config_path, (
             "a knowledge-base fact no emitted byte is a function of may not cost this dataset its "
             "directory, and with it every alignment already sitting in one"
         )
-        assert (tmp_path / after.config_path).read_text() == emitted, (
-            "the two compiles share a directory only because they share their bytes; a config that "
-            "moved under an unchanged run id is the silent overwrite, not the point being made"
+        assert (second_ws / after.config_path).read_text() == emitted, (
+            "the two compiles may share a directory only because they share their bytes; a config "
+            "that moved under an unchanged run id is the silent overwrite, not the point being made"
         )
 
     assert manifest.provenance.dataset_hash == dataset_hash, (
@@ -2494,6 +2503,36 @@ def test_a_kb_edit_re_keys_the_compile_only_when_it_reaches_an_emitted_byte(
         "the manifest's own kb_version is the KB that decided its CHEMISTRY, and compiling under a "
         "newer one is not a decision about the chemistry — compose may not rewrite it"
     )
+
+
+def test_a_composed_pipeline_directory_is_never_written_into_twice(
+    built_v3: Built, tmp_path: Path
+) -> None:
+    """A pipeline directory is written once, and the second compile refuses rather than overwrites.
+
+    `run_id` folds the workflow stamp the RECIPE recorded, not the live one, so a recipe on disk
+    keeps its directory across every workflow release. Editing a shipped module therefore used to
+    re-stage different bytes under a name asserting they were the same, next to the alignments the
+    previous ones produced — silently, exit 0 (#447).
+
+    The refusal is on OCCUPANCY, so the file planted below is any occupant at all: a stale compile, or
+    a hand edit whose owner knows why it is there. seqforge is not the judge of which, because the
+    answer is the same either way. That is also why the assertion is that the planted bytes SURVIVE —
+    an implementation that refused after writing would satisfy the raise and still have destroyed the
+    thing the raise exists for.
+    """
+    manifest, reg = built_v3
+    processing = _processing(manifest)
+    first = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    directory = (tmp_path / first.config_path).parent
+
+    planted = directory / "results" / "cell1.h5ad"
+    planted.parent.mkdir(parents=True)
+    planted.write_bytes(b"an alignment the next compile has no business touching")
+
+    with pytest.raises(ComposeError, match=re.escape(str(directory))):
+        compose(manifest, processing, registry=reg, workspace=tmp_path)
+    assert planted.read_bytes() == b"an alignment the next compile has no business touching"
 
 
 def test_compose_writes_the_bound_processing_lock(built_v3: Built, tmp_path: Path) -> None:
@@ -3105,15 +3144,20 @@ def test_a_bare_kb_version_bump_rewrites_no_byte_of_the_directory_it_cannot_re_k
     enumeration. The plate is what makes any of it observable — `built_v3` declares no
     `min_input_reads`, writes no exclusion record, and would have passed this assertion on the day
     the bug shipped.
+
+    The two compiles get a workspace each, because they key to one directory and a pipeline directory
+    is written once. So the comparison is of two directories that must have the SAME NAME and the
+    same contents, rather than of one directory before and after a second write landed on it — which
+    is the same claim, made without depending on an overwrite that no longer happens.
     """
     manifest, reg = built_plate
     plate = plate_of(manifest, one_run_each({"cell1": 4000, "cell2": 400, "cell3": 4000}))
+    first_ws, second_ws = tmp_path / "first", tmp_path / "second"
 
     declare_read_floor(monkeypatch, plate.library.chemistry.value[0], _FLOOR)
-    first = _compose_plate(plate, reg, tmp_path)
-    directory = (tmp_path / first.config_path).parent
+    first = _compose_plate(plate, reg, first_ws)
 
-    def on_disk() -> dict[str, bytes]:
+    def on_disk(directory: Path) -> dict[str, bytes]:
         """Every file the run directory holds, keyed by its path within it — no enumeration."""
         return {
             str(p.relative_to(directory)): p.read_bytes()
@@ -3121,25 +3165,25 @@ def test_a_bare_kb_version_bump_rewrites_no_byte_of_the_directory_it_cannot_re_k
             if p.is_file()
         }
 
-    before = on_disk()
+    before = on_disk((first_ws / first.config_path).parent)
     assert EXCLUSIONS_NAME in before, (
         "the floor must have actually dropped a cell here: with no exclusion record on disk this "
         "test says nothing about the one file the version string ever reached"
     )
 
     monkeypatch.setattr(core, "KB_VERSION", "2099.1.1")
-    second = _compose_plate(plate, reg, tmp_path)
+    second = _compose_plate(plate, reg, second_ws)
 
     assert second.kb_version != first.kb_version, (
         "the bump moved nothing the composer can see, so nothing below it means anything"
     )
-    assert (tmp_path / second.config_path).parent == directory, (
+    assert second.config_path == first.config_path, (
         "a bare version bump may not re-key the compile — re-keyed, the two compiles would sit in "
-        "different directories and the comparison below would be of one untouched directory"
+        "differently NAMED directories and the comparison below would be of two unrelated ones"
     )
-    assert on_disk() == before, (
-        "the second compile wrote over the first under an unmoved run_id, so every byte that "
-        "differs is a value the directory's own name does not fold"
+    assert on_disk((second_ws / second.config_path).parent) == before, (
+        "the two compiles differ only in the version string, so every byte that differs between "
+        "their directories is a value the shared name does not fold"
     )
 
 

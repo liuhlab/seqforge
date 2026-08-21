@@ -17,7 +17,7 @@ import yaml
 from pydantic import ValidationError
 
 from .. import __version__
-from ..compose import ComposeError, compose
+from ..compose import AlreadyComposed, ComposeError, compose
 from ..io import default_registry
 from ..kb import load_spec
 from ..manifest import (
@@ -28,6 +28,7 @@ from ..manifest import (
     prep_type_from_assertions_file,
     validate_processing,
 )
+from ..pipeline import CompiledPipeline
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..workspace import logs_dir, readable, records_dir, state_dir
 from ._common import _auto_cpus, _load_manifest
@@ -245,6 +246,22 @@ def _process_and_compose(
             sif_dir=sif_dir,
             subdir=subdir,
         )
+    except AlreadyComposed as exc:
+        # A composed pipeline directory IS this stage's cache entry, and every other stage in this
+        # chain resumes from one. `run` is re-run for the report — after the pipeline has been
+        # submitted, with `--results`, to render a page that can say it ran — and the pipeline's
+        # outputs live under this directory, so a refusal here would make "delete it and recompose"
+        # the remedy for re-rendering a page, at the price of the alignments.
+        #
+        # The pairing is what names the directory, so what is found is what this compile would have
+        # written. `compose` still refuses, always: reuse is a decision of the verb that CHAINS the
+        # compile, and is not one composition may take on anyone's behalf.
+        pipeline = CompiledPipeline(exc.directory)
+        summary["compose"] = {
+            "reused": str(exc.directory),
+            "snakefile_path": str(pipeline.snakefile.relative_to(workspace)),
+        }
+        return summary, 0
     except ComposeError as exc:
         summary["compose"] = {"error": str(exc)}
         return summary, 3

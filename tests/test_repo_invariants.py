@@ -853,8 +853,8 @@ def test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns() -> None
     parse time, and ``h5ad_suffixes`` / ``fragments_suffixes`` have always decided what a rule
     declares. What was missing was the forcing function: three suffixes stayed hand-spelled because
     adopting the constant meant editing a shipped module, which bumps ``WORKFLOW_VERSION`` and
-    invalidates every ``run_id``, and "do it on the next edit for a real reason" is a rule somebody
-    has to remember. This is the check that remembers instead.
+    leaves every recipe on disk keyed to the module it was written against, and "do it on the next
+    edit for a real reason" is a rule somebody has to remember. This is the check that remembers instead.
 
     Scanning the source text rather than parsing it is deliberate: a ``.smk`` is Snakemake, not
     Python, so ``ast.parse`` refuses it outright and there is no tree to walk.
