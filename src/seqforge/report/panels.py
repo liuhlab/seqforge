@@ -1332,15 +1332,15 @@ def _stats_table(stats: PipelineStats, index: int) -> str:
     assays each carrying a ``results-0`` would bind one assay's bar to the other assay's rows, and the
     only symptom would be a page that pages the table nobody is looking at.
 
-    **The sort key rides on the row, not on the cell**: one ``data-sort`` holding this row's raw
+    **The sort key rides on the row, not on the cell**: one ``data-sort`` holding this row's
     :attr:`~seqforge.workflows.metrics.Metric.value` floats in the order the cells are emitted,
-    comma-separated, with an empty slot where the sample has a gap. Per cell it would be the same
-    number twice in each of a plate's thirty thousand cells, on a ``<td>`` that is deliberately lean —
-    measured at +418–657 KB on the aging plate against +254 KB here. Read back off the rendered text
-    it would be wrong rather than merely fat: ``fmt_count`` writes 207 852 331 as ``207.9M``, and the
-    precision a sort needs is gone by the time a number reaches a cell. The fold only *hides* columns,
-    so a slot's position is the same folded and unfolded and the header's ``data-sort-col`` can be a
-    plain index into it.
+    comma-separated, trimmed by :func:`_sort_key` to what the cells beside them can show, with an
+    empty slot where the sample has a gap. Per cell it would be the same number twice in each of a
+    plate's thirty thousand cells, on a ``<td>`` that is deliberately lean — measured at +418–657 KB
+    on the aging plate against +254 KB here. Read back off the rendered text it would be wrong rather
+    than merely fat: ``fmt_count`` writes 207 852 331 as ``207.9M``, and the precision a sort needs is
+    gone by the time a number reaches a cell. The fold only *hides* columns, so a slot's position is
+    the same folded and unfolded and the header's ``data-sort-col`` can be a plain index into it.
 
     **Group structure is rule and label, never a second hue.** The bands are a header row of
     ``colspan`` cells separated by a hairline; the group also rides on ``data-group`` so the page
@@ -1521,15 +1521,32 @@ def _sort_caret(label: str, slot: str) -> str:
 
 
 def _sort_key(metric: Metric | None) -> str:
-    """One slot of a row's sort payload: the metric's raw value, or **nothing** where there is a gap.
+    """One slot of a row's sort payload: the metric's value, trimmed, or **nothing** for a gap.
 
-    ``repr`` and not a format string — it is the shortest text that reads back as the same float, and
-    the cell beside it could not stand in for it: ``display`` is what a human reads, and by then
+    The payload only has to order rows a reader can tell apart, so it carries the precision the
+    **cell** can show and not the precision the float happens to have. ``fmt_pct`` renders one
+    decimal place and ``fmt_ratio`` one, so a rate that arrives as ``0.33091441877461514`` — nineteen
+    characters beside a cell reading ``33.1%`` — goes out at six significant digits, as ``0.330914``.
+    That is orders of magnitude finer than any tie a reader could ever see, and at the aging plate's
+    shape — 784 rows by 40 columns — it takes a little under half the payload off the page, ~220 KB.
+
+    **An integral value keeps every digit** and loses only its decimal point, because ``fmt_int``
+    writes an exact count in full: two wells reading ``10,366,082`` and ``10,366,083`` are told apart
+    in the cell, and a sort that tied them would contradict what the reader is looking at. Which is
+    also why the trim is not a uniform ``%g``: ``f"{10366082.0:.6g}"`` is ``1.03661e+07``, *longer*
+    than the exact integer and lossy on precisely the numbers that have to stay exact.
+
+    The cell beside it could stand in for neither — ``display`` is what a human reads, and by then
     207 852 331 says ``207.9M``. An empty slot means the sample never reported this metric, which is
     neither a large number nor a small one, and the script sends it to the end whichever way the
     column is sorted.
     """
-    return "" if metric is None else repr(metric.value)
+    if metric is None:
+        return ""
+    value = metric.value
+    if not value.is_integer():
+        value = float(f"{value:.6g}")
+    return f"{value:.0f}" if value.is_integer() else repr(value)
 
 
 def _metric_head(label: str, hint: str, *, slot: int, extra: bool) -> str:

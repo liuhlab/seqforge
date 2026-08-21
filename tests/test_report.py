@@ -2033,15 +2033,27 @@ def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Pa
     its blanks and every other sample keeps its numbers. A zero here would be a number a reader would
     act on, and the tool did not write it.
 
-    **Both renderings of the same gap, against each other.** The row also carries its raw values for
-    the sort, and the two have to agree cell for cell: one slot per rendered column, in the order the
+    **Both renderings of the same gap, against each other.** The row also carries its values for the
+    sort, and the two have to agree cell for cell: one slot per rendered column, in the order the
     cells come, empty where the cell is a dash. A payload that fell out of step with the cells would
     sort the plate by the column next door — a page that is silently, plausibly wrong — and a gap
     written as a zero there would sort a sample that reported nothing to the top of the column.
+
+    **And the two renderings have to agree about precision, in both directions.** A slot carries what
+    the cell beside it can show and no more, because a tie the reader cannot see is not a tie they can
+    be misled by — except where the cell shows every digit, and an exact count does, so trimming one
+    would order two wells the page itself tells apart. Both halves are asserted against the DISPLAYED
+    text of the same cell rather than against a literal, which is the comparison the rule is about.
     """
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
     thin: dict[str, object] = {"Number of Reads": 10, "Sequencing Saturation": 0.5}
-    stats = _land_bundles(results, {"S1": thin, "S2": _QC_SUMMARY})
+    # An exact count, and a rate that arrives with a float's whole precision behind one decimal place.
+    full: dict[str, object] = {
+        **_QC_SUMMARY,
+        "Estimated Number of Cells": 10366082,
+        "Reads With Valid Barcodes": 0.33091441877461514,
+    }
+    stats = _land_bundles(results, {"S1": thin, "S2": full})
     pane = _pane(_render_with_stats(own_workspace, stats), "results")
 
     rows = re.findall(
@@ -2062,6 +2074,16 @@ def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Pa
         assert len(slots) == len(gaps) == len(stats.columns)
         assert [not slot for slot in slots] == gaps
     assert all(full_keys.split(",")), "the full row reported every metric and must fill every slot"
+
+    # What a filled slot HOLDS. `fmt_int` writes the count out in full, so every digit of it has to
+    # survive into the sort; `fmt_pct` writes one decimal place, so six significant digits is already
+    # far past the last tie a reader could see. The split drops the flag a graded cell hangs after
+    # its number, which is the only other thing a `<td>` here carries.
+    cells = [cell.split("<span")[0] for cell in re.findall(r"<td[^>]*>(.*?)</td>", full_row)]
+    slots = full_keys.split(",")
+    assert "10,366,082" in cells and "33.1%" in cells, cells
+    assert slots[cells.index("10,366,082")] == "10366082"
+    assert slots[cells.index("33.1%")] == "0.330914"
 
 
 def test_every_results_column_sorts_off_its_own_caret_and_the_label_keeps_its_click(
