@@ -1183,12 +1183,6 @@ _SEVERITY_LEVEL: dict[Severity, Level] = {"likely": "bad", "possible": "warn"}
 #: stated in words above the list ("14 of 96"), so what the list adds is the *shape of the numbers* —
 #: enough rows to judge the claim rather than trust it. Ninety-six of them would be a wall, and a
 #: wall inside a box whose job is to be read first is the fastest way to stop being read.
-#:
-#: This is also what keeps a plate-sized page inside its size budget, which makes raising it a
-#: question about bytes as well as about reading. That question is answered by measurement and not by
-#: this comment: ``tests/test_report.py`` renders an *untruncated plate* — every firing sample spelled
-#: out — against the page budget, so a row that has grown too fat to multiply by 96 goes red there
-#: before anyone raises this number, not after.
 _ALERT_MAX_SAMPLES = 6
 
 

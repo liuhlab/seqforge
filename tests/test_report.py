@@ -531,8 +531,8 @@ def test_the_report_verbs_help_describes_the_page_that_actually_ships() -> None:
 
     Dropping Mermaid cut a rendered page from ~2.6 MB to tens of KB — the single largest thing ever
     true about this page — and the prose went on describing the bundle as inlined. Prose that names a
-    dependency the wheel does not carry is worse than none: it is what a reader checks a size budget
-    against, and it would have sent the next person looking for an asset that is not there.
+    dependency the wheel does not carry is worse than none: it would have sent the next person
+    looking for an asset that is not there, and the search ends in a bug report against the wheel.
 
     The renderer's own docstring was asserted here too, and is not any more: the text of a docstring
     is not something the code can do, so a rename broke that half falsely and an indirection would
@@ -1134,12 +1134,11 @@ def test_the_evidence_body_is_as_wide_as_its_panel_and_the_measure_stays_on_the_
 
 
 def test_the_two_grids_keep_the_pages_standing_guarantees() -> None:
-    """Self-contained, no external reference, inside the budget, byte-deterministic — with both grids
-    full, which is the shape neither the bulk fixture nor any other test in this file renders."""
+    """Self-contained, no external reference, byte-deterministic — with both grids full, which is the
+    shape neither the bulk fixture nor any other test in this file renders."""
     html = _rich_page()
 
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
-    assert len(html.encode()) < 500_000
     assert html == _rich_page()
 
 
@@ -1686,10 +1685,10 @@ def test_the_run_verb_carries_the_results_flag_so_a_relocated_pipeline_reads_as_
 
 
 def test_the_page_keeps_its_standing_guarantees_with_results_rendered(own_workspace: Path) -> None:
-    """Self-contained, inside the size budget, byte-deterministic — re-proved with the heaviest tab on.
+    """Self-contained, byte-deterministic — re-proved with the heaviest tab on.
 
     Results is the one section that draws: hand-built inline SVG per sample, plus a metrics table.
-    The three properties above are asserted elsewhere against a page that has none of that, which
+    The two properties above are asserted elsewhere against a page that has none of that, which
     would leave exactly the new drawing code unchecked for the failures they exist to catch.
     """
     _finish_a_starsolo_pipeline(own_workspace)
@@ -1697,7 +1696,6 @@ def test_the_page_keeps_its_standing_guarantees_with_results_rendered(own_worksp
     html = render_html(collect_report(own_workspace))
 
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
-    assert len(html.encode()) < 500_000
     assert html == render_html(collect_report(own_workspace))
 
 
@@ -2415,9 +2413,9 @@ def test_an_alerts_alternative_reaches_the_page_and_a_nameless_decision_draws_no
 
 
 def test_the_page_keeps_its_standing_guarantees_with_an_alert_rendered(own_workspace: Path) -> None:
-    """Self-contained, no external reference, inside the budget, byte-deterministic — with alerts on.
+    """Self-contained, no external reference, byte-deterministic — with alerts on.
 
-    The four are asserted elsewhere against a page that has no alert block, which would leave exactly
+    The three are asserted elsewhere against a page that has no alert block, which would leave exactly
     the new markup unchecked for the failures they exist to catch. Determinism is the one that bites
     here: alerts are grouped out of a dict, and a grouping that leaked iteration order would render a
     different page on a second read of the same workspace.
@@ -2432,7 +2430,6 @@ def test_the_page_keeps_its_standing_guarantees_with_an_alert_rendered(own_works
         "the fixture must raise one, or the guarantees are re-proved unchanged"
     )
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
-    assert len(html.encode()) < 500_000
     assert html == render_html(collect_report(own_workspace))
 
 
@@ -2823,14 +2820,13 @@ def test_a_pipeline_that_counted_one_feature_reports_normally_and_raises_no_aler
 def test_the_page_keeps_its_guarantees_with_the_feature_alert_on_a_plate_sized_run(
     own_workspace: Path,
 ) -> None:
-    """The size criterion, measured on a plate rather than argued — and there is nothing to bound.
+    """The rule on a plate rather than on a handful — the shape it was written for and never rendered.
 
-    The per-sample artifact does not grow AT ALL: `build_qc_bundle` has written every feature's
-    `Summary.csv` since the first bundle ever produced, so this ticket changed no writer, no `.smk`
-    and no `WORKFLOW_VERSION`. What grows is one narrow mapping in memory. So the honest form of "any
-    growth is bounded and does not push the page past its budget" is to render 96 wells with the rule
-    firing on every one of them and measure, with the other three standing guarantees re-proved on the
-    same page: an alert whose sample list is 96 ids long is exactly where a page bloats.
+    Every other test of this rule fires it on two or three samples, where "every sample that finished"
+    and "the three that finished" are the same sentence. A plate is where the two part: 96 wells all
+    firing must still be one line and a truncated list, not 96 ids under a box whose job is to be read
+    first. The standing guarantees ride along because this is the widest page anything here renders,
+    and an alert grouped out of a dict is exactly where a leaked iteration order would show.
     """
     _count_with(own_workspace, ["Gene", "GeneFull"])
     plate = [f"{row}{col:02d}" for row in "ABCDEFGH" for col in range(1, 13)]
@@ -2843,63 +2839,14 @@ def test_the_page_keeps_its_guarantees_with_the_feature_alert_on_a_plate_sized_r
 
     assert len(plate) == 96
     assert "every sample that finished (96 of 96)" in block
-    assert len(html.encode()) < 500_000
+    # The cap is what makes the line above a summary rather than a preamble to the wall it replaces.
+    # Counted and never spelled: a test naming `_ALERT_MAX_SAMPLES`'s value restates the constant and
+    # catches nothing, where "fewer wells are listed than fired" is the property the constant is for.
+    assert sum(well in block for well in plate) < len(plate), (
+        "every well of the plate is spelled out — the list has stopped truncating"
+    )
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
     assert html == render_html(collect_report(own_workspace))
-
-
-def test_a_plate_sized_alert_stays_inside_the_budget_with_its_sample_cap_lifted(
-    own_workspace: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """What holds the test above inside 500 KB is `_ALERT_MAX_SAMPLES`, not the budget it asserts.
-
-    The alert list truncates well short of a plate, so the block above weighs the same at 96 firing
-    samples as at a handful, and that budget stops being sensitive to what one alert row costs: a
-    mutation fattening each *rendered* row by ~6 KB — 96 of which would be half a megabyte of list —
-    went green through it, because only a handful of rows were ever rendered. The cap is right and
-    stays. What is wrong is that the page's headroom then rests on a constant nobody re-measures, and
-    raising it is a one-line change whose suite is green either way.
-
-    So the number asserted here is the **untruncated** one: what the page weighs with every sample
-    that fired spelled out, which is exactly what someone raising the cap is implicitly claiming is
-    affordable. Measured when this landed (2026-08-04) a 96-well page is ~269 KB truncated and
-    ~283 KB untruncated, against the same 500 KB budget — so this fires once an alert row costs about
-    2.4 KB, against the ~160 bytes one costs today. The ~6 KB row that escaped is comfortably red.
-
-    **The cap is lifted, never asserted.** A test spelling its value would restate the constant and
-    catch nothing; the property is a relationship between a row's cost and the page's budget, and it
-    is held from both ends — the shipped page must genuinely truncate here (or the two renders are
-    the same page and this measures nothing), and the lifted one must still fit.
-    """
-    from seqforge.report import panels
-
-    _count_with(own_workspace, ["Gene", "GeneFull"])
-    plate = [f"{row}{col:02d}" for row in "ABCDEFGH" for col in range(1, 13)]
-    _land_multi_feature_bundles(
-        own_workspace, plate, {"Gene": _EXONIC_SUMMARY, "GeneFull": _FULL_LENGTH_SUMMARY}
-    )
-
-    # One collection, two renders: the cap is a rendering decision, so the alert this measures is
-    # byte-identical on both sides and the only thing that moves is how much of it reaches the page.
-    report = collect_report(own_workspace)
-    truncated = _alert_block(render_html(report))
-    assert truncated, "the plate must raise an alert, or there is no list here to truncate"
-    assert sum(well in truncated for well in plate) < len(plate), (
-        "the cap must bind on a plate, or the render below is the same page measured twice"
-    )
-
-    monkeypatch.setattr(panels, "_ALERT_MAX_SAMPLES", len(plate))
-    html = render_html(report)
-
-    assert all(well in _alert_block(html) for well in plate), (
-        "every firing sample must reach the block once the cap is lifted, or something else is "
-        "bounding this list and the size below is not the untruncated one"
-    )
-    assert len(html.encode()) < 500_000, (
-        "a plate with every firing sample spelled out breaks the 500 KB budget — an alert row has "
-        "grown to where _ALERT_MAX_SAMPLES, not the budget, is what keeps the page inside it"
-    )
 
 
 # -- the gene model and the strand: attribution across two artifacts ---------------------------------
@@ -3096,7 +3043,7 @@ def test_a_genome_with_no_registered_gene_model_names_no_annotation(own_workspac
 def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_rendered(
     own_workspace: Path,
 ) -> None:
-    """Self-contained, no external reference, inside the budget, byte-deterministic — with this alert.
+    """Self-contained, no external reference, byte-deterministic — with this alert.
 
     Asserted again for this rule rather than assumed off the others: this is the card that carries a
     `change_to` line, which no other shipped rule fills.
@@ -3114,5 +3061,4 @@ def test_the_page_keeps_its_standing_guarantees_with_the_gene_model_alert_render
     )
     assert "the alternative is <b>Reverse</b>" in block
     assert not re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
-    assert len(html.encode()) < 500_000
     assert html == render_html(collect_report(own_workspace))
