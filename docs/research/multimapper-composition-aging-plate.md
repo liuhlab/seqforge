@@ -205,10 +205,14 @@ per-cell mean NH median 2.925 (min 2.794, max 4.722), % at NH==2 median 14.889 a
 `*.multiplaced.cram` **cannot be re-paired**: `cram.py` rewrites every QNAME to a fresh sequential id,
 and the file carries 8,002,315 records under 8,002,315 distinct names. So the probe started from
 **raw FASTQ** and re-extracted with the plate's own geometry, which is what makes it genuinely
-paired. The subsample is 2e6 pairs per cell (pairs 1,000,001-3,000,000) and reproduces the shipped
-multimapper rate to within 0.1 pp, so every NH percentage here carries noise at about that scale. The
-synthetic set fixes the fragment at 300 bp and uses error-free reads: it isolates the mechanism, and
-the real-data rows show it at scale.
+paired. The subsample is 2e6 pairs per cell, pairs 1,000,001-3,000,000. It reproduces the shipped
+multimapper **rate** to within 0.1 pp, but that precision does not carry over to the NH breakdown:
+this section's NH=3 shares sit 0.6 pp from the whole-cell figure in **§6** for `day17_N2_12` (83.45
+against 84.05) and 1.8 pp for `day17_N2_7` (44.85 against 43.09). **Read this section's NH
+percentages to about two points, and take §6's as the plate's.** The gap changes nothing here — the
+mechanism turns on a 14.41 -> 84.28 step, not on a point or two. The synthetic set fixes the fragment
+at 300 bp and uses error-free reads: it isolates the mechanism, and the real-data rows show it at
+scale.
 
 ## 4. The spread does not track what a reader would expect
 
