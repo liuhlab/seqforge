@@ -1473,6 +1473,220 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
 
 
+@dataclass(frozen=True)
+class _PlannedJob:
+    """One job snakemake said it would run — its rule, its wildcards, and the paths on both sides.
+
+    A JOB and never a rule, which is the whole reason this exists beside :func:`~conftest.planned_paths`
+    rather than being spelled with it. That helper unions a rule's paths across every job of the
+    rule, which is all a "the mapping jobs wait on the load" claim needs and is exactly wrong for a
+    per-sample one: union two cells' edges and every cell appears connected to every other cell's
+    chain, so the reachability below would pass on a module that wired nothing together at all.
+    """
+
+    rule: str
+    wildcards: Mapping[str, str]
+    inputs: frozenset[str]
+    outputs: frozenset[str]
+
+
+def _planned_jobs(plan_text: str) -> list[_PlannedJob]:
+    """Every job in a rendered ``snakemake -n -p`` plan, in the order it printed them.
+
+    Blocked on the ``rule <name>:`` headers rather than on blank lines, because a job's fields are
+    followed by its rendered command and by whatever trailers ``temp()`` prints, and both are part of
+    the same block. A field's value wraps onto continuation lines when the list is long — which on
+    ``starsolo_count`` is most of them — so a value runs to the next ``<field>:`` rather than to the
+    end of its first line, the same scan :func:`~conftest.planned_paths` makes for one field.
+    """
+
+    def field(block: Sequence[str], name: str) -> list[str]:
+        for i, line in enumerate(block):
+            if match := re.match(rf"^\s+{name}: (.*)$", line):
+                value = [match.group(1)]
+                for following in block[i + 1 :]:
+                    if not following.strip() or re.match(r"^\s+\w+:", following):
+                        break
+                    value.append(following)
+                return [part.strip() for part in " ".join(value).split(",") if part.strip()]
+        return []
+
+    lines = plan_text.splitlines()
+    heads = [i for i, line in enumerate(lines) if re.match(r"^rule \w+:$", line)]
+    jobs: list[_PlannedJob] = []
+    for n, head in enumerate(heads):
+        block = lines[head : heads[n + 1] if n + 1 < len(heads) else len(lines)]
+        # A job carrying two axes prints `wildcards: sample=cell_a, component=ce11`, so the pairs are
+        # split off the same comma-separated value every other field is read as.
+        wildcards = dict(pair.split("=", 1) for pair in field(block, "wildcards") if "=" in pair)
+        jobs.append(
+            _PlannedJob(
+                rule=lines[head][len("rule ") : -1],
+                wildcards=wildcards,
+                inputs=frozenset(field(block, "input")),
+                outputs=frozenset(field(block, "output")),
+            )
+        )
+    return jobs
+
+
+#: Registered modules with **no completion record**, and why each is here. ``map/star`` reports from
+#: STAR's own end-of-run log — a file no rule in that module declares, which is the one place in the
+#: repo where a reader scrapes something the pipeline never promised — so there is no per-sample
+#: artifact for its ``rule all`` to name and nothing for the rest of its chain to be downstream OF.
+#: Its own ticket gives it a bundle rule writing the artifact name the other four already use, and
+#: this set is what goes red on the day that lands: the case below asserts the exception is still
+#: REAL rather than skipping, so a module that grew a completion record cannot stay named here.
+#:
+#: Named rather than skipped, in the shape :data:`MODULES_NO_SPEC_REACHES_YET` established: a module
+#: outside an invariant is untested by it, and the only safe version of that is one which says which
+#: module and why.
+MODULES_WITHOUT_A_COMPLETION_RECORD: frozenset[str] = frozenset({"map/star"})
+
+
+@pytest.mark.parametrize("module", list_modules())
+def test_rule_all_names_one_file_per_sample_and_that_file_waits_for_the_whole_sample(
+    module: str, tmp_path: Path, dry_run: DryRun
+) -> None:
+    """One file per sample says that sample is finished, and it cannot say so early.
+
+    Three claims, read off ONE rendered plan per module, and each rests on the one before it.
+
+    1. **The plan reaches every rule the module declares.** Shortening a target list and deleting the
+       rule it demanded are indistinguishable from inside a plan — the rule simply stops appearing —
+       so without this the two claims below would hold over whatever survived. Derived from the
+       module source, never listed here. The two plate plan tests make this claim for `map/star-umi`
+       and its twin off a hand-written rule list, as one line of a longer argument about that
+       module's shape; what is new is that it is derived and owed by all five, so the module that
+       ships without it is caught on the day it ships rather than on the day someone adds a name.
+    2. **``rule all`` names exactly one file per sample**, plus whatever the registry declares as
+       dataset-scoped. Which targets are a sample's is read off the PRODUCING JOB's wildcards rather
+       than off the sample name in a path, so a module that reorganises its output tree is not a
+       failure here and a module that quietly adds a fifth per-cell target is.
+    3. **Every other job for that sample is transitively upstream of the job producing it.** So
+       asking for a cell's QC record plans that cell's whole chain — which is what an operator
+       hand-writing a target list for one shard of a plate actually asks for, and what used to
+       finish the cell with its archives never written. Nothing downstream consumed an archive, so
+       nothing said so.
+
+    Asserted on the plan's DEPENDENCY EDGES and never on rule text. An `input:` that no `shell:`
+    dereferences renders in no command and appears in no source claim that could tell it from a
+    comment; a graph is the only place an ordering constraint exists at all. It is also why this
+    cannot be a check on the `.smk`: `rules.x.output.cram` is a name that resolves at parse time, and
+    a scan of the text would be reading the spelling rather than the edge.
+
+    The one target per sample must be the artifact the pipeline-stats registry calls **terminal** —
+    the file whose landing means the sample is done and which the report counts a finished sample by.
+    That binds the two halves of the repo that can disagree in silence: a module could satisfy both
+    claims above with a target the report never looks for, and a report that finds nothing looks
+    exactly like a pipeline that never ran. A module with no such artifact is named in
+    :data:`MODULES_WITHOUT_A_COMPLETION_RECORD` with the reason, and the exception is CHECKED rather
+    than skipped, so it cannot outlive the module gaining one.
+
+    Parametrised over every registered module, from the registry: a sixth module cannot land without
+    an answer to this. It takes the same route the wiring gate above does, so a chimera-aware twin —
+    which no spec may name — is planned as its base's chemistry under a two-part assembly, and gets
+    the case with the most per-sample targets to lose rather than an exemption.
+    """
+    from seqforge.workflows import stats as stats_registry
+
+    tech, assembly = planning_route(module)
+    manifest, reg = _build(tmp_path, tech)
+    processing = _processing(manifest, assembly=assembly)
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    assert result.modules[0].name == module
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+
+    jobs = _planned_jobs(dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg)))
+    # The shorter target list may not have shortened the DAG, and this is the clause the other two
+    # rest on. A rule unreachable from `rule all` plans nothing at all, so a name dropped from the
+    # list and a rule that stopped being demanded look identical from inside a plan — every claim
+    # below would then hold over the rules that survived and say nothing about the ones that did
+    # not. Read off the module's OWN source, so a sixth rule is covered the day it ships.
+    declared = set(_rule_blocks(get_module(module).snakefile))
+    assert declared == {job.rule for job in jobs}, (
+        f"{module} declares {sorted(declared)} and plans {sorted({j.rule for j in jobs})}; a rule "
+        f"nothing demands produces nothing, and the deliverable it wrote just stops appearing"
+    )
+    produces = {path: i for i, job in enumerate(jobs) if job.rule != "all" for path in job.outputs}
+    targets = next(job for job in jobs if job.rule == "all").inputs
+    orphans = sorted(path for path in targets if path not in produces)
+    assert not orphans, f"{module}'s `rule all` demands files no rule in it produces: {orphans}"
+
+    by_sample: dict[str, list[str]] = {}
+    dataset_scoped: list[str] = []
+    for path in sorted(targets):
+        sample = jobs[produces[path]].wildcards.get("sample")
+        if sample is None:
+            dataset_scoped.append(path)
+        else:
+            by_sample.setdefault(sample, []).append(path)
+
+    # The dataset-scoped half is the module's own declaration and never a second list: a name
+    # carrying a `{component}` is one object per Component of the chimera, which is the arity
+    # difference the twin exists for, and a module declaring none may name none.
+    fan_in = get_module(module).fan_in_artifact
+    pattern = re.escape(fan_in or "").replace(r"\{component\}", r"[^/]+")
+    assert fan_in is not None or not dataset_scoped, (
+        f"{module} declares no fan-in artifact yet its `rule all` demands {dataset_scoped}, which no "
+        f"sample accounts for; a whole-deposit deliverable is declared on the registry or it is one "
+        f"the run state cannot know is missing"
+    )
+    assert all(re.fullmatch(pattern, Path(path).name) for path in dataset_scoped), (
+        f"{module} declares {fan_in!r} for the deposit and its `rule all` demands {dataset_scoped}"
+    )
+
+    planned = sorted({job.wildcards["sample"] for job in jobs if "sample" in job.wildcards})
+    assert planned, f"{module} planned no per-sample job at all, so this proves nothing about it"
+    assert sorted(by_sample) == planned, (
+        f"{module}'s `rule all` accounts for samples {sorted(by_sample)} of the {planned} it planned"
+    )
+    terminal = [a for a in stats_registry._SPECS[module].artifacts if a.finishes]
+    assert len(terminal) == 1, f"{module} names {len(terminal)} terminal artifacts, not one"
+
+    for sample, demanded in by_sample.items():
+        assert len(demanded) == 1, (
+            f"{module}'s `rule all` demands {len(demanded)} files for {sample} — {demanded}. One "
+            f"per sample is what makes a hand-written target list for a shard of a plate impossible "
+            f"to write incompletely; every name past the first is one more to leave out"
+        )
+        record = demanded[0]
+        expected = terminal[0].filename.format(sample=sample)
+        if module in MODULES_WITHOUT_A_COMPLETION_RECORD:
+            assert Path(record).name != expected, (
+                f"{module} is named as having no completion record, but its `rule all` demands "
+                f"{record}, which is what the report reads {sample}'s row from — drop it from "
+                f"MODULES_WITHOUT_A_COMPLETION_RECORD so this case holds it to the invariant"
+            )
+            continue
+        assert Path(record).name == expected, (
+            f"{module}'s `rule all` demands {record} for {sample} while the report reads that "
+            f"sample's row from {expected}; a finished run and a run that never happened then look "
+            f"the same on the page"
+        )
+
+        # The reachability, over JOBS rather than paths: a sibling output nobody consumes -- a
+        # `.crai` beside every archive -- is written by a job that IS reached, and a path closure
+        # would report it missing while the file is on disk.
+        upstream = {produces[record]}
+        frontier = [produces[record]]
+        while frontier:
+            for path in jobs[frontier.pop()].inputs:
+                if (up := produces.get(path)) is not None and up not in upstream:
+                    upstream.add(up)
+                    frontier.append(up)
+        stranded = sorted(
+            f"{job.rule}{sorted(job.wildcards.items())}"
+            for i, job in enumerate(jobs)
+            if job.wildcards.get("sample") == sample and i not in upstream
+        )
+        assert not stranded, (
+            f"{module}'s completion record for {sample} does not wait on {stranded}, so a target "
+            f"list naming only that record finishes the sample with those outputs never written — "
+            f"and since nothing downstream consumes them, nothing says so"
+        )
+
+
 @pytest.mark.parametrize("module", star_modules())
 def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps(
     module: str, tmp_path: Path, dry_run: DryRun
@@ -1825,10 +2039,12 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     assert re.search(r"^qc_bundle\s+3\s*$", plan, re.M), plan  # ONE QC artifact per CELL
     assert re.search(r"^umi_count\s+1\s*$", plan, re.M), plan
     assert re.search(r"^load_genome\s+1\s*$", plan, re.M), plan
-    # The deliverables `rule all` demands, by name: one object for the plate, BOTH halves of every
-    # cell's archive, and every cell's QC bundle. None of them is anyone's input, so one demanded by
-    # nothing would simply stop being produced — and one mixed archive per cell is what the two
-    # halves replace, which is why the name this asserted before must no longer be planned at all.
+    # The deliverables the plan produces, by name: one object for the plate, BOTH halves of every
+    # cell's archive, and every cell's QC bundle. `rule all` demands the first and the last, and the
+    # archives are the bundle's own inputs — so a half that stopped being produced now costs the
+    # cell's completion record rather than simply stopping appearing. One mixed archive per cell is
+    # what the two halves replace, which is why the name this asserted before must no longer be
+    # planned at all.
     assert f"results/{PLATE_H5AD}" in plan
     cells = ("cell_a", "cell_b", "cell_c")
     assert all(f"results/{s}/{s}.unique.cram" in plan for s in cells), plan
@@ -1930,10 +2146,11 @@ def test_the_chimeric_twin_partitions_its_archives_beside_the_split_and_counts_p
        which is why the whole-Chimera archive they replace is planned nowhere.
     2. **The split still sits BESIDE the multiply-placed archive**, both reading the BAM STAR wrote,
        so neither inherits the other's filter and the chimeric BAM is freed once both are done.
-    3. **`rule all` demands each Component's matrix and each archive BY NAME.** A rule whose output is
-       a folder is satisfied by a folder, which is how a counting job that wrote two Components of
-       three exits 0 with an organism silently missing; the archives are nobody's input, so a half
-       demanded by nothing would simply stop being produced.
+    3. **`rule all` demands each Component's matrix BY NAME, and each archive is planned.** A rule
+       whose output is a folder is satisfied by a folder, which is how a counting job that wrote two
+       Components of three exits 0 with an organism silently missing. The archives reach the plan as
+       the cell's QC bundle's own inputs rather than as targets, so a half that stopped being
+       produced costs the cell's completion record instead of simply stopping appearing.
     4. **The counting verb is handed a Component and the CHIMERA.** Exactly one of `--component` and
        `--annotation` is legal, so rendering both is exit 2 rather than a precedence rule anyone has
        to remember — and the record saying what each Component contributed lives on the Chimera, so
@@ -1974,9 +2191,9 @@ def test_the_chimeric_twin_partitions_its_archives_beside_the_split_and_counts_p
         plan
     )  # ONE QC artifact per CELL, not per pair
     assert re.search(r"^umi_count\s+2\s*$", plan, re.M), plan  # one per Component, not one per cell
-    # Each Component's object, each archive and each cell's QC bundle, by name — and the one mixed
-    # archive these replace is planned nowhere, because the two halves together already hold every
-    # record it held.
+    # Each Component's object, each archive and each cell's QC bundle, planned by name — and the one
+    # mixed archive these replace is planned nowhere, because the two halves together already hold
+    # every record it held.
     for component in components:
         assert f"results/combined.{component}.h5ad" in plan
         assert all(f"results/{s}/{s}.{component}.unique.cram" in plan for s in cells), plan

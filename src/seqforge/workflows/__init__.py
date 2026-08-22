@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
-#: 2026.8.20 — the plate-wide fan-in takes the machine it was given, and three rules stop reading
+#: 2026.8.21 — the plate-wide fan-in takes the machine it was given, and three rules stop reading
 #: the recipe's threads figure straight (ADR-0051). `workflows/threads.py` is the map, mirroring
 #: `workflows/memory.py`: the counter declares the run's own width less one for the parent, the QC
 #: fold declares the one core it was measured at, and the chimeric split declares the SMALLER of the
@@ -47,6 +47,23 @@ if TYPE_CHECKING:
 #: run's plate object is produced by a differently-parallel job than before, and the stamp has to
 #: say so. Naming the run's width also makes `--cores` mandatory for these modules — snakemake will
 #: not build a DAG that reads a core count nobody gave it.
+#: 2026.8.20 — a sample's QC record cannot be written until that sample is finished (#479, from
+#: #475). In the four modules that have one, the record gains the sample's other outputs as
+#: `input:` and `rule all` names, per sample, exactly ONE file — the record — plus whatever is
+#: dataset-scoped. **The dependency is an ordering constraint and nothing reads those bytes, which
+#: is the decision rather than a side effect of one**: a completion record that can be written while
+#: a deliverable is still missing is a record of nothing, and asking for a cell's QC — the obvious
+#: thing to ask for, since it is what the report reads that cell's row from — has to be the correct
+#: thing to ask for. A target list naming only the bundle used to finish every cell with its
+#: archives never written, and because nothing downstream consumed an archive, nothing said so.
+#: It also REPLACES an enumeration: `rule all` listed the archives precisely because nothing
+#: consumed them, so a half that stopped being produced would simply stop appearing and every new
+#: deliverable was a name somebody had to remember to add. Something consumes them now, so the
+#: property holds structurally and `rule all` got SHORTER. **No count, no emitted record and no
+#: matrix moves** — a recompiled pipeline runs the same jobs in a tighter order, and the one output
+#: declaration that changed (chromap's finalize) renders a byte-identical path off the suffix list
+#: that already owned it. `map/star` has no QC record and is untouched; it is named as a known
+#: exception in the invariant that reads this off a rendered plan, rather than skipped quietly.
 #: 2026.8.19 — every STAR module states its junction policy instead of inheriting STAR's defaults
 #: (#459, #461, ADR-0056). Three literals from one renderer — `--outFilterType BySJout`, the ENCODE
 #: overhang pair, and `jM jI` on the attribute list — plus a per-assembly `--alignIntronMax` and
@@ -563,7 +580,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.20"
+WORKFLOW_VERSION = "2026.8.21"
 
 _MODULE_DIR = Path(__file__).parent
 

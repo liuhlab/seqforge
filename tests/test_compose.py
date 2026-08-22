@@ -59,6 +59,7 @@ from seqforge.workflows import (
     keys_read_by,
     list_modules,
 )
+from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.umite.extract import TagGeometry
 
 
@@ -518,7 +519,12 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
 
     1. **The deliverable.** `rule all` used to demand `directory(Solo.out)`, so a green pipeline ended
        in a folder of Matrix Market files — and STAR writing three of five features and exiting 0 was
-       indistinguishable from success, since the directory existed either way.
+       indistinguishable from success, since the directory existed either way. What it demands now is
+       the sample's completion record and nothing else, with the objects reached THROUGH it: the
+       packaging step is planned and its `.h5ad`s are named, which is the half a folder could never
+       give. "One file per sample, and it waits for the sample" is
+       `test_rule_all_names_one_file_per_sample_and_that_file_waits_for_the_whole_sample`'s claim
+       over every module; what this owns is that the object survived the target list shrinking.
     2. **The whitelist has a producing job and is temporary.** A rule declared above `rule all`
        becomes the workflow's default target, and a default target with a wildcard is a hard snakemake
        error — which is exactly what the first attempt at `rule onlist` did. A dry run is the only
@@ -556,8 +562,11 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
     # (a `run:` block would be opaque here) — and it is why the packaging step is a `shell:`.
     assert "seqforge io h5ad" in planned
     sample = manifest.experiment.samples[0].sample_id
-    assert f"rule all:\n    input: results/{sample}/{sample}.h5ad" in planned, (
-        f"the default target is not the deliverable. Planned:\n{planned}"
+    assert f"rule all:\n    input: results/{sample}/{sample}{QC_SUFFIX}" in planned, (
+        f"the default target is not the sample's completion record. Planned:\n{planned}"
+    )
+    assert f"output: results/{sample}/{sample}.h5ad" in planned, (
+        f"the deliverable is not a named output of the packaging step. Planned:\n{planned}"
     )
     assert f"{sample}.velocyto.h5ad" in planned
 

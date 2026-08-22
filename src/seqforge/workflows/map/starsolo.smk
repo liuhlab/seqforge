@@ -131,15 +131,13 @@ STAR_LOGS = expand(f"{OUTDIR}/{{{{sample}}}}/{{f}}", f=list(STAR_LOG_FILES))
 
 rule all:
     input:
-        expand(
-            f"{OUTDIR}/{{sample}}/{{sample}}{{suffix}}",
-            sample=SAMPLES,
-            suffix=h5ad_suffixes(FEATURES),
-        ),
-        # The retained finalize deliverables: a compact CRAM of the alignment and one gzipped-JSON
-        # stats bundle per sample. The raw matrices, filtered tree, stats, logs, and BAM they are
-        # built from are all `temp()` and gone by the time these land.
-        expand(f"{OUTDIR}/{{sample}}/{{sample}}.cram", sample=SAMPLES),
+        # ONE FILE PER SAMPLE, and it is the QC bundle. The count objects and the CRAM are `input:`
+        # of the rule that writes it, so demanding the bundle demands the whole sample and a target
+        # list naming it cannot be quietly incomplete. This REPLACES an enumeration: all three used
+        # to be named here precisely because nothing downstream consumed the first two, and a
+        # deliverable nobody demands simply stops being produced -- which made every new deliverable
+        # a name somebody had to remember to add. A consumer holds that property structurally, so
+        # there is nothing left here to forget.
         expand(f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}", sample=SAMPLES),
 
 
@@ -462,11 +460,22 @@ rule qc_bundle:
     Consumes the per-feature stats, the filtered/ tree (only its barcodes.tsv is read -- kept as
     provenance of STAR's default cell call -- but listing the whole tree here is what triggers its
     deletion), and the top-level logs. A `shell:` verb, not a `run:`, so compose's wiring gate sees it.
+
+    **It is also what says the SAMPLE finished, which is why it waits on the sample's deliverables.**
+    The count objects and the CRAM are declared here and NOTHING here reads their bytes: the
+    dependency is an ordering constraint, and that is the decision rather than a side effect of one.
+    A completion record that can be written while a deliverable is still missing is a record of
+    nothing, and asking for a sample's QC -- the obvious thing to ask for, since it is what the
+    report reads that sample's row from -- has to be the correct thing to ask for. What this cost is
+    `rule all`'s enumeration, which is the point: those files were listed there because nothing
+    downstream consumed them, and something does now.
     """
     input:
         stats=rules.starsolo_count.output.stats,
         filtered=rules.starsolo_count.output.filtered,
         logs=rules.starsolo_count.output.logs,
+        h5ad=rules.solo_to_h5ad.output,
+        cram=rules.solo_to_cram.output.cram,
     output:
         f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}",
     threads: QC_BUNDLE_THREADS

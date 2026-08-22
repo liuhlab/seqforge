@@ -343,21 +343,20 @@ def read_files_type(sample):
 
 rule all:
     input:
-        # ONE object PER COMPONENT over every cell, one UNIQUELY-PLACED archive per cell PER
-        # COMPONENT, and one MULTIPLY-PLACED archive per cell. Each h5ad is demanded by NAME rather
-        # than as a directory, and here that carries a second load: a rule whose output is a folder
-        # is satisfied by a folder, which is how a counting job that wrote three cells of 1440 exits
-        # 0 -- and, one arity out, how a chimeric run that counted two Components of three exits 0
-        # with an organism silently missing. Naming each one closes both. The archives are named for
-        # the same reason: nothing downstream consumes either half, so a Component whose archive
-        # stopped being written would simply stop appearing.
+        # ONE object PER COMPONENT over every cell, and ONE FILE PER CELL. Each h5ad is demanded by
+        # NAME rather than as a directory, and here that carries a second load: a rule whose output
+        # is a folder is satisfied by a folder, which is how a counting job that wrote three cells of
+        # 1440 exits 0 -- and, one arity out, how a chimeric run that counted two Components of three
+        # exits 0 with an organism silently missing. Naming each one closes both.
         expand(f"{OUTDIR}/{PLATE_COMPONENT_H5AD}", component=COMPONENTS),
-        expand(COMPONENT_CRAM, sample=SAMPLES, component=COMPONENTS),
-        expand(MULTIPLACED_CRAM, sample=SAMPLES),
-        # ...and the per-cell QC bundle, demanded by name for the same reason and one more: it is
-        # what the report reads a cell's row from AND what says the cell finished. On this arm it is
-        # downstream of the split, so a plate whose split refused for every cell reports what it did
-        # -- no cell finished -- rather than counting a log the aligner wrote before any of it.
+        # ...and the per-cell QC bundle, which is what the report reads a cell's row from AND what
+        # says the cell finished. On this arm it is downstream of the split, so a plate whose split
+        # refused for every cell reports what it did -- no cell finished -- rather than counting a
+        # log the aligner wrote before any of it. Every archive the cell leaves is now its `input:`,
+        # so demanding it demands the cell. That REPLACES an enumeration: each Component's archive
+        # and the multiply-placed one were named here precisely because nothing downstream consumed
+        # them, so a Component whose archive stopped being written would simply stop appearing --
+        # and a hand-written target list grew a pattern per Component instead of staying at one.
         expand(CELL_QC, sample=SAMPLES),
 
 
@@ -865,6 +864,15 @@ rule qc_bundle:
     arm whose split refused for every cell still reported every cell finished, with no matrix on
     disk anywhere. This rule is downstream of the split, so it cannot say that early.
 
+    **Every archive the cell leaves is therefore `input:` here, and nothing reads their bytes.** The
+    dependency is an ordering constraint, and that is the decision rather than a side effect of one:
+    a completion record that can be written while an archive is still missing is a record of
+    nothing. It is one filename pattern per cell for an operator running the plate as several jobs,
+    and it does NOT grow with the Component count -- the base twin's rule is the same rule with a
+    shorter list, because a Component axis belongs to the archive's name and not to the cell's
+    completion. The `expand` keeps `{sample}` standing while filling `{component}`, the same
+    `allow_missing` the split's own outputs use one rule up.
+
     A `shell:` calling a seqforge verb rather than a `run:` block, like every other rule here:
     `snakemake -n -p` renders every shell block while planning and cannot see inside a `run:`. No
     `container:` -- this is Python over small text files and shells out to nothing.
@@ -875,6 +883,8 @@ rule qc_bundle:
         progress=rules.star_umi_map.output.progress,
         junctions=rules.star_umi_map.output.junctions,
         split=rules.split_chimera.output.summary,
+        unique=expand(rules.unique_to_cram.output.cram, component=COMPONENTS, allow_missing=True),
+        multiplaced=rules.multiplaced_to_cram.output.cram,
     output:
         CELL_QC,
     threads: QC_BUNDLE_THREADS
