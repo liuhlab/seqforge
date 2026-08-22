@@ -55,8 +55,8 @@ SHIPPED_OUT_SAM_TYPE: tuple[str, ...] = ("BAM", "SortedByCoordinate")
 #: below: the flag says which memory the index lives in and never how much of anything a job gets, so
 #: nothing about a retry moves it and it rides the argv like every other module literal. Without a
 #: shared copy each concurrent job loads its own — six droplet samples against a ~31 GB human index
-#: is ~186 GB of index where ~31 GB would do — and a composed pipeline runs on ONE machine (ADR-0051),
-#: which is both what makes the sharing possible and what makes the multiplication real.
+#: is ~186 GB of index where ~31 GB would do — and a snakemake instance runs on ONE machine
+#: (ADR-0051), which is both what makes the sharing possible and what makes the multiplication real.
 #:
 #: It is also why `--limitBAMsortRAM` stopped being optional: STAR's default of ``0`` means "reuse the
 #: genome allocation", and under this mode there is no such allocation to reuse, so the run is refused

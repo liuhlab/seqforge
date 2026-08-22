@@ -256,7 +256,7 @@ if TYPE_CHECKING:
 #: segment for destruction after loading is a load that inherits it.
 #: **WHAT IT BUYS.** STAR's index is per-process and resident for the life of the job, so N samples
 #: mapping at once cost N copies of it — six droplet samples against a ~31 GB human index is ~186 GB
-#: of index where ~31 GB would do. A composed pipeline runs on ONE machine (ADR-0051), which is both
+#: of index where ~31 GB would do. A snakemake instance runs on ONE machine (ADR-0051), which is both
 #: what makes one segment attachable by every job and what makes the multiplication real. The plate's
 #: own argument was different and is now stated as such: repeated LOADING (1440 per-cell loads of a
 #: ~30 GB index is ~40 TB of I/O to align 54 GB of FASTQ) is compatible with, but says nothing about,

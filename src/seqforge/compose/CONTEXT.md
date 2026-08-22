@@ -62,10 +62,11 @@ _Avoid_: **Run**, which is one *sequencing* run, and `run_id`, which names the p
 its execution; also build, job, workflow run
 
 **Shared genome copy**:
-The one aligner index a **Compiled pipeline** loads into shared memory at the start of a run and
-every mapping job attaches to instead of loading its own — the reason a machine holds one index and
-not one per concurrent job. It is per *machine*, and collapses to one copy per run only because a
-run never spans machines.
+The one aligner index a **Compiled pipeline** loads into shared memory at the start of a snakemake
+instance and every mapping job attaches to instead of loading its own — the reason a machine holds
+one index and not one per concurrent job. It is per *machine*, and collapses to one copy per
+instance only because an instance never spans machines (ADR-0051), so a plate run as several
+instances holds one copy on each of their machines.
 _Avoid_: shared memory, segment, cached index — each names the mechanism rather than the thing; also
 genome index, which is the on-disk directory `liulab-genome` owns and is what gets loaded
 
