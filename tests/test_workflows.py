@@ -174,7 +174,9 @@ from seqforge.workflows.umite.count import (
     MULTIMAPPING_LAYER,
     N_FRAGMENTS,
     N_UMIS,
+    N_UMIS_RRNA,
     PRIMARY_MATRIX,
+    RRNA_FRACTION,
     SATURATION,
     UmiCountError,
     _step_index,
@@ -6014,6 +6016,92 @@ def test_saturation_is_the_molecules_over_the_gene_assigned_fragments_that_carri
     assert math.isnan(float(_frame(empty.obs).loc["untagged", SATURATION]))
 
 
+def test_the_ribosomal_columns_are_the_named_genes_molecules_over_the_cells_own(
+    tmp_path: Path,
+) -> None:
+    """A share of the yield, over genes this counter deliberately goes on counting as expression.
+
+    A ribosomal fragment maps uniquely and reaches exactly one gene, so nothing here excludes it and
+    every matrix carries it like any other transcript. That is what makes the share worth writing
+    down rather than acting on: a cell can report an ordinary molecule total over an ordinary number
+    of genes with almost none of it the transcriptome anybody wanted, and this column is the only
+    thing on the object that would say so.
+
+    Every figure is read off `_PLATE` by hand. `cell_a`'s combined UMI matrix holds GENE_A twice and
+    GENE_B once, so naming GENE_A ribosomal makes two of that cell's three molecules ribosomal and
+    none of `cell_b`'s one. The denominator is `n_umis` and the numerator comes off `umi_combined` —
+    the same population the molecule total and the saturation beside it are both read off, so all
+    three are readings of one number rather than three derivations nothing forces to agree.
+    """
+    db, cells = _plate(tmp_path)
+    annotation = read_annotation(db)
+
+    # A partial match proceeds over what did match, silently: the ribosomal set is curated per
+    # assembly and the gene axis is whatever GTF was registered, so the two overlap partially all the
+    # time and a partial overlap is still a measurement.
+    adata = count_plate(cells, annotation, rrna_gene_ids=["GENE_A", "GENE_NOBODY_DECLARED"])
+    obs = _frame(adata.obs)
+
+    assert int(obs.loc["cell_a", N_UMIS_RRNA]) == 2
+    assert float(obs.loc["cell_a", RRNA_FRACTION]) == pytest.approx(2 / 3)
+    assert int(obs.loc["cell_a", N_UMIS]) == 3  # the denominator, on the object beside it
+    assert int(obs.loc["cell_b", N_UMIS_RRNA]) == 0
+    assert float(obs.loc["cell_b", RRNA_FRACTION]) == 0.0  # measured, and a real zero
+
+    # Over `umi_combined` and never over `X`, on the one cell that can tell the two apart: its GENE_A
+    # corrects to two molecules exonically and to ONE in the union, so a numerator taken off the
+    # primary matrix would report twice the cell's whole molecule total — a share above 1.
+    split = count_plate(
+        [("one_cell", _synthetic_bam(tmp_path / "split.bam", _SPLIT_NEIGHBOURS))],
+        annotation,
+        rrna_gene_ids=["GENE_A"],
+    )
+    assert _row(split, "one_cell", "GENE_A") == 2
+    assert int(_frame(split.obs).loc["one_cell", N_UMIS_RRNA]) == 1
+    assert float(_frame(split.obs).loc["one_cell", RRNA_FRACTION]) == 1.0
+
+    # A cell with no molecules at all has no share of them: `nan` and never a zero, the rule the
+    # saturation above already follows and the page already reads back as absence.
+    untagged = _synthetic_bam(
+        tmp_path / "untagged.bam", (_Fragment("read_only", "chr1", 120, 180),)
+    )
+    nothing = _frame(
+        count_plate([("untagged", untagged)], annotation, rrna_gene_ids=["GENE_A"]).obs
+    )
+    assert int(nothing.loc["untagged", N_UMIS_RRNA]) == 0
+    assert math.isnan(float(nothing.loc["untagged", RRNA_FRACTION]))
+
+
+@pytest.mark.parametrize(
+    "rrna_gene_ids",
+    [None, (), ("GENE_NOBODY_DECLARED", "GENE_ALSO_ABSENT")],
+    ids=["unasked", "empty", "off-axis"],
+)
+def test_a_plate_with_no_ribosomal_gene_to_count_gets_neither_column_rather_than_a_zero(
+    tmp_path: Path, rrna_gene_ids: tuple[str, ...] | None
+) -> None:
+    """The anti-zero clause, which is the reason this measurement exists at all.
+
+    A plate whose every cell reads `0.0% rRNA` is indistinguishable from a plate that really is
+    ribosome-free, and it is the one answer nobody may act on. So an annotation nobody named genes
+    for, and one whose gene axis shares no id with the ones named — the assembly was curated
+    elsewhere, or the registered GTF uses another id namespace — write NEITHER column, and the reader
+    then omits the metric exactly as it does for a column an older object never carried.
+
+    Absence rather than a refusal, because the plate itself counted fine: what is missing is a QC
+    number about it, and a fan-in that refused a whole plate over a gene list would cost every cell's
+    matrices for a column.
+    """
+    db, cells = _plate(tmp_path)
+
+    adata = count_plate(cells, read_annotation(db), rrna_gene_ids=rrna_gene_ids)
+
+    assert not {N_UMIS_RRNA, RRNA_FRACTION} & set(adata.obs.columns)
+    assert (
+        N_UMIS in adata.obs.columns
+    )  # ...and the yield it would have been a share of is untouched
+
+
 def test_counting_the_same_plate_twice_gives_a_byte_identical_h5ad(tmp_path: Path) -> None:
     """Determinism, asserted on the artifact rather than on the absence of `random` in the source.
 
@@ -7550,6 +7638,23 @@ def test_a_cell_that_counted_nothing_has_no_rates_rather_than_four_zeroes() -> N
     assert {m.key: m.value for m in fate_metrics({SATURATION: 0.0}, "cell_w").metrics} == {
         SATURATION: 0.0
     }
+
+    # The ribosomal share reads back under both rules at once. An object written against an
+    # annotation that could not name a ribosomal gene carries no column, and a cell with no molecules
+    # carries `nan` — and a page that rendered either as `0.0%` would be claiming a clean library.
+    assert RRNA_FRACTION not in {m.key for m in counted.metrics}
+    assert RRNA_FRACTION not in {
+        m.key for m in fate_metrics({RRNA_FRACTION: float("nan")}, "cell_v").metrics
+    }
+    measured = _by_key(fate_metrics({N_UMIS_RRNA: 1, RRNA_FRACTION: 0.25}, "cell_u"))
+    assert measured[RRNA_FRACTION].value == 0.25
+    # Ungraded, like every other column this reader builds: nobody has measured how much rRNA a
+    # library SHOULD carry, and a bar invented at review is worse than a number read across cells.
+    assert measured[RRNA_FRACTION].level == "none"
+    # The COUNT stays on the object and gets no column of its own — a raw ribosomal molecule total is
+    # not comparable across cells whose depths differ by three orders of magnitude, which is the same
+    # trade the fates make against `n_fragments`.
+    assert N_UMIS_RRNA not in measured
 
 
 # ---- the plate-assay UMI extractor ---------------------------------------------------------------
