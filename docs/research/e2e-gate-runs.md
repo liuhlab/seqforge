@@ -110,6 +110,35 @@ is a cap and not an allocation (`workflows/memory.py`), so that headroom costs n
 > peak belongs to, and its version is in the sweep's resume key so those points cannot resume into a
 > new run (#372).
 
+> **Every `kb e2e-cost` reading between 2026-07-16 and 2026-08-22 priced a run whose whitelist
+> STARsolo could not match, the table above included.**
+> The instrument built `--soloCBwhitelist` by joining `ComposePlan.onlist_files`' values, which hold
+> registry **names** rather than barcodes — so STAR was handed a 17-byte file whose one line was
+> `3M-february-2018`. That string is 16 characters, exactly the v3 CB length, so no length check
+> fired; every synthesized read's barcode was off-list and every point still exited 0. The
+> instrument's own `--whitelist` is a different path, read only to sample cell barcodes for read
+> synthesis, and nothing related the two. Fixed 2026-08-22 (#493): the instrument now materializes
+> through `write_onlist_text`, the same function the shipped `onlist` rule calls, and refuses to run
+> unless the sampled cells are members of the list STAR receives.
+>
+> **What this does not touch: every matrix assertion on this page.** `kb e2e` and `kb e2e-introns`
+> drive the composed Snakefile through `run_composed`, whose `onlist` rule materializes correctly,
+> and a guard in `tests/test_e2e.py` forbids them from reaching the instrument at all. The recovery
+> figures, the 0-spurious/0-inflated results, the strand inversion and the 40.7 % Gene-only loss all
+> stand. The sweep reads no `Solo.out`, so no cell count or matrix density on this page came through
+> the defect. `Log.final.out` counts and STAR's reported sort requirement are unaffected in kind:
+> CB matching does not gate alignment, so the record count is the same either way.
+>
+> **What it does touch is the wall clock, and to a smaller degree the intercept.** Per-read CB lookup
+> ran against one entry instead of 6 794 880, with no 1MM correction, no UMI collapse and no
+> `Solo.out` write — all of it work that scales with depth, so **~21 s + 3 s per million reads is a
+> floor, not the slope**. The 31.1 GB intercept omits whatever a 6.8 M-entry whitelist costs
+> STARsolo. **The flat-with-depth finding is the one most likely to survive**, because the largest
+> omitted term is constant in depth — but the per-read CB/UMI records and the five Solo count
+> matrices are not, so the slope is not certified by reading the fix. Re-running the sweep is what
+> settles it (#495), and until someone does, read this table as memory-shaped and treat its timings
+> as lower bounds.
+
 **Caveat, and it is the reason the fixture cannot size a sort.** This simulation draws from 2 000
 gene models: STAR asks ~4.9 B per read here against the ~160 B per alignment record measured on real
 data (GSE208154/SAMN29720279, recorded in `workflows/memory.py`) — ~33x apart, and not even the same
