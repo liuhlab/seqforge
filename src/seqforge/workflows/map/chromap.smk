@@ -62,13 +62,22 @@ def whitelist():
     return CHROMAP["barcode_whitelist"]
 
 
+# The two retained files `fragments_finalize` writes, off the one list whose last member is the
+# summary `rule all` demands -- so the three suffixes a finished sample leaves have a single owner
+# and the rule reads two of them rather than spelling them again beside it. The third is imported by
+# name, because the pipeline-stats reader finds that file by the same constant.
+FRAGMENTS_GZ, FRAGMENTS_TBI = fragments_suffixes()[:2]
+
+
 rule all:
     input:
-        expand(
-            f"{OUTDIR}/{{sample}}/{{sample}}{{suffix}}",
-            sample=SAMPLES,
-            suffix=fragments_suffixes(),
-        ),
+        # ONE FILE PER SAMPLE, and it is the QC summary. The fragments file and its index are
+        # `input:` of the rule that writes it, so demanding the summary demands the whole sample and
+        # a target list naming it cannot be quietly incomplete. This REPLACES an enumeration: all
+        # three were named here precisely because nothing downstream consumed the first two, and a
+        # deliverable nobody demands simply stops being produced. A consumer holds that property
+        # structurally, so there is nothing left here to forget.
+        expand(f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}", sample=SAMPLES),
 
 
 rule onlist:
@@ -168,8 +177,8 @@ rule fragments_finalize:
     input:
         raw=rules.chromap_align.output.fragments,
     output:
-        gz=f"{OUTDIR}/{{sample}}/{{sample}}.fragments.tsv.gz",
-        tbi=f"{OUTDIR}/{{sample}}/{{sample}}.fragments.tsv.gz.tbi",
+        gz=f"{OUTDIR}/{{sample}}/{{sample}}{FRAGMENTS_GZ}",
+        tbi=f"{OUTDIR}/{{sample}}/{{sample}}{FRAGMENTS_TBI}",
     container: config["container"]
     shell:
         "seqforge io fragments --raw {input.raw} --out {output.gz}"
@@ -180,9 +189,18 @@ rule fragments_qc:
 
     Pure Python over the fragments text (no external binary), so no `container:` — same as `solo_to_h5ad`
     and unlike `fragments_finalize`.
+
+    **It is also what says the SAMPLE finished, which is why it waits on the whole deliverable.** The
+    fragments file is read; the tabix index beside it is declared and never opened, so that half of
+    the dependency is an ordering constraint — and that is the decision rather than a side effect of
+    one. A completion record that can be written while an index is still missing is a record of
+    nothing, and asking for a sample's QC has to be the correct thing to ask for. What it cost is
+    `rule all`'s enumeration, which is the point: the pair was listed there because nothing
+    downstream consumed either, and something does now.
     """
     input:
         gz=rules.fragments_finalize.output.gz,
+        tbi=rules.fragments_finalize.output.tbi,
     output:
         f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}",
     params:
