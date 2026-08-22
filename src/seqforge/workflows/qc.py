@@ -1,17 +1,24 @@
-"""Bundle one sample's scattered stats + run logs into one gzipped JSON — a droplet one, or a cell's.
+"""Bundle one sample's stats + run logs into one gzipped JSON — a droplet one, a cell's, or a bulk one.
 
-This is a finalize step of ``map/starsolo`` and of the two plate twins: once the counts are captured,
-the aligner's small stat files, its knee-plot vectors, its run logs and its junctions are all that is
-worth keeping — and they are worth keeping, for a future experiment-level QC pass. The aligner
-scatters them across ``Solo.out/<Feature>/`` and the sample directory as a dozen little text files;
-this collapses them into **one** self-describing ``<sample>.qc.json.gz`` and lets the rule that calls
-it ``temp()``-delete the originals.
+This is a finalize step of every STAR module: once the counts are captured, the aligner's small stat
+files, its knee-plot vectors, its run logs and its junctions are all that is worth keeping — and they
+are worth keeping, for a future experiment-level QC pass. The aligner scatters them across
+``Solo.out/<Feature>/`` and the sample directory as a dozen little text files; this collapses them
+into **one** self-describing ``<sample>.qc.json.gz`` and lets the rule that calls it
+``temp()``-delete whichever of the originals nothing else wanted.
 
-**Two builders, one suffix, one verb.** A droplet sample and a plate cell leave genuinely different
-files behind — one has a barcode whitelist, a cell filter and a knee vector, the other an extraction
-summary and, on a Chimera, a split summary — so the two key spaces are two functions rather than one
-with optional keys, which would push a "was this a plate?" branch into every reader path. What they
-share is the aligner's own run files, and that is a private helper both call rather than two copies.
+**Three builders, one suffix, one verb.** A droplet sample, a plate cell and a bulk sample leave
+genuinely different files behind — the first has a barcode whitelist, a cell filter and a knee
+vector, the second an extraction summary and, on a Chimera, a split summary, and the third has
+neither because it demultiplexes nothing — so the three key spaces are three functions rather than
+one with optional keys, which would push a "was this a plate?" branch into every reader path. What
+they share is the aligner's own end-of-run summary, and that is a private helper all three call
+rather than three copies.
+
+The bulk shape arrived last and it is the one that closed a hole rather than opening a file format:
+``map/star`` reported off ``Log.final.out`` where STAR dropped it, which was the one place in the
+repo a reader opened a file no rule declared. Its bundle carries the same summary, read the same way,
+so the reported figures did not move — only the promise that the file is there.
 
 **The plate bundle summarizes the junctions; the droplet one stores the table.** The same artifact
 kind at eighty times the arity is not the same trade-off: a table per sample is small change for ten
@@ -55,10 +62,10 @@ from .metrics import (
 )
 from .umite.extract import extract_metrics
 
-#: What every ``rule qc_bundle`` names its output: ``<sample>.qc.json.gz``, per droplet sample and per
-#: plate cell. **One suffix for one artifact kind**, which is the same call the single verb behind
-#: them is: a reader meeting this name knows it holds one sample's QC and finds out which shape by
-#: reading it, rather than by a second suffix somebody has to keep in step with the first. Here rather
+#: What every ``rule qc_bundle`` names its output: ``<sample>.qc.json.gz``, per droplet sample, per
+#: plate cell and per bulk sample. **One suffix for one artifact kind**, which is the same call the
+#: single verb behind them is: a reader meeting this name knows it holds one sample's QC and finds out
+#: which shape by reading it, rather than by a second suffix somebody has to keep in step. Here rather
 #: than in ``starsolo.smk`` so the rule and the post-run reader both consume the name instead of
 #: restating it — the same discipline ``h5ad_suffixes`` keeps for the deliverables, and for the same
 #: reason: a suffix spelled in the rule and again in the reader is two owners, and the reader's copy
@@ -154,18 +161,34 @@ def _payload(path: Path) -> dict[str, object]:
     return payload
 
 
+def _log_final(run_dir: Path) -> dict[str, object]:
+    """The aligner's end-of-run summary, parsed — the ONE key every bundle shape carries.
+
+    Its own function because the bulk bundle is exactly this and nothing else, while the other two
+    carry it inside a wider set of run files. Which file the summary is and how it is parsed is one
+    fact, and three builders reading it three times is three chances for one of them to keep writing
+    a key the reader below stopped resolving.
+    """
+    return _parse_log_final(_read(run_dir / STAR_FINAL_LOG))
+
+
 def _star_run_files(run_dir: Path) -> dict[str, object]:
-    """The aligner's end-of-run summary and its two progress logs — the half both bundles share.
+    """The aligner's end-of-run summary and its two progress logs — the half two bundles share.
 
     A droplet sample and a plate cell hold genuinely different things, but every ``alignReads`` run
     writes these three the same way, so they are parsed once here rather than in two builders that
     could come to disagree about what a run log is. The filenames belong to the aligner-log constants
     and are imported rather than spelled; the KEYS are this file's, because renaming one of those is
     a change to the artifact's format.
+
+    The bulk builder takes :func:`_log_final` alone rather than this. It is not a smaller version of
+    the same choice: bulk keeps its progress logs sweepable because nothing reads them at a depth
+    where one sample is one directory, where a 784-cell plate folds them in precisely so that four
+    files per cell become one.
     """
     parameter_dump, speed_table = STAR_PROGRESS_LOGS
     return {
-        "log_final": _parse_log_final(_read(run_dir / STAR_FINAL_LOG)),
+        "log_final": _log_final(run_dir),
         "log_out": _read(run_dir / parameter_dump),
         "log_progress": _read(run_dir / speed_table),
     }
@@ -294,6 +317,22 @@ def build_plate_qc_bundle(
     return bundle
 
 
+def build_bulk_qc_bundle(run_dir: Path, *, sample: str, assembly: str | None) -> dict[str, object]:
+    """One BULK sample's completion record: the aligner's end-of-run summary, and nothing else.
+
+    The narrowest of the three shapes, because bulk leaves the least behind that is worth folding in.
+    It demultiplexes nothing, so there is no barcode summary and no knee vector; its junction table
+    is analyzable at this depth and therefore stays a deliverable on disk rather than becoming a key
+    here; and its two progress logs are swept unread, as they are on every other module. What is left
+    is the summary the report has always read for this module — carried now by an artifact a rule
+    declares, instead of scraped off a file STAR wrote unasked.
+
+    It is a strict subset of the plate bundle's key space rather than a fourth vocabulary, so a reader
+    walking a corpus of these meets ``log_final`` in the same place whichever pipeline wrote it.
+    """
+    return {"sample": sample, "assembly": assembly, "log_final": _log_final(run_dir)}
+
+
 def _dump(bundle: Mapping[str, object], out: Path) -> Path:
     """Write one bundle as gzipped JSON to ``out``. Returns ``out``."""
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -335,9 +374,16 @@ def write_plate_qc_bundle(
     )
 
 
+def write_bulk_qc_bundle(
+    run_dir: Path, out: Path, *, sample: str, assembly: str | None = None
+) -> Path:
+    """Build one bulk sample's bundle and write it as gzipped JSON to ``out``. Returns ``out``."""
+    return _dump(build_bulk_qc_bundle(run_dir, sample=sample, assembly=assembly), out)
+
+
 # ---- reading the bundle back --------------------------------------------------------------------
 #
-# The other half of the format contract, deliberately in this file. The two builders above decide
+# The other half of the format contract, deliberately in this file. The three builders above decide
 # which file lands under which key; everything below looks those keys up. Split across two modules
 # they would drift silently — a renamed key would keep writing and quietly stop reading, and the page
 # would lose a metric with nothing failing. Here, one file changes or one file breaks. That is also
@@ -496,10 +542,10 @@ def alignment_metrics(log_final: Mapping[str, Any]) -> list[Metric]:
     """STAR's ``Log.final.out`` as graded metrics — the half that is **not** single-cell.
 
     Split out of :func:`metrics` rather than inlined into it because "what STAR's alignment log says"
-    is not a STARsolo fact: the bundle folds that log in verbatim, and the bulk module writes the very
-    same file with no bundle around it. It has two callers for exactly that reason — :func:`metrics`,
-    which reads it out of the bundle, and :func:`read_star_log`, which reads it straight off disk — so
-    a threshold cannot be tightened for one pipeline and left behind in the other.
+    is not a STARsolo fact: every bundle shape this file writes folds that log in verbatim, and the
+    bulk module's whole record is it. It has three callers for exactly that reason — :func:`metrics`,
+    :func:`plate_metrics` and :func:`bulk_metrics` — so a threshold cannot be tightened for one
+    pipeline and left behind in the other two.
 
     The thresholds are deliberately loose. Unique-mapping rate varies with genome quality, read
     length and rRNA content far more than with anything seqforge decided, so these are set to catch
@@ -759,17 +805,27 @@ def metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
     )
 
 
+def _load(path: Path) -> Mapping[str, Any]:
+    """One ``<sample>.qc.json.gz`` off disk as a mapping. Raises ``OSError``/``ValueError`` if unusable.
+
+    Every ``read_*`` below is this plus one pure function, so the loading is written once: three
+    copies of it is three places for the "not an object" refusal to be forgotten in, on the one path
+    where a wrong answer is a page rendering half a corpus's rows from bytes nobody validated.
+    """
+    with gzip.open(path, "rt", encoding="utf-8") as fh:
+        bundle = json.load(fh)
+    if not isinstance(bundle, Mapping):
+        raise ValueError(f"{path} is not a QC bundle object")
+    return bundle
+
+
 def read_metrics(path: Path, sample: str) -> SampleStats:
     """Load one ``<sample>.qc.json.gz`` and normalise it. Raises ``OSError``/``ValueError`` if unusable.
 
     The thin half of the adapter: the loading lives here so the registry hands over a path and gets
     metrics back, and the judgement lives in :func:`metrics`, which needs no file to test.
     """
-    with gzip.open(path, "rt", encoding="utf-8") as fh:
-        bundle = json.load(fh)
-    if not isinstance(bundle, Mapping):
-        raise ValueError(f"{path} is not a QC bundle object")
-    return metrics(bundle, sample)
+    return metrics(_load(path), sample)
 
 
 def plate_metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
@@ -813,39 +869,37 @@ def read_plate_metrics(path: Path, sample: str) -> SampleStats:
     the registry hands over a path and gets metrics back, and the judgement lives in
     :func:`plate_metrics`, which needs no file to test.
     """
-    with gzip.open(path, "rt", encoding="utf-8") as fh:
-        bundle = json.load(fh)
-    if not isinstance(bundle, Mapping):
-        raise ValueError(f"{path} is not a QC bundle object")
-    return plate_metrics(bundle, sample)
+    return plate_metrics(_load(path), sample)
 
 
-def read_star_log(path: Path, sample: str) -> SampleStats:
-    """``map/star``'s adapter: STAR's own ``Log.final.out``, with no bundle in between.
+def bulk_metrics(bundle: Mapping[str, Any], sample: str) -> SampleStats:
+    """One BULK sample's bundle -> its report row: what STAR's alignment log says, and nothing else.
 
-    Here rather than in ``stats.py`` because this file already owns both halves of "what STAR's
-    alignment log says" — :func:`_parse_log_final` puts that log into the bundle and
-    :func:`alignment_metrics` reads it back out — and the bulk pipeline wants exactly those two
-    composed. Bulk has no barcodes, no cells and no knee vector, so there is nothing else to add: the
-    adapter is one line, and that is the point rather than an omission.
+    **Pure**, like its two siblings, and it is the alignment chapter alone because bulk measures
+    nothing else — no barcode, no cell, no knee vector. The one-line body is the point rather than an
+    omission: the grading it reaches for is :func:`alignment_metrics`, the same function the droplet
+    and plate rows read their alignment columns through, so a threshold cannot be tightened for one
+    pipeline and left behind in another.
 
-    The alternative was a ``qc_bundle``-shaped rule for ``map/star``, which would have given both
-    pipelines one artifact shape to read. It was rejected because STAR writes this file unasked and
-    nothing in ``star.smk`` declares or deletes it: reading it as it lies means bulk reports with no
-    rule change and hence no ``WORKFLOW_VERSION`` bump — so a pipeline already composed gets them
-    without being re-authored, where a new rule would have cost a new recipe to everyone who
-    wanted them. That is what a
-    :class:`~seqforge.workflows.stats.StatsSpec` carrying a *filename* rather than a suffix buys, and
-    this is the artifact it was shaped for.
-
-    Raises ``OSError``/``ValueError`` if the bytes are unusable, like both siblings above, so one bad
-    file costs its own row and not the whole pipeline. Far less can go wrong here than with a gzipped
-    JSON, and deliberately so: a text log a killed job truncated mid-write still parses, and the
-    metrics its missing lines would have carried are simply absent rather than a row of zeros.
+    This module reported the identical row off ``Log.final.out`` where STAR dropped it, which was the
+    one place in the repo a reader opened a file no rule declared. The numbers did not move when the
+    bundle arrived; what moved is that something now promises the file exists.
     """
+    log_final = bundle.get("log_final")
     return SampleStats(
-        sample_id=sample, metrics=alignment_metrics(_parse_log_final(path.read_text()))
+        sample_id=sample,
+        metrics=alignment_metrics(log_final) if isinstance(log_final, Mapping) else [],
     )
+
+
+def read_bulk_metrics(path: Path, sample: str) -> SampleStats:
+    """Load one bulk sample's ``<sample>.qc.json.gz`` and normalise it.
+
+    The thin half of the adapter, in the shape :func:`read_metrics` established. Raises
+    ``OSError``/``ValueError`` if the bytes are unusable, so one corrupt bundle costs its own row and
+    not the whole pipeline.
+    """
+    return bulk_metrics(_load(path), sample)
 
 
 # ---- the cross-check ----------------------------------------------------------------------------
@@ -1085,15 +1139,18 @@ __all__ = [
     "QcError",
     "alignment_metrics",
     "chemistry_rule",
+    "build_bulk_qc_bundle",
     "build_plate_qc_bundle",
     "build_qc_bundle",
+    "bulk_metrics",
     "gene_model_rule",
     "metrics",
     "plate_metrics",
+    "read_bulk_metrics",
     "read_metrics",
     "read_plate_metrics",
-    "read_star_log",
     "solo_features_rule",
+    "write_bulk_qc_bundle",
     "write_plate_qc_bundle",
     "write_qc_bundle",
 ]

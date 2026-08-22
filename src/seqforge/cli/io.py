@@ -230,14 +230,20 @@ def io_qc_bundle(
 
     ONE verb for one artifact kind, with one suffix and one owner. `--solo-dir` and `--features` are
     a droplet sample's, `--extract` and `--split` are a plate cell's, and which pair is given decides
-    which bundle is built — a second verb would be a second surface for one artifact. Called by the
-    `qc_bundle` rule of `starsolo.smk` and of both plate twins (a `shell:`, so compose's wiring gate
-    sees it). Exit 2 on a mixed or incomplete pair, exit 3 if a file the pipeline was supposed to
-    write is missing.
+    which bundle is built — a second verb would be a second surface for one artifact. Giving NEITHER
+    pair is the bulk shape, and that is a claim rather than a fallback: a bulk sample demultiplexes
+    nothing, so it has no summary to name and its record is the aligner's own. Called by the
+    `qc_bundle` rule of every STAR module (a `shell:`, so compose's wiring gate sees it). Exit 2 on a
+    mixed or incomplete pair, exit 3 if a file the pipeline was supposed to write is missing.
     """
     from ..models.processing import SoloFeature
     from ..workflows.h5ad import SOLO_FEATURE_OUTPUT
-    from ..workflows.qc import QcError, write_plate_qc_bundle, write_qc_bundle
+    from ..workflows.qc import (
+        QcError,
+        write_bulk_qc_bundle,
+        write_plate_qc_bundle,
+        write_qc_bundle,
+    )
 
     def refuse(message: str) -> NoReturn:
         typer.echo(json.dumps({"error": message}), err=True)
@@ -252,7 +258,7 @@ def io_qc_bundle(
         )
     if droplet and len(droplet) < 2:
         refuse("a droplet bundle needs both --solo-dir and --features")
-    if not droplet and extract is None:
+    if split is not None and extract is None:
         refuse("a plate bundle needs --extract, the cell's UMI-extraction summary")
 
     try:
@@ -269,15 +275,17 @@ def io_qc_bundle(
                 sample=sample,
                 assembly=assembly,
             )
-        else:
+        elif extract is not None:
             written = write_plate_qc_bundle(
                 run_dir,
                 out,
                 sample=sample,
                 assembly=assembly,
-                extract=cast(Path, extract),
+                extract=extract,
                 split=split,
             )
+        else:
+            written = write_bulk_qc_bundle(run_dir, out, sample=sample, assembly=assembly)
     except QcError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc

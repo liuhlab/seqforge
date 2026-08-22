@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
-#: 2026.8.22 — `rule genome_index` is DELETED from all five modules and the lookup it performed is a
+#: 2026.8.23 — `rule genome_index` is DELETED from all five modules and the lookup it performed is a
 #: `params:` callable in each (#478, from #475). It owned `results/index/<assembly>`, a path every
 #: concurrent instance over one results directory shares, and snakemake removes an output before
 #: running the job that makes it: six instances at once measured 0 of 6 successful runs, an atomic
@@ -50,6 +50,22 @@ if TYPE_CHECKING:
 #: nothing outside the modules ever read it. The cost the spec did not price is that BUILDING a DAG
 #: now needs the index to exist, so the suite's dry runs stand one up (`conftest.stage_reference`)
 #: where they used to plan against no reference at all. `required_config` is unchanged for all five.
+#: 2026.8.22 — `map/star` gains a `qc_bundle` rule, and no reader anywhere opens a file no rule
+#: declares (#480, from #475). The bulk module was the last without a per-sample completion record
+#: and the only place in the repo where the report scraped something the pipeline never promised:
+#: STAR drops `Log.final.out` into the sample directory unasked, and the stats registry read it off
+#: disk with no rule in between — so a report that found nothing and a run that never happened
+#: rendered the same, and nothing could say which. The new rule writes `<sample>{QC_SUFFIX}`, the
+#: artifact name the other four already use, carrying that same summary parsed the same way; the
+#: registry entry moves from a bare filename to the `{sample}` shape, and `rule all` names the record
+#: as the module's single per-sample target. **The reported figures do not move** — one
+#: `alignment_metrics` over one `_parse_log_final`, before and after — which is what makes this a
+#: change of owner rather than of measurement. `star_count` also DECLARES the end-of-run summary now,
+#: kept rather than `temp()`: the bundle rule consumes it, and a rule reading a file no rule promised
+#: is the same seam one level down. Kept because bulk leaves one directory per sample and that text
+#: is what a human opens first, where the plate twins sweeping 784 of it is the opposite trade. The
+#: known exception #479 registered in the one-file-per-sample invariant is removed, so it now holds
+#: for every module with no exceptions.
 #: 2026.8.21 — the plate-wide fan-in takes the machine it was given, and three rules stop reading
 #: the recipe's threads figure straight (ADR-0051). `workflows/threads.py` is the map, mirroring
 #: `workflows/memory.py`: the counter declares the run's own width less one for the parent, the QC
@@ -595,7 +611,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.22"
+WORKFLOW_VERSION = "2026.8.23"
 
 _MODULE_DIR = Path(__file__).parent
 
