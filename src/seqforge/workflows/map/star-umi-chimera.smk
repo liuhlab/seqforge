@@ -69,6 +69,13 @@
 # graph. Snakemake fans in natively and `rule all` already expands over samples, so a failed counting
 # job re-runs only itself: every per-Component BAM is on disk.
 #
+# **A PLATE AS SEVERAL SNAKEMAKE JOBS.** Give each job its cells' QC artifacts AND those cells' split
+# BAMs, `<cell>.<component>.bam`, one per Component; keep the lists disjoint, pass `--nolock`, then
+# run once more with no targets to count and reclaim. A file named as a target is exempt from
+# `temp()`, and those BAMs are the only things the counters still need after a shard is done -- the
+# PRE-split BAM is not among them. **`--notemp` is NOT needed, and it is what took a 350 GB run to a
+# 2.9 TB peak with 2.0 TB orphaned**: a shard reclaims the rest itself.
+#
 # The read->role placement arrives via `config["read_files_in"]`, whose `umi_tagged` shape is
 # `umi_cdna` and — only where the protocol was sequenced paired — `cdna`, chosen by ROLE. Role and
 # not order, and that is this module's sharpest edge: the two reads are NOT symmetric — one opens
