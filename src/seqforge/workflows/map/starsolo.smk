@@ -195,7 +195,7 @@ rule load_genome:
     **This rule exists because of concurrency arithmetic, not as a tuning preference.** STAR's index
     is per-process and resident for the life of the job, so N samples mapping at once on one machine
     cost N copies of it: six droplet samples against a ~31 GB human index is ~186 GB of index where
-    ~31 GB would do. A composed pipeline runs on ONE machine (ADR-0051), which is what makes one
+    ~31 GB would do. A snakemake instance runs on ONE machine (ADR-0051), which is what makes one
     segment attachable by every job at all -- and it is also what makes the multiplication real,
     since those jobs are concurrent by construction rather than spread out by a scheduler.
 
@@ -290,7 +290,8 @@ rule starsolo_count:
     `workflows/starsolo_args.py` like every other flag on this command line, and it is why
     `--limitBAMsortRAM` is required rather than merely wise: STAR's default of `0` means "reuse the
     genome allocation", and under a shared copy there is none of its own to reuse. The memory request
-    does NOT shrink to match the sharing -- it covers a job alone on the machine (ADR-0051), which is
+    does NOT shrink to match the sharing -- it covers a job alone on the instance's machine (ADR-0051),
+    which is
     what it would be the first time one sample ran by itself.
     """
     input:

@@ -1789,7 +1789,7 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     """Four invariants every STAR workflow owes, read off ONE rendered plan.
 
     STAR's index is per-process and resident for the life of the job, so N mapping jobs running at
-    once on one machine cost N copies of it. A composed pipeline runs on ONE machine (ADR-0051),
+    once on one machine cost N copies of it. A snakemake instance runs on ONE machine (ADR-0051),
     which is what makes a single shared segment reachable by every job — and is also what makes the
     multiplication real, since the jobs of a run are concurrent by construction. `map/star-umi` has
     shared a copy since 2026.8.6; the other two loaded a private copy per job until #379.

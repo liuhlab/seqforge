@@ -134,7 +134,7 @@ rule load_genome:
     **This rule exists because of concurrency arithmetic, not as a tuning preference.** STAR's index
     is per-process and resident for the life of the job, so N samples mapping at once on one machine
     cost N copies of it: six samples against a ~25-31 GB human index is ~150-186 GB of index where
-    ~31 GB would do. A composed pipeline runs on ONE machine (ADR-0051), which is what makes one
+    ~31 GB would do. A snakemake instance runs on ONE machine (ADR-0051), which is what makes one
     segment attachable by every job at all -- and it is also what makes the multiplication real,
     since those jobs are concurrent by construction rather than spread out by a scheduler.
 
@@ -217,7 +217,8 @@ rule star_count:
     **The index is ATTACHED, not loaded.** `load_genome` put one copy in shared memory and this rule
     depends on its flag, so N concurrent samples on the machine hold one index between them rather
     than one apiece. The memory request does not shrink to match: it covers a job that is alone on
-    the machine (ADR-0051), which is what it would be the first time one sample ran by itself.
+    the instance's machine (ADR-0051), which is what it would be the first time one sample ran by
+    itself.
 
     Both numbers follow `attempt`, the arrangement `starsolo_count` already has, and the reasoning is
     NOT the same reasoning. STARsolo escalates against `readInfo`, an allocation that grows with
