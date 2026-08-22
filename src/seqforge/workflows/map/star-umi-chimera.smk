@@ -125,6 +125,11 @@ from seqforge.workflows.memory import (
 from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.splice_args import splice_shell_args
 from seqforge.workflows.split import SPLIT_SUFFIX
+from seqforge.workflows.threads import (
+    QC_BUNDLE_THREADS,
+    fan_in_threads,
+    split_chimera_threads,
+)
 from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
 from seqforge.workflows.units import mate_role as units_mate_role
@@ -715,22 +720,44 @@ rule split_chimera:
     buffer, and a ten-million-record BAM streams in constant memory.
 
     `threads:` is the share of the machine this job takes, and it is HANDED OVER rather than merely
-    reserved. The same figure `multiplaced_to_cram` declares -- the two run against each other
-    over one BAM, so a plate's width should not depend on which of them got there first. What the
-    verb spends it on is the BGZF codec and nothing else, divided across the outputs: the record loop
-    is one stateless pass and stays on one core whatever this says, and the loop is where this rule's
-    wall-clock went. Measured on the implementation that rebuilt each kept record, the block
-    compression underneath it was 12.2% of the pass against the loop's 81.4%, and was that cheap only
-    because it is threaded and overlaps behind a serial producer. Take most of the loop away, as
-    copying the record now does, and the codec's share of a much smaller wall rises without anything
-    having been bought: this figure buys the codec, the codec is about a third of the pass that
-    ships, and it is the largest bucket left rather than the cheap half of one -- and handing it over
-    is still the point, because asking the scheduler for cores and then handing the verb none of them
-    is the shape this module's own history records on `umi_count`, where a whole plate was counted on
-    one core inside an allocation sized for the rest.
+    reserved. **A CEILING on the recipe's figure rather than the figure itself** -- the smaller of
+    what the operator budgeted and what the rule can spend, which `workflows.threads` derives and
+    keeps the sweep beside. A no-op at today's default, where the two are the same number, and it
+    binds the moment a recipe raises `threads` for a deep sample -- which is exactly the run where
+    this rule would otherwise hold cores it provably cannot use, on every cell at once, while the
+    mapping jobs that could use them wait. The wall-time gain per doubling ends at 4 -> 8 and the
+    next doubling buys almost nothing, because above the ceiling most of the wall is the serial
+    routing loop and no further thread touches it. **The number is an UPPER bound, not a central
+    estimate**: the fixture that placed it splits 90/10 by output bytes on a warm local SSD with a
+    synthetic cell, and on a cold or networked filesystem the loop floor arrives sooner and the knee
+    moves DOWN. **Do not re-derive it from a utilisation ratio** -- total CPU is flat across the
+    sweep, so cores-per-declared-thread is a fixed amount of work divided by a wall clock and has no
+    knee to find.
 
-    Whether one wide split beats several narrow ones on a real plate is UNMEASURED, and the recipe's
-    own figure is what is passed rather than a number invented here.
+    This REPLACES a symmetry with `multiplaced_to_cram`, deliberately: the two consume one BAM
+    against each other, so both used to take the recipe's figure on the grounds that a plate's width
+    should not depend on which of them got there first. That was written when NEITHER rule had
+    evidence. One now does, and reserving cores a rule cannot use is not fairness between two rules.
+    `multiplaced_to_cram` keeps `config["threads"]`, because its only measurement is 3.2 cores of 8
+    on an implementation that no longer exists -- which argues for something LOWER than 8 rather than
+    for 8, so capping it here would be a number chosen to match a neighbour instead of a measurement.
+
+    What the verb spends it on is the BGZF codec and nothing else, divided across the outputs: the
+    record loop is one stateless pass and stays on one core whatever this says, and the loop is
+    where this rule's wall-clock went. Measured on the implementation that rebuilt each kept record,
+    the block compression underneath it was 12.2% of the pass against the loop's 81.4%, and was that
+    cheap only because it is threaded and overlaps behind a serial producer. Take most of the loop
+    away, as copying the record now does, and the codec's share of a much smaller wall rises without
+    anything having been bought: this figure buys the codec, the codec is about a third of the pass
+    that ships, and it is the largest bucket left rather than the cheap half of one -- and handing it
+    over is still the point, because asking the scheduler for cores and then handing the verb none of
+    them is the shape this module's own history records on `umi_count`, where a whole plate was
+    counted on one core inside an allocation sized for the rest.
+
+    Whether one wide split beats several narrow ones on a real plate is UNMEASURED, and so is what an
+    uneven division across the writers would buy -- the dominant Component carries ~90% of the bytes
+    on the same worker count as the writer doing 10%, which is a property of the verb's budget split
+    rather than of this declaration and is filed on its own.
 
     **The outputs are rendered as `<component>=<path>` from `zip(COMPONENTS, output.bams)`** -- the
     same argument shape `umi_count` takes its cells in, and for the same reason: a Component and where
@@ -765,7 +792,7 @@ rule split_chimera:
         # per-cell rule while the Component axis is expanded here and the cell axis by `rule all`.
         bams=temp(expand(SPLIT_BAM, component=COMPONENTS, allow_missing=True)),
         summary=temp(f"{OUTDIR}/{{sample}}/{{sample}}{SPLIT_SUFFIX}"),
-    threads: config["threads"]
+    threads: split_chimera_threads(config["threads"])
     params:
         assembly=ASSEMBLY,
         outputs=lambda wc, output: " ".join(
@@ -860,6 +887,7 @@ rule qc_bundle:
         multiplaced=rules.multiplaced_to_cram.output.cram,
     output:
         CELL_QC,
+    threads: QC_BUNDLE_THREADS
     params:
         # The cell's own directory: a cell IS a sample here, so this is where STAR left the run
         # files above and what the verb reads them from.
@@ -913,10 +941,19 @@ rule umi_count:
     No `container:`: counting is not aligning, and pysam, gffutils and anndata are plain
     dependencies of this package. Only STAR needs an environment we do not own.
 
-    Its memory request is the module's own arithmetic over the recipe's ONE figure, not the same
-    request the mapping jobs make: this rule loads no genome index at all, and the recipe's figure
-    was sized against one that does. UNMEASURED against a chimeric run, like every figure in this
-    file: a Component's matrix is slightly SMALLER than its single-assembly counterpart, because
+    **`threads:` is the RUN'S OWN WIDTH, less one for the parent that accumulates the matrix**, and
+    not the recipe's figure -- which sizes a mapping job, while this is the last job of the instance
+    with every cell already finished. `workflows.threads.fan_in_threads` carries the argument.
+    **On this arm that has a consequence the base does not have**: there is one of these per
+    Component, and two jobs each asking for the width less one cannot both be admitted, so the
+    Components are counted one after another at full width rather than at once on half a machine
+    each. That is the trade taken deliberately -- the parent's accumulation is serial either way, and
+    a half-width worker pool is what the 10%-utilised run already was.
+
+    Its memory request is the recipe's whole figure through the module's own arithmetic, which is
+    what makes the width above affordable -- `workflows.memory.fan_in_mem_mb` has the measurement and
+    the term it does not model. UNMEASURED against a chimeric run, like every figure in this file: a
+    Component's matrix is slightly SMALLER than its single-assembly counterpart, because
     cross-Component multimappers never entered one, so the arithmetic is if anything generous -- but
     "if anything" is not a measurement and the number is the base's, unchanged.
 
@@ -934,7 +971,7 @@ rule umi_count:
         # The `{component}` in the declared name survives into the output as a snakemake wildcard,
         # so the registry's `fan_in_artifact` and this rule stay ONE owner of that filename.
         h5ad=f"{OUTDIR}/{PLATE_COMPONENT_H5AD}",
-    threads: config["threads"]
+    threads: fan_in_threads(workflow.cores)
     retries: PLATE_RETRIES
     resources:
         mem_mb=lambda wildcards, attempt: fan_in_mem_mb(config["mem_mb"], attempt),

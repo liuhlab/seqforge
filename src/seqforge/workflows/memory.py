@@ -19,8 +19,10 @@ expensive rule. `map/star-umi` has *three* rule classes that scale differently �
 per-cell alignment whose surplus over that index is a sort buffer, and one plate-wide counting job
 that loads no index at all — while the recipe still says exactly one thing, because `resources.mem_gb`
 is intent and a recipe carrying every module's rule names would widen its schema on every new module.
-So the module turns one figure into three requests (:func:`index_mem_mb`, :func:`per_cell_mem_mb`,
-:func:`fan_in_mem_mb`) and escalation applies to each class alone.
+So the module turns one figure into one request PER RULE CLASS (:func:`index_mem_mb`,
+:func:`per_cell_mem_mb`, :func:`fan_in_mem_mb`) and escalation applies to each class alone. Three
+names for what is today one arithmetic, and they stay apart because a measurement will land on one
+of them and not on the others — which is exactly how the counter's share came and went.
 
 **What that one figure covers, and why no single sentence about it stays true.** A mapping job's peak
 is three things held at once: the genome index, resident for the life of the process; the aligner's
@@ -157,33 +159,14 @@ def bulk_mem_mb(mem_mb: int, attempt: int) -> int:
 #: two together for no reason beyond having the same value today.
 PLATE_RETRIES: int = 2
 
-#: What share of the recipe's memory figure the plate-wide counting job asks for, and the floor it
-#: may not fall below. **A declared share, not a measurement, and it is here so it can become one.**
-#:
-#: What is known is the SHAPE, and the shape is what makes one figure wrong for both rules. A
-#: per-cell mapping job pays the whole of a mapping job's peak — index residency, working set and
-#: sort — and on a PLATE CELL it is the residency that dominates, measured at 27.7 GB peak RSS
-#: against a 25 GB index whether the cell holds 901 reads or 3.1M. (On a deep sample the sort is what
-#: dominates instead; the module header has the curve.) Either way it wants the whole figure the
-#: recipe was sized with. The fan-in counter loads **no genome index at
-#: all**: it reads the built annotation database into one interval index and accumulates the plate's
-#: sparse matrices, which is a fraction of a mapping job rather than a multiple of it. Asking for the
-#: mapping figure would idle three quarters of a node for the one job that must run after every cell
-#: has finished, which on a scheduler is exactly when a large request queues worst.
-#:
-#: No peak has been measured for it, so the number below is a floor-and-share written in ONE
-#: importable function precisely so a measurement can replace it without touching a rule.
-_FAN_IN_NUMERATOR, _FAN_IN_DENOMINATOR = 1, 4
-_MIN_FAN_IN_MEM_MB = 8 * 1024
-
 
 def per_cell_mem_mb(mem_mb: int, attempt: int) -> int:
     """What ONE cell's mapping job asks for on ``attempt`` — the recipe's whole figure, escalated.
 
     The recipe says one thing, on purpose: ``resources.mem_gb`` is *intent*, and a recipe carrying
     every module's rule names would make each new module widen the recipe schema. So the module —
-    the only artifact that knows its own rule graph — turns that one figure into two requests, and
-    this is the first of them.
+    the only artifact that knows its own rule graph — turns that one figure into a request per rule
+    class, and this is the mapping one.
 
     It is the figure **unchanged** rather than a share of it, because a mapping job pays all of what
     a mapping job costs: the genome index, the aligner's working set, and the sort. Which of those
@@ -227,17 +210,39 @@ def index_mem_mb(mem_mb: int, attempt: int) -> int:
 
 
 def fan_in_mem_mb(mem_mb: int, attempt: int) -> int:
-    """What the plate-wide counting job asks for on ``attempt`` — a share of the same one figure.
+    """What the plate-wide counting job asks for on ``attempt`` — the recipe's whole figure.
 
-    The second half of the module's map. See :data:`_FAN_IN_NUMERATOR` for why a share and not the
-    whole: this rule loads no genome index, so the number that sizes a mapping job says nothing
-    about it. Escalation is applied to the share and applies to this rule class alone — a retry here
-    does not mean a mapping job wanted more, and nothing re-runs to find out.
+    The third rule class in the module's map, and the one whose SHAPE is least like a mapping job's:
+    it loads no genome index at all, reading the built annotation database into one interval index
+    and accumulating the plate's sparse matrices. That is a fraction of a mapping job rather than a
+    multiple of it, which is why this asked for a quarter of the figure with an 8 GB floor under it.
+
+    **The quarter is gone, and the argument that defended it was about a machine this system does
+    not have.** It said that asking for the mapping figure "would idle three quarters of a node for
+    the one job that must run after every cell has finished, which on a scheduler is exactly when a
+    large request queues worst" — which assumes a scheduler fanning one run's jobs out across
+    machines and admitting them against each other. A snakemake instance owns one machine
+    (ADR-0051), and this job is the LAST one of the instance: every cell finished before it could
+    start, nothing of the run's is queued behind it, and there is nothing left on the node to idle.
+    A quarter-share buys nobody anything and costs the counter its headroom.
+
+    The whole figure also covers what the job now is. The counter takes the run's width rather than
+    the recipe's threads figure (`workflows.threads.fan_in_threads`), and a worker costs a measured
+    ~260 MB — 2.06 GB at 8 workers, 16.43 GB at 64, linear between them — so the default 48 GB holds
+    roughly 185 workers, well past any node's core count. **Widening the fan-in is already paid
+    for**, and it is paid for by this line rather than by an escalation nobody would reach.
+
+    **One term is NOT modelled and is stated rather than papered over.** The PARENT grows with the
+    number of cells, not with the width: ~120 MB/min of accumulation, 3.5 GB peak on a 784-cell
+    plate. No figure here covers that, because it is a property of the plate and this function only
+    sees the recipe. On a plate several times that size the parent — not the workers — is what runs
+    out first, and the answer then is a recipe with a larger ``resources.mem_gb``, chosen by someone
+    who counted the cells.
+
+    Escalation is unchanged and applies to this rule class alone — a retry here does not mean a
+    mapping job wanted more, and nothing re-runs to find out.
     """
-    share = mem_mb * _FAN_IN_NUMERATOR // _FAN_IN_DENOMINATOR
-    # The floor may not exceed the whole request: on a recipe smaller than the floor, asking the
-    # scheduler for more than the pipeline was budgeted is a job that never starts.
-    return escalated_mem_mb(min(mem_mb, max(_MIN_FAN_IN_MEM_MB, share)), attempt)
+    return escalated_mem_mb(mem_mb, attempt)
 
 
 def bam_sort_ram(mem_mb: int) -> int:

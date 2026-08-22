@@ -36,6 +36,7 @@ from genome.chimera import derive_separator, split_suffixed, suffixed
 from scipy.sparse import csr_matrix
 
 from conftest import (
+    DRY_RUN_CORES,
     NO_STAR_ALIGNMENT_ON_MACOS,
     DryRun,
     SrcTrees,
@@ -2001,6 +2002,11 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     must be EXACTLY the key set scanned off the module source. Configuration nobody reads is how a
     module comes to depend on a key the composer does not owe it, which surfaces as a `KeyError` on a
     compute node long after compose exited 0.
+
+    It also takes the fan-in's WIDTH at more than one `--cores`, which nothing but a rendered plan
+    can do: `workflows.threads` decides the number from an argument snakemake supplies, so a unit
+    call proves the arithmetic and only a plan proves the rule reads the run. Two widths and a
+    `--set-threads` override, because a single width is satisfied by any constant that matches it.
     """
     module = get_module("map/star-umi")
     config = _plate_run_dir(tmp_path, ["cell_a", "cell_b", "cell_c"])
@@ -2066,12 +2072,22 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     assert re.search(r"--units \S*units\.tsv --sample \S+", plan), plan
     assert not re.search(r"--r1\b|--r2\b", plan), plan
     assert "--readFilesType SAM PE" in plan
-    # The fan-in SPENDS the threads it asks the scheduler for. It requested them and handed the verb
-    # none of them, so the one job that runs after every cell has finished counted a whole plate on
-    # one core of an allocation it was holding whole. Read off the rendered command, because a rule
-    # whose `threads:` and whose command line disagree is exactly what that looked like.
+    # The fan-in SPENDS the threads it asks the scheduler for, and what it asks for is THE RUN'S OWN
+    # WIDTH less one. It used to request the recipe's mapping figure and hand the verb none of it, so
+    # the one job that runs after every cell has finished counted a whole plate on one core of an
+    # allocation it was holding whole; then it spent the figure, which on a 160-core node was 16
+    # workers with nothing else on the machine. Read off the rendered command at TWO widths, because
+    # a constant that happens to match one machine passes every single-width check — and the recipe's
+    # own figure is 4 here, so a fan-in that had gone on reading it would satisfy the narrower plan.
     rendered = _rendered_shell(plan)
-    assert "--threads 4" in rendered["umi_count"][""]
+    assert f"--threads {DRY_RUN_CORES - 1}" in rendered["umi_count"][""]
+    narrow = _rendered_shell(dry_run(tmp_path, cores=4))
+    assert "--threads 3" in narrow["umi_count"][""]
+    # ...and the CLI override still wins over both, which is the mid-run escape hatch a relative
+    # width must not cost anyone: a plate whose counter is drowning is rescued by `--set-threads`
+    # exactly as it was when the declaration was a constant.
+    pinned = _rendered_shell(dry_run(tmp_path, argv=("--set-threads", "umi_count=2")))
+    assert "--threads 2" in pinned["umi_count"][""]
     # ...and the archive is PARTITIONED BY MAPPABILITY: two files per cell, each cut from the one BAM
     # STAR wrote by a NAMED selection rather than a filter respelled here, so a misspelling is refused
     # at the verb's gate. Neither selection keeps a record that never aligned, so the pair does not
@@ -2950,9 +2966,8 @@ def test_the_sort_budget_follows_the_escalated_memory_request(
     # to sort in more memory than the job was granted trades STAR's legible refusal ("this is how
     # many bytes I needed") for the scheduler's OOM kill, which is the one failure mode #205 exists
     # to remove. Read through the escalator rather than off `bam_sort_ram` alone, because the guard
-    # has to survive the composition: an escalator that grew its own floor — the shape
-    # `fan_in_mem_mb` has and these two do not — would hand a tiny recipe a cap above its request
-    # while `bam_sort_ram` on its own stayed correct.
+    # has to survive the composition: an escalator that grew a floor of its own would hand a tiny
+    # recipe a cap above its request while `bam_sort_ram` on its own stayed correct.
     assert bam_sort_ram(escalate(512, 1)) == 536_870_912  # 512 MiB, the whole request, not 1024
     # ...and just above the floor the floor still binds: 3/4 of 1200 MiB is 900, under it.
     assert bam_sort_ram(escalate(1200, 1)) == 1_073_741_824  # 1024 MiB, the floor
@@ -3164,22 +3179,27 @@ def test_the_module_never_computes_a_star_memory_cap_from_the_config() -> None:
     )
 
 
-def test_the_plate_module_turns_the_recipes_one_figure_into_two_requests() -> None:
-    """One recipe number in, a per-cell request and a fan-in request out — and they differ.
+def test_the_plate_module_turns_the_recipes_one_figure_into_a_request_per_rule_class() -> None:
+    """One recipe number in, a per-cell request and a fan-in request out, escalating separately.
 
     The recipe says exactly one thing because `resources.mem_gb` is INTENT, and per-rule budgets in a
     recipe would make every recipe carry every module's rule names. So the map lives in the module,
-    which is the only artifact that knows its own rule graph, and the claim here is that it IS a map:
-    two rule classes that scale differently must not come out of it as one number.
+    which is the only artifact that knows its own rule graph, and what it maps is a rule CLASS to a
+    request — not a rule class to a fraction.
 
-    The per-cell request is the whole figure because a mapping job is dominated by the genome index,
-    which is per process and independent of read count — 27.7 GB peak against a 25 GB index whether
-    the well holds 901 reads or 3.1M. The fan-in loads no index at all, so it takes a share.
+    The two agree today and the equality is the claim, not a coincidence. The per-cell request is the
+    whole figure because a mapping job is dominated by the genome index, per process and independent
+    of read count — 27.7 GB peak against a 25 GB index whether the well holds 901 reads or 3.1M. The
+    fan-in asks for the whole figure too, because it is the LAST job of the instance: every cell has
+    finished, the instance owns the node, and there is nothing for a share to leave room for. It used
+    to take a quarter with an 8 GB floor, defended by an argument about a large request queueing
+    worst on a scheduler that admits one run's jobs against each other — which is not this system.
+    A share reappearing here is a regression, and this is where it goes red.
     """
     from seqforge.workflows.memory import PLATE_RETRIES, fan_in_mem_mb, per_cell_mem_mb
 
     assert per_cell_mem_mb(_DEFAULT_MEM_MB, 1) == _DEFAULT_MEM_MB
-    assert fan_in_mem_mb(_DEFAULT_MEM_MB, 1) < per_cell_mem_mb(_DEFAULT_MEM_MB, 1)
+    assert fan_in_mem_mb(_DEFAULT_MEM_MB, 1) == per_cell_mem_mb(_DEFAULT_MEM_MB, 1)
 
     # Escalation per rule class, INDEPENDENTLY: each is linear in its own attempt over its own base,
     # so a retried counter never asks for a mapping job's headroom and vice versa. Attempt 1 is the
@@ -3190,10 +3210,61 @@ def test_the_plate_module_turns_the_recipes_one_figure_into_two_requests() -> No
             fan_in_mem_mb(_DEFAULT_MEM_MB, attempt) == fan_in_mem_mb(_DEFAULT_MEM_MB, 1) * attempt
         )
 
-    # A recipe smaller than the fan-in floor may not be turned into a request BIGGER than the recipe:
-    # a job asking the scheduler for more than the pipeline was budgeted is a job that never starts.
+    # ...and a recipe far below any floor a share would have needed is passed through whole, which is
+    # the same claim read from the other end: nothing here may hand the scheduler a number the recipe
+    # did not budget, and nothing here may withhold one it did.
     tiny = 2 * 1024
     assert fan_in_mem_mb(tiny, 1) == tiny
+
+
+def test_the_plate_modules_thread_map_covers_the_rules_with_evidence_and_no_others() -> None:
+    """The three figures `workflows.threads` states, and the shape of each — no snakemake involved.
+
+    The recipe says one thing about threads for the same reason it says one about memory, so the
+    module turns that one figure into what its own rules need. The map is deliberately PARTIAL: a
+    figure is here only where a measurement or a certainty stands behind it, so what this test owns
+    is that each of the three has the SHAPE its evidence supports and not merely the value it
+    happens to take today.
+
+    The fan-in is a function of the RUN, not of the recipe — the width the instance was given, less
+    one for the parent that accumulates the matrix while its workers hand cells back. A constant
+    cannot be right on a 16-core node and a 160-core one, which is the failure this replaces: 16
+    workers at ~10% utilisation with nothing else on the machine.
+
+    The chimeric split is a CEILING and not a constant, which is two promises rather than one. It
+    never exceeds what the operator budgeted, and it never exceeds what the rule can spend — the
+    wall-time gain per doubling is 6.93 s at 4 -> 8 and 0.82 s at 8 -> 16, because above the ceiling
+    ~83% of the wall is a serial routing loop. Both directions are asserted, because a ceiling
+    written as `max` or as a bare constant satisfies exactly one of them.
+
+    The QC fold is the certainty: measured at 0.8 cores, declared at 1. It is also what snakemake
+    assumes for a rule that declares nothing, so its value is not what makes it worth stating — the
+    map having no hole where a measured rule sits is.
+    """
+    from seqforge.workflows.threads import (
+        QC_BUNDLE_THREADS,
+        fan_in_threads,
+        split_chimera_threads,
+    )
+
+    # The width the run was given, less the parent. Read at three widths, so a constant that happens
+    # to match one machine cannot pass.
+    assert [fan_in_threads(cores) for cores in (4, 16, 64)] == [3, 15, 63]
+    # ...and it may not ask for zero on the degenerate machine, where the parent is the only process
+    # there is: a rule asking for no threads is not a smaller job, it is an unschedulable one.
+    assert fan_in_threads(1) == 1
+
+    # A ceiling, from both sides. Below it the recipe wins, because a rule may not walk past the
+    # budget the operator stated; above it the rule's own limit wins, because reserving cores it
+    # provably cannot spend holds them away from the mapping jobs that can. The ceiling is where the
+    # sweep put it — the largest gain per doubling is the one that ends there.
+    assert split_chimera_threads(4) == 4
+    assert split_chimera_threads(64) == 8
+
+    assert QC_BUNDLE_THREADS == 1, (
+        "the QC fold's figure moved; it is a measurement (0.8 cores) rather than a placeholder, so a "
+        "new value needs a new measurement rather than a re-read of the recipe"
+    )
 
 
 # ================================================================================================

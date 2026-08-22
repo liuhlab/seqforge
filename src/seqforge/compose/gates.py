@@ -19,6 +19,8 @@ no gate at all: green CI would then be mistaken for coverage.
 - `--lint` was in this gate and is now gone. It fails on *every* rule we ship, for a missing `log:`
   directive and "mixed rules and functions in same snakefile" — style opinions, not wiring facts. A
   gate that is red for a correct config teaches people to ignore it, and then it guards nothing.
+- `--cores` is the one flag here a plan cannot omit; :data:`_PLANNING_CORES` says why and why it is
+  the smallest value that answers the question.
 """
 
 from __future__ import annotations
@@ -40,6 +42,19 @@ if TYPE_CHECKING:  # pragma: no cover
 #: person who hit it. Bounded at all because a `ComposeResult` is JSON on a machine's stdout and a
 #: subprocess's stderr has no ceiling.
 REASON_TAIL_LINES = 40
+
+#: The machine width this gate plans against, and it is **not optional any more**. A module may
+#: declare a rule's threads relative to the run — the plate-wide counter takes the width it was given
+#: less one — and snakemake refuses to build a DAG that reads a core count nobody supplied, with a
+#: `WorkflowError` naming the missing flag. So a planner has to name a width even though it never
+#: runs a job.
+#:
+#: **One**, because this gate answers "can this be planned" and nothing else. Snakemake clamps every
+#: declared figure down to the cores it is given, so a wider number here would only put larger
+#: integers into a plan nobody schedules from, and a number resembling a real node would invite
+#: someone to read the gate's plan as a statement about the machine the operator will use. It is
+#: not: the width belongs to whoever submits the pipeline.
+_PLANNING_CORES = "1"
 
 
 def have(binary: str) -> bool:
@@ -112,7 +127,17 @@ def wiring_gate(pipeline_dir: Path, plan: ComposePlan) -> GateVerdict:
     wrapper = CompiledPipeline(scratch).snakefile
     try:
         proc = subprocess.run(
-            ["snakemake", "-d", str(scratch), "-s", str(wrapper), "-n", "-p"],
+            [
+                "snakemake",
+                "-d",
+                str(scratch),
+                "-s",
+                str(wrapper),
+                "-n",
+                "-p",
+                "--cores",
+                _PLANNING_CORES,
+            ],
             capture_output=True,
             text=True,
             timeout=300,
