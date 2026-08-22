@@ -32,6 +32,7 @@ from seqforge.workflows.h5ad import STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRES
 from seqforge.workflows.memory import BULK_RETRIES, bam_sort_ram, bulk_mem_mb, index_mem_mb
 from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.splice_args import splice_shell_args
+from seqforge.workflows.threads import QC_BUNDLE_THREADS
 from seqforge.workflows.units import ordered_fastqs
 
 
@@ -339,6 +340,7 @@ rule qc_bundle:
         log=rules.star_count.output.log,
     output:
         f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}",
+    threads: QC_BUNDLE_THREADS
     params:
         # The sample's own directory, which is where STAR left the summary above and what the verb
         # reads it from. Neither a droplet argument nor a plate one is passed, and that absence is

@@ -282,18 +282,42 @@ def gate_that_must_not_run(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     )
 
 
+#: The machine width every dry run here is planned at, unless a test names its own. Passing one at
+#: all is mandatory now: a module may declare a rule's threads relative to the run — the plate-wide
+#: counter takes the width less one — and snakemake refuses to build a DAG that reads a core count
+#: nobody supplied.
+#:
+#: SIXTEEN rather than the one the compose gate plans at, because snakemake CLAMPS every declared
+#: figure down to the cores it is given. A narrower plan renders every rule's threads as the same
+#: number, and no assertion could then tell a module's own figure from the clamp — which is exactly
+#: what the tests reading a rendered `--threads` are for. Sixteen clears every figure a shipped
+#: module declares and is not equal to any of them.
+DRY_RUN_CORES = 16
+
+
 class DryRun(Protocol):
     """What :func:`dry_run` hands back. A Protocol, because the ``plan`` argument is OPTIONAL and
     ``Callable[...]`` cannot say so — spelling it ``Callable[..., str]`` erases both parameters and
     leaves the three call sites with no signature to check at all."""
 
     def __call__(
-        self, directory: Path, plan: ComposePlan | None = None, *, refused: bool = False
+        self,
+        directory: Path,
+        plan: ComposePlan | None = None,
+        *,
+        refused: bool = False,
+        cores: int = DRY_RUN_CORES,
+        argv: Sequence[str] = (),
     ) -> str: ...
 
 
 def snakemake_dry_run(
-    directory: Path, plan: ComposePlan | None = None, *, refused: bool = False
+    directory: Path,
+    plan: ComposePlan | None = None,
+    *,
+    refused: bool = False,
+    cores: int = DRY_RUN_CORES,
+    argv: Sequence[str] = (),
 ) -> str:
     """``snakemake -n -p`` over a composed run directory, returning the PLAN TEXT.
 
@@ -313,6 +337,11 @@ def snakemake_dry_run(
     failure mode a "the DAG cannot be built" assertion has if it only checks that a string is
     absent. Snakemake reports an `InputFunctionException` on *stdout*, so the return value is what a
     caller must match against, not `stderr`.
+
+    Pass ``cores`` for a plan taken at a DIFFERENT machine width — the one argument a rule declaring
+    a width relative to the run is a function of — and ``argv`` for anything else the plan is to be
+    taken under, which today is the thread override. Both default to what every other caller wants,
+    so a test states a width only when the width is its subject.
     """
     import shutil
     import subprocess
@@ -322,7 +351,18 @@ def snakemake_dry_run(
     target = _replica(directory, plan) if plan is not None else directory
     try:
         proc = subprocess.run(
-            ["snakemake", "-d", str(target), "-s", str(target / "Snakefile"), "-n", "-p"],
+            [
+                "snakemake",
+                "-d",
+                str(target),
+                "-s",
+                str(target / "Snakefile"),
+                "-n",
+                "-p",
+                "--cores",
+                str(cores),
+                *argv,
+            ],
             capture_output=True,
             text=True,
             timeout=300,
