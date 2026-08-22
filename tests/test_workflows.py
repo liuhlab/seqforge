@@ -38,6 +38,7 @@ from scipy.sparse import csr_matrix
 from conftest import (
     DRY_RUN_CORES,
     NO_STAR_ALIGNMENT_ON_MACOS,
+    PLATE_CELL_DEPTH,
     DryRun,
     SrcTrees,
     _build,
@@ -46,8 +47,10 @@ from conftest import (
     _rule_blocks,
     _src_root,
     count_matrix,
+    one_run_each,
     planned_paths,
     planning_route,
+    plate_of,
     star_modules,
     write_fastq_gz,
 )
@@ -1782,6 +1785,115 @@ def test_no_planned_job_owns_a_path_a_concurrent_instance_would_delete(
     assert not stale, (
         f"{module} declares {stale}, which no longer owns a shared path — drop it from "
         f"RULES_THAT_MAY_OWN_A_SHARED_PATH so the invariant holds every module to it"
+    )
+
+
+#: How a dry run says it would delete a `temp()` output — one line per path, printed after the job
+#: that consumed it last. Established against the pinned snakemake on a throwaway Snakefile before
+#: this was written, rather than assumed, because an assertion on wording nobody checked is green
+#: whether the behaviour holds or not.
+_WOULD_RECLAIM = re.compile(r"^Would remove temporary output (.+)$", re.M)
+
+
+#: How many cells a shard is planned over. Four, so a shard is a PROPER subset and the two lists an
+#: operator writes are genuinely disjoint rather than one list twice. Deliberately not
+#: :data:`~conftest.PLATE_CELL_COUNT`: 96 cells make a claim about wildcard expansion that the plate
+#: fixture already makes, and every cell past the fourth is plan text two spawns have to render.
+_SHARDED_PLATE_CELLS = 4
+
+
+@pytest.mark.parametrize(
+    "module", [m for m in list_modules() if get_module(m).fan_in_artifact is not None]
+)
+def test_a_shard_naming_the_fan_ins_inputs_keeps_them_while_a_whole_plate_reclaims_them(
+    module: str, tmp_path: Path, dry_run: DryRun
+) -> None:
+    """Naming a file as a target is what exempts it from `temp()`, and it is why `--notemp` is wrong.
+
+    The procedure these two modules' headers carry: give each job its cells' QC artifacts AND those
+    cells' shared BAMs as targets, keep the lists disjoint, pass `--nolock`, then run once more with
+    no targets to count and reclaim. Two plans of the same plate, and the whole claim is the contrast
+    between them — a shard that names the counter's inputs is not told to delete them, and the plain
+    plate is, so the last run leaves nothing behind. Without the second half the first passes
+    vacuously on a module that reclaims nothing at all.
+
+    **What this is worth, because the evidence lives nowhere else.** `--notemp` was believed
+    mandatory for a shard. It is not, and reaching for it on a 784-cell chimeric plate took a 350 GB
+    baseline to a 2.9 TB peak and orphaned 2.0 TB permanently — uBAMs and STAR BAMs that each shard
+    would have deleted for itself. Of everything these modules declare `temp()`, only what the fan-in
+    reads has a consumer outside the cell that wrote it, so only that has to be named.
+
+    Which files those are is read off the COUNTING JOB'S OWN INPUTS rather than listed here, and that
+    is the difference between the two modules rather than a detail: the base's counter reads each
+    cell's coordinate-sorted BAM, and the twin's read that cell's per-Component split BAMs, one job
+    per Component. A test naming either would be right about one module and quietly wrong about the
+    other, and a sixth module with a fan-in gets the case for free.
+
+    Parametrised over the modules that DECLARE a fan-in, which is the same registry field the header
+    note follows: a module with no plate-wide consumer has no shard procedure to prove.
+    """
+    tech, assembly = planning_route(module)
+    manifest, reg = _build(tmp_path, tech)
+    cells = tuple(f"cell_{i:03d}" for i in range(_SHARDED_PLATE_CELLS))
+    plate = plate_of(manifest, one_run_each(dict.fromkeys(cells, PLATE_CELL_DEPTH)))
+    processing = _processing(plate, assembly=assembly)
+    result = compose(plate, processing, registry=reg, workspace=tmp_path)
+    assert result.modules[0].name == module
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+    plan = core.plan(plate, processing, registry=reg)
+
+    whole = dry_run(pipeline_dir, plan)
+    jobs = _planned_jobs(whole)
+    produces = {path: job for job in jobs if job.rule != "all" for path in job.outputs}
+    fan_in = get_module(module).fan_in_artifact
+    pattern = re.escape(fan_in or "").replace(r"\{component\}", r"[^/]+")
+    counting = [j for j in jobs if any(re.fullmatch(pattern, Path(p).name) for p in j.outputs)]
+    assert counting, f"{module} planned no job producing {fan_in}, so it has no fan-in to shard for"
+
+    # The counter's inputs, filed under the cell that writes each. A path with no producing job would
+    # be a plate input rather than an intermediate, and there is nothing to keep about one.
+    shared: dict[str, set[str]] = {}
+    for path in {p for job in counting for p in job.inputs}:
+        shared.setdefault(produces[path].wildcards["sample"], set()).add(path)
+    assert sorted(shared) == sorted(cells), (
+        f"{module}'s counting job reads from cells {sorted(shared)} of the {list(cells)} composed; "
+        f"a fan-in that does not span the plate is not the thing a shard has to keep files for"
+    )
+    record = {
+        produces[path].wildcards["sample"]: path
+        for path in next(j for j in jobs if j.rule == "all").inputs
+        if "sample" in produces[path].wildcards
+    }
+
+    # THE PLAIN PLATE. Every file a shard would have had to name is reclaimed when nobody names it,
+    # which is what makes the final no-target run a cleanup and not a second sweep by hand.
+    reclaimed = _WOULD_RECLAIM.findall(whole)
+    orphans = sorted({p for paths in shared.values() for p in paths} - set(reclaimed))
+    assert not orphans, (
+        f"{module} plans a whole plate that never reclaims {orphans}, so a completed run leaves them "
+        f"on disk — and the contrast this test rests on is between naming a target and not"
+    )
+
+    # THE SHARD, exactly as the header note describes it: half the cells' QC artifacts, those same
+    # cells' shared BAMs, and `--nolock`.
+    shard = cells[: len(cells) // 2]
+    targets = [record[cell] for cell in shard] + sorted(p for c in shard for p in shared[c])
+    sharded = dry_run(pipeline_dir, plan, argv=["--nolock", *targets])
+    planned = {j.wildcards["sample"] for j in _planned_jobs(sharded) if "sample" in j.wildcards}
+    assert planned == set(shard), (
+        f"{module} plans cells {sorted(planned)} for a shard naming {sorted(shard)}; two disjoint "
+        f"target lists only partition the plate if a list plans its own cells and no others"
+    )
+    kept = {p for cell in shard for p in shared[cell]}
+    dropped = _WOULD_RECLAIM.findall(sharded)
+    assert dropped, (
+        f"{module}'s shard reclaims nothing at all, so it cannot tell a file kept by being named "
+        f"from a plan that never proposed deleting anything"
+    )
+    assert not kept & set(dropped), (
+        f"{module}'s shard would delete {sorted(kept & set(dropped))}, which it named as targets and "
+        f"which the counting job still has to read — that is the deletion `--notemp` was reached for, "
+        f"and reaching for it took a 350 GB run to a 2.9 TB peak with 2.0 TB orphaned"
     )
 
 

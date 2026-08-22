@@ -12,6 +12,12 @@
 # discovered from the rule graph. Snakemake fans in natively and `rule all` already expands over
 # samples, so a failed counting job re-runs only itself: every per-cell BAM is on disk.
 #
+# **A PLATE AS SEVERAL SNAKEMAKE JOBS.** Give each job its cells' QC artifacts AND those cells'
+# `Aligned.sortedByCoord.out.bam`; keep the lists disjoint, pass `--nolock`, then run once more with
+# no targets to count and reclaim. A file named as a target is exempt from `temp()`, and that BAM is
+# the one thing the counter still needs after a shard is done. **`--notemp` is NOT needed, and it is
+# what took a 350 GB run to a 2.9 TB peak with 2.0 TB orphaned**: a shard reclaims the rest itself.
+#
 # The read->role placement arrives via `config["read_files_in"]`, whose `umi_tagged` shape is
 # `umi_cdna` and — only where the protocol was sequenced paired — `cdna`, chosen by ROLE. Role and
 # not order, and that is this module's sharpest edge: the two reads are NOT symmetric — one opens
