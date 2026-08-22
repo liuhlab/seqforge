@@ -136,8 +136,8 @@ is a cap and not an allocation (`workflows/memory.py`), so that headroom costs n
 > STARsolo. **The flat-with-depth finding is the one most likely to survive**, because the largest
 > omitted term is constant in depth — but the per-read CB/UMI records and the five Solo count
 > matrices are not, so the slope is not certified by reading the fix. Re-running the sweep is what
-> settles it, and until someone does, read this table as memory-shaped and treat its timings as
-> lower bounds.
+> settles it (#495), and until someone does, read this table as memory-shaped and treat its timings
+> as lower bounds.
 
 **Caveat, and it is the reason the fixture cannot size a sort.** This simulation draws from 2 000
 gene models: STAR asks ~4.9 B per read here against the ~160 B per alignment record measured on real
