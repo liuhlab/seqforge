@@ -1698,15 +1698,13 @@ def test_rule_all_names_one_file_per_sample_and_that_file_waits_for_the_whole_sa
 #: Rules that own a path the whole run shares and which this invariant still tolerates, with why.
 #: ``load_genome``'s is a ``touch()`` marker and is measured SAFE to race — six instances at once
 #: over one directory, five trials, zero errors — because re-touching a flag that is already there
-#: says exactly what the flag says. ``onlist`` stages a chemistry's barcode whitelist, which is one
-#: 111 MB file the whole deposit maps against: a per-sample copy is the wrong answer, no measurement
-#: says a concurrent rewrite is safe, and it is untouched by the index change. It is NAMED rather
-#: than quietly matched because the two plate modules — where a sharded run is what anyone actually
-#: does — declare no such rule, so the exposure and the fix belong to a ticket of their own.
+#: says exactly what the flag says. It is the only one: the barcode whitelist was the last of the
+#: others and is now materialized under the sample that reads it, so nothing is tolerated here that
+#: was not measured.
 #:
 #: Named rather than skipped, in the shape :data:`MODULES_NO_SPEC_REACHES_YET` established, and the
-#: case below asserts each name is still EARNING its place in the module that declares it.
-RULES_THAT_MAY_OWN_A_SHARED_PATH: frozenset[str] = frozenset({"load_genome", "onlist"})
+#: case below asserts the name is still EARNING its place in the module that declares it.
+RULES_THAT_MAY_OWN_A_SHARED_PATH: frozenset[str] = frozenset({"load_genome"})
 
 
 @pytest.mark.parametrize("module", list_modules())
@@ -1740,10 +1738,10 @@ def test_no_planned_job_owns_a_path_a_concurrent_instance_would_delete(
     whether two instances collide is whether the PATH differs, and a per-sample rule writing to one
     fixed name collides exactly as the index rule did.
 
-    Parametrised over every registered module, so a sixth cannot land without an answer. The two
-    rules whose shared path is tolerated are :data:`RULES_THAT_MAY_OWN_A_SHARED_PATH`, with the
-    reason each is there; a shared output added to one of THOSE is what this cannot see, so the
-    load flag is additionally held to being a single file.
+    Parametrised over every registered module, so a sixth cannot land without an answer. The one
+    rule whose shared path is tolerated is :data:`RULES_THAT_MAY_OWN_A_SHARED_PATH`, with the reason
+    it is there; a shared output added to THAT one is what this cannot see, so the load flag is
+    additionally held to being a single file.
     """
     tech, assembly = planning_route(module)
     manifest, reg = _build(tmp_path, tech)

@@ -904,7 +904,7 @@ def test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns() -> None
     assert not fires(
         "    # one gzipped .qc.json.gz per sample, then temp() drops the rest"
     )  # prose
-    assert not fires('        temp("onlists/{name}.txt"),')  # a name no module publishes
+    assert not fires('        temp("onlists/{sample}/{name}.txt"),')  # a name no module publishes
 
 
 _REPO = Path(__file__).resolve().parent.parent

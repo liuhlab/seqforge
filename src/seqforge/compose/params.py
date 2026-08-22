@@ -439,14 +439,14 @@ def render_param(value: object) -> str:
     return str(value)
 
 
-def _resolves_to_onlist_path(value: object) -> bool:
+def _resolves_to_onlist_name(value: object) -> bool:
     """A KB param whose value is an ``{onlist:<alias>}`` token, or a list of them.
 
-    Such a value is resolved to a materialized whitelist PATH at compose time (see
-    ``compose.core._resolve_token``), so its config rendering is a path, not the verbatim token — the
-    per-key faithfulness check must skip it or it would compare a path against a token and always fail.
-    Both STARsolo's ``soloCBwhitelist`` and chromap's ``barcode_whitelist`` are such params; keying on
-    the VALUE rather than the key name covers a third one without spelling it out.
+    Such a value is resolved to the whitelist's REGISTRY NAME at compose time (see
+    ``compose.core._resolve_token``), so its config rendering is that name, not the verbatim token —
+    the per-key faithfulness check must skip it or it would compare a name against an alias and
+    always fail. Both STARsolo's ``soloCBwhitelist`` and chromap's ``barcode_whitelist`` are such
+    params; keying on the VALUE rather than the key name covers a third one without spelling it out.
     """
     values = value if isinstance(value, list) else [value]
     return any(isinstance(v, str) and v.startswith("{onlist:") for v in values)
@@ -536,9 +536,9 @@ def params_gate(
 
         # ---- 3. faithfulness, per key, per owner ----
         for key, expected in params.items():
-            if _resolves_to_onlist_path(expected):
-                continue  # an {onlist:...} token is resolved to a path at compose, so it is not
-                # compared verbatim (the registry proves the whitelist exists in `_resolve_token`).
+            if _resolves_to_onlist_name(expected):
+                continue  # an {onlist:...} token is resolved to a registry name at compose, so it is
+                # not compared verbatim (the registry proves the whitelist exists in `_resolve_token`).
                 # Value-based, not a key name: covers STARsolo's `soloCBwhitelist` AND chromap's
                 # `barcode_whitelist` without either being spelled out here.
             want = render_param(expected)

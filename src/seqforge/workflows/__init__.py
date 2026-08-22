@@ -35,6 +35,22 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.25 — `rule onlist` materializes a whitelist under the SAMPLE that reads it, in `map/starsolo`
+#: and `map/chromap` (#488, the last case of #478's class). It owned `onlists/<name>.txt` — one ~115 MB
+#: file every sample in the deposit maps against — and snakemake removes an output before running the
+#: job that makes it, so a second instance over one results directory raced the first's REMOVAL: the
+#: hazard measured at 0 of 6 on the index rule, where an atomic idempotent body still gave 0 of 6.
+#: The rule stays local, stays without a `container:`, stays the `seqforge io onlist write` verb, and
+#: stays `temp()`; only its output gains a sample scope. **What moves is a location, never a byte**:
+#: the aligner reads the same barcodes and every count, matrix and record is identical. The emitted
+#: config now records the whitelist's registry NAME rather than a path, and the consuming module
+#: builds the path from it — one owner for the location, so config and rule cannot disagree — which
+#: is what makes the sample scope expressible at all, since a path fixed at compile time is one no
+#: job can vary. A chemistry declaring three whitelists still renders three paths in CB-position
+#: order into one argv token. `temp()` now reclaims each copy after the job that read it, so the peak
+#: is one copy per aligner job in flight (three for those chemistries) rather than one per compiled
+#: run kept forever — which is not the permanent duplication ADR-0015 rejected. `required_config` is
+#: unchanged for both.
 #: 2026.8.24 — `rule umi_count` says how much of each cell's yield was ribosomal (#471). Two more
 #: `obs` columns on the plate object — `n_umis_rrna` and `rrna_fraction`, both counted over
 #: `umi_combined`, the same population `n_umis` and the saturation are read off — and the page carries
@@ -623,7 +639,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.24"
+WORKFLOW_VERSION = "2026.8.25"
 
 _MODULE_DIR = Path(__file__).parent
 
@@ -792,7 +808,7 @@ _STARSOLO_PARSE_KEYS: frozenset[str] = frozenset(
 
 #: chromap's parse namespace — the byte-decided knobs a ``map/chromap`` backend may declare. Just the
 #: barcode whitelist: chromap corrects the cell barcode against it (like STARsolo's ``soloCBwhitelist``),
-#: and it resolves through the same ``{onlist:<alias>}`` mechanism to a materialized path. Everything
+#: and it resolves through the same ``{onlist:<alias>}`` mechanism to a registry name. Everything
 #: else chromap needs is either a fixed module detail (the ``--preset atac`` mode, hardcoded in
 #: chromap.smk the way star.smk hardcodes ``--outSAMtype``) or read geometry the manifest already states
 #: (which file is the barcode read arrives via ``read_files_in``, not a parse param). The namespace is

@@ -93,9 +93,21 @@ def readfilesin(sample, *roles):
     return " ".join(",".join(fastqs(sample, role)) for role in roles)
 
 
-def whitelists():
-    """One path for 10x; three for a split-pool chemistry. The config value is the argv rendering."""
-    return SOLO["soloCBwhitelist"].split()
+def whitelists(sample):
+    """This SAMPLE's barcode whitelists -- one for 10x, three for a split-pool chemistry, in order.
+
+    The config names the whitelists the KB chose (registry names, CB-position order, one argv token);
+    the PATH is this module's, and it is scoped to the sample that reads it. That split is what keeps
+    the two from disagreeing -- there is no location in the config to drift from the location the rule
+    declares -- and it is why no job here owns a path a second snakemake instance over one results
+    directory would delete out from under the first. A whitelist is ~115 MB and every sample in a
+    deposit maps against the same one, so it was the last such path: `temp()` now reclaims each copy
+    when the job that read it is done, which costs one copy per aligner job in flight (three for the
+    chemistries declaring three) against a STAR job of tens of minutes, rather than a copy per
+    compiled run kept forever. The order is the config's, unchanged: STARsolo pairs the Nth whitelist
+    with the Nth CB position.
+    """
+    return [f"onlists/{sample}/{name}.txt" for name in SOLO["soloCBwhitelist"].split()]
 
 
 @cache
@@ -172,18 +184,23 @@ rule all:
 
 
 rule onlist:
-    """Materialize one barcode whitelist, for STAR to read once and snakemake to then delete.
+    """Materialize one sample's barcode whitelist, for STAR to read once and snakemake to then delete.
 
     `temp()` is the entire point, and why -- the 111 MB a compiled run used to carry three times over,
     and why an input with no producing rule was `temp()`-able in name only -- is argued once in
-    ADR-0015.
+    ADR-0015. The SAMPLE in the path is the other half and is not decoration: this output used to be
+    one file the whole deposit shared, and snakemake deletes an output before running the job that
+    produces it, so a second instance over one results directory raced the first's REMOVAL rather
+    than its write -- measured on the index rule as 0 of 6 instances surviving, and an atomic,
+    idempotent body still 0 of 6, because the window is not the rule's to close. A copy nobody else
+    can claim leaves nothing to race. See `whitelists` for what it costs.
 
     No `container:` directive, deliberately. This runs `seqforge`, which is not an aligner -- the
     ambient environment is the one that just ran `seqforge compose`, so it is by construction the one
     that has it. Naming `align-rna` here would put our own tool inside STAR's image.
     """
     output:
-        temp("onlists/{name}.txt"),
+        temp("onlists/{sample}/{name}.txt"),
     localrule: True
     shell:
         "seqforge io onlist write {wildcards.name} --out {output}"
@@ -298,7 +315,7 @@ rule starsolo_count:
         cdna=lambda wc: fastqs(wc.sample, config["read_files_in"]["cdna"]),
         barcode=lambda wc: fastqs(wc.sample, config["read_files_in"]["barcode"]),
         loaded=rules.load_genome.output,
-        whitelist=whitelists(),
+        whitelist=lambda wc: whitelists(wc.sample),
     output:
         # `temp()` on everything: the raw matrices are consumed by `solo_to_h5ad`, the stats +
         # filtered tree + logs by `qc_bundle`, and the BAM by `solo_to_cram`. Snakemake deletes each
