@@ -847,6 +847,18 @@ def io_umi_count(
     rendered command line saying two contradictory things about which GTF was used, in a repo whose
     wiring gate reads rendered commands.
 
+    **Which of that annotation's genes are ribosomal is looked up here too, and deliberately after
+    the pair above is settled.** The counter is handed gene ids rather than a category name, for the
+    same reason it is handed a resolved database: the package that knows which genes are which is the
+    one this verb already imports, and the module below stays testable without it. Asking after the
+    `--component` rewrite is what keeps the answer one organism's — the same question put to a
+    Chimera concatenates every Component's ids, and a ribosomal share pooling two organisms is a
+    share of a population nobody asked about, while this verb is already invoked once per Component.
+    An annotation no curated list ships for, or one whose list declares no ribosomes, is not a
+    refusal: it costs the plate that one `obs` column and never a zero one, which is what an
+    unmeasured thing looks like everywhere else on this path. A curated file that is present and
+    broken is a different thing, and stays the refusal below.
+
     **`--threads` counts cells at once, and defaults to one.** The counting rule asks the scheduler
     for threads and hands them over here; a hand invocation that says nothing gets the single-core
     plate it used to get. The cells are independent and the annotation is read once before the
@@ -889,9 +901,9 @@ def io_umi_count(
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(2) from exc
     try:
-        from genome import (
-            Genome,  # untyped lab package; resolved here, off the strict workflow path
-        )
+        # untyped lab package; resolved here, off the strict workflow path. The two absences are
+        # imported by name because they have to be CAUGHT by name -- see the lookup below.
+        from genome import GeneCategoryNotDeclaredError, Genome, NoGeneCategoriesError
     except ImportError as exc:  # pragma: no cover - depends on the host
         typer.echo(json.dumps({"error": f"liulab-genome is not importable: {exc}"}), err=True)
         raise typer.Exit(3) from exc
@@ -921,7 +933,24 @@ def io_umi_count(
         # The gate above leaves exactly one of the two forms and the arm above has filled the
         # annotation in; the checker cannot see a relation between two options, so it is said here.
         gtf = Path(str(Genome(assembly).annotations.path(cast(str, annotation))))
-        written = write_umi_counts(plate, gtf.with_suffix(".db"), out, workers=threads)
+        # Which of this annotation's genes are ribosomal, asked AFTER the pair above is settled, so
+        # a Component asks its OWN genome about its OWN annotation. The same question put to a
+        # Chimera concatenates worm and bacterial ids across its sources, and a share pooling two
+        # organisms measures neither; the counter already runs once per Component, so asking the
+        # component directly makes that impossible and needs no handling of sources here at all.
+        try:
+            rrna_gene_ids = Genome(assembly).gene_list("rRNA", annotation).gene_ids
+        except (GeneCategoryNotDeclaredError, NoGeneCategoriesError):
+            # No curated list ships for this annotation, or one does and does not declare
+            # ribosomes: either way the metric is unmeasurable here, which costs the plate that
+            # column and never a zero one. Caught by NAME rather than as `LookupError`, which an
+            # unregistered annotation also raises -- swallowing that would turn the refusal below
+            # into a silently missing column, and a defect in a shipped curated file lands there
+            # too, as the `ValueError` it is.
+            rrna_gene_ids = None
+        written = write_umi_counts(
+            plate, gtf.with_suffix(".db"), out, workers=threads, rrna_gene_ids=rrna_gene_ids
+        )
     except UmiCountError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(3) from exc
