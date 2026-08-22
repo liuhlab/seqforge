@@ -133,9 +133,10 @@ from seqforge.workflows.qc import (
     build_qc_bundle,
     chemistry_rule,
     gene_model_rule,
+    read_bulk_metrics,
     read_plate_metrics,
-    read_star_log,
     solo_features_rule,
+    write_bulk_qc_bundle,
     write_plate_qc_bundle,
     write_qc_bundle,
 )
@@ -1530,18 +1531,20 @@ def _planned_jobs(plan_text: str) -> list[_PlannedJob]:
     return jobs
 
 
-#: Registered modules with **no completion record**, and why each is here. ``map/star`` reports from
-#: STAR's own end-of-run log — a file no rule in that module declares, which is the one place in the
-#: repo where a reader scrapes something the pipeline never promised — so there is no per-sample
-#: artifact for its ``rule all`` to name and nothing for the rest of its chain to be downstream OF.
-#: Its own ticket gives it a bundle rule writing the artifact name the other four already use, and
-#: this set is what goes red on the day that lands: the case below asserts the exception is still
-#: REAL rather than skipping, so a module that grew a completion record cannot stay named here.
+#: Registered modules with **no completion record**, and why each is here. **Empty, and it emptied by
+#: the mechanism that put it here.** ``map/star`` was its one entry: bulk reported from STAR's own
+#: end-of-run log, a file no rule in that module declared, so there was no per-sample artifact for
+#: its ``rule all`` to name and nothing for the rest of its chain to be downstream OF. It now writes
+#: the bundle the other four write, and this set went red the moment that landed — the case below
+#: asserts a named exception is still REAL rather than skipping, so a module that grew a completion
+#: record cannot stay listed here quietly.
 #:
-#: Named rather than skipped, in the shape :data:`MODULES_NO_SPEC_REACHES_YET` established: a module
-#: outside an invariant is untested by it, and the only safe version of that is one which says which
-#: module and why.
-MODULES_WITHOUT_A_COMPLETION_RECORD: frozenset[str] = frozenset({"map/star"})
+#: Kept as a named, empty set rather than deleted, in the shape :data:`MODULES_NO_SPEC_REACHES_YET`
+#: and :data:`~seqforge.workflows.stats.MODULES_WITHOUT_STATS` established: a module outside an
+#: invariant is untested by it, and the only safe version of that is one which says which module and
+#: why. Deleting it would take the mechanism with the backlog, and a sixth module that ships ahead of
+#: its record would then simply fail with no way to say "not yet" out loud.
+MODULES_WITHOUT_A_COMPLETION_RECORD: frozenset[str] = frozenset()
 
 
 @pytest.mark.parametrize("module", list_modules())
@@ -2585,9 +2588,16 @@ def test_the_bulk_module_keeps_the_junctions_it_can_use_and_sweeps_the_logs_noth
     analyzable, and the same file for one plate cell at ~1M reads is noise (which is why the twins
     summarize it instead). Nothing reads `Log.out` or `Log.progress.out` after a run at any depth.
 
+    **The end-of-run summary is declared and kept**, which is the third state and the one this rule
+    had to grow. It was in neither list: STAR wrote it unasked, nothing named it, and the report
+    opened it where it lay — the one place in the repo where a reader consumed a file the pipeline
+    never promised. `rule qc_bundle` reads it into the sample's completion record now, so it is an
+    output like the others; keeping it rather than sweeping it is the depth judgement again, since
+    bulk leaves one directory per sample of a text a human opens first.
+
     The removals are asserted as a SET, so the claim is two-sided in one assertion: a module that
-    swept the junction table, or the final log the report reads off disk with no rule in between,
-    goes red here just as loudly as one that stopped sweeping a progress log.
+    swept the junction table, or the summary the bundle is built from, goes red here just as loudly
+    as one that stopped sweeping a progress log.
     """
     samples = ["S1", "S2"]
     _bulk_run_dir(tmp_path, samples)
@@ -2599,6 +2609,10 @@ def test_the_bulk_module_keeps_the_junctions_it_can_use_and_sweeps_the_logs_noth
     assert {f"results/{s}/{STAR_JUNCTIONS}" for s in samples} <= declared, (
         f"the bulk module declares no junction table, so a file a user can analyze at this depth "
         f"leaves the run undeclared and unnamed:\n{sorted(declared)}"
+    )
+    assert {f"results/{s}/{STAR_FINAL_LOG}" for s in samples} <= declared, (
+        f"the bulk module declares no end-of-run summary, so the bundle rule reads a file nothing "
+        f"promised and a missing one is a job failure nobody can attribute:\n{sorted(declared)}"
     )
     removed = {
         line.split()[-1]
@@ -3825,10 +3839,10 @@ def test_read_pipeline_stats_returns_none_when_there_is_nothing_to_render(tmp_pa
     assert read_pipeline_stats("map/nonesuch", results, ["S1"]) is None
     assert read_pipeline_stats("map/starsolo", tmp_path / "never-ran", ["S1"]) is None
     assert read_pipeline_stats("map/starsolo", results, ["S9"]) is None
-    # A registered module whose OWN artifact is absent: `map/star` asks for `Log.final.out` and does
-    # not read the STARsolo bundle lying beside it, however readable those bytes are. One artifact,
-    # one owner — the registry dispatches on the module, never on whatever the sample directory holds.
-    assert read_pipeline_stats("map/star", results, ["S1"]) is None
+    # A registered module whose OWN artifact is absent: `map/chromap` asks for its fragments summary
+    # and does not read the STARsolo bundle lying beside it, however readable those bytes are. One
+    # artifact, one owner — the registry dispatches on the module, never on what the directory holds.
+    assert read_pipeline_stats("map/chromap", results, ["S1"]) is None
 
 
 def test_a_partial_pipeline_reports_what_landed_and_says_how_much_did(tmp_path: Path) -> None:
@@ -4002,28 +4016,31 @@ def test_a_metric_one_sample_lacks_leaves_a_gap_rather_than_dropping_the_column(
     assert all(label for _, label in stats.columns)  # a column a human cannot name is not a column
 
 
-def test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between(
+def test_the_bulk_bundle_the_writer_produces_is_the_one_its_reader_looks_up(
     tmp_path: Path,
 ) -> None:
-    """`map/star` reports with no rule in between, which is why a `StatsSpec` carries a FILENAME.
+    """The plate pair's contract, one artifact shape over: `map/star`'s writer, found by the registry.
 
-    STAR writes `Log.final.out` unasked, and no rule in the shipped `star.smk` declares, consumes or
-    deletes it — asserted here rather than assumed, because that absence is the entire claim. So bulk
-    reports with no `.smk` edit and hence no `WORKFLOW_VERSION` bump, so a pipeline already composed
-    gets them without being re-authored. A `{sample}.<suffix>` convention could not have expressed
-    this artifact at all: it carries no sample name and no rule of ours names it.
+    Driven through the REAL writer and the REAL registry, because the artifact's name is half the
+    claim. `map/star` used to report off `Log.final.out` where STAR dropped it — the one place in the
+    repo where a reader opened a file no rule declared, so a report that found nothing looked exactly
+    like a run that never happened. What binds the two ends now is a filename, and a filename that
+    the writer and the registry spell separately is the failure that raises nothing.
 
-    The filename is spelled out below rather than imported from `h5ad`, deliberately. A test reading
-    the same constant the registry reads could only prove the two agree with each other; what has to
-    hold is that both agree with what STAR itself writes, and only a literal states that separately.
+    **The numbers did not move**, which is the other half and is what makes this a change of owner
+    rather than of measurement: the same log, the same six graded metrics, and the same `bad` on the
+    same threshold that the off-disk reader produced before the bundle existed. `25.94%` read as
+    25.94 would sit above a 0.60 bar, which is what that last assertion is for.
+
+    The staged log is written where a finished run would NOT leave it, and the results directory holds
+    the bundle alone: a reader that had gone on scraping the sample directory would find nothing here
+    rather than quietly passing on the original.
     """
-    blocks = _rule_blocks(get_module("map/star").snakefile)
-    assert blocks, "the shipped bulk module should have rules to look at"
-    assert not [name for name, body in blocks.items() if "Log.final.out" in body]
-
+    staged = tmp_path / "staging" / "S1"
+    _write(staged / STAR_FINAL_LOG, "".join(f"  {k} |\t{v}\n" for k, v in _BROKEN_LOG.items()))
     results = tmp_path / "results"
-    _write(
-        results / "S1" / "Log.final.out", "".join(f"  {k} |\t{v}\n" for k, v in _BROKEN_LOG.items())
+    out = write_bulk_qc_bundle(
+        staged, results / "S1" / f"S1{QC_BUNDLE_SUFFIX}", sample="S1", assembly="sacCer3"
     )
 
     stats = read_pipeline_stats("map/star", results, ["S1"])
@@ -4045,10 +4062,10 @@ def test_the_bulk_module_reports_from_stars_own_log_with_no_bundle_in_between(
     # A module that measures no barcode at all still reports its metrics, with nothing to say about
     # them -- silence declared, not silence by omission.
     assert stats.findings == []
-    # And the grading crosses the same scale: "25.94%" read as 25.94 would sit above a 0.60 bar.
     assert _levels(sample)["uniquely_mapped"] == "bad"
-    # One implementation of "what STAR's alignment log says", reached by both pipelines through it.
-    assert read_star_log(results / "S1" / "Log.final.out", "S1").metrics == sample.metrics
+    # The registry found the file this writer wrote, and the direct reader agrees with it: one
+    # artifact, one name, one implementation of "what STAR's alignment log says".
+    assert read_bulk_metrics(out, "S1").metrics == sample.metrics
 
 
 # -- the knee vector --------------------------------------------------------

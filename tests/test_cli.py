@@ -65,11 +65,12 @@ CLI_SURFACE = [
         ["io", "cram", "--bam", "in.bam", "--assembly", "hg38", "--out", "out.cram",
          "--selection", "uniqe"], 2, (), id="io-cram-refuses-a-selection-it-does-not-define",
     ),
-    # ONE verb builds both QC bundles, and which one is decided by the arguments: a droplet sample's
-    # `Solo.out` and feature list, or a plate cell's summaries. Mixing them is a caller who believes
-    # two things about what this sample is, and half a droplet pair is a caller who has said neither
-    # — both refused at the gate, because the alternative is a bundle whose shape nobody chose. Argv
-    # alone decides all three, before any file is opened.
+    # ONE verb builds all three QC bundles, and which one is decided by the arguments: a droplet
+    # sample's `Solo.out` and feature list, a plate cell's summaries, or NEITHER, which is the bulk
+    # shape. Mixing them is a caller who believes two things about what this sample is, and half of
+    # either pair is a caller who has said neither — both refused at the gate, because the
+    # alternative is a bundle whose shape nobody chose. Argv alone decides all three, before any file
+    # is opened. Giving neither pair is not refused: absence is what SELECTS bulk.
     pytest.param(
         ["io", "qc-bundle", "--run-dir", "S1", "--sample", "S1", "--out", "S1.qc.json.gz",
          "--solo-dir", "S1/Solo.out", "--extract", "S1.umi-extract.json"], 2, (),
@@ -81,8 +82,9 @@ CLI_SURFACE = [
         id="io-qc-bundle-refuses-half-a-droplet-pair",
     ),
     pytest.param(
-        ["io", "qc-bundle", "--run-dir", "S1", "--sample", "S1", "--out", "S1.qc.json.gz"], 2, (),
-        id="io-qc-bundle-refuses-a-plate-cell-with-no-extraction-summary",
+        ["io", "qc-bundle", "--run-dir", "S1", "--sample", "S1", "--out", "S1.qc.json.gz",
+         "--split", "S1.split.json"], 2, (),
+        id="io-qc-bundle-refuses-a-split-summary-with-no-extraction-summary",
     ),
     # Each cell's BAM arrives with the sample id that names its h5ad row, so a bare path is a bad
     # invocation — refused before the assembly is looked up, since a typo should not first cost a
@@ -2124,22 +2126,29 @@ def test_umi_extract_refuses_two_runs_whose_totals_agree_and_whose_files_do_not(
     assert "paired by position" in result.stderr  # the existing refusal, applied within one pair
 
 
-def test_qc_bundle_builds_the_plate_shape_when_the_droplet_arguments_are_absent(
-    tmp_path: Path,
+@pytest.mark.parametrize("shape", ["plate", "bulk"])
+def test_qc_bundle_picks_its_shape_from_the_arguments_it_was_given(
+    tmp_path: Path, shape: str
 ) -> None:
-    """One verb, two shapes, and ABSENCE is what selects the plate one.
+    """One verb, three shapes, and ABSENCE is what selects the two that are not droplet.
 
-    The twins' rule renders no `--solo-dir` and no `--features`, so their absence has to reach the
-    plate builder — and this is the only place that wiring is legible. The rendered plan proves the
-    command the rule writes and `tests/test_workflows.py` proves the bundle's key space; between
-    them sits the branch, and a verb that fell through to the droplet builder would exit 3 over a
-    `Solo.out` that is not there, which reads as a missing file rather than as the wrong shape.
+    No module's rule renders `--solo-dir` or `--features` except the droplet one, so their absence
+    has to reach the right builder — and this is the only place that wiring is legible. The rendered
+    plan proves the command each rule writes and `tests/test_workflows.py` proves each bundle's key
+    space; between them sits the branch, and a verb that fell through to the droplet builder would
+    exit 3 over a `Solo.out` that is not there, which reads as a missing file rather than as the
+    wrong shape.
+
+    Two rows because absence alone no longer decides: `--extract` is a plate cell's, and giving
+    nothing at all is bulk. A branch that read one as the other is exactly the fall-through this test
+    exists for, and it is silent — the bulk builder is a strict subset of the plate one's key space,
+    so a plate cell built as bulk writes a readable file that has quietly lost its extraction column.
 
     Read back through the reader that the report uses, because a written file nobody can resolve a
     column out of is the failure a `written` line on stdout cannot see.
     """
     from seqforge.workflows.h5ad import STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRESS_LOGS
-    from seqforge.workflows.qc import QC_SUFFIX, read_plate_metrics
+    from seqforge.workflows.qc import QC_SUFFIX, read_bulk_metrics, read_plate_metrics
     from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 
     cell = tmp_path / "cell_42"
@@ -2153,15 +2162,19 @@ def test_qc_bundle_builds_the_plate_shape_when_the_droplet_arguments_are_absent(
         (cell / name).write_text("STAR version 2.7.11b\n")
     (cell / STAR_JUNCTIONS).write_text("chrI\t100\t200\t1\t1\t1\t10\t2\t30\n")
     out = tmp_path / f"cell_42{QC_SUFFIX}"
+    argv = ["io", "qc-bundle", "--run-dir", str(cell), "--sample", "cell_42", "--out", str(out)]
 
-    result = runner.invoke(app, ["io", "qc-bundle", "--run-dir", str(cell), "--sample", "cell_42",
-                                 "--extract", str(extract), "--out", str(out)])  # fmt: skip
+    result = runner.invoke(app, argv + (["--extract", str(extract)] if shape == "plate" else []))
 
     assert result.exit_code == 0, result.stdout + result.stderr
     assert json.loads(result.stdout)["written"] == str(out)
-    got = {m.key: m.value for m in read_plate_metrics(out, "cell_42").metrics}
-    assert got["extract_fragments"] == 40  # the absorbed extraction summary
-    assert got["uniquely_mapped"] == pytest.approx(0.8842)  # ...and the absorbed alignment log
+    read = read_plate_metrics if shape == "plate" else read_bulk_metrics
+    got = {m.key: m.value for m in read(out, "cell_42").metrics}
+    assert got["uniquely_mapped"] == pytest.approx(0.8842)  # the absorbed alignment log, in both
+    # ...and the extraction summary only where one was named. A bulk sample tags nothing, so a
+    # column here would be a measurement of something that did not happen.
+    assert ("extract_fragments" in got) == (shape == "plate")
+    assert shape != "plate" or got["extract_fragments"] == 40
 
 
 def test_umi_extract_refuses_a_run_whose_mate_the_table_does_not_carry(tmp_path: Path) -> None:

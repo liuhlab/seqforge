@@ -9,7 +9,8 @@ The seam is :class:`StatsSpec`: where one sample's artifact lives, and how to tu
 
     map/starsolo           <sample>.qc.json.gz             gzipped JSON, by `rule qc_bundle`
     map/chromap            <sample>.fragments.qc.json.gz   gzipped JSON, by `rule fragments_qc`
-    map/star               Log.final.out                   plain text, written by STAR itself
+    map/star               <sample>.qc.json.gz             the aligner's end-of-run summary alone,
+                                                           by that module's own `rule qc_bundle`
     map/star-umi           <sample>.qc.json.gz             one per CELL, by that module's own
                                                            `rule qc_bundle`: the extraction summary,
                                                            the alignment log and a junction summary
@@ -25,13 +26,14 @@ speaks about fragments that reached no gene, which none of the other three measu
 is the seam earning its keep: it is expressed as five adapters rather than as a widening union of
 optional fields on one.
 
-**The spec carries a filename, not a suffix**, and the third row above is what that bought. A
-``{sample}.<suffix>`` convention can only express artifacts a seqforge rule names, and ``map/star``
-has no QC bundle rule at all: STAR writes ``Log.final.out`` into the sample directory unasked, it
-carries no sample name, and nothing in ``star.smk`` declares or deletes it. So bulk reports with no
-new rule and no ``WORKFLOW_VERSION`` bump — nothing already composed has to be re-authored to get
-them. Under a suffix convention that artifact would have been inexpressible and re-derived by a
-rule instead, at the cost of a new recipe for every dataset that wanted the reports.
+**Every artifact above is one a seqforge rule declares, and the third row is where that became
+true.** ``map/star`` used to report off ``Log.final.out`` where STAR dropped it — the one place in
+the repo where a reader opened a file the pipeline never promised, so a report that found nothing
+looked exactly like a run that never happened and nothing could say which. It now writes the same
+bundle name as the rest, carrying the same summary read the same way, and the reported figures did
+not move. The spec still carries a **filename template** rather than a bare suffix, but that is now
+generality with no user: it costs nothing, and it is what a module whose artifact is not
+``<sample>``-prefixed would need.
 
 A fourth aligner adds one dict entry and one ``(Path, str) -> SampleStats`` function. It does not
 touch ``report/``, and it cannot be forgotten: :data:`MODULES_WITHOUT_STATS` is an explicit list, and
@@ -85,14 +87,13 @@ from pathlib import Path
 from . import MODULES, get_module
 from .fragments import QC_SUFFIX as _FRAGMENTS_QC_SUFFIX
 from .fragments import read_metrics as _read_fragments
-from .h5ad import STAR_FINAL_LOG
 from .metrics import Finding, PipelineStats, SampleStats
 from .qc import QC_SUFFIX as _QC_SUFFIX
 from .qc import chemistry_rule as _starsolo_chemistry_rule
 from .qc import gene_model_rule as _starsolo_gene_model_rule
+from .qc import read_bulk_metrics as _read_bulk
 from .qc import read_metrics as _read_starsolo
 from .qc import read_plate_metrics as _read_plate_cell
-from .qc import read_star_log as _read_star_log
 from .qc import solo_features_rule as _starsolo_solo_features_rule
 from .umite.count import read_plate_stats as _read_plate_stats
 
@@ -180,9 +181,10 @@ class StatsSpec:
 #: are one owner rather than three. A repo-wide check keeps it that way
 #: (``test_no_shipped_snakemake_module_restates_a_suffix_its_writer_owns``), which matters because the
 #: cost of closing it was real: editing a shipped module leaves every recipe on disk keyed to the
-#: module it was written against, so it is not a rename anyone would repeat casually. ``map/star`` has no such second owner and never will:
-#: no rule names :data:`~seqforge.workflows.h5ad.STAR_FINAL_LOG`, because STAR writes it whether or not
-#: anyone asked — which is exactly why the entry is a bare filename with no ``{sample}`` in it.
+#: module it was written against, so it is not a rename anyone would repeat casually. ``map/star`` was
+#: the last entry to hold a bare filename — STAR's own ``Log.final.out``, which no rule declared,
+#: because STAR writes it whether or not anyone asked — and it paid that price to gain the bundle rule
+#: that ended the exception.
 _SPECS: dict[str, StatsSpec] = {
     "map/starsolo": StatsSpec(
         artifacts=(SampleArtifact(f"{{sample}}{_QC_SUFFIX}", _read_starsolo),),
@@ -195,7 +197,11 @@ _SPECS: dict[str, StatsSpec] = {
     "map/chromap": StatsSpec(
         artifacts=(SampleArtifact(f"{{sample}}{_FRAGMENTS_QC_SUFFIX}", _read_fragments),)
     ),
-    "map/star": StatsSpec(artifacts=(SampleArtifact(STAR_FINAL_LOG, _read_star_log),)),
+    # Bulk: the same artifact name the three above use, holding the aligner's end-of-run summary and
+    # nothing else. It demultiplexes nothing, so there is no barcode block, no cell call and no knee
+    # vector to read — the row is the alignment half, reached through the same `alignment_metrics`
+    # every other module's alignment columns come from.
+    "map/star": StatsSpec(artifacts=(SampleArtifact(f"{{sample}}{_QC_SUFFIX}", _read_bulk),)),
     # The plate module reports from ONE artifact per cell, the same suffix `map/starsolo` reports
     # from and a different shape inside it: a cell IS a sample here, so `<results>/<sample>/` holds
     # one bundle carrying what the extraction saw, what the aligner then did, and a summary of the

@@ -24,9 +24,15 @@ import csv
 # `splice_args` is the same move applied to STAR's junction flags: they vary with nothing, they are
 # identical in all four STAR modules, and a flag list spelled once per module is the drift the
 # STARsolo argv owner was created to end. It renders as ONE params slot below.
-from seqforge.workflows.h5ad import STAR_JUNCTIONS, STAR_PROGRESS_LOGS
+#
+# `QC_SUFFIX` is the last of them, and the one that arrived with a rule rather than with a rename:
+# the sample's completion record is the same artifact kind every other module writes, so its name
+# belongs to the module that writes those bytes and is imported here rather than spelled a fourth time.
+from seqforge.workflows.h5ad import STAR_FINAL_LOG, STAR_JUNCTIONS, STAR_PROGRESS_LOGS
 from seqforge.workflows.memory import BULK_RETRIES, bam_sort_ram, bulk_mem_mb, index_mem_mb
+from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.splice_args import splice_shell_args
+from seqforge.workflows.threads import QC_BUNDLE_THREADS
 from seqforge.workflows.units import ordered_fastqs
 
 
@@ -94,7 +100,12 @@ def readfilesin(sample, *roles):
 
 rule all:
     input:
-        expand(f"{OUTDIR}/{{sample}}/ReadsPerGene.out.tab", sample=SAMPLES),
+        # ONE file per sample, and it is the sample's QC record: `rule qc_bundle` waits on the counts
+        # and the junction table, so demanding the record demands the whole sample. Naming the counts
+        # here instead -- which is what this list used to do -- states a target that is reachable
+        # while the rest of the sample is not, and every name past the first is one more for a
+        # hand-written target list to leave out.
+        expand(f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}", sample=SAMPLES),
 
 
 rule genome_index:
@@ -240,10 +251,14 @@ rule star_count:
         # analyzable at bulk depth, unlike a single plate cell's, so it is a real output here and a
         # summary line elsewhere. The two progress logs are not -- nothing reads either once the run
         # is over -- so `temp()` drops them as soon as this job finishes and no manual `rm` is
-        # involved. The aligner's end-of-run summary is deliberately in neither list: it survives,
-        # and the report reads it off disk with no rule of ours in between (`workflows/stats.py`).
+        # involved. The aligner's end-of-run summary is DECLARED and kept: `rule qc_bundle` reads it
+        # into this sample's completion record, and a rule that consumes a file no rule promised is
+        # exactly the seam that had the report scraping it off disk with nothing of ours in between.
+        # Kept rather than `temp()`, unlike the twins that sweep it: bulk leaves one directory per
+        # sample and this text is the file a human opens first, where a 784-cell plate leaves 784.
         counts=f"{OUTDIR}/{{sample}}/ReadsPerGene.out.tab",
         junctions=f"{OUTDIR}/{{sample}}/{STAR_JUNCTIONS}",
+        log=f"{OUTDIR}/{{sample}}/{STAR_FINAL_LOG}",
         progress=temp(expand(f"{OUTDIR}/{{{{sample}}}}/{{f}}", f=list(STAR_PROGRESS_LOGS))),
     # liulab-runtime's `align-rna`, resolved by compose. See starsolo.smk's note: consuming their
     # artifact, not defining an env, and honoured only under `--software-deployment-method`.
@@ -290,6 +305,52 @@ rule star_count:
              --outSAMtype BAM SortedByCoordinate \
              --limitBAMsortRAM {resources.bam_sort_ram_bytes} \
              {params.splice}
+        """
+
+
+rule qc_bundle:
+    """Write this sample's completion record: the aligner's end-of-run summary, as one gzipped JSON.
+
+    **The module's one per-sample target, and the reason it exists is a reader rather than a file.**
+    The report has always shown a bulk sample's alignment metrics, and it got them by opening
+    `Log.final.out` where STAR dropped it -- the one place in the repo where a reader consumed
+    something no rule of ours declared. Nothing promised that file, so nothing could fail when it was
+    not there: a run that never happened and a run whose report found nothing rendered the same. The
+    same numbers now travel in an artifact this rule names, under the artifact name every other
+    module already uses, so every shipped pipeline answers "is this sample finished?" the same way.
+
+    **The counts and the junction table are `input:` here and nothing reads their bytes.** The
+    dependency is an ordering constraint, and that is the decision rather than a side effect of one:
+    a completion record that can be written while a deliverable is still missing is a record of
+    nothing. It also replaces `rule all`'s enumeration -- the counts were listed there precisely
+    because nothing downstream consumed them, and something does now.
+
+    The bundle carries the summary alone. Bulk demultiplexes nothing, so there is no barcode block
+    and no knee vector to fold in; the junction table stays a deliverable on disk because a junction
+    called at this depth is analyzable, which is exactly what makes a plate cell's a summary line
+    instead. `workflows/qc.py` owns which key each of those lands under, for all three shapes.
+
+    A `shell:` calling a seqforge verb rather than a `run:` block, like every bundle rule in the
+    repo: `snakemake -n -p` renders every shell block while planning and cannot see inside a `run:`.
+    No `container:` -- this is Python over one small text file and shells out to nothing.
+    """
+    input:
+        counts=rules.star_count.output.counts,
+        junctions=rules.star_count.output.junctions,
+        log=rules.star_count.output.log,
+    output:
+        f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}",
+    threads: QC_BUNDLE_THREADS
+    params:
+        # The sample's own directory, which is where STAR left the summary above and what the verb
+        # reads it from. Neither a droplet argument nor a plate one is passed, and that absence is
+        # what selects the bulk shape -- one verb, one artifact kind, three key spaces.
+        run_dir=lambda wc: f"{OUTDIR}/{wc.sample}",
+        assembly=ASSEMBLY,
+    shell:
+        r"""
+        seqforge io qc-bundle --run-dir {params.run_dir} --sample {wildcards.sample} \
+             --assembly {params.assembly} --out {output}
         """
 
 

@@ -1328,11 +1328,11 @@ _QC_SUMMARY: dict[str, object] = {
     "Q30 Bases in RNA read": 0.912,
 }
 
-#: One `Log.final.out`, as STAR itself writes it — the artifact `map/star` reports from, and the
-#: block a STARsolo bundle folds in verbatim. Bulk needs no renamed module and no QC bundle, which is
-#: what makes it the cheap way to hand the chained `run` verb a *finished* pipeline. The numbers are
-#: a healthy run; what is under test is the flag, not the grading, which `tests/test_workflows.py`
-#: holds to real STAR values.
+#: One parsed `Log.final.out` — the block every QC bundle folds in verbatim, and the WHOLE of a bulk
+#: one. Bulk needs no renamed module and its record is this key alone, which is what makes it the
+#: cheap way to hand the chained `run` verb a *finished* pipeline. The numbers are a healthy run;
+#: what is under test is the flag, not the grading, which `tests/test_workflows.py` holds to real
+#: STAR values.
 _STAR_FINAL_LOG: dict[str, object] = {
     "Number of input reads": 1_000_000,
     "Uniquely mapped reads %": "91.20%",
@@ -1633,17 +1633,27 @@ def test_a_failed_run_reaches_the_page_and_the_machine_summary_and_still_exits_z
 
 
 def _finish_a_bulk_pipeline(ws: Path, *, outdir: str) -> list[str]:
-    """Land STAR's own final log per contracted sample under ``<pipeline>/<outdir>/``."""
+    """Land one bulk QC record per contracted sample under ``<pipeline>/<outdir>/``.
+
+    The record carries the aligner's end-of-run summary and nothing else, which is the whole of a
+    bulk bundle. Built by hand rather than by the writer, like every other fixture on this page: what
+    is under test here is the collector's join, and `tests/test_workflows.py` holds the writer and the
+    reader to each other.
+    """
+    import gzip
+
     from seqforge.pipeline import CompiledPipeline
+    from seqforge.workflows.qc import QC_SUFFIX
 
     pipeline = CompiledPipeline.discover(ws)
     assert pipeline is not None, "the fixture workspace should already be composed"
     samples = pipeline.samples
     assert samples, "the composed config should carry its own sample list"
     for sample in samples:
-        out = pipeline.directory / outdir / sample / "Log.final.out"
+        out = pipeline.directory / outdir / sample / f"{sample}{QC_SUFFIX}"
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text("".join(f"  {k} |\t{v}\n" for k, v in _STAR_FINAL_LOG.items()))
+        with gzip.open(out, "wt", encoding="utf-8") as fh:
+            json.dump({"sample": sample, "log_final": _STAR_FINAL_LOG}, fh)
     return samples
 
 
