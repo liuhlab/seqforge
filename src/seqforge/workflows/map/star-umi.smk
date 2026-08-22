@@ -93,10 +93,11 @@ LOADED_FLAG = f"{OUTDIR}/index/{ASSEMBLY}.loaded"
 # primary mapped record, so nothing is lost against the single archive they replace and no record is
 # in both -- the total on disk is what one mixed archive cost. The population a user trusts is the
 # one they open by default, and the ambiguous one is a file to open rather than a filter to compose
-# from memory. Spelled ONCE each, here, because `rule all` demands them and a rule writes them, and a
-# second spelling is the copy that names a file nobody produces while still looking right. The
-# chimeric twin partitions the same way, so the same cell processed both ways holds the same
-# populations in the same places.
+# from memory. Spelled ONCE each, here, because one rule writes each and a second spelling is the
+# copy that names a file nobody produces while still looking right -- the cell's QC bundle waits on
+# both through the rules that write them, so nothing else has to name a path. The chimeric twin
+# partitions the same way, so the same cell processed both ways holds the same populations in the
+# same places.
 UNIQUE_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.unique.cram"
 MULTIPLACED_CRAM = f"{OUTDIR}/{{sample}}/{{sample}}.multiplaced.cram"
 
@@ -258,17 +259,16 @@ def read_files_type(sample):
 
 rule all:
     input:
-        # ONE object over every cell, and BOTH HALVES of that cell's archive. The h5ad is the
-        # deliverable the fan-in produces and it is demanded by NAME rather than as a directory: a
-        # rule whose output is a folder is satisfied by a folder, which is how a counting job that
-        # wrote three cells of 1440 exits 0. The two archives are demanded by name for the same
-        # reason one arity down -- neither is anyone's input, so a half that stopped being produced
-        # would simply stop appearing. The per-cell QC bundle is demanded for that same reason and
-        # one more: it is what the report reads a cell's row from AND what says the cell finished, so
-        # a plate that reached `rule all` has one per cell or is not a finished plate at all.
+        # ONE object over every cell, and ONE FILE PER CELL. The h5ad is the deliverable the fan-in
+        # produces and it is demanded by NAME rather than as a directory: a rule whose output is a
+        # folder is satisfied by a folder, which is how a counting job that wrote three cells of 1440
+        # exits 0. The per-cell file is the QC bundle -- what the report reads a cell's row from AND
+        # what says the cell finished -- and BOTH HALVES of that cell's archive are now its `input:`,
+        # so demanding it demands the cell. That REPLACES an enumeration: the two archives were named
+        # here precisely because neither was anyone's input, so a half that stopped being produced
+        # would simply stop appearing, and a hand-written target list had four filename patterns per
+        # cell to get right instead of one.
         f"{OUTDIR}/{PLATE_H5AD}",
-        expand(UNIQUE_CRAM, sample=SAMPLES),
-        expand(MULTIPLACED_CRAM, sample=SAMPLES),
         expand(CELL_QC, sample=SAMPLES),
 
 
@@ -657,6 +657,13 @@ rule qc_bundle:
     every cell done. This rule is downstream of the whole per-cell chain, so it cannot say that
     early. The report reads it through `workflows/stats.py`, which finds it by the same constant.
 
+    **Both halves of the archive are therefore `input:` here, and nothing reads their bytes.** The
+    dependency is an ordering constraint, and that is the decision rather than a side effect of one:
+    a completion record that can be written while an archive is still missing is a record of
+    nothing. An operator running a plate as several jobs writes one filename pattern per cell rather
+    than four, and a list naming only the bundle finishes the cell instead of finishing it with the
+    archives never written -- which nothing said, because nothing consumed them.
+
     A `shell:` calling a seqforge verb rather than a `run:` block, like every other rule here:
     `snakemake -n -p` renders every shell block while planning and cannot see inside a `run:`. No
     `container:` -- this is Python over small text files and shells out to nothing.
@@ -666,6 +673,8 @@ rule qc_bundle:
         log=rules.star_umi_map.output.log,
         progress=rules.star_umi_map.output.progress,
         junctions=rules.star_umi_map.output.junctions,
+        unique=rules.unique_to_cram.output.cram,
+        multiplaced=rules.multiplaced_to_cram.output.cram,
     output:
         CELL_QC,
     params:
