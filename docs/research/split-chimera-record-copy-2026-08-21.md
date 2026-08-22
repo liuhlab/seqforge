@@ -67,8 +67,8 @@ Emitted SAM text byte-identical over 4M records.
 **Node contention is not inflating the production figures.**
 `r(concurrent_threads, rec_per_s) = 0.016`, flat against load. Production runs ~40% slower than an
 idle node (51.5k against 85k rec/s), but that is a constant of co-tenancy rather than a function of
-how much of it there is. **The filesystem is not it either**: writing to `/share` rather than
-`/tmp` cost 5%.
+how much of it there is. **The filesystem is not it either**: writing to `/share` rather than `/tmp`
+cost 5%.
 
 ### The negative result: `wb0` is both slower and 7.4x larger
 
@@ -177,10 +177,11 @@ was never measured. Swept here on `copy`, `threads=8`:
 Level 1 is **22.1% faster, 16.0% larger and 42.4% cheaper in CPU**. **Keep 6**, and the reason is
 the margin's size against what it is bought with: 0.80 s is 22% of the *new* wall but 4.4% of the
 18.3 s wall the copy had already brought down (5.5% of the 14.56 s it removed), against 16% more
-peak disk on a `temp()` artifact that the sharded-execution work
-([#448](https://github.com/liuhlab/seqforge/issues/448)) wants to stop being transient. Having just
-taken a 4.86x, buying a further 4% of the original with a permanent 16% on disk is the wrong trade
-in the wrong order.
+peak disk on an artifact that is not a spike. A downstream per-Component rule consumes the split
+BAM, so it stands for as long as the run that produced it needs it, and a 16% inflation is a real
+addition to peak disk across that whole window rather than something that clears immediately. Having
+just taken a 4.86x, buying a further 4% of the original with a permanent 16% on disk is the wrong
+trade in the wrong order.
 
 **The CPU figure is the one thing that argues the other way, and it is recorded so a later ticket
 can find it.** Level 1 finishes faster on 2.35 cores where level 6 needs 4.09 — 42% less CPU for the
@@ -261,24 +262,143 @@ handed to new workers would come out of the pool the writers are using. The reco
 captured essentially all of the available win, and stopping there is the outcome the ticket said
 would be a good one.
 
-## A current utilisation figure, for the `threads:` question
+## A thread sweep, for the `threads:` question
 
-Out of scope here — [#452](https://github.com/liuhlab/seqforge/issues/452) owns the declaration, and
-nothing about it changed — but the ticket asked for a current number, so:
+[#452](https://github.com/liuhlab/seqforge/issues/452) owns the rule's declared `threads:` figure
+and [#470](https://github.com/liuhlab/seqforge/issues/470) put it out of scope, so this section
+hands over evidence and a mechanism and stops there. **It does not decide the declaration.**
 
-| | CPU cores used |
+`copy` throughout, BGZF level 6 pinned explicitly rather than left to the default, median of n = 3
+after a discarded warm-up. Batch A holds all four of its points, so no drift can separate them. The
+wiring columns are what the verb actually asks for rather than a guess: `per_writer` is
+`max(1, threads // len(outputs))`, and a pysam handle opened with `t` threads gets `t - 1` codec
+workers.
+
+| threads | per writer | codec workers, dominant writer | total codec workers | wall | spread | records/s | CPU cores |
+|---|---|---|---|---|---|---|---|
+| 1 | 1 | 0 | 0 | 13.864 s | 13.756–13.990 | 72 129 | 1.05 |
+| 2 | 1 | 0 | 1 | 13.394 s | 13.375–13.408 | 74 658 | 1.08 |
+| 4 | 2 | 1 | 5 | 10.566 s | 10.535–10.576 | 94 640 | 1.39 |
+| 8 | 4 | 3 | 13 | **3.641 s** | 3.630–3.668 | **274 663** | 4.07 |
+
+Batch B is its own batch: it repeats 4 and 8 as anchors and adds 16. **4** -> 10.564 s, 94 661/s,
+1.38 cores; **8** -> 3.668 s, 272 615/s, 4.08; **16** -> **2.845 s**, 351 531/s, 5.32 cores, on
+`per_writer` 8 and 29 total codec workers. The anchors drift −0.02% at 4 and +0.75% at 8 against
+batch A, tight enough to read the two batches together.
+
+Spread within a batch runs 0.25–1.7% across batch A and 0.27–3.1% at batch B's anchors. **Batch B's
+16 is the loosest point on this page at 6.8%** — one of its three runs came in at 3.026 s against a
+2.832 s best — which is worth knowing before quoting its margin to three digits.
+
+**Both points this document had already reported were re-measured here rather than reused.**
+`threads=8` comes back at 4.07 cores against the 4.06 of the earlier batch, and the `threads=1` wall
+at 13.864 s against 14.064 — 1.4% apart, inside the ~6% between-batch drift the method section
+documents.
+
+### Utilisation has no knee, because it is not the controlling variable
+
+Total CPU is flat across the whole sweep — **14.53, 14.54, 14.63, 14.86 core-seconds** at 1, 2, 4
+and 8, and 15.13 at 16. A 16x change in the reservation moves the work done by 4%. Utilisation is
+therefore that fixed work divided by the wall, and cores per declared thread goes **1.05, 0.54,
+0.35, 0.51, 0.33**: non-monotonic, with a trough at 4 and a bump at 8 that no property of the rule
+explains.
+
+**A `threads:` figure picked off a utilisation curve would be picked off an artifact.** That needs
+saying because it is exactly how the question reached us — *the rule reserves eight cores and
+converts them into 2.4* is a true sentence about a ratio whose denominator is a declaration and
+whose numerator is a wall clock, and it moves when either end moves for reasons that have nothing to
+do with whether the reservation is right.
+
+### The number that decides it is the wall-time gain per doubling
+
+| doubling | wall gain |
 |---|---|
-| before the fix, `threads=8` | **1.64** |
-| after the fix, `threads=8` | **4.06** |
-| after the fix, `threads=8`, level 1 | 2.35 |
+| 1 -> 2 | 0.47 s |
+| 2 -> 4 | 2.83 s |
+| 4 -> 8 | **6.93 s** |
+| 8 -> 16 | 0.82 s |
 
-**#452's arithmetic was measured against an implementation that no longer exists.** The rule hands
-the verb the recipe's `threads` figure — 8 on the plate this was measured on — and that figure feeds
-the BGZF codec pools and nothing else, the record loop being one stateless pass on one core. Before
-the change those eight cores became 1.64 because the codec was idling behind a slow producer. After
-it they become 4.06 against the same declaration. The over-reservation is real and much smaller than
-it was, and it now depends on the compression level — the coupling that leaves the declaration to be
-decided there rather than here.
+**The largest gain in the sweep is 4 -> 8.** Declaring 4 would leave 6.93 s per cell on the table,
+1.9x the entire post-fix wall at 8. Declaring 16 buys 0.82 s within batch B — 0.80 s if batch A's
+anchor is used instead — for double the reservation.
+
+### Two mechanisms, and the low end cannot be read without both
+
+**The per-writer floor.** The verb divides its budget evenly across the outputs,
+`max(1, threads // len(outputs))`, which with two Components floors to 1 at `threads=1` *and* at
+`threads=2`.
+
+**`t` threads means `t - 1` workers.** pysam 0.24.0's `libchtslib.pyx:530` computes
+`threads = self.threads - 1` and hands that to `hts_set_threads`, so a writer handed `per_writer=1`
+gets **zero** worker threads and compresses on the calling thread.
+
+Together: at `threads=1` the process has no codec worker anywhere, and at `threads=2` the only thing
+that changes is the reader gaining one. That is the whole of the 1 -> 2 segment, and its 0.47 s is a
+reader thread rather than a slope. **Two points that differ only in the reader's worker count are
+not the start of a curve.**
+
+### The binding term is the codec workers on the dominant component's writer
+
+That term is `max(1, N // len(outputs)) - 1`. The fixture splits **90/10 by output bytes** — ce11
+71.6 MB against ecoli 7.9 MB — while `per_writer` divides evenly regardless of load, so the ce11
+writer does 90.0% of the compression on the same worker count as the writer doing 10%.
+
+Two constants, both measured: the serial loop is **2.374 s** (the `work` phase above), and total
+compression is **11.490 s** (the `threads=1` wall minus that loop), of which ce11's share is
+**10.34 s**. The two come from different batches, so how the sum divides between them carries the
+usual drift while the sum itself, being one measured wall, does not. Then
+
+    dominant writer has no worker:  wall ~= loop + total compression
+    otherwise:                      wall ~= max(loop, 10.34 s / dominant workers)
+
+| N | dominant workers | predicted | observed | residual |
+|---|---|---|---|---|
+| 1 | 0 | 13.864 s | 13.864 s | *calibration* |
+| 2 | 0 | 13.864 s | 13.394 s | +0.470 (+3.5%) |
+| 4 | 1 | 10.344 s | 10.566 s | −0.223 (−2.1%) |
+| 8 | 3 | 3.448 s | 3.641 s | −0.193 (−5.3%) |
+| 16 | 7 | 2.374 s | 2.845 s | −0.471 (−16.5%) |
+
+`N=1` is where both constants come from, so its residual is zero by construction and the other four
+points are predictions. Within 5.3% across the 1 -> 8 range where the decision lives; the +3.5% at
+`N=2` is the reader's worker, which the model does not carry; the −16.5% at 16 is a wall that is no
+longer compression at all. **A model that fits five points is the transferable thing here** — the
+five points themselves belong to this fixture.
+
+### Three consequences
+
+**The flattening at 16 is the serial Python routing loop, not the codec.** At `N=16` the dominant
+component's compression comes to ~1.5 s, below the 2.374 s loop floor, and **83% of the 2.845 s wall
+is the loop**. Above 8, threads buy almost nothing until the routing loop is parallelised — the
+lever this ticket declined and priced above. That is the reason to stop at 8, and it is stronger
+than any utilisation ratio because it names what the next thread would be waiting for.
+
+**8 is a fact about this component shape, not a constant.** The knee sits where the dominant
+component's byte share divided by its writer's worker count crosses the loop floor: a cell whose
+bacterial fraction is nearer even flattens earlier, a more lopsided one later. That exposes a
+candidate this document does not recommend and records for whoever owns the question — giving each
+writer a budget proportional to its output load rather than an even division would remove the shape
+dependency, since the even split is exactly what makes the ce11 writer carry 90% of the bytes on
+half the workers.
+
+**`N=16` is hyperthread-limited here.** This box is 8 physical / 16 logical cores, so its 29 codec
+workers at that point are not 29 cores, and 16 might do better on a node with sixteen physical ones.
+It does not change the conclusion, because what caps `N=16` is a serial Python figure and not a core
+count.
+
+### The caveats this section carries, because it is the one that will be cited
+
+Warm local SSD, warm page cache, one 1M-record synthetic cell, random SEQ. On a cold or networked
+filesystem the decompress share grows and the loop floor is reached sooner, so **the knee moves
+down**: 8 is an upper bound this shape justifies rather than a central estimate. The compression
+level moves it too — the sweep is level 6, and the level-1 point measured above draws 2.35 cores at
+eight threads.
+
+And the before/after that opened the question is one point on this curve: **1.64 cores at
+`threads=8` under the rebuild, 4.07 under the copy.** The arithmetic that made the rule look 4x
+over-reserved was taken against an implementation that no longer exists. What is over-reserved and
+by how much now depends on the compression level and on the Components' byte shares, which is the
+coupling that leaves the declaration to be decided there rather than here.
 
 ## Method
 
@@ -310,12 +430,24 @@ started from, so the baseline arm is pinned while the module itself is edited. O
 process, because `ru_maxrss` is a process high-water mark; a driver runs each configuration four
 times and reports the median of the last three.
 
-**Batches.** Between-batch drift (~6%) exceeds within-batch spread (<3%), so every comparison above
-is drawn from a single batch. Two subtractions cross a batch boundary and both are stated: the
-`inplace` phase buckets are compared against `copy`'s, and the two batches' `full` runs agree to
-0.2%, which is what licenses it; the tag round-trip's 13.04 s has no same-batch counterpart, so read
-it as ±6% — the conclusion, that the round-trip is about two thirds of the old wall, survives that
-comfortably.
+**The thread sweep** reuses that driver and that harness unchanged, and the same `cell.bam`, over
+two batches: A at 1, 2, 4 and 8, B at 4, 8 and 16 with the first two as anchors. The only difference
+from every other run on this page is that the BGZF level is passed as 6 explicitly rather than left
+to htslib's default, so a change in that default could not be read as a thread effect. The wiring
+columns — `per_writer`, workers per writer, total codec workers — are computed from the verb's own
+two expressions rather than observed, and the reader is `threads - 1` while each writer is
+`per_writer - 1`.
+
+**Batches.** Between-batch drift (~6%) exceeds within-batch spread (<3%, and under 1.7% everywhere
+except batch B's 16), so every comparison above is drawn from a single batch. Four subtractions
+cross a batch boundary and all four are stated: the `inplace` phase buckets are compared against
+`copy`'s, and the two batches' `full` runs agree to 0.2%, which is what licenses it; the tag
+round-trip's 13.04 s has no same-batch counterpart, so read it as ±6% — the conclusion, that the
+round-trip is about two thirds of the old wall, survives that comfortably; the 8 -> 16 gain is
+quoted within batch B at 0.82 s, with batch A's anchor giving 0.80; and the thread model's two
+constants are split by subtracting the phases batch's `work` from batch A's `threads=1` wall, so the
+split between loop and compression carries the drift even though their sum, being one measured wall,
+does not.
 
 **Identity.** Three arms written with `--keep`, then hashed both ways described above, with a
 first-difference reporter that names the record and the differing SAM columns had anything diverged.
@@ -336,7 +468,9 @@ needed to rebuild it is above.
   summary, so replacing it is a decision about where that accounting lives, and it is its own
   ticket.
 - **Sharded execution** ([#448](https://github.com/liuhlab/seqforge/issues/448)). The split
-  lengthens that tail and nothing here changes sharding — but it is the reason the `temp()`
-  footprint above is quoted per plate rather than waved off as transient.
+  lengthens that tail; nothing here changes sharding, and nothing here measures what it costs. The
+  split BAM's footprint is quoted per plate rather than waved off as transient because the artifact
+  stands as long as the run that produced it needs it, a downstream per-Component rule being its
+  consumer — not because of anything this page knows about retention.
 - **Anything about the declared `threads:` figure.** The utilisation numbers above are inputs to
   [#452](https://github.com/liuhlab/seqforge/issues/452), not a conclusion about it.
