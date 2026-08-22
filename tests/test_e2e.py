@@ -20,6 +20,7 @@ from typing import Any
 import numpy as np
 import pytest
 
+from conftest import real_cbs
 from seqforge.e2e import (
     SHIPPED_CELL_FILTER,
     _compare,
@@ -608,6 +609,62 @@ def test_cost_reads_are_deterministic_in_seed(tmp_path: Path) -> None:
 
     assert emit("a", 7) == emit("b", 7)
     assert emit("c", 7) != emit("d", 8)
+
+
+def test_the_cost_sweep_gives_star_the_barcodes_its_reads_were_drawn_from(tmp_path: Path) -> None:
+    """The whitelist the instrument hands STARsolo must be the one the pipeline would hand it.
+
+    `compose` records the whitelists a recipe chose as registry NAMES -- not barcodes, not paths --
+    and the cost sweep re-spelled the materialization by hand instead of calling the function
+    `rule onlist` calls. The hand-rolled copy wrote those names, so `--soloCBwhitelist` pointed at a
+    one-line file reading `3M-february-2018`. That string is 16 characters, exactly the v3 CB width,
+    so no length check fired; every synthesized barcode was off-list and STAR exited 0 at every
+    depth. A sweep records a wall time and a peak, nothing else, so a whitelist the aligner cannot
+    match is invisible to it by construction -- which is why this asserts the join the sweep never
+    made: the barcodes the reads were BUILT from against the barcodes STAR is told to MATCH.
+
+    It drives the real resolve -> fill -> compose path rather than reading source, and can afford to:
+    the probe is bounded, and 2 000 reads is already deep enough for the resolver to decide 10x v3
+    from the bytes.
+    """
+    from seqforge.e2e import E2EAssets, GeneModel, _compose_cost_params
+
+    rng = random.Random(11)
+
+    def seq(n: int) -> str:
+        return "".join(rng.choice("ACGT") for _ in range(n))
+
+    models = [GeneModel(gene_id=f"G{i}", mrna=seq(1200), introns=(seq(800),)) for i in range(4)]
+    barcodes = real_cbs(4000)
+    cbs = barcodes[:200]
+
+    _solo, wl_path, _decided = _compose_cost_params(
+        E2EAssets(
+            fasta=tmp_path / "genome.fa",
+            gtf=tmp_path / "genes.gtf",
+            star_index=tmp_path / "index",
+            star_bin="STAR",
+        ),
+        workdir=tmp_path,
+        models=models,
+        cbs=cbs,
+        barcodes=barcodes,
+        features=None,
+        intron_frac=0.4,
+        read_len=90,
+        seed=1,
+        n_probe_reads=2_000,
+    )
+
+    lines = wl_path.read_text().splitlines()
+    assert "3M-february-2018" not in lines, (
+        "the whitelist handed to --soloCBwhitelist holds a registry NAME, so STARsolo matches no "
+        "barcode at all and still exits 0"
+    )
+    assert lines and all(len(b) == 16 and set(b) <= set("ACGT") for b in lines)
+    assert set(cbs) <= set(lines), (
+        "the cells the reads were synthesized from are not on the list STAR will match against"
+    )
 
 
 def test_the_line_fit_recovers_a_known_slope_and_intercept() -> None:

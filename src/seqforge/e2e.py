@@ -50,7 +50,8 @@ import yaml
 from . import __version__
 from .compose import ComposePlan, compose
 from .compose import plan as compose_plan
-from .io import OnlistRegistry
+from .io import OnlistRegistry, pack_barcode
+from .io.onlist import write_onlist_text
 from .kb import load_spec
 from .kb.generate import write_fastq_gz as _write_fastq_gz
 from .manifest import (
@@ -673,8 +674,10 @@ _POLL_S = 0.05
 #: partial file that is never deleted, so a workdir on arc holds points measured by whatever
 #: `_run_measured` was on the day they were taken. Bump this whenever the reading changes, or a
 #: re-run splices old numbers into a new curve and reports the blend as one line: the launcher-era
-#: readings (a wrapper's 3.5 MB, see `_run_measured`) would survive their own fix.
-INSTRUMENT_VERSION = "2026.8.11"
+#: readings (a wrapper's 3.5 MB, see `_run_measured`) would survive their own fix, and so would the
+#: name-instead-of-barcodes readings (a whitelist file holding the string `3M-february-2018`, so
+#: every read was off-list and the solo structures were priced empty; see `_compose_cost_params`).
+INSTRUMENT_VERSION = "2026.8.22"
 
 
 class _Peak(NamedTuple):
@@ -1717,13 +1720,44 @@ def _compose_cost_params(
     composed = compose_plan(manifest, processing, registry=registry)
     solo = _solo_params(composed)
 
-    # run_starsolo takes the whitelist as a path of its own (the composed value is a run-dir-relative
-    # name), exactly as the gates do it.
+    # run_starsolo takes the whitelist as a path of its own, so the instrument has to materialize
+    # what the pipeline's `onlist` rule would materialize -- and it does that by CALLING the same
+    # function that rule calls, because a second spelling is a second spelling free to disagree.
+    # It already did: compose records registry NAMES here, not barcodes, and this block used to
+    # write those names into the file it handed `--soloCBwhitelist`. Every sweep point then priced
+    # a STARsolo run whose whitelist was one line reading `3M-february-2018` -- 16 characters, which
+    # is exactly the v3 CB width, so nothing tripped a length check and STAR exited 0 at every depth.
     wl_path = workdir / "whitelist.txt"
-    lines = next(iter(composed.onlist_files.values()), None)
-    if lines is None:
+    names = next(iter(composed.onlist_files.values()), None)
+    if not names:
         raise E2EUnavailable("compose materialized no onlist, so --soloCBwhitelist has no file")
-    wl_path.write_text("\n".join(lines) + "\n")
+    if len(names) > 1:
+        # A one-onlist chemistry is a property of the cost fixture, not of compose: a split-pool
+        # recipe names one whitelist per CB position. Taking the first would price a run against a
+        # third of its barcodes and say nothing, which is the failure shape this whole block is
+        # being fixed for -- so refuse, and name what arrived.
+        raise E2EUnavailable(
+            f"the cost fixture expects a single-whitelist chemistry, but compose chose "
+            f"{len(names)}: {', '.join(names)}"
+        )
+    write_onlist_text(registry, names[0], wl_path)
+
+    # Relate the barcodes the reads were BUILT from to the barcodes STAR is told to MATCH against.
+    # Nothing did, and that is why the name-instead-of-barcodes defect above lived: the instrument's
+    # own `--whitelist` is read only to sample cell barcodes for read synthesis, so the two lists
+    # never met. A run with zero CB matches still exits 0 and still yields a wall time and a peak,
+    # which is all a sweep records -- so a broken whitelist is invisible by construction unless
+    # something asserts the join. Packed membership, never a Python set: the v3 list is 6 794 880
+    # entries, and a `frozenset` of it was the resolver's whole memory ceiling.
+    packed = registry.packed(names[0])
+    off = [cb for cb in cbs if (code := pack_barcode(cb)) is None or not packed.contains(code)]
+    if off:
+        raise E2EUnavailable(
+            f"{len(off)} of {len(cbs)} sampled cell barcodes are not in the whitelist STARsolo will "
+            f"be given ({names[0]}, {packed.n_entries} barcodes), e.g. {', '.join(off[:3])} -- the "
+            f"reads would carry barcodes the aligner cannot match, and it would exit 0 anyway"
+        )
+
     for p in (probe_cdna, probe_bc):
         p.unlink(missing_ok=True)
     return solo, wl_path, decided
