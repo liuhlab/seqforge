@@ -54,7 +54,7 @@ from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 import pytest
 import yaml
@@ -243,6 +243,43 @@ def liulab_data(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
     patch.undo()
 
 
+def _samtools_from_pysam(
+    real: Callable[..., str],
+) -> Callable[..., str]:
+    """``ExternalTool.run``, with ``samtools faidx`` served by pysam and everything else untouched.
+
+    Preparing an assembly runs three binaries — ``samtools faidx``, ``faToTwoBit``, ``twoBitInfo``.
+    Two of them are ordinary dependencies of every environment here; **``samtools`` is declared in
+    the ``star`` feature alone**, deliberately, so the unit lane does not have it. A fixture that
+    needed it would put an external binary in the lane whose entire point is not having one, which
+    is the split :func:`test_every_gate_on_an_external_binary_carries_the_marker` exists to hold.
+
+    So the one call that needs it is answered by pysam, which IS samtools — the same htslib, linked
+    into a library the unit lane already depends on — rather than stubbed. The `.fai` is real, and
+    the completion record that pins it is written over a file that genuinely indexes the FASTA.
+
+    ``ExternalTool.run`` is upstream's own seam and is documented as such: ``run_to`` goes back out
+    through ``run`` rather than around it to ``_execute`` precisely so that patching this one method
+    "catches every invocation this package makes, by either adapter". Patching here rather than
+    passing a stand-in is not a workaround for the absence of a ``tool=`` argument on the
+    registration — it is the mechanism upstream points at, and it is the same abstract seam
+    :class:`~genome.external.RecordingTool` fills for the two index builds below.
+    """
+
+    def run(
+        tool: Any, args: Sequence[str], *, cwd: Path | None = None, capture: bool = True
+    ) -> str:
+        argv = [str(arg) for arg in args]
+        if tool.name == "samtools" and argv[:1] == ["faidx"]:
+            import pysam
+
+            pysam.faidx(*argv[1:])
+            return ""
+        return real(tool, argv, cwd=cwd, capture=capture)
+
+    return run
+
+
 @cache
 def _stand_up(assembly: str, annotation: str) -> None:
     """Register ``assembly`` with ``annotation`` under the session's Data dir, both indexes built.
@@ -255,20 +292,35 @@ def _stand_up(assembly: str, annotation: str) -> None:
     completion record without running the aligner, which is exactly what a plan needs and all it
     needs. Both a STAR and a chromap index, unconditionally, because which one a module looks up is
     not a fact the config carries and building the unused one costs a fraction of a second.
+
+    The registration's own three binaries are the other half, and :func:`_samtools_from_pysam` is
+    where that is argued. It REFUSES rather than staging nothing if one is genuinely unavailable: a
+    fixture that quietly staged no reference would surface much later as a DAG build failing to
+    resolve an index, which reads like the module's bug and is this function's.
     """
     from genome import Genome
-    from genome.external import RecordingTool
+    from genome.external import ExternalTool, RecordingTool, ToolNotFoundError
 
     root = Path(os.environ["LIULAB_DATA"])
     fasta, gtf = root / f"{assembly}.fa", root / f"{assembly}.gtf"
     fasta.write_text(">chrI\n" + "ACGT" * 200 + "\n")
     gtf.write_text('chrI\ttest\texon\t1\t100\t.\t+\t.\tgene_id "g1"; transcript_id "t1";\n')
-    Genome(assembly, path_or_url=fasta, progressbar=False).annotations.register_path(
-        gtf, name=annotation
-    )
-    genome = Genome(assembly, progressbar=False)
-    genome.build_star_index(gtf=annotation, tool=RecordingTool("STAR", version="2.7.11b"))
-    genome.build_chromap_index(tool=RecordingTool("chromap", version="0.2.6"))
+    try:
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(ExternalTool, "run", _samtools_from_pysam(ExternalTool.run))
+            Genome(assembly, path_or_url=fasta, progressbar=False).annotations.register_path(
+                gtf, name=annotation
+            )
+            genome = Genome(assembly, progressbar=False)
+            genome.build_star_index(gtf=annotation, tool=RecordingTool("STAR", version="2.7.11b"))
+            genome.build_chromap_index(tool=RecordingTool("chromap", version="0.2.6"))
+    except ToolNotFoundError as absent:
+        raise RuntimeError(
+            f"cannot stage a reference for {assembly!r}/{annotation!r}, so no plan can be taken "
+            f"against it: {absent}. Preparing an assembly needs `faToTwoBit` and `twoBitInfo`, "
+            f"which are dependencies of every environment here; `samtools faidx` is answered by "
+            f"pysam so that the unit lane never needs the binary."
+        ) from absent
 
 
 def stage_reference(pipeline_dir: Path) -> None:
