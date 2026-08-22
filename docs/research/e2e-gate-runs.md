@@ -54,14 +54,14 @@ maintainer decision of 2026-07-15 rather than a measurement.
 Re-measured **2026-08-11** on arc, and the answer is simpler than the figures it replaces:
 **peak RSS is the genome index, and it does not move with read depth.**
 
-| reads | peak RSS | STAR wall | STAR's "max memory needed for sorting" |
-| ---: | ---: | ---: | ---: |
-| 2 M | 31.078 GB | 26.5 s | 9.8 MB |
-| 8 M | 31.119 GB | 51.1 s | 39.3 MB |
-| 32 M | 31.124 GB | 122.6 s | 157 MB |
-| 64 M | 31.089 GB | 220.4 s | 312 MB |
-| 100 M | 31.082 GB | 325.2 s | 493 MB |
-| 250 M | 31.175 GB | 772.2 s | 1.23 GB |
+| reads | peak RSS | STAR's "max memory needed for sorting" |
+| ---: | ---: | ---: |
+| 2 M | 31.078 GB | 9.8 MB |
+| 8 M | 31.119 GB | 39.3 MB |
+| 32 M | 31.124 GB | 157 MB |
+| 64 M | 31.089 GB | 312 MB |
+| 100 M | 31.082 GB | 493 MB |
+| 250 M | 31.175 GB | 1.23 GB |
 
 hg38 + `gencode_v50`, STAR 2.7.11b, 8 threads (`ResourceHints.threads`, what the rule actually
 requests), the shipped `--outSAMtype BAM SortedByCoordinate`, and the module's own argv via
@@ -69,8 +69,7 @@ requests), the shipped `--outSAMtype BAM SortedByCoordinate`, and the module's o
 gives it. Counting is the compiler's own all-five default, `Velocyto` among them, which is both what
 the withdrawn figures priced and the rule they claimed was the thing growing with depth.
 **97 MB of spread across a 125x read increase**, which is to say none: the 31 GB is the
-index, paid before a read is parsed, and everything the depth adds is noise against it. Wall clock is
-the thing that scales — linear, ~21 s + 3 s per million reads.
+index, paid before a read is parsed, and everything the depth adds is noise against it.
 
 **The sort is not close to being the constraint.** STAR's own reported requirement is linear at
 ~4.9 B/read and reaches 1.23 GB at 250 M — against a 36 GB cap, 29x headroom. `--limitBAMsortRAM`
@@ -110,34 +109,22 @@ is a cap and not an allocation (`workflows/memory.py`), so that headroom costs n
 > peak belongs to, and its version is in the sweep's resume key so those points cannot resume into a
 > new run (#372).
 
-> **Every `kb e2e-cost` reading between 2026-07-16 and 2026-08-22 priced a run whose whitelist
-> STARsolo could not match, the table above included.**
-> The instrument built `--soloCBwhitelist` by joining `ComposePlan.onlist_files`' values, which hold
-> registry **names** rather than barcodes — so STAR was handed a 17-byte file whose one line was
-> `3M-february-2018`. That string is 16 characters, exactly the v3 CB length, so no length check
-> fired; every synthesized read's barcode was off-list and every point still exited 0. The
-> instrument's own `--whitelist` is a different path, read only to sample cell barcodes for read
-> synthesis, and nothing related the two. Fixed 2026-08-22 (#493): the instrument now materializes
-> through `write_onlist_text`, the same function the shipped `onlist` rule calls, and refuses to run
-> unless the sampled cells are members of the list STAR receives.
+> **This sweep ran with a cell-barcode list STARsolo could not match, and the wall-clock figures it
+> also produced have been deleted rather than re-measured.**
+> The instrument built `--soloCBwhitelist` from `ComposePlan.onlist_files`, which holds registry
+> **names** rather than barcodes, so STAR was handed a one-line file reading `3M-february-2018` —
+> 16 characters, exactly the v3 CB width, so no length check fired and every point exited 0. Barcode
+> correction and UMI collapse therefore did almost no work, which makes a timing taken here a floor
+> and not a slope. Nothing here needed those timings, so they are gone; the memory table stays,
+> because the omitted work does not grow with read depth and the 31 GB is the index either way. The
+> intercept omits what a 6.8 M-entry list costs STARsolo, which is noise at this scale.
 >
-> **What this does not touch: every matrix assertion on this page.** `kb e2e` and `kb e2e-introns`
-> drive the composed Snakefile through `run_composed`, whose `onlist` rule materializes correctly,
-> and a guard in `tests/test_e2e.py` forbids them from reaching the instrument at all. The recovery
-> figures, the 0-spurious/0-inflated results, the strand inversion and the 40.7 % Gene-only loss all
-> stand. The sweep reads no `Solo.out`, so no cell count or matrix density on this page came through
-> the defect. `Log.final.out` counts and STAR's reported sort requirement are unaffected in kind:
-> CB matching does not gate alignment, so the record count is the same either way.
->
-> **What it does touch is the wall clock, and to a smaller degree the intercept.** Per-read CB lookup
-> ran against one entry instead of 6 794 880, with no 1MM correction, no UMI collapse and no
-> `Solo.out` write — all of it work that scales with depth, so **~21 s + 3 s per million reads is a
-> floor, not the slope**. The 31.1 GB intercept omits whatever a 6.8 M-entry whitelist costs
-> STARsolo. **The flat-with-depth finding is the one most likely to survive**, because the largest
-> omitted term is constant in depth — but the per-read CB/UMI records and the five Solo count
-> matrices are not, so the slope is not certified by reading the fix. Re-running the sweep is what
-> settles it (#495), and until someone does, read this table as memory-shaped and treat its timings
-> as lower bounds.
+> **No pipeline run was affected.** `kb e2e` and `kb e2e-introns` drive the composed Snakefile through
+> `run_composed`, whose `onlist` rule materializes correctly, and a guard in `tests/test_e2e.py`
+> forbids them from reaching the instrument — so every matrix assertion on this page stands, as do the
+> alignment counts and the sort requirement, since barcode matching does not gate alignment. Fixed
+> 2026-08-22 (#494): the instrument now calls the same writer the rule calls, and refuses to run
+> unless the sampled cells are on the list STAR receives.
 
 **Caveat, and it is the reason the fixture cannot size a sort.** This simulation draws from 2 000
 gene models: STAR asks ~4.9 B per read here against the ~160 B per alignment record measured on real
