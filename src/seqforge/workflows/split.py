@@ -369,8 +369,8 @@ def _rewritten(record: AlignedSegment, tids: Mapping[int, int]) -> Any:
 
     Copied rather than rebuilt because the rebuild was 81.4% of this rule's wall time, and reading
     every aux tag back as ``(tag, value, type)`` tuples to re-declare it was 54.8% on its own. Method
-    and tables: the split-timing collection kept with the plate it was measured on,
-    ``aging_SS3/script/metrics784/split_timing/``.
+    and tables: ``docs/research/split-chimera-record-copy-2026-08-21.md``, which cites the cluster
+    collection the production figures came off.
     """
     out = copy.copy(record)
     out.reference_id = tids[record.reference_id]
