@@ -930,16 +930,16 @@ def io_umi_count(
             # pair becomes the Component's own and the resolution below is the single one both
             # forms take -- and the refusal below names the Component whose GTF went missing.
             assembly, annotation = component, registered
+        # Bound once, AFTER the pair above is settled, so both lookups below are put to the same
+        # genome -- under `--component` that is the Component's own and never the Chimera's.
+        genome = Genome(assembly)
         # The gate above leaves exactly one of the two forms and the arm above has filled the
         # annotation in; the checker cannot see a relation between two options, so it is said here.
-        gtf = Path(str(Genome(assembly).annotations.path(cast(str, annotation))))
-        # Which of this annotation's genes are ribosomal, asked AFTER the pair above is settled, so
-        # a Component asks its OWN genome about its OWN annotation. The same question put to a
-        # Chimera concatenates worm and bacterial ids across its sources, and a share pooling two
-        # organisms measures neither; the counter already runs once per Component, so asking the
-        # component directly makes that impossible and needs no handling of sources here at all.
+        gtf = Path(str(genome.annotations.path(cast(str, annotation))))
+        # Which of this annotation's genes are ribosomal, asked of that same settled pair -- what a
+        # Chimera would answer instead, and why it may not be asked, is in the docstring above.
         try:
-            rrna_gene_ids = Genome(assembly).gene_list("rRNA", annotation).gene_ids
+            rrna_gene_ids = genome.gene_list("rRNA", annotation).gene_ids
         except (GeneCategoryNotDeclaredError, NoGeneCategoriesError):
             # No curated list ships for this annotation, or one does and does not declare
             # ribosomes: either way the metric is unmeasurable here, which costs the plate that

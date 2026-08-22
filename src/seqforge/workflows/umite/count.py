@@ -32,8 +32,10 @@ other 55 335 columns are genes — a per-cell scalar dressed as a feature, which
 correction in its output shape. As columns they need no leading underscore either: the underscore
 was there to keep them out of the gene id namespace, and they are not in it any more. Sequencing
 saturation is a column beside them, what the cell YIELDED — its molecules and how many genes hold
-one — is two more, and how many loci each multiply-placed fragment had is an ``obsm`` array: a
-per-cell vector rather than a scalar, so it is the one figure ``obs`` cannot hold.
+one — is two more, how much of that yield was ribosomal joins them wherever the annotation can say
+which genes those are (:data:`RRNA_FRACTION`), and how many loci each multiply-placed fragment had
+is an ``obsm`` array: a per-cell vector rather than a scalar, so it is the one figure ``obs`` cannot
+hold.
 
 **A matrix is materialised when it cannot be derived from the others, and only then.** That is why
 the combined UMI matrix is here and a combined *read* matrix is not: reads carry no UMI and are
@@ -1061,11 +1063,9 @@ def _rrna_umis(
     property of the assembly's curation and the axis is a property of the GTF that was registered, so
     the two overlap partially all the time and a partial overlap is still a measurement.
 
-    An EMPTY overlap is not, and it is the one case that gets its own answer. Returning zeros there
-    would put a column on the object saying every cell of this plate is 0.0% ribosomal, which is
-    indistinguishable from a measurement and is the exact wrong claim — see :data:`RRNA_FRACTION`.
-    ``None`` reaches :func:`count_plate` as "write neither column", and a reader then finds the metric
-    absent, which is what an unmeasured thing looks like everywhere else on this path.
+    An EMPTY overlap is not, and it is the one case that gets its own answer: ``None`` reaches
+    :func:`count_plate` as "write neither column" rather than as a plate of zeros. The argument for
+    that is at :data:`RRNA_FRACTION`.
 
     The buckets are the ones the cells were already counted into, summed per cell over the matched
     indices — no second pass over the matrices and no second traversal of a BAM. Genes are walked in
@@ -1118,8 +1118,8 @@ def count_plate(
     already holds for the annotation itself, and what keeps this function strictly typed and testable
     against a synthetic annotation. Nothing is counted twice for it: the ids select columns of the
     combined UMI buckets these cells were already counted into. Omit them, or hand over ids none of
-    which is on the gene axis, and the object carries no ribosomal column at all rather than a zero
-    one — see :data:`RRNA_FRACTION`.
+    which is on the gene axis, and the object carries no ribosomal column at all — see
+    :data:`RRNA_FRACTION`.
     """
     import anndata as ad
 
@@ -1404,7 +1404,6 @@ def _obs_columns(adata: anndata.AnnData) -> dict[str, list[float]]:
             SATURATION,
             N_UMIS,
             GENES_DETECTED,
-            N_UMIS_RRNA,
             RRNA_FRACTION,
         )
         if column in frame.columns

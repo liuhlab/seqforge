@@ -28,6 +28,7 @@ from conftest import (
 )
 from seqforge import __version__, kb
 from seqforge.cli import app
+from seqforge.workflows.umite.count import N_UMIS_RRNA, RRNA_FRACTION
 
 runner = CliRunner()
 
@@ -132,25 +133,25 @@ def test_the_cli_surface_exits_and_answers_as_documented(
 @pytest.mark.parametrize(
     "answer, ribosomal",
     [
-        pytest.param(["GENE_A"], (1, 1.0), id="the-genomes-ribosomal-ids-reach-the-counter"),
+        pytest.param(["GENE_A"], True, id="the-genomes-ribosomal-ids-reach-the-counter"),
         # Two different absences, and the verb owes both the same answer. Neither is a defect: no
         # curated list ships for most annotations, and one that ships may simply not name ribosomes.
         # The real exceptions rather than stand-ins for them, so what is caught is the class.
         pytest.param(
             NoGeneCategoriesError("synthetic", "mm10", ()),
-            None,
+            False,
             id="an-annotation-nothing-is-curated-for-costs-the-column",
         ),
         pytest.param(
             GeneCategoryNotDeclaredError("synthetic", "mm10", "rRNA", ("protein_coding",)),
-            None,
+            False,
             id="an-annotation-declaring-no-ribosomes-costs-the-column",
         ),
     ],
 )
 def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome_registered(
     answer: list[str] | Exception,
-    ribosomal: tuple[int, float] | None,
+    ribosomal: bool,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -168,12 +169,14 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
     number is caught on its way into the counter rather than inferred from how fast one cell counted.
 
     **The ribosomal gene ids are the third**, and they are the parameter above. Handed over, they
-    put both `obs` columns on the written object — the whole point of asking, proved end to end
-    rather than at the seam. Where the annotation cannot answer, the verb hands over nothing and the
-    object carries NEITHER column: the rows are the two ways liulab-genome says so, and a `0.0`
-    share would be a measurement claim about a plate nobody measured. An annotation that is not
-    registered at all is deliberately not a row here — it raises through the same base class as
-    these two and must stay the refusal it is, which is why the verb catches these by name.
+    put both `obs` columns on the written object — that the ids travel the whole way rather than
+    only as far as the seam. What those columns then HOLD is arithmetic against a known annotation
+    and is proved once, in the counter's own tests. Where the annotation cannot answer, the verb
+    hands over nothing and the object carries NEITHER column: the rows are the two ways
+    liulab-genome says so, and a `0.0` share would be a measurement claim about a plate nobody
+    measured. An annotation that is not registered at all is deliberately not a row here — it raises
+    through the same base class as these two and must stay the refusal it is, which is why the verb
+    catches these by name.
     """
     import anndata as ad
     import genome as liulab_genome
@@ -261,15 +264,14 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
     # it is the sparse matrix that was written, and only the cast says so to the checker.
     counts = cast("Any", adata.X)
     assert int(counts[0, adata.var_names.get_loc("GENE_A")]) == 1
-    if ribosomal is None:
-        assert not {"n_umis_rrna", "rrna_fraction"} & set(adata.obs), (
+    columns = {N_UMIS_RRNA, RRNA_FRACTION}
+    if ribosomal:
+        assert columns <= set(adata.obs), "the ids the genome answered with reached the object"
+    else:
+        assert not columns & set(adata.obs), (
             "an annotation that cannot say which genes are ribosomal costs the column, and a plate "
             "reading 0.0% ribosomal is the one answer nobody may act on"
         )
-    else:
-        molecules, share = ribosomal
-        assert int(adata.obs["n_umis_rrna"].iloc[0]) == molecules
-        assert float(adata.obs["rrna_fraction"].iloc[0]) == share
 
 
 def test_io_umi_count_reads_a_components_annotation_off_the_chimeras_completion_record(

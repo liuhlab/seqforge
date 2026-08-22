@@ -127,6 +127,7 @@ _GENOME_API = {
     "components",  # io split-chimera: which Components a Chimera holds, off the completion record
     "separator",  # io split-chimera: the underscore run those Components' chromosome names carry
     "component_annotations",  # io umi-count --component: what each Component gave the merged GTF
+    "gene_list",  # io umi-count: which of that annotation's genes are the curated `rRNA` category
 }
 
 
