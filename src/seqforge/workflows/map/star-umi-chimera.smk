@@ -755,8 +755,12 @@ rule split_chimera:
     on an implementation that no longer exists -- which argues for something LOWER than 8 rather than
     for 8, so capping it here would be a number chosen to match a neighbour instead of a measurement.
 
-    What the verb spends it on is the BGZF codec and nothing else, divided across the outputs: the
-    record loop is one stateless pass and stays on one core whatever this says, and the loop is
+    What the verb spends it on is the BGZF codec and nothing else, handed WHOLE to each output's
+    writer rather than divided across them: the Components are not even -- the dominant one carries
+    ~90% of the bytes on a chimeric cell -- so an even division made the wall a property of the
+    cell's bacterial fraction, and no forward pass over a stream can know that fraction before it
+    has written the bytes. What is held is twice the figure and what RUNS is bounded by the serial
+    record loop feeding the writers, which is one core's worth whatever this says. That loop is
     where this rule's wall-clock went. Measured on the implementation that rebuilt each kept record,
     the block compression underneath it was 12.2% of the pass against the loop's 81.4%, and was that
     cheap only because it is threaded and overlaps behind a serial producer. Take most of the loop
@@ -767,10 +771,7 @@ rule split_chimera:
     them is the shape this module's own history records on `umi_count`, where a whole plate was
     counted on one core inside an allocation sized for the rest.
 
-    Whether one wide split beats several narrow ones on a real plate is UNMEASURED, and so is what an
-    uneven division across the writers would buy -- the dominant Component carries ~90% of the bytes
-    on the same worker count as the writer doing 10%, which is a property of the verb's budget split
-    rather than of this declaration and is filed on its own.
+    Whether one wide split beats several narrow ones on a real plate is UNMEASURED.
 
     **The outputs are rendered as `<component>=<path>` from `zip(COMPONENTS, output.bams)`** -- the
     same argument shape `umi_count` takes its cells in, and for the same reason: a Component and where

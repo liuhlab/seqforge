@@ -434,12 +434,30 @@ def split_chimera(
     implementation that rebuilt each kept record, the codec was 12.2% of this pass against the loop's
     81.4%, and it was that cheap only because it is threaded and overlaps behind a serial producer:
     take most of the loop away, as copying the record does, and the codec's share of a much smaller
-    wall rises without anything having been bought. So the figure is DIVIDED across the outputs
-    rather than handed to each of them:
-    ``n`` writers each opening a pool of ``n`` is ``n²`` codec threads against an allocation of
-    ``n``, and oversubscribing a scheduler that was told a number is worse than ignoring the number
-    — which is the other failure available here, and the one this repo has already paid for once,
-    on the rule that asked for threads and counted a whole plate on one core.
+    wall rises without anything having been bought.
+
+    **Each writer is handed the figure WHOLE, and dividing it evenly is what this replaces.** The
+    outputs are not even and nothing here can know how uneven they are: a chimeric cell's dominant
+    Component carried ~90% of the output bytes on the fixture that measured this pass, so an even
+    division gave the writer doing 90% of the compression the same worker count as the writer doing
+    10%, and the wall became a property of the cell's BACTERIAL FRACTION rather than of this verb.
+    A proportional division would need that fraction up front, and this is one forward pass over a
+    stream that is never read twice — the ratio is not knowable until the bytes are already
+    written. Handing each writer the whole figure needs nobody to know it.
+
+    The oversubscription this used to fear does not survive contact with the pool. ``n`` writers each
+    holding ``n`` is ``n`` threads that EXIST per writer, not ``n`` that RUN: htslib's workers block
+    on their queue with nothing to compress, and what bounds the runnable count is the single serial
+    record loop feeding them, which produces blocks at one core's rate whatever this figure says.
+    A Chimera has two Components, so what is held is twice the figure and what runs is bounded by
+    the loop either way. The failure the old division was written against — asking a scheduler for
+    cores and then handing the verb none of them, which this repo paid for once on the rule that
+    counted a whole plate on one core — is the one this makes LESS likely, not more.
+
+    It also clears a floor that made the low end buy nothing. pysam hands ``threads - 1`` to
+    htslib, so a writer allotted one gets ZERO workers and compresses on the calling thread; with
+    two Components an even division floored to one at both ``threads=1`` and ``threads=2``, and the
+    only thing the second thread ever bought was the reader.
 
     The reader keeps the caller's figure whole. Decompressing one file is the pass's floor, it is
     strictly cheaper than the compression it feeds, and it cannot overlap itself.
@@ -478,7 +496,6 @@ def split_chimera(
     # Floored at one: a `--threads 0` from somewhere is a caller saying nothing, not a caller asking
     # for no codec at all, and htslib takes the difference badly.
     codec = max(1, threads)
-    per_writer = max(1, codec // len(outputs)) if outputs else 1
 
     with pysam.AlignmentFile(str(bam), "rb", threads=codec) as source:
         header = source.header.to_dict()
@@ -494,7 +511,7 @@ def split_chimera(
             path.parent.mkdir(parents=True, exist_ok=True)
         writers = {
             component: pysam.AlignmentFile(
-                str(outputs[component]), "wb", header=restored[component][0], threads=per_writer
+                str(outputs[component]), "wb", header=restored[component][0], threads=codec
             )
             for component in outputs
         }
