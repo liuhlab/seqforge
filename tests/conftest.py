@@ -8,6 +8,10 @@ times and nothing could be tuned in one place. What lives here:
 * :func:`dry_run` — the same subprocess, returning the PLAN TEXT rather than a four-character
   verdict. It lives here because the ``external`` marker is derived from fixture names, so a
   module-local spawner is a spawn the marker cannot see.
+* :func:`liulab_data` and :func:`stage_reference` — a throwaway genome **Data dir** for the session,
+  and the prebuilt index a DAG build now looks up. Building a DAG resolves the genomeDir, which is
+  what refuses a machine that has not built one before any job starts; the price is that planning a
+  module is no longer free of the reference, and this is what pays it.
 * :func:`write_fastq_gz` — the one synthetic-FASTQ writer (it was copied verbatim into 13 files).
   Its ``compresslevel`` default is **1**, not zlib's 9: the suite writes hundreds of throwaway
   fixtures whose compressed *size* nothing reads. A fixture that pins compressed bytes must pass its
@@ -42,15 +46,18 @@ from __future__ import annotations
 import ast
 import gzip
 import hashlib
+import os
 import re
 import sys
 import types
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
 import pytest
+import yaml
 
 if TYPE_CHECKING:  # the count-matrix narrowing needs the names, not the import cost
     import anndata as ad
@@ -66,6 +73,7 @@ from seqforge.models.dataset import DatasetManifest, FileInventoryItem, SampleGr
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.models.processing import ProcessingManifest
 from seqforge.models.resolve import GateVerdict
+from seqforge.pipeline import CONFIG_NAME
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
 from seqforge.resolve.engine import Hypothesis
@@ -196,6 +204,88 @@ def pytest_cmdline_main(config: pytest.Config) -> None:
     config.option.maxprocesses = FULL_SUITE_WORKERS
     if config.option.dist == "no":
         config.option.dist = FULL_SUITE_DIST
+
+
+# --------------------------------------------------------------------------- #
+# the prebuilt index every DAG build now looks up
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture(scope="session", autouse=True)
+def liulab_data(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
+    """A throwaway liulab-genome **Data dir**, exported for this session and every subprocess of it.
+
+    Autouse, and a temporary directory rather than the machine's own ``LIULAB_DATA``, which is the
+    half that matters: the suite writes registrations and index records under whatever this names,
+    and a developer's real references are not ours to write into. Nothing is built until something
+    asks — see :func:`stage_reference` — so a session that plans nothing pays one ``mkdir``.
+
+    It also wraps ``wiring_gate`` so the gate stages the reference its own config names. The gate is
+    reached from inside ``compose``, where no caller can get between, and it BUILDS a DAG, which is
+    now the moment the genomeDir is looked up. Wrapping here rather than in ``real_wiring_gate``
+    covers the session-scoped composed-plate fixtures too, which compose under the real gate and
+    are built before any function-scoped fixture applies. The autouse stub below replaces this
+    wrapper wholesale for every test that did not ask to spawn, so nothing is staged for them.
+    """
+    from seqforge.compose import gates
+
+    root = tmp_path_factory.mktemp("liulab-data")
+    real = gates.wiring_gate
+
+    def staged(pipeline_dir: Path, plan: ComposePlan) -> GateVerdict:
+        stage_reference(pipeline_dir)
+        return real(pipeline_dir, plan)
+
+    patch = pytest.MonkeyPatch()
+    patch.setenv("LIULAB_DATA", str(root))
+    patch.setattr(gates, "wiring_gate", staged)
+    yield root
+    patch.undo()
+
+
+@cache
+def _stand_up(assembly: str, annotation: str) -> None:
+    """Register ``assembly`` with ``annotation`` under the session's Data dir, both indexes built.
+
+    Through liulab-genome's own API and never by writing its layout by hand — a fixture that laid
+    out an index directory itself would be this repo reimplementing the package whose whole job that
+    is, and it would go stale the moment upstream moved a record. A one-chromosome FASTA and a
+    one-exon GTF, so an assembly the suite plans against costs kilobytes and no download; the
+    ``RecordingTool`` stand-in is upstream's documented seam for a build that must write its
+    completion record without running the aligner, which is exactly what a plan needs and all it
+    needs. Both a STAR and a chromap index, unconditionally, because which one a module looks up is
+    not a fact the config carries and building the unused one costs a fraction of a second.
+    """
+    from genome import Genome
+    from genome.external import RecordingTool
+
+    root = Path(os.environ["LIULAB_DATA"])
+    fasta, gtf = root / f"{assembly}.fa", root / f"{assembly}.gtf"
+    fasta.write_text(">chrI\n" + "ACGT" * 200 + "\n")
+    gtf.write_text('chrI\ttest\texon\t1\t100\t.\t+\t.\tgene_id "g1"; transcript_id "t1";\n')
+    Genome(assembly, path_or_url=fasta, progressbar=False).annotations.register_path(
+        gtf, name=annotation
+    )
+    genome = Genome(assembly, progressbar=False)
+    genome.build_star_index(gtf=annotation, tool=RecordingTool("STAR", version="2.7.11b"))
+    genome.build_chromap_index(tool=RecordingTool("chromap", version="0.2.6"))
+
+
+def stage_reference(pipeline_dir: Path) -> None:
+    """Make the index the config in ``pipeline_dir`` names resolvable, before a DAG is built over it.
+
+    Every mapping module looks its genomeDir up in a ``params:`` callable, which snakemake expands
+    while BUILDING the DAG — that is the point of the arrangement, since a machine with no prebuilt
+    index is then refused before any job starts rather than after the first mapping job has begun.
+    The cost is that a dry run is no longer free of the reference: planning a module now needs the
+    index its config names to exist, which it did not when the lookup sat inside a ``run:`` block.
+
+    Derived from the composed ``config.yaml`` rather than from a list of assemblies kept here, so a
+    test that plans against a new assembly needs no edit and cannot fail with a message about
+    something other than its own subject. Cached on the pair, so a session pays each once.
+    """
+    genome = yaml.safe_load((pipeline_dir / CONFIG_NAME).read_text())["genome"]
+    _stand_up(genome["assembly"], genome["annotation"])
 
 
 # --------------------------------------------------------------------------- #
@@ -331,6 +421,9 @@ def snakemake_dry_run(
     afterwards) — the gate's own arrangement. Omit it to run against ``directory`` exactly as the
     caller left it, for the tests that mutate ``units.tsv`` and stage their own inputs.
 
+    Whichever it runs against, :func:`stage_reference` goes first: building a DAG now resolves the
+    genomeDir, so a plan needs the index its config names on disk.
+
     Pass ``refused=True`` for a directory a module is supposed to REFUSE to plan, and get the output
     back to assert the reason on. The exit code is asserted either way and in both directions: a
     module whose refusal quietly stopped firing would otherwise read as a passing test, which is the
@@ -349,6 +442,7 @@ def snakemake_dry_run(
     from seqforge.compose.gates import _replica
 
     target = _replica(directory, plan) if plan is not None else directory
+    stage_reference(target)
     try:
         proc = subprocess.run(
             [
@@ -369,8 +463,18 @@ def snakemake_dry_run(
         )
         if refused:
             assert proc.returncode != 0, f"this plan was supposed to be refused:\n{proc.stdout}"
-        else:
-            assert proc.returncode == 0, proc.stderr
+            return proc.stdout + proc.stderr
+        assert proc.returncode == 0, proc.stderr
+        # ...and every slot the rendered commands read RESOLVED. A `shell:` naming `{params.x}` on a
+        # rule that declares no `x` does not fail a dry run: snakemake substitutes the repr of an
+        # `AttributeGuard`, which only raises when the job runs. So a plan is green, the argv reads
+        # plausibly, and the aligner is handed `<snakemake.iocontainers.AttributeGuard object at ...>`
+        # on a compute node. Asserted here rather than in a test, because it is a property of every
+        # plan this suite takes and the spawner is the one place they all pass through.
+        assert "AttributeGuard" not in proc.stdout, (
+            "a rendered command names a `params:`/`input:` slot its rule never declared:\n"
+            + "\n".join(ln for ln in proc.stdout.splitlines() if "AttributeGuard" in ln)
+        )
         return proc.stdout + proc.stderr
     finally:
         if plan is not None:
@@ -752,10 +856,10 @@ def planning_route(module: str) -> tuple[str, str]:
     very module it was derived to cover.
 
     The route for a twin is therefore its BASE's chemistry under a two-part assembly name, which is
-    the same two arguments every caller already had. It needs no fixture and nothing on disk:
-    detection is syntactic, `rule genome_index` keeps its `Genome(...)` call inside a `run:` block,
-    and the per-Component annotations are resolved by the counting verb at job time — so a dry run of
-    a chimeric plate resolves no genome at all.
+    the same two arguments every caller already had. Detection is syntactic and the per-Component
+    annotations are resolved by the counting verb at job time, so the only reference a dry run of a
+    chimeric plate reaches is the genomeDir its mapping rules look up — which :func:`stage_reference`
+    stands up for whatever assembly the composed config names.
 
     Raises rather than returning a sentinel for a module nothing can reach: a gate that quietly
     skipped would be green about nothing, which is exactly the state these gates exist to prevent.

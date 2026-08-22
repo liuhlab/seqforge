@@ -351,8 +351,8 @@ def io_cram(
     """Encode STAR's coordinate-sorted BAM as a CRAM against the liulab-genome reference.
 
     Called by `starsolo.smk`'s `solo_to_cram` rule. The reference FASTA is resolved at run time from
-    the assembly id via `liulab-genome` (never a baked path), exactly as `rule genome_index` resolves
-    the STAR index. Exit 3 on a samtools failure or an unresolvable reference.
+    the assembly id via `liulab-genome` (never a baked path), exactly as the module's own
+    `star_index` resolves the genomeDir. Exit 3 on a samtools failure or an unresolvable reference.
 
     `--selection` names which records the archive is of, and it defaults to what this verb has always
     written: primary alignments. A caller wanting a narrower archive — the mapped records, or one side

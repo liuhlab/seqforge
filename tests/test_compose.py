@@ -662,7 +662,9 @@ def test_no_run_directive_rule_declares_a_container() -> None:
 
     That makes this exactly the failure class this repo is built against: the directive parses, the
     dry run is clean, the pipeline exits 0, and the software was never pinned. Nothing else in the
-    stack would say so, so this test does. `genome_index` is the rule that would tempt someone.
+    stack would say so, so this test does. No shipped module declares a `run:` rule today — the one
+    that did resolved the genome index, and it is a function now — so what this guards is the next
+    one, which is the only moment the mistake is available to make.
     """
     for name in list_modules():
         for rule, body in _rule_blocks(get_module(name).snakefile).items():
@@ -1528,7 +1530,6 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     )
 
     for rule, jobs in (
-        ("genome_index", 1),
         ("load_genome", 1),
         ("umi_extract", PLATE_CELL_COUNT),
         ("star_umi_map", PLATE_CELL_COUNT),

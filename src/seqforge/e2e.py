@@ -918,11 +918,11 @@ def run_composed(
       allocation", and on a genome as small as this gate's yeast index there is not enough of it to
       sort in, so STAR FATALs instead of spilling. On a 12 Mb fixture the extra wall-clock is still
       noise.
-    - **The `genome_index` rule now executes**, resolving the index through liulab-genome exactly as a
-      real run does (`get_star_index`, a pure lookup), instead of the test handing STAR a path it
+    - **The module's own index lookup now runs**, resolving the index through liulab-genome exactly
+      as a real run does (`get_star_index`, a pure lookup), instead of the test handing STAR a path it
       found itself. seqforge never builds the index, so it must be prebuilt for this assembly +
-      annotation before `kb e2e` runs; the lookup then finds it and this costs nothing while covering
-      a rule that had no coverage at all.
+      annotation before `kb e2e` runs; the lookup then finds it while the DAG is being built, and this
+      costs nothing while covering a path that had no coverage at all.
 
     No peak-RSS is reported from this path, deliberately. The measured child here is *snakemake*, so
     the tree the poller walks is one a scheduler decides the shape of and the peak belongs to
@@ -2215,7 +2215,7 @@ def discover_assets(
 ) -> E2EAssets:
     """Resolve the run's assets, preferring liulab-genome (we consume it, never reimplement it).
 
-    seqforge **never builds** a STAR index — not here, not in the `genome_index` rule. Building is
+    seqforge **never builds** a STAR index — not here, not in a shipped module. Building is
     liulab-genome's concern, done ahead of any run by its own machinery; seqforge only *resolves* the
     prebuilt artifact through `get_star_index`, which raises if none exists. So `kb e2e` requires the
     index for `assembly` + `annotation` to be built beforehand; if it is not, the lookup fails loudly

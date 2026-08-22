@@ -117,9 +117,11 @@ def test_seqforge_defines_no_genome_machinery(src_trees: SrcTrees) -> None:
 #: a list asserted against the actual object is a contract test, and it goes red the moment upstream
 #: moves. Nothing here can drift silently.
 _GENOME_API = {
-    "get_star_index",  # starsolo.smk / star.smk rule genome_index + e2e: resolve the prebuilt index
-    "get_chromap_index",  # chromap.smk rule genome_index: resolve the prebuilt scATAC index (no GTF)
-    "fasta_path",  # chromap.smk rule genome_index (chromap maps against -r ref) + e2e: simulate reads
+    "get_star_index",  # the four STAR modules' `star_index` + e2e: resolve the prebuilt index
+    "get_chromap_index",  # chromap.smk's `_reference`: resolve the prebuilt scATAC index (no GTF)
+    "fasta_path",  # chromap.smk's `_reference` (chromap maps against -r ref) + e2e: simulate reads
+    "build_star_index",  # conftest: stand up the index every planned route's DAG build looks up
+    "build_chromap_index",  # conftest: the same, for the one module that maps with chromap
     "default_gtf_path",  # e2e: build gene models
     "annotations",  # e2e/docs: which GTF names are registered; io umi-count: `.path(name)`
     "components",  # io split-chimera: which Components a Chimera holds, off the completion record

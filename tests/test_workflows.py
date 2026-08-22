@@ -1687,6 +1687,101 @@ def test_rule_all_names_one_file_per_sample_and_that_file_waits_for_the_whole_sa
         )
 
 
+#: Rules that own a path the whole run shares and which this invariant still tolerates, with why.
+#: ``load_genome``'s is a ``touch()`` marker and is measured SAFE to race — six instances at once
+#: over one directory, five trials, zero errors — because re-touching a flag that is already there
+#: says exactly what the flag says. ``onlist`` stages a chemistry's barcode whitelist, which is one
+#: 111 MB file the whole deposit maps against: a per-sample copy is the wrong answer, no measurement
+#: says a concurrent rewrite is safe, and it is untouched by the index change. It is NAMED rather
+#: than quietly matched because the two plate modules — where a sharded run is what anyone actually
+#: does — declare no such rule, so the exposure and the fix belong to a ticket of their own.
+#:
+#: Named rather than skipped, in the shape :data:`MODULES_NO_SPEC_REACHES_YET` established, and the
+#: case below asserts each name is still EARNING its place in the module that declares it.
+RULES_THAT_MAY_OWN_A_SHARED_PATH: frozenset[str] = frozenset({"load_genome", "onlist"})
+
+
+@pytest.mark.parametrize("module", list_modules())
+def test_no_planned_job_owns_a_path_a_concurrent_instance_would_delete(
+    module: str, tmp_path: Path, dry_run: DryRun
+) -> None:
+    """Every planned job's output is one sample's, the deposit's declared artifact, or a marker flag.
+
+    Those three are exactly what survives several `snakemake` instances over ONE results directory,
+    which is how a plate too large for one node is run and is inside the recorded design
+    (ADR-0051). Anything else is a path two instances both own, and snakemake DELETES an output
+    before running the job that produces it — so the second instance is not racing the first's
+    *write*, it is racing its *removal*.
+
+    **What this caught, because the evidence lives nowhere else.** A rule resolved the genome index
+    into `results/index/<assembly>`: six instances started at once produced **0 of 6** successful
+    runs — five `FileExistsError`, one `MissingOutputException`. Making that rule's body atomic and
+    idempotent still produced **0 of 6**, now failing with *"Unable to obtain modification time of
+    file index/asm although it existed before. It could be that a concurrent process has deleted it
+    while Snakemake was running"* — the window is not the rule's to close, because the deletion
+    happens before the job is handed the chance to be careful. Removing the shared output entirely
+    gave **6 of 6**, and the lookup that rule performed is now a `params:` callable, which also
+    moves the "no prebuilt index" refusal earlier, to DAG build. A concurrency test is deliberately
+    NOT what replaced it: several instances at once is slow, goes flaky on a loaded box, and a red
+    run names a symptom instead of the rule that caused it. This names the rule.
+
+    Read off the rendered plan, so it is the paths jobs would really write and never the module's
+    text. A sample's own output is recognised by the sample id appearing in its path — which is a
+    different question from the one its neighbour above asks, and deliberately so: that test asks
+    which targets *belong* to a sample and reads the producing job's wildcards, while what decides
+    whether two instances collide is whether the PATH differs, and a per-sample rule writing to one
+    fixed name collides exactly as the index rule did.
+
+    Parametrised over every registered module, so a sixth cannot land without an answer. The two
+    rules whose shared path is tolerated are :data:`RULES_THAT_MAY_OWN_A_SHARED_PATH`, with the
+    reason each is there; a shared output added to one of THOSE is what this cannot see, so the
+    load flag is additionally held to being a single file.
+    """
+    tech, assembly = planning_route(module)
+    manifest, reg = _build(tmp_path, tech)
+    processing = _processing(manifest, assembly=assembly)
+    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+    assert result.modules[0].name == module
+    pipeline_dir = (tmp_path / result.snakefile_path).parent
+
+    jobs = _planned_jobs(dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg)))
+    fan_in = get_module(module).fan_in_artifact
+    pattern = re.escape(fan_in or "").replace(r"\{component\}", r"[^/]+")
+    shared: dict[str, str] = {}
+    for job in jobs:
+        sample = job.wildcards.get("sample")
+        for path in job.outputs:
+            if sample is not None and sample in re.split(r"[/.]", path):
+                continue
+            if fan_in is not None and re.fullmatch(pattern, Path(path).name):
+                continue
+            shared[path] = job.rule
+
+    offenders = sorted(
+        f"{rule} -> {path}"
+        for path, rule in shared.items()
+        if rule not in RULES_THAT_MAY_OWN_A_SHARED_PATH
+    )
+    assert not offenders, (
+        f"{module} plans a job whose output no sample and no declared deposit artifact accounts "
+        f"for: {offenders}. Two instances over one results directory both own that path, and the "
+        f"second deletes it before running — which is 0 of 6 shards surviving, not a slow write"
+    )
+    flag = [path for path, rule in shared.items() if rule == "load_genome"]
+    assert len(flag) <= 1, (
+        f"{module}'s genome load owns {flag}; only the one marker is measured safe to race, and "
+        f"this invariant cannot see a second output added to a rule it already tolerates"
+    )
+    declared = set(_rule_blocks(get_module(module).snakefile))
+    stale = sorted(
+        rule for rule in RULES_THAT_MAY_OWN_A_SHARED_PATH & declared if rule not in shared.values()
+    )
+    assert not stale, (
+        f"{module} declares {stale}, which no longer owns a shared path — drop it from "
+        f"RULES_THAT_MAY_OWN_A_SHARED_PATH so the invariant holds every module to it"
+    )
+
+
 @pytest.mark.parametrize("module", star_modules())
 def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps(
     module: str, tmp_path: Path, dry_run: DryRun
