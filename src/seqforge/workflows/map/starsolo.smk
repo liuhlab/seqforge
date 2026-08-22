@@ -39,6 +39,7 @@ from seqforge.workflows.memory import (
 )
 from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.starsolo_args import SORT_CAP_SHELL, starsolo_shell_args
+from seqforge.workflows.threads import QC_BUNDLE_THREADS
 from seqforge.workflows.units import ordered_fastqs
 
 
@@ -468,6 +469,7 @@ rule qc_bundle:
         logs=rules.starsolo_count.output.logs,
     output:
         f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}",
+    threads: QC_BUNDLE_THREADS
     params:
         solo=lambda wc: f"{OUTDIR}/{wc.sample}/Solo.out",
         run_dir=lambda wc: f"{OUTDIR}/{wc.sample}",

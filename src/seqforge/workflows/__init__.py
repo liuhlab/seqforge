@@ -35,6 +35,18 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.20 — the plate-wide fan-in takes the machine it was given, and three rules stop reading
+#: the recipe's threads figure straight (ADR-0051). `workflows/threads.py` is the map, mirroring
+#: `workflows/memory.py`: the counter declares the run's own width less one for the parent, the QC
+#: fold declares the one core it was measured at, and the chimeric split declares the SMALLER of the
+#: recipe's figure and the ceiling above which its wall is a serial routing loop. Everything else
+#: keeps `config["threads"]` until something is measured on the code that ships. The counter's
+#: memory request drops its quarter-share with it — the argument for the share was about a scheduler
+#: admitting jobs against each other, and by the time the fan-in runs the instance owns the node.
+#: **This one moves a command line and a reservation**: `{threads}` reaches the counting verb, so a
+#: run's plate object is produced by a differently-parallel job than before, and the stamp has to
+#: say so. Naming the run's width also makes `--cores` mandatory for these modules — snakemake will
+#: not build a DAG that reads a core count nobody gave it.
 #: 2026.8.19 — every STAR module states its junction policy instead of inheriting STAR's defaults
 #: (#459, #461, ADR-0056). Three literals from one renderer — `--outFilterType BySJout`, the ENCODE
 #: overhang pair, and `jM jI` on the attribute list — plus a per-assembly `--alignIntronMax` and
@@ -551,7 +563,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.19"
+WORKFLOW_VERSION = "2026.8.20"
 
 _MODULE_DIR = Path(__file__).parent
 

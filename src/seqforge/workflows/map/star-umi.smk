@@ -59,6 +59,7 @@ from seqforge.workflows.memory import (
 )
 from seqforge.workflows.qc import QC_SUFFIX
 from seqforge.workflows.splice_args import splice_shell_args
+from seqforge.workflows.threads import QC_BUNDLE_THREADS, fan_in_threads
 from seqforge.workflows.umite.extract import EXTRACT_SUFFIX
 from seqforge.workflows.units import load_units, ordered_fastqs
 from seqforge.workflows.units import mate_role as units_mate_role
@@ -668,6 +669,7 @@ rule qc_bundle:
         junctions=rules.star_umi_map.output.junctions,
     output:
         CELL_QC,
+    threads: QC_BUNDLE_THREADS
     params:
         # The cell's own directory: a cell IS a sample here, so this is where STAR left the run
         # files above and what the verb reads them from.
@@ -701,9 +703,18 @@ rule umi_count:
     No `container:`: counting is not aligning, and pysam, gffutils and anndata are plain
     dependencies of this package. Only STAR needs an environment we do not own.
 
-    Its memory request is the module's own arithmetic over the recipe's ONE figure, not the same
-    request the mapping jobs make: this rule loads no genome index at all, and the recipe's figure
-    was sized against one that does.
+    **`threads:` is the RUN'S OWN WIDTH, less one, and not the recipe's figure.** That figure sizes a
+    mapping job, and this rule is the last job of the instance: every cell has finished, so what is
+    free at that moment is the whole machine rather than one mapping job's share of it. Inheriting
+    the mapping figure is how a 160-core node came to run this on 16 workers with nothing else on it.
+    The minus one is the parent, which stays resident accumulating each cell's matrix as its worker
+    hands it back. `workflows.threads.fan_in_threads` carries the rest, including why the width is
+    relative rather than a large constant, and `--set-threads` overrides it either way.
+
+    Its memory request is the recipe's whole figure through the module's own arithmetic, which is
+    what makes the width above affordable: a worker costs ~260 MB and the default holds far more of
+    them than a node has cores. `workflows.memory.fan_in_mem_mb` has the measurement, and the one
+    term neither figure models — the parent's growth in CELL COUNT.
 
     **`--threads` is the threads it asked for, and it used to ask and then use one.** The cells are
     independent, so the verb forks a worker per core and each one inherits the annotation the parent
@@ -715,7 +726,7 @@ rule umi_count:
         bams=expand(rules.star_umi_map.output.bam, sample=SAMPLES),
     output:
         h5ad=f"{OUTDIR}/{PLATE_H5AD}",
-    threads: config["threads"]
+    threads: fan_in_threads(workflow.cores)
     retries: PLATE_RETRIES
     resources:
         mem_mb=lambda wildcards, attempt: fan_in_mem_mb(config["mem_mb"], attempt),
