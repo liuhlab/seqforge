@@ -157,8 +157,10 @@ class ComposePlan:
     units: list[dict[str, str]]
     module: ModuleSelection
     spec: Spec
-    #: relative path -> the registry name `rule onlist` will build it from. NOT the barcodes:
-    #: see `_resolve_token` and workflows/map/starsolo.smk for why compose does not write 111 MB.
+    #: The whitelists this recipe chose: backend param key -> the registry names its value renders,
+    #: in the value's own order (CB-position order for `soloCBwhitelist`). NOT the barcodes and NOT
+    #: paths — see `_resolve_token` for why compose writes neither 111 MB nor a location, and
+    #: workflows/map/starsolo.smk for where the consuming rule puts it.
     onlist_files: dict[str, list[str]]
     #: What the loaded spec's read floor admitted, or `None` when it declares none. The verdict lives
     #: here and never in the manifest: it is recomputed under whatever KB is loaded at compile time,
@@ -612,28 +614,44 @@ def _resolve_params(
     registry: OnlistRegistry,
     onlist_files: dict[str, list[str]],
 ) -> dict[str, object]:
-    """Render the KB backend params for a CLI, resolving every ``{onlist:alias}`` to a real path."""
+    """Render the KB backend params for a CLI, resolving every ``{onlist:alias}`` to a registry name."""
     out: dict[str, object] = {}
     for key, value in spec.require_backend().params.items():
-        if isinstance(value, list):
-            rendered = [_resolve_token(v, spec, registry, onlist_files) for v in value]
-            out[key] = " ".join(str(r) for r in rendered)
-        else:
-            out[key] = render_param(_resolve_token(value, spec, registry, onlist_files))
+        values = value if isinstance(value, list) else [value]
+        rendered = [_resolve_token(v, spec, registry) for v in values]
+        out[key] = (
+            " ".join(str(r) for r in rendered)
+            if isinstance(value, list)
+            else render_param(rendered[0])
+        )
+        # Recorded per KEY and in the value's own order, which for ``soloCBwhitelist`` is CB-position
+        # order: the whitelists this recipe CHOSE, for the gate, the tests and the instrument that
+        # materializes one for a run of its own. Deliberately not a path — the consuming rule builds
+        # a path scoped to the sample reading it, and a second spelling here is a second spelling
+        # free to disagree with the one the pipeline actually uses.
+        chosen = [
+            str(r) for v, r in zip(values, rendered, strict=True) if _onlist_alias(v) is not None
+        ]
+        if chosen:
+            onlist_files[key] = chosen
     return out
 
 
-def _resolve_token(
-    value: object, spec: Spec, registry: OnlistRegistry, onlist_files: dict[str, list[str]]
-) -> object:
-    if not (isinstance(value, str) and value.startswith("{onlist:") and value.endswith("}")):
+def _onlist_alias(value: object) -> str | None:
+    """The alias inside an ``{onlist:<alias>}`` token; ``None`` for any other backend param value."""
+    if isinstance(value, str) and value.startswith("{onlist:") and value.endswith("}"):
+        return value[len("{onlist:") : -1]
+    return None
+
+
+def _resolve_token(value: object, spec: Spec, registry: OnlistRegistry) -> object:
+    alias = _onlist_alias(value)
+    if alias is None:
         return value
-    alias = value[len("{onlist:") : -1]
     ref = spec.onlists.get(alias)
     if ref is None:
         raise ComposeError(f"backend references undeclared onlist alias {alias!r}")
     name = ref.registry
-    rel = f"onlists/{name}.txt"
     try:
         registry.packed(name)
     except OnlistNotAvailable as exc:
@@ -641,12 +659,12 @@ def _resolve_token(
             f"onlist {name!r} is not materialized, so --soloCBwhitelist cannot be emitted: {exc}. "
             "Register it (URL + sha256) or run with a registry that can fetch it."
         ) from exc
-    # Verified, not materialized. `registry.packed(name)` above is what proves the whitelist EXISTS
-    # and is the declared barcode set -- refusing here, at compile time, is the rung-3 promise
-    # `compose` makes. What it must not do is write the 111 MB: that is `rule onlist`'s job, and
-    # `temp()`'s. The name is recorded so the gate and the tests can still see which list was chosen.
-    onlist_files[rel] = [name]
-    return rel
+    # Verified, not materialized, and what is emitted is the NAME. `registry.packed(name)` above is
+    # what proves the whitelist EXISTS and is the declared barcode set -- refusing here, at compile
+    # time, is the rung-3 promise `compose` makes. What it must not do is write the 111 MB, nor say
+    # where the file goes: building it is `rule onlist`'s job and the location is the consuming
+    # module's, which is what lets that location be one no two jobs share.
+    return name
 
 
 def _read_files_in(manifest: DatasetManifest, module: WorkflowModule) -> dict[str, str]:

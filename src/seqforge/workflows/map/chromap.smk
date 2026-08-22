@@ -52,14 +52,17 @@ def commajoin(sample, role):
     return ",".join(fastqs(sample, role))
 
 
-def whitelist():
-    """The materialized barcode whitelist path — the config value is the argv rendering.
+def whitelist(sample):
+    """This SAMPLE's barcode whitelist — the config names the list, this module owns the path.
 
-    `config["chromap"]["barcode_whitelist"]` is `onlists/<name>.txt`, built on demand by `rule onlist`
-    and `temp()`-deleted after — the same packed-onlist discipline starsolo.smk uses for
-    `soloCBwhitelist`, so a 111 MB whitelist is never written into the run directory at compile time.
+    `config["chromap"]["barcode_whitelist"]` is the registry NAME the KB chose; the file is built on
+    demand by `rule onlist` under a directory named for the sample that reads it and `temp()`-deleted
+    after — the same packed-onlist discipline starsolo.smk uses for `soloCBwhitelist`, so a 111 MB
+    whitelist is never written into the run directory at compile time and no job here owns a path a
+    second snakemake instance over one results directory would delete out from under the first.
     """
-    return CHROMAP["barcode_whitelist"]
+    name = CHROMAP["barcode_whitelist"]
+    return f"onlists/{sample}/{name}.txt"
 
 
 @cache
@@ -117,15 +120,18 @@ rule all:
 
 
 rule onlist:
-    """Materialize one barcode whitelist for chromap to read once and snakemake to then delete.
+    """Materialize one sample's barcode whitelist for chromap to read once and snakemake to delete.
 
     Byte-for-byte the same rule as starsolo.smk's — a barcode whitelist is a barcode whitelist. `temp()`
-    is the point: the ARC list is materialized on demand and deleted when the last job needing it is
-    done, never written into the run directory at compile time. No `container:`: this runs `seqforge`,
-    not an aligner, so the ambient compose environment already has it.
+    is the point: the ARC list is materialized on demand and deleted when the job needing it is done,
+    never written into the run directory at compile time. The SAMPLE in the path is the second half:
+    one file the whole deposit shares is a path every concurrent snakemake instance over one results
+    directory owns, and snakemake deletes an output before running the job that produces it — so the
+    second instance races the first's removal, which is 0 of 6 surviving and not a slow write. No
+    `container:`: this runs `seqforge`, not an aligner, so the ambient compose environment has it.
     """
     output:
-        temp("onlists/{name}.txt"),
+        temp("onlists/{sample}/{name}.txt"),
     localrule: True
     shell:
         "seqforge io onlist write {wildcards.name} --out {output}"
@@ -143,7 +149,7 @@ rule chromap_align:
         gdna1=lambda wc: fastqs(wc.sample, config["read_files_in"]["gdna1"]),
         gdna2=lambda wc: fastqs(wc.sample, config["read_files_in"]["gdna2"]),
         barcode=lambda wc: fastqs(wc.sample, config["read_files_in"]["barcode"]),
-        whitelist=whitelist(),
+        whitelist=lambda wc: whitelist(wc.sample),
     output:
         fragments=temp(f"{OUTDIR}/{{sample}}/{RAW_FRAGMENTS}"),
     # The pinned aligner: liulab-runtime's `align-dna`, resolved by compose to a ghcr tag or a prebuilt
