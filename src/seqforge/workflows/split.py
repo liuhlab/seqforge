@@ -341,7 +341,7 @@ def _restored(
     return pysam.AlignmentHeader.from_dict(header), tids
 
 
-def _rewritten(record: AlignedSegment, tids: Mapping[int, int]) -> Any:
+def _rewritten(record: AlignedSegment, tids: Mapping[int, int]) -> AlignedSegment:
     """One kept record, copied, with its reference indexes moved into the restored dictionary.
 
     Nothing about the record changes except where its references POINT: the same tid means a

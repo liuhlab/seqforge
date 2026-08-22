@@ -6041,25 +6041,28 @@ def test_every_kept_record_resolves_to_the_chromosome_it_actually_sits_on(
 def test_a_kept_records_tags_arrive_whole_and_still_declare_the_types_they_were_written_with(
     tmp_path: Path, label: str
 ) -> None:
-    """A record is rebuilt tag by tag here, so every tag has to survive the rebuild AS IT WAS.
+    """A record is copied whole here, so every tag has to arrive AS IT WAS — value and declared type.
 
-    Two ways to lose one, and they are opposites, which is why this asserts twice. An ARRAY tag —
-    the aligner's junction attributes — cannot be handed back through the same three-part form a
-    scalar goes back through: the array's element width is the SAM subtype, there is no type letter
-    for the writer to take, and offering one raises rather than writing a narrower tag. Drop the
-    type letter for everything instead and the arrays go through fine while every scalar integer
-    silently comes back declared at whatever width its VALUE happens to fit in, which is a lossy
-    rewrite of a file that was already correct. So the declared type of each scalar is compared as
-    well as its value, and the arrays are compared on element width rather than on contents, since
-    two arrays of different widths holding the same numbers are equal in Python and not in a BAM.
+    Nothing is taken apart on the way out any more. The copy carries the tag block the aligner
+    wrote and no tag is re-declared from its value, so neither of the two mistakes below is
+    reachable from the path that ships. What this holds is the next change that goes back to taking
+    a record apart, where both are: read the tags out and hand them back as a three-part (tag,
+    value, type) form and every scalar integer silently comes back declared at whatever width its
+    VALUE happens to fit in, which is a lossy rewrite of a file that was already correct; drop the
+    type letter so the ARRAY tags — the aligner's junction attributes, whose element width is the
+    SAM subtype and which raise rather than take a letter — go through at all, and every scalar is
+    still wrong. They are opposite mistakes, which is why this asserts twice: the declared type of
+    each scalar is compared as well as its value, and the arrays are compared on element width
+    rather than on contents, since two arrays of different widths holding the same numbers are equal
+    in Python and not in a BAM.
 
     This is asserted against the CHIMERIC record each output record came from rather than against a
     list written here, so a tag the fixture grows later is carried into the claim rather than
     silently exempted from it.
 
     The fixture is the whole reason this shipped: nothing synthetic here carried an array tag, so
-    the rebuild path was never handed one, and the first plate to reach a cluster with the junction
-    attributes turned on died on the first record of the first cell.
+    the rebuild path that was live then was never handed one, and the first plate to reach a cluster
+    with the junction attributes turned on died on the first record of the first cell.
     """
     round_trip = _split(tmp_path, label)
     with pysam.AlignmentFile(str(round_trip.source), "rb") as chimeric:
