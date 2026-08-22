@@ -8,13 +8,13 @@
 # of the `atac_barcoded` read layout.
 #
 # The deliverable is a tabix-indexed `fragments.tsv.gz`, NOT a count matrix — there are no genes to
-# count in ATAC. The genome index resolves at RUN TIME from a `liulab-genome` assembly id via
-# `get_chromap_index` (the upstream analog of starsolo's `get_star_index`); no genome path is ever
-# baked into
-# a config or a manifest, and chromap needs no gene annotation, so there is exactly one index per
-# assembly.
+# count in ATAC. The genome index is LOOKED UP from a `liulab-genome` assembly id while the DAG is
+# built, via `get_chromap_index` (the upstream analog of starsolo's `get_star_index`), and no rule
+# owns it; no genome path is ever baked into a config or a manifest, and chromap needs no gene
+# annotation, so there is exactly one index per assembly.
 
 import csv
+from functools import cache
 
 # seqforge's own helpers, imported rather than restated — same contract as starsolo.smk importing from
 # `h5ad`: `fragments_suffixes` decides both what the finalize rules DECLARE below and (via the
@@ -23,7 +23,7 @@ import csv
 # SILENT: `workflows/fragments.py` writes that summary and now reads it back for the report, so a
 # rename on one side alone leaves the rule producing a file the reader stops finding — and a report
 # that finds nothing looks exactly like a pipeline that has not run. The import is the same
-# assumption `rule genome_index` makes of `genome`: the env running snakemake is the env that has them.
+# assumption `_reference` makes of `genome`: the env running snakemake is the env that has them.
 from seqforge.workflows.fragments import QC_SUFFIX, RAW_FRAGMENTS, fragments_suffixes
 from seqforge.workflows.units import ordered_fastqs
 
@@ -62,6 +62,42 @@ def whitelist():
     return CHROMAP["barcode_whitelist"]
 
 
+@cache
+def _reference():
+    """This run's assembly, opened ONCE through liulab-genome, for the two things chromap maps against.
+
+    chromap takes the prebuilt index (`-x`) and the reference FASTA (`-r`), and both come off one
+    open — `get_chromap_index()` **raises if no index exists**, so a machine that has not built one
+    is refused while the DAG is being built, before any job starts, and the refusal names the
+    assembly. No `gtf`: a chromap index carries no annotation, so one serves the whole assembly.
+
+    **A function the rule calls from a `params:` callable, and deliberately not a rule.** Resolving
+    these into `{OUTDIR}/index/{ASSEMBLY}/` gave one rule two paths every concurrent snakemake
+    instance over one results directory shares, and snakemake DELETES an output before running the
+    job that makes it -- so six instances started at once produced zero successful runs, and an
+    atomic, idempotent rule body still produced zero: the window is not the rule's to close.
+    Declaring nothing leaves nothing to delete and nothing to race, and the refusal above moves
+    earlier rather than being lost. The two symlinks under `results/` go with it and cost no
+    provenance: the assembly is in `config.yaml`, which is where the truth lives.
+
+    `cache`d because a `params:` callable is expanded once per JOB, and this one is read twice per
+    job at that: a deposit would otherwise reopen the same genome twice per sample.
+    """
+    from genome import Genome
+
+    return Genome(ASSEMBLY)
+
+
+def chromap_index():
+    """The prebuilt chromap index this run maps against (`-x`). Looked up, never built."""
+    return _reference().get_chromap_index()
+
+
+def reference_fasta():
+    """The assembly FASTA chromap also needs (`-r`), off the same open."""
+    return _reference().fasta_path
+
+
 # The two retained files `fragments_finalize` writes, off the one list whose last member is the
 # summary `rule all` demands -- so the three suffixes a finished sample leaves have a single owner
 # and the rule reads two of them rather than spelling them again beside it. The third is imported by
@@ -95,36 +131,6 @@ rule onlist:
         "seqforge io onlist write {wildcards.name} --out {output}"
 
 
-rule genome_index:
-    """Resolve the chromap index + reference FASTA via liulab-genome at run time (never a baked path).
-
-    Only **looks up**; never builds. `get_chromap_index()` returns the index liulab-genome already built
-    for this assembly and RAISES if none exists — the index is liulab-genome's artifact, built ahead of
-    the run by its own machinery. chromap maps against both the index (`-x`) and the reference (`-r`), so
-    both are symlinked in. No `gtf`: a chromap index carries no annotation, so one serves the assembly.
-
-    A `run:` block, so — like starsolo's `genome_index` — it needs no tool on PATH and no `container:`
-    (snakemake wraps a container around a `shell:`, never a `run:`).
-    """
-    output:
-        index=f"{OUTDIR}/index/{ASSEMBLY}/chromap.index",
-        fasta=f"{OUTDIR}/index/{ASSEMBLY}/genome.fa",
-    params:
-        assembly=ASSEMBLY,
-    run:
-        from pathlib import Path
-
-        from genome import Genome
-
-        g = Genome(params.assembly)
-        index = g.get_chromap_index()
-        fasta = g.fasta_path
-        out_index = Path(output.index)
-        out_index.parent.mkdir(parents=True, exist_ok=True)
-        out_index.symlink_to(index)
-        Path(output.fasta).symlink_to(fasta)
-
-
 rule chromap_align:
     """Map one sample's two genomic mates + barcode read to a raw scATAC fragments file.
 
@@ -137,8 +143,6 @@ rule chromap_align:
         gdna1=lambda wc: fastqs(wc.sample, config["read_files_in"]["gdna1"]),
         gdna2=lambda wc: fastqs(wc.sample, config["read_files_in"]["gdna2"]),
         barcode=lambda wc: fastqs(wc.sample, config["read_files_in"]["barcode"]),
-        index=rules.genome_index.output.index,
-        fasta=rules.genome_index.output.fasta,
         whitelist=whitelist(),
     output:
         fragments=temp(f"{OUTDIR}/{{sample}}/{RAW_FRAGMENTS}"),
@@ -148,6 +152,10 @@ rule chromap_align:
     container: config["container"]
     threads: config["threads"]
     params:
+        # The index and the reference, looked up rather than declared -- see `_reference`, which is
+        # also where the concurrency argument lives.
+        index=lambda wc: chromap_index(),
+        fasta=lambda wc: reference_fasta(),
         reads1=lambda wc: commajoin(wc.sample, config["read_files_in"]["gdna1"]),
         reads2=lambda wc: commajoin(wc.sample, config["read_files_in"]["gdna2"]),
         barcodes=lambda wc: commajoin(wc.sample, config["read_files_in"]["barcode"]),
@@ -159,7 +167,7 @@ rule chromap_align:
     shell:
         r"""
         chromap --preset atac -t {threads} \
-             -x {input.index} -r {input.fasta} \
+             -x {params.index} -r {params.fasta} \
              --read-format {params.read_format} \
              -1 {params.reads1} -2 {params.reads2} -b {params.barcodes} \
              --barcode-whitelist {input.whitelist} \

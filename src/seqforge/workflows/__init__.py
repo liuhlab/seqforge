@@ -35,6 +35,21 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.23 — `rule genome_index` is DELETED from all five modules and the lookup it performed is a
+#: `params:` callable in each (#478, from #475). It owned `results/index/<assembly>`, a path every
+#: concurrent instance over one results directory shares, and snakemake removes an output before
+#: running the job that makes it: six instances at once measured 0 of 6 successful runs, an atomic
+#: idempotent body still measured 0 of 6, and removing the shared output measured 6 of 6. **What
+#: moves is a declaration and a failure TIME, never a byte**: every rule renders the same
+#: `--genomeDir`, so a run's counts and archives are identical. The "no prebuilt index — build it
+#: first" refusal moves EARLIER, from the first job to DAG build, and still names the assembly;
+#: `load_genome` and the mapping rules lose an `input:` and gain a `params:`; the end-of-run segment
+#: release resolves the genomeDir the same new way. The `touch()` load flag is untouched — it is
+#: measured safe to race, 6 of 6 across five trials. The `results/index/<assembly>` symlink is gone
+#: and costs no provenance: the assembly and the annotation are in the emitted `config.yaml`, and
+#: nothing outside the modules ever read it. The cost the spec did not price is that BUILDING a DAG
+#: now needs the index to exist, so the suite's dry runs stand one up (`conftest.stage_reference`)
+#: where they used to plan against no reference at all. `required_config` is unchanged for all five.
 #: 2026.8.22 — `map/star` gains a `qc_bundle` rule, and no reader anywhere opens a file no rule
 #: declares (#480, from #475). The bulk module was the last without a per-sample completion record
 #: and the only place in the repo where the report scraped something the pipeline never promised:
@@ -596,7 +611,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.22"
+WORKFLOW_VERSION = "2026.8.23"
 
 _MODULE_DIR = Path(__file__).parent
 

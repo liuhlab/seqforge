@@ -86,7 +86,7 @@ platforms = ["osx-arm64", "linux-64", "osx-64"]
 
 [tool.pixi.pypi-dependencies]
 seqforge = { path = ".", editable = true }
-# Consumed, never redefined: `rule genome_index` resolves the STAR index and `io/archive.py` calls
+# Consumed, never redefined: every mapping module resolves its index through it, and `io/archive.py` calls
 # labdata's `experiments_for`. Both ship in liulab-runtime's `lab` feature.
 liulab-genome = { git = "https://github.com/liuhlab/liulab-genome.git" }
 liulab-data = { git = "https://github.com/liuhlab/liulab-data.git" }

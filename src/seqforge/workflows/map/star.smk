@@ -2,7 +2,8 @@
 #
 # Plain STAR mapping for bulk RNA-seq (no cell barcode / UMI demultiplex), single- or paired-end.
 # Selected by the composer's module id `map/star`; gene counts come from STAR's own
-# `--quantMode GeneCounts`. The genome index resolves at RUN TIME from a `liulab-genome` assembly id.
+# `--quantMode GeneCounts`. The genome index is LOOKED UP from a `liulab-genome` assembly id while
+# the DAG is built, and no rule owns it.
 #
 # The read->role placement arrives via `config["read_files_in"]`, whose `mates` shape is 1..2
 # biological mates chosen by ORDER — `mate1`, and `mate2` only when the library has a second one
@@ -10,6 +11,7 @@
 # reads a single-end library as the same `--readFilesIn` with one argument instead of two.
 
 import csv
+from functools import cache
 
 # seqforge's own helpers, imported rather than restated — the same contract starsolo.smk and
 # chromap.smk state at greater length. `ordered_fastqs` decides the order every mate of one sample is
@@ -56,9 +58,10 @@ READ_FILES_IN = config["read_files_in"]
 
 # The shared genome segment is loaded once and attached by every mapping job, so the rule that loads
 # it needs a file to hang a dependency on. A flag rather than a directory: nothing reads its bytes,
-# and what a mapping job actually depends on is that the load HAPPENED. It sits BESIDE the resolved
-# index rather than inside it -- a file under another rule's directory output is a child of that
-# output, which snakemake refuses to build a DAG for at all.
+# and what a mapping job actually depends on is that the load HAPPENED. It is the ONE output in this
+# module no sample accounts for, and it is measured safe for concurrent instances over one results
+# directory to share -- six at once, five trials, zero errors -- because re-touching a flag that is
+# already there says exactly what the flag says.
 LOADED_FLAG = f"{OUTDIR}/index/{ASSEMBLY}.loaded"
 
 
@@ -98,6 +101,34 @@ def readfilesin(sample, *roles):
     return " ".join(",".join(fastqs(sample, role)) for role in roles)
 
 
+@cache
+def star_index():
+    """The prebuilt STAR genomeDir for this run, LOOKED UP through liulab-genome. Never built here.
+
+    `get_star_index` returns the genomeDir liulab-genome already built for this assembly +
+    annotation, and **raises if none exists** -- the index is liulab-genome's artifact, built ahead
+    of the run by its own machinery, in its own environment. A machine with no prebuilt index is
+    refused while the DAG is being built, before any job starts, and the refusal names the assembly.
+    That is the failure mode we want: the pipeline consumes the index, it does not decide when or
+    how it is built.
+
+    **A function the rules call from a `params:` callable, and deliberately not a rule.** Resolving
+    this into `{OUTDIR}/index/{ASSEMBLY}` gave one rule a path every concurrent snakemake instance
+    over one results directory shares, and snakemake DELETES an output before running the job that
+    makes it -- so six instances started at once produced zero successful runs, and an atomic,
+    idempotent rule body still produced zero: the window is not the rule's to close. Declaring
+    nothing leaves nothing to delete and nothing to race, and the refusal above moves earlier
+    rather than being lost. What goes with it is a symlink under `results/`, which costs no
+    provenance: the assembly and the annotation are in `config.yaml`, which is where the truth lives.
+
+    `cache`d because a `params:` callable is expanded once per JOB: a plate would otherwise reopen
+    the same genome once per cell while the DAG is being built.
+    """
+    from genome import Genome
+
+    return Genome(ASSEMBLY).get_star_index(gtf=GENOME["annotation"])
+
+
 rule all:
     input:
         # ONE file per sample, and it is the sample's QC record: `rule qc_bundle` waits on the counts
@@ -108,44 +139,13 @@ rule all:
         expand(f"{OUTDIR}/{{sample}}/{{sample}}{QC_SUFFIX}", sample=SAMPLES),
 
 
-rule genome_index:
-    """Resolve the STAR index via liulab-genome at run time (never a path in the manifest).
-
-    This rule only **looks up** the index; it never builds one. `get_star_index` returns the genomeDir
-    liulab-genome already built for this assembly + annotation, and **raises if none exists** -- the
-    index is liulab-genome's artifact, built ahead of the run by its own machinery, in its own
-    environment. A machine with no prebuilt index fails loudly here ("build it first"), which is the
-    failure mode we want: the pipeline consumes the index, it does not decide when or how it is built.
-
-    Because nothing is invoked here -- no STAR, no `genomeGenerate` -- this rule needs no tool on PATH
-    and no `container:`. (A `container:` would be moot anyway: snakemake wraps a container around a
-    `shell:` command in `shell.py`, but a `run:` block executes Python in the snakemake process and
-    never passes through that wrap; snakemake's own linter excludes `is_run` rules from "missing
-    software definition".) The container on the alignment rule pins the aligner that does the work.
-    """
-    output:
-        directory(f"{OUTDIR}/index/{ASSEMBLY}"),
-    params:
-        assembly=ASSEMBLY,
-        annotation=GENOME["annotation"],
-    run:
-        from pathlib import Path
-
-        from genome import Genome
-
-        index = Genome(params.assembly).get_star_index(gtf=params.annotation)
-        out = Path(output[0])
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.symlink_to(index)
-
-
 rule load_genome:
     """Load the genome index into SHARED memory once, and hand every mapping job something to attach to.
 
     **This rule exists because of concurrency arithmetic, not as a tuning preference.** STAR's index
     is per-process and resident for the life of the job, so N samples mapping at once on one machine
     cost N copies of it: six samples against a ~25-31 GB human index is ~150-186 GB of index where
-    ~31 GB would do. A composed pipeline runs on ONE machine (ADR-0051), which is what makes one
+    ~31 GB would do. A snakemake instance runs on ONE machine (ADR-0051), which is what makes one
     segment attachable by every job at all -- and it is also what makes the multiplication real,
     since those jobs are concurrent by construction rather than spread out by a scheduler.
 
@@ -178,8 +178,6 @@ rule load_genome:
     default, but `--ipc` would) makes every job load privately with no error anywhere; the cost there
     is speed rather than correctness, and the setting belongs to whoever submits the pipeline.
     """
-    input:
-        index=rules.genome_index.output,
     output:
         # Not `temp()`: deleting the flag would tell snakemake the load never happened, and a rerun
         # would reload a segment that is already resident.
@@ -191,6 +189,10 @@ rule load_genome:
         # beside the largest allocation on the machine without knowing it is there. The recipe's whole
         # figure, which is an upper bound on this residency -- see `index_mem_mb`.
         mem_mb=lambda wildcards, attempt: index_mem_mb(config["mem_mb"], attempt),
+    params:
+        # A `params:` and not an `input:`, because the genomeDir is liulab-genome's artifact and not
+        # this DAG's -- see `star_index`, which is also where the concurrency argument lives.
+        index=lambda wildcards: star_index(),
     shell:
         r"""
         # STAR's run-files go to a directory made here and destroyed here, so none of them can reach
@@ -199,9 +201,9 @@ rule load_genome:
         trap 'rm -rf "$scratch"' EXIT
         # Defensive: marks any stale segment for destruction. Attached jobs keep running; a segment
         # that is not there is a no-op we must not fail on.
-        STAR --genomeDir {input.index} --genomeLoad Remove \
+        STAR --genomeDir {params.index} --genomeLoad Remove \
              --outFileNamePrefix "$scratch"/remove_ > /dev/null 2>&1 || true
-        STAR --genomeDir {input.index} --genomeLoad LoadAndExit \
+        STAR --genomeDir {params.index} --genomeLoad LoadAndExit \
              --outFileNamePrefix "$scratch"/
         """
 
@@ -226,7 +228,8 @@ rule star_count:
     **The index is ATTACHED, not loaded.** `load_genome` put one copy in shared memory and this rule
     depends on its flag, so N concurrent samples on the machine hold one index between them rather
     than one apiece. The memory request does not shrink to match: it covers a job that is alone on
-    the machine (ADR-0051), which is what it would be the first time one sample ran by itself.
+    the instance's machine (ADR-0051), which is what it would be the first time one sample ran by
+    itself.
 
     Both numbers follow `attempt`, the arrangement `starsolo_count` already has, and the reasoning is
     NOT the same reasoning. STARsolo escalates against `readInfo`, an allocation that grows with
@@ -242,7 +245,6 @@ rule star_count:
         # one: snakemake takes an empty list happily, while a `mate2` naming a role no unit carries
         # would resolve to nothing under a name that claims something.
         mate2=lambda wc: [f for role in mates()[1:] for f in fastqs(wc.sample, role)],
-        index=rules.genome_index.output,
         loaded=rules.load_genome.output,
     output:
         # Named one by one, and the names are the claim. This rule declared the counts alone, so a
@@ -284,6 +286,8 @@ rule star_count:
         ),
     params:
         bulk=config["bulk"],
+        # The genomeDir this job attaches to, looked up rather than declared -- see `star_index`.
+        index=lambda wc: star_index(),
         prefix=lambda wc: f"{OUTDIR}/{wc.sample}/",
         # each mate is its runs comma-joined, so a sample pooled across runs maps in one pass; only
         # the mates the layout HAS are passed, so a single-end library renders STAR's single-end form.
@@ -297,7 +301,7 @@ rule star_count:
         r"""
         # preemption-safe: STAR aborts a rerun if _STARtmp exists (undeclared, snakemake cannot remove it)
         rm -rf {params.prefix}_STARtmp
-        STAR --runMode alignReads --genomeDir {input.index} --runThreadN {threads} \
+        STAR --runMode alignReads --genomeDir {params.index} --runThreadN {threads} \
              --genomeLoad LoadAndKeep \
              --readFilesIn {params.reads} --readFilesCommand zcat \
              --quantMode {params.bulk[quantMode]} \
@@ -375,10 +379,14 @@ def release_genome_segment():
     failed one. The scratch is the arrangement `load_genome` argues for, on the path where it matters
     most: this command runs when the run is OVER, so a run-file left under the output prefix would
     land in a directory a user is already reading.
+
+    The segment is named by the SAME lookup every rule makes -- `star_index` -- and not by a path
+    under `results/`, which is where this used to point and which no longer exists. It is a cached
+    call by the time a handler runs, so the release costs no second genome open.
     """
     shell(
         "scratch=$(mktemp -d); trap 'rm -rf \"$scratch\"' EXIT; "
-        f"STAR --genomeDir {OUTDIR}/index/{ASSEMBLY} --genomeLoad Remove "
+        f"STAR --genomeDir {star_index()} --genomeLoad Remove "
         '--outFileNamePrefix "$scratch"/unload_ > /dev/null 2>&1 || true'
     )
 
