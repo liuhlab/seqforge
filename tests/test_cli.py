@@ -5,10 +5,16 @@ from __future__ import annotations
 import json
 import random
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
 import yaml
+
+# The two ways liulab-genome says an annotation cannot answer which of its genes are ribosomal. At
+# module scope because they are parametrize rows below, and constructed rather than named because
+# what `io umi-count` must catch is the class — a stand-in raised in their place proves nothing.
+from genome import GeneCategoryNotDeclaredError, NoGeneCategoriesError
 from typer.testing import CliRunner, Result
 
 from conftest import (
@@ -22,6 +28,7 @@ from conftest import (
 )
 from seqforge import __version__, kb
 from seqforge.cli import app
+from seqforge.workflows.umite.count import N_UMIS_RRNA, RRNA_FRACTION
 
 runner = CliRunner()
 
@@ -123,8 +130,30 @@ def test_the_cli_surface_exits_and_answers_as_documented(
         assert needle in result.stdout
 
 
+@pytest.mark.parametrize(
+    "answer, ribosomal",
+    [
+        pytest.param(["GENE_A"], True, id="the-genomes-ribosomal-ids-reach-the-counter"),
+        # Two different absences, and the verb owes both the same answer. Neither is a defect: no
+        # curated list ships for most annotations, and one that ships may simply not name ribosomes.
+        # The real exceptions rather than stand-ins for them, so what is caught is the class.
+        pytest.param(
+            NoGeneCategoriesError("synthetic", "mm10", ()),
+            False,
+            id="an-annotation-nothing-is-curated-for-costs-the-column",
+        ),
+        pytest.param(
+            GeneCategoryNotDeclaredError("synthetic", "mm10", "rRNA", ("protein_coding",)),
+            False,
+            id="an-annotation-declaring-no-ribosomes-costs-the-column",
+        ),
+    ],
+)
 def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome_registered(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    answer: list[str] | Exception,
+    ribosomal: bool,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The verb's whole job: marshal arguments, resolve the annotation, and answer on stdout.
 
@@ -134,11 +163,20 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
     a real assembly needs a genome store this box may not have; what is under test is the
     derivation and the wiring, not liulab-genome.
 
-    **`--threads` is the other thing it marshals, and it is the whole of what #397 changed here.**
-    The counting rule asks the scheduler for threads and renders them into this command; a verb that
-    accepted the option and dropped it would leave the plate on one core at exit 0, which is the
-    state this ticket found. So the number is caught on its way into the counter rather than
-    inferred from how fast one cell counted.
+    **`--threads` is the other thing it marshals.** The counting rule asks the scheduler for threads
+    and renders them into this command; a verb that accepted the option and dropped it would leave
+    the plate on one core at exit 0, which is exactly the state this claim was added to catch. So the
+    number is caught on its way into the counter rather than inferred from how fast one cell counted.
+
+    **The ribosomal gene ids are the third**, and they are the parameter above. Handed over, they
+    put both `obs` columns on the written object — that the ids travel the whole way rather than
+    only as far as the seam. What those columns then HOLD is arithmetic against a known annotation
+    and is proved once, in the counter's own tests. Where the annotation cannot answer, the verb
+    hands over nothing and the object carries NEITHER column: the rows are the two ways
+    liulab-genome says so, and a `0.0` share would be a measurement claim about a plate nobody
+    measured. An annotation that is not registered at all is deliberately not a row here — it raises
+    through the same base class as these two and must stay the refusal it is, which is why the verb
+    catches these by name.
     """
     import anndata as ad
     import genome as liulab_genome
@@ -188,16 +226,24 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
             self.assembly = assembly
             self.annotations = _StubRegistry()
 
+        def gene_list(self, category: str, annotation: str | None = None) -> Any:
+            assert category == "rRNA", "the ribosomal category is what this metric is of"
+            if isinstance(answer, Exception):
+                raise answer
+            return SimpleNamespace(gene_ids=list(answer))
+
     monkeypatch.setattr(liulab_genome, "Genome", _StubGenome)
 
-    asked_for: list[int] = []
+    marshalled: list[tuple[int, Any]] = []
     write_counts = counter.write_umi_counts
 
-    def note_the_width(cells: Any, db: Path, out: Path, workers: int = 1) -> Path:
-        asked_for.append(workers)
-        return write_counts(cells, db, out, workers)
+    def note_what_was_handed_over(
+        cells: Any, db: Path, out: Path, workers: int = 1, rrna_gene_ids: Any = None
+    ) -> Path:
+        marshalled.append((workers, rrna_gene_ids))
+        return write_counts(cells, db, out, workers, rrna_gene_ids)
 
-    monkeypatch.setattr(counter, "write_umi_counts", note_the_width)
+    monkeypatch.setattr(counter, "write_umi_counts", note_what_was_handed_over)
 
     written = tmp_path / "plate.h5ad"
     result = runner.invoke(
@@ -207,7 +253,10 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
     )  # fmt: skip
 
     assert result.exit_code == 0, result.stdout
-    assert asked_for == [3], "the verb took a thread count and counted the plate on one core"
+    assert marshalled == [(3, ["GENE_A"] if ribosomal else None)], (
+        "the verb marshals the thread count and the ids the genome answered with, and hands over "
+        "no ids at all where it could not answer"
+    )
     assert json.loads(result.stdout)["written"] == str(written)
     adata = ad.read_h5ad(written)
     assert list(adata.obs_names) == ["cell_a"]
@@ -215,6 +264,14 @@ def test_io_umi_count_finds_the_annotation_database_beside_the_gtf_liulab_genome
     # it is the sparse matrix that was written, and only the cast says so to the checker.
     counts = cast("Any", adata.X)
     assert int(counts[0, adata.var_names.get_loc("GENE_A")]) == 1
+    columns = {N_UMIS_RRNA, RRNA_FRACTION}
+    if ribosomal:
+        assert columns <= set(adata.obs), "the ids the genome answered with reached the object"
+    else:
+        assert not columns & set(adata.obs), (
+            "an annotation that cannot say which genes are ribosomal costs the column, and a plate "
+            "reading 0.0% ribosomal is the one answer nobody may act on"
+        )
 
 
 def test_io_umi_count_reads_a_components_annotation_off_the_chimeras_completion_record(
@@ -233,6 +290,12 @@ def test_io_umi_count_reads_a_components_annotation_off_the_chimeras_completion_
     Component that contributed nothing is named rather than counted against nothing — `tinyEcDub`
     ships no GTF, and neither would a spike-in or a plasmid.
 
+    **Which genes are ribosomal is asked of that same rewritten pair**, and that is the second claim
+    here. Asked one line earlier it would go to the Chimera, whose answer concatenates every
+    Component's ids — a share of worm molecules over a set holding bacterial genes too, reported as
+    this Component's. Nothing about the number would look wrong, which is why the recipient of the
+    question is pinned rather than left to the counter to notice.
+
     `Genome` is stubbed because a real Chimera needs a built genome store this box may not have, and
     the counter is stubbed out too: what a `.db` beside its `.gtf` actually counts is the
     neighbouring test's claim, proved there against a synthetic annotation. This one is about which.
@@ -244,6 +307,7 @@ def test_io_umi_count_reads_a_components_annotation_off_the_chimeras_completion_
     chimera = "tinyCe_tinyEcDub"
     record: dict[str, str | None] = {"tinyCe": "wormbase_ws298", "tinyEcDub": None}
     resolved: list[tuple[str, str]] = []
+    asked_which_genes: list[tuple[str, str, str | None]] = []
 
     class _StubRegistry:
         def __init__(self, assembly: str) -> None:
@@ -268,8 +332,14 @@ def test_io_umi_count_reads_a_components_annotation_off_the_chimeras_completion_
                 "a Component's default annotation now is not necessarily what went into the merge"
             )
 
+        def gene_list(self, category: str, annotation: str | None = None) -> Any:
+            asked_which_genes.append((self.assembly, category, annotation))
+            return SimpleNamespace(gene_ids=["WBGene00000001"])
+
     monkeypatch.setattr(liulab_genome, "Genome", _StubGenome)
-    monkeypatch.setattr(counter, "write_umi_counts", lambda cells, db, out, workers=1: out)
+    monkeypatch.setattr(
+        counter, "write_umi_counts", lambda cells, db, out, workers=1, rrna_gene_ids=None: out
+    )
 
     written = tmp_path / "combined.tinyCe.h5ad"
     result = runner.invoke(
@@ -281,6 +351,10 @@ def test_io_umi_count_reads_a_components_annotation_off_the_chimeras_completion_
     assert result.exit_code == 0, result.stdout + result.stderr
     assert resolved == [("tinyCe", "wormbase_ws298")], (
         "the registered name comes off the Chimera's record and the GTF off the Component itself"
+    )
+    assert asked_which_genes == [("tinyCe", "rRNA", "wormbase_ws298")], (
+        "the ribosomal ids are asked of the Component's own genome and its own annotation — the "
+        "Chimera would answer with two organisms' genes, and the share would be of neither"
     )
 
     refused = runner.invoke(

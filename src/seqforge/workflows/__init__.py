@@ -35,6 +35,18 @@ if TYPE_CHECKING:
     from ..kb.schema import Spec
 
 #: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: 2026.8.24 — `rule umi_count` says how much of each cell's yield was ribosomal (#471). Two more
+#: `obs` columns on the plate object — `n_umis_rrna` and `rrna_fraction`, both counted over
+#: `umi_combined`, the same population `n_umis` and the saturation are read off — and the page carries
+#: the share beside them, ungraded. The gene set is liulab-genome's curated `rRNA` category for the
+#: annotation the plate was actually counted against, so nothing here owns a list of ribosomal genes;
+#: an annotation that cannot answer, or one whose axis shares no id with the answer, yields NEITHER
+#: column rather than a plate of `0.0%`, which is the exact claim the measurement exists to prevent.
+#: **The bump is owed by the ARTIFACT and not by a moved command line**, the same as 2026.8.18: the
+#: rule's params, its declared outputs and every matrix it writes are byte-identical — these genes
+#: were already counted as expression and still are, and nothing was filtered — and what moves is the
+#: shape of the object that comes out, which an h5ad written before this could not otherwise be told
+#: apart from one written after.
 #: 2026.8.23 — `rule genome_index` is DELETED from all five modules and the lookup it performed is a
 #: `params:` callable in each (#478, from #475). It owned `results/index/<assembly>`, a path every
 #: concurrent instance over one results directory shares, and snakemake removes an output before
@@ -611,7 +623,7 @@ if TYPE_CHECKING:
 #: dereferenced and never declared. The contract was wrong, not the module.
 #: 2026.7.1 — star.smk hardcodes --outSAMtype (it is a module detail, and starsolo.smk always
 #: hardcoded it); required_config gains primary_feature and drops bulk.outSAMtype.
-WORKFLOW_VERSION = "2026.8.23"
+WORKFLOW_VERSION = "2026.8.24"
 
 _MODULE_DIR = Path(__file__).parent
 

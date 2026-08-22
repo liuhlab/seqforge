@@ -32,8 +32,10 @@ other 55 335 columns are genes — a per-cell scalar dressed as a feature, which
 correction in its output shape. As columns they need no leading underscore either: the underscore
 was there to keep them out of the gene id namespace, and they are not in it any more. Sequencing
 saturation is a column beside them, what the cell YIELDED — its molecules and how many genes hold
-one — is two more, and how many loci each multiply-placed fragment had is an ``obsm`` array: a
-per-cell vector rather than a scalar, so it is the one figure ``obs`` cannot hold.
+one — is two more, how much of that yield was ribosomal joins them wherever the annotation can say
+which genes those are (:data:`RRNA_FRACTION`), and how many loci each multiply-placed fragment had
+is an ``obsm`` array: a per-cell vector rather than a scalar, so it is the one figure ``obs`` cannot
+hold.
 
 **A matrix is materialised when it cannot be derived from the others, and only then.** That is why
 the combined UMI matrix is here and a combined *read* matrix is not: reads carry no UMI and are
@@ -228,6 +230,28 @@ SATURATION = "saturation"
 #: nothing catches.
 N_UMIS = "n_umis"
 GENES_DETECTED = "genes_detected"
+
+#: How much of that yield was ribosomal: the cell's deduplicated molecules falling in rRNA genes, and
+#: that count over :data:`N_UMIS`. Counted over ``umi_combined`` for the reason the two columns above
+#: are — the total this is a share OF is that layer's, so numerator and denominator are one population
+#: rather than two derivations that agree by coincidence.
+#:
+#: **These genes are counted as EXPRESSION in every matrix here, which is the whole reason the number
+#: is worth writing down.** A ribosomal fragment maps uniquely, reaches exactly one gene and is
+#: credited to it like any other; nothing in this counter filters one out, and nothing downstream of
+#: it does either. So a library that is mostly rRNA reports an ordinary-looking molecule total over an
+#: ordinary-looking number of genes while almost none of it is the transcriptome anybody asked for,
+#: and the only way to see that from the object is a column that says how much of it is. This is a QC
+#: number a consumer reads BEFORE deciding whether to drop those genes — the decision stays theirs,
+#: and the matrices are unchanged by the measurement.
+#:
+#: A cell with no molecules at all gets ``nan`` and never a zero, the rule :data:`SATURATION` already
+#: follows: the denominator is the arithmetic with no answer, and a rendered ``0.0%`` is a share a
+#: reader acts on. And where no ribosomal gene was named, or none of the named ones is on the
+#: annotation being counted against, NEITHER column is written — a plate-wide ``0.0%`` is precisely
+#: the claim this measurement exists to keep anybody from making, and absence is the honest answer.
+N_UMIS_RRNA = "n_umis_rrna"
+RRNA_FRACTION = "rrna_fraction"
 
 
 # --------------------------------------------------------------------------------------------
@@ -1027,8 +1051,40 @@ def _hit_counts(counted: Sequence[_Counted]) -> np.ndarray:
     )
 
 
+def _rrna_umis(
+    entries: Sequence[Mapping[str, Mapping[int, int]]],
+    annotation: Annotation,
+    rrna_gene_ids: Sequence[str] | None,
+) -> list[int] | None:
+    """Each cell's combined molecules in the named genes, or ``None`` when there are none to name.
+
+    The ids are matched against the gene axis of the annotation the plate was actually counted
+    against, and an id that is not on it is dropped rather than refused: the ribosomal set is a
+    property of the assembly's curation and the axis is a property of the GTF that was registered, so
+    the two overlap partially all the time and a partial overlap is still a measurement.
+
+    An EMPTY overlap is not, and it is the one case that gets its own answer: ``None`` reaches
+    :func:`count_plate` as "write neither column" rather than as a plate of zeros. The argument for
+    that is at :data:`RRNA_FRACTION`.
+
+    The buckets are the ones the cells were already counted into, summed per cell over the matched
+    indices — no second pass over the matrices and no second traversal of a BAM. Genes are walked in
+    sorted order, like everything else here, so a plate summed twice adds in one order.
+    """
+    if not rrna_gene_ids:
+        return None
+    axis = {gene_id: index for index, gene_id in enumerate(annotation.gene_ids)}
+    matched = sorted({axis[gene_id] for gene_id in rrna_gene_ids if gene_id in axis})
+    if not matched:
+        return None
+    return [sum(entry["umi_combined"].get(gene, 0) for gene in matched) for entry in entries]
+
+
 def count_plate(
-    cells: Sequence[tuple[str, Path]], annotation: Annotation, workers: int = 1
+    cells: Sequence[tuple[str, Path]],
+    annotation: Annotation,
+    workers: int = 1,
+    rrna_gene_ids: Sequence[str] | None = None,
 ) -> anndata.AnnData:
     """Every cell of a plate -> one AnnData, rows in the order the cells were given.
 
@@ -1055,6 +1111,15 @@ def count_plate(
     the first twenty thousand fragments of the first cell and flat from there — so the width the
     memory arithmetic can afford is far wider than any node's core count. Asking for more workers
     than there are cells simply gets one per cell.
+
+    ``rrna_gene_ids`` is which of this annotation's genes are ribosomal, and it arrives as a list of
+    ids rather than as a category name because the database that knows the categories is
+    ``liulab-genome`` and the import that asks it lives in the CLI verb — the same line this module
+    already holds for the annotation itself, and what keeps this function strictly typed and testable
+    against a synthetic annotation. Nothing is counted twice for it: the ids select columns of the
+    combined UMI buckets these cells were already counted into. Omit them, or hand over ids none of
+    which is on the gene axis, and the object carries no ribosomal column at all — see
+    :data:`RRNA_FRACTION`.
     """
     import anndata as ad
 
@@ -1087,6 +1152,17 @@ def count_plate(
         [np.nan if cell.saturation is None else cell.saturation for cell in counted],
         dtype=np.float64,
     )
+    ribosomal = _rrna_umis(entries, annotation, rrna_gene_ids)
+    if ribosomal is not None:
+        adata.obs[N_UMIS_RRNA] = np.array(ribosomal, dtype=np.int32)
+        # A cell with no molecules has no share of them, by the same rule as the ratio above it.
+        adata.obs[RRNA_FRACTION] = np.array(
+            [
+                np.nan if cell.n_umis == 0 else molecules / cell.n_umis
+                for molecules, cell in zip(ribosomal, counted, strict=True)
+            ],
+            dtype=np.float64,
+        )
     adata.obsm[MULTIMAPPING_HITS] = _hit_counts(counted)
     adata.uns["primary_matrix"] = PRIMARY_MATRIX
     adata.uns["multimapping_caveat"] = MULTIMAPPING_CAVEAT
@@ -1094,7 +1170,11 @@ def count_plate(
 
 
 def write_umi_counts(
-    cells: Sequence[tuple[str, Path]], annotation_db: Path, out: Path, workers: int = 1
+    cells: Sequence[tuple[str, Path]],
+    annotation_db: Path,
+    out: Path,
+    workers: int = 1,
+    rrna_gene_ids: Sequence[str] | None = None,
 ) -> Path:
     """The one entry point: N per-cell BAMs + the built annotation -> one ``.h5ad``. Returns ``out``.
 
@@ -1105,9 +1185,14 @@ def write_umi_counts(
     **The annotation is read BEFORE the fan-out and never inside it**, which is what makes the width
     free: one gffutils read for the plate, and every worker forked from the process that already
     holds the result.
+
+    ``rrna_gene_ids`` passes straight through to :func:`count_plate`, which is where what it costs
+    and what an empty overlap means are written down. It is a list of gene ids here for the same
+    reason ``annotation_db`` is a resolved path: whoever asked ``liulab-genome`` the question did it
+    on the far side of this signature.
     """
     annotation = read_annotation(annotation_db)
-    adata = count_plate(cells, annotation, workers)
+    adata = count_plate(cells, annotation, workers, rrna_gene_ids)
     out.parent.mkdir(parents=True, exist_ok=True)
     adata.write_h5ad(out)
     return out
@@ -1277,6 +1362,24 @@ def fate_metrics(row: Mapping[str, float], sample: str) -> SampleStats:
     built.append(
         sequencing_saturation(None if saturated is None or isnan(saturated) else saturated)
     )
+    # The ribosomal share is a SHARE and never the count beside it: `n_umis_rrna` stays on the object
+    # for whoever wants to recompute, and the page carries the one figure that is comparable across
+    # cells whose depths differ by three orders of magnitude -- the same trade the fates make. It is
+    # ungraded on the argument every column here is ungraded on: how much rRNA a library SHOULD carry
+    # is a property of the prep and the organism, nobody has measured a bar for it, and an invented
+    # one is worse than a number a reader compares across the plate themselves.
+    ribosomal = row.get(RRNA_FRACTION)
+    built.append(
+        fraction(
+            RRNA_FRACTION,
+            "rRNA",
+            None if ribosomal is None or isnan(ribosomal) else ribosomal,
+            group="counts",
+            hint="Share of this cell's combined molecules that fell in ribosomal genes. Those genes "
+            "are counted as expression in the matrices beside this — nothing here removes them — so "
+            "read it before deciding what to do about them.",
+        )
+    )
     return SampleStats(sample_id=sample, metrics=[m for m in built if m is not None])
 
 
@@ -1295,7 +1398,14 @@ def _obs_columns(adata: anndata.AnnData) -> dict[str, list[float]]:
     frame: Any = adata.obs
     return {
         column: [float(value) for value in frame[column]]
-        for column in (*FATES, N_FRAGMENTS, SATURATION, N_UMIS, GENES_DETECTED)
+        for column in (
+            *FATES,
+            N_FRAGMENTS,
+            SATURATION,
+            N_UMIS,
+            GENES_DETECTED,
+            RRNA_FRACTION,
+        )
         if column in frame.columns
     }
 
@@ -1348,7 +1458,9 @@ __all__ = [
     "MULTIMAPPING_LAYER",
     "N_FRAGMENTS",
     "N_UMIS",
+    "N_UMIS_RRNA",
     "PRIMARY_MATRIX",
+    "RRNA_FRACTION",
     "SATURATION",
     "UMI_TAG",
     "Annotation",
