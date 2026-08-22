@@ -31,7 +31,6 @@ from conftest import (
     _processing,
     _rendered_shell,
     _rule_blocks,
-    _src_root,
     count_matrix,
     declare_read_floor,
     one_run_each,
@@ -83,20 +82,17 @@ def test_compose_10x_emits_kb_params_and_passes_the_params_gate(
 
     # read the path compose REPORTS, not one reconstructed here: the layout is keyed by run_id and a
     # test that hardcodes it is testing its own arithmetic
-    pipeline_dir = (tmp_path / result.config_path).parent
     config = yaml.safe_load((tmp_path / result.config_path).read_text())
     assert config["solo"]["soloCBlen"] == "16"
     assert config["solo"]["soloUMIlen"] == "12"
     assert config["solo"]["soloStrand"] == "Forward"
     # --readFilesIn order: the cDNA read precedes the barcode read
     assert config["read_files_in"] == {"cdna": "R2", "barcode": "R1"}
-    # The whitelist token resolved to a PATH, and compose did not write the file. `rule onlist`
-    # builds it and `temp()` deletes it: 10x's real v3 list is 111 MB of text, and writing it into
-    # every run directory at compile time cost a third of a gigabyte for one dataset compiled three
-    # ways -- for a file STAR opens once. Compose still VERIFIES the registry can produce it, which
-    # is the compile-time refusal that matters.
-    assert config["solo"]["soloCBwhitelist"] == "onlists/3M-february-2018.txt"
-    assert not (pipeline_dir / config["solo"]["soloCBwhitelist"]).exists()
+    # The whitelist token resolved to the registry NAME -- the choice, which is compose's, and not a
+    # location, which is the consuming rule's. Compose still VERIFIES the registry can produce the
+    # list, which is the compile-time refusal that matters; that it writes none of the 111 MB is
+    # `test_the_whitelist_is_a_rule_output_not_a_compile_time_write`'s claim.
+    assert config["solo"]["soloCBwhitelist"] == "3M-february-2018"
 
     units = (tmp_path / result.units_path).read_text().splitlines()
     assert units[0].split("\t") == ["sample_id", "run", "lane", "read_id", "path"]
@@ -162,6 +158,19 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     )
     assert f"--soloAdapterSequence {solo['soloAdapterSequence']}" in planned
     assert f"--soloCBposition {solo['soloCBposition']}" in planned
+    # THREE whitelists, as three sample-scoped paths in ONE argv token, in the order the config
+    # names them — which is CB-position order, and STARsolo pairs the Nth list with the Nth position.
+    # The config names the lists and this module builds the paths (#488), so the ordering claim the
+    # config-level sweep makes is only half of one: a module free to build the paths is free to sort
+    # them, and a mis-paired round produces a plausible matrix at exit 0. Both halves are asserted
+    # against the same rendered command a split-pool sample would really be counted with.
+    sample = manifest.experiment.samples[0].sample_id
+    lists = " ".join(f"onlists/{sample}/{n}.txt" for n in str(solo["soloCBwhitelist"]).split())
+    assert len(lists.split()) == 3, f"bd-enhanced no longer carries three whitelists: {lists}"
+    assert f"--soloCBwhitelist {lists} " in planned, (
+        f"the three whitelists do not reach STAR as one token in CB-position order. "
+        f"Planned:\n{planned}"
+    )
     # The Complex half of the barcode-match mode, in argv, where it is decidable. `1MM` was a literal
     # in `cb_umi_geometry()`'s Complex branch until #198; it is now the KB's, and this asserts BOTH
     # halves of that move — it arrives (a Complex chemistry that named no match type would FATAL on
@@ -493,10 +502,8 @@ def test_the_wiring_gate_fails_a_workflow_that_plans_nothing(
     run_dir.mkdir()
     (run_dir / "config.yaml").write_text(yaml.safe_dump(p.config, sort_keys=True))
     (run_dir / "units.tsv").write_text(core._units_tsv(p.units))
-    for rel, lines in p.onlist_files.items():
-        t = run_dir / rel
-        t.parent.mkdir(parents=True, exist_ok=True)
-        t.write_text("\n".join(lines) + "\n")
+    # No whitelist is staged, and none is owed: it is a rule output with a producing rule, so a plan
+    # that reaches it plans that rule, and this plan reaches nothing at all — which is the subject.
     module = get_module(p.module.name)
     # the OLD wrapper, verbatim in shape: include: instead of module/use rule
     (run_dir / "Snakefile").write_text(
@@ -525,10 +532,13 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
        give. "One file per sample, and it waits for the sample" is
        `test_rule_all_names_one_file_per_sample_and_that_file_waits_for_the_whole_sample`'s claim
        over every module; what this owns is that the object survived the target list shrinking.
-    2. **The whitelist has a producing job and is temporary.** A rule declared above `rule all`
-       becomes the workflow's default target, and a default target with a wildcard is a hard snakemake
-       error — which is exactly what the first attempt at `rule onlist` did. A dry run is the only
-       thing that knows.
+    2. **The whitelist has a producing job, lands under the sample that reads it, and is reclaimed.**
+       A rule declared above `rule all` becomes the workflow's default target, and a default target
+       with a wildcard is a hard snakemake error — which is exactly what the first attempt at
+       `rule onlist` did. A dry run is the only thing that knows. The sample scope is the same claim
+       `test_no_planned_job_owns_a_path_a_concurrent_instance_would_delete` makes for every module;
+       what is here is the exact path and its reclamation line, which is what says the location was
+       not bought by leaving 115 MB of barcodes in the run directory (#488).
     3. **`--soloBarcodeReadLength 0` reaches STAR.** The module reads it with `SOLO.get(...)`, not a
        subscript, so that it stays optional for chemistries that do not declare it; nothing but the
        argv proves the 10x half of that still arrives.
@@ -571,7 +581,23 @@ def test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star
     assert f"{sample}.velocyto.h5ad" in planned
 
     assert "rule onlist" in planned, "the whitelist has no producing job in the plan"
-    assert "3M-february-2018" in planned
+    assert "seqforge io onlist write 3M-february-2018" in planned, (
+        f"the producing job does not build the chosen list with the verb. Planned:\n{planned}"
+    )
+    # ...under THIS SAMPLE, and reclaimed after the job that read it. One file every sample of a
+    # deposit shares is a path every concurrent snakemake instance over one results directory owns,
+    # and snakemake removes an output before running the job that makes it — measured on the index
+    # rule as 0 of 6 instances surviving, an atomic idempotent body still 0 of 6. The reclamation
+    # line is the other half: the location may not be bought by leaving 115 MB in the run directory.
+    # Both are read off the plan rather than the module's source text, which a rename breaks falsely
+    # and an indirection passes falsely.
+    whitelist = f"onlists/{sample}/3M-february-2018.txt"
+    assert f"output: {whitelist}" in planned, (
+        f"the whitelist is not planned under the sample that reads it. Planned:\n{planned}"
+    )
+    assert f"Would remove temporary output {whitelist}" in planned, (
+        f"the whitelist copy is never reclaimed. Planned:\n{planned}"
+    )
 
     assert "--soloBarcodeReadLength 0" in planned
 
@@ -3030,16 +3056,19 @@ def test_the_whitelist_is_a_rule_output_not_a_compile_time_write(
 
     `temp()` was also meaningless before this rule existed: the whitelist was bound to
     `starsolo_count.input` with no producing rule, and snakemake cannot delete a file it did not make.
+
+    What compose does NOT write is the whole of this test, and it is the half no plan can show. The
+    other half — that a rule produces the file, under the sample that reads it, and that the plan
+    reclaims it afterwards — is read off the rendered plan by
+    `test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star_receives`, where it
+    costs no second spawn. It used to be asserted here against the shipped module's SOURCE TEXT,
+    which a rename breaks falsely and an indirection passes falsely.
     """
     manifest, reg = built_v3
     processing = _processing(manifest)
     result = compose(manifest, processing, registry=reg, workspace=tmp_path)
     pipeline_dir = (tmp_path / result.config_path).parent
     assert not (pipeline_dir / "onlists").exists(), "compose wrote the whitelist"
-
-    module = (_src_root() / "workflows" / "map" / "starsolo.smk").read_text()
-    assert 'temp("onlists/{name}.txt")' in module
-    assert "seqforge io onlist write" in module
 
 
 # ---- the live KB's read floor drops a starved cell, and the manifest keeps every one (#292) ----
