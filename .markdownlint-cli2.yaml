@@ -19,7 +19,8 @@
 # The `ignores:` list below and `mkdocs.yml`'s `exclude_docs:` are the SAME list. Anything added to
 # one belongs in the other; they drifted once already, turning CI red on every open PR.
 #
-# Runs in CI (.github/workflows/ci.yml, the `markdown` job) and locally as a pre-commit hook.
+# Runs as `pixi run markdownlint`: in CI (.github/workflows/ci.yml, the `markdown` job), in the
+# pre-commit hook, and by hand.
 
 config:
   default: true
