@@ -75,9 +75,7 @@ def preflight_cmd(
         "--max-bytes",
         help="Decompressed-byte safety cap honoured alongside --reads.",
     ),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
 ) -> None:
     """Build ``<dataset>.fingerprint.tar.gz``: sliced FASTQs + carried prose + a pin that reproduces
     the full dataset identity. Emits a JSON summary (package path, size, per-file pins) on stdout.

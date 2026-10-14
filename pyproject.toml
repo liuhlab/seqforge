@@ -6,7 +6,7 @@ description = "Compile arbitrary FASTQ + messy metadata into a validated, machin
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 authors = [{ name = "Liu Lab" }]
 keywords = ["bioinformatics", "single-cell", "fastq", "snakemake", "manifest"]
 classifiers = [
@@ -15,13 +15,12 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Typing :: Typed",
 ]
-# CalVer YYYY.M.PATCH, mirrored in CHANGELOG.md.
-version = "2026.7.1"
+# CalVer YYYY.M.PATCH, read by hatch-vcs from the newest git tag. Never add a `version` key.
+dynamic = ["version"]
 
 dependencies = [
     "pydantic>=2.7",
@@ -61,14 +60,19 @@ seqforge = "seqforge.cli:app"
 # ============================== build ==============================
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+# No `fallback-version`: that is a hand-written version string. A clone with no tag in reach
+# builds as `0.1.devN`, so every workflow checkout that builds a wheel takes the full history.
+[tool.hatch.version]
+source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 # Carries every non-Python file under the tree already (onlists, .smk modules, KB specs, report
 # assets); a `force-include` on top of it is a hard build error.
 #
-# That now includes the per-context `CONTEXT.md` files and the records under
+# That now includes the per-context `GLOSSARY.md` files and the records under
 # `src/seqforge/*/docs/adr/` — about thirty markdown files. **Deliberately not excluded.** They are
 # beside the code precisely so the decision and the code travel together, and an installed copy that
 # drops them is a copy where a reader hits `ADR-0034` with nothing to open. The cost is a few hundred
@@ -202,7 +206,6 @@ PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/test-star/bin:$PATH"
 ruff = "*"
 mypy = "*"
 pre-commit = "*"
-python-build = "*"
 types-pyyaml = "*"
 types-requests = "*"
 types-openpyxl = "*"
@@ -210,6 +213,29 @@ pyinstrument = ">=5.1.2,<6"
 
 [tool.pixi.feature.docs.dependencies]
 mkdocs-material = "*"
+# Exact, so a new rule cannot turn CI red without a deliberate bump. The one copy: CI's `markdown`
+# job and the pre-commit hook both run the `markdownlint` task.
+markdownlint-cli2 = "==0.23.1"
+# Exact: the lab's jargon map and the grade-11 number were measured against this version.
+vale = "3.19.0.*"
+
+# What the `dist` environment holds: a build frontend and twine, and not seqforge. It solves alone
+# because twine 7 needs packaging 26 and snakemake caps packaging below 26, while twine 6 under
+# packaging 25 cannot read the metadata version hatchling now writes.
+[tool.pixi.feature.dist.dependencies]
+python-build = "*"
+twine = "*"
+
+# On the feature, so `pixi run build` finds the one environment that has them with no `-e` flag.
+# CI's `build` job and the release job both run these, so the wheel that ships is built the way
+# every pull request builds it.
+[tool.pixi.feature.dist.tasks]
+build = "python -m build"
+# Inspects the wheel `build` just made: as a test it built a second one.
+check-wheel = "python scripts/check_wheel_contents.py"
+# Renders the metadata the way PyPI will, so a bad long description or a `git+https` dependency
+# fails before the upload.
+check-dist = "twine check dist/*"
 
 [tool.pixi.environments]
 default = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
@@ -225,6 +251,9 @@ docs    = { features = ["py313", "docs"], solve-group = "default" }
 # What is left solves alone, carries no Python and no `seqforge`, and exists only to put two binaries
 # on PATH -- all a test ever needed, since nothing imports an aligner.
 test-star = { features = ["star"], solve-group = "star", no-default-feature = true }
+# No default feature either: a build needs a frontend and the source tree, and installing seqforge
+# with all its dependencies would only slow the release job down.
+dist = { features = ["py313", "dist"], solve-group = "dist", no-default-feature = true }
 
 [tool.pixi.tasks]
 lint      = "ruff check ."
@@ -278,32 +307,88 @@ test-failed = "pytest --lf --new-first -x -q"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 # The networked validation benchmark, not part of `check`. Exits 3 on any false-accept.
 eval      = "seqforge eval run"
-# Not `depends-on`: pixi runs those sequentially. `check.sh` runs the six concurrently and prints
+# Not `depends-on`: pixi runs those sequentially. `check.sh` runs its steps concurrently and prints
 # each one's output whole, in a fixed order. The three test lanes are separate steps rather than one,
 # so the corpus and the binaries land in what was idle time — the suite does not saturate its workers,
 # and a lane that finishes early gives its share back to the one that has not. The gate runs the same
 # three selections CI does, which is the point: what goes red here is what goes red there.
-check     = "bash scripts/check.sh lint fmt-check typecheck test test-corpus test-external"
-build     = "python -m build"
-# Runs in the CI `build` job, where the wheel already exists — as a test it built a second one.
-check-wheel = "python scripts/check_wheel_contents.py"
+check     = "bash scripts/check.sh lint fmt-check typecheck conformance test test-corpus test-external"
 install-skills = "python skills/install.py --user"
+# The template's rules, checked against this repo. `python`, so the skill-link rule runs
+# `install.py --check` on the environment's interpreter. The script is a verbatim copy: change a rule
+# upstream, not here.
+conformance = "python scripts/conformance.py"
 docs      = "mkdocs serve"
 docs-build = "mkdocs build --strict"
+# Publishes to `gh-pages`, so only docs.yml runs it. The committer comes from that step's `env:`,
+# because a task that set it in git's config would leave it behind on a laptop.
+docs-deploy = "mkdocs gh-deploy --force --strict"
+# No file arguments: cli2 then reads its globs and ignores from `.markdownlint-cli2.yaml`, so CI and
+# the pre-commit hook lint the same set. Outside `check`, for the reason AGENTS.md gives.
+markdownlint = "markdownlint-cli2"
+# Renders a benchmark run directory as one HTML page. benchmark.yml appends a `--title` naming the
+# commit; `--source` is the command that wrote the directory, and moves with that step.
+benchmark-report = "seqforge eval report report -o report/benchmark.html --source 'seqforge eval run --no-llm --cases evals/benchmark -C report'"
+# Prose lint, beside `markdownlint` and outside `check` for the same reason: it answers a question a
+# code change does not ask. `.`, never an absolute path: an absolute path matches no `.vale.ini`
+# section and exits 0. The globs stop vale walking trees it never lints, worktrees among them.
+vale = "vale --glob='!{.pixi,.claude,site,dist,build,seqforge}/**' ."
+
+# ============================== liulab ==============================
+# Read by `scripts/conformance.py`; its docstring has the rules. Keys are path prefixes matched
+# against the tracked files, not globs; a trailing `/` matches a directory. Values name the Vale
+# Length rule that applies, or `false` where none does.
+#
+# No key for a context package's GLOSSARY.md or docs/adr/. `.vale.ini` reaches those with a
+# `src/seqforge/*/` glob inside the same section headers as `GLOSSARY-MAP.md` and `docs/adr/`, so
+# pairing these two keys already checks the settings those files get. A key per context would
+# match no header, because a key is a plain prefix and the header spells a glob.
+[tool.liulab.agent-docs]
+"AGENTS.md" = "LengthDoc"
+"GLOSSARY-MAP.md" = false
+"skills/" = "LengthDoc"
+"docs/agents/" = "LengthDoc"
+"docs/adr/" = "LengthAdr"
+"docs/research/" = false
+
+# Keyed by rule name, the reason as the value. Per-rule, never per-file, and printed on every run.
+[tool.liulab.waived]
+agent-docs-unpublished = "mkdocs honours `exclude_docs:`, which keeps docs/adr/ and docs/research/ out of the site, its nav and its search index; the template's front matter exists only because zensical ignores that key"
 
 # ============================== ruff ==============================
 
 [tool.ruff]
 line-length = 100
-src = ["src", "tests"]
-target-version = "py312"
+src = ["src", "tests", "scripts"]
 extend-exclude = [".pixi", "site", "build", "dist"]
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "UP", "B"]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "PT",  # flake8-pytest-style
+    "PTH", # flake8-use-pathlib
+    "N",   # pep8-naming
+    "RUF", # ruff-specific
+]
 # E501: the formatter owns line length. UP046/UP047: keep classic Generic[T]/TypeVar, which has the
-# better-tested pydantic-v2 + mypy support.
-ignore = ["E501", "UP046", "UP047"]
+# better-tested pydantic-v2 + mypy support. N818: an exception here names the condition it signals
+# (`CaseSkipped`, `CeilingExceeded`, `TermUnknown`), and several are control flow, not errors.
+ignore = ["E501", "UP046", "UP047", "N818"]
+# Typography the prose means: a multiplication sign for a fold or a count, an en dash for a range, a
+# prime for a nucleic-acid end (5′, 3′), a minus sign, curly quotes, and angle quotes for a pager's
+# arrows.
+allowed-confusables = ["×", "–", "′", "−", "‘", "’", "‹", "›"]
+
+[tool.ruff.lint.per-file-ignores]
+# SIM300: an UPPER_CASE name is a module table under test, so it is the actual on the left of `==`.
+"tests/**" = ["SIM300"]
 
 [tool.ruff.lint.flake8-bugbear]
 # Typer uses call expressions as parameter defaults by design.
@@ -312,7 +397,6 @@ extend-immutable-calls = ["typer.Argument", "typer.Option"]
 # ============================== mypy ==============================
 
 [tool.mypy]
-python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
@@ -334,6 +418,12 @@ ignore_missing_imports = true
 module = ["pymupdf", "pymupdf.*", "pdfplumber", "pdfplumber.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
+
+# The template's checker, copied verbatim, is typed against pyright, which does not flag the one
+# untyped PyYAML call it makes. Relaxed here so the copy stays a copy.
+[[tool.mypy.overrides]]
+module = ["conformance"]
+disallow_untyped_calls = false
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

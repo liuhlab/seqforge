@@ -336,7 +336,7 @@ CONFUSION_MATRIX = [
 
 
 @pytest.mark.parametrize(
-    "expected, result, exit_code, grade, note, missed_question", CONFUSION_MATRIX
+    ("expected", "result", "exit_code", "grade", "note", "missed_question"), CONFUSION_MATRIX
 )
 def test_the_confusion_matrix_grades_every_cell(
     expected: dict[str, object],
@@ -583,7 +583,10 @@ def test_the_corpus_is_well_formed() -> None:
 
     for case in cases:
         group = case.root.resolve().parent
-        assert group.parent == base.resolve() and group.name in groups, (
+        assert group.parent == base.resolve(), (
+            f"{case.id} is at {case.root.relative_to(base)}, not under one of {sorted(groups)}"
+        )
+        assert group.name in groups, (
             f"{case.id} is at {case.root.relative_to(base)}, not under one of {sorted(groups)}"
         )
         assert case.expected.description.strip(), f"{case.id} has no description"
@@ -1252,8 +1255,10 @@ def test_the_harvest_grade_keeps_the_quote_it_graded() -> None:
     assert claim.value == "Caenorhabditis elegans"
     assert claim.span.quote == "Caenorhabditis elegans"
     # code-owned, and the reason a quote is checkable rather than decorative
-    assert claim.span.char_start is not None and claim.span.char_end is not None
-    assert claim.span_verified and claim.entailment_ok
+    assert claim.span.char_start is not None
+    assert claim.span.char_end is not None
+    assert claim.span_verified
+    assert claim.entailment_ok
 
     row = run.harvest.to_json()
     assert row["assertions"][0]["span"]["quote"] == "Caenorhabditis elegans", "and it survives JSON"
@@ -1389,7 +1394,8 @@ def test_a_harvest_that_agrees_on_nothing_leaves_the_recipes_hypothesis_standing
     case = _prose_case_plus_a_second_chemistry(tmp_path, hypothesis="10x-3p-gex-v3")
     seen = _capture_hypotheses(monkeypatch)
     run_case(case, llm=True, provider=_two_chemistry_provider())
-    assert len(seen) == 1 and seen[0] is not None
+    assert len(seen) == 1
+    assert seen[0] is not None
     assert (seen[0].value, seen[0].id) == ("10x-3p-gex-v3", "recipe")
 
 
@@ -1766,7 +1772,8 @@ def test_a_record_less_multi_lane_deposit_stays_two_samples(
     # It is also what says the deposit's per-lane header prefix did its job: eight files carrying one
     # library's molecules must still be eight content addresses.
     assert len({sha for s in metadata.samples for sha in s.file_shas}) == len(names)
-    assert out.exit_code == 0 and sorted(out.assays) == ["bulk-rnaseq"]
+    assert out.exit_code == 0
+    assert sorted(out.assays) == ["bulk-rnaseq"]
     # A fused run assigns roles across its lanes (`index_tagged_roles`), and a file with no role is
     # dropped by `_units` at exit 0 — the same silent-loss class one level down.
     assert len(out.role_of_sha()) == len(names), (
@@ -1914,7 +1921,8 @@ def test_a_case_whose_only_document_never_answered_grades_and_says_so() -> None:
     assert run.grade.grade is Grade.CORRECT
     assert run.harvest is not None
     assert run.harvest.status == "unmeasured"
-    assert run.harvest.n_documents == 1 and run.harvest.n_documents_failed == 1
+    assert run.harvest.n_documents == 1
+    assert run.harvest.n_documents_failed == 1
     # `could not check`, never `checked and found nothing` — the same split the corpus already makes
     # between a package that is `absent` and one that is `unavailable`.
     assert run.harvest.unchecked == ["experiment.organism"]
@@ -1923,7 +1931,7 @@ def test_a_case_whose_only_document_never_answered_grades_and_says_so() -> None:
     assert run.harvest.missing == []
     # and WHICH document never answered, in the row a reader looks a sha up in
     (doc,) = run.harvest.documents
-    assert "failure" in doc and doc["failure"]
+    assert doc.get("failure")
     assert run.harvest.to_json()["status"] == "unmeasured"
 
 
@@ -1942,7 +1950,8 @@ def test_one_documents_abort_no_longer_takes_the_whole_case_down(tmp_path: Path)
     assert run.skipped is None
     assert run.harvest is not None
     assert run.harvest.status == "partial"
-    assert run.harvest.n_documents == 2 and run.harvest.n_documents_failed == 1
+    assert run.harvest.n_documents == 2
+    assert run.harvest.n_documents_failed == 1
     # The surviving document was asked the same field, so the verdict on it is a REAL one.
     assert run.harvest.matched == ["experiment.organism"]
     assert run.harvest.unchecked == []
@@ -2142,10 +2151,11 @@ def test_stability_is_fractional_only_when_trials_genuinely_differ() -> None:
     # `condition` is no longer an assertable field, so a draft naming it now dies at the allowlist
     # and never reaches the fold this test is about. The trap moves to NCBI's `treatment`, which is
     # what `condition` was trying to be and is what the case's forbidden_fields now names.
-    bad = good + [
+    bad = [
+        *good,
         _draft(
             "experiment.samples.treatment", "maintained on NGM plates", "maintained on NGM plates"
-        )
+        ),
     ]
     provider = _FlakyProvider([bad, good, good])
     run = run_case(_trap_case(), llm=True, provider=provider, trials=3)
@@ -2332,9 +2342,8 @@ def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_cor
     assert cases, "the benchmark tier is present but empty"
     for c in cases:
         gen = c.recipe.generate
-        assert isinstance(gen, FingerprintRecipe) and gen.hf, (
-            f"{c.id}: benchmark cases pull from hf"
-        )
+        assert isinstance(gen, FingerprintRecipe), f"{c.id}: generator is {type(gen).__name__}"
+        assert gen.hf, f"{c.id}: benchmark cases pull from hf"
         assert c.records is not None, f"{c.id}: a benchmark case commits its records.json"
         assert c.expected.fields.get("library.chemistry"), f"{c.id}: pins a resolved chemistry"
     # The two tiers are disjoint directories — the hermetic corpus never sees the networked one. The
@@ -2724,7 +2733,7 @@ def test_a_nineteenth_case_moves_the_digest_which_is_why_it_is_excluded() -> Non
     from seqforge.evals.digest import FROZEN_18, grade_digest
 
     frozen = _digest_report([_digest_row(c) for c in FROZEN_18])
-    widened = list(FROZEN_18) + ["GSE207085-nasal-prox1-96cells"]
+    widened = [*FROZEN_18, "GSE207085-nasal-prox1-96cells"]
     grown = _digest_report(
         [_digest_row(c) for c in FROZEN_18]
         + [_digest_row("GSE207085-nasal-prox1-96cells", grade="false_accept")]
@@ -3334,7 +3343,8 @@ def test_the_html_renderer_shows_a_false_accept_rather_than_averaging_it_away() 
 
     assert "FALSE ACCEPT" in page, "a false accept is stated outright, not folded into a percentage"
     assert "poisoned-one" in page, "and the case is named"
-    assert "bulk-rnaseq" in page and "10x-3p-gex-v3" in page, "the wrong value must be visible"
+    assert "bulk-rnaseq" in page, "the wrong value must be visible"
+    assert "10x-3p-gex-v3" in page, "beside the expected one"
     assert "library.chemistry" in page, "beside the field path it was wrong about"
 
     clean = dict(_render_fixture())
@@ -3440,8 +3450,10 @@ def test_the_report_separates_work_done_from_elapsed_time() -> None:
     and must not call either one the other.
     """
     page = render_html(_render_fixture(), title="T", source=None)
-    assert "work done" in page and "sum of the per-case durations" in page
-    assert "elapsed" in page and "wall clock" in page
+    assert "work done" in page
+    assert "sum of the per-case durations" in page
+    assert "elapsed" in page
+    assert "wall clock" in page
     assert "6.9m" in page, "the summed work, in its own tile"
     assert "61.3s" in page, "and the elapsed time, in another"
     assert "wall time" not in page, "the bug this replaces: the sum labelled as the clock"
@@ -3486,13 +3498,17 @@ def test_the_page_says_how_much_of_the_harvest_stage_ran() -> None:
     """
     page = render_html(_partly_measured_fixture(), title="T", source=None)
 
-    assert "harvest coverage" in page and "68 of 73" in page
-    assert "1 partly" in page and "1 assertion(s) unchecked" in page
+    assert "harvest coverage" in page
+    assert "68 of 73" in page
+    assert "1 partly" in page
+    assert "1 assertion(s) unchecked" in page
     assert "documents answered" in page, "the per-case status line qualifies the chips under it"
-    assert "unchecked" in page and "experiment.samples.strain" in page
+    assert "unchecked" in page
+    assert "experiment.samples.strain" in page
     assert "could not check, not checked and found nothing" in page
     # ...and WHICH document, by the name a human reads, with the provider's own reason
-    assert "SAMN14126930" in page and "not valid JSON" in page
+    assert "SAMN14126930" in page
+    assert "not valid JSON" in page
 
 
 def test_a_fully_measured_run_says_so_rather_than_staying_silent() -> None:
@@ -3522,7 +3538,8 @@ def test_a_report_predating_the_coverage_field_still_renders_as_it_meant() -> No
     """
     page = render_html(_render_fixture(), title="T", source=None)
     assert "harvest coverage" not in page, "no coverage was recorded, so none is claimed"
-    assert "unmeasured" not in page and "documents answered" not in page
+    assert "unmeasured" not in page
+    assert "documents answered" not in page
     assert "experiment.organism" in page, "and the harvest block it DID record still renders"
 
 
@@ -3781,7 +3798,8 @@ def test_a_recorded_transcript_that_was_not_read_says_so_rather_than_reading_as_
     del case["exchanges"]
     del fixture["prompts"]
     page = render_html(fixture, title="T", source=None)
-    assert "were recorded in" in page and "transcripts/poisoned-one.jsonl" in page
+    assert "were recorded in" in page
+    assert "transcripts/poisoned-one.jsonl" in page
     assert "and not read" in page
 
 
@@ -3848,9 +3866,10 @@ def test_the_eval_report_makes_no_external_network_reference() -> None:
     assert not offsite, f"external references leaked in: {offsite[:3]}"
     assert "@import url(http" not in page.replace(" ", "").lower()
     assert "cdn.tailwindcss.com" not in page, "the Play CDN would render nothing from file://"
-    assert "cdn.jsdelivr" not in page and "unpkg" not in page, "a CDN link regressed in"
+    assert not any(cdn in page for cdn in ("cdn.jsdelivr", "unpkg")), "a CDN link regressed in"
     # ...and the 404 reason still made it onto the page, URL and all.
-    assert "404" in page and "GSE110823" in page
+    assert "404" in page
+    assert "GSE110823" in page
     assert len(page.encode()) < 500_000, "the page bloated (a heavy asset regressed in?)"
 
 
@@ -3871,7 +3890,9 @@ def test_both_themes_render_and_an_explicit_theme_beats_the_media_query() -> Non
     assert ":root:not([data-theme=light])" in flat, (
         "system dark must yield to an explicit light theme, or the toggle only works one way"
     )
-    assert "--sf-ok:" in page and "--sf-crit:" in page and "--sf-warn:" in page
+    assert "--sf-ok:" in page
+    assert "--sf-crit:" in page
+    assert "--sf-warn:" in page
     assert "--sf-accent:" in page, "the accent is its own token and never a verdict colour"
     assert "tabular-nums" in page, "digits that line up get lined up"
 
@@ -3885,7 +3906,8 @@ def test_the_page_inlines_its_script_and_never_fetches_one() -> None:
     open/closed state of every case is an attribute set at render time.
     """
     page = render_html(_render_fixture(), title="T", source=None)
-    assert "<script>" in page and "<script " not in page, "inlined, never sourced"
+    assert "<script>" in page, "inlined, never sourced"
+    assert "<script " not in page, "inlined, never sourced"
     body = page.split("<script>", 1)[1]
     assert "</script" not in body[: body.rindex("</script>")], (
         "an unguarded </script would truncate"
@@ -4000,7 +4022,8 @@ def test_eval_report_is_a_verb_that_writes_a_file_and_answers_on_stdout(tmp_path
     assert payload["false_accepts"] == ["poisoned-one"], "named on stdout, not just counted"
     assert payload["skipped"] == 2
     assert payload["absent"] == 1, "a package the corpus never held is counted apart from a skip"
-    assert out.exists() and payload["bytes"] == len(out.read_text().encode())
+    assert out.exists()
+    assert payload["bytes"] == len(out.read_text().encode())
     assert out.read_text().startswith("<!doctype html>")
 
     # Not JSON, and not an eval report: both are the caller's error, and neither writes a page.
@@ -4234,7 +4257,8 @@ def test_a_case_that_reaches_its_ceiling_is_blocked_not_graded() -> None:
     assert run.llm_calls == 1, "the first trial's request was issued; the second never left"
     assert run.blocker.code is BlockerCode.TOKEN_CEILING_EXCEEDED
     assert run.blocker.subject.ref == _trap_case().id, "the refusal names the dataset it is about"
-    assert run.skipped is not None and "ceiling" in run.skipped
+    assert run.skipped is not None
+    assert "ceiling" in run.skipped
     assert run.to_json()["blockers"][0]["code"] == "TOKEN_CEILING_EXCEEDED"
     # excluded from every rate: the case did not run, so it is neither a pass nor a failure
     assert build_report([run]).n_cases == 0
@@ -4246,7 +4270,8 @@ def test_a_ceiling_high_enough_never_binds() -> None:
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
     run = run_case(_trap_case(), llm=True, provider=provider, ceiling=500_000)
-    assert run.blocker is None and run.skipped is None
+    assert run.blocker is None
+    assert run.skipped is None
 
 
 def test_the_report_carries_cache_write_tokens() -> None:
@@ -4277,7 +4302,8 @@ def test_the_report_carries_cache_write_tokens() -> None:
     assert cost["cache_write_tokens"] == 200.0
     assert cost["cache_read_tokens"] == 1000.0
     # ...on the same accumulation the plain counters ride, so they are read off the same run.
-    assert cost["input_tokens"] == 1500.0 and cost["llm_calls"] == 1.0
+    assert cost["input_tokens"] == 1500.0
+    assert cost["llm_calls"] == 1.0
 
 
 # --------------------------------------------------------------------------------------------
@@ -4345,9 +4371,11 @@ def test_a_case_stopped_at_its_ceiling_still_names_its_transcript(tmp_path: Path
         workspace=eval_dir(tmp_path),
     )
 
-    assert run.blocker is not None and run.skipped is not None
+    assert run.blocker is not None
+    assert run.skipped is not None
     row = run.to_json()
-    assert row["skipped"] and row["transcript"] == f"transcripts/{run.case_id}.jsonl"
+    assert row["skipped"]
+    assert row["transcript"] == f"transcripts/{run.case_id}.jsonl"
     assert read_transcript(eval_dir(tmp_path) / row["transcript"]).n_exchanges == 1
 
 
@@ -4603,11 +4631,12 @@ def test_a_declared_record_set_fuses_two_runs_into_one_sample(
 
     fused = [w for w in metadata.warnings if w.code == "declared_sample_fuses_runs"]
     assert len(fused) == 1, f"a declared fuse must say so: {[w.code for w in metadata.warnings]}"
-    assert "SIM_b01_S1" in fused[0].message and "SIM_b02_S2" in fused[0].message, (
+    assert all(run in fused[0].message for run in ("SIM_b01_S1", "SIM_b02_S2")), (
         "the note names the runs that were fused, or it cannot be acted on"
     )
     assert not metadata.blockers, "a fuse is a Warning, never a Blocker"
-    assert out.exit_code == 0 and sorted(out.assays) == ["bulk-rnaseq"]
+    assert out.exit_code == 0
+    assert sorted(out.assays) == ["bulk-rnaseq"]
     # A file with no role is dropped by `_units` at exit 0 — the silent-loss class one level down.
     assert len(out.role_of_sha()) == len(names), (
         "a file lost its role and would be dropped silently"
@@ -4699,11 +4728,12 @@ def test_a_case_commits_its_record_set_under_either_name_and_never_both(tmp_path
     (case_dir / "records.yaml").write_text(structure)
 
     loaded = load_case(case_dir)
-    assert loaded.records is not None and loaded.records.source == "user"
+    assert loaded.records is not None
+    assert loaded.records.source == "user"
     assert [r.accession for r in loaded.records.at("sample")] == ["lib01"]
 
     (case_dir / "records.json").write_text('{"source": "test", "query": "PRJNA9", "records": []}')
-    with pytest.raises(CaseError, match="records.json and records.yaml"):
+    with pytest.raises(CaseError, match=r"records.json and records.yaml"):
         load_case(case_dir)
 
     (case_dir / "records.json").unlink()

@@ -5,7 +5,7 @@ its config, and the table that says where every FASTQ is. This context also hold
 a finished pipeline reports back.
 
 Words every context shares — **Evidenced**, **Basis**, **Observed**, **Conflict** and the rest — are
-defined once in the repo-root `CONTEXT-MAP.md`.
+defined once in the repo-root `GLOSSARY-MAP.md`.
 
 ## Language
 

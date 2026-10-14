@@ -99,12 +99,14 @@ def test_normalize_expands_ligatures_and_smart_punctuation() -> None:
     out = normalize_text("the ﬁrst 3′ kit — “quoted” ‘v3’")
     assert "first" in out  # ﬁ ligature
     assert "3'" in out  # prime -> apostrophe
-    assert '"quoted"' in out and "'v3'" in out  # smart quotes flattened
+    # smart quotes flattened
+    assert '"quoted"' in out
+    assert "'v3'" in out
     assert "-" in out  # em dash -> hyphen
 
 
 def test_normalize_strips_soft_hyphen_and_nbsp() -> None:
-    out = normalize_text("single­cell RNA-seq")
+    out = normalize_text("single\u00adcell\u00a0RNA-seq")
     assert "singlecell RNA-seq" in out
 
 
@@ -114,7 +116,8 @@ def test_normalize_document_records_both_identities(tmp_path: Path) -> None:
     doc.write_text("Libraries used the ﬁrst Chromium Single\nCell 3' v3 kit.")
     nd = normalize_document(doc)
     assert nd.source_basename == "methods.txt"
-    assert len(nd.doc_sha256) == 64 and len(nd.normalized_sha256) == 64
+    assert len(nd.doc_sha256) == 64
+    assert len(nd.normalized_sha256) == 64
     # source identity != span-space identity once normalization has changed anything
     assert nd.doc_sha256 != nd.normalized_sha256
     assert nd.n_chars == len(nd.text)
@@ -148,7 +151,8 @@ def test_a_multi_sheet_xlsx_renders_every_sheet_not_just_the_first(tmp_path: Pat
     assert "Sheet: Experimental design" in nd.text
     assert "Sheet: Sample metadata" in nd.text
     # ...and a value that exists ONLY on the second sheet made it through (the whole point).
-    assert "CB1370" in nd.text and "daf-2 mutant" in nd.text
+    assert "CB1370" in nd.text
+    assert "daf-2 mutant" in nd.text
 
     # a quote of a second-sheet cell greps back and entails its value — the round-trip works.
     draft = AssertionDraft(
@@ -185,7 +189,8 @@ def test_a_dirty_xlsx_transcribes_faithfully_without_cleaning(tmp_path: Path) ->
     wb.save(xlsx)
     nd = normalize_document(xlsx)
 
-    assert "Sheet: Legend" in nd.text and "Sheet: Table S3" in nd.text
+    assert "Sheet: Legend" in nd.text
+    assert "Sheet: Table S3" in nd.text
     # the multi-line cell collapsed to one contiguous run, so the row stayed one line and greps back
     assert "heat shock 34C for 2h" in nd.text
     draft = AssertionDraft(
@@ -228,7 +233,8 @@ def test_find_span_tolerates_whitespace_differences() -> None:
     assert find_span(text, "Chromium Single Cell 3' v3") is not None
     # the same quote as copied across a line wrap (extra/newline whitespace) still resolves
     span = find_span(text, "Chromium  Single\nCell 3' v3")
-    assert span is not None and text[span[0] : span[1]].startswith("Chromium")
+    assert span is not None
+    assert text[span[0] : span[1]].startswith("Chromium")
     assert find_span(text, "Chromium Single Cell 5' v2") is None
 
 
@@ -311,9 +317,11 @@ def test_verify_accepts_a_truthful_span_and_computes_offsets(tmp_path: Path) -> 
         llm_confidence=0.9,
     )
     report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
-    assert report.n_accepted == 1 and not report.rejected
+    assert report.n_accepted == 1
+    assert not report.rejected
     a = report.assertions[0]
-    assert a.span_verified and a.entailment_ok
+    assert a.span_verified
+    assert a.entailment_ok
     # offsets are code-computed, and they really point at the quote
     assert nd.text[a.span.char_start : a.span.char_end] == "Chromium Single Cell 3' v3"
 
@@ -353,7 +361,8 @@ def test_verify_rejects_a_quote_citing_an_unknown_document(tmp_path: Path) -> No
         llm_confidence=0.9,
     )
     report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
-    assert report.n_accepted == 0 and report.rejected[0]["reason"] == "unknown_doc"
+    assert report.n_accepted == 0
+    assert report.rejected[0]["reason"] == "unknown_doc"
 
 
 def test_verify_accepts_a_quote_broken_by_pdf_wrapping(tmp_path: Path) -> None:
@@ -545,7 +554,8 @@ def test_a_pdf_extracts_normalizes_and_verifies_end_to_end(
     )
     nd = normalize_document(pdf, pdf_backend=backend)
     assert nd.extractor == backend
-    assert nd.pages and nd.pages[0].number == 1
+    assert nd.pages
+    assert nd.pages[0].number == 1
     draft = AssertionDraft(
         field="library.chemistry",
         value="10x-3p-gex-v3",
@@ -599,7 +609,8 @@ def test_a_non_pdf_span_has_no_page(tmp_path: Path) -> None:
         llm_confidence=0.9,
     )
     a = verify_drafts([draft], [nd], extractor=EXTRACTOR).assertions[0]
-    assert a.span.page is None and nd.pages == ()
+    assert a.span.page is None
+    assert nd.pages == ()
 
 
 def test_normalize_scrubs_invalid_unicode_that_would_crash_the_hash() -> None:
@@ -970,7 +981,8 @@ def test_an_unmarked_document_carries_no_group_and_no_claim_of_one() -> None:
 
     assert variant_spans(["one text only"]) == ()
     doc = NormalizedDoc(doc_sha256="d", normalized_sha256="d", text="abc", source_basename="s.txt")
-    assert doc.variants == () and is_invariant_span(doc, 0, 3)
+    assert doc.variants == ()
+    assert is_invariant_span(doc, 0, 3)
 
 
 def test_a_variant_document_keeps_the_accession_and_drops_the_labels() -> None:

@@ -91,7 +91,7 @@ def hook_post_tool_use() -> None:
 
 @hook_app.command("stop")
 def hook_stop(
-    workspace: Path = typer.Option(Path("."), "-C", "--workspace", help="Root holding seqforge/."),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root holding seqforge/."),
 ) -> None:
     """Refuse to end the turn while questions.md is non-empty — ambiguity routes to a human."""
     from ..hooks import stop_decision
@@ -105,7 +105,7 @@ def hook_stop(
 
 @hook_app.command("install")
 def hook_install(
-    workspace: Path = typer.Option(Path("."), "-C", "--workspace", help="Project root."),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Project root."),
     force: bool = typer.Option(False, "--force", help="Overwrite an existing hooks block."),
 ) -> None:
     """Write the three hooks into .claude/settings.json, merging with whatever is already there."""
@@ -223,7 +223,7 @@ _SHIM_TIMEOUT_S = 90
 
 @hook_app.command("check")
 def hook_check(
-    workspace: Path = typer.Option(Path("."), "-C", "--workspace", help="Root holding seqforge/."),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root holding seqforge/."),
 ) -> None:
     """Self-test: prove each guard fires **through the hooks as installed here**.
 

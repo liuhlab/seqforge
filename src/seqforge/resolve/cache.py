@@ -49,7 +49,7 @@ def resume_key(
     parts: list[str] = []
     for p in paths:
         try:
-            st = os.stat(p)
+            st = Path(p).stat()
         except OSError:
             return None
         parts.append(f"{os.path.realpath(p)}|{st.st_size}|{st.st_mtime_ns}")

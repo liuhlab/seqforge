@@ -621,9 +621,7 @@ def io_resolve(
 @io_app.command("records")
 def io_records(
     accession: str = typer.Argument(..., help="GSE/GSM, PRJNA/PRJEB, SRP/SRX/SRR, SAMN..."),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
 ) -> None:
     """Fetch what the archive DECLARES about a dataset: project, sample, experiment, run.
 
@@ -771,7 +769,7 @@ def io_efo(
         # OLS4 wants the IRI **double**-URL-encoded in the path. A singly-encoded one 404s, which is
         # the kind of thing that belongs in code rather than in someone's memory.
         quoted = urllib.parse.quote(urllib.parse.quote(iri_for(curie), safe=""), safe="")
-        with urllib.request.urlopen(OLS4_TERMS + quoted, timeout=60) as response:  # noqa: S310
+        with urllib.request.urlopen(OLS4_TERMS + quoted, timeout=60) as response:
             terms[curie] = parse_ols4_term(_json.load(response))
     path = write_terms(terms, fetched=_today())
     typer.echo(

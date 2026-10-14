@@ -474,15 +474,15 @@ def write_h5ad(
 
 
 __all__ = [
-    "H5adError",
-    "SoloAxis",
-    "SoloFeatureOutput",
     "SOLO_FEATURE_OUTPUT",
     "STAR_BAM",
     "STAR_FINAL_LOG",
     "STAR_JUNCTIONS",
     "STAR_LOG_FILES",
     "STAR_PROGRESS_LOGS",
+    "H5adError",
+    "SoloAxis",
+    "SoloFeatureOutput",
     "h5ad_suffixes",
     "raw_files",
     "solo_filtered_files",

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `pixi run check` — the pre-PR gate, with its six steps run CONCURRENTLY.
+# `pixi run check` — the pre-PR gate, with its steps run CONCURRENTLY.
 #
 # It used to be `{ depends-on = ["lint", "fmt-check", "typecheck", "test"] }`, which pixi executes
 # sequentially: the three static checks (~6.8s together) ran before pytest and nothing overlapped.
@@ -8,9 +8,13 @@
 # each other or with pytest.
 #
 # CI is unaffected: `.github/workflows/ci.yml` calls the individual tasks and never this script. It
-# runs `lint`, `fmt-check` and `typecheck` as three STEPS of one job (with the docs build), and gives
-# each of the three test lanes a job of its own — so the concurrency this script buys is a local-only
-# win, and CI's shape is more runners rather than more background jobs.
+# runs `lint`, `fmt-check`, `typecheck` and `conformance` as STEPS of one job (with the docs build),
+# and gives each of the three test lanes a job of its own — so the concurrency this script buys is a
+# local-only win, and CI's shape is more runners rather than more background jobs.
+#
+# `conformance` is a step because what it checks is repo structure a code change can break — a skill
+# link, a CI step that stops naming a task, a Python version declared in two places — and it costs
+# under half a second.
 #
 # THE GATE IS A SUBSET OF CI AND STAYS ONE. Every lane named on the `check` line is a selection CI
 # also runs, so a lane red here is red there for the same reason — but the converse does not hold,
@@ -25,7 +29,7 @@
 #
 # Each step's output is captured to its own file and printed whole, in a fixed order, after every
 # step has finished. Attribution therefore gets BETTER, not worse: a failure is one contiguous
-# labelled block instead of lines from six tools interleaved by whoever flushed first.
+# labelled block instead of lines from every tool interleaved by whoever flushed first.
 #
 # Steps are invoked as `pixi run <task>` rather than by spelling their command lines again here.
 # The task table stays the one owner of what each step actually runs — duplicating mypy's module

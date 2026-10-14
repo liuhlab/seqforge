@@ -41,6 +41,7 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import suppress
 from dataclasses import dataclass, field
+from itertools import pairwise
 from itertools import product as _product
 from pathlib import Path
 from typing import NamedTuple
@@ -146,7 +147,7 @@ def read_fasta(path: Path) -> dict[str, str]:
     chroms: dict[str, str] = {}
     name = None
     chunks: list[str] = []
-    with open(path) as fh:
+    with path.open() as fh:
         for line in fh:
             if line.startswith(">"):
                 if name is not None:
@@ -174,7 +175,7 @@ def _parse_exons(
     exons: dict[str, list[tuple[str, int, int, str]]] = defaultdict(list)
     n_exon_lines = 0
     n_typed = 0
-    with open(gtf) as fh:
+    with gtf.open() as fh:
         for line in fh:
             if line.startswith("#"):
                 continue
@@ -326,7 +327,7 @@ def load_gene_models(
             continue
 
         introns: list[str] = []
-        for (_s1, e1), (s2, _e2) in zip(merged, merged[1:], strict=False):
+        for (_s1, e1), (s2, _e2) in pairwise(merged):
             istart, iend = e1 + 1, s2 - 1
             if iend - istart + 1 < min_intron:
                 continue
@@ -849,7 +850,10 @@ def _run_measured(
     started = time.monotonic()
     peak_kib = 0
     peak_process = ""
-    with open(outdir / f"{log_prefix}.stdout.log", "w") as out_fh, open(err_log, "w") as err_fh:
+    with (
+        (outdir / f"{log_prefix}.stdout.log").open("w") as out_fh,
+        err_log.open("w") as err_fh,
+    ):
         proc = subprocess.Popen(cmd, stdout=out_fh, stderr=err_fh, env=env)
         deadline = started + timeout
         while True:
@@ -1965,7 +1969,7 @@ def load_cost_models(
         if len(mrna) < min_len or "N" in mrna:
             continue
         introns: list[str] = []
-        for (_s1, e1), (s2, _e2) in zip(merged, merged[1:], strict=False):
+        for (_s1, e1), (s2, _e2) in pairwise(merged):
             istart, iend = e1 + 1, s2 - 1
             if iend - istart + 1 < min_intron:
                 continue
@@ -2195,10 +2199,8 @@ def star_stats(outdir: Path) -> dict[str, float]:
         label, _, value = line.partition("|")
         key = wanted.get(label.strip())
         if key:
-            try:
+            with suppress(ValueError):
                 stats[key] = float(value.strip())
-            except ValueError:
-                pass
     return stats
 
 

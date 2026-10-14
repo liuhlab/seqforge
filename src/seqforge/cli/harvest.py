@@ -50,9 +50,7 @@ def harvest_normalize(
         "--pdf-backend",
         help="PDF text extractor: pymupdf (default, AGPL, reads more PDFs) | pypdf (BSD fallback).",
     ),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
 ) -> None:
     """Extract each document ONCE into the canonical text that spans are computed against.
 
@@ -170,9 +168,7 @@ def harvest_extract(
         "--pdf-backend",
         help="PDF text extractor: pymupdf (default, AGPL, reads more PDFs) | pypdf (BSD fallback).",
     ),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
 ) -> None:
     """The ONE LLM touchpoint: prose -> AssertionDraft[] -> (verified) Assertion[].
 

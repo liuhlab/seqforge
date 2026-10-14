@@ -1126,13 +1126,13 @@ def list_modules() -> list[str]:
 
 __all__ = [
     "CHIMERIC_VARIANTS",
-    "WORKFLOW_VERSION",
+    "MODULES",
     "PLATE_COMPONENT_H5AD",
     "PLATE_H5AD",
     "RUNTIME_IMAGE",
+    "WORKFLOW_VERSION",
     "ReadLayoutKind",
     "WorkflowModule",
-    "MODULES",
     "argv_keys_read_by",
     "container_uri",
     "get_module",

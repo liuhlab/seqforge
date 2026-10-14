@@ -111,4 +111,4 @@ def instructions_from_assertions(
     return out, conflicts
 
 
-__all__ = ["Instruction", "INSTRUCTABLE_FIELDS", "instructions_from_assertions"]
+__all__ = ["INSTRUCTABLE_FIELDS", "Instruction", "instructions_from_assertions"]

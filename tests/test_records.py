@@ -97,7 +97,8 @@ def test_the_hierarchy_joins_run_to_experiment_to_sample_to_project(
         assert sample is not None, f"{run.accession} reaches no sample"
         assert sample.accession.startswith("SAMN")
         project = records.ancestor(run, "project")
-        assert project is not None and project.accession == "PRJNA1027859"
+        assert project is not None
+        assert project.accession == "PRJNA1027859"
 
 
 def test_ncbi_harmonizes_the_attributes_and_we_do_not(records: ArchiveRecordSet) -> None:
@@ -152,7 +153,8 @@ def test_the_dataset_wide_facts_come_off_the_record_and_cite_it(records: Archive
     assert out.organism is not None
     assert (out.organism.value, out.organism.basis) == (6239, "asserted")
     assert len(out.organism.evidence) == 6
-    assert out.project is not None and out.project.accession == "PRJNA1027859"
+    assert out.project is not None
+    assert out.project.accession == "PRJNA1027859"
     assert "abstract" not in out.project.model_dump()
 
 
@@ -230,7 +232,8 @@ def test_the_bookkeeping_every_archive_stamps_on_a_sample_is_not_surfaced(
     assert len(out.samples) == 6
     assert [w for w in out.warnings if w.code == "sample_attribute_unharmonized"] == []
     # the taxid is not dropped, it is read by name — which is why it owes no note
-    assert out.organism is not None and out.organism.value == 6239
+    assert out.organism is not None
+    assert out.organism.value == 6239
 
 
 # ---------------------------------------------------------------- the join, and its refusal
@@ -882,7 +885,8 @@ def test_a_prose_reading_never_outranks_the_slot_the_submitter_typed(row: _Readi
         # whole mitigation for it: the reading that lost is on the record, by name, with no
         # enumerated list of placeholder strings anywhere.
         assert len(ambiguous) == 1, "the losing reading must still be named"
-        assert row.declared in ambiguous[0].message and row.read in ambiguous[0].message
+        assert row.declared in ambiguous[0].message
+        assert row.read in ambiguous[0].message
     else:
         # The two values fold to one, so nothing was decided and there is nothing to note.
         assert ambiguous == [], [w.message for w in ambiguous]
@@ -950,7 +954,8 @@ def test_a_record_becomes_its_own_document_scoped_to_itself(records: ArchiveReco
     assert "replicate 1" not in doc.text
     assert "CQ757" not in doc.text
     # ...nor the structured half of its own record, which the resolver transcribes rather than reads.
-    assert "CQ758" not in doc.text and "hermaphrodite" not in doc.text
+    assert "CQ758" not in doc.text
+    assert "hermaphrodite" not in doc.text
 
 
 def test_a_collapsed_run_document_is_asserted_of_the_sample_its_runs_belong_to() -> None:
@@ -1132,7 +1137,8 @@ def _fan_one_claim_over_the_twins() -> tuple[ExtractionPlan, FanReport]:
     from seqforge.models.assertion import AssertionDraft
 
     plan = plan_extraction(records=_twin_sample_records())
-    assert plan.n_documents == 1 and plan.n_records_collapsed == 1, "the collapse fired"
+    assert plan.n_documents == 1, "the collapse fired"
+    assert plan.n_records_collapsed == 1, "the collapse fired"
     draft = AssertionDraft(
         field=f"{SAMPLE_FIELD_PREFIX}age",
         value="day3",
@@ -1161,7 +1167,8 @@ def test_a_fanned_claim_resolves_as_asserted_against_the_sample_it_names() -> No
     degraded it to ``inferred`` — the basis that loses to the archive's own slot.
     """
     plan, fan = _fan_one_claim_over_the_twins()
-    assert len(fan.assertions) == 2 and [f.n_records for f in fan.fanned] == [2]
+    assert len(fan.assertions) == 2
+    assert [f.n_records for f in fan.fanned] == [2]
 
     out = resolve_metadata(
         files=_TWIN_FILES,
@@ -1302,7 +1309,7 @@ def test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declar
     fused = [w for w in out.warnings if w.code == "declared_sample_fuses_runs"]
     assert len(fused) == 1, f"warnings were {[w.model_dump() for w in out.warnings]}"
     note = fused[0]
-    assert "lib7_S1" in note.message and "lib7_S3" in note.message, (
+    assert all(run in note.message for run in ("lib7_S1", "lib7_S3")), (
         "the note has to name BOTH runs the filenames would have kept apart"
     )
     assert "lib7" in note.message, "and which sample they were fused into"

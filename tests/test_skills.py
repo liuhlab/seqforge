@@ -315,7 +315,8 @@ def test_installer_discovers_every_skill() -> None:
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("sf_install", SKILLS / "install.py")
-    assert spec and spec.loader
+    assert spec
+    assert spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert {p.name for p in module.discover()} == EXPECTED
@@ -323,7 +324,7 @@ def test_installer_discovers_every_skill() -> None:
     assert set(module.TARGETS) >= {"claude", "agents"}
 
 
-def test_the_verb_check_catches_a_fictional_SUBcommand() -> None:
+def test_the_verb_check_catches_a_fictional_subcommand() -> None:
     """Prove the guard fires on the thing it was blind to. It has never been green honestly before.
 
     Checking only the group meant every one of these passed:

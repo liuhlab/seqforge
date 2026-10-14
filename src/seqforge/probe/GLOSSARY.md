@@ -5,7 +5,7 @@ What a FASTQ is from its bytes, and what it is without reading a byte at all. Th
 without naming what any of it means.
 
 Words every context shares — **Evidenced**, **Basis**, **Observed**, **Conflict** and the rest — are
-defined once in the repo-root `CONTEXT-MAP.md`.
+defined once in the repo-root `GLOSSARY-MAP.md`.
 
 ## Language
 

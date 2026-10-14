@@ -151,10 +151,11 @@
  *   smp-*             the sample grid's own row furniture
  *   flow-*            flow cards
  *
- * `basis-*` means the **Basis** of CONTEXT.md — observed / asserted / inferred / user_confirmed —
- * and nothing else. The sample grid's expander, its caret and its row identifier were `basis-*` for
- * a while because they live in the same table, which put a defined domain term on a chevron. They
- * are `smp-*`; a reader who greps `basis` should find provenance and only provenance.
+ * `basis-*` means the **Basis** of GLOSSARY.md — observed / asserted / inferred /
+ * user_confirmed — and nothing else. The sample grid's expander, its caret and its row identifier
+ * were `basis-*` for a while because they live in the same table, which put a defined domain term
+ * on a chevron. They are `smp-*`; a reader who greps `basis` should find provenance and only
+ * provenance.
  *
  * The stage diagram claimed `stage-*` during the redesign and never spent it: nothing about a stage
  * box is computed, so it is utilities in `panels.py` like every other composition. The prefix is

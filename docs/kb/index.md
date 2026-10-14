@@ -1,9 +1,9 @@
 # Knowledge base
 
 The knowledge base is how seqforge knows what a sequencing library *is*. It holds one entry per
-technology — the read layout, the barcode positions, the barcode lists — and seqforge scores your
-files against every entry to find the one the bytes actually match. The entry it picks decides how
-your data is parsed.
+technology: the read layout, the barcode positions, the barcode lists. seqforge scores your files
+against every entry to find the one the bytes match. The entry it picks decides how your data is
+parsed.
 
 You don't choose an entry; the bytes do. These pages are here so you can see what seqforge recognises,
 and understand the answer when it tells you what your data is.
@@ -20,16 +20,15 @@ and understand the answer when it tells you what your data is.
 
 ## How the entries are organized
 
-Related chemistries are grouped into a **family**. The 10x 3' family, for example, is a single
-loose pattern ("a 16 bp barcode in a 26–28 bp read") that first says "this is 10x 3' something," then
-**descends** to the exact member — v2, v3, or v3.1 — by read length and barcode list. Grouping this
-way means seqforge can recognise a family from a fuzzy metadata mention and still pin the precise
-chemistry from the bytes.
+Related chemistries are grouped into a **family**. The 10x 3' family, for example, is one loose
+pattern: "a 16 bp barcode in a 26–28 bp read". It first says "this is 10x 3' something". Then it
+**descends** to the exact member (v2, v3, or v3.1) by read length and barcode list. So seqforge can
+recognise a family from a vague metadata mention and still pin the exact chemistry from the bytes.
 
-Two chemistries that are genuinely indistinguishable from the reads *and* processed identically
-(v3 and v3.1) are recorded as both names, with no question asked. Two that look alike but would be
-processed differently are separated by whatever can tell them apart — usually the barcode list — and
-if nothing can, seqforge asks you rather than guessing.
+Some chemistries look the same in the reads *and* are processed the same way, such as v3 and v3.1.
+These are recorded under both names, and no question is asked. Two that look alike but are processed
+differently are told apart by whatever can, usually the barcode list. If nothing can, seqforge asks
+you rather than guessing.
 
 ## Adding a technology
 

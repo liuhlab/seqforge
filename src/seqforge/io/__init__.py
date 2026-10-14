@@ -51,7 +51,7 @@ from .remote import (
 #: deposit that publishes no originals — so the stamp only means anything if this constant moves.
 IO_VERSION = "2026.8.0"
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetical
     "IO_VERSION",
     # onlist registry + packing
     "OnlistRegistry",

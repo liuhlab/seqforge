@@ -160,11 +160,12 @@ def build_tree(specs: dict[str, Spec]) -> KbTree:
             raise ValueError(f"{tech_id!r} has children but is not declared node_kind: family")
         if spec.node_kind == "family" and not has_children:
             raise ValueError(f"{tech_id!r} is declared a family but has no children")
-        if spec.node_kind == "family" and spec.backend is None:
-            if not tree.runnable_descendants_of(tech_id):
-                raise ValueError(
-                    f"abstract family {tech_id!r} has no runnable descendant to compile"
-                )
+        if (
+            spec.node_kind == "family"
+            and spec.backend is None
+            and not tree.runnable_descendants_of(tech_id)
+        ):
+            raise ValueError(f"abstract family {tech_id!r} has no runnable descendant to compile")
     return tree
 
 

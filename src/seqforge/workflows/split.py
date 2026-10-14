@@ -490,7 +490,7 @@ def split_chimera(
     # per output, so nothing grows with the input.
     pointers = 0
     dead_mates: Counter[str] = Counter()
-    dropped: Counter[str] = Counter({reason: 0 for reason in DROP_REASONS})
+    dropped: Counter[str] = Counter(dict.fromkeys(DROP_REASONS, 0))
     records_in = 0
 
     # Floored at one: a `--threads 0` from somewhere is a caller saying nothing, not a caller asking

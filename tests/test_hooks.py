@@ -348,7 +348,8 @@ def test_hook_check_passes_against_an_installation_that_answers_correctly(tmp_pa
 
     assert result.exit_code == 0, result.stdout + result.stderr
     payload = json.loads(result.stdout)
-    assert payload["ok"] is True and payload["installed"] is True
+    assert payload["ok"] is True
+    assert payload["installed"] is True
     assert [c["got"] for c in payload["checks"]] == ["deny", "allow", "allow", "deny"]
 
 
@@ -373,7 +374,8 @@ def test_hook_install_writes_hooks_that_hook_check_then_accepts(tmp_path: Path) 
     from seqforge.cli.hook import _hooks_declared
 
     shim = Path(installed["shim"])
-    assert shim.is_file() and os.access(shim, os.X_OK), "the shim must be executable to be a hook"
+    assert shim.is_file(), "the installer reported a shim it did not write"
+    assert os.access(shim, os.X_OK), "the shim must be executable to be a hook"
     assert _hooks_declared(Path(installed["settings"])), (
         "`hook check` reads settings.json to decide the hooks are installed; `hook install` just "
         "wrote it, so it must satisfy that reader"

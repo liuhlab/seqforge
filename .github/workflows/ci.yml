@@ -33,6 +33,10 @@ jobs:
         run: pixi run -e default fmt-check
       - name: mypy --strict
         run: pixi run -e default typecheck
+      # The template's rules against this repo. It lists tracked files with git, which the checkout
+      # above provides, shallow or not; without `.git` it exits 2, "could not run", never 1.
+      - name: conformance
+        run: pixi run -e default conformance
       # Does the SITE build: a dead internal link, a nav entry naming a file that moved, a snippet
       # include whose target was renamed. `markdownlint` sees none of those -- it reads one file's
       # prose style, never the graph between files. Until this step existed the strict build ran
@@ -48,20 +52,37 @@ jobs:
       - name: mkdocs build --strict
         run: pixi run -e default docs-build
 
-  # markdownlint is a Node tool, so it runs on its own runner rather than through pixi. It lints the
-  # human-facing docs (the site pages, the KB assay READMEs that render into them, and the top-level
-  # README) per `.markdownlint-cli2.yaml`; running with no file args makes cli2 read the globs/ignores
-  # from that config. Pinned so a new rule cannot turn CI red without a deliberate bump.
+  # Lints the human-facing docs (the site pages, the KB assay READMEs that render into them, and the
+  # top-level README) per `.markdownlint-cli2.yaml`. The task, its pinned version and its scope are
+  # pyproject's, so this job and the pre-commit hook run one copy. `docs` is the smallest environment
+  # that carries it.
   markdown:
     name: markdownlint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v4
+      - uses: prefix-dev/setup-pixi@v0.10.0
         with:
-          node-version: "22"
+          environments: docs
+          locked: true
       - name: markdownlint (docs + README)
-        run: npx --yes markdownlint-cli2@0.23.1
+        run: pixi run -e docs markdownlint
+
+  # The lab's prose rules (`.vale.ini`, `styles/Lab/`): word caps on agent-facing pages, jargon and
+  # reading grade on the site. Its own job rather than a step of `lint`, so a prose finding is its own
+  # red check and never stops the code steps after it. Outside `pixi run check`, like markdownlint, and
+  # in the same `docs` environment.
+  vale:
+    name: vale
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          environments: docs
+          locked: true
+      - name: vale (prose rules)
+        run: pixi run -e docs vale
 
   # The unit lane. Three jobs run the suite and between them they are a PARTITION of it -- this one,
   # `test-corpus` below, and `test-external` after that. The task table owns which selection is which.
@@ -159,15 +180,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # hatch-vcs reads the newest tag, and a shallow clone has none, so without this the wheel
+          # is a `0.1.devN` build even on a released commit.
+          fetch-depth: 0
       - uses: prefix-dev/setup-pixi@v0.10.0
         with:
-          environments: default
+          environments: dist
           locked: true
       - name: build
-        run: pixi run -e default build
+        run: pixi run build
       # The wheel exists now, so inspect it here rather than build a second one under pytest. The
       # package data is not Python -- if `io/onlists/*.codes.gz`, the `.smk` modules, the KB specs or
       # the report assets fall out of the wheel, every real dataset breaks while the unit suite (which
       # reads the source tree) stays green. See scripts/check_wheel_contents.py and #108.
       - name: wheel ships its package data
-        run: pixi run -e default check-wheel
+        run: pixi run check-wheel
+      # The release job runs this too; here it fails on the pull request, not on release day.
+      - name: twine check
+        run: pixi run check-dist

@@ -35,6 +35,7 @@ The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.p
 from __future__ import annotations
 
 import ast
+import contextlib
 import os
 import re
 import shutil
@@ -645,8 +646,8 @@ def test_no_comment_points_at_a_governing_document_by_number() -> None:
         "a comment points at a governing document by number:\n"
         + "\n".join(offenders)
         + "\n\nWrite the idea instead of the label. Name the concept — the read budget, a Blocker, "
-        "the byte resolver, a benign twin; the per-context CONTEXT.md files are the glossary — and "
-        "delete the comment "
+        "the byte resolver, a benign twin; the per-context GLOSSARY.md files are the glossary — "
+        "and delete the comment "
         "outright if the pointer was all it carried. A number is a mutable label, and four of them "
         "had already gone stale by the time this check existed."
     )
@@ -1441,10 +1442,8 @@ def test_an_interrupted_gate_leaves_no_step_running(bash: str, tmp_path: Path) -
         )
     finally:
         for pid in grandchildren:
-            try:
+            with contextlib.suppress(OSError):
                 os.kill(pid, signal.SIGKILL)
-            except OSError:
-                pass
         if proc.poll() is None:
             proc.kill()
             proc.communicate()

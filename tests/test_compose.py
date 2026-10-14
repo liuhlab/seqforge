@@ -138,7 +138,8 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     assert solo["soloUMIposition"] == "3_10_3_17"
     assert solo["soloStrand"] == "Forward"
     # the diversity insert is absorbed by the adapter, so no read-start start/length is emitted
-    assert "soloCBstart" not in solo and "soloUMIstart" not in solo
+    assert "soloCBstart" not in solo
+    assert "soloUMIstart" not in solo
 
     # SPLiT-seq's rendering axis rides on this one. `plan` needs no subprocess (0.06s), so the
     # condition that makes the substitution legal is an assertion rather than a code-review note.
@@ -305,9 +306,10 @@ def test_the_composer_records_the_run_each_unit_came_from(built_v3: Built) -> No
     from seqforge.compose.core import _units
     from seqforge.resolve.group import lane_of, run_key
 
-    manifest, reg = built_v3
+    manifest, _reg = built_v3
     rows = _units(manifest)
-    assert rows and all(set(r) >= {"sample_id", "run", "lane", "read_id", "path"} for r in rows)
+    assert rows
+    assert all(set(r) >= {"sample_id", "run", "lane", "read_id", "path"} for r in rows)
     for r in rows:
         assert r["run"] == run_key(r["path"])
         assert r["lane"] == lane_of(r["path"])
@@ -1583,7 +1585,8 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     # segment for destruction before loading, and every mapping job ATTACHES instead of loading.
     rendered = _rendered_shell(plan_text)
     load = rendered["load_genome"][""]
-    assert "--genomeLoad Remove" in load and "--genomeLoad LoadAndExit" in load
+    assert "--genomeLoad Remove" in load
+    assert "--genomeLoad LoadAndExit" in load
     assert "|| true" in load, "removing a segment that is not there is a STAR error and a no-op"
     maps = rendered["star_umi_map"]
     assert len(maps) == PLATE_CELL_COUNT
@@ -1611,7 +1614,8 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
         assert body, f"the emitted module carries no `{handler}` handler"
         assert "release_genome_segment()" in body.split("\n\n", 1)[0]
     helper = emitted[emitted.index("def release_genome_segment(") : emitted.index("\nonsuccess:")]
-    assert "--genomeLoad Remove" in helper and "|| true" in helper, helper
+    assert "--genomeLoad Remove" in helper, helper
+    assert "|| true" in helper, helper
 
 
 @pytest.mark.xdist_group("composed-plate")
@@ -1874,7 +1878,7 @@ def _e2e_shell(command: str, work: Path) -> None:
     into an argv would be this file writing a second command line, which is the one thing an
     end-to-end gate over a composed pipeline must not do.
     """
-    proc = subprocess.run(  # noqa: S602
+    proc = subprocess.run(
         command, shell=True, cwd=work, capture_output=True, text=True, executable="/bin/bash"
     )
     assert proc.returncode == 0, (
@@ -2271,7 +2275,7 @@ def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_c
         _e2e_shell(rendered["load_genome"][""], work)
         for cell in cells:
             extraction = rendered["umi_extract"][cell]
-            assert "--r1" not in extraction and "--r2" not in extraction, (
+            assert not any(flag in extraction for flag in ("--r1", "--r2")), (
                 f"the rule renders a file list rather than the table (ADR-0036):\n{extraction}"
             )
             _e2e_shell(extraction, work)
@@ -2400,7 +2404,8 @@ def test_two_processing_manifests_do_not_overwrite_each_other(
         workspace=tmp_path,
     )
     assert a.config_path != b.config_path, "two runs must not share one config path"
-    assert (tmp_path / a.config_path).is_file() and (tmp_path / b.config_path).is_file()
+    assert (tmp_path / a.config_path).is_file()
+    assert (tmp_path / b.config_path).is_file()
     assert yaml.safe_load((tmp_path / a.config_path).read_text())["genome"]["assembly"] == "sacCer3"
     assert yaml.safe_load((tmp_path / b.config_path).read_text())["genome"]["assembly"] == "ce11"
 
@@ -2524,9 +2529,10 @@ def test_a_kb_edit_re_keys_the_compile_only_when_it_reaches_an_emitted_byte(
             "a param that reaches the config must land in its own directory; sharing one is the "
             "silent overwrite ADR-0037 exists to stop"
         )
-        assert (first_ws / before.config_path).is_file() and (
-            second_ws / after.config_path
-        ).is_file(), "a row that re-keys must still have produced two compiles to compare"
+        compiled = (first_ws / before.config_path, second_ws / after.config_path)
+        assert all(config.is_file() for config in compiled), (
+            "a row that re-keys must still have produced two compiles to compare"
+        )
     else:
         assert after.config_path == before.config_path, (
             "a knowledge-base fact no emitted byte is a function of may not cost this dataset its "
@@ -2691,7 +2697,7 @@ def _corrupt_kb_names_no_barcode_match_mode(
 
 
 @pytest.mark.parametrize(
-    "corruption, expected_problem",
+    ("corruption", "expected_problem"),
     [
         (_corrupt_kb_claims_a_10bp_umi, "soloUMIlen"),
         (_corrupt_config_drops_a_chemistry_knob, "soloStrand"),
@@ -2900,7 +2906,7 @@ def test_a_complex_chemistry_is_refused_the_barcode_match_mode_only_simple_chemi
     assert any("1MM_multi" in p and "CB_UMI_Complex" in p for p in problems), problems
 
 
-def test_soloBarcodeReadLength_stays_optional_and_is_passed_only_when_declared() -> None:
+def test_soloBarcodeReadLength_stays_optional_and_is_passed_only_when_declared() -> None:  # noqa: N802 - the STAR parameter, spelled as STAR spells it
     """The "make it actually run" flag: 10x sets it, SPLiT-seq must not be forced to.
 
     STARsolo FATALs by default unless the barcode read is exactly CB+UMI long, so 10x v2/v3/v3.1 --
@@ -2915,7 +2921,7 @@ def test_soloBarcodeReadLength_stays_optional_and_is_passed_only_when_declared()
     assert "solo.soloBarcodeReadLength" not in get_module("map/starsolo").required_config
 
 
-def test_soloCBmatchWLtype_is_required_of_every_starsolo_chemistry() -> None:
+def test_soloCBmatchWLtype_is_required_of_every_starsolo_chemistry() -> None:  # noqa: N802 - the STAR parameter, spelled as STAR spells it
     """The exact mirror of the test above, and the pair is the point.
 
     `soloBarcodeReadLength` is read with `SOLO.get(...)` because only some chemistries have one;
@@ -2932,7 +2938,7 @@ def test_soloCBmatchWLtype_is_required_of_every_starsolo_chemistry() -> None:
     assert "solo.soloCBmatchWLtype" in get_module("map/starsolo").required_config
 
 
-def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(
+def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(  # noqa: N802 - the STAR parameter, spelled as STAR spells it
     built_v3: Built, synth_splitseq: SynthDataset
 ) -> None:
     """Whether compose EMITS the key, for a chemistry that declares it and one that does not.
@@ -3111,7 +3117,9 @@ def test_a_cell_below_the_live_kbs_floor_leaves_the_pipeline_and_stays_in_the_ma
     config = yaml.safe_load((tmp_path / result.config_path).read_text())
     assert config["samples"] == ["cell1", "cell3"]
     units = (tmp_path / result.units_path).read_text()
-    assert "cell2" not in units and "cell1" in units and "cell3" in units
+    assert "cell2" not in units
+    assert "cell1" in units
+    assert "cell3" in units
     assert [s.sample_id for s in plate.experiment.samples] == ["cell1", "cell2", "cell3"]
 
 
@@ -3157,14 +3165,16 @@ def test_the_exclusion_record_carries_each_dropped_cell_its_count_the_threshold_
     declare_read_floor(monkeypatch, plate.library.chemistry.value[0], _FLOOR)
     result = _compose_plate(plate, reg, tmp_path)
 
-    assert result.admission is not None and result.admission.record_path is not None
+    assert result.admission is not None
+    assert result.admission.record_path is not None
     record_path = tmp_path / result.admission.record_path
     assert record_path == (tmp_path / result.config_path).parent / EXCLUSIONS_NAME
     record = record_path.read_text()
     assert "2 of 4 cells dropped" in record
     for token in ("cell2", "400", "cell4", "12", str(_FLOOR)):
         assert token in record, token
-    assert "cell1" not in record and "cell3" not in record
+    assert "cell1" not in record
+    assert "cell3" not in record
 
 
 def test_a_bare_kb_version_bump_rewrites_no_byte_of_the_directory_it_cannot_re_key(
@@ -3246,21 +3256,24 @@ def test_the_record_less_caveat_appears_only_when_a_drop_met_a_dataset_with_no_a
     declare_read_floor(monkeypatch, manifest.library.chemistry.value[0], _FLOOR)
 
     record_less = _compose_plate(plate_of(manifest, starved), reg, tmp_path / "no-accession")
-    assert record_less.admission is not None and record_less.admission.record_path is not None
+    assert record_less.admission is not None
+    assert record_less.admission.record_path is not None
     disclosed = (tmp_path / "no-accession" / record_less.admission.record_path).read_text()
     assert "filename" in disclosed
 
     archived = _compose_plate(
         plate_of(manifest, starved, accession="SRR1000001"), reg, tmp_path / "accession"
     )
-    assert archived.admission is not None and archived.admission.record_path is not None
+    assert archived.admission is not None
+    assert archived.admission.record_path is not None
     joined = (tmp_path / "accession" / archived.admission.record_path).read_text()
     assert "filename" not in joined
 
     healthy = _compose_plate(
         plate_of(manifest, one_run_each({"cell1": 4000})), reg, tmp_path / "healthy"
     )
-    assert healthy.admission is not None and healthy.admission.excluded == {}
+    assert healthy.admission is not None
+    assert healthy.admission.excluded == {}
     assert healthy.admission.record_path is None, (
         "nothing was lost, so there is nothing to disclose"
     )
@@ -3351,10 +3364,12 @@ def test_a_floor_on_a_chemistry_whose_sample_is_not_a_cell_drops_samples_and_say
     declare_read_floor(monkeypatch, libraries.library.chemistry.value[0], _FLOOR)
     result = _compose_plate(libraries, reg, tmp_path)
 
-    assert result.admission is not None and result.admission.record_path is not None
+    assert result.admission is not None
+    assert result.admission.record_path is not None
     assert result.admission.summary == "1 of 2 samples dropped"
     record = (tmp_path / result.admission.record_path).read_text()
-    assert "1 of 2 samples dropped" in record and "cell" not in record
+    assert "1 of 2 samples dropped" in record
+    assert "cell" not in record
     config = yaml.safe_load((tmp_path / result.config_path).read_text())
     assert config["samples"] == ["lib1"]
 

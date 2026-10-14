@@ -38,7 +38,7 @@ def extract_pdf_images(pdf: Path, outdir: Path) -> list[str]:
     out: list[str] = []
     try:
         doc = pymupdf.open(str(pdf))
-    except Exception:  # noqa: BLE001 - a malformed PDF must not sink the whole package
+    except Exception:  # a malformed PDF must not sink the whole package
         return []
     try:
         for pno in range(doc.page_count):
@@ -52,7 +52,7 @@ def extract_pdf_images(pdf: Path, outdir: Path) -> list[str]:
                     name = f"p{pno + 1:03d}-i{idx + 1:02d}.png"
                     outdir.mkdir(parents=True, exist_ok=True)
                     pix.save(str(outdir / name))
-                except Exception:  # noqa: BLE001 - skip a single unreadable image, keep the rest
+                except Exception:  # skip a single unreadable image, keep the rest
                     continue
                 out.append(f"{outdir.name}/{name}")
     finally:
@@ -94,7 +94,7 @@ def extract_info(docs: Sequence[Path], staging: Path, *, include_raw: bool = Tru
             from ..harvest.normalize import read_document
 
             text = read_document(doc)
-        except Exception:  # noqa: BLE001 - a document we cannot parse is not a reason to fail preflight
+        except Exception:  # a document we cannot parse is not a reason to fail preflight
             text = ""
         if text.strip():
             _write_text(info_root / "text" / f"{doc.stem}.txt", text)
@@ -115,20 +115,23 @@ def write_tar_gz(src_dir: Path, dest: Path) -> None:
     """
     dest.parent.mkdir(parents=True, exist_ok=True)
     entries = sorted(src_dir.rglob("*"), key=lambda p: str(p.relative_to(src_dir)))
-    with open(dest, "wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as gz:
-        with tarfile.open(fileobj=gz, mode="w") as tar:
-            for path in entries:
-                arcname = str(path.relative_to(src_dir))
-                info = tar.gettarinfo(str(path), arcname=arcname)
-                info.mtime = 0
-                info.uid = info.gid = 0
-                info.uname = info.gname = ""
-                info.mode = 0o755 if path.is_dir() else 0o644
-                if path.is_file():
-                    with open(path, "rb") as fh:
-                        tar.addfile(info, fh)
-                else:
-                    tar.addfile(info)
+    with (
+        dest.open("wb") as raw,
+        gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as gz,
+        tarfile.open(fileobj=gz, mode="w") as tar,
+    ):
+        for path in entries:
+            arcname = str(path.relative_to(src_dir))
+            info = tar.gettarinfo(str(path), arcname=arcname)
+            info.mtime = 0
+            info.uid = info.gid = 0
+            info.uname = info.gname = ""
+            info.mode = 0o755 if path.is_dir() else 0o644
+            if path.is_file():
+                with path.open("rb") as fh:
+                    tar.addfile(info, fh)
+            else:
+                tar.addfile(info)
 
 
 __all__ = ["extract_info", "extract_pdf_images", "write_tar_gz"]

@@ -48,7 +48,7 @@ class Budget:
     One value rather than two ints threaded side by side, because they are never meaningful apart —
     the budget is two-part and whichever trips first stops the read, so a function holding one bound
     and not the other cannot enforce it.
-    This package's ``CONTEXT.md`` has named the concept **Budget** since the glossary was written;
+    This package's ``GLOSSARY.md`` has named the concept **Budget** since the glossary was written;
     this is the type.
 
     A head carries the budget it was actually read under (:attr:`FastqHead.budget`), which is what
@@ -134,7 +134,7 @@ class BoundedReader:
             or self.decompressed_bytes >= self.budget.max_bytes
         )
 
-    def __iter__(self) -> Generator[Record, None, None]:
+    def __iter__(self) -> Generator[Record]:
         """The records, as a GENERATOR — `close()` is part of the contract, not an accident.
 
         Spelled as one rather than as an `Iterator`, because a caller that stops early has to be
@@ -290,7 +290,7 @@ class FastqHead:
         before this ``close()``.
         """
         p = Path(path)
-        raw = open(p, "rb")  # noqa: SIM115 - closed explicitly in finally
+        raw = p.open("rb")  # closed explicitly in finally
         try:
             return cls.read(raw, budget, source_path=p)
         finally:
