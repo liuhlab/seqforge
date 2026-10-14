@@ -195,7 +195,7 @@ pixi run -- seqforge manifest fill data/*/*.fastq.gz --accession PRJNA1027859 \
 ```
 
 This is the **only** stage that touches a language model. It has exactly two jobs: turn prose into
-claims that carry a quote, and arbitrate an ambiguity code has already flagged. Everything else in
+claims that carry a quote, and settle an ambiguity code has already flagged. Everything else in
 seqforge is a verifier.
 
 Every claim it returns carries a verbatim quote. Code — not the model — greps that quote back into
@@ -217,7 +217,7 @@ the paper says "we dissected neurons and body wall muscle" and the model comes b
 `tissue=muscle`, that quote is real and it does entail the value — the span check passes, and it is
 *right to* pass. What catches it is the record saying `Neurons`: the record is a declaration about
 that sample (`asserted`), the paper's reading is our inference (`inferred`), so **the record's value
-stands** and the paper's is surfaced as a non-blocking **warning**. The manifest still compiles — a
+stands** and the paper's is reported as a non-blocking **warning**. The manifest still compiles — a
 single ambiguous sample annotation is no reason to refuse a dataset. And if two *equal* authorities
 disagree (two records, say), the field is left **null**: a missing value is not permanent, a wrong one
 is. Only a disagreement about what the data *is* — the byte-level chemistry — blocks.
@@ -269,7 +269,7 @@ directory rather than silently overwriting the first — and the dataset's own h
 own version, so a release moves the directory name for the same dataset and the same recipe. Step 7
 therefore takes the path from your own output, never from this page.
 
-Each gate carries its own reason beside its verdict, because a verdict alone is not actionable: a
+Each gate carries its own reason beside its verdict, because a verdict alone does not say what to do: a
 failing wiring gate hands back what snakemake said, and a `skip` says what it was waiting for.
 
 The gates:
@@ -305,7 +305,7 @@ mapping job attaches to that one copy, so several samples mapping at the same ti
 between them rather than one apiece — on a human genome that is the difference between ~31 GB and
 ~31 GB times however many jobs are running. Spreading the jobs across machines with a cluster
 profile still satisfies every dependency in the workflow and silently gives each job its own copy,
-because an edge guarantees order and never co-location. Scale comes from running many pipelines at
+because an edge guarantees order, never that two jobs share a machine. Scale comes from running many pipelines at
 once, not from fanning one out. Give the run a whole machine and let `--cores` decide how many
 samples map at a time.
 
@@ -335,4 +335,4 @@ this way.
   files with separate lifetimes.
 - [When it refuses](../concepts/refusal.md) — the exit-code contract, and why a refusal is cheap and a
   confidently wrong manifest is not.
-- [How a dataset is identified](../concepts/identifying.md) — content addressing, and what moves a hash.
+- [How a dataset is identified](../concepts/identifying.md) — naming data by its hash, and what moves a hash.

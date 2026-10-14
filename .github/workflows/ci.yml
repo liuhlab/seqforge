@@ -68,6 +68,22 @@ jobs:
       - name: markdownlint (docs + README)
         run: pixi run -e docs markdownlint
 
+  # The lab's prose rules (`.vale.ini`, `styles/Lab/`): word caps on agent-facing pages, jargon and
+  # reading grade on the site. Its own job rather than a step of `lint`, so a prose finding is its own
+  # red check and never stops the code steps after it. Outside `pixi run check`, like markdownlint, and
+  # in the same `docs` environment.
+  vale:
+    name: vale
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          environments: docs
+          locked: true
+      - name: vale (prose rules)
+        run: pixi run -e docs vale
+
   # The unit lane. Three jobs run the suite and between them they are a PARTITION of it -- this one,
   # `test-corpus` below, and `test-external` after that. The task table owns which selection is which.
   #
@@ -164,15 +180,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          # hatch-vcs reads the newest tag, and a shallow clone has none, so without this the wheel
+          # is a `0.1.devN` build even on a released commit.
+          fetch-depth: 0
       - uses: prefix-dev/setup-pixi@v0.10.0
         with:
-          environments: default
+          environments: dist
           locked: true
       - name: build
-        run: pixi run -e default build
+        run: pixi run build
       # The wheel exists now, so inspect it here rather than build a second one under pytest. The
       # package data is not Python -- if `io/onlists/*.codes.gz`, the `.smk` modules, the KB specs or
       # the report assets fall out of the wheel, every real dataset breaks while the unit suite (which
       # reads the source tree) stays green. See scripts/check_wheel_contents.py and #108.
       - name: wheel ships its package data
-        run: pixi run -e default check-wheel
+        run: pixi run check-wheel
+      # The release job runs this too; here it fails on the pull request, not on release day.
+      - name: twine check
+        run: pixi run check-dist

@@ -25,7 +25,7 @@ flowchart TD
 A refusal is an **exit code**, not a warning in a log. Code decides whether processing may proceed;
 the language model never gets a vote, and at most helps phrase the question.
 
-Every blocker carries a reason and an actionable remedy. "Could not process" is not a remedy. "The
+Every blocker carries a reason and a remedy you can act on. "Could not process" is not a remedy. "The
 barcode read is missing — re-fetch including technical reads, or pull the submitter's original files"
 is.
 
@@ -52,7 +52,7 @@ Every one of them exits 0.
 
 ## Never ask a question you don't need answered
 
-Refusing is expensive too: a system that interrogates you constantly is one you route around, and
+Refusing is expensive too: a system that questions you constantly is one you route around, and
 then it protects nobody.
 
 **Don't ask if the answer can't change anything.** Two versions of the 10x chemistry may be
