@@ -452,10 +452,7 @@ def default_jobs() -> int:
     limit instead of the compiler, and a partly rate-limited run is a worse number than a slower one.
     An explicit ``jobs`` always wins; this is the default, not a cap.
     """
-    # `process_cpu_count` is 3.13+; on 3.12 (which mypy targets) fall back to the machine count.
-    usable = getattr(os, "process_cpu_count", None)
-    cpus: int | None = usable() if usable is not None else os.cpu_count()
-    return min(MAX_DEFAULT_JOBS, cpus or 1)
+    return min(MAX_DEFAULT_JOBS, os.process_cpu_count() or 1)
 
 
 def run_cases(

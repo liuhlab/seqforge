@@ -731,7 +731,7 @@ def _segment(
 
 def _positionally_paired(
     one: BoundedReader, two: BoundedReader, *, tagged_fastq: Path, mate_fastq: Path
-) -> Generator[tuple[Record, Record | None], None, None]:
+) -> Generator[tuple[Record, Record | None]]:
     """Record *n* of the tagged FASTQ with record *n* of its mate, or refuse.
 
     Positional, as every other tool does, so the input contract stops depending on who produced the
@@ -870,9 +870,7 @@ def extract_umis(
                 two: BoundedReader | None = None
                 # The base case: one read, one record, nothing beside it. The mate below replaces
                 # this stream rather than the loop that consumes it.
-                source: Generator[tuple[Record, Record | None], None, None] = (
-                    (rec, None) for rec in one
-                )
+                source: Generator[tuple[Record, Record | None]] = ((rec, None) for rec in one)
                 if mate_fastq is not None:
                     raw2 = open_files.enter_context(open(mate_fastq, "rb"))
                     two = BoundedReader(raw2, _UNBOUNDED)
