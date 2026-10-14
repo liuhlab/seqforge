@@ -2042,9 +2042,7 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     assert scratch, f"{module}'s genome load writes under a prefix it did not create:\n{load}"
     made = f'"${scratch.group(1)}"'
     prefixes = re.findall(r"--outFileNamePrefix (\S+)", load)
-    assert len(prefixes) == 2, (
-        f"{module}'s genome load leaves STAR run-files inside the deliverable: {prefixes}"
-    )
+    assert len(prefixes) == 2, f"{module}'s genome load names {len(prefixes)} prefixes, not 2"
     assert all(p.startswith(made) for p in prefixes), (
         f"{module}'s genome load leaves STAR run-files inside the deliverable: {prefixes}"
     )
@@ -2896,9 +2894,7 @@ def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one
     assert scratch, f"the release writes under a prefix it did not create:\n{helper}"
     made = f'"${scratch.group(1)}"'
     prefixes = re.findall(r"--outFileNamePrefix (\S+)", helper)
-    assert prefixes, (
-        f"{module_name}'s release leaves STAR run-files inside the deliverable: {prefixes}"
-    )
+    assert prefixes, f"{module_name}'s release names no prefix"
     assert all(p.startswith(made) for p in prefixes), (
         f"{module_name}'s release leaves STAR run-files inside the deliverable: {prefixes}"
     )
@@ -8788,7 +8784,5 @@ def test_the_clip_pairings_no_shipped_spec_can_produce_are_fatal_in_the_binary(
         f"shape -- or this row stopped asking the question. STAR said: {verdict}"
     )
     assert refusal in verdict, (
-        f"STAR accepted {' '.join(flags)}, which nothing may ship and the knowledge base refuses at "
-        f"load. Either the binary's rules moved -- in which case the schema's rule is now the wrong "
-        f"shape -- or this row stopped asking the question. STAR said: {verdict}"
+        f"STAR refused {' '.join(flags)}, but not for {refusal!r}. STAR said: {verdict}"
     )

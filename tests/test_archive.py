@@ -361,13 +361,10 @@ def test_every_submitted_file_carries_the_md5_size_and_uri_beside_its_name(
     assert len(files) == sum(len(names) for names in _DECLARED_FILENAMES.values())
     for f in files:
         assert f.md5 is not None, f"{f.filename}: no provider md5"
-        assert len(f.md5) == 32, f"{f.filename}: no provider md5"
+        assert len(f.md5) == 32, f"{f.filename}: provider md5 {f.md5!r} is not 32 hex digits"
         assert f.size_bytes is not None, f"{f.filename}: no declared size"
-        assert f.size_bytes > 0, f"{f.filename}: no declared size"
-        assert f.uri is not None, (
-            f"{f.filename}: the submitter's own upload lives in a `sra-pub-src-*` bucket, and "
-            f"{f.uri} is not one"
-        )
+        assert f.size_bytes > 0, f"{f.filename}: declared size is {f.size_bytes}"
+        assert f.uri is not None, f"{f.filename}: no URI"
         assert f.uri.startswith("s3://sra-pub-src-"), (
             f"{f.filename}: the submitter's own upload lives in a `sra-pub-src-*` bucket, and "
             f"{f.uri} is not one"

@@ -33,8 +33,8 @@ jobs:
         run: pixi run -e default fmt-check
       - name: mypy --strict
         run: pixi run -e default typecheck
-      # The template's rules against this repo. It lists tracked files with git, which the full
-      # checkout above provides; without `.git` it exits 2, "could not run", never 1.
+      # The template's rules against this repo. It lists tracked files with git, which the checkout
+      # above provides, shallow or not; without `.git` it exits 2, "could not run", never 1.
       - name: conformance
         run: pixi run -e default conformance
       # Does the SITE build: a dead internal link, a nav entry naming a file that moved, a snippet

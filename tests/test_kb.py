@@ -82,8 +82,9 @@ def test_an_element_whose_sequence_contradicts_its_own_window_fails_at_load(delt
     with pytest.raises(ValidationError, match="linker1") as exc:
         Spec.model_validate(data)
     message = str(exc.value)
-    assert "30" in message, "both widths, so the fix is one edit"
-    assert str(30 + delta) in message, "both widths, so the fix is one edit"
+    assert all(width in message for width in ("30", str(30 + delta))), (
+        "both widths, so the fix is one edit"
+    )
 
 
 def test_the_width_clause_is_not_decoration_the_shipped_kb_exercises_it() -> None:

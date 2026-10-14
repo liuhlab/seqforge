@@ -26,9 +26,10 @@ the shell as `SORT_CAP_SHELL`.
 (`keys_read_by`) and the AST-walked renderer (`argv_keys_read_by`), which sees both geometry branches
 and ignores prose; that dropped a bare `solo` a docstring had supplied. **Amended 2026-08-11 (#370):**
 the figures were ceilings, not floors, since `--limitBAMsortRAM` caps the peak. **Amended 2026-08-18
-(#434):** the plate twins' argv gains bare `--outSAMunmapped Within`, never `Within KeepPairs`, whose
-second token orders mates in unsorted output only. Without it the counter's first read fate could not
-execute; the retained archive names the `mapped` selection.
+(#434):** the plate twins' argv gains bare `--outSAMunmapped Within`, never `Within KeepPairs`,
+whose second token orders mates in unsorted output only, which a coordinate-sorted module cannot use.
+Without it the counter's first read fate could not execute; the retained archive names the `mapped`
+selection.
 
 **Amended 2026-08-21 (#463):** the decision generalises, in `splice_args.py`. STAR's junction flags
 (`--outFilterType BySJout`, the two overhang minimums, `jM jI` on the attribute list) are identical in

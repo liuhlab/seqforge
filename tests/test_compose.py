@@ -2275,10 +2275,7 @@ def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_c
         _e2e_shell(rendered["load_genome"][""], work)
         for cell in cells:
             extraction = rendered["umi_extract"][cell]
-            assert "--r1" not in extraction, (
-                f"the rule renders a file list rather than the table (ADR-0036):\n{extraction}"
-            )
-            assert "--r2" not in extraction, (
+            assert not any(flag in extraction for flag in ("--r1", "--r2")), (
                 f"the rule renders a file list rather than the table (ADR-0036):\n{extraction}"
             )
             _e2e_shell(extraction, work)
@@ -2532,10 +2529,8 @@ def test_a_kb_edit_re_keys_the_compile_only_when_it_reaches_an_emitted_byte(
             "a param that reaches the config must land in its own directory; sharing one is the "
             "silent overwrite ADR-0037 exists to stop"
         )
-        assert (first_ws / before.config_path).is_file(), (
-            "a row that re-keys must still have produced two compiles to compare"
-        )
-        assert (second_ws / after.config_path).is_file(), (
+        compiled = (first_ws / before.config_path, second_ws / after.config_path)
+        assert all(config.is_file() for config in compiled), (
             "a row that re-keys must still have produced two compiles to compare"
         )
     else:

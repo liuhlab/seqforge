@@ -223,7 +223,6 @@ vale = "3.19.0.*"
 # because twine 7 needs packaging 26 and snakemake caps packaging below 26, while twine 6 under
 # packaging 25 cannot read the metadata version hatchling now writes.
 [tool.pixi.feature.dist.dependencies]
-python = "3.13.*"
 python-build = "*"
 twine = "*"
 
@@ -254,7 +253,7 @@ docs    = { features = ["py313", "docs"], solve-group = "default" }
 test-star = { features = ["star"], solve-group = "star", no-default-feature = true }
 # No default feature either: a build needs a frontend and the source tree, and installing seqforge
 # with all its dependencies would only slow the release job down.
-dist = { features = ["dist"], solve-group = "dist", no-default-feature = true }
+dist = { features = ["py313", "dist"], solve-group = "dist", no-default-feature = true }
 
 [tool.pixi.tasks]
 lint      = "ruff check ."
@@ -308,7 +307,7 @@ test-failed = "pytest --lf --new-first -x -q"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 # The networked validation benchmark, not part of `check`. Exits 3 on any false-accept.
 eval      = "seqforge eval run"
-# Not `depends-on`: pixi runs those sequentially. `check.sh` runs the seven concurrently and prints
+# Not `depends-on`: pixi runs those sequentially. `check.sh` runs its steps concurrently and prints
 # each one's output whole, in a fixed order. The three test lanes are separate steps rather than one,
 # so the corpus and the binaries land in what was idle time — the suite does not saturate its workers,
 # and a lane that finishes early gives its share back to the one that has not. The gate runs the same
@@ -348,6 +347,7 @@ vale = "vale --glob='!{.pixi,.claude,site,dist,build,seqforge}/**' ."
 "AGENTS.md" = "LengthDoc"
 "GLOSSARY-MAP.md" = false
 "skills/" = "LengthDoc"
+"docs/agents/" = "LengthDoc"
 "docs/adr/" = "LengthAdr"
 "docs/research/" = false
 
@@ -380,12 +380,15 @@ select = [
 # E501: the formatter owns line length. UP046/UP047: keep classic Generic[T]/TypeVar, which has the
 # better-tested pydantic-v2 + mypy support. N818: an exception here names the condition it signals
 # (`CaseSkipped`, `CeilingExceeded`, `TermUnknown`), and several are control flow, not errors.
-# SIM300: an UPPER_CASE name is a module table under test, so it is the actual on the left of `==`.
-ignore = ["E501", "UP046", "UP047", "N818", "SIM300"]
+ignore = ["E501", "UP046", "UP047", "N818"]
 # Typography the prose means: a multiplication sign for a fold or a count, an en dash for a range, a
 # prime for a nucleic-acid end (5′, 3′), a minus sign, curly quotes, and angle quotes for a pager's
 # arrows.
 allowed-confusables = ["×", "–", "′", "−", "‘", "’", "‹", "›"]
+
+[tool.ruff.lint.per-file-ignores]
+# SIM300: an UPPER_CASE name is a module table under test, so it is the actual on the left of `==`.
+"tests/**" = ["SIM300"]
 
 [tool.ruff.lint.flake8-bugbear]
 # Typer uses call expressions as parameter defaults by design.

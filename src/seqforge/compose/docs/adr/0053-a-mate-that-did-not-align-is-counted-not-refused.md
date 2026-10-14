@@ -5,8 +5,8 @@ aligns, the aligner omits the other and the mapped survivor is kept unbalanced; 
 of sixteen matrices to that refusal. The survivor carries the mate-unmapped flag, so it is a
 **singleton**: each side's come off that side, and the PAIRED REMAINDER must balance. Rejected:
 requiring both mates (discards evidence); per-template state (no buffer may be bought here); an
-informational check (the only net under a halved output). The count is also derived a second,
-independent way, which refuses a BAM whose aligner never wrote the dead records.
+informational check (the only net under a halved output). The count is also derived
+independently, which refuses a BAM whose aligner never wrote the dead records.
 
 **Amended 2026-08-18 (#440): the second derivation is a BOUND, not an equality.** STAR writes a dead
 mate's `RNAME` as `*` and its partner's chromosome in `RNEXT`, so the mate POINTER names the
@@ -23,7 +23,8 @@ anything.** The mirror occurs: three cells of a 784-cell plate came up one short
 placed survivor whose dead mate is in no file. An emitted locus leaves a dead half no survivor is
 owed; an unemitted one takes its dead half with it. So `survivors - pointers <= multiply-placed
 survivors` is ASSERTED, and both signs of the difference are REPORTED as two non-negative counts,
-because every reader takes a count as non-negative. Rejected: an informational check, since zero
-pointers against survivors no multiply-placed count covers is the flag this exists to catch; a
-fixed tolerance, invented at review, against a deficit that grows with the plate. The bound cannot attribute: a uniquely placed survivor's missing mate is
-forgiven up to that many, and separating them needs state this module may not hold.
+because at most one can be non-zero and readers take a count as non-negative. Rejected: an
+informational check, since zero pointers against survivors no multiply-placed count covers is the
+flag this exists to catch; a fixed tolerance, invented at review, against a deficit that grows with
+the plate. The bound cannot attribute: a uniquely placed survivor's missing mate is forgiven up to
+that many, and separating them needs state this module may not hold.

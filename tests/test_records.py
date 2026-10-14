@@ -1309,10 +1309,7 @@ def test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declar
     fused = [w for w in out.warnings if w.code == "declared_sample_fuses_runs"]
     assert len(fused) == 1, f"warnings were {[w.model_dump() for w in out.warnings]}"
     note = fused[0]
-    assert "lib7_S1" in note.message, (
-        "the note has to name BOTH runs the filenames would have kept apart"
-    )
-    assert "lib7_S3" in note.message, (
+    assert all(run in note.message for run in ("lib7_S1", "lib7_S3")), (
         "the note has to name BOTH runs the filenames would have kept apart"
     )
     assert "lib7" in note.message, "and which sample they were fused into"

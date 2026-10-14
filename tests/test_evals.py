@@ -2342,7 +2342,7 @@ def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_cor
     assert cases, "the benchmark tier is present but empty"
     for c in cases:
         gen = c.recipe.generate
-        assert isinstance(gen, FingerprintRecipe), f"{c.id}: benchmark cases pull from hf"
+        assert isinstance(gen, FingerprintRecipe), f"{c.id}: generator is {type(gen).__name__}"
         assert gen.hf, f"{c.id}: benchmark cases pull from hf"
         assert c.records is not None, f"{c.id}: a benchmark case commits its records.json"
         assert c.expected.fields.get("library.chemistry"), f"{c.id}: pins a resolved chemistry"
@@ -2733,7 +2733,7 @@ def test_a_nineteenth_case_moves_the_digest_which_is_why_it_is_excluded() -> Non
     from seqforge.evals.digest import FROZEN_18, grade_digest
 
     frozen = _digest_report([_digest_row(c) for c in FROZEN_18])
-    widened = [*list(FROZEN_18), "GSE207085-nasal-prox1-96cells"]
+    widened = [*FROZEN_18, "GSE207085-nasal-prox1-96cells"]
     grown = _digest_report(
         [_digest_row(c) for c in FROZEN_18]
         + [_digest_row("GSE207085-nasal-prox1-96cells", grade="false_accept")]
@@ -3344,7 +3344,7 @@ def test_the_html_renderer_shows_a_false_accept_rather_than_averaging_it_away() 
     assert "FALSE ACCEPT" in page, "a false accept is stated outright, not folded into a percentage"
     assert "poisoned-one" in page, "and the case is named"
     assert "bulk-rnaseq" in page, "the wrong value must be visible"
-    assert "10x-3p-gex-v3" in page, "the wrong value must be visible"
+    assert "10x-3p-gex-v3" in page, "beside the expected one"
     assert "library.chemistry" in page, "beside the field path it was wrong about"
 
     clean = dict(_render_fixture())
@@ -3866,8 +3866,7 @@ def test_the_eval_report_makes_no_external_network_reference() -> None:
     assert not offsite, f"external references leaked in: {offsite[:3]}"
     assert "@import url(http" not in page.replace(" ", "").lower()
     assert "cdn.tailwindcss.com" not in page, "the Play CDN would render nothing from file://"
-    assert "cdn.jsdelivr" not in page, "a CDN link regressed in"
-    assert "unpkg" not in page, "a CDN link regressed in"
+    assert not any(cdn in page for cdn in ("cdn.jsdelivr", "unpkg")), "a CDN link regressed in"
     # ...and the 404 reason still made it onto the page, URL and all.
     assert "404" in page
     assert "GSE110823" in page
@@ -4632,10 +4631,7 @@ def test_a_declared_record_set_fuses_two_runs_into_one_sample(
 
     fused = [w for w in metadata.warnings if w.code == "declared_sample_fuses_runs"]
     assert len(fused) == 1, f"a declared fuse must say so: {[w.code for w in metadata.warnings]}"
-    assert "SIM_b01_S1" in fused[0].message, (
-        "the note names the runs that were fused, or it cannot be acted on"
-    )
-    assert "SIM_b02_S2" in fused[0].message, (
+    assert all(run in fused[0].message for run in ("SIM_b01_S1", "SIM_b02_S2")), (
         "the note names the runs that were fused, or it cannot be acted on"
     )
     assert not metadata.blockers, "a fuse is a Warning, never a Blocker"

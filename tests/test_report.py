@@ -132,8 +132,7 @@ def test_report_makes_no_external_network_reference(workspace: Path) -> None:
     offsite = re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
     assert not offsite, f"external references leaked in: {offsite[:3]}"
     assert "@importurl(http" not in html.replace(" ", "").replace("'", '"').lower()
-    assert "cdn.jsdelivr" not in html, "a CDN link regressed in"
-    assert "unpkg" not in html, "a CDN link regressed in"
+    assert not any(cdn in html for cdn in ("cdn.jsdelivr", "unpkg")), "a CDN link regressed in"
 
 
 def test_report_render_is_byte_deterministic(workspace: Path) -> None:
@@ -1260,12 +1259,12 @@ def test_the_pipeline_tab_embeds_its_artifacts_and_scrolls_them_in_their_own_reg
     )
 
     tables = re.findall(r"<table[^>]*>", pane)
-    assert tables, "the recipe table can widen the page instead of scrolling inside its own region"
+    assert tables, "the pipeline pane renders no table"
     assert len(tables) == pane.count('<div class="sf-scroll-x"><table'), (
         "the recipe table can widen the page instead of scrolling inside its own region"
     )
     pres = re.findall(r"<pre[^>]*>", pane)
-    assert pres, f"an artifact's inline text is not its own scroll region: {pres}"
+    assert pres, "the pipeline pane renders no artifact's inline text"
     assert all("overflow-auto" in tag for tag in pres), (
         f"an artifact's inline text is not its own scroll region: {pres}"
     )
@@ -2503,7 +2502,7 @@ def test_every_decision_an_alert_can_name_is_resolvable_to_a_value(own_workspace
         ref = resolve(ctx)
         assert ref is not None
         assert ref.decision == decision
-        assert ref.label, f"{decision} resolved to a label with no value beside it"
+        assert ref.label, f"{decision} resolved to no label"
         assert ref.value, f"{decision} resolved to a label with no value beside it"
 
 
@@ -2823,10 +2822,7 @@ def test_a_metrics_meaning_is_reachable_from_its_column_header_and_stored_once(
     assert len(heads) >= 5, f"the metrics table's headers carry no hint at all: {len(heads)}"
 
     for attrs in heads:
-        assert 'role="button"' in attrs, (
-            f"a hint that only a mouse can open is not reachable: {attrs}"
-        )
-        assert 'tabindex="0"' in attrs, (
+        assert all(a in attrs for a in ('role="button"', 'tabindex="0"')), (
             f"a hint that only a mouse can open is not reachable: {attrs}"
         )
         basis = re.search(r'data-basis="([^"]*)"', attrs)

@@ -2478,7 +2478,7 @@ def test_a_records_only_compile_still_reaches_the_harvest_stage(tmp_path: Path) 
     without = runner.invoke(app, argv)
     with_records = runner.invoke(app, [*argv, "--records", str(records_path)])
 
-    assert without.exit_code == 0, with_records.stdout
+    assert without.exit_code == 0, without.stdout
     assert with_records.exit_code == 0, with_records.stdout
     assert "harvest" not in json.loads(without.stdout)["stages"], "no prose, no stage"
     assert json.loads(with_records.stdout)["stages"]["harvest"] == {
@@ -2780,10 +2780,7 @@ def test_records_new_drafts_a_set_the_loader_and_validate_both_accept(tmp_path: 
     assert drafted.exit_code == 0, drafted.stdout
 
     flagged = [line for line in drafted.stdout.splitlines() if line.lstrip().startswith("#")]
-    assert any("lib_S1" in line for line in flagged), (
-        "the _S<n> pair is the decision a filename cannot take; the draft must name both runs"
-    )
-    assert any("lib_S3" in line for line in flagged), (
+    assert all(any(run in line for line in flagged) for run in ("lib_S1", "lib_S3")), (
         "the _S<n> pair is the decision a filename cannot take; the draft must name both runs"
     )
 

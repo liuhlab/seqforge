@@ -3612,9 +3612,7 @@ def test_a_declared_chemistry_sequenced_two_cycles_long_still_reaches_its_own_le
     )
     assert scored["10x-3p-gex-v2"].value == top, "and its read-undecidable partner ties with it"
     v3 = scored["10x-5p-gex-v3"].value
-    assert v3 is not None, (
-        "the 28 bp 5' sibling must NOT win on geometry: its whitelist declines these barcodes"
-    )
+    assert v3 is not None, "the 28 bp 5' sibling went unscored"
     assert v3 < top, (
         "the 28 bp 5' sibling must NOT win on geometry: its whitelist declines these barcodes"
     )

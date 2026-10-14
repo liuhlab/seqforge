@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# `pixi run check` — the pre-PR gate, with its seven steps run CONCURRENTLY.
+# `pixi run check` — the pre-PR gate, with its steps run CONCURRENTLY.
 #
 # It used to be `{ depends-on = ["lint", "fmt-check", "typecheck", "test"] }`, which pixi executes
 # sequentially: the three static checks (~6.8s together) ran before pytest and nothing overlapped.
@@ -29,7 +29,7 @@
 #
 # Each step's output is captured to its own file and printed whole, in a fixed order, after every
 # step has finished. Attribution therefore gets BETTER, not worse: a failure is one contiguous
-# labelled block instead of lines from seven tools interleaved by whoever flushed first.
+# labelled block instead of lines from every tool interleaved by whoever flushed first.
 #
 # Steps are invoked as `pixi run <task>` rather than by spelling their command lines again here.
 # The task table stays the one owner of what each step actually runs — duplicating mypy's module
