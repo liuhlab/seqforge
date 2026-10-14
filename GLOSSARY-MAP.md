@@ -17,15 +17,15 @@ module, interface, depth, seam, adapter, leverage, locality — are fixed, and "
 
 ## Contexts
 
-- [Probe](./src/seqforge/probe/CONTEXT.md) — covers `probe/`, `fingerprint/`, `io/`: reading bounded
-  bytes, and what a file is without reading it
-- [Harvest](./src/seqforge/harvest/CONTEXT.md) — covers `harvest/`: prose, the claims read out of
+- [Probe](./src/seqforge/probe/GLOSSARY.md) — covers `probe/`, `fingerprint/`, `io/`: reading
+  bounded bytes, and what a file is without reading it
+- [Harvest](./src/seqforge/harvest/GLOSSARY.md) — covers `harvest/`: prose, the claims read out of
   it, and what one run spent reading it
-- [Knowledge base](./src/seqforge/kb/CONTEXT.md) — covers `kb/`: what a chemistry declares, and how
-  a claim about one is ranked
-- [Resolve](./src/seqforge/resolve/CONTEXT.md) — covers `resolve/`, `manifest/`: which library and
-  which sample, from bytes and from records
-- [Compose](./src/seqforge/compose/CONTEXT.md) — covers `compose/`, `workflows/`, `report/`,
+- [Knowledge base](./src/seqforge/kb/GLOSSARY.md) — covers `kb/`: what a chemistry declares, and
+  how a claim about one is ranked
+- [Resolve](./src/seqforge/resolve/GLOSSARY.md) — covers `resolve/`, `manifest/`: which library
+  and which sample, from bytes and from records
+- [Compose](./src/seqforge/compose/GLOSSARY.md) — covers `compose/`, `workflows/`, `report/`,
   `pipeline.py`: the recipe, the compiled pipeline, and what it reported
 
 ## Relationships

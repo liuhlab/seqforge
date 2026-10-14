@@ -6,7 +6,7 @@ claim against the bytes of the document it came from, and what a run spent at th
 itself part of the vocabulary.
 
 Words every context shares — **Evidenced**, **Basis**, **Asserted**, **Declared** and the rest — are
-defined once in the repo-root `CONTEXT-MAP.md`.
+defined once in the repo-root `GLOSSARY-MAP.md`.
 
 ## Language
 
