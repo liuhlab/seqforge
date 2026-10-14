@@ -193,7 +193,7 @@ def export_all() -> dict[str, dict[str, Any]]:
     return {name: export_schema(name) for name in SCHEMA_MODELS}
 
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetical
     # export machinery
     "SCHEMA_MODELS",
     "LLM_FACING",

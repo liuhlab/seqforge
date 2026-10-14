@@ -205,11 +205,11 @@ class ArchiveRecordSet(BaseModel):
 
 
 __all__ = [
-    "RecordLevel",
     "USER_SOURCE",
-    "FreeText",
-    "RecordAttribute",
-    "SubmittedFile",
     "ArchiveRecord",
     "ArchiveRecordSet",
+    "FreeText",
+    "RecordAttribute",
+    "RecordLevel",
+    "SubmittedFile",
 ]

@@ -167,11 +167,11 @@ def write_project_views(workspace: str | Path, assays: list[dict[str, Any]]) -> 
 
 
 __all__ = [
-    "SAMPLE_METADATA_TSV",
     "PROJECT_YAML",
-    "sample_metadata_table",
+    "SAMPLE_METADATA_TSV",
+    "discover_assays",
     "format_tsv",
     "project_index",
-    "discover_assays",
+    "sample_metadata_table",
     "write_project_views",
 ]

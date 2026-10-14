@@ -294,14 +294,33 @@ docs-build = "mkdocs build --strict"
 
 [tool.ruff]
 line-length = 100
-src = ["src", "tests"]
+src = ["src", "tests", "scripts"]
 extend-exclude = [".pixi", "site", "build", "dist"]
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "UP", "B"]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "PT",  # flake8-pytest-style
+    "PTH", # flake8-use-pathlib
+    "N",   # pep8-naming
+    "RUF", # ruff-specific
+]
 # E501: the formatter owns line length. UP046/UP047: keep classic Generic[T]/TypeVar, which has the
-# better-tested pydantic-v2 + mypy support.
-ignore = ["E501", "UP046", "UP047"]
+# better-tested pydantic-v2 + mypy support. N818: an exception here names the condition it signals
+# (`CaseSkipped`, `CeilingExceeded`, `TermUnknown`), and several are control flow, not errors.
+# SIM300: an UPPER_CASE name is a module table under test, so it is the actual on the left of `==`.
+ignore = ["E501", "UP046", "UP047", "N818", "SIM300"]
+# Typography the prose means: a multiplication sign for a fold or a count, an en dash for a range, a
+# prime for a nucleic-acid end (5′, 3′), a minus sign, curly quotes, and angle quotes for a pager's
+# arrows.
+allowed-confusables = ["×", "–", "′", "−", "‘", "’", "‹", "›"]
 
 [tool.ruff.lint.flake8-bugbear]
 # Typer uses call expressions as parameter defaults by design.

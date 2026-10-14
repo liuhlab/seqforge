@@ -14,9 +14,7 @@ from .root import app
 @app.command("probe")
 def probe_cmd(
     files: list[Path] = typer.Argument(..., help="FASTQ .gz files to fingerprint."),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
     max_reads: int = typer.Option(
         DEFAULT_MAX_READS,
         help="Bounded read budget per file (default 2000). Raise it to sample more of a full-size "

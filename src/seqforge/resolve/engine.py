@@ -8,6 +8,7 @@ Observation and the dataset ResolveResult are cached, so a killed run resumes.
 
 from __future__ import annotations
 
+import contextlib
 import re
 from collections.abc import Collection, Iterable, Sequence
 from dataclasses import dataclass, field
@@ -243,10 +244,9 @@ def _score_pool(
     for spec in pool:
         for ref in spec.onlists.values():
             if registry.has(ref.registry):
-                try:
+                # scoring ABSTAINs on this onlist; nothing cached, so no thread races on it
+                with contextlib.suppress(OnlistNotAvailable):
                     registry.packed(ref.registry)
-                except OnlistNotAvailable:
-                    pass  # scoring ABSTAINs on this onlist; nothing cached, so no thread races on it
     from concurrent.futures import ThreadPoolExecutor
 
     with ThreadPoolExecutor(max_workers=min(score_threads, len(pool))) as ex:
@@ -1343,17 +1343,17 @@ def resolve_runs(
         score_threads = max(1, cpus // n_run_workers)
     else:
         score_threads = max(1, cpus)
-    common: dict[str, object] = dict(
-        registry=registry,
-        specs=kb_specs,
-        hypothesis=hypothesis,
-        workspace=workspace,
-        max_reads=max_reads,
-        max_bytes=max_bytes,
-        use_cache=use_cache,
-        score_threads=score_threads,
-        probed=probed,
-    )
+    common: dict[str, object] = {
+        "registry": registry,
+        "specs": kb_specs,
+        "hypothesis": hypothesis,
+        "workspace": workspace,
+        "max_reads": max_reads,
+        "max_bytes": max_bytes,
+        "use_cache": use_cache,
+        "score_threads": score_threads,
+        "probed": probed,
+    }
 
     if not parallel_runs:
         # `common` is `_resolve_one_run`'s keyword set bundled once for both paths — heterogeneous,

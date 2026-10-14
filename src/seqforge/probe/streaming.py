@@ -290,7 +290,7 @@ class FastqHead:
         before this ``close()``.
         """
         p = Path(path)
-        raw = open(p, "rb")  # noqa: SIM115 - closed explicitly in finally
+        raw = p.open("rb")  # closed explicitly in finally
         try:
             return cls.read(raw, budget, source_path=p)
         finally:

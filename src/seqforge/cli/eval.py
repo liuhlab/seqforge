@@ -141,9 +141,7 @@ def eval_run(
     fail_under: float = typer.Option(
         1.0, "--fail-under", help="Exit 3 if field accuracy drops below this."
     ),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
 ) -> None:
     """Run the eval corpus and report its metrics.
 

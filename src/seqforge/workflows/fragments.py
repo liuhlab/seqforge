@@ -342,9 +342,9 @@ def read_metrics(path: Path, sample: str) -> SampleStats:
 
 __all__ = [
     "QC_SUFFIX",
+    "RAW_FRAGMENTS",
     "FragmentsError",
     "FragmentsQC",
-    "RAW_FRAGMENTS",
     "build_fragments_qc",
     "fragments_suffixes",
     "metrics",

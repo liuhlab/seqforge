@@ -44,7 +44,7 @@ def read_records(path: str | Path, max_reads: int, max_bytes: int) -> RecordSlic
     An accumulation over :class:`~seqforge.probe.streaming.BoundedReader` — the budget is the reader's,
     not this function's, so the record count matches a probe under the same budget by construction.
     """
-    raw = open(path, "rb")  # noqa: SIM115 - closed explicitly in finally
+    raw = Path(path).open("rb")  # noqa: SIM115 - closed explicitly in finally
     try:
         reader = BoundedReader(raw, Budget(max_reads, max_bytes))
         sl = RecordSlice(records=list(reader))

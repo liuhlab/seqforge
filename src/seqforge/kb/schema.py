@@ -601,12 +601,15 @@ class Spec(_Forbid):
             for el in read.elements:
                 if el.onlist and el.onlist not in aliases:
                     raise ValueError(f"element {el.name!r}: unknown onlist {el.onlist!r}")
-                if el.anchor and el.anchor.ref_element:
-                    if el.anchor.ref_element not in elements_by_read[read.id]:
-                        raise ValueError(
-                            f"element {el.name!r}: anchor ref_element "
-                            f"{el.anchor.ref_element!r} not in read {read.id!r}"
-                        )
+                if (
+                    el.anchor
+                    and el.anchor.ref_element
+                    and el.anchor.ref_element not in elements_by_read[read.id]
+                ):
+                    raise ValueError(
+                        f"element {el.name!r}: anchor ref_element "
+                        f"{el.anchor.ref_element!r} not in read {read.id!r}"
+                    )
 
         # every signature test must reference a declared read (and element/onlist). A test's ``read``
         # is a ROLE id — the ``Read.id`` string — never the ``Read`` object the loop above walked,
@@ -621,11 +624,14 @@ class Spec(_Forbid):
             if role is not None and role not in read_ids:
                 raise ValueError(f"signature test references unknown read {role!r}")
             element = getattr(t, "element", None)
-            if element is not None and role is not None:
-                if element not in elements_by_read.get(role, set()):
-                    raise ValueError(
-                        f"signature test references unknown element {element!r} in read {role!r}"
-                    )
+            if (
+                element is not None
+                and role is not None
+                and element not in elements_by_read.get(role, set())
+            ):
+                raise ValueError(
+                    f"signature test references unknown element {element!r} in read {role!r}"
+                )
             onlist = getattr(t, "onlist", None)
             if onlist is not None and onlist not in aliases:
                 raise ValueError(f"signature test references unknown onlist {onlist!r}")

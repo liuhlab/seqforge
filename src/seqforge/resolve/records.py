@@ -939,8 +939,8 @@ def _the_line() -> str:
 
 
 __all__ = [
+    "SAMPLE_FIELD_PREFIX",
     "DocScope",
     "DocumentSubject",
-    "SAMPLE_FIELD_PREFIX",
     "resolve_metadata",
 ]

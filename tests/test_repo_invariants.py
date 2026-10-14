@@ -35,6 +35,7 @@ The ``src_trees`` AST parse and ``_src_root`` are shared from ``tests/conftest.p
 from __future__ import annotations
 
 import ast
+import contextlib
 import os
 import re
 import shutil
@@ -1441,10 +1442,8 @@ def test_an_interrupted_gate_leaves_no_step_running(bash: str, tmp_path: Path) -
         )
     finally:
         for pid in grandchildren:
-            try:
+            with contextlib.suppress(OSError):
                 os.kill(pid, signal.SIGKILL)
-            except OSError:
-                pass
         if proc.poll() is None:
             proc.kill()
             proc.communicate()

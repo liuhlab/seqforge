@@ -82,7 +82,8 @@ def test_an_element_whose_sequence_contradicts_its_own_window_fails_at_load(delt
     with pytest.raises(ValidationError, match="linker1") as exc:
         Spec.model_validate(data)
     message = str(exc.value)
-    assert "30" in message and str(30 + delta) in message, "both widths, so the fix is one edit"
+    assert "30" in message, "both widths, so the fix is one edit"
+    assert str(30 + delta) in message, "both widths, so the fix is one edit"
 
 
 def test_the_width_clause_is_not_decoration_the_shipped_kb_exercises_it() -> None:
@@ -624,7 +625,10 @@ def test_every_starsolo_spec_declares_a_cb_match_type_its_solotype_accepts() -> 
         solo_type = backend.params["soloType"]
         # A param value is typed as the DSL's whole union (scalars and the positional whitelist list);
         # both of these keys are strings in every spec that has them, so narrow rather than cast.
-        assert isinstance(solo_type, str) and isinstance(declared, str), (
+        assert isinstance(solo_type, str), (
+            f"{tech}: soloType/soloCBmatchWLtype must be strings, got {solo_type!r} / {declared!r}"
+        )
+        assert isinstance(declared, str), (
             f"{tech}: soloType/soloCBmatchWLtype must be strings, got {solo_type!r} / {declared!r}"
         )
         legal = CB_MATCH_WL_TYPES.get(solo_type)
@@ -748,7 +752,8 @@ def test_backend_identical_is_order_sensitive_for_a_positional_whitelist() -> No
     spec = kb.load_spec("splitseq")
     backend = spec.require_backend()
     wl = backend.params["soloCBwhitelist"]
-    assert isinstance(wl, list) and len(wl) == 3
+    assert isinstance(wl, list)
+    assert len(wl) == 3
     permuted = spec.model_copy(
         update={
             "backend": backend.model_copy(
@@ -867,7 +872,8 @@ def test_splitseq_wins_over_bulk_on_real_shipped_barcodes(tmp_path: Path) -> Non
     # linker is sometimes only a length. SPLiT-seq's two are reconstructed from the paper's oligo
     # table and are the thing this test builds reads out of, so their absence is not a length
     # mismatch to discover 94 characters later; it is this spec having stopped saying what it says.
-    assert link1 is not None and link2 is not None, "SPLiT-seq's linkers must declare a sequence"
+    assert link1 is not None, "SPLiT-seq's linkers must declare a sequence"
+    assert link2 is not None, "SPLiT-seq's linkers must declare a sequence"
     rng = random.Random(0)
 
     def rand(k: int) -> str:
@@ -1229,7 +1235,11 @@ def test_the_orphan_exemption_is_not_a_blanket_one(kb_probes: KbProbes) -> None:
         "the exemption must NOT be what excuses this pair — bulk orphans it from its maximal set"
     )
     margin = rung02_margin(undeclared_bulk, specs["10x-multiome-atac"], atac_probes)
-    assert margin is not None and margin < 0, (
+    assert margin is not None, (
+        f"...so the only honest reason it is unflagged is that bulk ranks below the chemistry on the "
+        f"chemistry's own reads; margin {margin}"
+    )
+    assert margin < 0, (
         f"...so the only honest reason it is unflagged is that bulk ranks below the chemistry on the "
         f"chemistry's own reads; margin {margin}"
     )
@@ -1485,7 +1495,8 @@ def test_the_plates_maximal_read_set_outranks_its_single_end_subset_on_a_paired_
     assert len(wps) == 2, "the paired configuration is the two-file deposit"
     evs = {e.read_set: e for e in read_set_evaluations(plate, wps, registry_for(plate))}
     full, se = evs["full"], evs["se"]
-    assert full.valid and se.valid, "both sets must score a paired plate deposit"
+    assert full.valid, "both sets must score a paired plate deposit"
+    assert se.valid, "both sets must score a paired plate deposit"
     assert full.value > se.value, (
         f"smartseq3's single-end subset scores {se.value:.4f} against the maximal set's "
         f"{full.value:.4f} on the entry's OWN PAIRED reads (margin {se.value - full.value:+.4f}). The "
@@ -1789,7 +1800,8 @@ def test_only_the_plate_entry_says_a_sample_is_a_cell_and_it_is_the_one_that_set
         declares = "min_input_reads" in raw or "sample_is_cell" in raw["identity"]
         spec = kb.load_spec(spec_id)
         if not declares:
-            assert spec.min_input_reads is None and not spec.identity.sample_is_cell, spec_id
+            assert spec.min_input_reads is None, spec_id
+            assert not spec.identity.sample_is_cell, spec_id
             continue
         declaring.add(spec_id)
         # Each field straight off the file it was written in: what the loaded model carries, it
@@ -1836,13 +1848,14 @@ def test_a_cell_is_a_sample_only_beside_a_module_that_counts_them_together() -> 
     # backend's params have to go with it — this module parses nothing, because its whole geometry is
     # derived — which is the second half of "parse keys are empty" arriving as a load-time refusal.
     plate = {**raw, "backend": {"module": "map/star-umi", "params": {}}}
-    with pytest.raises(ValidationError, match="does not declare identity.sample_is_cell"):
+    with pytest.raises(ValidationError, match=r"does not declare identity.sample_is_cell"):
         Spec.model_validate(plate)
 
     # Both together is the legal pairing, and asserting it is what stops the rule from being one that
     # merely refuses everything.
     ok = Spec.model_validate({**plate, "identity": {**raw["identity"], "sample_is_cell": True}})
-    assert ok.identity.sample_is_cell and ok.require_backend().module == "map/star-umi"
+    assert ok.identity.sample_is_cell
+    assert ok.require_backend().module == "map/star-umi"
 
 
 def test_no_spec_may_name_a_chimeric_twin_and_the_guard_set_is_derived_from_the_registry() -> None:

@@ -13,7 +13,7 @@ from .root import project_app
 
 @project_app.command("metadata")
 def project_metadata(
-    workspace: Path = typer.Option(Path("."), "-C", "--workspace", help="Root holding seqforge/."),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root holding seqforge/."),
 ) -> None:
     """Regenerate seqforge/sample_metadata.tsv + project.yaml from the per-assay manifest(s).
 

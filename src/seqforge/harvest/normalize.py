@@ -50,11 +50,11 @@ _LIGATURES = {
 }  # fmt: skip
 # Punctuation a PDF renders "prettily" but nobody types when quoting.
 _PUNCT = {
-    "‘": "'", "’": "'", "‚": "'", "‛": "'",
+    "‘": "'", "’": "'", "‚": "'", "‛": "'",  # noqa: RUF001 - the confusables this table folds away
     "“": '"', "”": '"', "„": '"', "‟": '"',
-    "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "―": "-",
+    "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-", "―": "-",  # noqa: RUF001 - the confusables this table folds away
     "′": "'", "″": '"', "­": "",  # prime, double-prime, SOFT HYPHEN (delete)
-    " ": " ", " ": " ", " ": " ", " ": " ", " ": " ", "​": "",
+    " ": " ", " ": " ", " ": " ", " ": " ", " ": " ", "​": "",  # noqa: RUF001 - the confusables this table folds away
 }  # fmt: skip
 
 # A hyphen before a line break is ambiguous, and guessing wrong corrupts the span space:

@@ -374,7 +374,7 @@ class ProjectReport(_View):
         return max((a.conclusion.exit_code for a in self.assays), default=0)
 
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetical
     # Re-exported, not defined here. Both are the type of a public field on `AssayReport`, so they
     # are part of this tree's surface whoever defines them — and they are defined beside the code
     # that WRITES the artifacts they describe, because who writes a format owns how to read it. For

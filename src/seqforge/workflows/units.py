@@ -49,7 +49,7 @@ class UnitsError(ValueError):
 
 def load_units(path: str | Path) -> list[dict[str, str]]:
     """Read a units.tsv into rows. The one reader, used by a module and by the verbs it calls."""
-    with open(path, newline="") as fh:
+    with Path(path).open(newline="") as fh:
         return list(csv.DictReader(fh, delimiter="\t"))
 
 

@@ -84,7 +84,7 @@ RETRY_POLICY = [
 ]  # fmt: skip
 
 
-@pytest.mark.parametrize("outcomes, expected, n_calls", RETRY_POLICY)
+@pytest.mark.parametrize(("outcomes", "expected", "n_calls"), RETRY_POLICY)
 def test_get_retries_what_is_transient_and_gives_up_on_what_is_not(
     outcomes: list[object],
     expected: object,
@@ -241,7 +241,7 @@ SOFT_PARSERS = [
 ]
 
 
-@pytest.mark.parametrize("parser, soft, expected", SOFT_PARSERS)
+@pytest.mark.parametrize(("parser", "soft", "expected"), SOFT_PARSERS)
 def test_the_soft_parsers_read_their_own_relation_line(
     parser: Callable[[str], list[str]], soft: str, expected: list[str]
 ) -> None:
@@ -367,7 +367,8 @@ def test_a_bam_only_run_resolves_to_its_submitted_md5_and_says_why_it_has_no_fas
 
     assert entry["submitted_md5"] == run["submitted_md5"]
     assert entry["submitted_bytes"] == "28543057"  # the siblings it must arrive beside
-    assert entry["fastq_urls"] == [] and "note" in entry, "the BAM case: submitted is all there is"
+    assert entry["fastq_urls"] == [], "the BAM case: submitted is all there is"
+    assert "note" in entry, "the BAM case: submitted is all there is"
 
 
 #: ``(run, expected)`` for ``fastq_urls``: it splits ``fastq_ftp`` on ``;``, prepends the ``https://``
@@ -390,7 +391,7 @@ FASTQ_URLS = [
 ]
 
 
-@pytest.mark.parametrize("run, expected", FASTQ_URLS)
+@pytest.mark.parametrize(("run", "expected"), FASTQ_URLS)
 def test_fastq_urls_splits_prefixes_sorts_and_treats_empty_as_no_fastq(
     run: dict[str, str], expected: list[str]
 ) -> None:
@@ -435,7 +436,7 @@ RUN_NEW = [
 ]
 
 
-@pytest.mark.parametrize("xml, n_reads, lengths, spot_length, read_types", RUN_NEW)
+@pytest.mark.parametrize(("xml", "n_reads", "lengths", "spot_length", "read_types"), RUN_NEW)
 def test_parse_run_new_reads_the_per_read_table(
     xml: str, n_reads: int, lengths: list[int], spot_length: int, read_types: str | None
 ) -> None:
@@ -501,7 +502,7 @@ NO_DROP = [
 ]
 
 
-@pytest.mark.parametrize("run, stats", NO_DROP)
+@pytest.mark.parametrize(("run", "stats"), NO_DROP)
 def test_the_detector_abstains_rather_than_falsely_accusing(
     run: dict[str, str], stats: RunStatistics
 ) -> None:
@@ -568,7 +569,7 @@ FASTQ_PREFIX = [
 ]
 
 
-@pytest.mark.parametrize("text, max_reads, headers, lengths", FASTQ_PREFIX)
+@pytest.mark.parametrize(("text", "max_reads", "headers", "lengths"), FASTQ_PREFIX)
 def test_parse_fastq_prefix_reads_whole_records_up_to_the_budget(
     text: str, max_reads: int, headers: list[str], lengths: list[int]
 ) -> None:
@@ -653,7 +654,9 @@ def test_probe_remote_reads_a_bounded_prefix_never_the_whole_file(
     assert obs.probe.compressed_bytes_read <= 512  # bounded by the range, not the file
     assert obs.probe.compressed_bytes_read < len(data)  # a strict prefix
     assert obs.gzip.truncated  # the tail past the range boundary was dropped
-    assert len(seqs) > 0 and obs.read_length.mode == 90  # still a usable fingerprint
+    # still a usable fingerprint
+    assert len(seqs) > 0
+    assert obs.read_length.mode == 90
     assert obs.file.sha256 == content_key_from_md5("a" * 32)  # the provider md5 IS the address
     assert obs.file.local_uri is None  # nothing was staged
     assert obs.file.size_bytes == len(data)  # the whole-file size, from Content-Range

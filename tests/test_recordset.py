@@ -389,7 +389,8 @@ def test_two_runs_under_one_sample_load_with_their_filenames(tmp_path: Path) -> 
     assert all(r.attributes == [] and r.free_text == [] for r in loaded.records)
     for run in loaded.at("run"):
         ancestor = loaded.ancestor(run, "sample")
-        assert ancestor is not None and ancestor.accession == "plateA"
+        assert ancestor is not None
+        assert ancestor.accession == "plateA"
 
 
 def test_the_query_defaults_to_the_files_own_stem(tmp_path: Path) -> None:

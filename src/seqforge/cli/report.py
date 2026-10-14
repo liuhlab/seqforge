@@ -29,7 +29,7 @@ from .root import app
 @app.command("report")
 def report_cmd(
     workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root holding the seqforge/ state to report on."
+        Path(), "-C", "--workspace", help="Root holding the seqforge/ state to report on."
     ),
     output: Path | None = typer.Option(
         None,

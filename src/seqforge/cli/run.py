@@ -176,9 +176,7 @@ def _harvest_halts_run(payload: dict[str, object] | str, code: int) -> bool:
     """
     if code == 0:
         return False
-    if code == 4 and isinstance(payload, dict) and not (payload.get("conflicts") or []):
-        return False
-    return True
+    return not (code == 4 and isinstance(payload, dict) and not (payload.get("conflicts") or []))
 
 
 def _process_and_compose(
@@ -376,9 +374,7 @@ def run_cmd(
         "preflight); every touch stays bounded by this AND --max-bytes.",
     ),
     max_bytes: int = typer.Option(DEFAULT_MAX_BYTES, help="Bounded decompressed-byte cap."),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
 ) -> None:
     """One pass: FASTQ + metadata -> manifest.yaml AND a runnable Snakefile.
 

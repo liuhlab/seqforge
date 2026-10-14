@@ -518,9 +518,9 @@ __all__ = [
     "EUTILS_EFETCH",
     "SOURCE",
     "fetch_records",
-    "one_record_per_accession",
-    "parse_sra_package_set",
-    "parse_biosample_set",
-    "parse_bioproject_set",
     "merge_biosample_attributes",
+    "one_record_per_accession",
+    "parse_bioproject_set",
+    "parse_biosample_set",
+    "parse_sra_package_set",
 ]
