@@ -1132,7 +1132,7 @@ aligner.</p>
 </tr>
 <tr>
 <td>can it change?</td>
-<td><strong>no</strong> — content-addressed, written once</td>
+<td><strong>no</strong> — named by its hash, written once</td>
 <td>yes, freely</td>
 </tr>
 </tbody>
@@ -1142,7 +1142,7 @@ aligner.</p>
 build and you edit the file — but nothing about the data changed. You did. And the file's identity
 changed with it: if you were using its hash to say "this is that dataset", you have silently claimed
 it is a different one. Do that across ten thousand datasets and the corpus's provenance is fiction.</p>
-<p>So the rule is absolute: <strong>changing your mind about processing must never perturb the dataset's
+<p>So the rule is absolute: <strong>changing your mind about processing must never change the dataset's
 hash.</strong> A test compiles one dataset three ways and asserts the hash never moves.</p>
 <h2 id="same-source-different-flags">Same source, different flags<a class="headerlink" href="#same-source-different-flags" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TD
@@ -1193,7 +1193,7 @@ changes; there are simply several of them.</p>
 <li><strong><code>project.yaml</code></strong> — the index of which assays exist, their chemistry and sample counts, and where
   each one's manifest and pipeline live.</li>
 </ul>
-<p>A uniform project — most of them — is the degenerate case: one assay, the flat layout of the rest of
+<p>A uniform project — most of them — is the simplest case: one assay, the flat layout of the rest of
 this guide, plus that top-level <code>sample_metadata.tsv</code>.</p>
 
 

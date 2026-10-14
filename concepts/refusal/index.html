@@ -1073,7 +1073,7 @@ fail loudly where a normal pipeline fails silently.</p>
     class ASK ask</code></pre>
 <p>A refusal is an <strong>exit code</strong>, not a warning in a log. Code decides whether processing may proceed;
 the language model never gets a vote, and at most helps phrase the question.</p>
-<p>Every blocker carries a reason and an actionable remedy. "Could not process" is not a remedy. "The
+<p>Every blocker carries a reason and a remedy you can act on. "Could not process" is not a remedy. "The
 barcode read is missing — re-fetch including technical reads, or pull the submitter's original files"
 is.</p>
 <h2 id="the-failures-worth-catching-are-the-quiet-ones">The failures worth catching are the quiet ones<a class="headerlink" href="#the-failures-worth-catching-are-the-quiet-ones" title="Permanent link">&para;</a></h2>
@@ -1091,7 +1091,7 @@ count only exons and you throw it away. We measured <strong>40.7%</strong> of a 
 chemistry is byte-identical to the whole-cell version, so the reads cannot tell you which you have.</p>
 <p>Every one of them exits 0.</p>
 <h2 id="never-ask-a-question-you-dont-need-answered">Never ask a question you don't need answered<a class="headerlink" href="#never-ask-a-question-you-dont-need-answered" title="Permanent link">&para;</a></h2>
-<p>Refusing is expensive too: a system that interrogates you constantly is one you route around, and
+<p>Refusing is expensive too: a system that questions you constantly is one you route around, and
 then it protects nobody.</p>
 <p><strong>Don't ask if the answer can't change anything.</strong> Two versions of the 10x chemistry may be
 indistinguishable from the reads. If they produce <em>identical</em> settings, record both names and move

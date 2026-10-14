@@ -1079,7 +1079,7 @@
 
 <h1 id="split-seq-split-pool-combinatorial-barcoding">SPLiT-seq (split-pool combinatorial barcoding)<a class="headerlink" href="#split-seq-split-pool-combinatorial-barcoding" title="Permanent link">&para;</a></h1>
 <p>A single-cell RNA-seq method that needs no special instrument. Instead of one droplet per cell, cells
-are barcoded by <strong>splitting and pooling</strong> them through several rounds of labeling; after three rounds
+are barcoded by <strong>splitting and pooling</strong> them through several rounds of labeling. After three rounds,
 each cell carries a unique combination of three barcodes.</p>
 <p>This entry covers the <strong>original published SPLiT-seq</strong> (Rosenberg et al., <em>Science</em> 2018). Parse
 Biosciences' <strong>Evercode</strong> is a separate commercial descendant with different linkers and barcodes — a
@@ -1100,17 +1100,16 @@ round-barcode matches its own list. The exact linker lengths matter: the origina
 round-1 at a different position than the later Parse chemistry, so a position copied from the wrong
 source silently mismatches. seqforge pins the original layout from the paper's own oligos.</p>
 <h2 id="status-one-question-still-open">Status: one question still open<a class="headerlink" href="#status-one-question-still-open" title="Permanent link">&para;</a></h2>
-<p>SPLiT-seq is the pilot's generalization test — it exercises machinery the 10x entries don't (8 bp
-barcodes instead of 16, a barcode split combinatorially across a read). All three round-barcode lists
+<p>SPLiT-seq is the pilot's generalization test. It exercises machinery the 10x entries don't: 8 bp
+barcodes instead of 16, and a barcode split combinatorially across a read. All three round-barcode lists
 ship packed with seqforge, so the entry resolves and compiles from bytes alone. One thing is still
 unconfirmed:</p>
 <ul>
 <li><strong>The strand has not been checked against real data.</strong> It's derived from the paper's oligos and
-  corroborated by the authors' own pipeline (both point the same way, and no source anywhere claims
-  the opposite), but the honest state is that most pipelines never explicitly chose the strand — they
-  inherited a default, so agreement with them is weaker evidence than it looks. The decisive check is
-  to run the paper's own data both ways; the correct strand assigns roughly an order of magnitude more
-  reads.</li>
+  backed by the authors' own pipeline. Both point the same way, and no source claims the opposite.
+  But most pipelines never chose the strand; they inherited a default. So agreement with them is
+  weaker evidence than it looks. The decisive check is to run the paper's own data both ways. The
+  correct strand assigns roughly ten times more reads.</li>
 </ul>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <p>Read structure and linker sequences pinned from
