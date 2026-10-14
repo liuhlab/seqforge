@@ -37,9 +37,10 @@ jobs:
         with:
           environments: docs
           locked: true
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      # The committer of the gh-pages commit. ghp-import, which gh-deploy calls, reads these before
+      # git's config, so no step has to write that config.
       - name: mkdocs gh-deploy
-        run: pixi run -e docs mkdocs gh-deploy --force --strict
+        env:
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: pixi run -e docs docs-deploy

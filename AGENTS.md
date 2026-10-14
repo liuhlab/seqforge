@@ -94,7 +94,7 @@ test was considered and declined, and is the fallback if the bar drifts.
   formatting and types. **It is not everything CI runs, on purpose.** Markdownlint, the strict docs
   build and the wheel build are CI's, and they stay out of the gate because they answer questions a
   code change does not ask — do not "fix" this by adding them. Touched documentation? Run
-  `pixi run docs-build` and the markdownlint pre-commit hook yourself, then. **After pushing** — read
+  `pixi run docs-build` and `pixi run markdownlint` yourself, then. **After pushing** — read
   CI; do not re-run it locally. **Never** run the whole
   suite to check a change that is not finished, re-run the gate to confirm a failure CI has already
   named, or run the gate twice in one session. Nothing enforces the ladder, and what it guards is

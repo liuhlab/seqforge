@@ -36,17 +36,19 @@ repos:
     hooks:
       - id: shellcheck
 
-  # markdownlint over the human-facing docs. A fast hook, so it belongs here. pass_filenames: false
-  # makes it lint the scope declared in `.markdownlint-cli2.yaml` (globs + ignores) rather than only
-  # the changed files, so local and CI (the `markdown` job) check exactly the same set.
-  - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.23.1
-    hooks:
-      - id: markdownlint-cli2
-        pass_filenames: false
-
   - repo: local
     hooks:
+      # markdownlint over the human-facing docs. A fast hook, so it belongs here. Through the pixi
+      # task CI's `markdown` job runs, so the version is pinned once, in pyproject. pass_filenames:
+      # false makes it lint the scope `.markdownlint-cli2.yaml` declares rather than only the changed
+      # files, so local and CI check exactly the same set.
+      - id: markdownlint
+        name: markdownlint (via pixi)
+        entry: pixi run --no-progress markdownlint
+        language: system
+        types: [markdown]
+        pass_filenames: false
+        require_serial: true
       - id: mypy
         name: mypy --strict (via pixi)
         entry: pixi run --no-progress typecheck

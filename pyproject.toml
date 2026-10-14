@@ -209,6 +209,9 @@ pyinstrument = ">=5.1.2,<6"
 
 [tool.pixi.feature.docs.dependencies]
 mkdocs-material = "*"
+# Exact, so a new rule cannot turn CI red without a deliberate bump. The one copy: CI's `markdown`
+# job and the pre-commit hook both run the `markdownlint` task.
+markdownlint-cli2 = "==0.23.1"
 
 [tool.pixi.environments]
 default = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
@@ -289,6 +292,15 @@ check-wheel = "python scripts/check_wheel_contents.py"
 install-skills = "python skills/install.py --user"
 docs      = "mkdocs serve"
 docs-build = "mkdocs build --strict"
+# Publishes to `gh-pages`, so only docs.yml runs it. The committer comes from that step's `env:`,
+# because a task that set it in git's config would leave it behind on a laptop.
+docs-deploy = "mkdocs gh-deploy --force --strict"
+# No file arguments: cli2 then reads its globs and ignores from `.markdownlint-cli2.yaml`, so CI and
+# the pre-commit hook lint the same set. Outside `check`, for the reason AGENTS.md gives.
+markdownlint = "markdownlint-cli2"
+# Renders a benchmark run directory as one HTML page. benchmark.yml appends a `--title` naming the
+# commit; `--source` is the command that wrote the directory, and moves with that step.
+benchmark-report = "seqforge eval report report -o report/benchmark.html --source 'seqforge eval run --no-llm --cases evals/benchmark -C report'"
 
 # ============================== ruff ==============================
 
