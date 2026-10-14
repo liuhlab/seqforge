@@ -78,12 +78,15 @@ class KbTree:
     children: dict[str, list[str]]
 
     def children_of(self, tech_id: str) -> list[str]:
+        """The ids directly under ``tech_id``, sorted; empty for a leaf."""
         return list(self.children.get(tech_id, []))
 
     def is_family(self, tech_id: str) -> bool:
+        """Whether ``tech_id`` is a family node, one that narrows to children."""
         return bool(self.children.get(tech_id))
 
     def parent_of(self, tech_id: str) -> str | None:
+        """The id of the node ``tech_id`` narrows from, or ``None`` for a root."""
         return self.specs[tech_id].parent
 
     def siblings_of(self, tech_id: str) -> list[str]:

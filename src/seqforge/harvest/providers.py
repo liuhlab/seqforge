@@ -123,11 +123,17 @@ class LLMProvider(Protocol):
 
     name: str
 
-    def default_model(self) -> str: ...
+    def default_model(self) -> str:
+        """The model to call when the caller names none."""
 
     def complete_json(
         self, *, system: str, user: str, schema: dict[str, Any], model: str, max_tokens: int
-    ) -> LLMResponse: ...
+    ) -> LLMResponse:
+        """One request under ``schema``: the text comes back UNVALIDATED, with normalized usage.
+
+        A call that cannot be made, or comes back with nothing to parse, raises
+        :class:`ProviderUnavailable`.
+        """
 
 
 class AnthropicProvider:
@@ -140,6 +146,7 @@ class AnthropicProvider:
         self._api_key = api_key
 
     def default_model(self) -> str:
+        """The pinned Claude model, :data:`ANTHROPIC_DEFAULT_MODEL`."""
         return ANTHROPIC_DEFAULT_MODEL
 
     def _resolve(self) -> Any:
@@ -156,6 +163,10 @@ class AnthropicProvider:
     def complete_json(
         self, *, system: str, user: str, schema: dict[str, Any], model: str, max_tokens: int
     ) -> LLMResponse:
+        """One request under strict ``json_schema`` output, the system prompt marked for caching.
+
+        An SDK error, or a turn with no text block, raises :class:`ProviderUnavailable`.
+        """
         client = self._resolve()
         try:
             response = client.messages.create(
@@ -226,6 +237,7 @@ class OpenAICompatibleProvider:
             self.name = name
 
     def default_model(self) -> str:
+        """The model given at construction, DeepSeek's by default."""
         return self._default_model
 
     def _resolve(self) -> Any:
@@ -248,6 +260,11 @@ class OpenAICompatibleProvider:
     def complete_json(
         self, *, system: str, user: str, schema: dict[str, Any], model: str, max_tokens: int
     ) -> LLMResponse:
+        """One request in ``json_object`` mode: valid JSON back, its shape left to Pydantic.
+
+        ``schema`` itself is not sent: the system prompt already carries it. An SDK error or an empty
+        body raises :class:`ProviderUnavailable`.
+        """
         client = self._resolve()
         try:
             response = client.chat.completions.create(

@@ -146,8 +146,9 @@ def eval_dir(workspace: str | Path = ".") -> Path:
 
 
 def resolve_report_path(path: str | Path) -> Path:
-    """The ``report.json`` a caller means by ``path``: a run directory, the workspace above it, or
-    the file itself.
+    """The ``report.json`` a caller means by ``path``.
+
+    That path is a run directory, the workspace above it, or the file itself.
 
     A directory holding ``report.json`` **is** the run directory. Any other directory is read as a
     workspace and gets ``seqforge/eval`` appended. Anything that is not a directory — a path to the

@@ -186,6 +186,8 @@ class _Seg(_Forbid):
 
 
 class SegmentLength(_Forbid):
+    """The read's mode length is ``length`` within ``tolerance``, or reaches ``over_length_min``."""
+
     test: Literal["segment_length"]
     read: str
     length: int
@@ -198,16 +200,22 @@ class SegmentLength(_Forbid):
 
 
 class HasSegment(_Seg):
+    """The addressed segment is of ``kind``: constant, random, or a poly-T or poly-A run."""
+
     test: Literal["has_segment"]
     kind: Literal["constant", "random", "polyT", "polyA"]
 
 
 class DistinctRatio(_Seg):
+    """The addressed segment's distinct-value ratio is ``low`` or ``high``; never a gate."""
+
     test: Literal["distinct_ratio"]
     expect: Literal["low", "high"]  # SUPPORTS-only; depth-dependent, never a gate
 
 
 class OnlistHitRate(_Seg):
+    """The addressed segment hits the ``onlist`` whitelist at a rate of at least ``min``."""
+
     test: Literal["onlist_hit_rate"]
     onlist: str
     orientation: Orientation = "either"
@@ -229,6 +237,8 @@ MotifWhere = Literal["read_start", "read_end", "anywhere", "window"]
 
 
 class MotifPresent(_Forbid):
+    """At least ``min_rate`` of reads carry ``motif`` at ``where``, up to ``max_mismatch`` off."""
+
     test: Literal["motif_present"]
     read: str
     motif: str
@@ -240,12 +250,16 @@ class MotifPresent(_Forbid):
 
 
 class BaseComposition(_Seg):
+    """The addressed segment's mean fraction of ``base`` is at least ``min_fraction``."""
+
     test: Literal["base_composition"]
     base: Literal["A", "C", "G", "T", "N"]
     min_fraction: float
 
 
 class HeaderIndex(_Forbid):
+    """The read headers carry a sample index exactly when ``present`` says so."""
+
     test: Literal["header_index"]
     present: bool
 
@@ -263,11 +277,15 @@ Test = Annotated[
 
 
 class Support(_Forbid):
+    """One additive piece of evidence: a test, and the weight its score carries."""
+
     when: Test
     weight: float = 1.0
 
 
 class Signature(_Forbid):
+    """A chemistry's byte signature: hard gates, weighted supports, and disqualifying anti-gates."""
+
     requires: list[Test]  # hard AND-gates (no distinct_ratio here — it's depth-dependent)
     supports: list[Support]  # additive evidence (onlist + distinct_ratio live here)
     excludes: list[Test]  # anti-gates: any pass => disqualify
@@ -383,6 +401,8 @@ class Backend(_Forbid):
 
 
 class Confusable(_Forbid):
+    """A chemistry this one can be mistaken for, and what, if anything, tells the two apart."""
+
     id: str
     relationship: Literal["processing_equivalent", "processing_divergent"]
     distinguishable_by: list[Mechanism]
@@ -396,6 +416,8 @@ class Confusable(_Forbid):
 
 
 class Identity(_Forbid):
+    """What a KB node is: its id, version and name, the spellings that reach it, and its assay."""
+
     id: str
     version: str
     name: str
@@ -554,7 +576,7 @@ class Spec(_Forbid):
 
     @property
     def decidable_by(self) -> list[Decidable]:
-        """How this technology can be separated from the ones it is confusable with. **Derived.**
+        """How this technology can be separated from the ones it is confusable with. **Derived**.
 
         This was a hand-typed field on every spec, and two of them carried the comment "CI-computed
         union over the divergent confusables". No CI computed it. Nothing read it either — `escalate`

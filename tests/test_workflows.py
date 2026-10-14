@@ -1481,7 +1481,7 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     # route above: the chemistry names the base, and the assembly is what swapped it.
     assert result.modules[0].name == module
     # PASS, not skip. This used to read `in {"pass", "skip"}` and so forbade only the one value that
-    # could not occur: `snakemake` was in no dependency table, `have("snakemake")` was False, and the
+    # could not occur: `snakemake` was in no dependency table, `_have("snakemake")` was False, and the
     # gate returned "skip" every time. A skip is green, so the gate was decorative for the life of the
     # repo. If it ever goes missing again, that is a broken environment and this says so.
     assert result.gate["wiring"].status == "pass", result.gate["wiring"].reason

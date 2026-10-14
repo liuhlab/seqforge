@@ -77,8 +77,10 @@ def preflight_cmd(
     ),
     workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
 ) -> None:
-    """Build ``<dataset>.fingerprint.tar.gz``: sliced FASTQs + carried prose + a pin that reproduces
-    the full dataset identity. Emits a JSON summary (package path, size, per-file pins) on stdout.
+    """Build ``<dataset>.fingerprint.tar.gz``: sliced FASTQs + carried prose + an identity pin.
+
+    The pin reproduces the full dataset identity. Emits a JSON summary (package path, size, per-file
+    pins) on stdout.
 
     Two sources, one package format. Local ``FILES`` slice each FASTQ's first N records; ``--accession``
     STREAMS the first N spots of an SRA run/experiment with no download (the archive twin). Either way,

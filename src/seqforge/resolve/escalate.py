@@ -362,10 +362,11 @@ def _pretrimmed_blockers(
 def _barcodeless_seated_blocker(
     top: TechEvaluation, top_spec: Spec, valid: list[TechEvaluation]
 ) -> Blocker | None:
-    """F1b — the winning chemistry is barcoded, its barcode role is FILLED, and NO byte-consistent
-    barcoded candidate hits a whitelist though one WAS available to check (``barcode_onlist_available``).
-    STARsolo would read barcodes from a read matching nothing and report ~0 valid barcodes at exit 0 — a
-    silently empty matrix. Refuse instead.
+    """F1b — the winner is barcoded and its barcode role FILLED, yet no whitelist is hit.
+
+    NO byte-consistent barcoded candidate hits a whitelist, though one WAS available to check
+    (``barcode_onlist_available``). STARsolo would read barcodes from a read matching nothing and
+    report ~0 valid barcodes at exit 0 — a silently empty matrix. Refuse instead.
 
     The gate is over ALL valid candidates, not just ``top``: if any barcoded leaf's whitelist positively
     matched, the data IS barcoded and the winner resolves to that leaf, so this must abstain. The case
@@ -413,8 +414,10 @@ def _barcodeless_subset_blocker(
     hypothesis_value: str | None,
     specs: dict[str, Spec],
 ) -> Blocker | None:
-    """F1c — a **barcodeless** winner on a **proper-subset** read set, while an ASSERTED single-cell
-    chemistry's barcode role is unfillable. The technical read was never deposited: refuse.
+    """F1c — a **barcodeless** winner on a **proper-subset** read set.
+
+    It wins while an ASSERTED single-cell chemistry's barcode role is unfillable. The technical read
+    was never deposited: refuse.
 
     **The degenerate twin of the orphan rule, and it needs its own condition because the orphan
     predicate provably cannot see it.** ``confuse.seats_a_file_the_fallback_dropped`` asks whether the
@@ -455,8 +458,9 @@ def _barcodeless_subset_blocker(
 def _asserted_barcode_role_unfillable(
     evaluations: list[TechEvaluation], hypothesis_value: str | None, specs: dict[str, Spec]
 ) -> str | None:
-    """The asserted chemistry whose BARCODE role no file can fill while its cDNA role can — else
-    ``None``. The one condition ``MISSING_TECHNICAL_READ`` is reachable through.
+    """The asserted chemistry whose BARCODE role no file can fill while its cDNA role can.
+
+    Else ``None``. The one condition ``MISSING_TECHNICAL_READ`` is reachable through.
 
     Every clause carries weight. A chemistry must have been **asserted** (a hypothesis, or an
     operator's ``--assert-chemistry``) and must NAME a KB node, or "single-cell" is not established
@@ -644,8 +648,9 @@ def _single_cell_collapse_conflict(
     observations: list[Observation],
     specs: dict[str, Spec],
 ) -> Conflict | None:
-    """A single-cell chemistry was asserted, but the winning byte candidate is a **barcodeless bulk**
-    library. Surface it (#7/#11) rather than let it collapse silently.
+    """A single-cell chemistry was asserted, but the byte winner is a **barcodeless bulk** library.
+
+    Surface it (#7/#11) rather than let it collapse silently.
 
     The failure this catches: the asserted single-cell tech's barcode read was *forbidden* — trimmed,
     or over-sequenced past its length gate — so that tech dropped out of ``valid`` and the generic bulk
@@ -703,9 +708,11 @@ def _bulk_asserted_single_cell_observed(
     observations: list[Observation],
     specs: dict[str, Spec],
 ) -> Conflict | None:
-    """The mirror image of ``_single_cell_collapse_conflict``: a **bulk** chemistry was asserted, but the
-    winning byte candidate is a **barcoded single-cell** library. Surface it (exit 4) rather than emit a
-    single-cell manifest for a dataset the paper calls bulk.
+    """The mirror image of ``_single_cell_collapse_conflict``: bulk asserted, single-cell won.
+
+    Here a **bulk** chemistry was asserted, but the winning byte candidate is a **barcoded
+    single-cell** library. Surface it (exit 4) rather than emit a single-cell manifest for a dataset
+    the paper calls bulk.
 
     Same error class as the collapse, the other direction — a wrong data-vs-paper pairing or a mis-written
     methods section, and equally not something to let go. It is cross-family (bulk vs a single-cell

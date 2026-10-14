@@ -956,7 +956,7 @@ class WorkflowModule:
 
     @property
     def param_block(self) -> str:
-        """Which config block carries this module's aligner params. **Read off the module source.**
+        """Which config block carries this module's aligner params. **Read off the module source**.
 
         `starsolo.smk` dereferences `config["solo"]`; `star.smk` dereferences `config["bulk"]`. That
         is not a preference anyone declares — it is what the file does — so it is derived from
@@ -1121,6 +1121,7 @@ def resolve_pipeline(spec: Spec) -> WorkflowModule:
 
 
 def list_modules() -> list[str]:
+    """Every registered workflow module name, sorted."""
     return sorted(MODULES)
 
 

@@ -42,10 +42,12 @@ if TYPE_CHECKING:
 
 
 def _common_fastq_root(files: list[Path]) -> Path | None:
-    """The directory the FASTQs' machine-independent URIs are relative to: ``os.path.commonpath`` of
-    their resolved parent dirs, mirroring :func:`seqforge.manifest.fill.dataset_uris` exactly so that
-    ``fastq_dir / uri`` reconstructs each real path. ``None`` when they share no common root (different
-    filesystems) — ``dataset_uris``'s basename fallback — and the caller then leaves ``--fastq-dir`` unset.
+    """The directory the FASTQs' machine-independent URIs are relative to.
+
+    It is ``os.path.commonpath`` of their resolved parent dirs, mirroring
+    :func:`seqforge.manifest.fill.dataset_uris` exactly so that ``fastq_dir / uri`` reconstructs
+    each real path. ``None`` when they share no common root (different filesystems) —
+    ``dataset_uris``'s basename fallback — and the caller then leaves ``--fastq-dir`` unset.
     """
     import os
 

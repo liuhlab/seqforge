@@ -69,7 +69,7 @@ class ComposeError(RuntimeError):
 
 
 class AlreadyComposed(ComposeError):
-    """This pairing's pipeline directory is already occupied, so there is nothing to write.
+    """The pairing's pipeline directory is already occupied, so there is nothing to write.
 
     A ``ComposeError`` subclass, so ``seqforge compose`` refuses it with the exit code every other
     compile failure carries and no caller has to learn a second one. It is a distinct type only

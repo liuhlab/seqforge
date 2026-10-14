@@ -83,6 +83,7 @@ class Cache:
         return self.root / "matrices" / f"{ds_id}.json"
 
     def read_observation(self, sha: str) -> Observation | None:
+        """The cached Observation for the file ``sha``, or ``None`` if absent/corrupt."""
         path = self._obs_path(sha)
         if not path.is_file():
             return None
@@ -92,9 +93,11 @@ class Cache:
             return None
 
     def write_observation(self, obs: Observation) -> None:
+        """Persist ``obs`` under its file's sha256 and the current probe version."""
         self._write(self._obs_path(obs.file.sha256), obs.model_dump_json(indent=2))
 
     def read_resolve(self, ds_id: str) -> ResolveResult | None:
+        """The cached resolve result for ``ds_id``, or ``None`` if absent/corrupt."""
         path = self._resolve_path(ds_id)
         if not path.is_file():
             return None
@@ -104,11 +107,20 @@ class Cache:
             return None
 
     def write_resolve(self, ds_id: str, result: ResolveResult) -> None:
+        """Write ``result`` whole to ``candidates/<ds_id>.json``, replacing any earlier one.
+
+        The ranked candidates, conflicts and questions are what :meth:`read_resolve` hands back to a
+        resumed run. The write goes through a temporary file and a rename, so a reader sees the old
+        result or the new one, never half of either.
+        """
         self._write(self._resolve_path(ds_id), result.model_dump_json(indent=2))
 
     def read_matrices(self, ds_id: str) -> dict[str, object] | None:
-        """The persisted evidence matrix for ``ds_id`` (``{tech -> role -> file_sha -> cell}``), or
-        ``None`` if absent/corrupt. A glance-layer sidecar, so a miss is a normal degraded read."""
+        """The persisted evidence matrix for ``ds_id``, or ``None`` if absent/corrupt.
+
+        Its shape is ``{tech -> role -> file_sha -> cell}``. A glance-layer sidecar, so a miss is a
+        normal degraded read.
+        """
         path = self._matrices_path(ds_id)
         if not path.is_file():
             return None
@@ -119,10 +131,13 @@ class Cache:
         return data if isinstance(data, dict) else None
 
     def write_matrices(self, ds_id: str, matrices: Mapping[str, object]) -> None:
-        """Persist the JSON-safe evidence matrix beside the candidates it explains (``Cell.to_json``
-        already stripped every ``±inf``, so this is a plain ``json.dumps``). ``Mapping`` (not ``dict``)
-        so the deeply-nested ``{tech: {role: {sha: cell}}}`` the engine builds passes without a copy —
-        ``dict`` is invariant in its value type, ``Mapping`` is covariant."""
+        """Persist the JSON-safe evidence matrix beside the candidates it explains.
+
+        ``Cell.to_json`` already stripped every ``±inf``, so this is a plain ``json.dumps``.
+        ``Mapping`` (not ``dict``) so the deeply-nested ``{tech: {role: {sha: cell}}}`` the engine
+        builds passes without a copy — ``dict`` is invariant in its value type, ``Mapping`` is
+        covariant.
+        """
         self._write(self._matrices_path(ds_id), json.dumps(matrices, indent=2))
 
     def _resume_path(self, key: str) -> Path:
@@ -140,6 +155,7 @@ class Cache:
         return data if isinstance(data, dict) else None
 
     def write_resume(self, key: str, payload: dict[str, object]) -> None:
+        """Persist a stat-keyed resume pointer (see :func:`resume_key`)."""
         self._write(self._resume_path(key), json.dumps(payload, indent=2))
 
     @staticmethod

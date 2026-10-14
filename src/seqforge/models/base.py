@@ -19,10 +19,10 @@ from pydantic import (
 
 
 def _reject_absolute_or_local(value: str) -> str:
-    """Reject absolute or local filesystem paths in a manifest URI.
+    r"""Reject absolute or local filesystem paths in a manifest URI.
 
     A manifest URI is a relative path, a non-file scheme (``s3://``, ``gs://``, ``https://``,
-    ``sra:``), or a bare accession — never ``/abs``, ``~/x``, ``C:\\...``, a UNC ``\\\\host``, or a
+    ``sra:``), or a bare accession — never ``/abs``, ``~/x``, ``C:\...``, a UNC ``\\host``, or a
     ``file://`` absolute path.
     """
     bad = (

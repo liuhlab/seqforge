@@ -1,5 +1,7 @@
-"""`seqforge manifest` -- the DATASET manifest (what the data IS) plus the probe->resolve->partition
-pipeline that fills it. `_fill_manifest_pipeline` is the stage body `seqforge run` chains.
+"""`seqforge manifest` -- the DATASET manifest (what the data IS) and the pipeline that fills it.
+
+The pipeline is probe->resolve->partition. `_fill_manifest_pipeline` is the stage body `seqforge
+run` chains.
 """
 
 from __future__ import annotations

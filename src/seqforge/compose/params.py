@@ -216,7 +216,7 @@ def derived_params(spec: Spec) -> dict[str, str]:
 
 
 def _chromap_read_format(spec: Spec) -> dict[str, str]:
-    """chromap's ``--read-format bc:START:END:STRAND`` for a barcoded ATAC chemistry, from the CB element.
+    """Chromap's ``--read-format bc:START:END:STRAND`` for a barcoded ATAC chemistry, from the CB element.
 
     The barcode's within-read placement is byte-decided and already stated in the element coordinates —
     exactly like STARsolo's ``soloCBposition`` — so it is DERIVED here, never declared in

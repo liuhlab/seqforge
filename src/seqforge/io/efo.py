@@ -47,6 +47,7 @@ class TermUnknown(KeyError):
 
 @cache
 def load_terms() -> dict[str, EfoTerm]:
+    """Every shipped EFO term by CURIE, read once; empty when the label file is absent."""
     if not _DATA.is_file():
         return {}
     doc = json.loads(_DATA.read_text(encoding="utf-8"))
@@ -62,6 +63,7 @@ def load_terms() -> dict[str, EfoTerm]:
 
 
 def has_term(curie: str) -> bool:
+    """Whether ``curie`` has a shipped label."""
     return curie in load_terms()
 
 

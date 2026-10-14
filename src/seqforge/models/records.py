@@ -136,6 +136,7 @@ class ArchiveRecord(BaseModel):
         return None
 
     def text(self, label: str) -> str | None:
+        """The free text under ``label``, or ``None``. Never raises — absence is normal."""
         for ft in self.free_text:
             if ft.label == label:
                 return ft.text
@@ -180,9 +181,11 @@ class ArchiveRecordSet(BaseModel):
         return self.source == USER_SOURCE
 
     def at(self, level: RecordLevel) -> list[ArchiveRecord]:
+        """Every record at ``level``, in set order."""
         return [r for r in self.records if r.level == level]
 
     def by_accession(self, accession: str) -> ArchiveRecord | None:
+        """The record whose id is ``accession``, or ``None``."""
         for r in self.records:
             if r.accession == accession:
                 return r

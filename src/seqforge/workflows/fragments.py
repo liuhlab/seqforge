@@ -99,6 +99,7 @@ class FragmentsQC:
     min_fragments_per_barcode: int
 
     def to_dict(self) -> dict[str, object]:
+        """The statistics as plain JSON, in field order."""
         return {
             "sample": self.sample,
             "assembly": self.assembly,
@@ -127,7 +128,7 @@ def _require(binary: str) -> str:
 
 
 def write_fragments(raw: Path, out_gz: Path) -> Path:
-    """chromap's raw fragments file -> a coordinate-sorted, bgzipped, tabix-indexed ``fragments.tsv.gz``.
+    """Chromap's raw fragments file -> a coordinate-sorted, bgzipped, tabix-indexed ``fragments.tsv.gz``.
 
     Sort by ``(chrom, start)`` — tabix requires coordinate order — then ``bgzip`` and index as a BED
     (``tabix -p bed``, whose 0-based [start, end) matches a fragments file). The ``.tbi`` lands beside

@@ -196,9 +196,9 @@ def _fill(template: str, **slots: str) -> str:
 
 
 def _script_guard(text: str) -> str:
-    """Neutralise any ``</script`` in embedded JS so it cannot close the inlining ``<script>`` early.
+    r"""Neutralise any ``</script`` in embedded JS so it cannot end the inlining ``<script>`` early.
 
-    ``<\\/script`` is byte-equivalent to ``</script`` in every JS string/regex context, so this never
+    ``<\/script`` is byte-equivalent to ``</script`` in every JS string/regex context, so this never
     changes behaviour; it only guarantees the browser's tokenizer keeps reading.
     """
     return text.replace("</script", "<\\/script")

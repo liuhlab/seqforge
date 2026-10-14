@@ -368,10 +368,12 @@ class Annotation:
     exons: Mapping[str, _StepIndex]
 
     def gene_bodies(self, contig: str, start: int, end: int) -> frozenset[int]:
+        """Genes whose bodies cover any of ``[start, end)`` on ``contig``; empty if unannotated."""
         index = self.bodies.get(contig)
         return frozenset() if index is None else index.genes(start, end)
 
     def exonic(self, contig: str, start: int, end: int) -> frozenset[int]:
+        """Genes whose exons cover any of ``[start, end)`` on ``contig``; empty if unannotated."""
         index = self.exons.get(contig)
         return frozenset() if index is None else index.genes(start, end)
 
@@ -864,8 +866,10 @@ _INHERITED_ANNOTATION: Annotation | None = None
 
 @dataclass(frozen=True)
 class _Counted:
-    """One cell's answer. Everything the plate object takes from a cell, and deliberately nothing
-    else — see :func:`_count_cell`, which is where what is NOT here dies.
+    """One cell's answer.
+
+    Everything the plate object takes from a cell, and deliberately nothing else — see
+    :func:`_count_cell`, which is where what is NOT here dies.
 
     A record rather than a tuple because it outgrew one: an anonymous tuple unpacked in four places
     is where a plate silently gets one cell's saturation against another's fates. The count of

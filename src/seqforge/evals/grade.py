@@ -1,4 +1,4 @@
-"""Grading — turn (expected, actual) into the metrics the harness actually asks for.
+r"""Grading — turn (expected, actual) into the metrics the harness actually asks for.
 
 The whole harness reduces to one asymmetry: **not all failures cost the same.** A refusal is cheap —
 a human looks at it. A confidently wrong manifest is expensive — it silently poisons a training
@@ -9,7 +9,7 @@ Actual outcome comes from the uniform exit contract, never re-derived: ``0`` dec
 ``4`` ask.
 
 ======================  ==============  ==============  ==============
-expected \\ actual       decide          refuse          ask
+expected \ actual       decide          refuse          ask
 ======================  ==============  ==============  ==============
 decide (values match)   correct         false_refuse    over_ask
 decide (values differ)  FALSE_ACCEPT    false_refuse    over_ask
@@ -66,6 +66,8 @@ def outcome_of(exit_code: int) -> str:
 
 @dataclass
 class FieldCheck:
+    """One graded manifest field: its path, the expected and actual values, and if they agree."""
+
     path: str
     expected: Any
     actual: Any
@@ -86,9 +88,11 @@ class CaseGrade:
 
     @property
     def ok(self) -> bool:
+        """Whether the case was graded CORRECT."""
         return self.grade is Grade.CORRECT
 
     def to_json(self) -> dict[str, Any]:
+        """The grade as plain JSON: the part of a case's eval-report row that the grade owns."""
         return {
             "case": self.case_id,
             "grade": self.grade.value,

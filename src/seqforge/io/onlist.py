@@ -458,11 +458,12 @@ class RegistryEntry:
 
     @property
     def shipped(self) -> bool:
+        """Whether the packed codes ship with the package and are on disk."""
         return self.packed_path is not None and self.packed_path.is_file()
 
     @property
     def fetchable(self) -> bool:
-        """Can this be materialized without a local copy? **Derived, never declared.**
+        """Can this be materialized without a local copy? **Derived, never declared**.
 
         It was a hand-set field that no code branched on — written in three places, read only by
         `io onlist list` for display, and it said `fetchable=False` on entries whose real problem was
@@ -525,12 +526,15 @@ class OnlistRegistry:
         return entry
 
     def has(self, name: str) -> bool:
+        """Whether ``name`` is registered, materialized or not."""
         return name in self._entries
 
     def names(self) -> list[str]:
+        """Every registered onlist name, sorted."""
         return sorted(self._entries)
 
     def get(self, name: str) -> RegistryEntry:
+        """The registry entry for ``name``; an unknown name raises :class:`OnlistNotAvailable`."""
         try:
             return self._entries[name]
         except KeyError as exc:
@@ -603,11 +607,11 @@ class OnlistRegistry:
         return codes
 
     def _codes_from_text(self, path: Path) -> np.ndarray:
-        """Read a whitelist's text (gzipped or not) and pack it.
+        r"""Read a whitelist's text (gzipped or not) and pack it.
 
         The gzip magic decides, not the file extension: a mirror serving `.txt` that is actually
         gzipped (or the reverse) is a packaging detail, and guessing from the name is how you get a
-        whitelist of one line that starts with `\\x1f\\x8b`.
+        whitelist of one line that starts with `\x1f\x8b`.
         """
         raw = path.read_bytes()
         if raw[:2] == b"\x1f\x8b":

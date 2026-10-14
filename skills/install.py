@@ -204,6 +204,7 @@ def report_check(root: Path) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """The installer's command line: list, check or install the skills, and return the exit code."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--target",

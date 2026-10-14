@@ -56,9 +56,9 @@ def _asset(name: str) -> str:
 
 
 def _script_guard(text: str) -> str:
-    """Neutralise any ``</script`` in embedded JS so it can't close the inlining ``<script>`` early.
+    r"""Neutralise any ``</script`` in embedded JS so it can't end the inlining ``<script>`` early.
 
-    ``<\\/script`` is byte-equivalent to ``</script`` in every JS string/regex context, so this never
+    ``<\/script`` is byte-equivalent to ``</script`` in every JS string/regex context, so this never
     changes behaviour; it only guarantees the browser's tokenizer keeps reading.
     """
     return text.replace("</script", "<\\/script")

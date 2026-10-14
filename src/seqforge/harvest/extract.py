@@ -590,16 +590,19 @@ def _claimed_index(item: object, home_of: dict[str, int]) -> int | None:
 
 
 def _malformed_draft(item: object, doc: NormalizedDoc, exc: ValidationError) -> dict[str, object]:
-    """One draft the model returned malformed. Recorded in the ``rejected`` channel and dropped — a
-    non-fatal echo of ``verify._reject``, so both surfaces read the same way. Kept defensive because
-    ``item`` failed validation: any field may be missing or the wrong type.
+    """One draft the model returned malformed.
+
+    Recorded in the ``rejected`` channel and dropped — a non-fatal echo of ``verify._reject``, so
+    both surfaces read the same way. Kept defensive because ``item`` failed validation: any field
+    may be missing or the wrong type.
 
     ``doc`` is one this request really carried, chosen by the caller, and never whatever the draft
     claims: a draft that failed validation has no trustworthy span, and code owns provenance identity
     here for the same reason :func:`_anchor` overwrites it on a draft that passed. (A batched request
     carries several, and the caller reads the claimed sha only to pick between documents it did send
     — never to accept one it did not.) Recording it is what makes a rejection readable as *this
-    claim, from this record* rather than as an anonymous line in a tally."""
+    claim, from this record* rather than as an anonymous line in a tally.
+    """
     span = item.get("span") if isinstance(item, dict) else None
     quote = span.get("quote") if isinstance(span, dict) else None
     errors = exc.errors()

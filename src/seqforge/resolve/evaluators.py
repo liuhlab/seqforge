@@ -74,6 +74,8 @@ _RANDOM_MAXFRAC = 0.55  # mean max-base fraction below this is "near-uniform ran
 
 
 class Outcome(StrEnum):
+    """A test's gate verdict: it passed, it failed, or the bytes could not answer it."""
+
     PASS = "pass"
     FAIL = "fail"
     ABSTAIN = "abstain"
@@ -396,8 +398,10 @@ _OVERLENGTH_ADMISSION_FLOOR_MULT = 50.0  # and always well clear of THIS whiteli
 def onlist_admits_over_length(
     test: OnlistHitRate, read: Read, wp: WindowProbe, spec: Spec, registry: OnlistRegistry
 ) -> bool:
-    """True iff an onlist test's window hits the whitelist far enough above chance to call the read
-    barcode-bearing (not cDNA) — the floor-anchored admission bar, NOT the support ``min``.
+    """True iff an onlist test's window clears the floor-anchored admission bar on the whitelist.
+
+    That is, it hits far enough above chance to call the read barcode-bearing (not cDNA); the bar is
+    NOT the support ``min``.
 
     Mirrors :func:`_eval_onlist`'s window/whitelist resolution exactly, but decides on a lower,
     floor-derived threshold. Any unresolved / unmaterialized onlist yields ``False`` (no admission

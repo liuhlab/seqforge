@@ -69,6 +69,7 @@ class Denial:
     remedy: str
 
     def message(self) -> str:
+        """The denial as the text the agent reads: the rule and the reason, then the remedy."""
         return f"{self.rule}: {self.reason}\nRemedy: {self.remedy}"
 
 

@@ -75,6 +75,10 @@ def _check(names: list[str]) -> list[str]:
 
 
 def main() -> int:
+    """The exit code: 0 when the one wheel in ``dist/`` ships its package data, 1 when it does not.
+
+    2 means there is no single wheel to look inside: none was built, or stale ones remain.
+    """
     wheels = sorted(DIST.glob("*.whl"))
     if not wheels:
         print(f"no wheel found in {DIST} -- run `pixi run build` first", file=sys.stderr)

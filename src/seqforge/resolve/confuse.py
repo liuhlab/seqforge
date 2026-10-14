@@ -178,8 +178,7 @@ def accepts_at_rungs_0_2(spec: Spec, probes: Iterable[object]) -> bool:
 def seats_a_file_the_fallback_dropped(
     barcoded: TechEvaluation, fallback: TechEvaluation, barcoded_spec: Spec
 ) -> bool:
-    """Does ``barcoded`` seat its BARCODE role on a file the barcodeless ``fallback`` ORPHANED, having
-    won on a read set smaller than the one its chemistry declares?
+    """Does ``barcoded`` seat its BARCODE role on a file ``fallback`` ORPHANED on a subset read set?
 
     **One predicate, two readers, and that is the point.** At runtime ``escalate`` uses it to refuse a
     barcodeless top the anchor: a fallback that leaves another candidate's barcode read unexplained has
@@ -246,8 +245,10 @@ def _rung02_pair(
 
 
 def rung02_margin(a: Spec, b: Spec, b_probes: Iterable[object]) -> float | None:
-    """``a``'s rung-0-2 score minus ``b``'s, both measured on ``b``'s OWN reads. ``None`` if ``a``
-    scores nothing there (no valid injective assignment — an unscorable spec ranks nowhere).
+    """``a``'s rung-0-2 score minus ``b``'s, both measured on ``b``'s OWN reads.
+
+    ``None`` if ``a`` scores nothing there (no valid injective assignment — an unscorable spec ranks
+    nowhere).
 
     Positive means the challenger ``a`` beats the incumbent ``b`` on the incumbent's home ground,
     which is the number the under-declaration guard is really about; the guard's threshold on it is
