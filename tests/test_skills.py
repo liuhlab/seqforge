@@ -312,6 +312,11 @@ def test_the_leak_check_can_actually_catch_a_leak() -> None:
 
 @pytest.mark.repo
 def test_installer_discovers_every_skill() -> None:
+    """Every skill is found, and its committed links in both discovery paths are relative and live.
+
+    The links are what a fresh clone has before anyone runs the installer. While `.claude/` was
+    ignored wholesale, Claude Code found none of these skills, and nothing went red.
+    """
     import importlib.util
 
     spec = importlib.util.spec_from_file_location("sf_install", SKILLS / "install.py")
@@ -321,6 +326,7 @@ def test_installer_discovers_every_skill() -> None:
     assert {p.name for p in module.discover()} == EXPECTED
     # the paths are the only thing that varies per product — that is why they are a table
     assert set(module.TARGETS) >= {"claude", "agents"}
+    assert module.check(_REPO) == []
 
 
 def test_the_verb_check_catches_a_fictional_SUBcommand() -> None:
