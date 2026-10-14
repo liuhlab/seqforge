@@ -128,8 +128,11 @@ class HarvestGrade:
 
     @property
     def n_rejected(self) -> int:
-        """How many drafts the tripwire threw out. A summary of :attr:`rejected`, never a substitute
-        for it: the count says a net caught something and nothing whatever about what."""
+        """How many drafts the tripwire threw out.
+
+        A summary of :attr:`rejected`, never a substitute for it: the count says a net caught
+        something and nothing whatever about what.
+        """
         return len(self.rejected)
 
     @property
@@ -145,6 +148,7 @@ class HarvestGrade:
         return "partial" if self.n_documents_failed else "complete"
 
     def to_json(self) -> dict[str, Any]:
+        """The harvest grade as plain JSON, with each optional section omitted when it is empty."""
         out: dict[str, Any] = {
             # First, because it qualifies every list under it.
             "status": self.status,
@@ -196,6 +200,7 @@ class CaseRun:
     transcript: str | None = None
 
     def to_json(self) -> dict[str, Any]:
+        """The case's row of the eval report. A skipped case carries its skip and no grade."""
         out: dict[str, Any] = {
             "case": self.case_id,
             "seconds": round(self.seconds, 3),
@@ -638,6 +643,7 @@ def _harvest_coverage(runs: list[CaseRun]) -> dict[str, float] | None:
 
 
 def load_cases(cases_dir: Path | None = None, *, only: list[str] | None = None) -> list[Case]:
+    """The discovered cases, narrowed to the ids in ``only``; an id with no case raises."""
     cases = discover_cases(cases_dir)
     if only:
         wanted = set(only)
@@ -655,7 +661,7 @@ def _run_harvest(
     meter: TokenMeter,
     model: str | None,
 ) -> tuple[HarvestGrade, dict[str, int], list[Assertion], list[DocumentSubject]]:
-    """normalize -> extract -> verify over the case's prose. Only verified claims are graded.
+    """Normalize -> extract -> verify over the case's prose. Only verified claims are graded.
 
     "The case's prose" now means three things: the documents a human put beside the case, the prose a
     fingerprint package carried inside itself (``doc_paths`` is whichever of the two materialize
@@ -850,8 +856,10 @@ def _distinct_assertions(grades: list[HarvestGrade]) -> list[Assertion]:
 
 
 def _distinct_documents(grades: list[HarvestGrade]) -> list[dict[str, Any]]:
-    """The documents the trials sent, deduplicated. Every trial sends the same list — the plan is a
-    pure function of the case — so this is one list, not N stacked.
+    """The documents the trials sent, deduplicated.
+
+    Every trial sends the same list — the plan is a pure function of the case — so this is one list,
+    not N stacked.
 
     Answering beats not answering. A document read in one trial and unanswered in another *was*
     read, and the row a reader looks a sha up in should say so; the fact that it also failed

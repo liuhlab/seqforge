@@ -43,17 +43,22 @@ class FingerprintResult:
 
     @property
     def total_reads_written(self) -> int:
+        """Reads written into the package, summed over its files."""
         return sum(f.reads_written for f in self.manifest.files)
 
     @property
     def package_bytes(self) -> int:
+        """The archive's size on disk, or 0 when it has not been written."""
         return self.package.stat().st_size if self.package.exists() else 0
 
 
 def _common_root(files: Sequence[Path]) -> Path | None:
-    """The directory the FASTQs' relative paths are anchored to — ``os.path.commonpath`` of their
-    resolved parents, mirroring :func:`seqforge.manifest.fill.dataset_uris` so the package's tree
-    reproduces the manifest's relative URIs. ``None`` when they span filesystems (basename fallback)."""
+    """The directory the FASTQs' relative paths are anchored to.
+
+    It is ``os.path.commonpath`` of their resolved parents, mirroring
+    :func:`seqforge.manifest.fill.dataset_uris` so the package's tree reproduces the manifest's
+    relative URIs. ``None`` when they span filesystems (basename fallback).
+    """
     try:
         return Path(os.path.commonpath([str(f.parent.resolve()) for f in files]))
     except ValueError:

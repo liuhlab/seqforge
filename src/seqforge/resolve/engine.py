@@ -179,6 +179,7 @@ class ResolveOutput:
     observations: list[Observation] = field(default_factory=list)
 
     def exit_code(self) -> int:
+        """The uniform exit code for this result (see :func:`exit_code_for`)."""
         return exit_code_for(self.result)
 
 
@@ -402,12 +403,13 @@ _FASTQ_EXTS = (".fastq.gz", ".fq.gz", ".fastq.bz2", ".fastq.xz", ".fastq", ".fq"
 
 
 def read_designation(basename: str) -> str | None:
-    """The mate/read designation a filename declares — ``R1``/``R2``/``I1`` (Illumina) or ``1``/``2``/
-    ``3`` (fasterq-dump), or ``None`` when it declares none.
+    r"""The mate/read designation a filename declares, or ``None`` when it declares none.
+
+    That is ``R1``/``R2``/``I1`` (Illumina) or ``1``/``2``/``3`` (fasterq-dump).
 
     This — not a de-laned basename — is what a surplus lane or flowcell file shares with its role
     representative. It carries no flowcell id, so it groups the reads of one accession sequenced across
-    several flowcells (GSE208154), which stripping the ``_L\\d{3}`` lane token alone could not: the
+    several flowcells (GSE208154), which stripping the ``_L\d{3}`` lane token alone could not: the
     flowcell id differs between them, so their de-laned names differed and the surplus stayed unassigned.
     """
     name = basename
@@ -486,6 +488,7 @@ class RunResolution:
 
     @property
     def winner(self) -> str | None:
+        """The top candidate's technology, or ``None`` when there is no candidate."""
         cands = self.output.result.candidates
         return cands[0].technology if cands else None
 
@@ -514,6 +517,7 @@ class MultiRunOutput:
 
     @property
     def observations(self) -> list[Observation]:
+        """Every run's Observations, in run order."""
         return [o for r in self.runs for o in r.output.observations]
 
     def role_of_sha(self) -> dict[str, str]:
@@ -580,8 +584,9 @@ class MultiRunOutput:
         return blockers
 
     def exit_code(self, *, excluding: Collection[str] = ()) -> int:
-        """The dataset's byte-gate exit code: 3 if the reduction itself blocked, else the max over
-        the runs — one run's blocker or one run's open question is the dataset's.
+        """The dataset's byte-gate exit code: 3 if the reduction itself blocked, else the runs' max.
+
+        One run's blocker or one run's open question is the dataset's.
 
         ``excluding`` drops named run ids from that max, and has exactly one caller: a plate whose
         cell ABSTAINED (:data:`CellOutcome`). That cell's question was answered by inheritance and is
@@ -720,7 +725,7 @@ def _tie_set(result: ResolveResult) -> set[str]:
 
 
 def _cell_of_run(multi: MultiRunOutput, sample_shas: dict[str, list[str]]) -> dict[str, str]:
-    """run id -> the id of the ``Sample`` (the CELL) it belongs to.
+    """Run id -> the id of the ``Sample`` (the CELL) it belongs to.
 
     Inverted from the sample -> files map, which is the *join* the reduction already owns and
     already materialises for its per-sample chemistry gate. Reading it does not cross ADR-0010: no
@@ -1004,17 +1009,24 @@ class DatasetResolution:
 
     @property
     def observations(self) -> list[Observation]:
+        """Every run's Observations, as the multi-run output carries them."""
         return self.runs.observations
 
     @property
     def _judging_runs(self) -> list[RunResolution]:
-        """The runs whose surfaced judgements are still the dataset's. Every run, minus the cells
-        that abstained — identical to ``self.runs.runs`` wherever no plate is in play."""
+        """The runs whose surfaced judgements are still the dataset's.
+
+        Every run, minus the cells that abstained — identical to ``self.runs.runs`` wherever no
+        plate is in play.
+        """
         return [r for r in self.runs.runs if r.run_id not in self.abstained]
 
     def role_of_sha(self) -> dict[str, str]:
-        """The dataset-wide file-sha -> role map. A six-run dataset has six R1s; this is where they
-        are, and a single run's `RoleAssignment` cannot express it."""
+        """The dataset-wide file-sha -> role map.
+
+        A six-run dataset has six R1s; this is where they are, and a single run's `RoleAssignment`
+        cannot express it.
+        """
         return self.runs.role_of_sha()
 
     @property
@@ -1186,8 +1198,11 @@ _RUN_CTX: dict[str, object] = {}
 
 
 def _resolve_run_shared(item: tuple[str, list[Path]]) -> RunResolution:
-    """Fork worker: resolve one run from the parent's COW-inherited ``_RUN_CTX`` (a warm registry whose
-    packed whitelist is shared read-only). Only the run's own paths cross the process boundary."""
+    """Fork worker: resolve one run from the parent's COW-inherited ``_RUN_CTX``.
+
+    ``_RUN_CTX`` is a warm registry whose packed whitelist is shared read-only. Only the run's own
+    paths cross the process boundary.
+    """
     # `_RUN_CTX` carries `_resolve_one_run`'s keywords across the fork, so it is heterogeneous by
     # construction; `**` on a `dict[str, object]` loses the per-key types.
     return _resolve_one_run(item, **_RUN_CTX)  # type: ignore[arg-type]

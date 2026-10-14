@@ -326,10 +326,12 @@ class AssayReport(_View):
 
     @property
     def n_samples(self) -> int:
+        """How many samples the assay reports."""
         return len(self.samples)
 
     @property
     def n_files(self) -> int:
+        """How many files the assay reports."""
         return len(self.files)
 
     @property
@@ -366,6 +368,7 @@ class ProjectReport(_View):
 
     @property
     def is_multi_assay(self) -> bool:
+        """Whether the report holds more than one assay, and so needs an assay switcher."""
         return len(self.assays) > 1
 
     @property

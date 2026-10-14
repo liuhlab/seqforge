@@ -250,8 +250,11 @@ class CollapsedGroup:
 
     @property
     def members(self) -> tuple[NormalizedDoc, ...]:
-        """Every member the exemplar stands for, whatever it cost — which is exactly the set its
-        invariant claims fan to, because a fan is decided by bytes and never by price."""
+        """Every member the exemplar stands for, whatever it cost.
+
+        That is exactly the set its invariant claims fan to, because a fan is decided by bytes and
+        never by price.
+        """
         return self.reduced + self.withheld
 
 
@@ -294,13 +297,16 @@ class ExtractionPlan:
 
     @property
     def n_documents(self) -> int:
+        """How many documents the plan sends."""
         return len(self.documents)
 
     @property
     def all_documents(self) -> tuple[NormalizedDoc, ...]:
-        """Every document this plan RENDERED — the ones it sends, each followed by the full
-        renderings of the ones it collapsed onto it. What must reach disk, as against
-        :attr:`documents`, which is what is paid for."""
+        """Every document this plan RENDERED: what must reach disk.
+
+        That is the ones it sends, each followed by the full renderings of the ones it collapsed
+        onto it, as against :attr:`documents`, which is what is paid for.
+        """
         out: list[NormalizedDoc] = []
         for doc in self.documents:
             out.append(doc)
@@ -310,9 +316,11 @@ class ExtractionPlan:
         return tuple(out)
 
     def stands_for(self, doc: NormalizedDoc) -> tuple[str, ...]:
-        """Every archive record ``doc`` is the ONLY reading of: its own, the runs of one sample folded
-        into it, and every near-identical member **withheld** onto it — the ones whose difference was
-        nothing but the accession we ourselves wrote, so nothing of theirs was sent.
+        """Every archive record ``doc`` is the ONLY reading of.
+
+        That is its own, the runs of one sample folded into it, and every near-identical member
+        **withheld** onto it — the ones whose difference was nothing but the accession we ourselves
+        wrote, so nothing of theirs was sent.
 
         A member the collapse **reduced** is deliberately absent; it is in :meth:`reduced_members`,
         because its difference *was* sent, as a document of its own. Across a whole plan every record
@@ -346,8 +354,10 @@ class ExtractionPlan:
 
     @property
     def n_requests(self) -> int:
-        """How many times this plan will reach a model, before any retry. Never more than
-        :attr:`n_documents`, and fewer whenever two documents receive the same ask."""
+        """How many times this plan will reach a model, before any retry.
+
+        Never more than :attr:`n_documents`, and fewer whenever two documents receive the same ask.
+        """
         return len(self.batches)
 
     @property
@@ -957,6 +967,7 @@ class FannedClaim:
 
     @property
     def n_records(self) -> int:
+        """How many archive records carry the quote."""
         return len(self.records)
 
 
@@ -1109,6 +1120,7 @@ class QuoteResidue:
 
     @property
     def rate(self) -> float:
+        """The share of measured spans that are ambiguous, or 0 when none were measured."""
         return self.n_ambiguous / self.n_spans if self.n_spans else 0.0
 
 
@@ -1157,10 +1169,12 @@ def _token_windows(text: str, n: int) -> Iterator[str]:
 
 
 def _windows(documents: Sequence[NormalizedDoc], width: int) -> tuple[tuple[int, ...], ...]:
-    """Plan-ordered indices chunked into fixed-width groups **of one ask** — a measurement batching,
-    never a send one, so it reads none of the send-time bounds. Sweeping the residue against width is
-    the whole point of the instrument, and a sweep that stopped at whatever the shipped batcher would
-    have chosen could not answer the question it exists for."""
+    """Plan-ordered indices chunked into fixed-width groups **of one ask**.
+
+    A measurement batching, never a send one, so it reads none of the send-time bounds. Sweeping the
+    residue against width is the whole point of the instrument, and a sweep that stopped at whatever
+    the shipped batcher would have chosen could not answer the question it exists for.
+    """
     by_ask: dict[tuple[str, ...], list[int]] = {}
     for i, doc in enumerate(documents):
         by_ask.setdefault(fields_for(doc.scope, doc.role), []).append(i)

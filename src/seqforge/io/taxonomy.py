@@ -1,4 +1,4 @@
-"""Organism name -> NCBI taxid, with a round-trip verifier. **No model is involved, deliberately.**
+"""Organism name -> NCBI taxid, with a round-trip verifier. **No model is involved, deliberately**.
 
 This is the one gap in "the organism must come from the paper" that survived every audit, and the
 shape of it is worth stating because it looks like a job for a language model and is not:
@@ -93,8 +93,11 @@ def _normalize(name: str) -> str:
 
 
 def _with_api_key(url: str) -> str:
-    """Append ``api_key`` to a eutils URL when the environment sets ``NCBI_API_KEY`` (lifts the keyless
-    3 req/sec cap to 10). Only eutils URLs — the key is NCBI's and belongs on no other host (#9)."""
+    """Append ``api_key`` to a eutils URL when the environment sets ``NCBI_API_KEY``.
+
+    The key lifts the keyless 3 req/sec cap to 10. Only eutils URLs — the key is NCBI's and belongs
+    on no other host (#9).
+    """
     key = os.environ.get("NCBI_API_KEY")
     if not key or not url.startswith(_EUTILS):
         return url
@@ -195,6 +198,6 @@ def seed_names() -> dict[str, int]:
     return dict(_SEED)
 
 
-#: Where a resolved lookup is cached under a workspace, so a second run is offline and instant.
 def cache_path(workspace: str | Path) -> Path:
+    """Where a resolved lookup is cached in a workspace, so a second run is offline and instant."""
     return cache_dir(workspace) / "taxonomy.json"

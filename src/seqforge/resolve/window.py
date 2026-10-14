@@ -58,6 +58,7 @@ class WindowProbe:
 
     @property
     def n_sampled(self) -> int:
+        """How many reads the bounded head sampled."""
         return len(self.seqs)
 
     def _frames(self, read: Read) -> list[dict[str, tuple[int, int]] | None]:
@@ -129,6 +130,7 @@ class WindowProbe:
 
     @property
     def mode_length(self) -> int:
+        """The observed reads' mode length."""
         return self.observation.read_length.mode
 
     def distinct_ratio(self, start: int, end: int) -> float | None:

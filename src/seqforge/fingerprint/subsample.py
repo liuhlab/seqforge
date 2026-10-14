@@ -35,6 +35,7 @@ class RecordSlice:
 
     @property
     def n_reads(self) -> int:
+        """How many complete records the slice holds."""
         return len(self.records)
 
 

@@ -26,10 +26,13 @@ if TYPE_CHECKING:
 
 
 class PdfBackendChoice(StrEnum):
-    """Which engine opens a PDF, exposed as ``--pdf-backend``. ``pymupdf`` (AGPL-3.0) is the default
-    because it read every real manuscript in the eval, including ones ``pypdf`` (BSD) cannot parse;
-    ``pypdf`` stays as the permissive fallback. Neither reorders geometrically — tables come from
-    pdfplumber either way, so the choice is really which reader survives more files."""
+    """Which engine opens a PDF, exposed as ``--pdf-backend``.
+
+    ``pymupdf`` (AGPL-3.0) is the default because it read every real manuscript in the eval,
+    including ones ``pypdf`` (BSD) cannot parse; ``pypdf`` stays as the permissive fallback. Neither
+    reorders geometrically — tables come from pdfplumber either way, so the choice is really which
+    reader survives more files.
+    """
 
     pypdf = "pypdf"
     pymupdf = "pymupdf"
@@ -549,9 +552,10 @@ def _write_usage(
     rows: list[dict[str, object]],
     n_documents: int,
 ) -> None:
-    """The cost ledger (disk is state), written whether or not we go on to verify — the calls
-    happened and cost tokens regardless, and a run refused at its ceiling is the one that most needs
-    to say what it spent.
+    """The cost ledger (disk is state), written whether or not we go on to verify.
+
+    The calls happened and cost tokens regardless, and a run refused at its ceiling is the one that
+    most needs to say what it spent.
 
     ``n_calls`` is the meter's count of real REQUESTS, retries included. It used to be the document
     count, which made every retry free in the only place a reader would look. ``n_documents`` keeps

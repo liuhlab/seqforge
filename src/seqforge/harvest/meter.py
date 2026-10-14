@@ -160,6 +160,7 @@ class Exchange:
 
     @property
     def ok(self) -> bool:
+        """Whether the provider answered rather than refused."""
         return self.error is None
 
     @property
@@ -168,6 +169,7 @@ class Exchange:
         return raw_tokens(self.usage)
 
     def to_json(self) -> dict[str, Any]:
+        """The exchange as plain JSON, with ``error`` present only on a refused attempt."""
         out: dict[str, Any] = {
             "prompt_sha256": self.prompt_sha256,
             "model": self.model,
@@ -201,6 +203,7 @@ class Transcript:
 
     @property
     def n_exchanges(self) -> int:
+        """How many exchanges the transcript holds, retries included."""
         return len(self.exchanges)
 
     def prompt_for(self, exchange: Exchange) -> str:
@@ -208,6 +211,7 @@ class Transcript:
         return self.prompts[exchange.prompt_sha256]
 
     def to_json(self) -> dict[str, Any]:
+        """The transcript as plain JSON: each prompt once, by sha256, then every exchange."""
         return {
             "provider": self.provider,
             "prompts": dict(self.prompts),
@@ -294,11 +298,16 @@ class TokenMeter:
 
     # ---- the provider protocol -------------------------------------------------------------
     def default_model(self) -> str:
+        """The wrapped provider's default model; the meter has no opinion of its own."""
         return self._inner.default_model()
 
     def complete_json(
         self, *, system: str, user: str, schema: dict[str, Any], model: str, max_tokens: int
     ) -> LLMResponse:
+        """The wrapped provider's answer, reserved against the ceiling first and banked after.
+
+        A refused call is banked too: it spent tokens, and it is an exchange.
+        """
         reserved = self._reserve(system, user)
         try:
             response = self._inner.complete_json(
@@ -345,6 +354,7 @@ class TokenMeter:
 
     @property
     def ceiling(self) -> int | None:
+        """The token ceiling this meter enforces, or ``None`` for none."""
         return self._ceiling
 
     def usage(self) -> dict[str, int]:

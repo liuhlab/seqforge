@@ -558,8 +558,10 @@ def _positions_for(
     by_doc: dict[str, DocumentSubject],
     subject_to_sample: dict[str, str],
 ) -> tuple[dict[str, list[_Position]], list[ValidationWarning]]:
-    """Every source's answer for every attribute of one sample, plus what the record said that has no
-    key to say it under. Decides nothing: the notes report an exclusion the key space already made.
+    """Every source's answer for every attribute of one sample.
+
+    Plus what the record said that has no key to say it under. Decides nothing: the notes report an
+    exclusion the key space already made.
     """
     out: dict[str, list[_Position]] = {}
     notes: list[ValidationWarning] = []
@@ -843,10 +845,11 @@ _VALUE_JOINERS = str.maketrans("-_/", "   ")
 
 def _norm_value(value: str) -> str:
     """Case-, whitespace- and joiner-folded key for testing whether two attribute VALUES agree.
+
     'Male' and 'male' are the same sex and ``wild-type`` is the same genotype as ``wild type``; a
     permanent, content-addressed manifest must not null or warn about an attribute over a
-    capitalization or a hyphen — only a genuine disagreement should. Which SPELLING is then stored is
-    precedence's answer, not this function's: it folds for the comparison only, and `_evidenced`
+    capitalization or a hyphen — only a genuine disagreement should. Which SPELLING is then stored
+    is precedence's answer, not this function's: it folds for the comparison only, and `_evidenced`
     keeps whichever position :func:`_outranking` ranked first exactly as its source wrote it.
     """
     return " ".join(value.translate(_VALUE_JOINERS).split()).casefold()

@@ -387,8 +387,10 @@ def flow_pane(assay: AssayReport) -> str:
 
 
 def _flow_card(step: FlowStep, index: int) -> str:
-    """One step. ``flow-{kind}`` is computed from :data:`~seqforge.report.flow.StepKind`, so all five
-    members are declared components — and only two of them paint anything.
+    """One step.
+
+    ``flow-{kind}`` is computed from :data:`~seqforge.report.flow.StepKind`, so all five members are
+    declared components — and only two of them paint anything.
 
     ``desc`` joins on a **space**, not on ``<br>``. Its lines are sentence fragments written to read
     as one sentence ("…and measure read" + "lengths and which short barcodes repeat"); the break was
@@ -508,8 +510,10 @@ def _sample_rows(
 
 
 def _attr_cell(attr: AttributeView | None) -> str:
-    """One metadata cell. Provenance rides in ``data-*`` attributes, not a native ``title``: the script
-    turns a click into a pinned, selectable, copyable popover — a hover tooltip can be neither.
+    """One metadata cell.
+
+    Provenance rides in ``data-*`` attributes, not a native ``title``: the script turns a click into
+    a pinned, selectable, copyable popover — a hover tooltip can be neither.
 
     The mark rides *beside* the value in a flex row rather than absolutely positioned into a reserved
     right-hand gutter. Same picture, but the gutter was padding stated in the stylesheet, and a value
@@ -870,8 +874,11 @@ def _stages_panel(assay: AssayReport) -> str:
 
 
 def _stage_box(stage: PipelineStage, index: int) -> str:
-    """One stage. ``flex-1 basis-48`` is why two stages fill the row and four quarter it, and why a
-    narrow viewport stacks them instead of scrolling."""
+    """One stage.
+
+    ``flex-1 basis-48`` is why two stages fill the row and four quarter it, and why a narrow
+    viewport stacks them instead of scrolling.
+    """
     return (
         '<li class="flex-1 basis-48 rounded-lg border border-line p-4">'
         '<span class="inline-grid size-5 place-items-center rounded-full border border-line '
@@ -1767,6 +1774,7 @@ def tab_bar(report: ProjectReport) -> str:
 
 
 def assay_switcher(report: ProjectReport) -> str:
+    """The assay picker, or nothing when the report holds a single assay."""
     if not report.is_multi_assay:
         return ""
     opts = "".join(

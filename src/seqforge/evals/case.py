@@ -382,6 +382,8 @@ class Expected(BaseModel):
 
 @dataclass(frozen=True)
 class Case:
+    """One eval case as found on disk: its recipe, its expectation, and what it gives to read."""
+
     id: str
     root: Path
     recipe: Recipe
@@ -401,6 +403,7 @@ class Case:
 
     @property
     def has_prose(self) -> bool:
+        """Whether the case gives the compiler prose to read: a metadata document or records."""
         return bool(self.metadata_docs) or bool(self.records)
 
     @property
@@ -758,14 +761,14 @@ def _mate_token(spec: Spec, read_id: str, index: int) -> str:
 
 
 def _deposit(spec: Spec, read_ids: list[str], deposit: Deposit) -> list[_Deposited]:
-    """Lay the spec's reads out as ``deposit`` declares — names, and the header prefix each carries.
+    r"""Lay the spec's reads out as ``deposit`` declares — names, and the header prefix of each.
 
     One library in one lane keeps the name every case had before this knob existed
     (``SIM_R1.fastq.gz``) and the generator's own ``SIM`` header prefix, so no existing case moves a
     byte and no committed dataset hash moves with it. Anything larger is written the way bcl2fastq
     writes it — ``SIM_b01_S1_L001_R1_001.fastq.gz``, after GSE126954's `Murray_b01_S1_L001_R1_001` —
     because that is the layout the record-less path is actually asked to read: ``_S<n>`` is the
-    sample-sheet entry separating two libraries on one flowcell, and ``_L\\d{3}`` is the lane a run
+    sample-sheet entry separating two libraries on one flowcell, and ``_L\d{3}`` is the lane a run
     spans (ADR-0027). So a 2x2 deposit's eight names group into exactly the two runs it declares, and
     a rule that fused ``_S<n>`` or split on the lane says so in the case's own sample count.
     """

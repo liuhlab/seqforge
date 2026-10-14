@@ -77,8 +77,11 @@ def sample_metadata_table(
 
 
 def format_tsv(columns: list[str], rows: list[dict[str, str]]) -> str:
-    """Render ``(columns, rows)`` as a TSV string (trailing newline). Tabs/newlines in a value are
-    squashed to spaces so a stray attribute value can never break the table's shape."""
+    """Render ``(columns, rows)`` as a TSV string (trailing newline).
+
+    Tabs/newlines in a value are squashed to spaces so a stray attribute value can never break the
+    table's shape.
+    """
 
     def cell(value: str) -> str:
         return " ".join(str(value).split())

@@ -57,7 +57,7 @@ REASON_TAIL_LINES = 40
 _PLANNING_CORES = "1"
 
 
-def have(binary: str) -> bool:
+def _have(binary: str) -> bool:
     return shutil.which(binary) is not None
 
 
@@ -115,7 +115,7 @@ def wiring_gate(pipeline_dir: Path, plan: ComposePlan) -> GateVerdict:
     outside, an unexplained ``fail`` and a silent pass are hard to tell apart, and #267's own triage
     mis-read one as the other.
     """
-    if not have("snakemake"):
+    if not _have("snakemake"):
         return GateVerdict(
             status="skip", reason=["snakemake is not on PATH, so the wiring was never planned"]
         )
@@ -180,7 +180,7 @@ def e2e_gate() -> GateVerdict:
     toolchain is absent" and "the toolchain is here and running it is not compose's job" are different
     facts about a green result, and only the second means a reader can go get the coverage.
     """
-    missing = [name for name, present in (("STAR", have("STAR")), ("liulab-genome", _have_genome()))
+    missing = [name for name, present in (("STAR", _have("STAR")), ("liulab-genome", _have_genome()))
                if not present]  # fmt: skip
     if missing:
         return GateVerdict(

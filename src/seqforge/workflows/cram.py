@@ -1,5 +1,4 @@
-"""Convert STAR's coordinate-sorted BAM to CRAM — the finalize step that shrinks the retained
-alignment.
+"""Convert STAR's coordinate-sorted BAM to CRAM: the finalize step shrinking the retained alignment.
 
 CRAM stores each read as its *difference* from the reference, so it is markedly smaller than BAM. The
 reference is not embedded (``embed_ref`` is deliberately off): ``samtools view -C -T <ref>`` records

@@ -128,7 +128,7 @@ def _parse_whitespace_kv(text: str) -> dict[str, object]:
 
 
 def _parse_log_final(text: str) -> dict[str, object]:
-    """``Log.final.out``: ``   Label |\\tvalue`` lines, with section headers (no ``|``) skipped."""
+    r"""``Log.final.out``: ``   Label |\tvalue`` lines, with section headers (no ``|``) skipped."""
     return _parse_kv(text, "|")
 
 

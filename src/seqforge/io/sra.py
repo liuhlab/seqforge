@@ -395,8 +395,10 @@ def resolve_package_runs(accession: str, *, multi_experiment: bool = False) -> l
 
 
 def _slug_for(runs: Sequence[dict[str, Any]], name: str | None) -> str:
-    """A human slug for the package: the caller's ``--name``, else the shared SRX, else the shared
-    study, else a run acc."""
+    """A human slug for the package.
+
+    The caller's ``--name``, else the shared SRX, else the shared study, else a run acc.
+    """
     if name:
         return name
     srxs = {(r.get("experiment_accession") or "").strip() for r in runs} - {""}

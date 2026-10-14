@@ -1,5 +1,4 @@
-"""One chimera-mapped BAM into one BAM per **Component**, each spelled the way a single-assembly run
-would have spelled it.
+"""One chimera-mapped BAM into one BAM per **Component**, spelled as a single-assembly run would.
 
 A **Chimera** is one reference built from several component assemblies, whose chromosome names carry
 a ``<separator><component>`` suffix so that every read declares which organism it landed on. That
@@ -311,7 +310,7 @@ def _program(source: Mapping[str, Any], component: str, path: Path) -> dict[str,
 def _restored(
     source: Mapping[str, Any], component: str, path: Path, separator: str
 ) -> tuple[AlignmentHeader, dict[int, int]]:
-    """This Component's header, plus the old-tid -> new-tid map its records are rewritten through.
+    """``component``'s header, plus the old-tid -> new-tid map its records are rewritten through.
 
     Everything the chimeric header carried survives untouched except ``@SQ`` — ``@HD``, the
     aligner's ``@PG`` and ``@CO``, and anything else a header may hold pass through by construction
@@ -721,8 +720,10 @@ def split_metrics(payload: Mapping[str, Any], sample: str) -> SampleStats:
     """
 
     def account(key: str) -> Mapping[str, Any]:
-        """One per-key mapping out of the payload, or an empty one — the same answer a summary
-        written before that key existed and a hand-edited one both earn, since neither measured it.
+        """One per-key mapping out of the payload, or an empty one.
+
+        Empty is the same answer a summary written before that key existed and a hand-edited one
+        both earn, since neither measured it.
         """
         value = payload.get(key)
         return value if isinstance(value, Mapping) else {}

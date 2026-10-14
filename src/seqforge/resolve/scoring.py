@@ -1,4 +1,4 @@
-"""Per-technology scoring: evidence matrix -> injective assignment -> cardinality-normalized score.
+r"""Per-technology scoring: evidence matrix -> injective assignment -> cardinality-normalized score.
 
 For technology ``t`` with roles ``R_t`` (the reads of its active **read set**) and files ``F``, cell
 ``M[r][f]`` is ``FORBIDDEN`` if any ``requires(r)`` gate FAILs or any ``excludes(r)`` gate PASSes, else
@@ -6,7 +6,7 @@ the normalized weighted ``supports(r)`` sum in ``[0, 1]``. ``FORBIDDEN`` is an i
 ``Cell(forbidden=True)`` flag, never a ``±inf`` — serialized it is ``{"status": "forbidden"}`` so no
 infinity ever crosses the JSON boundary.
 
-``score(t) = raw / |R_t|  -  (λ / |R_t|)·|F \\ A*|`` is cardinality-normalized so a 2-role 10x and a
+``score(t) = raw / |R_t|  -  (λ / |R_t|)·|F \ A*|`` is cardinality-normalized so a 2-role 10x and a
 6-role SPLiT-seq are comparable. The filename prior enters as a sub-threshold ``β``-scaled nudge that
 can only break an exact byte-tie.
 
@@ -43,6 +43,7 @@ class Cell:
     reason: str = ""
 
     def to_json(self) -> dict[str, object]:
+        """The cell as plain JSON: a forbidden cell keeps its reason, a scored one its value."""
         if self.forbidden:
             return {"status": "forbidden", "reason": self.reason}
         return {"status": "scored", "value": round(self.value, 4)}
@@ -85,10 +86,12 @@ class TechEvaluation:
 
     @property
     def valid(self) -> bool:
+        """Whether the spec scored, rather than being forbidden."""
         return self.score.status == "scored"
 
     @property
     def value(self) -> float:
+        """The score, or ``-inf`` when forbidden, so an invalid spec ranks last."""
         return self.score.value if self.score.value is not None else float("-inf")
 
     def role_assignment_shas(self) -> dict[str, str]:
@@ -199,15 +202,17 @@ def _over_length_admitted_by_onlist(
     registry: OnlistRegistry,
     supports: list[tuple[Test, float]],
 ) -> bool:
-    """Admit a barcode read over-sequenced into the length dead zone IFF its barcode prefix hits the
-    whitelist. Deliberately narrow and additive: it fires ONLY on a ``segment_length`` FAIL whose mode
-    is strictly between the canonical ``length`` and ``over_length_min`` (a read at/below the canonical
-    length, or already ``>= over_length_min``, does not reach here), and ONLY when an ``onlist_hit_rate``
-    support clears the FLOOR-ANCHORED admission bar (:func:`onlist_admits_over_length`) — a LOWER bar
-    than the support's own ``min`` PASS threshold, because admission asks "barcode or cDNA?" not
-    "confident barcode?", so it can admit a read whose exact hit rate sits below ``min`` yet far above
-    chance. A cDNA read of the same length hits the whitelist at its floor and stays forbidden, so
-    rung-0-2 separability between single-cell and cDNA-only chemistries is preserved.
+    """Admit a barcode read over-sequenced into the length dead zone IFF it hits the whitelist.
+
+    What is checked is the read's barcode prefix. Deliberately narrow and additive: it fires ONLY on
+    a ``segment_length`` FAIL whose mode is strictly between the canonical ``length`` and
+    ``over_length_min`` (a read at/below the canonical length, or already ``>= over_length_min``,
+    does not reach here), and ONLY when an ``onlist_hit_rate`` support clears the FLOOR-ANCHORED
+    admission bar (:func:`onlist_admits_over_length`) — a LOWER bar than the support's own ``min``
+    PASS threshold, because admission asks "barcode or cDNA?" not "confident barcode?", so it can
+    admit a read whose exact hit rate sits below ``min`` yet far above chance. A cDNA read of the
+    same length hits the whitelist at its floor and stays forbidden, so rung-0-2 separability
+    between single-cell and cDNA-only chemistries is preserved.
     """
     if not isinstance(test, SegmentLength) or test.over_length_min is None:
         return False
@@ -232,10 +237,12 @@ def _clears_onlist_bar(
     spec: Spec,
     registry: OnlistRegistry,
 ) -> bool:
-    """True iff some onlist support for this barcode ``read`` clears the floor-anchored admission bar on
-    ``wp`` — the file's barcode prefix hits the whitelist far above the ~1e-4..1e-3 random floor, i.e.
-    this read LOOKS barcoded. The predicate both the F1a seating constraint and ``barcode_onlist_hit``
-    are built from."""
+    """True iff some onlist support for this barcode ``read`` clears the admission bar on ``wp``.
+
+    The bar is floor-anchored: the file's barcode prefix hits the whitelist far above the
+    ~1e-4..1e-3 random floor, i.e. this read LOOKS barcoded. The predicate both the F1a seating
+    constraint and ``barcode_onlist_hit`` are built from.
+    """
     return any(
         isinstance(when, OnlistHitRate)
         and onlist_admits_over_length(when, read, wp, spec, registry)
@@ -249,9 +256,12 @@ def _barcode_onlist_available(
     barcode_role_ids: list[str],
     sup_by: dict[str, list[tuple[Test, float]]],
 ) -> bool:
-    """True iff at least one barcode role's onlist whitelist is REGISTERED and materializable — we had a
-    list to check against. When False the whitelist was never consulted, so a ``barcode_onlist_hit`` of
-    False means 'could not check', not 'barcode absent': F1b must abstain, not refuse."""
+    """True iff at least one barcode role's onlist whitelist is REGISTERED and materializable.
+
+    That is, we had a list to check against. When False the whitelist was never consulted, so a
+    ``barcode_onlist_hit`` of False means 'could not check', not 'barcode absent': F1b must abstain,
+    not refuse.
+    """
     for rid in barcode_role_ids:
         for when, _w in sup_by[rid]:
             if not isinstance(when, OnlistHitRate):

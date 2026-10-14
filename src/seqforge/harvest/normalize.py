@@ -214,10 +214,10 @@ _MAX_ROWS_PER_SHEET = 500
 
 
 def _clean_cell(value: object) -> str:
-    """One cell -> one contiguous token run.
+    r"""One cell -> one contiguous token run.
 
     A cell is dirty in ways a row layout cannot survive: it may be ``None`` (blank, or a merged cell's
-    hidden child), or it may hold its own newlines (``"treated with\\nDMSO"``). Collapsing every
+    hidden child), or it may hold its own newlines (``"treated with\nDMSO"``). Collapsing every
     internal whitespace run to a single space keeps one cell to one token run, so an embedded newline
     can neither shatter the ` | ` columns nor fake a paragraph break in the canonical text.
     """
@@ -227,8 +227,7 @@ def _clean_cell(value: object) -> str:
 
 
 def _read_xlsx(path: Path) -> str:
-    """Render EVERY sheet of a workbook to text — because the useful sheet is rarely the first one,
-    and the workbook is rarely clean.
+    """Render EVERY sheet of a workbook to text: the useful one is rarely first, and rarely clean.
 
     A supplementary `.xlsx` is the common shape of a paper's sample metadata, and it is *plural* and
     *dirty*: the sheet that names the samples ("Sample metadata", "Experimental design") is usually not
@@ -318,8 +317,11 @@ def _char_entropy(text: str) -> float:
 
 
 def _assess_readable(text: str, *, source: str) -> None:
-    """Refuse a document with no quotable text. Empty always; near-zero entropy only past a length
-    floor, so a short legitimate instruction is never mistaken for garble."""
+    """Refuse a document with no quotable text.
+
+    Empty always; near-zero entropy only past a length floor, so a short legitimate instruction is
+    never mistaken for garble.
+    """
     if not text.strip():
         raise UnreadableDocument(
             f"{source}: no text could be extracted (a scanned or image-only PDF?). Provide a "
@@ -405,9 +407,11 @@ def _pdf_tables(path: Path) -> dict[int, list[str]]:
 
 
 def _pdf_raw_pages(path: Path, *, backend: PdfBackend) -> list[str]:
-    """Per-page raw text for a PDF: reading-order text from ``backend``, with that page's tables
-    rendered to markdown and appended. Page count/order are the text backend's; tables are always
-    pdfplumber's (core), so the backend choice only decides reading order, never whether tables appear.
+    """Per-page raw text for a PDF: reading-order text from ``backend``, plus that page's tables.
+
+    The tables are rendered to markdown and appended. Page count/order are the text backend's;
+    tables are always pdfplumber's (core), so the backend choice only decides reading order, never
+    whether tables appear.
     """
     text_pages = _pypdf_pages(path) if backend == "pypdf" else _pymupdf_pages(path)
     tables = _pdf_tables(path)
@@ -450,8 +454,11 @@ def _normalize_pages(raw_pages: list[str]) -> tuple[str, tuple[PageSpan, ...]]:
 
 
 def page_for_offset(pages: tuple[PageSpan, ...], offset: int) -> int | None:
-    """The 1-indexed page whose ``[start, end)`` contains ``offset`` — ``None`` if unpaged or between
-    pages. Code-owned, mirroring how ``verify`` computes ``char_start``/``char_end`` from the quote."""
+    """The 1-indexed page whose ``[start, end)`` contains ``offset``.
+
+    ``None`` if unpaged or between pages. Code-owned, mirroring how ``verify`` computes
+    ``char_start``/``char_end`` from the quote.
+    """
     if not pages:
         return None
     idx = bisect.bisect_right([pg.start for pg in pages], offset) - 1
@@ -606,10 +613,11 @@ def token_values(text: str) -> tuple[str, ...]:
 
 
 def token_skeleton(text: str) -> tuple[str, ...]:
-    """Everything in ``text`` that is NOT a token: the separators, in order, leading and trailing ones
-    included. Two texts with the same skeleton have the same token count and the same punctuation, so
-    they differ only in what their tokens SAY — which is the only shape a group can be aligned in
-    without parsing the prose.
+    """Every non-token run in ``text``: the separators, in order, leading and trailing included.
+
+    Two texts with the same skeleton have the same token count and the same punctuation, so they
+    differ only in what their tokens SAY — which is the only shape a group can be aligned in without
+    parsing the prose.
 
     It is a whole-string equality key, deliberately. An edit-distance alignment would let two records
     with different fields be "near-identical" at some threshold, and a threshold is a knob nobody can

@@ -655,8 +655,9 @@ def modules_with_cross_checks() -> list[str]:
 
 
 def _check_registry() -> None:
-    """Every registered **Workflow module** either reports or is named as not reporting — and the
-    same, once more, for whether it cross-checks what it reports.
+    """Every registered **Workflow module** either reports or is named as not reporting.
+
+    The same holds, once more, for whether it cross-checks what it reports.
 
     Called by the test suite, not at import: a registry mismatch is a build-time defect, and raising
     here would take down ``seqforge report`` for a dataset that has nothing to do with the new module.

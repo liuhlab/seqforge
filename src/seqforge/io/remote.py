@@ -123,9 +123,12 @@ _MAX_BACKOFF = 16.0
 
 
 def retry_delay(retry_after: str | None, attempt: int) -> float:
-    """Seconds to wait before retry ``attempt`` (0-indexed): an integer ``Retry-After`` if the server
-    sent one, else capped exponential backoff. Shape-agnostic (a header string) so both the ``requests``
-    client here and taxonomy's ``urllib`` client can share one policy."""
+    """Seconds to wait before retry ``attempt`` (0-indexed).
+
+    An integer ``Retry-After`` if the server sent one, else capped exponential backoff.
+    Shape-agnostic (a header string) so both the ``requests`` client here and taxonomy's ``urllib``
+    client can share one policy.
+    """
     if retry_after and retry_after.strip().isdigit():
         return min(float(retry_after.strip()), _MAX_BACKOFF)
     return min(_BACKOFF_BASE * (2.0**attempt), _MAX_BACKOFF)
@@ -352,9 +355,11 @@ class RunStatistics:
 
     @property
     def spot_length(self) -> int:
+        """Bases per spot: the sum of every read's average length."""
         return sum(r.average_length for r in self.reads)
 
     def to_json(self) -> dict[str, Any]:
+        """The run's read table as plain JSON, ``spot_length`` included."""
         return {
             "accession": self.accession,
             "n_reads": self.n_reads,
@@ -415,6 +420,7 @@ class DroppedReads:
     read_types: str | None
 
     def to_json(self) -> dict[str, Any]:
+        """The evidence as plain JSON, the fractional lengths rounded to two places."""
         return {
             "sra_spot_length": self.sra_spot_length,
             "ena_spot_length": round(self.ena_spot_length, 2),
@@ -557,6 +563,7 @@ class PeekResult:
     example_header: str | None = None
 
     def to_json(self) -> dict[str, Any]:
+        """What the range-read saw, as plain JSON."""
         return {
             "uri": self.uri,
             "compressed_bytes_read": self.compressed_bytes_read,
