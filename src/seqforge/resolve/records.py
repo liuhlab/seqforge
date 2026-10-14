@@ -309,7 +309,7 @@ def _join(
         sample_id = sample.accession if sample is not None else run.accession
         grouped.setdefault(sample_id, []).append(f.sha256)
         # A hand-written id is a GROUPING KEY and not a specimen the archive named (this package's
-        # `CONTEXT.md`, **Sample**), so it is not an accession and must not be stored as one —
+        # `GLOSSARY.md`, **Sample**), so it is not an accession and must not be stored as one —
         # `plate7` does not match the accession pattern and reached this stage as an uncaught
         # validation error rather than as anything a caller could act on. That still holds, so
         # `accession` stays empty for a set somebody wrote.
