@@ -339,22 +339,17 @@ vale = "vale --glob='!{.pixi,.claude,site,dist,build,seqforge}/**' ."
 # Read by `scripts/conformance.py`; its docstring has the rules. Keys are path prefixes matched
 # against the tracked files, not globs; a trailing `/` matches a directory. Values name the Vale
 # Length rule that applies, or `false` where none does.
+#
+# No key for a context package's GLOSSARY.md or docs/adr/. `.vale.ini` reaches those with a
+# `src/seqforge/*/` glob inside the same section headers as `GLOSSARY-MAP.md` and `docs/adr/`, so
+# pairing these two keys already checks the settings those files get. A key per context would
+# match no header, because a key is a plain prefix and the header spells a glob.
 [tool.liulab.agent-docs]
 "AGENTS.md" = "LengthDoc"
 "GLOSSARY-MAP.md" = false
 "skills/" = "LengthDoc"
 "docs/adr/" = "LengthAdr"
 "docs/research/" = false
-"src/seqforge/compose/GLOSSARY.md" = false
-"src/seqforge/compose/docs/adr/" = "LengthAdr"
-"src/seqforge/harvest/GLOSSARY.md" = false
-"src/seqforge/harvest/docs/adr/" = "LengthAdr"
-"src/seqforge/kb/GLOSSARY.md" = false
-"src/seqforge/kb/docs/adr/" = "LengthAdr"
-"src/seqforge/probe/GLOSSARY.md" = false
-"src/seqforge/probe/docs/adr/" = "LengthAdr"
-"src/seqforge/resolve/GLOSSARY.md" = false
-"src/seqforge/resolve/docs/adr/" = "LengthAdr"
 
 # Keyed by rule name, the reason as the value. Per-rule, never per-file, and printed on every run.
 [tool.liulab.waived]
