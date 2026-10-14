@@ -62,6 +62,6 @@ than a formality — CI runs it on every push and PR.
 | Using it — the tour, the tutorials, the concepts | **<https://liuhlab.github.io/seqforge/>** |
 | Working on it — the rules, and where to read next | [`AGENTS.md`](AGENTS.md) (`CLAUDE.md` symlinks to it) |
 | One decision per file, one paragraph | [`docs/adr/`](docs/adr/), and beside the code each governs |
-| What a term means | [`CONTEXT-MAP.md`](CONTEXT-MAP.md), and one `CONTEXT.md` per context |
+| What a term means | [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md), and one `GLOSSARY.md` per context |
 | What changed, and when | [`CHANGELOG.md`](CHANGELOG.md) |
 | What is *not* yet built | the [open issues](https://github.com/liuhlab/seqforge/issues) |

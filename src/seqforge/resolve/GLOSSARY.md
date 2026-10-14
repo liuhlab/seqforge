@@ -5,7 +5,7 @@ and the metadata resolver decides which **Sample** each file came from, from rec
 context names the things they identify and the machinery of deciding.
 
 Words every context shares — **Evidenced**, **Basis**, **Observed**, **Conflict** and the rest — are
-defined once in the repo-root `CONTEXT-MAP.md`.
+defined once in the repo-root `GLOSSARY-MAP.md`.
 
 ## Language
 
