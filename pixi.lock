@@ -12358,7 +12358,7 @@ packages:
   - gffutils>=0.13
   - anthropic>=0.40
   - openai>=1.40
-  requires_python: '>=3.12'
+  requires_python: '>=3.13'
 - pypi: git+https://github.com/liuhlab/liulab-data.git#97d0ad9ee3c4645ef758336d71bb10b03eda4ca3
   name: liulab-data
   version: 0.0.1.dev44+dev.g97d0ad9ee

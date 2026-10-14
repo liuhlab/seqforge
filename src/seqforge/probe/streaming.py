@@ -134,7 +134,7 @@ class BoundedReader:
             or self.decompressed_bytes >= self.budget.max_bytes
         )
 
-    def __iter__(self) -> Generator[Record, None, None]:
+    def __iter__(self) -> Generator[Record]:
         """The records, as a GENERATOR — `close()` is part of the contract, not an accident.
 
         Spelled as one rather than as an `Iterator`, because a caller that stops early has to be
