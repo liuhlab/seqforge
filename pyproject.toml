@@ -280,16 +280,20 @@ test-failed = "pytest --lf --new-first -x -q"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 # The networked validation benchmark, not part of `check`. Exits 3 on any false-accept.
 eval      = "seqforge eval run"
-# Not `depends-on`: pixi runs those sequentially. `check.sh` runs the six concurrently and prints
+# Not `depends-on`: pixi runs those sequentially. `check.sh` runs the seven concurrently and prints
 # each one's output whole, in a fixed order. The three test lanes are separate steps rather than one,
 # so the corpus and the binaries land in what was idle time — the suite does not saturate its workers,
 # and a lane that finishes early gives its share back to the one that has not. The gate runs the same
 # three selections CI does, which is the point: what goes red here is what goes red there.
-check     = "bash scripts/check.sh lint fmt-check typecheck test test-corpus test-external"
+check     = "bash scripts/check.sh lint fmt-check typecheck conformance test test-corpus test-external"
 build     = "python -m build"
 # Runs in the CI `build` job, where the wheel already exists — as a test it built a second one.
 check-wheel = "python scripts/check_wheel_contents.py"
 install-skills = "python skills/install.py --user"
+# The template's rules, checked against this repo. `python`, so the skill-link rule runs
+# `install.py --check` on the environment's interpreter. The script is a verbatim copy: change a rule
+# upstream, not here.
+conformance = "python scripts/conformance.py"
 docs      = "mkdocs serve"
 docs-build = "mkdocs build --strict"
 # Publishes to `gh-pages`, so only docs.yml runs it. The committer comes from that step's `env:`,
@@ -301,6 +305,31 @@ markdownlint = "markdownlint-cli2"
 # Renders a benchmark run directory as one HTML page. benchmark.yml appends a `--title` naming the
 # commit; `--source` is the command that wrote the directory, and moves with that step.
 benchmark-report = "seqforge eval report report -o report/benchmark.html --source 'seqforge eval run --no-llm --cases evals/benchmark -C report'"
+
+# ============================== liulab ==============================
+# Read by `scripts/conformance.py`; its docstring has the rules. Keys are path prefixes matched
+# against the tracked files, not globs; a trailing `/` matches a directory. Values name the Vale
+# Length rule that applies, or `false` where none does.
+[tool.liulab.agent-docs]
+"AGENTS.md" = "LengthDoc"
+"GLOSSARY-MAP.md" = false
+"skills/" = "LengthDoc"
+"docs/adr/" = "LengthAdr"
+"docs/research/" = false
+"src/seqforge/compose/GLOSSARY.md" = false
+"src/seqforge/compose/docs/adr/" = "LengthAdr"
+"src/seqforge/harvest/GLOSSARY.md" = false
+"src/seqforge/harvest/docs/adr/" = "LengthAdr"
+"src/seqforge/kb/GLOSSARY.md" = false
+"src/seqforge/kb/docs/adr/" = "LengthAdr"
+"src/seqforge/probe/GLOSSARY.md" = false
+"src/seqforge/probe/docs/adr/" = "LengthAdr"
+"src/seqforge/resolve/GLOSSARY.md" = false
+"src/seqforge/resolve/docs/adr/" = "LengthAdr"
+
+# Keyed by rule name, the reason as the value. Per-rule, never per-file, and printed on every run.
+[tool.liulab.waived]
+agent-docs-unpublished = "mkdocs honours `exclude_docs:`, which keeps docs/adr/ and docs/research/ out of the site, its nav and its search index; the template's front matter exists only because zensical ignores that key"
 
 # ============================== ruff ==============================
 
@@ -362,6 +391,12 @@ ignore_missing_imports = true
 module = ["pymupdf", "pymupdf.*", "pdfplumber", "pdfplumber.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
+
+# The template's checker, copied verbatim, is typed against pyright, which does not flag the one
+# untyped PyYAML call it makes. Relaxed here so the copy stays a copy.
+[[tool.mypy.overrides]]
+module = ["conformance"]
+disallow_untyped_calls = false
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
