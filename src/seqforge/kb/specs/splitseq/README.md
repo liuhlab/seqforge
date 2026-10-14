@@ -1,7 +1,7 @@
 # SPLiT-seq (split-pool combinatorial barcoding)
 
 A single-cell RNA-seq method that needs no special instrument. Instead of one droplet per cell, cells
-are barcoded by **splitting and pooling** them through several rounds of labeling; after three rounds
+are barcoded by **splitting and pooling** them through several rounds of labeling. After three rounds,
 each cell carries a unique combination of three barcodes.
 
 This entry covers the **original published SPLiT-seq** (Rosenberg et al., *Science* 2018). Parse
@@ -30,17 +30,16 @@ source silently mismatches. seqforge pins the original layout from the paper's o
 
 ## Status: one question still open
 
-SPLiT-seq is the pilot's generalization test — it exercises machinery the 10x entries don't (8 bp
-barcodes instead of 16, a barcode split combinatorially across a read). All three round-barcode lists
+SPLiT-seq is the pilot's generalization test. It exercises machinery the 10x entries don't: 8 bp
+barcodes instead of 16, and a barcode split combinatorially across a read. All three round-barcode lists
 ship packed with seqforge, so the entry resolves and compiles from bytes alone. One thing is still
 unconfirmed:
 
 - **The strand has not been checked against real data.** It's derived from the paper's oligos and
-  corroborated by the authors' own pipeline (both point the same way, and no source anywhere claims
-  the opposite), but the honest state is that most pipelines never explicitly chose the strand — they
-  inherited a default, so agreement with them is weaker evidence than it looks. The decisive check is
-  to run the paper's own data both ways; the correct strand assigns roughly an order of magnitude more
-  reads.
+  backed by the authors' own pipeline. Both point the same way, and no source claims the opposite.
+  But most pipelines never chose the strand; they inherited a default. So agreement with them is
+  weaker evidence than it looks. The decisive check is to run the paper's own data both ways. The
+  correct strand assigns roughly ten times more reads.
 
 ## References
 

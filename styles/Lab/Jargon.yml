@@ -1,0 +1,50 @@
+# Lab jargon: architecture-speak and needlessly Latinate verbs.
+#
+# Every pattern below is drawn from a real hit in a Liu Lab repo. The whole map was run
+# over the README and human-facing docs/ of all six repos: 32 hits, zero false positives.
+# The measurements and the per-pattern evidence are in
+# `docs/research/vale-setup-2026-08-30.md`. Do not add a pattern that has never fired.
+#
+# There is deliberately no generic anti-corporate list. The corpus has zero hits for
+# leverage, utilize, facilitate, robust, seamless, ecosystem, paradigm, streamline,
+# bespoke, in order to, first-class, turnkey and battle-tested, so those lines would be
+# dead weight that only ever fires on a false positive.
+#
+# `surface` is both the worst offender and a word that must survive: one repo's docs say
+# "825 surfaces" and "the evaluated surface" about Blender geometry, and a blanket
+# `surface: API` swap would corrupt that page. So the two patterns below are split by
+# grammar — the compound noun (`API surface`) and the verb (`surfaces it as`) — and the
+# bare noun is left alone.
+#
+# Deliberately KEPT, because they are vocabulary rather than padding: domain terms (FASTQ,
+# aligner, accession, ortholog, transcription factor, ...); a repo's own defined nouns
+# (manifest, artifact, probe, gate, rung); `canonical` and `provenance`, which have no
+# shorter exact word; `deterministic`, `immutable` and `preemptible`, which are precise
+# claims that soften into nothing; and plain idiom such as `under the hood` and
+# `load-bearing`. Filler words like `simply` belong to a different problem — a
+# substitution map would render them as "prefer '' over 'simply'".
+extends: substitution
+message: "Jargon: prefer '%s' over '%s'."
+level: error
+ignorecase: true
+swap:
+  '(?:public|API|import|package)\s+surface': public API
+  'surfac(?:e|es|ed)\s+(?:it\s+)?as': reported as
+  'content[- ]address(?:ed|ing)': named by its hash
+  'shared (?:lab )?assets?': shared lab images
+  'guardrails baked in': safety rules built in
+  'degenerate case': simplest case
+  'wire formats?': file format
+  'single source of truth': the one place it is defined
+  'out of the box': with no extra setup
+  'helps to': helps
+  '\bco-location\b': on the same machine
+  '\bactionable\b': you can act on
+  '\badditionally\b': also
+  '\bexecutes?\b': run
+  '\bperturbs?\b': change
+  '\binterrogates?\b': asks
+  '\barbitrates?\b': settle
+  '\bmemoi[sz]e[sd]?\b': cache
+  '\bsubstrate\b': what it runs on
+  '\bREPL\b': interactive session

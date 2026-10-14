@@ -44,7 +44,7 @@ That is not disrespect. Metadata turns an open-ended search ("what could this be
 yes/no check ("the page says 10x v3; do these barcodes match v3's list?"). Trust it enough to skip
 the search, never enough to skip the check.
 
-If the page and the bytes disagree, that is **surfaced as a conflict**, and the bytes win on the
+If the page and the bytes disagree, that is **reported as a conflict**, and the bytes win on the
 factual question.
 
 ## What the bytes give away for free

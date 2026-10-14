@@ -1,0 +1,14 @@
+# Word cap for architecture decision records, docs/adr/*. Tighter than Lab.LengthDoc's
+# 1000 because an ADR records one decision: the context, the choice, and what it costs.
+#
+# This is a dial, not a law. Raising it is a one-line diff here, made deliberately, with
+# the reason in the commit message. An ADR that will not fit is usually two ADRs.
+#
+# `metric` rules are summary-scoped: the variables are computed over the whole file and
+# the alert is reported at 1:1. The condition must be floating point — "> 400.0" and not
+# "> 400", which vale does not parse.
+extends: metric
+message: "This ADR is %s words; the cap is 400. Split the decision."
+level: error
+formula: words
+condition: "> 400.0"

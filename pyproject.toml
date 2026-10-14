@@ -206,6 +206,8 @@ types-pyyaml = "*"
 types-requests = "*"
 types-openpyxl = "*"
 pyinstrument = ">=5.1.2,<6"
+# Exact: the lab's jargon map and the grade-11 number were measured against this version.
+vale = "3.19.0.*"
 
 [tool.pixi.feature.docs.dependencies]
 mkdocs-material = "*"
@@ -289,6 +291,10 @@ check-wheel = "python scripts/check_wheel_contents.py"
 install-skills = "python skills/install.py --user"
 docs      = "mkdocs serve"
 docs-build = "mkdocs build --strict"
+# Prose lint, beside markdownlint and outside `check` for the same reason: it answers a question a
+# code change does not ask. `.`, never an absolute path: an absolute path matches no `.vale.ini`
+# section and exits 0. The globs stop vale walking trees it never lints, worktrees among them.
+vale = "vale --glob='!{.pixi,.claude,site,dist,build,seqforge}/**' ."
 
 # ============================== ruff ==============================
 

@@ -17,7 +17,7 @@ Facts and choices have different lifetimes, so they get different files:
 | answers | what the data **is** | what to **do** with it |
 | authority | the bytes, and the people who ran the experiment | you |
 | how many | exactly one per dataset | as many as you like |
-| can it change? | **no** — content-addressed, written once | yes, freely |
+| can it change? | **no** — named by its hash, written once | yes, freely |
 
 ## Why not one file?
 
@@ -26,7 +26,7 @@ build and you edit the file — but nothing about the data changed. You did. And
 changed with it: if you were using its hash to say "this is that dataset", you have silently claimed
 it is a different one. Do that across ten thousand datasets and the corpus's provenance is fiction.
 
-So the rule is absolute: **changing your mind about processing must never perturb the dataset's
+So the rule is absolute: **changing your mind about processing must never change the dataset's
 hash.** A test compiles one dataset three ways and asserts the hash never moves.
 
 ## Same source, different flags
@@ -92,5 +92,5 @@ Two files tie the project back together at the top level:
 - **`project.yaml`** — the index of which assays exist, their chemistry and sample counts, and where
   each one's manifest and pipeline live.
 
-A uniform project — most of them — is the degenerate case: one assay, the flat layout of the rest of
+A uniform project — most of them — is the simplest case: one assay, the flat layout of the rest of
 this guide, plus that top-level `sample_metadata.tsv`.

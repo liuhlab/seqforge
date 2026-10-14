@@ -17,127 +17,119 @@ seqforge kb e2e --workdir DIR     # the real count matrix, vs injected truth
 seqforge kb e2e-introns --workdir DIR --assembly ce11   # the GeneFull path
 ```
 
+## Start from the nearest neighbour
+
+There is no `kb new` scaffold. Copy the closest spec — `10x-3p-gex-v3` for one contiguous barcode
+(`CB_UMI_Simple`), `splitseq` or `bd-rhapsody-wta` for a split barcode (`CB_UMI_Complex`) — then edit
+and run `seqforge kb lint` (the closed vocabulary in `kb/schema.py`: `ElementType`, `SeqspecRegion`,
+`Decidable`, the signature test set; it fails exactly where a typo leaves it) and
+`seqforge kb roundtrip <id>`.
+
+**Fixed-offset only.** seqforge models elements at a `[start,end)` or anchored to a motif. Barcodes
+after a variable-length diversity/phasing insert have no fixed CB offset and need anchored-element
+support first. BD Rhapsody: the original cell-label bead is fixed-offset; the **Enhanced** bead adds
+a variable insert and is out of scope. Confirm the fixed-offset variant against real R1 bytes before
+writing offsets.
+
 ## The README is the assay's docs page
 
-`README.md` is rendered into the published site under *Knowledge base → Supported assays* (pulled in
-by a snippet include), so write it **for a human reader**: what the assay is, how it's read, how
-seqforge tells it apart from its siblings, the common gotchas, and a link to
-[scg_lib_structs](https://teichlab.github.io/scg_lib_structs/) where the assay has a page there. The
-deep derivations and rationale (strand proofs, benign-twin arguments, offset discriminators) belong
-in the heavily-commented `spec.yaml`, which the README points to — not in the README itself. No code
-reads the README; it is documentation, and `spec.yaml` is the machine truth.
+`README.md` is snippet-included into the site under *Knowledge base → Supported assays*, so write it
+for a human: what the assay is, how it is read, how seqforge tells it from its siblings, the common
+gotchas, and a link to [scg_lib_structs](https://teichlab.github.io/scg_lib_structs/) where the assay
+has a page. Derivations and rationale (strand proofs, benign-twin arguments, offset discriminators) go
+in the heavily commented `spec.yaml`, which the README points to. No code reads the README;
+`spec.yaml` is the machine truth.
 
 ## Every entry is executable and self-testing
 
-A `spec.yaml` that cannot round-trip is not knowledge, it is a note. `kb roundtrip` gates it, and the
-pairwise checks live in the SUITE, not in a verb: `test_no_spec_pair_is_confusable_without_declaring_it`
-and `test_the_benign_twin_biconditional_holds_over_every_loaded_spec_pair` both collect from
-`kb.list_spec_ids()`, so your new spec is covered because it exists, not because someone remembered.
+`kb roundtrip` gates each spec. The pairwise checks live in the suite and collect from
+`kb.list_spec_ids()` — `test_no_spec_pair_is_confusable_without_declaring_it` and
+`test_the_benign_twin_biconditional_holds_over_every_loaded_spec_pair` — so a new spec is covered because it
+exists. There is no `kb confusability` verb.
 
-**There is no `kb confusability` verb.** This skill documented one for a year and it was never built —
-found 2026-07-16 when the verb guard learned to check subcommands instead of only groups.
+- **`decidable_by` is derived; write none.** It is the union of `distinguishable_by` over the
+  processing-divergent confusables. Declare those honestly and it follows.
+- **The generator reads only `spec.reads`**, never `signature` or `backend`. That keeps the round-trip
+  a real test; leave the generator ignorant of the signature.
+- **A `linker`/`fixed` sequence's length must equal its window.** The round-trip cuts each constant at
+  its `[start, end)` (or the anchored frame) and compares base for base; a sequence one base off
+  shifts every later element and usually reddens on the *next* linker. Count the bases.
+- **A `motif_present` `min_rate` is a frequency, tested at its floor** against populations mixed just
+  under and just over it. Pick a rate you would defend on a part-tagged library. A floor at or below
+  the motif's chance rate in plain cDNA cannot fail.
 
-**`decidable_by` is DERIVED, do not write one.** It is the union of `distinguishable_by` over your
-processing-divergent confusables. It used to be a hand-typed field on every spec that nothing read,
-two of them carrying the comment "CI-computed union over the divergent confusables" — no CI computed
-it. Declare the confusables honestly and the summary follows.
+## Look up every value; write none from memory
 
-**A whitelist you declare must be one we ship.**
-`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` checks it: a spec whose decisive
-mechanism cannot fire looks exactly like one that works,
-right up until a real dataset arrives. SPLiT-seq is the standing example — it names three barcode
-lists, we ship none of them, so its three most important tests silently ABSTAIN.
-
-The generator reads **only** `spec.reads` — never `signature` or `backend`. That is what makes the
-round-trip a real test rather than a tautology, so do not "help" by teaching the generator about the
-signature.
-
-**A `linker`/`fixed` sequence is read back out of the reads, so its length must agree with its own
-window.** The round-trip cuts each declared constant sequence at its `[start, end)` (or at the frame
-the anchored resolver recovers) and compares it base for base. Nothing else validates that
-`len(sequence) == end - start`, so a sequence one base off its coordinates shifts every element after
-it and reddens there — usually on the *next* linker, which is the confusing half. Count the bases.
-
-**A `motif_present` `min_rate` is a frequency, and the suite now tests it at its floor.** Your gate is
-evaluated against a population mixed down to just under `min_rate` and just over it, so pick a rate
-you would defend on a part-tagged library rather than one that happens to clear a 100 %-tagged
-fixture. A floor at or below the motif's chance rate in plain cDNA is a gate that cannot fail.
-
-## Never write a value from memory
-
-This is the rule that matters most here, and it is not stylistic. **Look up every one:**
-
-- **EFO CURIEs** — verify against live EFO (EBI OLS). A recalled CURIE is usually plausible and wrong.
-- **Read structure, linkers, offsets** — from the primary paper's oligo tables or scg_lib_structs.
+- **EFO CURIEs**: verify against live EFO (EBI OLS). A recalled CURIE is usually plausible and wrong.
+- **Read structure, linkers, offsets**: from the primary paper's oligo tables or scg_lib_structs.
   **Pin the kit version.**
-- **`soloStrand`** — derive it from the oligo orientation and cite the derivation. Never pattern-match
-  from 10x: a wrong strand leaves most reads unassigned while STARsolo exits 0 and emits a matrix
-  that merely looks thin. Neither the params gate nor a simulated e2e can catch it — a simulation
-  would test your own assumption against itself, which is circular. Real data or a derivation.
-- **`soloCBposition`/`soloUMIposition`** — never hand-enter a quadruple. They are derived from the
-  element model at compose time.
+- **`soloStrand`**: derive it from oligo orientation and cite the derivation; never pattern-match from
+  10x. A wrong strand leaves most reads unassigned while STARsolo exits 0 with a thin-looking matrix.
+  Neither the params gate nor a simulated e2e catches it (a simulation tests your assumption against
+  itself). Real data or a derivation.
+- **`soloCBposition`/`soloUMIposition`**: derived from the element model at compose time; never
+  hand-enter a quadruple.
 
-The SPLiT-seq entry is the worked example: its strand is derived from the paper's Table S12 oligos,
-corroborated by the authors' own code, and it records the honest caveat that the field's practice is
-weaker than its claim.
+Worked example: SPLiT-seq's strand comes from the paper's Table S12 oligos, is corroborated by the
+authors' code, and records the caveat that field practice is weaker than the claim.
 
 ## Declare confusables, including the painful ones
 
-`confusable_with` must list entries that share your geometry, with `distinguishable_by`. Under-declaring
-fails CI. Two relationships:
+`confusable_with` lists every entry sharing your geometry, with `distinguishable_by`; under-declaring
+fails CI.
 
-- `processing_equivalent` — byte-identical backend params (v3 vs v3.1) → benign: record both,
-  ask **zero** questions.
-- `processing_divergent` — the answer changes what runs → must be separable by a declared mechanism
+- `processing_equivalent` — byte-identical backend params (v3 vs v3.1): benign, record both, ask
+  **zero** questions.
+- `processing_divergent` — the answer changes what runs: must be separable by a declared mechanism
   (usually `onlist`), or it becomes exit 4.
 
-Real gotcha: chemistries can differ by an 8 bp offset (SPLiT-seq v1 has Round1 at 86-93; Parse/v2 at
-78-85). Published param quadruples disagree in the wild for this reason — different chemistries, not
-typos.
+Chemistries can differ by an 8 bp offset (SPLiT-seq v1 Round1 at 86-93, Parse/v2 at 78-85), which is
+why published param quadruples disagree in the wild.
 
-After you write `confusable_with`, RUN the check — do not eyeball it:
+After writing `confusable_with`, run the check:
 
 ```bash
 pixi run test -- tests/test_kb.py -k "confusable or biconditional"
 ```
 
-It collects every loaded spec pair and reports any that share your geometry at rungs 0-2 without a
-declared relationship. Add each reported edge on BOTH sides (the relation is symmetric). A bare
-combinatorial geometry — SPLiT-seq, BD Rhapsody — always reports `bulk-rnaseq`: the generic
-paired-end fallback forbids so little it accepts any `cdna + barcode-read` pair, so the edge is
+It reports every loaded spec pair sharing your geometry at rungs 0-2 without a declared relationship.
+Add each edge on BOTH sides. A bare combinatorial geometry (SPLiT-seq, BD Rhapsody) always reports
+`bulk-rnaseq`, whose generic paired-end fallback accepts any `cdna + barcode-read` pair: that edge is
 `processing_divergent`, `distinguishable_by: [onlist]`.
 
-## Multi-barcode, linker-delimited chemistries (`CB_UMI_Complex`)
+## Split barcodes (`CB_UMI_Complex`)
 
-When the cell barcode is SPLIT across several segments separated by fixed linkers — SPLiT-seq's three
-ligation rounds, BD Rhapsody's three cell-label blocks — the backend is `soloType: CB_UMI_Complex`,
-not `CB_UMI_Simple`. The recipe:
+When the cell barcode is split across segments separated by fixed linkers (SPLiT-seq's three ligation
+rounds, BD Rhapsody's three cell-label blocks), the backend is `soloType: CB_UMI_Complex`:
 
-- Model each barcode block as its own `{type: barcode, onlist: <alias>}` element and each spacer as
-  `{type: linker, sequence: "<verbatim>"}`. The linker's literal `sequence` is **required** by the
-  schema (`Element._addressable`) and is the structural signature — pin it from primary oligos. If you
-  also give it a fixed `[start, end)`, the same validator requires `len(sequence) == end - start`: the
-  window and the literal are one width declared twice, and a disagreement shifts every element after it.
+- Each barcode block is a `{type: barcode, onlist: <alias>}` element; each spacer is
+  `{type: linker, sequence: "<verbatim>"}`. The schema (`Element._addressable`) requires the literal
+  `sequence`, the structural signature — pin it from primary oligos. With a fixed `[start, end)` too,
+  it requires `len(sequence) == end - start`.
 - `backend.params.soloCBwhitelist` is an **ordered list** `["{onlist:a}", "{onlist:b}", ...]` in
   **CB-position order**: STARsolo pairs the i-th whitelist with the i-th CB segment.
-- **OMIT `soloCBstart`/`soloCBlen` and `soloCBposition`/`soloUMIposition`.** They are DERIVED from the
-  element coordinates at compose time — `compose/params.py::derived_params` (the keys in
-  `DERIVED_PARAM_KEYS`), emitted in the whitelist's declared order. A hand-entered quadruple is
-  the classic silent-wrong value; the derivation exists so you never write one.
-- Your `signature.requires` are the fixed linkers (`has_segment ... kind: constant`); each barcode
-  block's `onlist_hit_rate` is a `supports`.
+- **Omit `soloCBstart`/`soloCBlen` and `soloCBposition`/`soloUMIposition`.** They are derived from
+  element coordinates at compose time (`compose/params.py::derived_params`, keys in
+  `DERIVED_PARAM_KEYS`), in the whitelist's order.
+- `signature.requires` holds the fixed linkers (`has_segment ... kind: constant`); each block's
+  `onlist_hit_rate` is a `supports`.
 
-Worked example: `src/seqforge/kb/specs/splitseq/spec.yaml` (three 8 bp rounds, two 30 bp linkers) and
+Worked examples: `src/seqforge/kb/specs/splitseq/spec.yaml` (three 8 bp rounds, two 30 bp linkers),
 `src/seqforge/kb/specs/bd-rhapsody-wta/spec.yaml` (three 9 bp CLS blocks, two linkers, 8 bp UMI).
 
-## Shipping a whitelist (and clearing the debt)
+`kb e2e` / `kb e2e-introns` run only the built-in 10x path on sacCer3/ce11, with no fixture for a new
+complex tech. Its proof is `kb roundtrip`, the params gate (`kb lint` + the `params_gate`
+disjointness/coverage/faithfulness checks), the suite's pairwise tests, and one real dataset — never a
+simulated count matrix.
 
-A `CB_UMI_Complex` chemistry almost always needs its barcode lists to **ship**, or it cannot win over
-the generic bulk fallback: the two tie `processing_divergent`, decidable only by `onlist`, so with no
-whitelist to hit the resolver escalates to a question (exit 4) instead of deciding. `kb roundtrip`
-still passes without the list (the generator synthesizes barcodes from `spec.reads`), which is exactly
-why the gap is invisible until a real dataset arrives —
-`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` is the tripwire.
+## Ship the whitelist with the spec
+
+A spec that names the onlist decisive lands only with its whitelist shipped; there is no deferral.
+`test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` stays red until it ships. Without the
+list `kb roundtrip` still passes, but on real reads the chemistry scores 0.3300 against
+`bulk-rnaseq`'s 0.7800, far outside the tie band, so nothing asks and the deposit compiles to a bulk
+gene-count matrix at exit 0. SPLiT-seq names three lists and ships none, so its three most important
+tests ABSTAIN.
 
 ```bash
 seqforge io onlist pack cls1.txt --name bd-rhapsody-cls1 --uri <authoritative-source> --orientation forward
@@ -145,40 +137,6 @@ seqforge io onlist pack cls1.txt --name bd-rhapsody-cls1 --uri <authoritative-so
 # src/seqforge/io/onlists/  (bd-rhapsody-cls1.codes.gz and index.json)
 ```
 
-`io onlist pack` is the ONLY writer of `src/seqforge/io/onlists/index.json`, so it cannot drift from the
-blobs beside it. Get the sequences from an authoritative source and verify against a real dataset —
-never guess barcodes (a wrong whitelist exits 0 and emits a matrix that merely looks thin, the same
-failure shape as a wrong strand).
-
-**A spec that names the onlist decisive cannot land until its whitelist ships, and there is no way to
-defer it.** `test_a_spec_that_calls_onlists_decisive_can_actually_reach_one` goes red and stays red;
-the recorded-debt escape hatch it used to allow was deleted in #321, because deferring is not what it
-did. Measured, a chemistry whose whitelist is missing does not go unconfirmed and ask — it scores
-0.3300 against `bulk-rnaseq`'s 0.7800 on its own reads, far outside the tie band, so nothing asks and
-the deposit compiles to a bulk gene-count matrix at exit 0. Pack the list, or do not add the spec yet.
-
-## Fixed-offset only — check before you author
-
-seqforge models **fixed-offset** elements (a `[start,end)`, or an `anchor` to a motif). A chemistry
-whose barcodes sit AFTER a variable-length diversity/phasing insert has non-fixed CB offsets and is
-**not** expressible as a fixed `CB_UMI_Complex` today — it needs anchored-element support first. BD
-Rhapsody is the live example: the ORIGINAL cell-label bead is fixed-offset (fine), the **Enhanced**
-bead adds a variable diversity insert (out of scope). Confirm your target uses the fixed-offset variant
-against real R1 bytes before writing offsets.
-
-## `kb e2e` does not cover a new complex chemistry
-
-`kb e2e` / `kb e2e-introns` run the built-in 10x path on sacCer3/ce11; there is no e2e fixture for a
-new `CB_UMI_Complex` tech. Its guarantees are therefore: `kb roundtrip` (recovers what it declares),
-the params gate (`kb lint` + the `params_gate` disjointness/coverage/faithfulness checks), and the
-backends-identical-iff-`processing_equivalent` biconditional + under-declaration tests that collect
-from `kb.list_spec_ids()`. Lean on those, plus one real dataset — not on a simulated count matrix,
-which would only test your own assumptions against themselves.
-
-## No scaffold verb — copy the nearest neighbour
-
-There is no `kb new`. Start a spec by copying the closest existing one — `10x-3p-gex-v3` for a single
-contiguous barcode (`CB_UMI_Simple`), `splitseq` or `bd-rhapsody-wta` for a split barcode
-(`CB_UMI_Complex`) — then edit and run `seqforge kb lint` (validates against the closed vocabulary:
-`ElementType`, `SeqspecRegion`, `Decidable`, and the signature test set, all in `kb/schema.py`) and
-`seqforge kb roundtrip <id>`. `kb lint` fails exactly where a typo leaves the vocabulary.
+`io onlist pack` is the only writer of `src/seqforge/io/onlists/index.json`. Take sequences from an
+authoritative source and verify against a real dataset: a wrong whitelist, like a wrong strand, exits
+0 with a thin-looking matrix.

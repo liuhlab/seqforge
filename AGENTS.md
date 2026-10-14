@@ -91,10 +91,10 @@ test was considered and declined, and is the fallback if the bar drifts.
   `pixi run test-failed`, which re-runs only what failed, serially, and stops at the first one. Its
   cache is local, so a failure only CI has seen is not in it: run the test CI named, and the verb
   has it from then on. **Once, before pushing** — `pixi run check`: the three test lanes plus lint,
-  formatting and types. **It is not everything CI runs, on purpose.** Markdownlint, the strict docs
-  build and the wheel build are CI's, and they stay out of the gate because they answer questions a
-  code change does not ask — do not "fix" this by adding them. Touched documentation? Run
-  `pixi run docs-build` and the markdownlint pre-commit hook yourself, then. **After pushing** — read
+  formatting and types. **It is not everything CI runs, on purpose.** Markdownlint, vale, the strict
+  docs build and the wheel build are CI's, and they stay out of the gate because they answer
+  questions a code change does not ask — do not "fix" this by adding them. Touched documentation?
+  Run `pixi run docs-build`, `pixi run vale` and the markdownlint pre-commit hook yourself, then. **After pushing** — read
   CI; do not re-run it locally. **Never** run the whole
   suite to check a change that is not finished, re-run the gate to confirm a failure CI has already
   named, or run the gate twice in one session. Nothing enforces the ladder, and what it guards is

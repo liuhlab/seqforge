@@ -63,6 +63,21 @@ jobs:
       - name: markdownlint (docs + README)
         run: npx --yes markdownlint-cli2@0.23.1
 
+  # The lab's prose rules (`.vale.ini`, `styles/Lab/`): word caps on agent-facing pages, jargon and
+  # reading grade on the site. Its own job rather than a step of `lint`, so a prose finding is its own
+  # red check and never stops the code steps after it. Outside `pixi run check`, like markdownlint.
+  vale:
+    name: vale
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: prefix-dev/setup-pixi@v0.10.0
+        with:
+          environments: default
+          locked: true
+      - name: vale (prose rules)
+        run: pixi run -e default vale
+
   # The unit lane. Three jobs run the suite and between them they are a PARTITION of it -- this one,
   # `test-corpus` below, and `test-external` after that. The task table owns which selection is which.
   #
