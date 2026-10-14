@@ -488,7 +488,7 @@ class RunResolution:
 
     @property
     def winner(self) -> str | None:
-        """The top candidate's technology, or ``None`` when there is no candidate."""
+        """The top candidate's chemistry, or ``None`` when there is no candidate."""
         cands = self.output.result.candidates
         return cands[0].technology if cands else None
 

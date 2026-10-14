@@ -178,9 +178,7 @@ def accepts_at_rungs_0_2(spec: Spec, probes: Iterable[object]) -> bool:
 def seats_a_file_the_fallback_dropped(
     barcoded: TechEvaluation, fallback: TechEvaluation, barcoded_spec: Spec
 ) -> bool:
-    """Does ``barcoded`` seat its BARCODE role on a file the barcodeless ``fallback`` ORPHANED?
-
-    And has it won on a read set smaller than the one its chemistry declares?
+    """Does ``barcoded`` seat its BARCODE role on a file ``fallback`` ORPHANED on a subset read set?
 
     **One predicate, two readers, and that is the point.** At runtime ``escalate`` uses it to refuse a
     barcodeless top the anchor: a fallback that leaves another candidate's barcode read unexplained has

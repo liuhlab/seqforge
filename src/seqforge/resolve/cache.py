@@ -107,7 +107,12 @@ class Cache:
             return None
 
     def write_resolve(self, ds_id: str, result: ResolveResult) -> None:
-        """Persist the resolve result for ``ds_id``."""
+        """Write ``result`` whole to ``candidates/<ds_id>.json``, replacing any earlier one.
+
+        The ranked candidates, conflicts and questions are what :meth:`read_resolve` hands back to a
+        resumed run. The write goes through a temporary file and a rename, so a reader sees the old
+        result or the new one, never half of either.
+        """
         self._write(self._resolve_path(ds_id), result.model_dump_json(indent=2))
 
     def read_matrices(self, ds_id: str) -> dict[str, object] | None:

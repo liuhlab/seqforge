@@ -227,7 +227,7 @@ def _clean_cell(value: object) -> str:
 
 
 def _read_xlsx(path: Path) -> str:
-    """Render EVERY sheet of a workbook to text: the useful one is rarely first, and rarely clean.
+    """Render EVERY sheet of a workbook: the useful sheet is rarely first, the book rarely clean.
 
     A supplementary `.xlsx` is the common shape of a paper's sample metadata, and it is *plural* and
     *dirty*: the sheet that names the samples ("Sample metadata", "Experimental design") is usually not

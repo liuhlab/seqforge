@@ -326,12 +326,18 @@ class AssayReport(_View):
 
     @property
     def n_samples(self) -> int:
-        """How many samples the assay reports."""
+        """How many samples the assay's manifest declares, whether or not any attribute was found.
+
+        Counted from ``samples``, one per manifest sample, and not from the pipeline's metrics.
+        """
         return len(self.samples)
 
     @property
     def n_files(self) -> int:
-        """How many files the assay reports."""
+        """How many FASTQ files the assay's manifest lists, every role counted.
+
+        Index reads and files no role claims count too: ``files`` is the library's whole file list.
+        """
         return len(self.files)
 
     @property

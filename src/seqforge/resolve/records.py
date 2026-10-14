@@ -558,10 +558,9 @@ def _positions_for(
     by_doc: dict[str, DocumentSubject],
     subject_to_sample: dict[str, str],
 ) -> tuple[dict[str, list[_Position]], list[ValidationWarning]]:
-    """Every source's answer for every attribute of one sample.
+    """Every source's answer per attribute of one sample, and a note for each value with no key.
 
-    Plus what the record said that has no key to say it under. Decides nothing: the notes report an
-    exclusion the key space already made.
+    Decides nothing: the notes report an exclusion the key space already made.
     """
     out: dict[str, list[_Position]] = {}
     notes: list[ValidationWarning] = []

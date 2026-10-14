@@ -403,7 +403,7 @@ class Case:
 
     @property
     def has_prose(self) -> bool:
-        """Whether the case gives the compiler prose to read: a metadata document or records."""
+        """Whether the case gives the compiler prose: a metadata document or archive records."""
         return bool(self.metadata_docs) or bool(self.records)
 
     @property

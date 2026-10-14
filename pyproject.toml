@@ -382,11 +382,11 @@ select = [
 # E501: the formatter owns line length. UP046/UP047: keep classic Generic[T]/TypeVar, which has the
 # better-tested pydantic-v2 + mypy support. N818: an exception here names the condition it signals
 # (`CaseSkipped`, `CeilingExceeded`, `TermUnknown`), and several are control flow, not errors.
-# D203/D213: incompatible with D211/D212. D401: a docstring here states what is true ("The records,
-# as a GENERATOR …"), in the declarative voice of the commit subjects, not the imperative. D400: a
-# predicate's docstring asks its question ("Did a budget stop the read?"), so the summary may end in
-# `?`, which D415 accepts and D400 does not.
-ignore = ["E501", "UP046", "UP047", "N818", "D203", "D213", "D400", "D401"]
+# D401: a docstring here states what is true ("The records, as a GENERATOR …"), in the declarative
+# voice of the commit subjects, not the imperative. D400: a predicate's docstring asks its question
+# ("Did a budget stop the read?"), so the summary may end in `?`, which D415 accepts and D400 does
+# not.
+ignore = ["E501", "UP046", "UP047", "N818", "D400", "D401"]
 # Typography the prose means: a multiplication sign for a fold or a count, an en dash for a range, a
 # prime for a nucleic-acid end (5′, 3′), a minus sign, curly quotes, and angle quotes for a pager's
 # arrows.

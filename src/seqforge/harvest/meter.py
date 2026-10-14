@@ -144,7 +144,7 @@ class Exchange:
     in a run (that is what makes prefix caching work at all), so a transcript holds it once and every
     exchange points at it. :class:`Transcript` owns the mapping.
 
-    A refused attempt is still an exchange — it spent tokens — and carries ``error`` with the
+    A failed attempt is still an exchange — it spent tokens — and carries ``error`` with the
     provider's message, an empty ``text``, and whatever usage the failure reported.
     """
 
@@ -160,7 +160,7 @@ class Exchange:
 
     @property
     def ok(self) -> bool:
-        """Whether the provider answered rather than refused."""
+        """Whether the provider answered rather than failed."""
         return self.error is None
 
     @property
@@ -169,7 +169,7 @@ class Exchange:
         return raw_tokens(self.usage)
 
     def to_json(self) -> dict[str, Any]:
-        """The exchange as plain JSON, with ``error`` present only on a refused attempt."""
+        """The exchange as plain JSON, with ``error`` present only on a failed attempt."""
         out: dict[str, Any] = {
             "prompt_sha256": self.prompt_sha256,
             "model": self.model,
@@ -306,7 +306,8 @@ class TokenMeter:
     ) -> LLMResponse:
         """The wrapped provider's answer, reserved against the ceiling first and banked after.
 
-        A refused call is banked too: it spent tokens, and it is an exchange.
+        A provider failure is banked too: it spent tokens, and it is an exchange. A request the
+        Ceiling refuses raises :class:`CeilingExceeded` before it is issued, and banks nothing.
         """
         reserved = self._reserve(system, user)
         try:
@@ -314,9 +315,9 @@ class TokenMeter:
                 system=system, user=user, schema=schema, model=model, max_tokens=max_tokens
             )
         except ProviderUnavailable as exc:
-            # A refused call still burned tokens, and it is still an exchange: the retry above this
-            # will issue another one, and a counter that skipped the failures would report the same
-            # floor `len(documents)` already reported.
+            # A failed request still burned tokens, and it is still an exchange: the retry above
+            # this will issue another one, and a counter that skipped the failures would report the
+            # same floor `len(documents)` already reported.
             self._bank(system, user, "", exc.usage, {}, model, error=str(exc))
             raise
         else:

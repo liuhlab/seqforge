@@ -130,7 +130,11 @@ class WindowProbe:
 
     @property
     def mode_length(self) -> int:
-        """The observed reads' mode length."""
+        """The most common length among the sampled reads, from the Observation's length profile.
+
+        A tie goes to the shorter length, and an empty head reports ``0``. It says nothing about how
+        many reads sit there: that is ``mode_share``.
+        """
         return self.observation.read_length.mode
 
     def distinct_ratio(self, start: int, end: int) -> float | None:
