@@ -241,7 +241,8 @@ def test_a_sample_whose_experiments_straddle_a_page_boundary_is_one_record(
 
     assert [r.accession for r in record_set.at("sample")] == [f"SAMN{i:07d}" for i in range(5)]
     asked = [ids for db, ids in calls if db == "biosample"]
-    assert asked and all(len(ids) == len(set(ids)) for ids in asked)
+    assert asked
+    assert all(len(ids) == len(set(ids)) for ids in asked)
 
 
 # ------------------------------------------------------------ what the package states in prose
@@ -359,9 +360,15 @@ def test_every_submitted_file_carries_the_md5_size_and_uri_beside_its_name(
     files = [f for run in submitted_runs for f in run.submitted_files]
     assert len(files) == sum(len(names) for names in _DECLARED_FILENAMES.values())
     for f in files:
-        assert f.md5 is not None and len(f.md5) == 32, f"{f.filename}: no provider md5"
-        assert f.size_bytes is not None and f.size_bytes > 0, f"{f.filename}: no declared size"
-        assert f.uri is not None and f.uri.startswith("s3://sra-pub-src-"), (
+        assert f.md5 is not None, f"{f.filename}: no provider md5"
+        assert len(f.md5) == 32, f"{f.filename}: no provider md5"
+        assert f.size_bytes is not None, f"{f.filename}: no declared size"
+        assert f.size_bytes > 0, f"{f.filename}: no declared size"
+        assert f.uri is not None, (
+            f"{f.filename}: the submitter's own upload lives in a `sra-pub-src-*` bucket, and "
+            f"{f.uri} is not one"
+        )
+        assert f.uri.startswith("s3://sra-pub-src-"), (
             f"{f.filename}: the submitter's own upload lives in a `sra-pub-src-*` bucket, and "
             f"{f.uri} is not one"
         )

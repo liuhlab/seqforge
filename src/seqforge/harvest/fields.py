@@ -198,15 +198,15 @@ def describe_asked(fields: tuple[str, ...]) -> str:
 
 
 __all__ = [
+    "ASKED_SAMPLE_ATTRIBUTES",
     "DEFAULT_FIELDS",
     "INSTRUCTION_FIELDS",
     "PERMITTED_FIELDS",
-    "ASKED_SAMPLE_ATTRIBUTES",
     "DocRole",
     "DocScope",
+    "describe_asked",
     "fields_for",
     "fields_for_role",
-    "permitted_for",
     "is_permitted",
-    "describe_asked",
+    "permitted_for",
 ]

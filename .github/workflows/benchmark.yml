@@ -62,15 +62,12 @@ jobs:
       # the HTML file and prints a JSON summary on stdout. It renders whatever the run produced and
       # always exits 0 — the verdict is `eval run`'s (exit 3 above), and a renderer that also failed
       # would make a red benchmark fail twice while destroying the artifact that explains it.
+      #
+      # The `hashFiles` guard skips the step when the run left no directory, as `test -d` once did
+      # inside it; in the condition, the step stays one task call.
       - name: render the HTML report
-        if: always()
-        shell: bash
-        run: |
-          test -d report || exit 0
-          pixi run -e test seqforge eval report report \
-            -o report/benchmark.html \
-            --title "seqforge benchmark — ${{ github.sha }}" \
-            --source "seqforge eval run --no-llm --cases evals/benchmark -C report"
+        if: always() && hashFiles('report/**') != ''
+        run: pixi run -e test benchmark-report -- --title "seqforge benchmark — ${{ github.sha }}"
 
       - name: upload the report
         if: always()

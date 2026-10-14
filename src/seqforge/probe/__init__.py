@@ -115,17 +115,17 @@ from .core import (  # noqa: E402
 from .streaming import Budget  # noqa: E402
 
 __all__ = [
-    "PROBE_VERSION",
-    "DEFAULT_MAX_READS",
     "DEFAULT_MAX_BYTES",
+    "DEFAULT_MAX_READS",
+    "PROBE_VERSION",
     "Budget",
     "WholeFile",
     "build_observation",
-    "local_whole_file",
     "content_key_from_md5",
     "content_key_from_sra",
     "gzip_isize",
-    "remote_content_key",
+    "local_whole_file",
     "probe_file",
     "probe_sample",
+    "remote_content_key",
 ]

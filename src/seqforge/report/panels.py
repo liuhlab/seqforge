@@ -1781,4 +1781,4 @@ def assay_switcher(report: ProjectReport) -> str:
     )
 
 
-__all__ = ["assay_section", "tab_bar", "assay_switcher", "esc"]
+__all__ = ["assay_section", "assay_switcher", "esc", "tab_bar"]

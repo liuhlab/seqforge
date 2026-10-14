@@ -67,7 +67,8 @@ def test_10x_r1_geometry(tmp_path: Path) -> None:
     assert obs.read_length.n_distinct == 1
     assert obs.read_length.mode_share == 1.0  # every read is at the mode, and the profile says so
     assert obs.probe.n_reads_sampled == 2000
-    assert obs.gzip.ok and not obs.gzip.truncated
+    assert obs.gzip.ok
+    assert not obs.gzip.truncated
     assert any(isinstance(s, RandomSegment) for s in obs.segments)
     assert re.fullmatch(r"[0-9a-f]{64}", obs.file.sha256)  # a well-formed content-address
 
@@ -126,7 +127,7 @@ def test_per_cycle_composition_matches_the_reference_loop_byte_for_byte() -> Non
         assert_identical(seqs)
 
 
-@pytest.mark.parametrize("at_mode, n", [(2000, 2000), (1999, 2000), (1200, 2000), (1001, 2000)])
+@pytest.mark.parametrize(("at_mode", "n"), [(2000, 2000), (1999, 2000), (1200, 2000), (1001, 2000)])
 def test_the_read_length_profile_reports_the_share_of_reads_at_the_mode(
     at_mode: int, n: int
 ) -> None:
@@ -174,7 +175,9 @@ def test_linker_and_polyt_segmentation(tmp_path: Path) -> None:
     constants = [s for s in segs if isinstance(s, ConstantSegment)]
     homos = [s for s in segs if isinstance(s, HomopolymerSegment)]
 
-    assert randoms and randoms[0].start == 0  # variable barcode is a random span at the read start
+    # variable barcode is a random span at the read start
+    assert randoms
+    assert randoms[0].start == 0
     assert any(s.consensus.startswith("GAGTGATT") for s in constants)  # the W1 linker
     assert any(s.base == "T" and s.end == 40 for s in homos)  # the polyT tail runs to the read end
 
@@ -313,12 +316,17 @@ def test_the_reader_stops_at_the_read_budget(tmp_path: Path) -> None:
     reader = BoundedReader(BytesIO(_reader_fixture(tmp_path)), Budget(10, 1 << 30))
     records = list(reader)
 
-    assert len(records) == 10 and reader.n_reads == 10
+    assert len(records) == 10
+    assert reader.n_reads == 10
     assert reader.budget_exhausted  # a budget stopped it, not EOF
-    assert reader.ok and not reader.truncated
+    assert reader.ok
+    assert not reader.truncated
     header, seq, plus, qual = records[0]
-    assert header == b"@SIM:0" and plus == b"+"  # newlines stripped, bytes preserved
-    assert len(seq) == 40 and len(qual) == 40
+    # newlines stripped, bytes preserved
+    assert header == b"@SIM:0"
+    assert plus == b"+"
+    assert len(seq) == 40
+    assert len(qual) == 40
 
 
 def test_the_reader_stops_at_the_byte_budget(tmp_path: Path) -> None:
@@ -350,7 +358,7 @@ def test_an_abandoned_read_says_so_instead_of_reaching_into_a_closed_handle(
     """
     path = tmp_path / "abandoned.fastq.gz"
     path.write_bytes(_reader_fixture(tmp_path))
-    handle = open(path, "rb")  # noqa: SIM115 - closed by hand, which is the case under test
+    handle = path.open("rb")  # closed by hand, which is the case under test
     reader = BoundedReader(handle, Budget(1_000_000, 1 << 30))
     stream = iter(reader)
     next(stream)  # begin, then walk away from it the way a refusal does
@@ -381,11 +389,15 @@ def test_a_read_that_finished_is_not_abandoned_however_it_ended(tmp_path: Path) 
     """
     whole = BoundedReader(BytesIO(_reader_fixture(tmp_path)), Budget(1_000_000, 1 << 30))
     list(whole)
-    assert not whole.abandoned and not whole.budget_exhausted and whole.compressed_bytes > 0
+    assert not whole.abandoned
+    assert not whole.budget_exhausted
+    assert whole.compressed_bytes > 0
 
     bounded = BoundedReader(BytesIO(_reader_fixture(tmp_path)), Budget(10, 1 << 30))
     list(bounded)
-    assert not bounded.abandoned and bounded.budget_exhausted and bounded.compressed_bytes > 0
+    assert not bounded.abandoned
+    assert bounded.budget_exhausted
+    assert bounded.compressed_bytes > 0
 
     # And a caller that stops mid-stream with its handle still OPEN measured the count it stopped
     # at — which is what the plate extractor's exit-stack ordering buys, and why it is kept.
@@ -393,7 +405,8 @@ def test_a_read_that_finished_is_not_abandoned_however_it_ended(tmp_path: Path) 
     stream = iter(stopped)
     next(stream)
     stream.close()
-    assert not stopped.abandoned and stopped.compressed_bytes > 0
+    assert not stopped.abandoned
+    assert stopped.compressed_bytes > 0
 
 
 def _cut_tail(data: bytes) -> bytes:
@@ -435,7 +448,7 @@ GZIP_VERDICT = [
 ]
 
 
-@pytest.mark.parametrize("mutate, budget, ok, truncated, has_records", GZIP_VERDICT)
+@pytest.mark.parametrize(("mutate", "budget", "ok", "truncated", "has_records"), GZIP_VERDICT)
 def test_the_reader_pins_a_distinct_integrity_verdict_per_corruption(
     tmp_path: Path,
     mutate: Callable[[bytes], bytes],
@@ -461,7 +474,9 @@ def test_the_reader_pins_a_distinct_integrity_verdict_per_corruption(
     if has_records is True:
         assert records  # the intact head still parsed
     elif has_records is False:
-        assert records == [] and reader.n_reads == 0  # nothing parsed, and the counter says so
+        # nothing parsed, and the counter says so
+        assert records == []
+        assert reader.n_reads == 0
 
 
 def _gz_member(payload: bytes) -> bytes:
@@ -485,7 +500,7 @@ READER_SHAPES = [
 ]
 
 
-@pytest.mark.parametrize("n, read_len, eol, final_newline", READER_SHAPES)
+@pytest.mark.parametrize(("n", "read_len", "eol", "final_newline"), READER_SHAPES)
 def test_the_reader_hands_back_the_lines_it_was_given_and_counts_every_byte(
     n: int, read_len: int, eol: bytes, final_newline: bool
 ) -> None:
@@ -511,14 +526,15 @@ def test_the_reader_hands_back_the_lines_it_was_given_and_counts_every_byte(
     ]
     if not final_newline:
         payload = payload[: -len(eol)]
-        expected[-1] = expected[-1][:3] + (records[-1][3],)
+        expected[-1] = (*expected[-1][:3], records[-1][3])
     data = _gz_member(payload)
 
     reader = BoundedReader(BytesIO(data), Budget(10_000, 1 << 30))
 
     assert list(reader) == expected
     assert reader.n_reads == n
-    assert reader.ok and not reader.truncated
+    assert reader.ok
+    assert not reader.truncated
     assert not reader.budget_exhausted  # a clean EOF, not a budget stop
     assert reader.decompressed_bytes == len(payload)  # every line and every separator, exactly
     assert 0 < reader.compressed_bytes <= len(data)
@@ -576,11 +592,13 @@ def test_the_signal_fields_are_value_stable(tmp_path: Path) -> None:
     assert obs.estimated_total_reads == 200  # read to EOF -> exact, never extrapolated
     assert obs.est_method == "isize"
     assert obs.quality_encoding == "phred33"
-    assert obs.gzip.ok and not obs.gzip.truncated
+    assert obs.gzip.ok
+    assert not obs.gzip.truncated
     # 200 reads x 56 cycles, four of them holding the one sprinkled N.
     assert obs.coverage.reach_fraction == 1.0
     assert obs.coverage.called_fraction == pytest.approx(1 - 4 / (200 * 56))
-    assert obs.read_name.parsed and obs.read_name.lane == 1
+    assert obs.read_name.parsed
+    assert obs.read_name.lane == 1
     assert [type(s).__name__ for s in obs.segments] == VALUE_STABLE_SEGMENTS
 
 
@@ -769,7 +787,8 @@ def test_a_head_that_covers_its_material_says_so(tmp_path: Path) -> None:
     assert obs.coverage.reach_fraction == 1.0
     assert obs.coverage.called_fraction == 1.0
     assert [c.n_sampled for c in obs.per_cycle_composition] == [400] * 30
-    assert obs.segments and all(s.coverage == 1.0 for s in obs.segments)
+    assert obs.segments
+    assert all(s.coverage == 1.0 for s in obs.segments)
 
 
 def test_a_ragged_head_loses_reach_while_every_base_it_has_was_called(tmp_path: Path) -> None:
@@ -906,7 +925,7 @@ def test_the_coverage_figures_decide_nothing(src_trees: SrcTrees) -> None:
 #: selection — is invisible unless you can hand it a population you chose.
 
 
-@pytest.mark.parametrize("carriers, n", [(0, 400), (100, 400), (200, 400), (400, 400)])
+@pytest.mark.parametrize(("carriers", "n"), [(0, 400), (100, 400), (200, 400), (400, 400)])
 def test_consensus_match_rate_is_the_share_of_carriers(carriers: int, n: int) -> None:
     """It reports the fraction carrying the consensus — junk COUNTED, never filtered out.
 
@@ -937,7 +956,8 @@ def test_consensus_match_rate_bottoms_out_on_pure_noise() -> None:
     rng = random.Random(11)
     noise = ["".join(rng.choice("ACGT") for _ in range(30)) for _ in range(500)]
     rate = consensus_match_rate(noise, 3)
-    assert rate is not None and rate < 0.01
+    assert rate is not None
+    assert rate < 0.01
 
 
 def test_consensus_match_rate_counts_a_short_read_as_a_non_carrier() -> None:

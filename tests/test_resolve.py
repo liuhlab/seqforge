@@ -340,7 +340,8 @@ def test_assignment_forbidden_diagonal_forces_swap() -> None:
     res = best_assignment(
         2, 2, [[0.9, 0.5], [0.5, 0.9]], [[True, False], [False, True]], [[0, 0], [0, 0]]
     )
-    assert res.valid and res.mapping == {0: 1, 1: 0}
+    assert res.valid
+    assert res.mapping == {0: 1, 1: 0}
 
 
 def test_assignment_unfillable_role_is_reported() -> None:
@@ -354,7 +355,8 @@ def test_assignment_unfillable_role_is_reported() -> None:
 
 def test_assignment_leftover_file_is_unassigned() -> None:
     res = best_assignment(1, 3, [[0.9, 0.1, 0.1]], [[False, False, False]], [[0, 0, 0]])
-    assert res.valid and res.mapping == {0: 0}
+    assert res.valid
+    assert res.mapping == {0: 0}
     assert set(res.unassigned_files) == {1, 2}
 
 
@@ -375,7 +377,8 @@ def test_resolve_10x_fixture_decides_v3(tmp_path: Path) -> None:
     )
     result = out.result
     assert out.exit_code() == 0
-    assert not result.blockers and not result.questions
+    assert not result.blockers
+    assert not result.questions
     winner = result.candidates[0]
     assert winner.technology == "10x-3p-gex-v3"
     assert winner.score.status == "scored"
@@ -553,7 +556,8 @@ def test_the_never_deposited_blocker_fires_only_on_a_proper_subset_and_an_assert
     evaluations = [top, asserted]
 
     fired = _barcodeless_subset_blocker(top, bulk_spec, evaluations, "10x-3p-gex-v3", specs)
-    assert fired is not None and fired.code == BlockerCode.MISSING_TECHNICAL_READ
+    assert fired is not None
+    assert fired.code == BlockerCode.MISSING_TECHNICAL_READ
 
     full = dataclasses.replace(top, read_set="full", roles=["R1", "R2"])
     assert (
@@ -596,7 +600,8 @@ def test_resolve_matrix_is_json_safe(tmp_path: Path) -> None:
     _write_fastq_gz(f2, reads["R2"])
     out = resolve_dataset([f1, f2], registry=registry_for(spec, seed=1), use_cache=False)
     blob = json.dumps(out.matrices)  # must serialize: no inf/nan anywhere
-    assert "Infinity" not in blob and "NaN" not in blob
+    assert "Infinity" not in blob
+    assert "NaN" not in blob
     v3 = out.matrices["10x-3p-gex-v3"]
     # the cDNA-length file is forbidden for the barcode role R1 (segment_length gate)
     statuses = {cell["status"] for cell in v3["R1"].values()}
@@ -690,7 +695,9 @@ def test_escalate_benign_equivalent_tie_records_both() -> None:
     }
     esc = escalate([_te("techA", 1.0), _te("techB", 1.0)], [], specs, None, None, 0.0)
     assert esc.winner == "techA"
-    assert not esc.questions and not esc.conflicts  # benign: 0 questions
+    # benign: 0 questions
+    assert not esc.questions
+    assert not esc.conflicts
     assert "techB" in esc.candidates[0].equivalence_members
 
 
@@ -793,7 +800,8 @@ def test_escalate_breaks_an_exact_tie_deterministically_regardless_of_input_orde
     assert forward.winner == reverse.winner == "techA"  # lexicographically first, both orders
     assert [c.technology for c in forward.candidates] == [c.technology for c in reverse.candidates]
     # ...and it is still benign: both recorded, zero questions
-    assert not forward.questions and not reverse.questions
+    assert not forward.questions
+    assert not reverse.questions
     assert forward.candidates[0].equivalence_members == ["techB"]
 
 
@@ -1098,7 +1106,8 @@ def test_reduce_dataset_stops_at_the_sample_gate_on_a_mis_grouping(
 
     assert resolution.refused_at == "sample"
     assert resolution.exit_code == 3
-    assert len(resolution.blockers) == 1 and "mixed" in resolution.blockers[0].message
+    assert len(resolution.blockers) == 1
+    assert "mixed" in resolution.blockers[0].message
     assert resolution.blockers[0].remedy  # actionable: a mis-grouping is the human's to undo
     # The partition is still computed and reported — the refusal is about the JOIN, and a caller
     # rendering it should be able to say which two chemistries the sample was split across.
@@ -1182,7 +1191,8 @@ def test_the_datasets_one_result_is_the_representative_run_of_the_first_assay(
     resolution = reduce_dataset(multi, _metadata_over(**_shas_by_run(multi)))
 
     first = next(iter(resolution.assays.values()))[0]
-    assert resolution.refused_at is None and resolution.exit_code == 0
+    assert resolution.refused_at is None
+    assert resolution.exit_code == 0
     assert resolution.result.dataset_id == first.output.result.dataset_id
     assert resolution.result.candidates == first.output.result.candidates
     assert resolution.role_of_sha() == multi.role_of_sha()
@@ -1304,9 +1314,11 @@ def test_the_cell_gate_is_inert_when_no_chemistry_says_a_sample_is_a_cell(plate_
     declaring = {sid for sid, s in kb.load_all_specs().items() if s.identity.sample_is_cell}
     assert declaring == {"smartseq3"}
     assert not any(kb.load_spec(t).identity.sample_is_cell for t in (_PLATE, "bulk-rnaseq"))
-    assert resolution.refused_at is None and resolution.exit_code == 0
+    assert resolution.refused_at is None
+    assert resolution.exit_code == 0
     assert set(resolution.assays) == {_PLATE, "bulk-rnaseq"}
-    assert resolution.conflicts == [] and resolution.abstained == frozenset()
+    assert resolution.conflicts == []
+    assert resolution.abstained == frozenset()
 
 
 def test_a_cell_deciding_a_different_chemistry_outright_refuses_the_plate(plate_multi: Any) -> None:
@@ -1342,7 +1354,8 @@ def test_a_cell_below_the_read_floor_abstains_rather_than_dissenting(plate_multi
     """
     resolution = reduce_dataset(plate_multi, _cells(plate_multi), specs=_plate_specs(floor=_FLOOR))
 
-    assert resolution.refused_at is None and resolution.exit_code == 0
+    assert resolution.refused_at is None
+    assert resolution.exit_code == 0
     assert resolution.blockers == []
     assert set(resolution.assays) == {_PLATE}, "the starved cells inherited; nothing split off"
     assert [r.run_id for r in resolution.assays[_PLATE]] == ["SRR1", "SRR2", "SRR3", "SRR4"]
@@ -1375,7 +1388,8 @@ def test_the_read_floor_is_summed_over_a_samples_runs_and_not_asked_of_each(
     specs = _plate_specs(floor=_FLOOR)
 
     one_run_each = reduce_dataset(plate_multi, _cells(plate_multi), specs=specs)
-    assert one_run_each.exit_code == 0 and one_run_each.abstained == {"SRR3", "SRR4"}
+    assert one_run_each.exit_code == 0
+    assert one_run_each.abstained == {"SRR3", "SRR4"}
 
     two_runs_one_cell = reduce_dataset(
         plate_multi,
@@ -1411,17 +1425,20 @@ def test_a_cell_that_asked_inherits_the_plates_chemistry_and_is_recorded(plate_m
 
     resolution = reduce_dataset(asking, _cells(asking), specs=_plate_specs())
 
-    assert resolution.refused_at is None and resolution.exit_code == 0
+    assert resolution.refused_at is None
+    assert resolution.exit_code == 0
     assert resolution.result.questions == [], (
         "the questions they asked were answered by inheritance"
     )
     assert resolution.abstained == {"SRR3", "SRR4"}
     assert set(resolution.assays) == {_PLATE}
     inherited = next(c for c in resolution.conflicts if c.id == "conflict-cell-unconfirmed-SRR3")
-    assert inherited.status == "resolved" and inherited.kind == "other"
+    assert inherited.status == "resolved"
+    assert inherited.kind == "other"
     assert [p.basis for p in inherited.positions] == ["inferred", "observed"]
     assert inherited.positions[0].value == _PLATE, "inherited, not observed on THIS cell's bytes"
-    assert inherited.resolution is not None and inherited.resolution.decided_by == "code"
+    assert inherited.resolution is not None
+    assert inherited.resolution.decided_by == "code"
 
 
 def test_a_saturating_cell_records_its_inheritance_instead_of_raising(tmp_path: Path) -> None:
@@ -1464,7 +1481,8 @@ def test_a_saturating_cell_records_its_inheritance_instead_of_raising(tmp_path: 
     )
 
     starved = reduce_dataset(multi, _cells(multi))
-    assert starved.exit_code == 0 and starved.abstained == {"SRR2"}
+    assert starved.exit_code == 0
+    assert starved.abstained == {"SRR2"}
     observed = [
         p.confidence for c in starved.conflicts for p in c.positions if p.basis == "observed"
     ]
@@ -1495,7 +1513,8 @@ def test_a_cell_asking_about_a_set_the_plate_is_not_in_still_reaches_a_human(
     )
     resolution = reduce_dataset(asking, _cells(asking), specs=_plate_specs())
 
-    assert resolution.refused_at == "run" and resolution.exit_code == 4
+    assert resolution.refused_at == "run"
+    assert resolution.exit_code == 4
     assert resolution.abstained == {"SRR3"}
     assert [q.id for q in resolution.result.questions] == ["q-chemistry"]
 
@@ -1511,7 +1530,8 @@ def test_two_plate_chemistries_leave_nothing_to_inherit(plate_multi: Any) -> Non
     )
     resolution = reduce_dataset(plate_multi, _cells(plate_multi), specs=specs)
 
-    assert resolution.refused_at == "cell" and resolution.exit_code == 3
+    assert resolution.refused_at == "cell"
+    assert resolution.exit_code == 3
     assert [b.id for b in resolution.blockers] == ["blk-cell-chemistry-plates"]
 
 
@@ -1760,7 +1780,8 @@ def test_a_dark_cycle_across_the_motif_window_abstains_rather_than_failing_the_g
     """
     wp, _, _ = _enhanced_bc_probe(tmp_path)
     gate, bc, spec = _enhanced_motif_gate()
-    assert gate.search_start is not None and gate.search_end is not None
+    assert gate.search_start is not None
+    assert gate.search_end is not None
     assert gate.search_start <= _DARK_CYCLE <= gate.search_end + len(gate.motif) - 1
 
     clean = evaluate(gate, bc, wp, spec, DEFAULT_REGISTRY)
@@ -1804,7 +1825,8 @@ def test_a_dark_cycle_the_motif_asks_nothing_about_costs_the_read_nothing(tmp_pa
     """
     wp, _, _ = _enhanced_bc_probe(tmp_path)
     gate, bc, spec = _enhanced_motif_gate()
-    assert gate.search_start is not None and gate.search_end is not None
+    assert gate.search_start is not None
+    assert gate.search_end is not None
     phases = range(gate.search_start, gate.search_end + 1)
     assert all(gate.motif[_DONT_CARE_CYCLE - p] == "N" for p in phases), "must be don't-care at ALL"
 
@@ -1875,7 +1897,8 @@ def test_a_window_left_open_at_the_end_declares_no_span_and_is_charged_per_posit
     lo = 4
     seq = "AAAA" + _MOTIF + "AAAA" + "N" + "AAAA"  # the motif at `lo`, called; one dark cycle after
     dark_cycle = len(seq) - 5
-    assert seq[dark_cycle] == "N" and dark_cycle > lo + len(_MOTIF)
+    assert seq[dark_cycle] == "N"
+    assert dark_cycle > lo + len(_MOTIF)
     wp = _probe_of(tmp_path, [seq], "motif_open_window")
 
     assert wp.motif_rate(_MOTIF, where="window", search_start=lo) == 1.0
@@ -1911,7 +1934,8 @@ def _linker1_seq() -> str:
     """
     bc = next(r for r in kb.load_spec("splitseq").reads if r.id == "bc")
     seq = next(e.sequence for e in bc.elements if e.name == "linker1")
-    assert seq is not None and len(seq) == _LINKER1[1] - _LINKER1[0]
+    assert seq is not None
+    assert len(seq) == _LINKER1[1] - _LINKER1[0]
     return seq
 
 
@@ -2620,7 +2644,8 @@ def test_a_pretrimmed_technical_read_blocks(tmp_path: Path) -> None:
     assert "sra-pub-src" in blk.remedy  # actionable: where the untrimmed original lives
     # The message states the share it refused on, not merely that the lengths differ: a reader who
     # disagrees with the refusal has to be able to see the number that produced it.
-    assert "40" in blk.message and "28 bp" in blk.message, blk.message
+    assert "40" in blk.message, blk.message
+    assert "28 bp" in blk.message, blk.message
 
 
 def test_both_remedies_for_a_missing_original_point_at_the_records_verb_not_a_second_api(
@@ -2816,7 +2841,8 @@ def test_chemistry_hypothesis_reads_only_the_chemistry_field() -> None:
         _chem_assertion("nuclei", field="library.prep_type"),
     ]
     got = chemistry_hypothesis(claims)
-    assert got is not None and got.value == "10x-3p-gex-v3"
+    assert got is not None
+    assert got.value == "10x-3p-gex-v3"
     assert chemistry_hypothesis([c for c in claims if c.field != "library.chemistry"]) is None
 
 
@@ -2842,7 +2868,8 @@ def test_an_unverified_claim_steers_nothing(span_verified: bool, entailment_ok: 
     bad = _chem_assertion("bulk-rnaseq", span_verified=span_verified, entailment_ok=entailment_ok)
     assert chemistry_hypothesis([bad]) is None
     got = chemistry_hypothesis([_chem_assertion("10x-3p-gex-v3"), bad])
-    assert got is not None and got.value == "10x-3p-gex-v3"
+    assert got is not None
+    assert got.value == "10x-3p-gex-v3"
 
 
 def _experiment_record(library_source: str | None) -> ArchiveRecord:
@@ -2908,7 +2935,8 @@ def test_a_single_cell_deposit_rules_a_bulk_hint_out(
     if expected is None:
         assert got is None
     else:
-        assert got is not None and got.value == expected
+        assert got is not None
+        assert got.value == expected
 
 
 def test_a_dataset_with_no_records_keeps_every_hint() -> None:
@@ -2918,7 +2946,8 @@ def test_a_dataset_with_no_records_keeps_every_hint() -> None:
     plate on the lab filesystem, which has no records at all and never will.
     """
     got = chemistry_hypothesis([_chem_assertion("bulk-rnaseq")], records=[])
-    assert got is not None and got.value == "bulk-rnaseq"
+    assert got is not None
+    assert got.value == "bulk-rnaseq"
 
 
 def test_a_single_cell_record_never_manufactures_a_hypothesis() -> None:
@@ -2954,7 +2983,8 @@ def test_a_single_cell_record_declines_the_hint_rather_than_blocking(tmp_path: P
     prose = [_chem_assertion("bulk RNA-seq")]
 
     control = chemistry_hypothesis(prose)
-    assert control is not None and control.value == "bulk RNA-seq"
+    assert control is not None
+    assert control.value == "bulk RNA-seq"
     refused = resolve_dataset(
         [f1, f2], registry=registry_for(spec), hypothesis=control, use_cache=False
     )
@@ -2971,7 +3001,8 @@ def test_a_single_cell_record_declines_the_hint_rather_than_blocking(tmp_path: P
         [f1, f2], registry=registry_for(spec), hypothesis=hypothesis, use_cache=False
     )
     assert out.result.candidates[0].technology == "10x-3p-gex-v3"
-    assert out.result.conflicts == [] and out.result.blockers == []
+    assert out.result.conflicts == []
+    assert out.result.blockers == []
     assert out.exit_code() == 0
 
 
@@ -3076,7 +3107,8 @@ def test_single_cell_collapse_guard_is_structural_not_length() -> None:
         "10x-3p-gex-v2", "harvest", 0.9, top_bulk, specs["bulk-rnaseq"], [], specs
     )
     assert conflict is not None
-    assert conflict.kind == "observed_vs_asserted" and conflict.status == "open"
+    assert conflict.kind == "observed_vs_asserted"
+    assert conflict.status == "open"
     assert {p.value: p.basis for p in conflict.positions} == {
         "10x-3p-gex-v2": "asserted",
         "bulk-rnaseq": "observed",
@@ -3158,7 +3190,8 @@ def test_bulk_asserted_single_cell_observed_guard_is_structural() -> None:
     )
     assert conflict is not None
     assert conflict.id == "conflict-bulk-asserted-single-cell-observed"
-    assert conflict.kind == "observed_vs_asserted" and conflict.status == "open"
+    assert conflict.kind == "observed_vs_asserted"
+    assert conflict.status == "open"
     assert {p.value: p.basis for p in conflict.positions} == {
         "bulk-rnaseq": "asserted",
         "10x-3p-gex-v3": "observed",
@@ -3405,7 +3438,7 @@ WHITELIST_ADMITS = [
 ]  # fmt: skip
 
 
-@pytest.mark.parametrize("tech, umi_len, total_len, winners", WHITELIST_ADMITS)
+@pytest.mark.parametrize(("tech", "umi_len", "total_len", "winners"), WHITELIST_ADMITS)
 def test_the_whitelist_admits_a_barcode_read_length_alone_would_refuse(
     tech: str, umi_len: int, total_len: int | None, winners: set[str], tmp_path: Path
 ) -> None:
@@ -3579,7 +3612,10 @@ def test_a_declared_chemistry_sequenced_two_cycles_long_still_reaches_its_own_le
     )
     assert scored["10x-3p-gex-v2"].value == top, "and its read-undecidable partner ties with it"
     v3 = scored["10x-5p-gex-v3"].value
-    assert v3 is not None and v3 < top, (
+    assert v3 is not None, (
+        "the 28 bp 5' sibling must NOT win on geometry: its whitelist declines these barcodes"
+    )
+    assert v3 < top, (
         "the 28 bp 5' sibling must NOT win on geometry: its whitelist declines these barcodes"
     )
 
@@ -3766,7 +3802,8 @@ def test_barcode_absent_refusal_abstains_when_a_sibling_barcoded_leaf_hits() -> 
     assert _barcodeless_seated_blocker(top, v2_spec, [top, v3]) is None
     # nothing hit anywhere -> genuinely barcode-absent -> refuse
     blk = _barcodeless_seated_blocker(top, v2_spec, [top])
-    assert blk is not None and blk.code == BlockerCode.BARCODE_READ_ABSENT
+    assert blk is not None
+    assert blk.code == BlockerCode.BARCODE_READ_ABSENT
     # The fifth remedy that used to send a reader to SDL for a file the record set already locates.
     # It is pinned here rather than beside the other four because this is the test that already
     # builds the blocker; what matters is that all five answer the same question the same way.
@@ -3924,7 +3961,7 @@ def test_the_length_gate_tags_only_a_leftover_below_index_max_len(
 def test_the_multirun_role_map_tags_the_index_read(
     reads_with_index: tuple[kb.Spec, OnlistRegistry, list[Path]],
 ) -> None:
-    spec, reg, paths = reads_with_index
+    _spec, reg, paths = reads_with_index
     multi = resolve_runs(paths, registry=reg, use_cache=False)
     role_of_sha = multi.role_of_sha()
     index_sha = next(
@@ -4045,7 +4082,7 @@ def test_a_multifile_run_absorbs_every_lane_and_flowcell_into_its_role(
     the run blocked with NO_VALID_ROLE_ASSIGNMENT. Now each surplus file rejoins its role (barcode/cDNA)
     by read designation + length, or is set aside (index), so the run resolves and every file is placed.
     """
-    spec, reg, paths = _multiflowcell_reads(tmp_path, flowcells=flowcells, lanes=lanes)
+    _spec, reg, paths = _multiflowcell_reads(tmp_path, flowcells=flowcells, lanes=lanes)
     per_read = len(flowcells) * lanes  # (flowcell x lane) files carrying one read designation
     multi = resolve_runs(paths, registry=reg, use_cache=False)
     assert not multi.blockers

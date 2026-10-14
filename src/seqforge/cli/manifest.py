@@ -87,9 +87,7 @@ def manifest_fill(
         "FASTQ — the explicit opt-in; every touch stays bounded by this AND --max-bytes.",
     ),
     max_bytes: int = typer.Option(DEFAULT_MAX_BYTES, help="Bounded decompressed-byte cap."),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
 ) -> None:
     """Probe -> resolve -> assemble the DATASET manifest: what the data IS.
 

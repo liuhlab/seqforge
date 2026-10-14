@@ -865,14 +865,14 @@ def extract_umis(
         # looking through the wrong file for it.
         for tagged_fastq, mate_fastq in pairs:
             with ExitStack() as open_files:
-                raw1 = open_files.enter_context(open(tagged_fastq, "rb"))
+                raw1 = open_files.enter_context(tagged_fastq.open("rb"))
                 one = BoundedReader(raw1, _UNBOUNDED)
                 two: BoundedReader | None = None
                 # The base case: one read, one record, nothing beside it. The mate below replaces
                 # this stream rather than the loop that consumes it.
                 source: Generator[tuple[Record, Record | None]] = ((rec, None) for rec in one)
                 if mate_fastq is not None:
-                    raw2 = open_files.enter_context(open(mate_fastq, "rb"))
+                    raw2 = open_files.enter_context(mate_fastq.open("rb"))
                     two = BoundedReader(raw2, _UNBOUNDED)
                     source = _positionally_paired(
                         one, two, tagged_fastq=tagged_fastq, mate_fastq=mate_fastq

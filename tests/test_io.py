@@ -39,7 +39,8 @@ def test_packed_onlist_membership_and_floor() -> None:
     assert (codes.n_entries, codes.width) == (2, 8)
     assert codes.codes.dtype == np.dtype(np.uint32), "the narrowest int that holds 2 bits a base"
     present, absent = pack_barcode("AAAAAAAA"), pack_barcode("GGGGGGGG")
-    assert present is not None and absent is not None, "an ACGT-only barcode always packs"
+    assert present is not None, "an ACGT-only barcode always packs"
+    assert absent is not None, "an ACGT-only barcode always packs"
     assert codes.contains(present)
     assert not codes.contains(absent)
     assert codes.floor == pytest.approx(2 / 4**8)
@@ -47,7 +48,9 @@ def test_packed_onlist_membership_and_floor() -> None:
     # and 2 bits a base puts the real ceiling at 32.
     seventeen = "ACGTACGTACGTACGTA"
     wide, code = PackedOnlist.from_barcodes([seventeen]), pack_barcode(seventeen)
-    assert code is not None and wide.codes.dtype == np.dtype(np.uint64) and wide.contains(code)
+    assert code is not None
+    assert wide.codes.dtype == np.dtype(np.uint64)
+    assert wide.contains(code)
     with pytest.raises(ValueError, match="exceeds the uint64 pack budget"):
         PackedOnlist.from_barcodes(["A" * 33])
 
@@ -59,7 +62,8 @@ def test_onlist_hit_rate_forward_and_revcomp() -> None:
     # reads whose [0,16) window is drawn from the pool -> high forward hit-rate
     fwd_reads = [rng.choice(pool) + "ACGT" * 5 for _ in range(500)]
     fwd = onlist_hit_rate(fwd_reads, 0, onlist, orientation="either")
-    assert fwd.orientation == "forward" and fwd.offset == 0
+    assert fwd.orientation == "forward"
+    assert fwd.offset == 0
     assert fwd.hit_rate > 0.95
 
     # the same reads reverse-complemented -> the revcomp branch recovers the hit
@@ -141,7 +145,8 @@ def test_onlist_hit_rate_stops_at_its_own_read_cap() -> None:
 
     # An explicit cap is the caller's, and it truncates the same way.
     asked = onlist_hit_rate(reads, 0, onlist, orientation="forward", max_reads=100)
-    assert asked.n_tested == 100 and asked.hit_rate == 1.0
+    assert asked.n_tested == 100
+    assert asked.hit_rate == 1.0
 
 
 def _naive_hit_rate(
@@ -289,7 +294,7 @@ def test_the_code_set_hash_ignores_order_and_duplicates_but_not_membership() -> 
 
     a = ["ACGTACGTACGTACGT", "TTTTAAAACCCCGGGG"]
     shuffled = list(reversed(a))
-    duped = a + [a[0]]
+    duped = [*a, a[0]]
     different = ["ACGTACGTACGTACGT", "TTTTAAAACCCCGGGC"]
 
     def h(bcs: list[str]) -> str:
@@ -635,13 +640,15 @@ def test_a_dry_run_publish_resolves_the_destination_and_uploads_nothing(tmp_path
     result = publish_benchmark_package(package, dry_run=True, api=api)
 
     assert result.dry_run is True
-    assert api.calls == [] and result.commit_url is None, "a dry run commits nothing, and says so"
+    assert api.calls == [], "a dry run commits nothing, and says so"
+    assert result.commit_url is None, "a dry run commits nothing, and says so"
     # The BUILD names its output `GSE110823-<digest12>.fingerprint.tar.gz`; the corpus is keyed by
     # dataset, because a recipe pinned to the digest would 404 the moment it was rebuilt.
     assert result.rel_path == "packages/GSE110823.fingerprint.tar.gz"
     assert result.url == hf_package_url(result.rel_path)
     # It read the pin, so the summary states what would enter the corpus rather than what was named.
-    assert result.n_files == 2 and result.reads == 20
+    assert result.n_files == 2
+    assert result.reads == 20
     assert result.size_bytes == package.stat().st_size
 
 

@@ -118,7 +118,7 @@ def fetch_benchmark_package(
                 progressbar=False,
             )
         )
-    except Exception as exc:  # noqa: BLE001 - a fetch failure is a skip, not a crash
+    except Exception as exc:  # a fetch failure is a skip, not a crash
         if _http_status(exc) == 404:
             raise BenchmarkPackageAbsent(
                 f"benchmark package {rel_path!r} was never published to {repo}: "

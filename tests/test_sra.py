@@ -187,7 +187,7 @@ FASTQ_TARGETS_META = [
 ]
 
 
-@pytest.mark.parametrize("run, expected", FASTQ_TARGETS_META)
+@pytest.mark.parametrize(("run", "expected"), FASTQ_TARGETS_META)
 def test_fastq_targets_meta_joins_url_md5_and_size(
     run: dict[str, str], expected: list[tuple[str, str, int]]
 ) -> None:
@@ -283,7 +283,7 @@ CONTENT_ADDRESS = [
 ]
 
 
-@pytest.mark.parametrize("preview, run, basis", CONTENT_ADDRESS)
+@pytest.mark.parametrize(("preview", "run", "basis"), CONTENT_ADDRESS)
 def test_probe_sra_addresses_a_mate_by_the_fidelity_of_the_mirror(
     monkeypatch: pytest.MonkeyPatch, preview: _Preview, run: dict[str, object], basis: str
 ) -> None:
@@ -348,7 +348,7 @@ PROBE_SRA_REFUSALS = [
 ]
 
 
-@pytest.mark.parametrize("stream, run, match", PROBE_SRA_REFUSALS)
+@pytest.mark.parametrize(("stream", "run", "match"), PROBE_SRA_REFUSALS)
 def test_probe_sra_refuses_with_a_remote_error(
     monkeypatch: pytest.MonkeyPatch,
     stream: _FakeStream | None,

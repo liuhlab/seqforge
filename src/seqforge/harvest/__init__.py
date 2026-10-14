@@ -107,7 +107,7 @@ from .verify import (  # noqa: E402
     verify_drafts,
 )
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetical
     "HARVEST_VERSION",
     "NORMALIZER_VERSION",
     "DEFAULT_PDF_BACKEND",

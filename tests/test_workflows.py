@@ -212,7 +212,7 @@ from seqforge.workflows.umite.extract import (
 
 def _layer_names(adata: ad.AnnData) -> set[str]:
     """`adata.layers` carries a `None` key: anndata's alias for `X`. It is not a stray layer."""
-    return {k for k in adata.layers.keys() if k is not None}
+    return {k for k in adata.layers.keys() if k is not None}  # noqa: SIM118 - anndata types only `.keys()` as an iterator of names
 
 
 def _counts(adata: ad.AnnData, layer: str | None = None) -> csr_matrix:
@@ -540,7 +540,9 @@ def test_a_barcode_empty_in_every_feature_is_dropped_and_the_survivors_are_untou
     assert list(adata.var_names) == GENES
     assert _counts(adata)[0, 0] == 5
     assert _counts(adata, "GeneFull")[0, 0] == 7
-    assert _counts(adata).nnz == 1 and _counts(adata, "GeneFull").nnz == 2  # nothing else appeared
+    # nothing else appeared
+    assert _counts(adata).nnz == 1
+    assert _counts(adata, "GeneFull").nnz == 2
     # Provenance: once `raw/` is deleted (it is a `temp()` output) this is all that says the obs axis
     # was cut down from a whitelist, and by how much.
     assert adata.uns["n_barcodes_whitelist"] == 4
@@ -633,10 +635,14 @@ def test_the_bundle_carries_every_stat_and_log_keyed_by_feature(tmp_path: Path) 
     umi_per_cell, filtered = bundle["umi_per_cell"], bundle["default_filtered_barcodes"]
     barcodes_stats, log_final = bundle["barcodes_stats"], bundle["log_final"]
     log_out, splice_junctions = bundle["log_out"], bundle["splice_junctions"]
-    assert isinstance(summary, dict) and isinstance(features_stats, dict)
-    assert isinstance(umi_per_cell, dict) and isinstance(filtered, dict)
-    assert isinstance(barcodes_stats, dict) and isinstance(log_final, dict)
-    assert isinstance(log_out, str) and isinstance(splice_junctions, list)
+    assert isinstance(summary, dict)
+    assert isinstance(features_stats, dict)
+    assert isinstance(umi_per_cell, dict)
+    assert isinstance(filtered, dict)
+    assert isinstance(barcodes_stats, dict)
+    assert isinstance(log_final, dict)
+    assert isinstance(log_out, str)
+    assert isinstance(splice_junctions, list)
 
     # Summary.csv coerced to typed values, per feature.
     assert summary["Gene"]["Number of Reads"] == 1000
@@ -660,7 +666,7 @@ def test_a_missing_star_file_is_a_refusal_not_a_silent_gap(tmp_path: Path) -> No
     features: list[SoloFeature] = ["Gene"]
     solo, run_dir = _fake_run(tmp_path, features)
     (solo / "Gene" / "Summary.csv").unlink()
-    with pytest.raises(QcError, match="Summary.csv"):
+    with pytest.raises(QcError, match=r"Summary.csv"):
         build_qc_bundle(solo, run_dir, features, sample="S1", assembly="ce11")
 
 
@@ -798,7 +804,8 @@ def test_the_plate_bundle_absorbs_the_originals_and_summarizes_the_junctions(
     assert split is None or bundle["split"] == json.loads(split.read_text())
     # The aligner's end-of-run log, parsed the one way both bundles carry it (the shared helper).
     log_final = bundle["log_final"]
-    assert isinstance(log_final, dict) and log_final["Uniquely mapped reads %"] == "88.42%"
+    assert isinstance(log_final, dict)
+    assert log_final["Uniquely mapped reads %"] == "88.42%"
     assert "STAR version" in str(bundle["log_out"])
     # ...and the junctions as counts, never as rows.
     assert bundle["splice_junction_summary"] == {
@@ -992,7 +999,8 @@ def test_cram_passes_the_reference_and_never_embeds_it(
     # default selection is the one the shipped rules invoke, so its argv is what "nothing on disk
     # changes" means: today's flag, and no tag expression beside it.
     primary = next(c for c in rec.calls if "-F" in c)
-    assert primary[:2] == ["samtools", "view"] and "-h" in primary
+    assert primary[:2] == ["samtools", "view"]
+    assert "-h" in primary
     assert primary[primary.index("-F") + 1] == "0x100"
     assert "-e" not in primary
     assert primary[primary.index("--threads") + 1] == "8"
@@ -1000,7 +1008,8 @@ def test_cram_passes_the_reference_and_never_embeds_it(
     # through untouched, and the new QNAME is a counter.
     rename = next(c for c in rec.calls if c[0] == "awk")
     assert r'FS=OFS="\t"' in rename[1]
-    assert "/^@/" in rename[1] and '$1="r"' in rename[1]
+    assert "/^@/" in rename[1]
+    assert '$1="r"' in rename[1]
     # The CRAM is indexed.
     assert any(c[:3] == ["samtools", "index", "-@"] for c in rec.calls)
 
@@ -1045,7 +1054,8 @@ def test_the_read_name_rewrite_carries_every_header_line_into_the_retained_cram(
     )
     assert out[:2] == ["@HD\tVN:1.6\tSO:coordinate", "@SQ\tSN:chrI\tLN:1000"]
     # ...and the rename it exists for still happens, on the alignment and on nothing above it.
-    assert out[3].split("\t")[0] == "r1" and out[3].endswith("RG:Z:cell_a")
+    assert out[3].split("\t")[0] == "r1"
+    assert out[3].endswith("RG:Z:cell_a")
     assert not any(line.startswith("@CO") for line in out), out
 
     stamped = subprocess.run(
@@ -1375,7 +1385,8 @@ def test_workflow_modules_are_registered_and_present_on_disk() -> None:
     # The twin's carries a `{component}` and the base's does not, which is the arity difference
     # itself: one object for the deposit against one per Component of the chimera it mapped to.
     assert get_module("map/star-umi-chimera").fan_in_artifact == PLATE_COMPONENT_H5AD
-    assert "{component}" in PLATE_COMPONENT_H5AD and "{component}" not in PLATE_H5AD
+    assert "{component}" in PLATE_COMPONENT_H5AD
+    assert "{component}" not in PLATE_H5AD
 
     # The twin is reachable ONLY through its base's declaration, and the guard set that keeps it that
     # way is DERIVED from the registry rather than typed beside it — a second list is one a new twin
@@ -2031,7 +2042,10 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     assert scratch, f"{module}'s genome load writes under a prefix it did not create:\n{load}"
     made = f'"${scratch.group(1)}"'
     prefixes = re.findall(r"--outFileNamePrefix (\S+)", load)
-    assert len(prefixes) == 2 and all(p.startswith(made) for p in prefixes), (
+    assert len(prefixes) == 2, (
+        f"{module}'s genome load leaves STAR run-files inside the deliverable: {prefixes}"
+    )
+    assert all(p.startswith(made) for p in prefixes), (
         f"{module}'s genome load leaves STAR run-files inside the deliverable: {prefixes}"
     )
     assert f"rm -rf {made}" in load, (
@@ -2076,7 +2090,12 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
         # list: `map/starsolo` states its own attributes and carries `CB`/`UB` among them, while the
         # other three carry STAR's default four -- the junction pair is what all four owe.
         attributes = re.search(r"--outSAMattributes ((?:\w+ )*\w+)", cmd)
-        assert attributes and set(JUNCTION_ATTRIBUTES) <= set(attributes.group(1).split()), (
+        assert attributes, (
+            f"{module} maps {wildcard} without {list(JUNCTION_ATTRIBUTES)} on its attribute list, so "
+            f"no junction in the retained alignment can be checked against the annotation and the "
+            f"artifact population stays bracketed rather than counted:\n{cmd}"
+        )
+        assert set(JUNCTION_ATTRIBUTES) <= set(attributes.group(1).split()), (
             f"{module} maps {wildcard} without {list(JUNCTION_ATTRIBUTES)} on its attribute list, so "
             f"no junction in the retained alignment can be checked against the annotation and the "
             f"artifact population stays bracketed rather than counted:\n{cmd}"
@@ -2263,7 +2282,8 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     assert not re.search(r"results/cell_a/cell_a\.cram\b", plan), plan
     # The shared-memory contract, rendered rather than merely written: the load rule marks any stale
     # segment for destruction before loading, and every mapping job attaches instead of loading.
-    assert "--genomeLoad Remove" in plan and "--genomeLoad LoadAndExit" in plan
+    assert "--genomeLoad Remove" in plan
+    assert "--genomeLoad LoadAndExit" in plan
     assert "--genomeLoad LoadAndKeep" in plan
     # The fragments that never aligned are IN the aligner's output. Without this the counter's first
     # fate is not a small number, it is an unreachable branch: the counter measures what the BAM
@@ -2304,8 +2324,10 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     # grow to carry what the flag above added, and together they are every primary mapped record —
     # nothing lost against the one mixed archive they replace, and no record in both.
     unique, multi = rendered["unique_to_cram"]["cell_a"], rendered["multiplaced_to_cram"]["cell_a"]
-    assert "--selection unique" in unique and f"--bam results/cell_a/{STAR_BAM}" in unique, unique
-    assert "--selection multi" in multi and f"--bam results/cell_a/{STAR_BAM}" in multi, multi
+    assert "--selection unique" in unique, unique
+    assert f"--bam results/cell_a/{STAR_BAM}" in unique, unique
+    assert "--selection multi" in multi, multi
+    assert f"--bam results/cell_a/{STAR_BAM}" in multi, multi
     assert "--out results/cell_a/cell_a.unique.cram" in unique, unique
     assert "--out results/cell_a/cell_a.multiplaced.cram" in multi, multi
     # ...and ONE QC artifact per cell, built by the verb the droplet module already calls — the same
@@ -2316,7 +2338,8 @@ def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     assert "--run-dir results/cell_a --sample cell_a" in bundle, bundle
     assert f"--extract results/cell_a/cell_a{EXTRACT_SUFFIX}" in bundle, bundle
     assert f"--out results/cell_a/cell_a{QC_BUNDLE_SUFFIX}" in bundle, bundle
-    assert "--solo-dir" not in bundle and "--features" not in bundle, bundle
+    assert "--solo-dir" not in bundle, bundle
+    assert "--features" not in bundle, bundle
     assert "--split" not in bundle, bundle
     # EVERY ORIGINAL IT ABSORBS IS RECLAIMED, which is what having a consumer makes legal: the
     # extraction summary and all four of the aligner's run files are `temp()` and gone by the end,
@@ -2721,7 +2744,7 @@ def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_t
     plan = dry_run(tmp_path)
     command = re.search(r"^\s+seqforge io umi-extract .*?(?=\n\n)", plan, re.M | re.S)
     assert command, f"the plan renders no extraction:\n{plan}"
-    done = subprocess.run(  # noqa: S602 - a `shell:` block is what is under test
+    done = subprocess.run(  # a `shell:` block is what is under test
         command.group(0), shell=True, cwd=tmp_path, capture_output=True, text=True,
         executable="/bin/bash",
     )  # fmt: skip
@@ -2873,7 +2896,10 @@ def test_a_star_module_marks_a_stale_segment_before_it_loads_and_frees_it_in_one
     assert scratch, f"the release writes under a prefix it did not create:\n{helper}"
     made = f'"${scratch.group(1)}"'
     prefixes = re.findall(r"--outFileNamePrefix (\S+)", helper)
-    assert prefixes and all(p.startswith(made) for p in prefixes), (
+    assert prefixes, (
+        f"{module_name}'s release leaves STAR run-files inside the deliverable: {prefixes}"
+    )
+    assert all(p.startswith(made) for p in prefixes), (
         f"{module_name}'s release leaves STAR run-files inside the deliverable: {prefixes}"
     )
     assert f"rm -rf {made}" in helper, (
@@ -2898,7 +2924,8 @@ def test_every_seqforge_verb_a_shipped_module_shells_out_to_exists() -> None:
             for c in a.registered_commands
         }
         for g in a.registered_groups:
-            assert g.typer_instance is not None and g.name is not None
+            assert g.typer_instance is not None
+            assert g.name is not None
             out |= paths(g.typer_instance, (*prefix, g.name))
         return out
 
@@ -3241,7 +3268,11 @@ def test_the_star_rule_escalates_its_memory_on_retry(
 
     request = re.search(r"^\s+mem_mb=(.*)$", body, re.M)
     assert request, f"`{rule_name}` requests no `mem_mb`, so the scheduler gates nothing"
-    assert request.group(1).startswith("lambda") and "attempt" in request.group(1), (
+    assert request.group(1).startswith("lambda"), (
+        f"`mem_mb` is not a function of `attempt`, so every retry re-submits the request that was "
+        f"already killed: {request.group(1)}"
+    )
+    assert "attempt" in request.group(1), (
         f"`mem_mb` is not a function of `attempt`, so every retry re-submits the request that was "
         f"already killed: {request.group(1)}"
     )
@@ -3250,7 +3281,10 @@ def test_the_star_rule_escalates_its_memory_on_retry(
     # a `params:` entry of the identical text would satisfy the `attempt` check and still freeze.
     cap = re.search(r"^\s+bam_sort_ram_bytes=(.*?)^\s{4}\w+:", body, re.M | re.S)
     assert cap, f"`{rule_name}` computes no sort budget; STAR's default 0 reuses the genome's"
-    assert "attempt" in cap.group(1) and "config[" in cap.group(1), (
+    assert "attempt" in cap.group(1), (
+        f"the sort cap is not a function of `attempt` over the config's base request: {cap.group(1)}"
+    )
+    assert "config[" in cap.group(1), (
         f"the sort cap is not a function of `attempt` over the config's base request: {cap.group(1)}"
     )
     directives = re.findall(r"^\s{4}(\w+):", body, re.M)
@@ -3873,7 +3907,8 @@ def test_the_fragments_summary_the_writer_produces_is_the_one_the_reader_looks_u
 
     stats = read_pipeline_stats("map/chromap", results, ["s1"])
 
-    assert stats is not None and stats.complete
+    assert stats is not None
+    assert stats.complete
     sample = stats.samples[0]
     got = _by_key(sample)
     assert set(got) == {
@@ -3983,7 +4018,8 @@ def test_a_metric_is_shown_by_the_formatter_its_own_number_survives() -> None:
         "input_read_length"
     ]
 
-    assert long_read.display == "1,203" and fmt_count(long_read.value) == "1.2K"
+    assert long_read.display == "1,203"
+    assert fmt_count(long_read.value) == "1.2K"
     assert long_read.level == "none"  # no bar to defend, so no colour claiming there is one
 
 
@@ -4252,7 +4288,8 @@ def test_the_bulk_bundle_the_writer_produces_is_the_one_its_reader_looks_up(
 
     stats = read_pipeline_stats("map/star", results, ["S1"])
 
-    assert stats is not None and stats.complete
+    assert stats is not None
+    assert stats.complete
     sample = stats.samples[0]
     # Bulk has no barcodes, no cells and no knee, so the adapter is the alignment half and nothing
     # else -- `input_reads` included, which STARsolo drops only because its own "Reads" repeats it.
@@ -4291,7 +4328,9 @@ def test_the_knee_vector_is_capped_and_log_spaced_so_the_page_stays_in_budget() 
     ranks = [r for r, _ in points]
 
     assert len(points) <= MAX_KNEE_POINTS
-    assert ranks[0] == 1 and ranks[-1] == len(vector)  # the curve's extent is exact
+    # the curve's extent is exact
+    assert ranks[0] == 1
+    assert ranks[-1] == len(vector)
     assert ranks == sorted(set(ranks))
     assert all(value == vector[rank - 1] for rank, value in points)  # sampled, never interpolated
     assert ranks[len(ranks) // 2] < len(vector) // 10
@@ -4431,8 +4470,10 @@ def test_an_alert_firing_on_every_sample_is_a_different_claim_from_one_firing_on
 
     assert [a.scope for a in every] == ["systematic"]
     assert [a.scope for a in some] == ["isolated"]
-    assert every[0].samples == ["S1", "S2", "S3"] and every[0].n_samples == 3
-    assert some[0].samples == ["S1"] and some[0].n_samples == 3
+    assert every[0].samples == ["S1", "S2", "S3"]
+    assert every[0].n_samples == 3
+    assert some[0].samples == ["S1"]
+    assert some[0].n_samples == 3
     # And what each sample measured survives the grouping, in sample order — an alert that collapsed
     # three samples to one number would have thrown away the evidence for its own claim.
     assert every[0].measured == [
@@ -4637,12 +4678,14 @@ def test_the_nuclear_library_rule_fires_on_the_gap_measured_in_215() -> None:
     assert found.implicates == ["solo_features"]
     assert found.sample_id == "S1"
     assert "40.7%" in found.measured  # the gap it fired on, in the reader's units
-    assert "GeneFull" in found.measured and "Gene" in found.measured
+    assert "GeneFull" in found.measured
+    assert "Gene" in found.measured
     # The remedy may only REORDER the list: `SoloQuant` rules that dropping a feature is the one
     # irreversible act available, so a remedy saying "replace Gene" would contradict a validator in
     # this same repo -- which is worse than no remedy.
     assert "first" in found.remedy
-    assert "replace" not in found.remedy.lower() and "drop" not in found.remedy.lower()
+    assert "replace" not in found.remedy.lower()
+    assert "drop" not in found.remedy.lower()
 
 
 def test_a_pipeline_that_counted_one_feature_has_no_gap_to_measure_and_never_fires() -> None:
@@ -4708,7 +4751,8 @@ def test_the_rule_takes_the_largest_gap_when_several_full_length_features_were_c
     """
     (found,) = _gap(Gene=0.301, GeneFull_Ex50pAS=0.52, GeneFull=0.708)
 
-    assert "40.7%" in found.measured and "GeneFull:" in found.measured
+    assert "40.7%" in found.measured
+    assert "GeneFull:" in found.measured
 
 
 @pytest.mark.parametrize(
@@ -4776,7 +4820,8 @@ def test_the_gene_model_rule_fires_when_the_reads_map_and_the_genes_do_not() -> 
     assert found.severity == "likely"
     assert set(found.implicates) == {"annotation", "strand"}
     # Both values it fired on, in the reader's units — the evidence for its own claim.
-    assert "88.4%" in found.measured and "3.1%" in found.measured
+    assert "88.4%" in found.measured
+    assert "3.1%" in found.measured
     assert found.sample_id == "S1"
 
 
@@ -4818,7 +4863,8 @@ def test_the_gene_model_rules_boundaries_are_the_two_bars_it_reuses() -> None:
     below = _fire(
         gene_model_rule, reads_in_genome=HEALTHY_GENOME_MAPPING - 1e-9, reads_in_genes=poor
     )
-    assert len(at_bar) == 1 and below == []
+    assert len(at_bar) == 1
+    assert below == []
 
     healthy = HEALTHY_GENOME_MAPPING
     assert (
@@ -6141,7 +6187,7 @@ def test_a_plate_refuses_rather_than_writing_a_row_that_names_two_cells(tmp_path
     with pytest.raises(UmiCountError, match="no cells"):
         count_plate([], annotation)
     for workers in (1, 4):
-        with pytest.raises(UmiCountError, match="'gone'.*missing"):
+        with pytest.raises(UmiCountError, match=r"'gone'.*missing"):
             count_plate(
                 [("counted", cells[0][1]), ("gone", tmp_path / "never-aligned.bam")],
                 annotation,
@@ -6463,11 +6509,13 @@ def _doctored(source: Path, target: Path, gone: Callable[[Any], bool]) -> Path:
     stand against a file that has quietly lost a whole population, with the header and every
     surviving record still perfectly well formed and nothing on the page saying anything left.
     """
-    with pysam.AlignmentFile(str(source), "rb") as inp:
-        with pysam.AlignmentFile(str(target), "wb", header=inp.header) as out:
-            for record in inp.fetch(until_eof=True):
-                if not gone(record):
-                    out.write(record)
+    with (
+        pysam.AlignmentFile(str(source), "rb") as inp,
+        pysam.AlignmentFile(str(target), "wb", header=inp.header) as out,
+    ):
+        for record in inp.fetch(until_eof=True):
+            if not gone(record):
+                out.write(record)
     return target
 
 
@@ -7144,7 +7192,8 @@ def test_the_plates_read_fates_reach_the_report_beside_the_per_cell_qc_bundle(
 
     stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
 
-    assert stats is not None and stats.complete
+    assert stats is not None
+    assert stats.complete
     cell_a = _by_key(stats.samples[0])
     # STAR's half is still there, untouched: this is one row per cell and not two.
     assert "uniquely_mapped" in cell_a
@@ -7217,7 +7266,8 @@ def test_a_cell_the_counter_measured_is_reported_even_with_no_alignment_log_of_i
     assert [s.sample_id for s in stats.samples] == ["cell_a", "cell_b"]  # contracted order, kept
     assert (stats.n_found, stats.n_expected) == (2, 2)
     logged, counted = (_by_key(s) for s in stats.samples)
-    assert "uniquely_mapped" in logged and "uniquely_mapped" not in counted
+    assert "uniquely_mapped" in logged
+    assert "uniquely_mapped" not in counted
     # The fan-in-only cell is a real row and not a placeholder: it carries what the counter measured.
     assert counted[N_FRAGMENTS].value == 1  # `cell_b` is the one-fragment cell of the fixture
     assert set(FATES) <= set(counted)
@@ -7258,7 +7308,8 @@ def test_the_plate_object_is_opened_once_however_many_cells_the_page_reports(
 
     stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
 
-    assert stats is not None and stats.n_found == 2
+    assert stats is not None
+    assert stats.n_found == 2
     assert opened == [results / PLATE_H5AD]
 
 
@@ -7330,7 +7381,8 @@ def test_the_absorbed_summaries_still_reach_the_page_as_chapters_of_one_row(
 
     stats = read_pipeline_stats("map/star-umi", results, ["cell_a", "cell_b"])
 
-    assert stats is not None and stats.complete
+    assert stats is not None
+    assert stats.complete
     assert [s.sample_id for s in stats.samples] == [
         "cell_a",
         "cell_b",
@@ -7340,7 +7392,8 @@ def test_the_absorbed_summaries_still_reach_the_page_as_chapters_of_one_row(
     assert cell_a["extract_fragments"].value == 100
     assert cell_a["umi_anchor_drift"].value == pytest.approx(1 / 27)
     # ...beside both other halves, on the same row.
-    assert "uniquely_mapped" in cell_a and set(FATES) <= set(cell_a)
+    assert "uniquely_mapped" in cell_a
+    assert set(FATES) <= set(cell_a)
     keys = [key for key, _ in stats.columns]
     assert keys.index("umi_tagged") < keys.index("uniquely_mapped") < keys.index("no_feature")
 
@@ -7366,7 +7419,8 @@ def test_a_cell_whose_downstream_steps_never_ran_is_not_counted_as_finished(
 
     stats = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"])
 
-    assert stats is not None and not stats.complete
+    assert stats is not None
+    assert not stats.complete
     assert (stats.n_found, stats.n_expected) == (1, 2)
     assert [s.sample_id for s in stats.samples] == ["cell_a"]
     assert (results / "cell_b" / STAR_FINAL_LOG).is_file(), (
@@ -7392,8 +7446,10 @@ def test_an_unreadable_bundle_costs_its_own_columns_and_names_the_file_it_could_
 
     assert stats is not None
     cell_a, cell_b = (_by_key(s) for s in stats.samples)
-    assert "umi_tagged" not in cell_a and "umi_tagged" in cell_b
-    assert "uniquely_mapped" not in cell_a and "uniquely_mapped" in cell_b
+    assert "umi_tagged" not in cell_a
+    assert "umi_tagged" in cell_b
+    assert "uniquely_mapped" not in cell_a
+    assert "uniquely_mapped" in cell_b
     assert set(FATES) <= set(cell_a), "the fan-in half of this cell's row must survive"
     assert stats.notes == [f"cell_a: cell_a{QC_BUNDLE_SUFFIX} could not be read (BadGzipFile)"]
 
@@ -7469,7 +7525,8 @@ def test_a_chimeric_plate_reports_what_left_at_the_split_and_each_components_fat
 
     stats = read_pipeline_stats("map/star-umi-chimera", results, ["cell_a", "cell_b"], components)
 
-    assert stats is not None and stats.complete
+    assert stats is not None
+    assert stats.complete
     cell_a = _by_key(stats.samples[0])
     assert "uniquely_mapped" in cell_a  # STAR's half, on the same row and not a row of its own
     # Every Component of the Chimera gets five columns, each a different question: what it kept,
@@ -7580,7 +7637,7 @@ def test_one_components_missing_object_costs_its_own_columns_and_names_what_is_o
     while an object that is there and will not parse is a read failure and names the file to go and
     look at. Neither costs the page.
     """
-    results, round_trip, fragments = _chimeric_plate_results(tmp_path)
+    results, _round_trip, fragments = _chimeric_plate_results(tmp_path)
     counted, lost = fragments
     (results / PLATE_COMPONENT_H5AD.format(component=lost)).write_bytes(b"not an h5ad at all")
 
@@ -7606,7 +7663,8 @@ def test_one_components_missing_object_costs_its_own_columns_and_names_what_is_o
         "map/star-umi-chimera", only_one, ["cell_a", "cell_b"], [counted, lost]
     )
 
-    assert partial is not None and partial.state == "failed"
+    assert partial is not None
+    assert partial.state == "failed"
     assert partial.missing_deliverables == [PLATE_COMPONENT_H5AD.format(component=lost)]
     assert partial.notes == []
     assert {f"{fate}_{counted}" for fate in FATES} <= set(_by_key(partial.samples[0]))
@@ -8025,7 +8083,7 @@ def test_a_truncated_input_is_refused_rather_than_extracted_up_to_the_cut(tmp_pa
     whole = r1.read_bytes()
     r1.write_bytes(whole[: len(whole) - 12])
 
-    with pytest.raises(UmiExtractError, match="ends mid-record|not readable gzip"):
+    with pytest.raises(UmiExtractError, match=r"ends mid-record|not readable gzip"):
         extract_umis([r1], [r2], tmp_path / "cell.bam", geometry, sample="cell")
 
 
@@ -8170,7 +8228,7 @@ def test_a_single_end_input_is_gated_by_the_same_truncation_and_gzip_verdicts(
     whole = r1.read_bytes()
 
     r1.write_bytes(whole[: len(whole) - 12])
-    with pytest.raises(UmiExtractError, match="ends mid-record|not readable gzip"):
+    with pytest.raises(UmiExtractError, match=r"ends mid-record|not readable gzip"):
         extract_umis([r1], None, tmp_path / "cut.bam", geometry, sample="cell")
 
     r1.write_bytes(b"@cell:0\n" + _CDNA.encode() + b"\n+\n" + _quals(_CDNA).encode() + b"\n")
@@ -8397,7 +8455,7 @@ def test_the_aligner_carries_the_umi_tag_through_and_stamps_exactly_one_read_gro
     if star is None or samtools is None:
         pytest.skip("needs STAR and samtools on PATH")
 
-    rng = random.Random(0)  # noqa: S311 — a synthetic contig, not a security decision
+    rng = random.Random(0)  # a synthetic contig, not a security decision
     contig = "".join(rng.choice("ACGT") for _ in range(20_000))
     (tmp_path / "genome.fa").write_text(f">chr1\n{contig}\n")
     index = tmp_path / "index"
@@ -8724,7 +8782,12 @@ def test_the_clip_pairings_no_shipped_spec_can_produce_are_fatal_in_the_binary(
         pytest.skip("needs STAR on PATH; the `test-star` environment carries the pinned build")
 
     verdict = _star_parameter_verdict(star, tmp_path, flags)
-    assert _STAR_REFUSED_THE_PARAMETERS in verdict and refusal in verdict, (
+    assert _STAR_REFUSED_THE_PARAMETERS in verdict, (
+        f"STAR accepted {' '.join(flags)}, which nothing may ship and the knowledge base refuses at "
+        f"load. Either the binary's rules moved -- in which case the schema's rule is now the wrong "
+        f"shape -- or this row stopped asking the question. STAR said: {verdict}"
+    )
+    assert refusal in verdict, (
         f"STAR accepted {' '.join(flags)}, which nothing may ship and the knowledge base refuses at "
         f"load. Either the binary's rules moved -- in which case the schema's rule is now the wrong "
         f"shape -- or this row stopped asking the question. STAR said: {verdict}"

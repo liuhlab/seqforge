@@ -125,14 +125,14 @@ def write_terms(terms: dict[str, EfoTerm], *, fetched: str) -> Path:
 
 
 __all__ = [
-    "OLS4_TERMS",
     "EFO_IRI_BASE",
+    "OLS4_TERMS",
     "EfoTerm",
     "TermUnknown",
-    "load_terms",
     "has_term",
-    "term",
     "iri_for",
+    "load_terms",
     "parse_ols4_term",
+    "term",
     "write_terms",
 ]

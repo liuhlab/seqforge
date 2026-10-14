@@ -1,0 +1,16 @@
+# Flesch-Kincaid grade cap for human-facing prose.
+#
+# 11 is measured, not chosen. Across the six repos' 56 human-facing pages the spread is
+# 3.72 to 16.88, median 7.95; every README passes today and the tightest of them keeps
+# about 0.9 grades of headroom. Grade 12 would be a gate that catches nothing; grade 10
+# would fail a real README on day one. See `docs/research/vale-setup-2026-08-30.md`.
+#
+# Flesch-Kincaid punishes long words, which is exactly the domain vocabulary `Lab.Jargon`
+# protects — "transcription factor" cannot be shortened. So the cap stays loose and this
+# rule is here to catch long *sentences*; word choice is Lab.Jargon's job.
+extends: readability
+message: "Reading grade (%s) is above 11; shorten sentences, not domain terms."
+level: error
+grade: 11
+metrics:
+  - Flesch-Kincaid

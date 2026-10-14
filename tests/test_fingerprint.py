@@ -160,7 +160,8 @@ def test_sliced_records_parse_back_through_the_streamer(tmp_path: Path) -> None:
     for pin in result.manifest.files:
         assert pin.reads_written == 150
         head = FastqHead.from_path(result.staging / pin.rel_path, Budget(10_000, 1 << 30))
-        assert head.ok and not head.truncated
+        assert head.ok
+        assert not head.truncated
         assert head.n_reads == 150
 
 
@@ -254,7 +255,9 @@ def test_a_truncated_source_replays_as_truncated_not_clean(tmp_path: Path) -> No
     paths, reg = _synth_dataset(tmp_path, n=800)
     _cut(paths[0])
     full = [probe_file(p) for p in paths]
-    assert full[0].gzip.truncated and not full[1].gzip.truncated  # the precondition
+    # the precondition
+    assert full[0].gzip.truncated
+    assert not full[1].gzip.truncated
 
     result = build_fingerprint(paths, workspace=tmp_path, reads=200_000, name="ds")
     loaded = load_fingerprint(result.staging)
@@ -280,7 +283,7 @@ def test_a_replay_stopped_by_its_own_budget_does_not_inherit_a_cut_beyond_it(
     verdict is adopted only when the replay actually read to the slice's end, and stamping it
     unconditionally would refuse datasets the full path accepts.
     """
-    paths, reg = _synth_dataset(tmp_path, n=800)
+    paths, _reg = _synth_dataset(tmp_path, n=800)
     _cut(paths[0])
     result = build_fingerprint(paths, workspace=tmp_path, reads=200_000, name="ds")
     loaded = load_fingerprint(result.staging)
@@ -419,13 +422,15 @@ def test_info_paths_prefers_the_raw_doc_and_falls_back_to_text(tmp_path: Path) -
         paths, workspace=tmp_path / "local", reads=100, name="ds", info_docs=[doc]
     )
     got = load_fingerprint(local.staging).info_paths()
-    assert [p.name for p in got] == ["paper.md"] and all("info/docs/" in str(p) for p in got)
+    assert [p.name for p in got] == ["paper.md"]
+    assert all("info/docs/" in str(p) for p in got)
 
     redist = build_fingerprint(
         paths, workspace=tmp_path / "r", reads=100, name="ds", info_docs=[doc], include_raw=False
     )
     got = load_fingerprint(redist.staging).info_paths()
-    assert [p.name for p in got] == ["paper.txt"] and all("info/text/" in str(p) for p in got)
+    assert [p.name for p in got] == ["paper.txt"]
+    assert all("info/text/" in str(p) for p in got)
     # The fallback document is a real, readable file a run's harvest can normalize.
     assert got[0].read_text().strip()
 
@@ -487,9 +492,8 @@ def test_strip_to_redistributable_drops_raw_docs_and_preserves_the_hash(tmp_path
         fp_redist, reg, probed=probed_redist
     )
     # And the raw doc is truly gone from the redistributable tree.
-    assert redist_loaded.info_paths() and all(
-        "info/text/" in str(p) for p in redist_loaded.info_paths()
-    )
+    assert redist_loaded.info_paths()
+    assert all("info/text/" in str(p) for p in redist_loaded.info_paths())
 
 
 def test_run_from_fingerprint_cli_reproduces_the_hash(tmp_path: Path) -> None:

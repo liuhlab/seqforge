@@ -1,8 +1,8 @@
 # AGENTS.md
 
 The router — `CLAUDE.md` is a symlink to this file: one canonical copy, no fork. Read it in full;
-everything else is looked up. Terms are defined once in [`CONTEXT-MAP.md`](CONTEXT-MAP.md) — a
-shared kernel of the words every context uses, plus one `CONTEXT.md` per bounded context —
+everything else is looked up. Terms are defined once in [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md) — a
+shared kernel of the words every context uses, plus one `GLOSSARY.md` per bounded context —
 and decisions once in [`docs/adr/`](docs/adr/), the system-wide ones there and the rest beside the
 code they govern. This file points at both and restates neither.
 
@@ -69,8 +69,8 @@ moves between directories and its number does not; `—` means no record cites t
 
 ## Where to read next
 
-- **A term, or a synonym to avoid** — [`CONTEXT-MAP.md`](CONTEXT-MAP.md) and the five per-context
-  `CONTEXT.md` files it lists under `src/seqforge/probe|harvest|kb|resolve|compose/`.
+- **A term, or a synonym to avoid** — [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md) and the five
+  per-context `GLOSSARY.md` files it lists under `src/seqforge/probe|harvest|kb|resolve|compose/`.
 - **A decision — why it is this way, and what lost** — [`docs/adr/`](docs/adr/), or
   `src/seqforge/<context>/docs/adr/`; filenames are unique, so `find . -name '0008-*.md'` finds one.
 - **A measurement — a number, and the method that produced it** — [`docs/research/`](docs/research/),
@@ -91,11 +91,11 @@ test was considered and declined, and is the fallback if the bar drifts.
   `pixi run test-failed`, which re-runs only what failed, serially, and stops at the first one. Its
   cache is local, so a failure only CI has seen is not in it: run the test CI named, and the verb
   has it from then on. **Once, before pushing** — `pixi run check`: the three test lanes plus lint,
-  formatting and types. **It is not everything CI runs, on purpose.** Markdownlint, the strict docs
-  build and the wheel build are CI's, and they stay out of the gate because they answer questions a
-  code change does not ask — do not "fix" this by adding them. Touched documentation? Run
-  `pixi run docs-build` and the markdownlint pre-commit hook yourself, then. **After pushing** — read
-  CI; do not re-run it locally. **Never** run the whole
+  formatting and types. **It is not everything CI runs, on purpose.** Markdownlint, vale, the strict
+  docs build and the wheel build are CI's, and they stay out of the gate because they answer
+  questions a code change does not ask — do not "fix" this by adding them. Touched documentation?
+  Run `pixi run docs-build`, `pixi run vale` and `pixi run markdownlint` yourself, then. **After
+  pushing** — read CI; do not re-run it locally. **Never** run the whole
   suite to check a change that is not finished, re-run the gate to confirm a failure CI has already
   named, or run the gate twice in one session. Nothing enforces the ladder, and what it guards is
   not the suite's cost: the gate is cheap and reading CI is free, so a session's minutes are the

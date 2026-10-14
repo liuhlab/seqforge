@@ -120,7 +120,7 @@ CLI_SURFACE = [
 ]  # fmt: skip
 
 
-@pytest.mark.parametrize("argv, exit_code, contains", CLI_SURFACE)
+@pytest.mark.parametrize(("argv", "exit_code", "contains"), CLI_SURFACE)
 def test_the_cli_surface_exits_and_answers_as_documented(
     argv: list[str], exit_code: int, contains: tuple[str, ...]
 ) -> None:
@@ -131,7 +131,7 @@ def test_the_cli_surface_exits_and_answers_as_documented(
 
 
 @pytest.mark.parametrize(
-    "answer, ribosomal",
+    ("answer", "ribosomal"),
     [
         pytest.param(["GENE_A"], True, id="the-genomes-ribosomal-ids-reach-the-counter"),
         # Two different absences, and the verb owes both the same answer. Neither is a defect: no
@@ -462,7 +462,8 @@ def test_kb_lint_reports_a_width_that_lies_rather_than_tracebacking(
 
     error = _lint_error_for(monkeypatch, raw)
     assert "'linker1'" in error
-    assert "30 bp" in error and "31 bp" in error
+    assert "30 bp" in error
+    assert "31 bp" in error
 
 
 def test_kb_roundtrip_passes() -> None:
@@ -641,7 +642,8 @@ def test_run_compiles_the_whole_spine_in_one_pass(tmp_path: Path) -> None:
     assert summary["stages"]["compose"]["gate"]["params"]["status"] == "pass"
 
     manifest_path = tmp_path / "seqforge" / "manifest.yaml"
-    assert manifest_path.is_file() and summary["manifest"] == str(manifest_path)
+    assert manifest_path.is_file()
+    assert summary["manifest"] == str(manifest_path)
     assert (tmp_path / "seqforge" / "processing.yaml").is_file()
     assert (tmp_path / "seqforge" / "sample_metadata.tsv").is_file()  # the one-study view
     # the deliverable, and it is where the summary says it is
@@ -721,7 +723,8 @@ def test_a_second_run_over_one_workspace_reuses_the_pipeline_it_already_composed
 
     composed = json.loads(first.stdout)["stages"]["compose"]
     reused = json.loads(second.stdout)["stages"]["compose"]
-    assert "reused" in reused and "reused" not in composed
+    assert "reused" in reused
+    assert "reused" not in composed
     assert reused["snakefile_path"] == composed["snakefile_path"], (
         "the pairing names the directory, so a reuse that landed anywhere but where the first "
         "compile wrote would be resuming from somebody else's pipeline"
@@ -831,7 +834,8 @@ def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
     norm = runner.invoke(app, ["harvest", "normalize", str(doc), "-C", str(tmp_path)])
     assert norm.exit_code == 0
     row = json.loads(norm.stdout)["normalized"][0]
-    assert row["source"] == "methods.txt" and row["n_chars"] > 0
+    assert row["source"] == "methods.txt"
+    assert row["n_chars"] > 0
     # A readable name, not a bare 64-hex one. The hash stays -- it is the identity, and two documents
     # can share a name -- but `seqforge/records/documents/` used to be a directory in which nothing
     # said which file was the paper. It lives under records/ because that is what a document is
@@ -843,7 +847,8 @@ def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
     assert row["path"] == str(written.relative_to(tmp_path))
     # ...and a human-supplied document is about the whole dataset. It is the only honest reading of
     # "here is the paper", and it is what stops its sample claims being recorded as declarations.
-    assert row["scope"] == "dataset" and row["subject"] is None
+    assert row["scope"] == "dataset"
+    assert row["subject"] is None
 
     # one truthful draft + one with a real quote pinned to a wrong value
     drafts = tmp_path / "drafts.json"
@@ -871,7 +876,8 @@ def test_harvest_normalize_and_verify_cli(tmp_path: Path) -> None:
     ver = runner.invoke(app, ["harvest", "verify", str(drafts), "--doc", str(doc)])
     assert ver.exit_code == 4  # a rejected claim needs a human, not a silent drop
     doc_out = json.loads(ver.stdout)
-    assert doc_out["n_accepted"] == 1 and doc_out["n_rejected"] == 1
+    assert doc_out["n_accepted"] == 1
+    assert doc_out["n_rejected"] == 1
     assert doc_out["rejected"][0]["reason"] == "not_entailed"
     assert doc_out["assertions"][0]["span_verified"] is True
 
@@ -920,7 +926,8 @@ def test_compose_says_on_the_human_stream_that_it_dropped_cells(
 
     assert result.exit_code == 0, result.stdout + result.stderr
     admission = json.loads(result.stdout)["admission"]
-    assert admission["excluded"] == {"cell2": 400} and admission["declared"] == 2
+    assert admission["excluded"] == {"cell2": 400}
+    assert admission["declared"] == 2
     assert "1 of 2 cells dropped" in result.stderr
     assert admission["record_path"] in result.stderr
     assert (tmp_path / admission["record_path"]).is_file()
@@ -1207,7 +1214,7 @@ def test_e2e_fit_merges_array_tasks_into_one_line(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "gb, over",
+    ("gb", "over"),
     [
         pytest.param(31.10, {"soloFeatures": ["Gene"]}, id="soloFeatures"),
         pytest.param(36.90, {"threads": 48}, id="threads"),
@@ -1541,7 +1548,8 @@ def test_sync_questions_writes_a_stop_hook_visible_file_and_clears_it(tmp_path: 
     qmd = state / "questions.md"
     assert questions_outstanding(tmp_path) == [qmd]
     body = qmd.read_text()
-    assert "10x-3p-gex-v2" in body and "bulk-rnaseq" in body
+    assert "10x-3p-gex-v2" in body
+    assert "bulk-rnaseq" in body
 
     # a resolved (non-open) conflict is not surfaced -> file cleared, the hook stops blocking
     _sync_questions(state, [_run([open_c.model_copy(update={"status": "resolved"})])])
@@ -1594,7 +1602,8 @@ def test_io_publish_package_answers_on_stdout_and_uploads_nothing_on_a_dry_run(
     result = runner.invoke(app, ["io", "publish-package", str(built), "--dry-run"])
     assert result.exit_code == 0, result.output
     payload = json.loads(result.stdout)
-    assert payload["dry_run"] is True and payload["commit_url"] is None
+    assert payload["dry_run"] is True
+    assert payload["commit_url"] is None
     assert payload["rel_path"] == "packages/GSE110823.fingerprint.tar.gz"
     assert payload["url"].endswith("/resolve/main/packages/GSE110823.fingerprint.tar.gz")
     assert payload["repo"] == "liuhlab/seqforge-benchmark"
@@ -1753,7 +1762,8 @@ def test_harvest_usage_counts_requests_not_documents(
     )
     assert result.exit_code == 0, result.stdout
     usage = json.loads(result.stdout)["usage"]
-    assert usage["n_calls"] == 1 and usage["n_documents"] == 3
+    assert usage["n_calls"] == 1
+    assert usage["n_documents"] == 3
     assert usage["input_tokens"] == 7, "one request's worth, not one per document"
 
 
@@ -1816,7 +1826,8 @@ def test_harvest_extract_writes_the_transcript_of_a_run_it_refused(
     )
     assert result.exit_code == 3
     transcript = read_transcript(Path(json.loads(result.stdout)["transcript_path"]))
-    assert provider.n_calls >= 1 and transcript.n_exchanges == provider.n_calls
+    assert provider.n_calls >= 1
+    assert transcript.n_exchanges == provider.n_calls
 
 
 def test_harvest_extract_dry_run_costs_nothing_and_needs_no_credential(
@@ -1894,9 +1905,11 @@ def test_harvest_extract_pays_once_for_a_document_handed_to_it_twice(
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
     assert provider.n_calls == 1, "three copies of one document are one question"
-    assert payload["usage"]["n_calls"] == 1 and payload["usage"]["n_documents"] == 1
+    assert payload["usage"]["n_calls"] == 1
+    assert payload["usage"]["n_documents"] == 1
     assert payload["usage"]["input_tokens"] == 100, "counted once, not once per collider"
-    assert payload["n_drafts"] == 1 and payload["n_accepted"] == 1
+    assert payload["n_drafts"] == 1
+    assert payload["n_accepted"] == 1
 
 
 def test_harvest_extract_asks_a_samples_runs_once_between_them(
@@ -2271,7 +2284,8 @@ def test_umi_extract_refuses_a_run_whose_mate_the_table_does_not_carry(tmp_path:
     result = _extract(["--units", str(table), "--out", str(out)])
 
     assert result.exit_code == 3
-    assert "runb_R1.fastq.gz" in result.stderr and "'runb'" in result.stderr
+    assert "runb_R1.fastq.gz" in result.stderr
+    assert "'runb'" in result.stderr
     assert not out.exists(), "a refused extraction left a uBAM for the aligner to read"
 
 
@@ -2292,7 +2306,8 @@ def test_umi_extract_runs_a_single_end_cell_off_a_table_that_carries_no_mate_row
 
     with pysam.AlignmentFile(str(out), "rb", check_sq=False) as ubam:
         records = list(ubam.fetch(until_eof=True))
-    assert len(records) == 3 and not any(r.is_paired for r in records)
+    assert len(records) == 3
+    assert not any(r.is_paired for r in records)
 
 
 def test_umi_extract_takes_the_table_or_the_paths_and_refuses_both_and_neither(
@@ -2374,7 +2389,8 @@ def test_a_records_only_extraction_is_a_legal_invocation(tmp_path: Path) -> None
 
     assert result.exit_code == 0, result.stdout
     plan = json.loads(result.stdout)
-    assert plan["n_records_read"] == 3 and plan["n_documents"] == 1
+    assert plan["n_records_read"] == 3
+    assert plan["n_documents"] == 1
     assert plan["documents"][0]["members"] == ["SAMN1", "SAMN22", "SAMN333"]
 
 
@@ -2383,7 +2399,8 @@ def test_harvest_extract_still_refuses_when_there_is_nothing_at_all_to_read(tmp_
     result = runner.invoke(app, ["harvest", "extract", "-C", str(tmp_path)])
 
     assert result.exit_code == 2
-    assert "--records" in result.output and "--instruction" in result.output
+    assert "--records" in result.output
+    assert "--instruction" in result.output
 
 
 def test_a_collapsed_members_bytes_and_subject_both_reach_disk(
@@ -2461,7 +2478,8 @@ def test_a_records_only_compile_still_reaches_the_harvest_stage(tmp_path: Path) 
     without = runner.invoke(app, argv)
     with_records = runner.invoke(app, [*argv, "--records", str(records_path)])
 
-    assert without.exit_code == 0 and with_records.exit_code == 0, with_records.stdout
+    assert without.exit_code == 0, with_records.stdout
+    assert with_records.exit_code == 0, with_records.stdout
     assert "harvest" not in json.loads(without.stdout)["stages"], "no prose, no stage"
     assert json.loads(with_records.stdout)["stages"]["harvest"] == {
         "skipped": "--no-llm: documents were not read"
@@ -2711,12 +2729,14 @@ def test_a_freshly_fetched_record_set_is_stamped_and_one_off_disk_keeps_what_it_
     monkeypatch.setattr(archive, "fetch_records", lambda _acc: _one_submitted_run())
 
     fetched = m._load_records(["SRR19886090"], None, offline=False)
-    assert fetched is not None and fetched.io_version == IO_VERSION
+    assert fetched is not None
+    assert fetched.io_version == IO_VERSION
 
     stale = tmp_path / "records.json"
     stale.write_text(_one_submitted_run().model_dump_json())  # type: ignore[attr-defined]
     loaded = m._load_records([], stale, offline=False)
-    assert loaded is not None and loaded.io_version is None
+    assert loaded is not None
+    assert loaded.io_version is None
 
 
 # ---------------------------------------------------------------------------------------------
@@ -2760,9 +2780,12 @@ def test_records_new_drafts_a_set_the_loader_and_validate_both_accept(tmp_path: 
     assert drafted.exit_code == 0, drafted.stdout
 
     flagged = [line for line in drafted.stdout.splitlines() if line.lstrip().startswith("#")]
-    assert any("lib_S1" in line for line in flagged) and any(
-        "lib_S3" in line for line in flagged
-    ), "the _S<n> pair is the decision a filename cannot take; the draft must name both runs"
+    assert any("lib_S1" in line for line in flagged), (
+        "the _S<n> pair is the decision a filename cannot take; the draft must name both runs"
+    )
+    assert any("lib_S3" in line for line in flagged), (
+        "the _S<n> pair is the decision a filename cannot take; the draft must name both runs"
+    )
 
     path = tmp_path / "records.yaml"
     path.write_text(drafted.stdout)

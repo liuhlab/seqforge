@@ -788,7 +788,7 @@ def _depth_of_library(gen: SpecRecipe) -> dict[int, int]:
     ``gen.n`` for every library unless :class:`Shallow` names one, which is the shape every deposit
     had before a floor existed to fall under.
     """
-    depths = {i: gen.n for i in range(1, gen.deposit.libraries + 1)}
+    depths = dict.fromkeys(range(1, gen.deposit.libraries + 1), gen.n)
     if gen.shallow is not None:
         if gen.shallow.n >= gen.n:
             # Shallower, or the knob is not what it says. A library deeper than the deposit's own `n`

@@ -34,9 +34,7 @@ def compose_cmd(
     annotation: str | None = typer.Option(
         None, "--annotation", help="Registered GTF name, when composing without --processing."
     ),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
     outdir: str = typer.Option(
         "results", help="Pipeline output directory (written into the config)."
     ),

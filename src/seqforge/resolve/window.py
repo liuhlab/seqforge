@@ -149,7 +149,7 @@ class WindowProbe:
         """Per-cycle composition over cycles ``[start, end)`` (``end=None`` => to the longest read)."""
         comps = self.observation.per_cycle_composition
         stop = len(comps) if end is None else min(end, len(comps))
-        return [c for c in comps[start:stop]]
+        return list(comps[start:stop])
 
     def onlist_hit(
         self,

@@ -16,9 +16,7 @@ from .root import resolve_app
 @resolve_app.command("score")
 def resolve_score(
     files: list[Path] = typer.Argument(..., help="The dataset's FASTQ .gz files."),
-    workspace: Path = typer.Option(
-        Path("."), "-C", "--workspace", help="Root for seqforge/ state."
-    ),
+    workspace: Path = typer.Option(Path(), "-C", "--workspace", help="Root for seqforge/ state."),
     assert_chemistry: str | None = typer.Option(
         None,
         "--assert-chemistry",

@@ -109,7 +109,7 @@ def _get(url: str, *, timeout: float) -> str:
     attempt = 0
     while True:  # exits only by return (2xx) or raise (terminal status / exhausted budget)
         try:
-            with urllib.request.urlopen(full, timeout=timeout) as fh:  # noqa: S310 - pinned NCBI host
+            with urllib.request.urlopen(full, timeout=timeout) as fh:  # pinned NCBI host
                 return str(fh.read().decode())
         except urllib.error.HTTPError as exc:
             if exc.code in _RETRY_STATUS and attempt < _MAX_RETRIES:

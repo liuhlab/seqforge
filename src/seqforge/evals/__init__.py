@@ -56,7 +56,7 @@ from .run import (  # noqa: E402
     run_cases,
 )
 
-__all__ = [
+__all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetical
     "EVALS_VERSION",
     # cases
     "Case",

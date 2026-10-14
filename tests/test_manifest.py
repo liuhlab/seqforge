@@ -418,7 +418,9 @@ def test_validate_processing_blocks_a_genome_organism_mismatch(
     assert exit_code_for_report(report) == (3 if codes else 0)
     # Both exits, because a species-vs-strain block is unanswerable if only the first is named.
     for blk in report.blockers:
-        assert blk.remedy and "--organism" in blk.remedy  # every refusal is actionable
+        # every refusal is actionable
+        assert blk.remedy
+        assert "--organism" in blk.remedy
 
 
 def test_validate_catches_referential_integrity_break(built_v3: Built) -> None:

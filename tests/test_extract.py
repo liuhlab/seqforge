@@ -242,7 +242,7 @@ def test_extract_rejects_a_broken_top_level_shape_wholesale(tmp_path: Path) -> N
 
 
 @pytest.mark.parametrize(
-    "drafts, values, n_rejected",
+    ("drafts", "values", "n_rejected"),
     [
         pytest.param([_GOOD], ["10x-3p-gex-v3"], 0, id="a-batch"),
         pytest.param([_GOOD, _BAD, _GOOD], ["10x-3p-gex-v3"] * 2, 1, id="a-malformed-member"),
@@ -270,12 +270,15 @@ def test_a_bare_top_level_array_is_the_same_batch_under_a_different_envelope(
 
     assert [d.value for d in bare.drafts] == [d.value for d in wrapped.drafts] == values
     assert len(bare.rejected) == len(wrapped.rejected) == n_rejected
-    assert bare.drafts == wrapped.drafts and bare.rejected == wrapped.rejected
-    assert bare.answered and wrapped.answered and bare.failure is None
+    assert bare.drafts == wrapped.drafts
+    assert bare.rejected == wrapped.rejected
+    assert bare.answered
+    assert wrapped.answered
+    assert bare.failure is None
 
 
 @pytest.mark.parametrize(
-    "payload, named", [('"drafts"', "str"), ("7", "int"), ("null", "NoneType")]
+    ("payload", "named"), [('"drafts"', "str"), ("7", "int"), ("null", "NoneType")]
 )
 def test_every_other_top_level_shape_still_dies_wholesale(
     tmp_path: Path, payload: str, named: str
@@ -288,7 +291,8 @@ def test_every_other_top_level_shape_still_dies_wholesale(
 
     message = str(caught.value)
     assert f"top-level {named}" in message
-    assert "`drafts`" in message and "array of drafts" in message
+    assert "`drafts`" in message
+    assert "array of drafts" in message
 
 
 def test_extract_overwrites_the_models_doc_sha(tmp_path: Path) -> None:
@@ -344,10 +348,10 @@ def test_extract_carries_call_mode_and_model_for_the_cost_ledger(tmp_path: Path)
         provider=_ModeProvider(json.dumps({"drafts": []}), model="v4-test"),
     )
     assert outcome.model == "v4-test"
-    assert (
-        outcome.mode["thinking"] == "adaptive" and outcome.mode["response_format"] == "json_schema"
-    )
-    assert outcome.usage["input_tokens"] == 5 and outcome.usage["output_tokens"] == 7
+    assert outcome.mode["thinking"] == "adaptive"
+    assert outcome.mode["response_format"] == "json_schema"
+    assert outcome.usage["input_tokens"] == 5
+    assert outcome.usage["output_tokens"] == 7
 
 
 class _SequencedProvider:
@@ -407,7 +411,7 @@ _PROVIDER_RETRY = [
 ]  # fmt: skip
 
 
-@pytest.mark.parametrize("outcomes, expected, n_calls", _PROVIDER_RETRY)
+@pytest.mark.parametrize(("outcomes", "expected", "n_calls"), _PROVIDER_RETRY)
 def test_extract_retries_what_is_transient_and_gives_up_on_what_is_not(
     outcomes: list[object],
     expected: str | None,
@@ -449,7 +453,7 @@ _CLASSIFY = [
 ]
 
 
-@pytest.mark.parametrize("status, retry_after, expected", _CLASSIFY)
+@pytest.mark.parametrize(("status", "retry_after", "expected"), _CLASSIFY)
 def test_classify_reads_the_status_the_network_surface_already_decided_on(
     status: int, retry_after: str | None, expected: tuple[bool, str | None]
 ) -> None:
@@ -461,7 +465,7 @@ def test_classify_reads_the_status_the_network_surface_already_decided_on(
 
 
 @pytest.mark.parametrize(
-    "name, transient",
+    ("name", "transient"),
     [("APITimeoutError", True), ("APIConnectionError", True), ("BadRequestError", False)],
 )
 def test_classify_treats_a_transport_failure_as_transient(name: str, transient: bool) -> None:
@@ -488,7 +492,7 @@ _PROVIDER_SELECTION = [
 
 
 @pytest.mark.parametrize(
-    "explicit, env, expected",
+    ("explicit", "env", "expected"),
     _PROVIDER_SELECTION,
     ids=[
         "explicit-anthropic",
@@ -767,7 +771,7 @@ def test_the_meter_proxies_the_wrapped_providers_identity(tmp_path: Path) -> Non
     assert outcome.provider == "deepseek"
 
 
-@pytest.mark.parametrize("outcomes, expected, n_calls", _PROVIDER_RETRY)
+@pytest.mark.parametrize(("outcomes", "expected", "n_calls"), _PROVIDER_RETRY)
 def test_the_meter_counts_real_requests_not_documents(
     outcomes: list[object],
     expected: str | None,
@@ -861,8 +865,10 @@ def test_the_ceiling_refuses_the_request_it_cannot_afford_before_issuing_it() ->
         _ask(meter)
 
     assert inner.n_calls == 2, "the request the budget could not cover never reached the provider"
-    assert meter.n_exchanges == 2 and meter.tokens == 2000
-    assert caught.value.spent == 2000 and caught.value.ceiling == 2500
+    assert meter.n_exchanges == 2
+    assert meter.tokens == 2000
+    assert caught.value.spent == 2000
+    assert caught.value.ceiling == 2500
 
 
 def test_the_ceiling_refuses_a_wave_admitted_before_anything_has_banked() -> None:
@@ -908,7 +914,8 @@ def test_the_ceiling_refuses_a_wave_admitted_before_anything_has_banked() -> Non
         issued = [f.result() for f in futures]
 
     assert inner.n_calls == 3, "what the budget covered, however many the pool offered at once"
-    assert sum(issued) == 3 and issued.count(False) == 3
+    assert sum(issued) == 3
+    assert issued.count(False) == 3
     assert meter.tokens == 3000, "the ceiling was spent, not overshot by five more requests"
 
 
@@ -924,8 +931,11 @@ def test_a_request_the_whole_ceiling_cannot_cover_refuses_at_the_gate() -> None:
     with pytest.raises(CeilingExceeded) as caught:
         _ask(meter)
 
-    assert inner.n_calls == 0 and meter.n_exchanges == 0 and meter.tokens == 0
-    assert caught.value.spent == 0 and caught.value.estimate == 1000
+    assert inner.n_calls == 0
+    assert meter.n_exchanges == 0
+    assert meter.tokens == 0
+    assert caught.value.spent == 0
+    assert caught.value.estimate == 1000
     # "0 tokens spent, ceiling 500" reads as a bug rather than a refusal, so the number that
     # actually decided it is in the message a caller sees.
     assert "estimated at 1,000 tokens" in str(caught.value)
@@ -945,7 +955,8 @@ def test_a_failed_request_gives_its_reservation_back() -> None:
             _ask(meter)
 
     _ask(meter)  # admitted: three failed requests hold nothing against the budget
-    assert meter.n_exchanges == 4 and meter.tokens == 10
+    assert meter.n_exchanges == 4
+    assert meter.tokens == 10
 
 
 def test_the_reservation_learns_what_a_request_really_costs() -> None:
@@ -993,9 +1004,11 @@ def test_a_ceiling_breach_is_a_blocker_with_an_operable_remedy() -> None:
     ).blocker()
 
     assert blocker.code is BlockerCode.TOKEN_CEILING_EXCEEDED
-    assert blocker.subject.kind == "dataset" and blocker.subject.ref == "GSE126954"
+    assert blocker.subject.kind == "dataset"
+    assert blocker.subject.ref == "GSE126954"
     assert "--ceiling" in blocker.remedy, "a remedy that names no command is not finished"
-    assert "500,000" in blocker.message and "180" in blocker.message
+    assert "500,000" in blocker.message
+    assert "180" in blocker.message
 
 
 def test_no_ceiling_never_refuses() -> None:
@@ -1006,7 +1019,8 @@ def test_no_ceiling_never_refuses() -> None:
         meter = TokenMeter(_SequencedProvider([_OK]), ceiling=ceiling)
         for _ in range(5):
             meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
-        assert meter.n_exchanges == 5 and meter.ceiling is None
+        assert meter.n_exchanges == 5
+        assert meter.ceiling is None
 
 
 def test_the_meter_holds_under_the_concurrent_fan_out() -> None:
@@ -1073,11 +1087,15 @@ def test_a_refused_exchange_is_still_in_the_transcript(
 
     assert transcript.n_exchanges == 2
     failed, succeeded = transcript.exchanges
-    assert not failed.ok and "429" in (failed.error or "") and failed.text == ""
-    assert failed.tokens == 700 and succeeded.tokens == 10
+    assert not failed.ok
+    assert "429" in (failed.error or "")
+    assert failed.text == ""
+    assert failed.tokens == 700
+    assert succeeded.tokens == 10
     assert succeeded.ok
     # json-safe, and the failure says so rather than reading as an empty response
-    assert "error" in failed.to_json() and "error" not in succeeded.to_json()
+    assert "error" in failed.to_json()
+    assert "error" not in succeeded.to_json()
     assert transcript.to_json()["prompts"] == transcript.prompts
 
 
@@ -1237,7 +1255,8 @@ def test_a_record_with_nothing_to_read_or_nothing_to_ask_costs_no_call() -> None
     )
     plan = plan_extraction(records=records)
 
-    assert plan.n_documents == 0 and plan.n_records_read == 0
+    assert plan.n_documents == 0
+    assert plan.n_records_read == 0
     assert plan.estimated_input_tokens == 0, "no call, no stable prefix to pay for"
 
 
@@ -1286,7 +1305,8 @@ def test_a_structure_only_record_set_plans_nothing_and_asks_nobody(tmp_path: Pat
     )
     plan = plan_extraction(records=load_record_set(path), system_prompt_chars=9_000)
 
-    assert plan.n_documents == 0 and plan.n_records_read == 0
+    assert plan.n_documents == 0
+    assert plan.n_records_read == 0
     assert plan.n_requests == 0, "and therefore no request to price"
     assert plan.estimated_input_tokens == 0, "not even the stable prefix, which is paid per request"
     assert plan.report().documents == [], "a dry run says the same thing, in the same shape"
@@ -1456,11 +1476,13 @@ def test_under_partial_one_documents_abort_costs_only_that_document(tmp_path: Pa
 
     assert len(outcomes) == 2, "still positionally aligned with the plan"
     by_doc = dict(zip(plan.documents, outcomes, strict=True))
-    assert by_doc[good].answered and by_doc[good].drafts, "the good document still extracted"
+    assert by_doc[good].answered, "the good document still extracted"
+    assert by_doc[good].drafts, "the good document still extracted"
     survivor = by_doc[bad]
     assert not survivor.answered
     assert survivor.drafts == []
-    assert survivor.failure is not None and "not valid JSON" in survivor.failure
+    assert survivor.failure is not None
+    assert "not valid JSON" in survivor.failure
     # ...and it still names who did not answer, because "nothing came back" is a fact about an
     # extractor and a report that cannot say which one is unreadable a week later.
     assert survivor.extractor.model_id == "flaky/flaky-1"
@@ -1478,7 +1500,9 @@ def test_an_empty_batch_is_an_answer_and_a_failure_is_not(tmp_path: Path) -> Non
     (silent,) = extract_planned(
         plan, kb.load_all_specs(), provider=_FakeProvider(json.dumps({"drafts": []})), partial=True
     )
-    assert silent.answered and silent.drafts == [] and silent.failure is None
+    assert silent.answered
+    assert silent.drafts == []
+    assert silent.failure is None
 
 
 def test_partial_does_not_swallow_a_ceiling(tmp_path: Path) -> None:
@@ -1516,7 +1540,8 @@ def test_a_transcript_round_trips_through_its_file(tmp_path: Path) -> None:
 
     assert back.to_json() == meter.transcript().to_json()
     assert back.n_exchanges == 2
-    assert not back.exchanges[0].ok and "429" in (back.exchanges[0].error or "")
+    assert not back.exchanges[0].ok
+    assert "429" in (back.exchanges[0].error or "")
     assert back.prompt_for(back.exchanges[1]) == build_system_prompt(
         kb.load_all_specs(), llm_schema()
     )
@@ -1713,13 +1738,15 @@ def test_the_character_budget_splits_an_oversized_group_rather_than_sending_one_
     half = sentence * (MAX_BATCH_CHARS // (2 * len(sentence)) + 10)  # two never fit together
     over = sentence * (MAX_BATCH_CHARS // len(sentence) + 10)  # one is a request by itself
     docs = _many(tmp_path, [f"{half} Aliquot 0.", f"{half} Aliquot 1.", f"{over} Aliquot 2."])
-    assert 2 * len(docs[0].text) > MAX_BATCH_CHARS and len(docs[2].text) > MAX_BATCH_CHARS
+    assert 2 * len(docs[0].text) > MAX_BATCH_CHARS
+    assert len(docs[2].text) > MAX_BATCH_CHARS
 
     plan = plan_extraction(documents=docs)
     provider = _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in docs})
     extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
 
-    assert plan.n_requests == provider.n_calls == 3 and provider.widths == [1, 1, 1]
+    assert plan.n_requests == provider.n_calls == 3
+    assert provider.widths == [1, 1, 1]
     assert all(any(d.text in str(sent["user"]) for sent in provider.asked) for d in docs), (
         "whole, in one request each"
     )
@@ -2105,7 +2132,8 @@ def test_a_document_that_fails_alone_costs_what_it_cost_before_batching(tmp_path
         partial=True,
     )
     assert [o.answered for o in outcomes] == [True, False, True]
-    assert outcomes[1].failure is not None and "not valid JSON" in outcomes[1].failure
+    assert outcomes[1].failure is not None
+    assert "not valid JSON" in outcomes[1].failure
     assert [d.value for o in outcomes for d in o.drafts] == [_SPECIES[0], _SPECIES[2]]
 
 
@@ -2225,7 +2253,8 @@ def test_records_that_differ_only_in_an_accession_are_one_ask(tmp_path: Path) ->
     plan = plan_extraction(records=_twins(["whole worm, day3"] * 4))
 
     assert plan.n_documents == 1, "four records, one ask"
-    assert plan.n_records_read == 4 and plan.n_records_collapsed == 3
+    assert plan.n_records_read == 4
+    assert plan.n_records_collapsed == 3
     exemplar = plan.documents[0]
     assert plan.stands_for(exemplar) == ("SAMN1", "SAMN22", "SAMN333", "SAMN4444")
     assert plan.report().documents[0].members == list(plan.stands_for(exemplar))
@@ -2248,7 +2277,8 @@ def test_one_record_that_differs_makes_every_record_asked_with_no_special_case(
     same = plan_extraction(records=_twins(["whole worm, day3"] * 4))
     one_differs = plan_extraction(records=_twins(["whole worm, day3"] * 3 + ["whole worm, day7"]))
 
-    assert same.n_documents == 1 and same.n_records_collapsed == 3
+    assert same.n_documents == 1
+    assert same.n_records_collapsed == 3
     assert same.n_records_reduced == 0, "nothing distinctive to send; the accession is ours"
 
     assert one_differs.n_documents == 4, (
@@ -2258,7 +2288,8 @@ def test_one_record_that_differs_makes_every_record_asked_with_no_special_case(
     assert one_differs.n_records_reduced == 3
     # ...and what each of them is asked is its own value, which is what makes the ask worth making.
     sent = {d.subject: d.text for d in one_differs.documents}
-    assert "day7" in sent["SAMN4444"] and "day3" in sent["SAMN22"]
+    assert "day7" in sent["SAMN4444"]
+    assert "day3" in sent["SAMN22"]
     assert one_differs.n_chars < 4 * len(sent["SAMN1"]), "and the shared prose is read once"
 
 
@@ -2400,8 +2431,10 @@ def test_the_age_hazard_never_fans_a_value_into_the_record_that_said_something_e
     # The group DOES form and the marks ARE computed — which is what makes this the real test. The
     # claim does not fan because its quote reaches into the token that varies, not because no group
     # was found. At character granularity `3` would have been shared and the fan would be silent.
-    assert plan.collapsed and plan.documents[0].variants
-    assert fan.fanned == [] and len(fan.assertions) == 1
+    assert plan.collapsed
+    assert plan.documents[0].variants
+    assert fan.fanned == []
+    assert len(fan.assertions) == 1
     assert "30" in {d.text.split()[-1] for d in plan.documents}, (
         "the odd record is asked its own 30"
     )
@@ -2421,7 +2454,8 @@ def test_a_document_a_human_handed_us_is_never_folded_into_another(tmp_path: Pat
 
     plan = plan_extraction(documents=twins)
     assert plan.n_documents == 2, "two authors who agree, not one submitter repeating themselves"
-    assert plan.collapsed == {} and [d.variants for d in plan.documents] == [(), ()]
+    assert plan.collapsed == {}
+    assert [d.variants for d in plan.documents] == [(), ()]
 
 
 def test_the_collapse_is_at_plan_time_so_the_dry_run_is_the_bill_the_paid_run_pays() -> None:
@@ -2452,7 +2486,8 @@ def test_a_collapsed_member_is_rendered_and_kept_even_though_it_is_never_sent() 
 
     plan = plan_extraction(records=_twins(["whole worm, day3"] * 3))
 
-    assert len(plan.all_documents) == 3 and plan.n_documents == 1
+    assert len(plan.all_documents) == 3
+    assert plan.n_documents == 1
     assert plan.all_documents[0] is plan.documents[0]
     assert [d.subject for d in plan.all_documents] == ["SAMN1", "SAMN22", "SAMN333"]
     assert all(d.text for d in plan.all_documents)

@@ -45,10 +45,10 @@ class EvidencedAccessionList(Evidenced[list[Accession]]):
 
 
 __all__ = [
-    "EvidencedStr",
-    "EvidencedBool",
-    "EvidencedTaxid",
-    "EvidencedAssay",
-    "EvidencedChemistrySet",
     "EvidencedAccessionList",
+    "EvidencedAssay",
+    "EvidencedBool",
+    "EvidencedChemistrySet",
+    "EvidencedStr",
+    "EvidencedTaxid",
 ]

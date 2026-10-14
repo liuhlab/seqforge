@@ -1012,7 +1012,7 @@ def _differ_only_at(
         parts = _SEPARATORS.split(key)
         for index, part in enumerate(parts):
             if token.fullmatch(part):
-                blanked = (index, tuple(parts[:index] + [""] + parts[index + 1 :]))
+                blanked = (index, (*parts[:index], "", *parts[index + 1 :]))
                 buckets.setdefault(blanked, {})[key] = part
     groups = [
         (list(members), list(members.values())) for members in buckets.values() if len(members) > 1

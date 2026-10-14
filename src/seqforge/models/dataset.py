@@ -352,18 +352,18 @@ class DatasetManifest(BaseModel):
 
 
 __all__ = [
-    "ReadAnchor",
-    "ReadElement",
-    "ReadDef",
-    "ReadLayout",
-    "EvidencedReadLayout",
-    "Onlist",
-    "FileInventoryItem",
     "AssayLabel",
+    "DatasetManifest",
+    "DatasetProvenance",
+    "EvidencedReadLayout",
+    "ExperimentSection",
+    "FileInventoryItem",
     "LibrarySection",
+    "Onlist",
+    "ReadAnchor",
+    "ReadDef",
+    "ReadElement",
+    "ReadLayout",
     "SampleGroup",
     "Study",
-    "ExperimentSection",
-    "DatasetProvenance",
-    "DatasetManifest",
 ]

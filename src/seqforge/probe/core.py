@@ -133,7 +133,7 @@ def gzip_isize(path: Path) -> int | None:
     head-slice, so ``preflight`` reads it here and stamps it back onto the stand-in probe.
     """
     try:
-        with open(path, "rb") as fh:
+        with path.open("rb") as fh:
             fh.seek(-4, 2)
             return int.from_bytes(fh.read(4), "little")
     except OSError:

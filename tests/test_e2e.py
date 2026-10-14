@@ -49,7 +49,8 @@ def test_simulate_bookkeeping_is_self_consistent() -> None:
     assert all(len(c) == 50 for c in sim.cdna)
     # every cell barcode is drawn from the whitelist, and UMIs are unique (so count == read count)
     cells = {b[:16] for b in sim.barcode}
-    assert cells <= set(sim.whitelist) and len(cells) == 3
+    assert cells <= set(sim.whitelist)
+    assert len(cells) == 3
     umis = [b[16:] for b in sim.barcode]
     assert len(set(umis)) == len(umis)
 
@@ -109,13 +110,16 @@ def test_compare_counts_loss_but_no_fabrication() -> None:
     truth = {("C1", "G1"): 5, ("C1", "G2"): 3}
     v = _compare(truth, {("C1", "G1"): 4})
     assert v["exact"] is False
-    assert v["n_spurious_pairs"] == 0 and v["n_inflated_pairs"] == 0
+    assert v["n_spurious_pairs"] == 0
+    assert v["n_inflated_pairs"] == 0
     assert v["recovered_total"] == 4
     assert v["recovery_rate"] == 0.5
 
     exact = _compare(truth, dict(truth))
-    assert exact["exact"] is True and exact["recovery_rate"] == 1.0
-    assert exact["n_spurious_pairs"] == 0 and exact["n_inflated_pairs"] == 0
+    assert exact["exact"] is True
+    assert exact["recovery_rate"] == 1.0
+    assert exact["n_spurious_pairs"] == 0
+    assert exact["n_inflated_pairs"] == 0
 
 
 # --------------------------------------------------------------------------------------------
@@ -661,7 +665,8 @@ def test_the_cost_sweep_gives_star_the_barcodes_its_reads_were_drawn_from(tmp_pa
         "the whitelist handed to --soloCBwhitelist holds a registry NAME, so STARsolo matches no "
         "barcode at all and still exits 0"
     )
-    assert lines and all(len(b) == 16 and set(b) <= set("ACGT") for b in lines)
+    assert lines
+    assert all(len(b) == 16 and set(b) <= set("ACGT") for b in lines)
     assert set(cbs) <= set(lines), (
         "the cells the reads were synthesized from are not on the list STAR will match against"
     )
@@ -806,7 +811,8 @@ def test_a_complex_chemistry_renders_positions_and_the_instrument_can_therefore_
     assert argv[argv.index("--soloUMIposition") + 1] == "3_10_3_21"
 
     simple = starsolo_argv(_SIMPLE_SOLO, bam_sort_ram_bytes=None, **_RENDER)
-    assert "--soloCBposition" not in simple and "--soloCBstart" in simple
+    assert "--soloCBposition" not in simple
+    assert "--soloCBstart" in simple
 
 
 def test_only_the_instrument_carries_the_sort_cap_in_its_argv() -> None:
@@ -879,20 +885,20 @@ def test_the_resume_fingerprint_covers_every_input_that_moves_the_number(
     import seqforge.e2e
     from seqforge.e2e import _cost_fingerprint
 
-    base = dict(
-        feature_list=["Gene", "Velocyto"],
-        assembly="hg38",
-        annotation="gencode_v50",
-        n_cells=5000,
-        intron_frac=0.4,
-        read_len=90,
-        max_genes=2000,
-        threads=16,
-        seed=0,
-        star_version="2.7.11b",
-        whitelist_entries=6_794_880,
-        out_sam_type=("None",),
-    )
+    base = {
+        "feature_list": ["Gene", "Velocyto"],
+        "assembly": "hg38",
+        "annotation": "gencode_v50",
+        "n_cells": 5000,
+        "intron_frac": 0.4,
+        "read_len": 90,
+        "max_genes": 2000,
+        "threads": 16,
+        "seed": 0,
+        "star_version": "2.7.11b",
+        "whitelist_entries": 6_794_880,
+        "out_sam_type": ("None",),
+    }
     # `base` is one heterogeneous dict unpacked into a typed signature, and the sweep below rebuilds
     # it with a DYNAMIC key -- which is the test. A TypedDict types the unpack but cannot express a
     # key computed at runtime, so the suppressions stay rather than the per-field sweep being given
@@ -1000,7 +1006,8 @@ def test_a_shard_split_still_totals_the_requested_depth(
         tag="s",
         n_workers=n_workers,
     )
-    assert stats["n_reads"] == n_reads and stats["n_shards"] == n_workers
+    assert stats["n_reads"] == n_reads
+    assert stats["n_shards"] == n_workers
 
 
 def test_star_reads_sharded_mates_as_comma_separated_lists() -> None:
@@ -1047,7 +1054,8 @@ def test_three_points_is_the_smallest_fit_that_can_be_wrong() -> None:
     from seqforge.e2e import _fit_line
 
     ok = _fit_line([(1_000_000, 30.0), (2_000_000, 30.1), (4_000_000, 40.0)])
-    assert ok["ok"] and ok["n_points"] == 3
+    assert ok["ok"]
+    assert ok["n_points"] == 3
     # a bent curve must surface as a residual, not be reported as a line with a clean conscience
     residual = ok["max_residual_gb"]
     assert isinstance(residual, float), "an accepted fit must report the residual that falsifies it"

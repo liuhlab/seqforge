@@ -132,7 +132,8 @@ def test_report_makes_no_external_network_reference(workspace: Path) -> None:
     offsite = re.findall(r'(?:src|href)\s*=\s*"(?:https?:)?//[^"]+"', html)
     assert not offsite, f"external references leaked in: {offsite[:3]}"
     assert "@importurl(http" not in html.replace(" ", "").replace("'", '"').lower()
-    assert "cdn.jsdelivr" not in html and "unpkg" not in html, "a CDN link regressed in"
+    assert "cdn.jsdelivr" not in html, "a CDN link regressed in"
+    assert "unpkg" not in html, "a CDN link regressed in"
 
 
 def test_report_render_is_byte_deterministic(workspace: Path) -> None:
@@ -208,7 +209,8 @@ def test_report_is_ir_ready_without_a_composed_pipeline(own_workspace: Path) -> 
     assay = collect_report(own_workspace).assays[0]
     assert assay.conclusion.kind == "ir_ready"
     assert assay.conclusion.exit_code == 0
-    assert assay.plan is not None and assay.plan.snakefile_rel is None
+    assert assay.plan is not None
+    assert assay.plan.snakefile_rel is None
 
 
 def test_report_handles_a_multi_assay_layout(own_workspace: Path) -> None:
@@ -221,7 +223,8 @@ def test_report_handles_a_multi_assay_layout(own_workspace: Path) -> None:
     (sf / "manifest.yaml").unlink()
 
     report = collect_report(own_workspace)
-    assert report.is_multi_assay and len(report.assays) == 2
+    assert report.is_multi_assay
+    assert len(report.assays) == 2
     assert 'id="assay-select"' in render_html(report)
 
 
@@ -282,7 +285,8 @@ def test_the_page_frame_is_one_reading_column_under_one_sticky_band(workspace: P
     band = '<div data-sticky-band class="sticky top-0'
     assert page.count(band) == 1, "one sticky element, not a header and a tab bar racing each other"
     inside = page[page.index(band) : page.index("<main")]
-    assert "<header" in inside and "<nav>" in inside
+    assert "<header" in inside
+    assert "<nav>" in inside
     assert "sticky" not in inside.replace(band, "", 1), "only the band sticks; neither child does"
 
 
@@ -451,9 +455,9 @@ def test_flow_steps_carry_the_real_decision(workspace: Path) -> None:
     """
     assay = collect_report(workspace).assays[0]
     steps = flow_steps(assay)
-    assert (
-        steps and steps[-1].kind == "done"
-    )  # compiled -> the deliverable, not blocked/needs-a-human
+    # compiled -> the deliverable, not blocked/needs-a-human
+    assert steps
+    assert steps[-1].kind == "done"
     blob = " ".join(s.title + " " + " ".join(s.desc) + " " + s.note for s in steps)
     assert assay.chemistry.value[0] in blob  # the real chemistry id, not a placeholder
 
@@ -487,9 +491,12 @@ def test_flow_renders_as_reflowing_html_cards_not_a_scaled_diagram(workspace: Pa
         flow_steps(collect_report(workspace).assays[0])
     )
 
-    assert "<svg" not in pane and "viewBox" not in pane  # nothing is drawn, so nothing can scale
+    # nothing is drawn, so nothing can scale
+    assert "<svg" not in pane
+    assert "viewBox" not in pane
     assert not re.search(r"(?:width|min-width|max-width)\s*:\s*\d", pane)
-    assert "text/x-mermaid" not in html and "globalThis.mermaid" not in html
+    assert "text/x-mermaid" not in html
+    assert "globalThis.mermaid" not in html
 
     asset_names = {p.name for p in (files("seqforge.report") / "assets").iterdir()}
     assert "mermaid.min.js" not in asset_names
@@ -577,7 +584,9 @@ def test_the_escaper_renders_a_missing_value_as_empty_not_the_word_none() -> Non
     assert esc(None) == eval_esc(None)
     # …and it is still an escaper: quoting stays on, so a value can never close an attribute.
     assert esc('<b>&"') == "&lt;b&gt;&amp;&quot;"
-    assert esc(0) == "0" and esc(False) == "False"  # only None is blank, not every falsey value
+    # only None is blank, not every falsey value
+    assert esc(0) == "0"
+    assert esc(False) == "False"
 
 
 def test_the_who_decided_column_answers_for_every_basis_in_the_who_voice() -> None:
@@ -616,7 +625,8 @@ def test_both_basis_phrasings_cover_the_closed_basis_set() -> None:
     # Three now: the Samples legend says the same four bases in three or four words under a mark,
     # and a basis missing from it ships a mark whose key does not name it.
     assert set(_BASIS_LEGEND) == members, "the Samples legend lost a basis"
-    assert all(v for v in _BASIS_PHRASE.values()) and all(v for v in _WHO_PHRASE.values())
+    assert all(v for v in _BASIS_PHRASE.values())
+    assert all(v for v in _WHO_PHRASE.values())
     assert all(v for v in _BASIS_LEGEND.values())
     # Kept separate on purpose: one answers how we know, the other who decided.
     assert _BASIS_PHRASE != _WHO_PHRASE
@@ -692,7 +702,7 @@ def test_the_report_package_ships_no_private_helper_nothing_calls() -> None:
     import seqforge.report
 
     package = Path(seqforge.report.__file__).parent
-    sources = sorted(package.glob("*.py")) + [Path(__file__)]
+    sources = [*sorted(package.glob("*.py")), Path(__file__)]
 
     defined: set[str] = set()
     referenced: set[str] = set()
@@ -954,8 +964,10 @@ def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> No
 
     cell = re.search(r'<td class="basis-cell[^"]*"[^>]*data-key="trait_asserted"[^>]*>', page)
     assert cell, "the asserted attribute did not render as a provenance cell"
-    assert 'role="button"' in cell.group(0) and 'tabindex="0"' in cell.group(0)
-    assert "data-basis=" in cell.group(0) and "data-quote=" in cell.group(0)
+    assert 'role="button"' in cell.group(0)
+    assert 'tabindex="0"' in cell.group(0)
+    assert "data-basis=" in cell.group(0)
+    assert "data-quote=" in cell.group(0)
     assert "data-source=" in cell.group(0)
     assert "title=" not in cell.group(0)  # no transient native tooltip on the value cell
 
@@ -964,7 +976,8 @@ def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> No
     assert ".basis-cell" in script
     assert 'copyBtn.textContent = "Copy"' in script
     assert 'e.key === "Escape"' in script
-    assert "mouseover" not in script and "mouseenter" not in script
+    assert "mouseover" not in script
+    assert "mouseenter" not in script
 
 
 def _samples_grid_of(ws: Path, n_samples: int) -> str:
@@ -990,7 +1003,7 @@ def _results_grid_of(ws: Path, n_samples: int) -> str:
 
 
 @pytest.mark.parametrize(
-    "grid_of", (_samples_grid_of, _results_grid_of), ids=("samples", "results")
+    "grid_of", [_samples_grid_of, _results_grid_of], ids=("samples", "results")
 )
 def test_a_long_sample_table_pages_and_a_short_one_does_not_and_neither_loses_a_row(
     own_workspace: Path, grid_of: Callable[[Path, int], str]
@@ -1078,10 +1091,12 @@ def test_every_matrix_cell_renders_the_status_it_was_tagged_with() -> None:
 
     assert re.search(r'<td class="mx-cell mx-scored" style="background:[^"]+">0\.96</td>', page)
     forbidden = re.search(r'<td class="mx-cell mx-forbidden"[^>]*>(.*?)</td>', page)
-    assert forbidden and forbidden.group(1) == "✕", "the ✕ must be markup, not a ::after"
+    assert forbidden, "the ✕ must be markup, not a ::after"
+    assert forbidden.group(1) == "✕", "the ✕ must be markup, not a ::after"
     assert escape(_FORBIDDEN_REASON, quote=True) in page
     absent = re.search(r'<td class="mx-cell mx-absent"[^>]*>(.*?)</td>', page)
-    assert absent and absent.group(1) == "not scored"
+    assert absent
+    assert absent.group(1) == "not scored"
 
     # No cell of any status is empty, and none of them shows a sentinel instead of a word.
     assert not re.findall(r'<td class="mx-cell[^"]*"[^>]*>\s*</td>', page)
@@ -1100,7 +1115,8 @@ def test_the_losing_kits_stay_collapsed_and_keep_a_reason_a_human_can_read() -> 
 
     assert evidence.count('<figure class="sf-card') == 1, "exactly one kit gets the full grid"
     assert evidence.count('<details class="mx-sib">') == 1
-    assert "<summary" in evidence and "some reads don&#x27;t fit this variant" in evidence
+    assert "<summary" in evidence
+    assert "some reads don&#x27;t fit this variant" in evidence
     assert 'style="--mx-w:61%"' in evidence  # the score, as a length as well as a number
     assert "read 1 is 28 bp; this kit needs 20" in evidence  # the ruled-out family's own words
 
@@ -1201,7 +1217,8 @@ def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_works
     assert "count genes" not in blob  # the RNA phrasing must not leak into an ATAC run
     # Every stage production built reached the page, in order — the diagram is not a subset of it.
     for stage in assay.pipeline_stages:
-        assert stage.title.lower() in blob and stage.detail.lower() in blob
+        assert stage.title.lower() in blob
+        assert stage.detail.lower() in blob
 
     reworded = plan.model_copy(
         update={
@@ -1218,8 +1235,10 @@ def test_the_stage_diagram_branches_on_the_typed_quantification_family(own_works
     # the RNA branch is unchanged: a solo recipe still renders the STARsolo count-matrix stages
     _retarget_the_recipe(own_workspace, {"kind": "solo", "features": ["Gene", "GeneFull"]})
     solo, solo_blob = _rendered_stage_diagram(own_workspace)
-    assert solo.plan is not None and solo.plan.quantification_kind == "solo"
-    assert "count" in solo_blob and "starsolo" in solo_blob
+    assert solo.plan is not None
+    assert solo.plan.quantification_kind == "solo"
+    assert "count" in solo_blob
+    assert "starsolo" in solo_blob
 
 
 def test_the_pipeline_tab_embeds_its_artifacts_and_scrolls_them_in_their_own_region(
@@ -1234,17 +1253,20 @@ def test_the_pipeline_tab_embeds_its_artifacts_and_scrolls_them_in_their_own_reg
     """
     pane = _pane(render_html(collect_report(workspace)), "pipeline")
 
-    assert 'download="Snakefile"' in pane and "data:text/plain;base64," in pane
+    assert 'download="Snakefile"' in pane
+    assert "data:text/plain;base64," in pane
     assert not re.search(r'href="(?!data:)[^"]*(?:Snakefile|\.yaml|\.tsv)"', pane), (
         "an artifact is linked out of the page instead of embedded in it"
     )
 
     tables = re.findall(r"<table[^>]*>", pane)
-    assert tables and len(tables) == pane.count('<div class="sf-scroll-x"><table'), (
+    assert tables, "the recipe table can widen the page instead of scrolling inside its own region"
+    assert len(tables) == pane.count('<div class="sf-scroll-x"><table'), (
         "the recipe table can widen the page instead of scrolling inside its own region"
     )
     pres = re.findall(r"<pre[^>]*>", pane)
-    assert pres and all("overflow-auto" in tag for tag in pres), (
+    assert pres, f"an artifact's inline text is not its own scroll region: {pres}"
+    assert all("overflow-auto" in tag for tag in pres), (
         f"an artifact's inline text is not its own scroll region: {pres}"
     )
 
@@ -1409,7 +1431,9 @@ def test_a_finished_pipelines_metrics_are_joined_in_and_the_results_tab_appears(
     assert ">Results</button>" in html  # the tab is offered, because there is something behind it
     assert "97.2%" in html  # the graded valid-barcode rate, formatted by the code that owns it
     assert '<div class="sf-scroll-x"><table' in html  # one row per sample, one column per metric
-    assert "<svg" in html and "<polyline" in html  # hand-built inline SVG, no library, no network
+    # hand-built inline SVG, no library, no network
+    assert "<svg" in html
+    assert "<polyline" in html
 
 
 def test_a_pipeline_that_ran_and_wrote_garbage_never_renders_as_not_run(
@@ -1491,7 +1515,8 @@ def test_a_relocated_pipeline_is_found_only_through_the_results_flag(own_workspa
         own_workspace, results_dir=(pipeline.directory / "elsewhere").resolve()
     ).assays[0]
 
-    assert relative.pipeline_stats is not None and relative.pipeline_stats.complete
+    assert relative.pipeline_stats is not None
+    assert relative.pipeline_stats.complete
     assert absolute.pipeline_stats is not None
     assert absolute.pipeline_stats == relative.pipeline_stats
 
@@ -1690,7 +1715,8 @@ def test_the_run_verb_carries_the_results_flag_so_a_relocated_pipeline_reads_as_
     assert ">Results</button>" in html  # the tab is offered, because the pipeline did finish
 
     stats = collect_report(own_workspace, results_dir=Path("elsewhere")).assays[0].pipeline_stats
-    assert stats is not None and stats.module == "map/star"
+    assert stats is not None
+    assert stats.module == "map/star"
     assert stats.n_found == len(samples) == stats.n_expected
 
 
@@ -1867,7 +1893,8 @@ def test_the_fold_engages_on_the_module_that_needs_it_and_on_no_other(own_worksp
     assert "grp-fold" in solo
     headline = re.findall(r'<td class="lvl-\w+ lvl-cell text-right whitespace-nowrap">', solo)
     folded = re.findall(r'<td class="lvl-\w+ lvl-cell[^"]*grp-extra">', solo)
-    assert len(headline) == 7 and len(folded) == 9, (len(headline), len(folded))
+    assert len(headline) == 7, (len(headline), len(folded))
+    assert len(folded) == 9, (len(headline), len(folded))
     assert f"Show all {len(headline) + len(folded)} metrics" in solo
     assert f"Show the {len(headline)} headline metrics" in solo
 
@@ -1970,8 +1997,11 @@ def test_two_ways_of_counting_stay_two_claims_naming_the_samples_that_carry_each
     assert len(lines) == 2, lines
     (gene,) = [line for line in lines if "counted from the Gene feature" in line]
     (full,) = [line for line in lines if "counted from the GeneFull feature" in line]
-    assert "S1, S3" in gene and "S2" not in gene
-    assert "S2" in full and "S1" not in full and "S3" not in full
+    assert "S1, S3" in gene
+    assert "S2" not in gene
+    assert "S2" in full
+    assert "S1" not in full
+    assert "S3" not in full
     # Said ONCE on the tab, in the one place that can say who it holds for: the run-state block above
     # the table used to print the same sentences with no samples attached to them.
     assert pane.count("counted from the GeneFull feature") == 1
@@ -1999,13 +2029,15 @@ def test_a_note_a_whole_plate_shares_is_one_line_and_a_lone_sample_is_still_name
 
     assert len(plate) == 96
     (line,) = re.findall(r"<li[^>]*>(.*?)</li>", block)
-    assert "counted from the Gene feature" in line and f"all {len(plate)} samples" in line
+    assert "counted from the Gene feature" in line
+    assert f"all {len(plate)} samples" in line
     assert not [well for well in plate if well in block], "the block reads the plate back at itself"
     assert '<th scope="row" class="sf-col-sticky">A01</th>' in pane, "the ids are in the table"
 
     _finish_a_starsolo_pipeline(own_workspace)
     lone = _counting_block(_pane(render_html(collect_report(own_workspace)), "results"))
-    assert "counted from the Gene feature" in lone and "all 1 samples" not in lone
+    assert "counted from the Gene feature" in lone
+    assert "all 1 samples" not in lone
 
 
 def test_on_a_partial_run_all_ranges_over_the_rows_shown_and_says_so(
@@ -2024,16 +2056,19 @@ def test_on_a_partial_run_all_ranges_over_the_rows_shown_and_says_so(
     results = own_workspace / "seqforge" / "pipeline-elsewhere"
     _land_bundles_counted_off(results, {"S1": "Gene", "S2": "Gene"})
     partial = read_pipeline_stats("map/starsolo", results, ["S1", "S2", "S3", "S4", "S5"])
-    assert partial is not None and (partial.n_found, partial.n_expected) == (2, 5)
+    assert partial is not None
+    assert (partial.n_found, partial.n_expected) == (2, 5)
 
     block = _counting_block(_pane(_render_with_stats(own_workspace, partial), "results"))
     assert "all 2 samples shown" in block, block
     assert "all 5 samples" not in block, "N is the rows read, never the plate contracted"
 
     whole = read_pipeline_stats("map/starsolo", results, ["S1", "S2"])
-    assert whole is not None and whole.complete
+    assert whole is not None
+    assert whole.complete
     done = _counting_block(_pane(_render_with_stats(own_workspace, whole), "results"))
-    assert "all 2 samples" in done and "shown" not in done
+    assert "all 2 samples" in done
+    assert "shown" not in done
 
 
 def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Path) -> None:
@@ -2071,11 +2106,14 @@ def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Pa
     )
     assert len(rows) == 2
     (thin_keys, thin_row), (full_keys, full_row) = rows
-    assert "S1" in thin_row and "S2" in full_row
+    assert "S1" in thin_row
+    assert "S2" in full_row
     # Same number of cells in both rows -- the column survives -- and the thin one is mostly gaps.
     assert thin_row.count("<td") == full_row.count("<td") == len(stats.columns)
     assert thin_row.count(">—</td>") == len(stats.columns) - 2
-    assert ">0</td>" not in thin_row and ">0.0%</td>" not in thin_row  # never a manufactured zero
+    # never a manufactured zero
+    assert ">0</td>" not in thin_row
+    assert ">0.0%</td>" not in thin_row
 
     # One slot per column, in cell order, and a gap is an EMPTY slot rather than a number.
     for keys, row in ((thin_keys, thin_row), (full_keys, full_row)):
@@ -2091,7 +2129,8 @@ def test_a_sample_missing_a_metric_leaves_a_gap_in_that_column(own_workspace: Pa
     # its number, which is the only other thing a `<td>` here carries.
     cells = [cell.split("<span")[0] for cell in re.findall(r"<td[^>]*>(.*?)</td>", full_row)]
     slots = full_keys.split(",")
-    assert "10,366,082" in cells and "33.1%" in cells, cells
+    assert "10,366,082" in cells, cells
+    assert "33.1%" in cells, cells
     assert slots[cells.index("10,366,082")] == "10366082"
     assert slots[cells.index("33.1%")] == "0.330914"
 
@@ -2134,7 +2173,8 @@ def test_every_results_column_sorts_off_its_own_caret_and_the_label_keeps_its_cl
 
     for head in heads:
         caret = re.search(r'<button[^>]*class="sf-sort"[^>]*>', head)
-        assert caret is not None and head.count('class="sf-sort"') == 1
+        assert caret is not None
+        assert head.count('class="sf-sort"') == 1
         # `hidden` for the same reason the pager bar is: a caret that cannot sort is a lie, and a page
         # opened with JS off is the page as it was before sorting existed.
         assert "hidden" in caret.group(0)
@@ -2245,8 +2285,10 @@ def test_a_healthy_run_produces_no_alerts_and_renders_no_alert_block_at_all(
     assay = collect_report(own_workspace).assays[0]
     page = render_html(collect_report(own_workspace))
 
-    assert assay.pipeline_stats is not None and assay.pipeline_stats.complete
-    assert assay.pipeline_stats.findings == [] and assay.alerts == []
+    assert assay.pipeline_stats is not None
+    assert assay.pipeline_stats.complete
+    assert assay.pipeline_stats.findings == []
+    assert assay.alerts == []
     assert _alert_block(page) == ""
     assert "lvl-state" in _pane(page, "results"), (
         "the run-state block still renders, or this asserts nothing about the alert block"
@@ -2271,7 +2313,8 @@ def test_an_alert_names_the_decision_and_the_value_the_workspace_currently_carri
     (alert,) = collect_report(own_workspace).assays[0].alerts
 
     assert alert.id == "starsolo.valid-barcodes-near-zero"
-    assert alert.severity == "likely" and alert.scope == "systematic"
+    assert alert.severity == "likely"
+    assert alert.scope == "systematic"
     named = {ref.decision: ref for ref in alert.implicates}
     assert set(named) == {"chemistry", "read_roles"}
     assert "library.chemistry" in named["chemistry"].label
@@ -2303,7 +2346,8 @@ def test_an_alert_renders_beside_the_numbers_that_produced_it_and_nowhere_else(
     # machine consumer tracks it by — all of it on the page, none of it colour-only.
     assert "Almost no read carries a barcode" in block
     assert '<span class="lvl-flag" role="img" aria-label="this run is probably wrong">!!' in block
-    assert "0.1%" in block and "matched the whitelist" in block
+    assert "0.1%" in block
+    assert "matched the whitelist" in block
     assert "Check which kit this library really is" in block
     assert "starsolo.valid-barcodes-near-zero" in block
     assert "What looks wrong" not in _pane(page, "pipeline") + _pane(page, "overview")
@@ -2335,7 +2379,8 @@ def test_a_systematic_alert_and_an_isolated_one_are_two_different_claims_on_the_
     assert every.count("<li>") > one.count("<li>")
     for sample in ("S1", "S2", "S3"):
         assert sample in every
-    assert "S2" not in one and "S3" not in one
+    assert "S2" not in one
+    assert "S3" not in one
 
 
 def test_a_partial_run_still_raises_the_alert_it_would_have_raised_complete(
@@ -2378,11 +2423,14 @@ def test_alerts_reach_the_report_verbs_machine_output_with_their_stable_ids(
 
     assert result.exit_code == 0, result.stdout
     conclusion = json.loads(result.stdout)["conclusion"][0]
-    assert conclusion["exit"] == 0 and conclusion["kind"] == "compiled"
+    assert conclusion["exit"] == 0
+    assert conclusion["kind"] == "compiled"
     (alert,) = conclusion["alerts"]
     assert alert["id"] == "starsolo.valid-barcodes-near-zero"
-    assert alert["severity"] == "likely" and alert["scope"] == "systematic"
-    assert alert["samples"] and len(alert["measured"]) == len(alert["samples"])
+    assert alert["severity"] == "likely"
+    assert alert["scope"] == "systematic"
+    assert alert["samples"]
+    assert len(alert["measured"]) == len(alert["samples"])
     assert {d["decision"] for d in alert["implicates"]} == {"chemistry", "read_roles"}
     assert all(d["value"] for d in alert["implicates"])
 
@@ -2411,7 +2459,10 @@ def test_an_alert_never_rewrites_the_manifest_or_the_recipe(own_workspace: Path)
     alerted = runner.invoke(app, ["report", "-C", str(own_workspace), "--no-timestamp"])
     alerted_conclusion = json.loads(alerted.stdout)["conclusion"][0]
 
-    assert healthy_conclusion["alerts"] == [] and alerted_conclusion["alerts"], (
+    assert healthy_conclusion["alerts"] == [], (
+        "the two runs must differ in exactly the thing under test, or nothing here discriminates"
+    )
+    assert alerted_conclusion["alerts"], (
         "the two runs must differ in exactly the thing under test, or nothing here discriminates"
     )
     assert alerted.exit_code == healthy.exit_code == 0
@@ -2450,8 +2501,10 @@ def test_every_decision_an_alert_can_name_is_resolvable_to_a_value(own_workspace
     ctx = _decision_context(own_workspace, manifest)
     for decision, resolve in _DECISION_RESOLVERS.items():
         ref = resolve(ctx)
-        assert ref is not None and ref.decision == decision
-        assert ref.label and ref.value, f"{decision} resolved to a label with no value beside it"
+        assert ref is not None
+        assert ref.decision == decision
+        assert ref.label, f"{decision} resolved to a label with no value beside it"
+        assert ref.value, f"{decision} resolved to a label with no value beside it"
 
 
 def test_every_severity_the_page_can_draw_wears_a_verdict_the_palette_already_had() -> None:
@@ -2474,7 +2527,8 @@ def test_every_severity_the_page_can_draw_wears_a_verdict_the_palette_already_ha
     # wears, and every one of them carries a non-colour flag.
     assert set(_SEVERITY_LEVEL.values()) <= set(_LEVEL_PHRASE)
     assert set(_SEVERITY_LEVEL.values()) <= set(_LEVEL_FLAG)
-    assert _SEVERITY_LEVEL["likely"] == "bad" and _SEVERITY_LEVEL["possible"] == "warn"
+    assert _SEVERITY_LEVEL["likely"] == "bad"
+    assert _SEVERITY_LEVEL["possible"] == "warn"
 
 
 def test_an_alerts_alternative_reaches_the_page_and_a_nameless_decision_draws_no_heading(
@@ -2769,11 +2823,15 @@ def test_a_metrics_meaning_is_reachable_from_its_column_header_and_stored_once(
     assert len(heads) >= 5, f"the metrics table's headers carry no hint at all: {len(heads)}"
 
     for attrs in heads:
-        assert 'role="button"' in attrs and 'tabindex="0"' in attrs, (
+        assert 'role="button"' in attrs, (
+            f"a hint that only a mouse can open is not reachable: {attrs}"
+        )
+        assert 'tabindex="0"' in attrs, (
             f"a hint that only a mouse can open is not reachable: {attrs}"
         )
         basis = re.search(r'data-basis="([^"]*)"', attrs)
-        assert basis and len(basis.group(1)) > 20, f"the header carries no sentence: {attrs}"
+        assert basis, f"the header carries no sentence: {attrs}"
+        assert len(basis.group(1)) > 20, f"the header carries no sentence: {attrs}"
 
     # ...and stored ONCE. Every hint appears exactly as many times as there are column headers
     # carrying it — never once per cell. Asserted over the real sentences the adapter wrote, so a
@@ -2896,7 +2954,9 @@ def test_a_nuclear_library_counted_exonically_becomes_a_claim_about_the_recipe(
     assert f"{features[0]} is the primary matrix" in ref.value
     assert ref.change_to is None, "a reorder among several full-length features is not one swap"
 
-    assert "40.7%" in block and "70.8%" in block and "30.1%" in block
+    assert "40.7%" in block
+    assert "70.8%" in block
+    assert "30.1%" in block
     assert '<span class="lvl-flag" role="img" aria-label="worth a look">!' in block
     assert "put GeneFull first" in block
     assert "starsolo.intronic-reads-uncounted" in block
@@ -2920,8 +2980,10 @@ def test_a_pipeline_that_counted_one_feature_reports_normally_and_raises_no_aler
     page = render_html(collect_report(own_workspace))
     pane = _pane(page, "results")
 
-    assert assay.pipeline_stats is not None and assay.pipeline_stats.complete
-    assert assay.pipeline_stats.findings == [] and assay.alerts == []
+    assert assay.pipeline_stats is not None
+    assert assay.pipeline_stats.complete
+    assert assay.pipeline_stats.findings == []
+    assert assay.alerts == []
     assert _alert_block(page) == ""
     assert "counted from the Gene feature" in pane
     assert "Reads in genes" in pane, "the table must still render, or this asserts nothing"
@@ -3045,10 +3107,13 @@ def test_the_gene_model_alert_names_the_annotation_and_the_strand_it_could_be_fl
     assert alert.id == "starsolo.reads-mapped-but-not-counted"
     refs = {d.decision: d for d in alert.implicates}
     assert set(refs) == {"annotation", "strand"}
-    assert refs["annotation"].value == expected and "processing.genome" in refs["annotation"].label
-    assert refs["strand"].value == "Forward" and refs["strand"].change_to == "Reverse"
+    assert refs["annotation"].value == expected
+    assert "processing.genome" in refs["annotation"].label
+    assert refs["strand"].value == "Forward"
+    assert refs["strand"].change_to == "Reverse"
     # ...and the label says where it lives, because it does not live in the recipe.
-    assert "soloStrand" in refs["strand"].label and "not a recipe field" in refs["strand"].label
+    assert "soloStrand" in refs["strand"].label
+    assert "not a recipe field" in refs["strand"].label
 
     assert f"currently <b>{expected}</b>" in block
     assert "currently <b>Forward</b>; the alternative is <b>Reverse</b>" in block
@@ -3089,7 +3154,8 @@ def test_the_strand_offers_an_alternative_only_where_the_alternative_is_one_valu
     (strand,) = [d for d in alert.implicates if d.decision == "strand"]
     block = _alert_block(render_html(collect_report(own_workspace)))
 
-    assert strand.value == "Unstranded" and strand.change_to is None
+    assert strand.value == "Unstranded"
+    assert strand.change_to is None
     assert "currently <b>Unstranded</b>" in block
     assert "the alternative is" not in block
 
@@ -3115,10 +3181,12 @@ def test_a_workspace_that_was_never_composed_answers_for_neither_new_decision(
     )
     bare = _DecisionContext(manifest=manifest, proc=None, plan=None)
 
-    assert _resolve_annotation(bare) is None and _resolve_strand(bare) is None
+    assert _resolve_annotation(bare) is None
+    assert _resolve_strand(bare) is None
 
     full = _decision_context(own_workspace, manifest)
-    assert _resolve_annotation(full) is not None and _resolve_strand(full) is not None
+    assert _resolve_annotation(full) is not None
+    assert _resolve_strand(full) is not None
 
 
 def test_a_genome_with_no_registered_gene_model_names_no_annotation(own_workspace: Path) -> None:
@@ -3137,7 +3205,8 @@ def test_a_genome_with_no_registered_gene_model_names_no_annotation(own_workspac
         yaml.safe_load((own_workspace / "seqforge" / "manifest.yaml").read_text())
     )
     ctx = _decision_context(own_workspace, manifest)
-    assert ctx.proc is not None and _resolve_annotation(ctx) is not None
+    assert ctx.proc is not None
+    assert _resolve_annotation(ctx) is not None
 
     evidenced = ctx.proc.processing.genome
     no_gtf = evidenced.model_copy(

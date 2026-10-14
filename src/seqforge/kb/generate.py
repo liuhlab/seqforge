@@ -32,7 +32,7 @@ def write_fastq_gz(path: Path, seqs: list[str], *, prefix: str = "SIM") -> None:
     payload = "".join(
         f"@{prefix}:{i}\n{s}\n+\n{'I' * len(s)}\n" for i, s in enumerate(seqs)
     ).encode()
-    with open(path, "wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as gz:
+    with path.open("wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0) as gz:
         gz.write(payload)
 
 

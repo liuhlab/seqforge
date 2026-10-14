@@ -1,55 +1,38 @@
 # 49. STAR's command line has one owner, and the instrument runs it
 
-STARsolo's argv was rendered twice — once in `starsolo.smk`'s `shell:` block, once by hand in
-`e2e.run_starsolo`, the memory instrument that must reap STAR itself because under snakemake
-`ru_maxrss` folds in descendants. Nothing could compare them: a Snakefile is not importable, so the
-only expression available was a whitespace-normalised substring search over the module's *text*. The
-two had drifted twice over. The instrument named the four simple-geometry flags directly, so it could
-not run a `CB_UMI_Complex` chemistry at all; and it omitted **nine** shipped flags, `--limitBAMsortRAM`
-among them — the memory instrument left out the flag that bounds STAR's memory, and the peak-RSS
-figures that provision a 128 GB job came from that argv. Neither omission was a decision anyone took.
+STARsolo's argv was rendered twice: in `starsolo.smk`'s `shell:` block, and by hand in
+`e2e.run_starsolo`, the memory instrument that reaps STAR itself because under snakemake `ru_maxrss`
+folds in descendants. A Snakefile is not importable, so nothing could compare them but a substring
+search over its text. They had drifted: the instrument could not run a `CB_UMI_Complex` chemistry,
+and it omitted nine shipped flags, `--limitBAMsortRAM` among them, so the peak-RSS figures that
+provision a 128 GB job came from an argv missing the flag that bounds STAR's memory.
 
 `workflows/starsolo_args.py` now owns the command line and both consumers call it. The `shell:` block
-is `STAR {params.argv}`, so a flag cannot be dropped there because there is nowhere left to drop one
-from, and the instrument may differ only where a measurement physically forces it: `--sysShell` (STAR's
-generated reader needs a `#!` on macOS), its own `--outFileNamePrefix`, and `--outSAMtype`, the axis
-`kb e2e-cost --out-sam-type` exists to sweep. The alternative — keep the flags visible in the shell
-block and feed only their *values* from Python — was rejected because it fixes the wrong failure: the
-bug was nine flags **missing**, not wrong, and under it the flag list is still spelled twice.
+is `STAR {params.argv}`, with nowhere left to drop a flag from. The instrument differs only where a
+measurement forces it: `--sysShell` (a `#!` on macOS), its own `--outFileNamePrefix`, and
+`--outSAMtype`, the axis `kb e2e-cost --out-sam-type` sweeps. Rejected: keep the flags in the shell
+block and feed only their values from Python. The bug was flags missing, not wrong, and that still
+spells the list twice.
 
-Two prices, both accepted. The Snakefile no longer shows what STAR runs; `snakemake -n -p` renders it
-in full, which is also how compose's wiring gate sees it, and the reasoning for each literal moved to
-sit beside the literal. And the sweep now pays for the parity set at every point, so both figures in
-[`e2e-gate-runs.md`](../research/e2e-gate-runs.md) became floors pending a re-measurement on arc.
+Two prices, accepted. The Snakefile no longer shows what STAR runs; `snakemake -n -p` renders it, as
+compose's wiring gate sees it. And the sweep pays for the parity set, so both figures in
+[`e2e-gate-runs.md`](../research/e2e-gate-runs.md) became floors pending re-measurement.
 
-One flag stayed behind, measured rather than chosen: `--limitBAMsortRAM` must escalate per retry
-attempt, and snakemake re-expands `resources:` per attempt but not `params:` — nor does it expand
-braces arriving *inside* a substituted params value, since the shell template is formatted in one
-pass. It reaches the shell as `SORT_CAP_SHELL`, which spells the flag so the Snakefile does not.
+One flag stayed behind: `--limitBAMsortRAM` escalates per retry, and snakemake re-expands
+`resources:` per attempt but not `params:`, nor braces inside a substituted params value. It reaches
+the shell as `SORT_CAP_SHELL`.
 
-**Status.** Closes #348 items 2 and 3. `required_config` stays derived and is now a union: the
-Snakefile is still regex-scanned (`keys_read_by`) and the renderer is AST-walked
-(`argv_keys_read_by`), which is strictly more precise — it sees both geometry branches where a scanner
-could only see the one it took, and it ignores prose, which the regex did not. That last point cost a
-key: the old scan reported a bare `solo` because a docstring mentioned `config["solo"]`. **Amended
-2026-08-11 (#370):** the re-measurement landed and the two figures were not floors but ceilings —
-`--limitBAMsortRAM` is a cap, so adding it lowered the peak. The decision stands; only the guess
-about which way the unmeasured error ran was wrong. **Amended 2026-08-18 (#434):** the two plate
-twins' argv gains `--outSAMunmapped Within`, recorded here because this is where the aligner's line
-is decided rather than in a neighbouring record. Bare `Within` and never `Within KeepPairs`: the
-second token orders an unmapped record beside its mate in unsorted output only, which a
-coordinate-sorted module cannot use. Without it the counter's first read fate had no branch that
-could execute, and the retained archive names the `mapped` selection so it does not grow to carry
-records nothing placed.
+**Status.** Closes #348 items 2 and 3. `required_config` is a union of the regex-scanned Snakefile
+(`keys_read_by`) and the AST-walked renderer (`argv_keys_read_by`), which sees both geometry branches
+and ignores prose; that dropped a bare `solo` a docstring had supplied. **Amended 2026-08-11 (#370):**
+the figures were ceilings, not floors, since `--limitBAMsortRAM` caps the peak. **Amended 2026-08-18
+(#434):** the plate twins' argv gains bare `--outSAMunmapped Within`, never `Within KeepPairs`, whose
+second token orders mates in unsorted output only. Without it the counter's first read fate could not
+execute; the retained archive names the `mapped` selection.
 
-**Amended 2026-08-21 (#463):** the decision above generalises past STARsolo, and `splice_args.py` is
-where. STAR's junction flags — `--outFilterType BySJout`, the two overhang minimums, and `jM jI` on
-the attribute list — are identical in all four STAR modules and vary with nothing, so spelling them
-in each is the same failure this record already priced: three of the four render their argv in a
-`shell:` block, and the fourth and fifth copy of one list is where a flag goes missing without
-anyone deciding. Two owners rather than one, and the split is by what a list IS rather than by which
-module holds it: STARsolo's argv is one module's whole command line, the junction flags are one
-decision shared by four. The three inline modules take the second as a single `params:` slot and
-`starsolo_argv` calls the same renderer, which is what keeps the `shell:` blocks with nothing left
-in them to drop. The junction attributes are spelled once, in the renderer, and `SAM_WRITE_PATH`
-splices them into the one attribute list a module states for itself.
+**Amended 2026-08-21 (#463):** the decision generalises, in `splice_args.py`. STAR's junction flags
+(`--outFilterType BySJout`, the two overhang minimums, `jM jI` on the attribute list) are identical in
+all four STAR modules, and copying one list into each is the failure already priced. Two owners, split
+by what a list is: STARsolo's argv is one module's command line, the junction flags one decision
+shared by four. The three inline modules take them as one `params:` slot, `starsolo_argv` calls the
+same renderer, and `SAM_WRITE_PATH` splices the attributes into each module's own list.

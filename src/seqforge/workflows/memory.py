@@ -293,11 +293,11 @@ def bam_sort_ram(mem_mb: int) -> int:
 __all__ = [
     "BULK_RETRIES",
     "PLATE_RETRIES",
-    "index_mem_mb",
     "STARSOLO_RETRIES",
     "bam_sort_ram",
     "bulk_mem_mb",
     "escalated_mem_mb",
     "fan_in_mem_mb",
+    "index_mem_mb",
     "per_cell_mem_mb",
 ]

@@ -204,10 +204,10 @@ class CompiledPipeline:
 
 
 __all__ = [
-    "SNAKEFILE_NAME",
     "CONFIG_NAME",
-    "UNITS_TSV_NAME",
-    "EXCLUSIONS_NAME",
     "DEFAULT_OUTDIR",
+    "EXCLUSIONS_NAME",
+    "SNAKEFILE_NAME",
+    "UNITS_TSV_NAME",
     "CompiledPipeline",
 ]
