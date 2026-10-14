@@ -14,12 +14,12 @@ machine-independent **dataset manifest**, then into a runnable Snakemake config 
 reprocessing of large collections of public sequencing datasets into a genomic-AI training corpus.
 
 **seqforge is a compiler, not a chatbot.** Deterministic code owns every decision. The LLM has
-exactly two jobs: parse prose into span-verified assertions, and arbitrate ambiguity the
+exactly two jobs: parse prose into span-verified assertions, and settle ambiguity the
 deterministic layer has *already flagged*. Everything else is a verifier.
 
 It produces two artifacts, and only the second is plural:
 
-- **`manifest.yaml`** — what the data **is**. One per dataset, immutable, content-addressed.
+- **`manifest.yaml`** — what the data **is**. One per dataset, immutable, named by a hash of its contents.
 - **`processing.yaml`** — what to **do** with it: genome, aligner, introns or not. Many per dataset.
 
 ## Install
@@ -29,7 +29,7 @@ pip install seqforge
 ```
 
 That gives you the compiler and the `seqforge` CLI. The two lab-only stages — `compose` against a real
-genome and `kb e2e` — additionally need the lab's `liulab-genome` and `liulab-data`, which are not on
+genome and `kb e2e` — also need the lab's `liulab-genome` and `liulab-data`, which are not on
 PyPI:
 
 ```bash

@@ -67,7 +67,7 @@ nav:
           - SPLiT-seq: kb/splitseq.md
           - Bulk RNA-seq: kb/bulk-rnaseq.md
 
-# Two trees stay in the repo and OUT of the site, deliberately; this site is the human layer on top
+# Three trees stay in the repo and OUT of the site, deliberately; this site is the human layer on top
 # of them. The argument is ADR-0045 — cited by number, because a record moves between directories
 # and its number does not.
 #
@@ -76,6 +76,7 @@ nav:
 # commit. They are one list, and test_docs.py fails when they drift.
 exclude_docs: |
   adr/
+  agents/
   research/
 
 markdown_extensions:
