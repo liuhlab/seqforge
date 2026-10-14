@@ -6,7 +6,7 @@ description = "Compile arbitrary FASTQ + messy metadata into a validated, machin
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 authors = [{ name = "Liu Lab" }]
 keywords = ["bioinformatics", "single-cell", "fastq", "snakemake", "manifest"]
 classifiers = [
@@ -15,7 +15,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Typing :: Typed",
@@ -296,7 +295,6 @@ docs-build = "mkdocs build --strict"
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
-target-version = "py312"
 extend-exclude = [".pixi", "site", "build", "dist"]
 
 [tool.ruff.lint]
@@ -312,7 +310,6 @@ extend-immutable-calls = ["typer.Argument", "typer.Option"]
 # ============================== mypy ==============================
 
 [tool.mypy]
-python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
