@@ -19,8 +19,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Typing :: Typed",
 ]
-# CalVer YYYY.M.PATCH, mirrored in CHANGELOG.md.
-version = "2026.7.1"
+# CalVer YYYY.M.PATCH, read by hatch-vcs from the newest git tag. Never add a `version` key.
+dynamic = ["version"]
 
 dependencies = [
     "pydantic>=2.7",
@@ -60,8 +60,13 @@ seqforge = "seqforge.cli:app"
 # ============================== build ==============================
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+# No `fallback-version`: that is a hand-written version string. A clone with no tag in reach
+# builds as `0.1.devN`, so every workflow checkout that builds a wheel takes the full history.
+[tool.hatch.version]
+source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 # Carries every non-Python file under the tree already (onlists, .smk modules, KB specs, report
@@ -201,7 +206,6 @@ PATH = "$PIXI_PROJECT_ROOT/.pixi/envs/test-star/bin:$PATH"
 ruff = "*"
 mypy = "*"
 pre-commit = "*"
-python-build = "*"
 types-pyyaml = "*"
 types-requests = "*"
 types-openpyxl = "*"
@@ -209,6 +213,25 @@ pyinstrument = ">=5.1.2,<6"
 
 [tool.pixi.feature.docs.dependencies]
 mkdocs-material = "*"
+
+# What the `dist` environment holds: a build frontend and twine, and not seqforge. It solves alone
+# because twine 7 needs packaging 26 and snakemake caps packaging below 26, while twine 6 under
+# packaging 25 cannot read the metadata version hatchling now writes.
+[tool.pixi.feature.dist.dependencies]
+python = "3.13.*"
+python-build = "*"
+twine = "*"
+
+# On the feature, so `pixi run build` finds the one environment that has them with no `-e` flag.
+# CI's `build` job and the release job both run these, so the wheel that ships is built the way
+# every pull request builds it.
+[tool.pixi.feature.dist.tasks]
+build = "python -m build"
+# Inspects the wheel `build` just made: as a test it built a second one.
+check-wheel = "python scripts/check_wheel_contents.py"
+# Renders the metadata the way PyPI will, so a bad long description or a `git+https` dependency
+# fails before the upload.
+check-dist = "twine check dist/*"
 
 [tool.pixi.environments]
 default = { features = ["py313", "dev", "test", "docs", "wf"], solve-group = "default" }
@@ -224,6 +247,9 @@ docs    = { features = ["py313", "docs"], solve-group = "default" }
 # What is left solves alone, carries no Python and no `seqforge`, and exists only to put two binaries
 # on PATH -- all a test ever needed, since nothing imports an aligner.
 test-star = { features = ["star"], solve-group = "star", no-default-feature = true }
+# No default feature either: a build needs a frontend and the source tree, and installing seqforge
+# with all its dependencies would only slow the release job down.
+dist = { features = ["dist"], solve-group = "dist", no-default-feature = true }
 
 [tool.pixi.tasks]
 lint      = "ruff check ."
@@ -283,9 +309,6 @@ eval      = "seqforge eval run"
 # and a lane that finishes early gives its share back to the one that has not. The gate runs the same
 # three selections CI does, which is the point: what goes red here is what goes red there.
 check     = "bash scripts/check.sh lint fmt-check typecheck test test-corpus test-external"
-build     = "python -m build"
-# Runs in the CI `build` job, where the wheel already exists — as a test it built a second one.
-check-wheel = "python scripts/check_wheel_contents.py"
 install-skills = "python skills/install.py --user"
 docs      = "mkdocs serve"
 docs-build = "mkdocs build --strict"

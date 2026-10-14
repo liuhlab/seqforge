@@ -8,11 +8,10 @@ per-context ``CONTEXT.md`` files are the glossary; the decisions behind it are r
 
 from __future__ import annotations
 
-try:  # pragma: no cover - version is provided by the installed package metadata
-    from importlib.metadata import version
+from importlib.metadata import version
 
-    __version__ = version("seqforge")
-except Exception:  # pragma: no cover - not installed; mirror the static CalVer in pyproject.toml
-    __version__ = "2026.7.1"
+#: The installed distribution's version, which hatch-vcs took from the git tag. The package version
+#: is written by hand nowhere in this repo.
+__version__ = version("seqforge")
 
 __all__ = ["__version__"]
