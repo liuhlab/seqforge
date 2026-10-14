@@ -4,7 +4,7 @@ The knowledge base of sequencing chemistries: one directory per technology, decl
 are laid out, how to detect it from bytes, and which other technologies it can be confused with.
 
 Words every context shares — **Evidenced**, **Basis**, **Observed**, **Conflict** and the rest — are
-defined once in the repo-root `CONTEXT-MAP.md`.
+defined once in the repo-root `GLOSSARY-MAP.md`.
 
 ## Language
 
