@@ -462,6 +462,33 @@ def _experiments_for(accession: str) -> list[str]:
     return accessions
 
 
+def _sra_packages(experiments: list[str]) -> list[ArchiveRecord]:
+    """``efetch db=sra`` for ``experiments``, re-asking for any package the reply left out.
+
+    NCBI can return fewer packages than it was asked for and report no error, and asking again
+    returns the rest. A short reply kept as is would be cached as the complete record set, so the
+    missing experiments are re-requested with `_get`'s backoff, and any still missing after the last
+    retry are a :class:`RemoteError` naming them: an accession that was given and resolves to less than
+    the archive holds is a refusal, as in :func:`_experiments_for`.
+    """
+    packages: list[ArchiveRecord] = []
+    missing = experiments
+    attempt = 0
+    while True:
+        packages.extend(parse_sra_package_set(_efetch("sra", missing)))
+        returned = {r.accession for r in packages if r.level == "experiment"}
+        missing = [e for e in missing if e not in returned]
+        if not missing:
+            return packages
+        if attempt >= _MAX_RETRIES:
+            raise RemoteError(
+                f"efetch db=sra returned no package for {', '.join(missing)} after "
+                f"{_MAX_RETRIES + 1} requests"
+            )
+        time.sleep(retry_delay(None, attempt))
+        attempt += 1
+
+
 def fetch_records(accession: str) -> ArchiveRecordSet:
     """Any accession -> every record the archive holds for it, across all four levels.
 
@@ -472,7 +499,7 @@ def fetch_records(accession: str) -> ArchiveRecordSet:
 
     packages: list[ArchiveRecord] = []
     for i in range(0, len(experiments), _BATCH):
-        packages.extend(parse_sra_package_set(_efetch("sra", experiments[i : i + _BATCH])))
+        packages.extend(_sra_packages(experiments[i : i + _BATCH]))
     # Only here does the whole record set exist. Every request carries the study above the experiments
     # it asked for, and a sample above every experiment of its own, so a study repeats once per
     # request and a sample repeats in each request holding one of its experiments; the per-reply dedup

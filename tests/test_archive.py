@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 
 from seqforge.io import IO_VERSION, archive
-from seqforge.io.remote import RemoteError
+from seqforge.io.remote import _MAX_RETRIES, RemoteError
 from seqforge.models.records import ArchiveRecord, ArchiveRecordSet
 
 FIXTURES = Path(__file__).parent / "fixtures" / "archive"
@@ -245,6 +245,42 @@ def test_a_sample_whose_experiments_straddle_a_page_boundary_is_one_record(
     assert all(len(ids) == len(set(ids)) for ids in asked)
 
 
+@pytest.mark.parametrize("short_replies", [1, _MAX_RETRIES + 1])
+def test_a_short_sra_reply_is_re_requested_and_refused_if_it_stays_short(
+    monkeypatch: pytest.MonkeyPatch, short_replies: int
+) -> None:
+    """NCBI can answer an ``efetch db=sra`` with fewer packages than it was asked for, and say nothing
+    (GSE60450: 10 of 12, while three repeats returned all 12). Kept as is, the record set silently
+    lacks those experiments, and it is cached as complete. The missing ones are asked for again; if
+    the archive still withholds one after the last retry, an accession the user gave resolves to less
+    than the archive holds, and that is a refusal naming it.
+    """
+    pairs = [(f"SRX{i:07d}", f"SAMN{i:07d}") for i in range(12)]
+    dropped = pairs[3][0]
+    _paged_archive(monkeypatch, pairs)
+    serve = archive._efetch
+
+    asked: list[list[str]] = []
+
+    def flaky_efetch(db: str, ids: list[str], **params: str) -> str:
+        if db == "sra":
+            asked.append(list(ids))
+            if len(asked) <= short_replies:
+                ids = [i for i in ids if i != dropped]
+        return serve(db, ids, **params)
+
+    monkeypatch.setattr(archive, "_efetch", flaky_efetch)
+    monkeypatch.setattr(time, "sleep", lambda _s: None)
+
+    if short_replies > _MAX_RETRIES:
+        with pytest.raises(RemoteError, match=dropped):
+            archive.fetch_records("GSE60450")
+        return
+    record_set = archive.fetch_records("GSE60450")
+    assert asked[-1] == [dropped]  # only the missing one is asked for again
+    assert len(record_set.at("experiment")) == len(record_set.at("run")) == len(pairs)
+
+
 # ------------------------------------------------------------ what the package states in prose
 
 
@@ -411,7 +447,7 @@ def test_a_freshly_fetched_record_set_carries_the_version_that_wrote_it(
     than the question". Most deposits publish none, so absence of files is the normal case and can
     never be the signal — which is why the second half of this test matters as much as the first.
     """
-    _patch_labdata(monkeypatch, lambda acc: [_FakeExperiment("SRX15982970")])
+    _patch_labdata(monkeypatch, lambda acc: [_FakeExperiment("SRX15929673")])
     monkeypatch.setattr(
         archive,
         "_efetch",
