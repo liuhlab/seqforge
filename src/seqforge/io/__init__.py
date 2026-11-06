@@ -49,7 +49,10 @@ from .remote import (
 #: beside the filename it already read (ADR-0033). A record set now also carries the version that
 #: wrote it, which is what lets an unstamped one say "written before this" rather than passing for a
 #: deposit that publishes no originals — so the stamp only means anything if this constant moves.
-IO_VERSION = "2026.8.0"
+#: 2026.11.0 — a record set holds every experiment the accession resolved to. NCBI can answer an SRA
+#: fetch with fewer packages than it was asked for and say nothing; the missing ones are now asked for
+#: again and refused if still absent, where a set stamped earlier may have kept the short reply.
+IO_VERSION = "2026.11.0"
 
 __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetical
     "IO_VERSION",
