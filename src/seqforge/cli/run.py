@@ -65,14 +65,14 @@ def _run_records_stage(
     Where `manifest fill` fetches into memory, `run` writes each record set under `seqforge/records/`
     — the same place `io records` caches — because `run` is the convenience path and every
     stage leaves a resumable artifact. Harvest renders record documents from a *file*, so `run` hands
-    the same file to both harvest and fill. `--offline` with an accession refuses, for the reason fill
-    does: you asked for those facts, and the manifest is content-addressed and permanent.
+    the same file to both harvest and fill. `--offline` with an accession reads only the lab's store and
+    refuses a deposit it lacks, for the reason fill does: you asked for those facts, and the manifest
+    is content-addressed and permanent.
     """
     import hashlib
 
     from ..io import IO_VERSION
-    from ..io.archive import fetch_records
-    from ..io.remote import RemoteError
+    from ..io.archive import fetch_records, stored_records
     from ..models.records import ArchiveRecordSet
     from ..recordset import load_record_set
 
@@ -83,18 +83,14 @@ def _run_records_stage(
         return load_record_set(records_path), records_path
     if not accession:
         return None, None
-    if offline:
-        raise RemoteError(
-            f"--accession {', '.join(accession)} needs the archive, and --offline forbids it. "
-            f"Fetch once with `seqforge io records {accession[0]}` and pass --records, or drop "
-            f"--accession to compile with no sample facts."
-        )
     outdir = records_dir(workspace)
     outdir.mkdir(parents=True, exist_ok=True)
     merged: list[Any] = []
     per_accession: list[Path] = []
+    # Offline, the lab's store is the only source: a deposit it lacks is refused, never fetched.
+    fetch = stored_records if offline else fetch_records
     for acc in accession:
-        record_set = fetch_records(acc)
+        record_set = fetch(acc)
         target = outdir / f"{acc}.json"
         target.write_text(json.dumps(record_set.model_dump(mode="json"), indent=2))
         per_accession.append(target)

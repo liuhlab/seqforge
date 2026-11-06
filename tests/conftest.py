@@ -383,6 +383,100 @@ def _no_wiring_gate(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPa
     )
 
 
+@pytest.fixture(autouse=True)
+def _no_labdata_store(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every test sees no labdata store unless it installs one.
+
+    ``fetch_records`` reads the store first, and ``labdata.open_store`` finds one through
+    ``LABDATA_STORE`` or a per-user pointer file. On a machine that has configured one, a live-path
+    test would read real records instead of its own fixture.
+    """
+    import labdata
+    from labdata.exceptions import StoreNotConfiguredError
+
+    def unconfigured(root: object = None) -> object:
+        raise StoreNotConfiguredError("store not configured (stubbed by `_no_labdata_store`)")
+
+    monkeypatch.setattr(labdata, "open_store", unconfigured)
+
+
+@dataclass
+class StubStore:
+    """A labdata store holding records as text, one per accession, that logs each ``raw`` call.
+
+    ``experiments`` maps a deposit to the experiments under it. An accession missing from it raises
+    ``NotFound``; a text missing from ``texts`` raises ``NotMirrored`` naming it, as the real store does.
+    """
+
+    experiments: dict[str, list[str]]
+    texts: dict[str, str]
+    raw_calls: list[list[str]]
+
+    def experiments_for(self, accession: str, *, partial: bool = False) -> list[Any]:
+        from labdata.exceptions import NotFound
+
+        assert not partial, "a partial walk would mix stored and live records"
+        if accession not in self.experiments:
+            raise NotFound(f"no snapshot lists {accession}")
+        return [types.SimpleNamespace(accession=a) for a in self.experiments[accession]]
+
+    def raw(self, accessions: Sequence[str]) -> dict[str, Any]:
+        from labdata.exceptions import NotMirrored
+
+        asked = sorted(set(accessions))
+        self.raw_calls.append(asked)
+        missing = [a for a in asked if a not in self.texts]
+        if missing:
+            raise NotMirrored(f"the store does not hold {', '.join(missing)}")
+        return {a: types.SimpleNamespace(text=self.texts[a], content_hash="") for a in asked}
+
+
+def stub_store(deposit: str, sra: str, biosample: str, bioproject: str) -> StubStore:
+    """A store holding ``deposit`` as the three ``efetch`` replies, split into stored records.
+
+    The split is the store's own: one ``EXPERIMENT_PACKAGE`` per experiment, one ``BioSample`` per
+    sample, and each BioProject in the bulk dump's ``<Package><Project>`` shape, which holds the same
+    children ``efetch`` puts under ``<DocumentSummary>``.
+    """
+    from xml.etree import ElementTree
+
+    def text(element: ElementTree.Element) -> str:
+        return ElementTree.tostring(element, encoding="unicode")
+
+    texts: dict[str, str] = {}
+    experiments: list[str] = []
+    for package in ElementTree.fromstring(sra).iter("EXPERIMENT_PACKAGE"):
+        accession = package.find("EXPERIMENT").get("accession")  # type: ignore[union-attr]
+        experiments.append(str(accession))
+        texts[str(accession)] = text(package)
+    for sample in ElementTree.fromstring(biosample).iter("BioSample"):
+        texts[str(sample.get("accession"))] = text(sample)
+    for summary in ElementTree.fromstring(bioproject).iter("DocumentSummary"):
+        accession = summary.find(".//ArchiveID").get("accession")  # type: ignore[union-attr]
+        package = ElementTree.Element("Package")
+        project = ElementTree.SubElement(package, "Project")
+        project.extend(list(summary))
+        texts[str(accession)] = text(package)
+    return StubStore(experiments={deposit: experiments}, texts=texts, raw_calls=[])
+
+
+#: The pilot deposit's three ``efetch`` replies, as committed.
+PILOT_XML = {
+    db: (Path(__file__).parent / "fixtures" / "archive" / f"PRJNA1027859.{db}.xml").read_text()
+    for db in ("sra", "biosample", "bioproject")
+}
+
+
+@pytest.fixture
+def stored_pilot(monkeypatch: pytest.MonkeyPatch) -> StubStore:
+    """The pilot deposit, held by a stub store that ``labdata.open_store`` now returns."""
+    import labdata
+
+    store = stub_store("PRJNA1027859", **PILOT_XML)
+    monkeypatch.setattr(labdata, "open_store", lambda root=None: store)
+    return store
+
+
 @pytest.fixture
 def real_wiring_gate() -> None:
     """Opt back in. Marks a test as one that pays ~1.5s of ``snakemake -n -p`` deliberately."""
