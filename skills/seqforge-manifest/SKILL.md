@@ -58,8 +58,9 @@ record — a human typing a taxid is asserting it now, having looked.
 **No accession is fine and is the common case.** Most sequencing data never had one. You get samples
 grouped by run, no facts attached, exit 0. What is *not* fine is an accession that cannot be fetched:
 that exits 3. You asked for those facts, and a manifest is content-addressed and never rewritten, so
-quietly omitting them would bake the omission in. `--offline` with `--accession` refuses for the same
-reason; fetch once with `seqforge io records` and pass `--records`.
+quietly omitting them would bake the omission in. `--offline` with `--accession` reads only the
+lab's labdata store, and refuses a deposit the store lacks for the same reason; fetch once with
+`seqforge io records` and pass `--records`.
 
 **`--records` also takes a file a human wrote, and that is what it was built for.** A filename cannot
 say two runs are one library — `_S1` and `_S3` on one flowcell compile as two half-depth samples at

@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import PILOT_XML, StubStore, stub_store
 from seqforge.io import IO_VERSION, archive
 from seqforge.io.remote import _MAX_RETRIES, RemoteError
 from seqforge.models.records import ArchiveRecord, ArchiveRecordSet
@@ -153,6 +154,109 @@ def test_fetch_records_composes_labdatas_hop_with_the_efetch_parse_path(
         attr.value for sample in samples for attr in sample.attributes if attr.name == "strain"
     }
     assert {"CQ757", "CQ758"} <= strains
+
+
+# ------------------------------------------------------------ the lab's store, before the network
+
+
+def _live(
+    monkeypatch: pytest.MonkeyPatch, deposit: str, xml: dict[str, str]
+) -> list[tuple[str, list[str]]]:
+    """Serve ``xml`` as NCBI would, logging every efetch, and return the live record set's calls."""
+    store = stub_store(deposit, **xml)
+    _patch_labdata(monkeypatch, lambda acc: [_FakeExperiment(e) for e in store.experiments[acc]])
+    calls: list[tuple[str, list[str]]] = []
+
+    def fake_efetch(db: str, ids: list[str], **params: str) -> str:
+        calls.append((db, list(ids)))
+        return xml[db]
+
+    monkeypatch.setattr(archive, "_efetch", fake_efetch)
+    return calls
+
+
+def _synthetic_deposit(n: int) -> dict[str, str]:
+    """``n`` experiments, one sample each, under one study: the three replies, as ``efetch`` gives them."""
+    pairs = [(f"SRX{i:07d}", f"SAMN{i:07d}") for i in range(n)]
+    samples = "".join(f'<BioSample accession="{s}"/>' for _, s in pairs)
+    project = (
+        '<RecordSet><DocumentSummary><Project><ProjectID><ArchiveID accession="PRJNA9999999"/>'
+        "</ProjectID></Project></DocumentSummary></RecordSet>"
+    )
+    return {
+        "sra": _package_set(pairs),
+        "biosample": f"<BioSampleSet>{samples}</BioSampleSet>",
+        "bioproject": project,
+    }
+
+
+@pytest.mark.parametrize(
+    ("deposit", "xml"),
+    [("PRJNA1027859", PILOT_XML), ("PRJNA9999999", None)],
+    ids=["pilot", "larger-than-one-efetch"],
+)
+def test_a_stored_deposit_reads_as_the_live_record_set_with_one_raw_call_per_level(
+    monkeypatch: pytest.MonkeyPatch, deposit: str, xml: dict[str, str] | None
+) -> None:
+    """The store holds NCBI's own text, so the same parsers make the same record set from it, and the
+    network is never asked. Each level is one call however many records the deposit has: the walk
+    must not cost one request per record."""
+    import labdata
+
+    xml = xml or _synthetic_deposit(2 * archive._BATCH + 50)
+    _live(monkeypatch, deposit, xml)
+    live = archive.fetch_records(deposit)
+
+    store = stub_store(deposit, **xml)
+    monkeypatch.setattr(labdata, "open_store", lambda root=None: store)
+    calls = _live(monkeypatch, deposit, xml)
+    _patch_labdata(monkeypatch, lambda acc: pytest.fail("the store holds it; NCBI was asked"))
+
+    assert archive.fetch_records(deposit) == live
+    assert calls == []
+    assert len(store.raw_calls) == 3  # experiments, then their samples, then their study
+
+
+@pytest.mark.parametrize(
+    "lacks",
+    ["the deposit", "the SRA package", "a BioSample", "the BioProject"],
+)
+def test_a_store_that_lacks_any_level_sends_the_whole_fetch_to_ncbi(
+    stored_pilot: StubStore, monkeypatch: pytest.MonkeyPatch, lacks: str
+) -> None:
+    """``NotFound`` (no snapshot lists it) or ``NotMirrored`` (listed, not held), from the walk or from
+    any level after it, means live NCBI. The fallback starts again from the experiments: a record set
+    is one source's or the other's, never a stored level beside a live one."""
+    deposit = "PRJNA1027859"
+    if lacks == "the deposit":
+        stored_pilot.experiments.clear()
+    else:
+        prefix = {"the SRA package": "SRX", "a BioSample": "SAMN", "the BioProject": "PRJ"}[lacks]
+        del stored_pilot.texts[next(a for a in stored_pilot.texts if a.startswith(prefix))]
+    calls = _live(monkeypatch, deposit, PILOT_XML)
+
+    record_set = archive.fetch_records(deposit)
+
+    assert [db for db, _ in calls] == ["sra", "biosample", "bioproject"]
+    assert record_set.at("experiment")
+
+
+def test_a_configured_root_that_is_not_a_store_refuses_without_asking_ncbi(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A broken store is a configuration error, and a quiet live fetch would hide it."""
+    import labdata
+    from labdata.exceptions import NotAStoreError
+
+    def broken(root: object = None) -> object:
+        raise NotAStoreError("/data/labdata has no labdata-store.toml")
+
+    monkeypatch.setattr(labdata, "open_store", broken)
+    calls = _live(monkeypatch, "PRJNA1027859", PILOT_XML)
+
+    with pytest.raises(RemoteError, match="/data/labdata"):
+        archive.fetch_records("PRJNA1027859")
+    assert calls == []
 
 
 # ------------------------------------------------------------ a study bigger than one efetch batch

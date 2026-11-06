@@ -78,7 +78,9 @@ def manifest_fill(
         "harvested claim. Breaks a genuine byte tie (v2/v3); still only a selector, never evidence.",
     ),
     offline: bool = typer.Option(
-        False, "--offline", help="Never reach the network. --accession then REFUSES, never quietly."
+        False,
+        "--offline",
+        help="Never reach the network. --accession then reads only the lab's labdata store, and REFUSES a deposit it lacks.",
     ),
     cpus: int = typer.Option(
         0, "--cpus", help="Parallel probe workers. 0 = auto (min(8, CPUs)); 1 = sequential."
@@ -561,8 +563,7 @@ def _load_records(
     would bake the omission in.
     """
     from ..io import IO_VERSION
-    from ..io.archive import fetch_records
-    from ..io.remote import RemoteError
+    from ..io.archive import fetch_records, stored_records
     from ..models.records import ArchiveRecordSet
     from ..recordset import load_record_set
 
@@ -575,15 +576,11 @@ def _load_records(
         return load_record_set(records_path)
     if not accessions:
         return None
-    if offline:
-        raise RemoteError(
-            f"--accession {', '.join(accessions)} needs the archive, and --offline forbids it. "
-            f"Fetch the records once with `seqforge io records {accessions[0]}` and pass "
-            f"`--records`, or drop --accession to compile with no sample facts."
-        )
     merged: list[Any] = []
+    # Offline, the lab's store is the only source: a deposit it lacks is refused, never fetched.
+    fetch = stored_records if offline else fetch_records
     for acc in accessions:
-        merged.extend(fetch_records(acc).records)
+        merged.extend(fetch(acc).records)
     # Re-assembling several fetches into one set drops the stamp `fetch_records` put on each of them,
     # and an unstamped set means "written before submitted files existed" — so without this the
     # freshest possible fetch reads as the stalest possible cache. Same carry as `cli/run.py`'s merge.

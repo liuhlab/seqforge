@@ -19,6 +19,7 @@ from typer.testing import CliRunner, Result
 
 from conftest import (
     SrcTrees,
+    StubStore,
     SynthDataset,
     declare_read_floor,
     one_run_each,
@@ -28,6 +29,7 @@ from conftest import (
 )
 from seqforge import __version__, kb
 from seqforge.cli import app
+from seqforge.models.records import ArchiveRecordSet
 from seqforge.workflows.umite.count import N_UMIS_RRNA, RRNA_FRACTION
 
 runner = CliRunner()
@@ -2709,6 +2711,32 @@ def test_io_records_prints_each_submitted_files_md5_size_and_uri(
             "uri": "s3://sra-pub-src-15/SRR19886090/NasalProx1_270_2.fastq.gz.1",
         }
     ]
+
+
+@pytest.mark.parametrize("verb", ["run", "manifest fill"])
+def test_offline_an_accession_reads_the_labs_store_and_refuses_one_it_lacks(
+    stored_pilot: StubStore, tmp_path: Path, verb: str
+) -> None:
+    """`--offline` forbids the network, not the records: a deposit the lab's store holds compiles
+    with its sample facts. One the store lacks is refused, naming what it lacks, rather than compiled
+    without them into a manifest that is never rewritten."""
+    from seqforge.cli import manifest as m
+    from seqforge.cli import run as r
+    from seqforge.io.remote import RemoteError
+
+    def load(accession: str) -> ArchiveRecordSet | None:
+        if verb == "run":
+            return r._run_records_stage([accession], None, workspace=tmp_path, offline=True)[0]
+        return m._load_records([accession], None, offline=True)
+
+    record_set = load("PRJNA1027859")
+    assert record_set is not None
+    assert record_set.at("sample")
+
+    lacking = next(a for a in stored_pilot.texts if a.startswith("SAMN"))
+    del stored_pilot.texts[lacking]
+    with pytest.raises(RemoteError, match=lacking):
+        load("PRJNA1027859")
 
 
 def test_a_freshly_fetched_record_set_is_stamped_and_one_off_disk_keeps_what_it_had(

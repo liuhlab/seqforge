@@ -32,6 +32,11 @@ the comfortable assumption, and it was false.
 which is why step 1 is not optional. It does accept a list of experiment accessions, so the six
 packages arrive in one request.
 
+**The lab's store first.** When a labdata store is configured and holds the whole deposit, the same
+three kinds of text come from it, as NCBI served them, through the same parsers, with no network
+call (:func:`stored_records`). A store that lacks any record of the deposit sends the whole fetch to
+NCBI, so a record set is never part stored and part live.
+
 Every fetch degrades rather than aborts: an archive that is down, rate-limited, or simply does not
 have a level yields fewer records, and a dataset with no accession at all yields none. That is not a
 fallback — a great deal of sequencing data has never seen an accession and never will.
@@ -42,8 +47,8 @@ from __future__ import annotations
 import os
 import re
 import time
-from collections.abc import Iterable
-from typing import get_args
+from collections.abc import Iterable, Mapping
+from typing import Any, get_args
 from xml.etree import ElementTree
 
 from ..models.records import (
@@ -400,7 +405,9 @@ def parse_bioproject_set(xml: str) -> dict[str, list[RecordAttribute]]:
         raise RemoteError(f"efetch db=bioproject returned unparsable XML: {exc}") from exc
 
     out: dict[str, list[RecordAttribute]] = {}
-    for summary in root.findall(".//DocumentSummary"):
+    # efetch puts a project under `<DocumentSummary>`; the bulk dump the lab's store holds puts the
+    # same children under `<Package><Project>`.
+    for summary in [*root.iter("DocumentSummary"), *root.findall(".//Package/Project")]:
         archive = summary.find(".//ArchiveID")
         acc = archive.get("accession") if archive is not None else None
         if not acc:
@@ -490,12 +497,119 @@ def _sra_packages(experiments: list[str]) -> list[ArchiveRecord]:
         attempt += 1
 
 
+class NotStored(RemoteError):
+    """The lab's store cannot serve this deposit: none is configured, or it lacks a record of it.
+
+    Live NCBI can still answer, so :func:`fetch_records` falls back on it. Offline there is nothing to
+    fall back on, and this is the refusal.
+    """
+
+
+#: What a :class:`NotStored` says, since it only ever reaches a person when the network is off.
+_OFFLINE_REMEDY = (
+    ". Offline, the store is the only source: drop --offline to fetch from NCBI, or pass --records."
+)
+
+
+def _ids(records: list[ArchiveRecord], level: RecordLevel, prefix: str) -> list[str]:
+    return [r.accession for r in records if r.level == level and r.accession.startswith(prefix)]
+
+
+def _record_set(
+    accession: str,
+    packages: list[ArchiveRecord],
+    harmonized: dict[str, list[RecordAttribute]],
+    project_facts: dict[str, list[RecordAttribute]],
+) -> ArchiveRecordSet:
+    """The deduplicated packages, with NCBI's harmonized sample attributes and the study's facts."""
+    packages = [
+        r.model_copy(update={"attributes": [*r.attributes, *project_facts[r.accession]]})
+        if r.level == "project" and r.accession in project_facts
+        else r
+        for r in merge_biosample_attributes(packages, harmonized)
+    ]
+    # Stamped with the version that transcribed it, so a set read back later says how much of the
+    # archive we were asking for at the time: a run declaring no submitted files is a deposit that
+    # published none (most did) only if this transcriber wrote it. The source stays NCBI's whichever
+    # path served the text, because it is NCBI's text through NCBI's parsers either way.
+    return ArchiveRecordSet(source=SOURCE, query=accession, records=packages, io_version=IO_VERSION)
+
+
+_XML_DECLARATION = re.compile(r"^\s*<\?xml[^>]*\?>")
+
+
+def _joined(root: str, texts: Mapping[str, Any]) -> str:
+    """Stored records, one element each, under one ``root`` so a parser sees every one of them."""
+    body = "".join(_XML_DECLARATION.sub("", t.text) for t in texts.values())
+    return f"<{root}>{body}</{root}>"
+
+
+def stored_records(accession: str) -> ArchiveRecordSet:
+    """``accession``'s record set from the lab's labdata store, with no network call.
+
+    The store keeps each record's text as NCBI served it, so the same three parsers read it. One
+    store handle serves the whole walk, so a store refreshed mid-walk cannot mix two builds, and each
+    level is one ``raw`` call for the whole deposit. Never ``partial``: a deposit the store holds
+    only in part is a deposit it does not hold.
+
+    Raises :class:`NotStored` when no store is configured or it lacks any record of the deposit, and
+    :class:`RemoteError` when the configured root is not a store, since that is a broken setup a live
+    fetch would hide.
+    """
+    import labdata
+    from labdata.exceptions import (
+        LabdataError,
+        NotAStoreError,
+        NotFound,
+        NotMirrored,
+        StoreNotConfiguredError,
+    )
+
+    try:
+        store = labdata.open_store()
+    except StoreNotConfiguredError as exc:
+        raise NotStored(
+            f"{accession}: no labdata store is configured ({exc}){_OFFLINE_REMEDY}"
+        ) from exc
+    except NotAStoreError as exc:
+        raise RemoteError(f"the configured labdata store root is not a store: {exc}") from exc
+    try:
+        experiments = sorted({e.accession for e in store.experiments_for(accession)})
+        if not experiments:
+            raise NotStored(
+                f"{accession}: the labdata store lists no experiments under it{_OFFLINE_REMEDY}"
+            )
+        packages = one_record_per_accession(
+            parse_sra_package_set(_joined("EXPERIMENT_PACKAGE_SET", store.raw(experiments)))
+        )
+        biosamples = _ids(packages, "sample", "SAM")
+        harmonized = (
+            parse_biosample_set(_joined("BioSampleSet", store.raw(biosamples)))
+            if biosamples
+            else {}
+        )
+        projects = _ids(packages, "project", "PRJ")
+        facts = parse_bioproject_set(_joined("RecordSet", store.raw(projects))) if projects else {}
+    except (NotMirrored, NotFound) as exc:
+        raise NotStored(f"{accession}: the labdata store lacks it: {exc}{_OFFLINE_REMEDY}") from exc
+    except LabdataError as exc:
+        raise RemoteError(f"{accession}: the labdata store could not read it: {exc}") from exc
+    return _record_set(accession, packages, harmonized, facts)
+
+
 def fetch_records(accession: str) -> ArchiveRecordSet:
     """Any accession -> every record the archive holds for it, across all four levels.
+
+    The lab's store first (:func:`stored_records`); live NCBI only when the store cannot serve the
+    whole deposit, and then the whole fetch is live, so no set mixes the two.
 
     Never guesses and never half-succeeds silently: a level that cannot be fetched is absent from the
     result, and the caller (``resolve``) is the one entitled to have an opinion about that.
     """
+    try:
+        return stored_records(accession)
+    except NotStored:
+        pass
     experiments = _experiments_for(accession)
 
     packages: list[ArchiveRecord] = []
@@ -508,47 +622,30 @@ def fetch_records(accession: str) -> ArchiveRecordSet:
     # sample from spending a second id slot on attributes already being asked for.
     packages = one_record_per_accession(packages)
 
-    biosamples = [
-        r.accession for r in packages if r.level == "sample" and r.accession.startswith("SAM")
-    ]
-    if biosamples:
-        harmonized: dict[str, list[RecordAttribute]] = {}
-        for i in range(0, len(biosamples), _BATCH):
-            harmonized.update(
-                parse_biosample_set(
-                    _efetch("biosample", biosamples[i : i + _BATCH], rettype="full")
-                )
-            )
-        packages = merge_biosample_attributes(packages, harmonized)
+    harmonized: dict[str, list[RecordAttribute]] = {}
+    biosamples = _ids(packages, "sample", "SAM")
+    for i in range(0, len(biosamples), _BATCH):
+        harmonized.update(
+            parse_biosample_set(_efetch("biosample", biosamples[i : i + _BATCH], rettype="full"))
+        )
 
-    projects = [
-        r.accession for r in packages if r.level == "project" and r.accession.startswith("PRJ")
-    ]
-    if projects:
-        try:
-            extra = parse_bioproject_set(_efetch("bioproject", projects))
-        except RemoteError:
-            extra = {}  # the study facts we already have came from the SRA package; this only adds
-        packages = [
-            r.model_copy(update={"attributes": [*r.attributes, *extra[r.accession]]})
-            if r.level == "project" and r.accession in extra
-            else r
-            for r in packages
-        ]
-
-    # Stamped with the version that transcribed it, so a set read back later says how much of the
-    # archive we were asking for at the time: a run declaring no submitted files is a deposit that
-    # published none (most did) only if this transcriber wrote it.
-    return ArchiveRecordSet(source=SOURCE, query=accession, records=packages, io_version=IO_VERSION)
+    projects = _ids(packages, "project", "PRJ")
+    try:
+        facts = parse_bioproject_set(_efetch("bioproject", projects)) if projects else {}
+    except RemoteError:
+        facts = {}  # the study facts we already have came from the SRA package; this only adds
+    return _record_set(accession, packages, harmonized, facts)
 
 
 __all__ = [
     "EUTILS_EFETCH",
     "SOURCE",
+    "NotStored",
     "fetch_records",
     "merge_biosample_attributes",
     "one_record_per_accession",
     "parse_bioproject_set",
     "parse_biosample_set",
     "parse_sra_package_set",
+    "stored_records",
 ]
