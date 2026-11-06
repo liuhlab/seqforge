@@ -467,9 +467,10 @@ def _sra_packages(experiments: list[str]) -> list[ArchiveRecord]:
 
     NCBI can return fewer packages than it was asked for and report no error, and asking again
     returns the rest. A short reply kept as is would be cached as the complete record set, so the
-    missing experiments are re-requested with `_get`'s backoff, and any still missing after the last
-    retry are a :class:`RemoteError` naming them: an accession that was given and resolves to less than
-    the archive holds is a refusal, as in :func:`_experiments_for`.
+    missing experiments are re-requested after the same :func:`retry_delay` wait and retry cap that
+    `_get` uses for a failed request (each request still gets `_get`'s own HTTP retries), and any
+    still missing after the last retry are a :class:`RemoteError` naming them: an accession that was
+    given and resolves to less than the archive holds is a refusal, as in :func:`_experiments_for`.
     """
     packages: list[ArchiveRecord] = []
     missing = experiments
