@@ -159,7 +159,7 @@ def test_fetch_records_composes_labdatas_hop_with_the_efetch_parse_path(
 # ------------------------------------------------------------ the lab's store, before the network
 
 
-def _live(
+def _serve_live(
     monkeypatch: pytest.MonkeyPatch, deposit: str, xml: dict[str, str]
 ) -> list[tuple[str, list[str]]]:
     """Serve ``xml`` as NCBI would, logging every efetch, and return the live record set's calls."""
@@ -204,12 +204,12 @@ def test_a_stored_deposit_reads_as_the_live_record_set_with_one_raw_call_per_lev
     import labdata
 
     xml = xml or _synthetic_deposit(2 * archive._BATCH + 50)
-    _live(monkeypatch, deposit, xml)
+    _serve_live(monkeypatch, deposit, xml)
     live = archive.fetch_records(deposit)
 
     store = stub_store(deposit, **xml)
     monkeypatch.setattr(labdata, "open_store", lambda root=None: store)
-    calls = _live(monkeypatch, deposit, xml)
+    calls = _serve_live(monkeypatch, deposit, xml)
     _patch_labdata(monkeypatch, lambda acc: pytest.fail("the store holds it; NCBI was asked"))
 
     assert archive.fetch_records(deposit) == live
@@ -233,7 +233,7 @@ def test_a_store_that_lacks_any_level_sends_the_whole_fetch_to_ncbi(
     else:
         prefix = {"the SRA package": "SRX", "a BioSample": "SAMN", "the BioProject": "PRJ"}[lacks]
         del stored_pilot.texts[next(a for a in stored_pilot.texts if a.startswith(prefix))]
-    calls = _live(monkeypatch, deposit, PILOT_XML)
+    calls = _serve_live(monkeypatch, deposit, PILOT_XML)
 
     record_set = archive.fetch_records(deposit)
 
@@ -252,7 +252,7 @@ def test_a_configured_root_that_is_not_a_store_refuses_without_asking_ncbi(
         raise NotAStoreError("/data/labdata has no labdata-store.toml")
 
     monkeypatch.setattr(labdata, "open_store", broken)
-    calls = _live(monkeypatch, "PRJNA1027859", PILOT_XML)
+    calls = _serve_live(monkeypatch, "PRJNA1027859", PILOT_XML)
 
     with pytest.raises(RemoteError, match="/data/labdata"):
         archive.fetch_records("PRJNA1027859")

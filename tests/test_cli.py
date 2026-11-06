@@ -2713,9 +2713,14 @@ def test_io_records_prints_each_submitted_files_md5_size_and_uri(
     ]
 
 
+@pytest.mark.parametrize("lacks", ["a BioSample", "the whole store"])
 @pytest.mark.parametrize("verb", ["run", "manifest fill"])
 def test_offline_an_accession_reads_the_labs_store_and_refuses_one_it_lacks(
-    stored_pilot: StubStore, tmp_path: Path, verb: str
+    stored_pilot: StubStore,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    verb: str,
+    lacks: str,
 ) -> None:
     """`--offline` forbids the network, not the records: a deposit the lab's store holds compiles
     with its sample facts. One the store lacks is refused, naming what it lacks, rather than compiled
@@ -2733,8 +2738,18 @@ def test_offline_an_accession_reads_the_labs_store_and_refuses_one_it_lacks(
     assert record_set is not None
     assert record_set.at("sample")
 
-    lacking = next(a for a in stored_pilot.texts if a.startswith("SAMN"))
-    del stored_pilot.texts[lacking]
+    if lacks == "the whole store":
+        import labdata
+        from labdata.exceptions import StoreNotConfiguredError
+
+        def unconfigured(root: object = None) -> object:
+            raise StoreNotConfiguredError("store not configured")
+
+        monkeypatch.setattr(labdata, "open_store", unconfigured)
+        lacking = "no labdata store is configured"
+    else:
+        lacking = next(a for a in stored_pilot.texts if a.startswith("SAMN"))
+        del stored_pilot.texts[lacking]
     with pytest.raises(RemoteError, match=lacking):
         load("PRJNA1027859")
 
