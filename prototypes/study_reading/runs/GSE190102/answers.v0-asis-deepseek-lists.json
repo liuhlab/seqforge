@@ -1,0 +1,3340 @@
+{
+ "keys": {
+  "age": [
+   "3 months",
+   "6 months",
+   "12 months",
+   "24 months"
+  ],
+  "chip antibody": [
+   "H3K4me3",
+   "H3K27ac",
+   "H3K27me3",
+   "input (none)"
+  ],
+  "donor": [
+   "C57/BL6"
+  ]
+ },
+ "study": {
+  "role_0": {
+   "type": "choice",
+   "choice": "designed_factor",
+   "confidence": 1.0,
+   "probabilities": {
+    "designed_factor": 1.0,
+    "donor": 0.0,
+    "other": 0.0
+   }
+  },
+  "baseline_0": {
+   "type": "choice",
+   "choice": "3 months",
+   "confidence": 1.0,
+   "probabilities": {
+    "3 months": 1.0,
+    "6 months": 0.0,
+    "12 months": 0.0,
+    "24 months": 0.0
+   }
+  },
+  "role_1": {
+   "type": "choice",
+   "choice": "designed_factor",
+   "confidence": 0.49,
+   "probabilities": {
+    "designed_factor": 0.66,
+    "donor": 0.0,
+    "other": 0.34
+   }
+  },
+  "baseline_1": {
+   "type": "choice",
+   "choice": "input (none)",
+   "confidence": 0.97,
+   "probabilities": {
+    "H3K4me3": 0.01,
+    "H3K27ac": 0.0,
+    "H3K27me3": 0.01,
+    "input (none)": 0.98
+   }
+  },
+  "role_2": {
+   "type": "choice",
+   "choice": "donor",
+   "confidence": 0.94,
+   "probabilities": {
+    "designed_factor": 0.03,
+    "donor": 0.96,
+    "other": 0.01
+   }
+  },
+  "baseline_2": {
+   "type": "choice",
+   "choice": "C57/BL6",
+   "confidence": 1.0,
+   "probabilities": {
+    "C57/BL6": 1.0
+   }
+  },
+  "onto_0": {
+   "type": "choice",
+   "choice": "none",
+   "confidence": 0.6,
+   "probabilities": {
+    "CL:4023041": 0.01,
+    "CL:0010012": 0.31,
+    "CL:0000100": 0.02,
+    "CL:0000598": 0.01,
+    "CL:1001474": 0.0,
+    "CL:0000122": 0.01,
+    "CL:0005025": 0.0,
+    "CL:1001509": 0.0,
+    "none": 0.64
+   }
+  },
+  "onto_1": {
+   "type": "choice",
+   "choice": "UBERON:0000955",
+   "confidence": 0.99,
+   "probabilities": {
+    "UBERON:0000955": 0.99,
+    "UBERON:0002616": 0.0,
+    "UBERON:0003528": 0.0,
+    "UBERON:0003544": 0.0,
+    "UBERON:0013150": 0.0,
+    "UBERON:0014891": 0.0,
+    "UBERON:0003547": 0.0,
+    "UBERON:0003549": 0.0,
+    "none": 0.01
+   }
+  }
+ },
+ "onto": {
+  "onto_0": {
+   "attr": "cell type",
+   "text": "neurons",
+   "candidates": {
+    "CL:4023041": "L5 extratelencephalic projecting glutamatergic cortical neuron",
+    "CL:0010012": "cerebral cortex neuron",
+    "CL:0000100": "motor neuron",
+    "CL:0000598": "pyramidal neuron",
+    "CL:1001474": "medium spiny neuron",
+    "CL:0000122": "stellate neuron",
+    "CL:0005025": "visceromotor neuron",
+    "CL:1001509": "glycinergic neuron"
+   }
+  },
+  "onto_1": {
+   "attr": "tissue",
+   "text": "brain",
+   "candidates": {
+    "UBERON:0000955": "brain",
+    "UBERON:0002616": "regional part of brain",
+    "UBERON:0003528": "brain gray matter",
+    "UBERON:0003544": "brain white matter",
+    "UBERON:0013150": "future brain vesicle",
+    "UBERON:0014891": "brainstem white matter",
+    "UBERON:0003547": "brain meninx",
+    "UBERON:0003549": "brain pia mater"
+   }
+  }
+ },
+ "samples": {
+  "GSM5825050": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 1.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.5,
+    "probabilities": {
+     "input": 0.6,
+     "IgG": 0.11,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.27
+    }
+   }
+  },
+  "GSM5825051": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 1.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.44,
+    "probabilities": {
+     "input": 0.55,
+     "IgG": 0.13,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.3
+    }
+   }
+  },
+  "GSM5825052": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 1.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.5,
+    "probabilities": {
+     "input": 0.6,
+     "IgG": 0.1,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.28
+    }
+   }
+  },
+  "GSM5825053": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 1.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.46,
+    "probabilities": {
+     "input": 0.57,
+     "IgG": 0.08,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.33
+    }
+   }
+  },
+  "GSM5825054": {
+   "level_0": {
+    "type": "choice",
+    "choice": "6 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 1.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.54,
+    "probabilities": {
+     "input": 0.63,
+     "IgG": 0.09,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.26
+    }
+   }
+  },
+  "GSM5825055": {
+   "level_0": {
+    "type": "choice",
+    "choice": "6 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 1.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.41,
+    "probabilities": {
+     "input": 0.53,
+     "IgG": 0.08,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.37
+    }
+   }
+  },
+  "GSM5825056": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 1.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.51,
+    "probabilities": {
+     "input": 0.61,
+     "IgG": 0.12,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.25
+    }
+   }
+  },
+  "GSM5825057": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 1.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.59,
+    "probabilities": {
+     "input": 0.67,
+     "IgG": 0.09,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.22
+    }
+   }
+  },
+  "GSM5825058": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.59,
+    "probabilities": {
+     "input": 0.67,
+     "IgG": 0.07,
+     "non-targeting": 0.0,
+     "size-matched input": 0.01,
+     "other": 0.25
+    }
+   }
+  },
+  "GSM5825059": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.55,
+    "probabilities": {
+     "input": 0.64,
+     "IgG": 0.09,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.25
+    }
+   }
+  },
+  "GSM5825060": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.5,
+    "probabilities": {
+     "input": 0.6,
+     "IgG": 0.1,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.28
+    }
+   }
+  },
+  "GSM5825061": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K4me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 1.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.51,
+    "probabilities": {
+     "input": 0.61,
+     "IgG": 0.12,
+     "non-targeting": 0.0,
+     "size-matched input": 0.01,
+     "other": 0.26
+    }
+   }
+  },
+  "GSM5825062": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 1.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.52,
+    "probabilities": {
+     "input": 0.62,
+     "IgG": 0.08,
+     "non-targeting": 0.0,
+     "size-matched input": 0.01,
+     "other": 0.29
+    }
+   }
+  },
+  "GSM5825063": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 1.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.52,
+    "probabilities": {
+     "input": 0.62,
+     "IgG": 0.06,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.3
+    }
+   }
+  },
+  "GSM5825064": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 1.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.52,
+    "probabilities": {
+     "input": 0.62,
+     "IgG": 0.08,
+     "non-targeting": 0.0,
+     "size-matched input": 0.01,
+     "other": 0.29
+    }
+   }
+  },
+  "GSM5825065": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 1.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.46,
+    "probabilities": {
+     "input": 0.57,
+     "IgG": 0.11,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.3
+    }
+   }
+  },
+  "GSM5825066": {
+   "level_0": {
+    "type": "choice",
+    "choice": "6 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 1.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.65,
+    "probabilities": {
+     "input": 0.72,
+     "IgG": 0.1,
+     "non-targeting": 0.0,
+     "size-matched input": 0.01,
+     "other": 0.17
+    }
+   }
+  },
+  "GSM5825067": {
+   "level_0": {
+    "type": "choice",
+    "choice": "6 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 1.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.46,
+    "probabilities": {
+     "input": 0.57,
+     "IgG": 0.09,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.32
+    }
+   }
+  },
+  "GSM5825068": {
+   "level_0": {
+    "type": "choice",
+    "choice": "6 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 1.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.49,
+    "probabilities": {
+     "input": 0.59,
+     "IgG": 0.1,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.29
+    }
+   }
+  },
+  "GSM5825069": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 1.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.54,
+    "probabilities": {
+     "input": 0.63,
+     "IgG": 0.09,
+     "non-targeting": 0.0,
+     "size-matched input": 0.01,
+     "other": 0.27
+    }
+   }
+  },
+  "GSM5825070": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 1.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.61,
+    "probabilities": {
+     "input": 0.69,
+     "IgG": 0.09,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.2
+    }
+   }
+  },
+  "GSM5825071": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 1.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.47,
+    "probabilities": {
+     "input": 0.58,
+     "IgG": 0.13,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.27
+    }
+   }
+  },
+  "GSM5825072": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.51,
+    "probabilities": {
+     "input": 0.61,
+     "IgG": 0.08,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.29
+    }
+   }
+  },
+  "GSM5825073": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27ac",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 1.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.64,
+    "probabilities": {
+     "input": 0.71,
+     "IgG": 0.07,
+     "non-targeting": 0.0,
+     "size-matched input": 0.01,
+     "other": 0.21
+    }
+   }
+  },
+  "GSM5825074": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 1.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "input (none)",
+    "confidence": 0.96,
+    "probabilities": {
+     "H3K4me3": 0.01,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.97,
+     "not_stated": 0.02
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "control",
+    "confidence": 0.8,
+    "probabilities": {
+     "signal": 0.1,
+     "control": 0.9
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.95,
+    "probabilities": {
+     "input": 0.96,
+     "IgG": 0.01,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.03
+    }
+   }
+  },
+  "GSM5825075": {
+   "level_0": {
+    "type": "choice",
+    "choice": "6 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 1.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "input (none)",
+    "confidence": 0.98,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.98,
+     "not_stated": 0.02
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "control",
+    "confidence": 0.76,
+    "probabilities": {
+     "signal": 0.12,
+     "control": 0.88
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.98,
+    "probabilities": {
+     "input": 0.98,
+     "IgG": 0.01,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.01
+    }
+   }
+  },
+  "GSM5825076": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 1.0,
+     "24 months": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "input (none)",
+    "confidence": 0.98,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.98,
+     "not_stated": 0.02
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "control",
+    "confidence": 0.78,
+    "probabilities": {
+     "signal": 0.11,
+     "control": 0.89
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.97,
+     "IgG": 0.01,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.02
+    }
+   }
+  },
+  "GSM5825077": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "input (none)",
+    "confidence": 0.98,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 0.0,
+     "input (none)": 0.98,
+     "not_stated": 0.02
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 1.0,
+    "probabilities": {
+     "C57/BL6": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "control",
+    "confidence": 0.88,
+    "probabilities": {
+     "signal": 0.06,
+     "control": 0.94
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.97,
+     "IgG": 0.01,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.02
+    }
+   }
+  },
+  "GSM8514837": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 0.9,
+    "probabilities": {
+     "3 months": 0.92,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.08
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.4,
+    "probabilities": {
+     "C57/BL6": 0.7,
+     "not_stated": 0.3
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.68,
+    "probabilities": {
+     "input": 0.74,
+     "IgG": 0.05,
+     "non-targeting": 0.0,
+     "size-matched input": 0.01,
+     "other": 0.2
+    }
+   }
+  },
+  "GSM8514838": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 0.82,
+    "probabilities": {
+     "3 months": 0.86,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.14
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.3,
+    "probabilities": {
+     "C57/BL6": 0.65,
+     "not_stated": 0.35
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.69,
+    "probabilities": {
+     "input": 0.75,
+     "IgG": 0.05,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.2
+    }
+   }
+  },
+  "GSM8514839": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 0.65,
+    "probabilities": {
+     "3 months": 0.72,
+     "6 months": 0.01,
+     "12 months": 0.01,
+     "24 months": 0.0,
+     "not_stated": 0.26
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.26,
+    "probabilities": {
+     "C57/BL6": 0.63,
+     "not_stated": 0.37
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.6,
+    "probabilities": {
+     "input": 0.68,
+     "IgG": 0.05,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.25
+    }
+   }
+  },
+  "GSM8514840": {
+   "level_0": {
+    "type": "choice",
+    "choice": "3 months",
+    "confidence": 0.4,
+    "probabilities": {
+     "3 months": 0.52,
+     "6 months": 0.01,
+     "12 months": 0.01,
+     "24 months": 0.0,
+     "not_stated": 0.46
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.36,
+    "probabilities": {
+     "C57/BL6": 0.68,
+     "not_stated": 0.32
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.62,
+    "probabilities": {
+     "input": 0.7,
+     "IgG": 0.06,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.24
+    }
+   }
+  },
+  "GSM8514841": {
+   "level_0": {
+    "type": "choice",
+    "choice": "not_stated",
+    "confidence": 0.94,
+    "probabilities": {
+     "3 months": 0.04,
+     "6 months": 0.01,
+     "12 months": 0.0,
+     "24 months": 0.0,
+     "not_stated": 0.95
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.32,
+    "probabilities": {
+     "C57/BL6": 0.66,
+     "not_stated": 0.34
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.62,
+    "probabilities": {
+     "input": 0.7,
+     "IgG": 0.05,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.23
+    }
+   }
+  },
+  "GSM8514842": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 0.96,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.97,
+     "24 months": 0.0,
+     "not_stated": 0.03
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.42,
+    "probabilities": {
+     "C57/BL6": 0.71,
+     "not_stated": 0.29
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.66,
+    "probabilities": {
+     "input": 0.73,
+     "IgG": 0.06,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.21
+    }
+   }
+  },
+  "GSM8514843": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 0.99,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.99,
+     "24 months": 0.0,
+     "not_stated": 0.01
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.3,
+    "probabilities": {
+     "C57/BL6": 0.65,
+     "not_stated": 0.35
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.59,
+    "probabilities": {
+     "input": 0.67,
+     "IgG": 0.06,
+     "non-targeting": 0.01,
+     "size-matched input": 0.0,
+     "other": 0.26
+    }
+   }
+  },
+  "GSM8514844": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 0.95,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.96,
+     "24 months": 0.0,
+     "not_stated": 0.04
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.44,
+    "probabilities": {
+     "C57/BL6": 0.72,
+     "not_stated": 0.28
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.5,
+    "probabilities": {
+     "input": 0.6,
+     "IgG": 0.08,
+     "non-targeting": 0.01,
+     "size-matched input": 0.01,
+     "other": 0.3
+    }
+   }
+  },
+  "GSM8514845": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 0.96,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.97,
+     "24 months": 0.0,
+     "not_stated": 0.03
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.4,
+    "probabilities": {
+     "C57/BL6": 0.7,
+     "not_stated": 0.3
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.62,
+    "probabilities": {
+     "input": 0.7,
+     "IgG": 0.08,
+     "non-targeting": 0.01,
+     "size-matched input": 0.0,
+     "other": 0.21
+    }
+   }
+  },
+  "GSM8514846": {
+   "level_0": {
+    "type": "choice",
+    "choice": "12 months",
+    "confidence": 0.9,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.01,
+     "12 months": 0.92,
+     "24 months": 0.0,
+     "not_stated": 0.07
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.34,
+    "probabilities": {
+     "C57/BL6": 0.67,
+     "not_stated": 0.33
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.56,
+    "probabilities": {
+     "input": 0.65,
+     "IgG": 0.05,
+     "non-targeting": 0.01,
+     "size-matched input": 0.0,
+     "other": 0.29
+    }
+   }
+  },
+  "GSM8514847": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 0.99,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.99,
+     "not_stated": 0.01
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.56,
+    "probabilities": {
+     "C57/BL6": 0.78,
+     "not_stated": 0.22
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.55,
+    "probabilities": {
+     "input": 0.64,
+     "IgG": 0.08,
+     "non-targeting": 0.01,
+     "size-matched input": 0.0,
+     "other": 0.27
+    }
+   }
+  },
+  "GSM8514848": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 0.99,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.99,
+     "not_stated": 0.01
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.56,
+    "probabilities": {
+     "C57/BL6": 0.78,
+     "not_stated": 0.22
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.65,
+    "probabilities": {
+     "input": 0.72,
+     "IgG": 0.04,
+     "non-targeting": 0.01,
+     "size-matched input": 0.0,
+     "other": 0.23
+    }
+   }
+  },
+  "GSM8514849": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.42,
+    "probabilities": {
+     "C57/BL6": 0.71,
+     "not_stated": 0.29
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.59,
+    "probabilities": {
+     "input": 0.67,
+     "IgG": 0.06,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.27
+    }
+   }
+  },
+  "GSM8514850": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 0.99,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 0.99,
+     "not_stated": 0.01
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.42,
+    "probabilities": {
+     "C57/BL6": 0.71,
+     "not_stated": 0.29
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.65,
+    "probabilities": {
+     "input": 0.72,
+     "IgG": 0.05,
+     "non-targeting": 0.0,
+     "size-matched input": 0.01,
+     "other": 0.22
+    }
+   }
+  },
+  "GSM8514851": {
+   "level_0": {
+    "type": "choice",
+    "choice": "24 months",
+    "confidence": 1.0,
+    "probabilities": {
+     "3 months": 0.0,
+     "6 months": 0.0,
+     "12 months": 0.0,
+     "24 months": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "H3K27me3",
+    "confidence": 1.0,
+    "probabilities": {
+     "H3K4me3": 0.0,
+     "H3K27ac": 0.0,
+     "H3K27me3": 1.0,
+     "input (none)": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_2": {
+    "type": "choice",
+    "choice": "C57/BL6",
+    "confidence": 0.4,
+    "probabilities": {
+     "C57/BL6": 0.7,
+     "not_stated": 0.3
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ChIP-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 1.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "input",
+    "confidence": 0.61,
+    "probabilities": {
+     "input": 0.69,
+     "IgG": 0.06,
+     "non-targeting": 0.01,
+     "size-matched input": 0.0,
+     "other": 0.24
+    }
+   }
+  }
+ },
+ "biosample_pairs": {
+  "GSM5825050|GSM5825051": 0.34,
+  "GSM5825050|GSM5825052": 0.32,
+  "GSM5825050|GSM5825053": 0.3,
+  "GSM5825051|GSM5825052": 0.38,
+  "GSM5825051|GSM5825053": 0.33,
+  "GSM5825052|GSM5825053": 0.45,
+  "GSM5825054|GSM5825055": 0.45,
+  "GSM5825056|GSM5825057": 0.33,
+  "GSM5825058|GSM5825059": 0.4,
+  "GSM5825058|GSM5825060": 0.27,
+  "GSM5825058|GSM5825061": 0.26,
+  "GSM5825059|GSM5825060": 0.29,
+  "GSM5825059|GSM5825061": 0.21,
+  "GSM5825060|GSM5825061": 0.34,
+  "GSM5825062|GSM5825063": 0.32,
+  "GSM5825062|GSM5825064": 0.3,
+  "GSM5825062|GSM5825065": 0.28,
+  "GSM5825063|GSM5825064": 0.32,
+  "GSM5825063|GSM5825065": 0.29,
+  "GSM5825064|GSM5825065": 0.3,
+  "GSM5825066|GSM5825067": 0.44,
+  "GSM5825066|GSM5825068": 0.59,
+  "GSM5825067|GSM5825068": 0.48,
+  "GSM5825069|GSM5825070": 0.27,
+  "GSM5825069|GSM5825071": 0.32,
+  "GSM5825070|GSM5825071": 0.28,
+  "GSM5825072|GSM5825073": 0.27,
+  "GSM8514837|GSM8514838": 0.26,
+  "GSM8514837|GSM8514839": 0.31,
+  "GSM8514837|GSM8514840": 0.29,
+  "GSM8514838|GSM8514839": 0.37,
+  "GSM8514838|GSM8514840": 0.29,
+  "GSM8514839|GSM8514840": 0.33,
+  "GSM8514842|GSM8514843": 0.24,
+  "GSM8514842|GSM8514844": 0.26,
+  "GSM8514842|GSM8514845": 0.2,
+  "GSM8514842|GSM8514846": 0.18,
+  "GSM8514843|GSM8514844": 0.25,
+  "GSM8514843|GSM8514845": 0.22,
+  "GSM8514843|GSM8514846": 0.21,
+  "GSM8514844|GSM8514845": 0.31,
+  "GSM8514844|GSM8514846": 0.2,
+  "GSM8514845|GSM8514846": 0.2,
+  "GSM8514847|GSM8514848": 0.26,
+  "GSM8514847|GSM8514849": 0.19,
+  "GSM8514847|GSM8514850": 0.2,
+  "GSM8514847|GSM8514851": 0.16,
+  "GSM8514848|GSM8514849": 0.21,
+  "GSM8514848|GSM8514850": 0.18,
+  "GSM8514848|GSM8514851": 0.17,
+  "GSM8514849|GSM8514850": 0.31,
+  "GSM8514849|GSM8514851": 0.25,
+  "GSM8514850|GSM8514851": 0.27
+ },
+ "n_requests": 97
+}

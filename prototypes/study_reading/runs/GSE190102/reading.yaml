@@ -1,0 +1,2755 @@
+study:
+  series:
+  - GSE190102
+  superseries: null
+  bioproject:
+  - PRJNA798693
+  pmid:
+  - '39195281'
+  notes: 'model reading: lists by DeepSeek (deepseek-flash), labels by jev-1.14.0; donors listed 19, targets listed 3'
+factors:
+- name: age
+  levels:
+  - 3 months
+  - 6 months
+  - 12 months
+  - 24 months
+  baseline: 3 months
+  ordered: true
+  probability:
+    role: 1.0
+    baseline: 0.99
+samples:
+- gsm: GSM5825050
+  title: 363 WT 3M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B01
+  donor: D01
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    donor:
+      quote: 363 WT 3M H3K4me3
+      source: GSM title
+      label: '363'
+  probability:
+    age: 1.0
+    donor: 0.99
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825051
+  title: 517 WT 3M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B02
+  donor: D02
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    donor:
+      quote: 517 WT 3M H3K4me3
+      source: GSM title
+      label: '517'
+  probability:
+    age: 1.0
+    donor: 0.97
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825052
+  title: 513 WT 3M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B03
+  donor: D03
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    donor:
+      quote: 513 WT 3M H3K4me3
+      source: GSM title
+      label: '513'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825053
+  title: 512 WT 3M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B04
+  donor: D04
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    donor:
+      quote: 512 WT 3M H3K4me3
+      source: GSM title
+      label: '512'
+  probability:
+    age: 1.0
+    donor: 0.89
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825054
+  title: 163736 WT 6M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 6 months
+  biosample: B05
+  donor: D05
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    donor:
+      quote: 163736 WT 6M H3K4me3
+      source: GSM title
+      label: '163736'
+  probability:
+    age: 1.0
+    donor: 0.99
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825055
+  title: 325 WT 6M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 6 months
+  biosample: B06
+  donor: D06
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    donor:
+      quote: 325 WT 6M H3K4me3
+      source: GSM title
+      label: '325'
+  probability:
+    age: 1.0
+    donor: 0.9
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825056
+  title: 156508 WT 12M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B07
+  donor: D07
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    donor:
+      quote: 156508 WT 12M H3K4me3
+      source: GSM title
+      label: '156508'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825057
+  title: 155668 WT 12M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B08
+  donor: D08
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    donor:
+      quote: 155668 WT 12M H3K4me3
+      source: GSM title
+      label: '155668'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825058
+  title: 154468 WT 24M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B09
+  donor: D09
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    donor:
+      quote: 154468 WT 24M H3K4me3
+      source: GSM title
+      label: '154468'
+  probability:
+    age: 1.0
+    donor: 0.99
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825059
+  title: 154469 WT 24M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B10
+  donor: D10
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    donor:
+      quote: 154469 WT 24M H3K4me3
+      source: GSM title
+      label: '154469'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825060
+  title: 158027 WT 24M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B11
+  donor: D11
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    donor:
+      quote: 158027 WT 24M H3K4me3
+      source: GSM title
+      label: '158027'
+  probability:
+    age: 1.0
+    donor: 0.97
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825061
+  title: 158028 WT 24M H3K4me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B12
+  donor: D12
+  assay: ChIP-seq
+  target: H3K4me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K4me3
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    donor:
+      quote: 158028 WT 24M H3K4me3
+      source: GSM title
+      label: '158028'
+  probability:
+    age: 1.0
+    donor: 0.99
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825062
+  title: 363 WT 3M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B01
+  donor: D01
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    donor:
+      quote: 363 WT 3M H3K27ac
+      source: GSM title
+      label: '363'
+  probability:
+    age: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825063
+  title: 512 WT 3M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B04
+  donor: D04
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    donor:
+      quote: 512 WT 3M H3K27ac
+      source: GSM title
+      label: '512'
+  probability:
+    age: 1.0
+    donor: 0.9
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825064
+  title: 513 WT 3M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B03
+  donor: D03
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    donor:
+      quote: 513 WT 3M H3K27ac
+      source: GSM title
+      label: '513'
+  probability:
+    age: 1.0
+    donor: 0.99
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825065
+  title: 517 WT 3M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B02
+  donor: D02
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    donor:
+      quote: 517 WT 3M H3K27ac
+      source: GSM title
+      label: '517'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825066
+  title: 17 WT 6M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 6 months
+  biosample: B13
+  donor: null
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    donor: 0.76
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825067
+  title: 325 WT 6M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 6 months
+  biosample: B06
+  donor: D06
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    donor:
+      quote: 325 WT 6M H3K27ac
+      source: GSM title
+      label: '325'
+  probability:
+    age: 1.0
+    donor: 0.84
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825068
+  title: 163736 WT 6M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 6 months
+  biosample: B05
+  donor: D05
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    donor:
+      quote: 163736 WT 6M H3K27ac
+      source: GSM title
+      label: '163736'
+  probability:
+    age: 1.0
+    donor: 0.99
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825069
+  title: 155668 WT 12M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B08
+  donor: D08
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    donor:
+      quote: 155668 WT 12M H3K27ac
+      source: GSM title
+      label: '155668'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825070
+  title: 156508 WT 12M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B07
+  donor: D07
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    donor:
+      quote: 156508 WT 12M H3K27ac
+      source: GSM title
+      label: '156508'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825071
+  title: 156509 WT 12M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B14
+  donor: D13
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    donor:
+      quote: 156509 WT 12M H3K27ac
+      source: GSM title
+      label: '156509'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825072
+  title: 154468 WT 24M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B09
+  donor: D09
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    donor:
+      quote: 154468 WT 24M H3K27ac
+      source: GSM title
+      label: '154468'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825073
+  title: 158028 WT 24M H3K27ac
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B12
+  donor: D12
+  assay: ChIP-seq
+  target: H3K27ac
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: H3K27ac
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    donor:
+      quote: 158028 WT 24M H3K27ac
+      source: GSM title
+      label: '158028'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825074
+  title: 512 WT 3M TI
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B04
+  donor: D04
+  assay: ChIP-seq
+  target: null
+  role: control
+  control_type: input
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: None
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    donor:
+      quote: 512 WT 3M TI
+      source: GSM title
+      label: '512'
+  probability:
+    age: 1.0
+    donor: 0.91
+    assay: 1.0
+    role: 0.94
+    target: 0.96
+    control_type: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825075
+  title: 163734 WT 6M TI
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 6 months
+  biosample: B15
+  donor: D14
+  assay: ChIP-seq
+  target: null
+  role: control
+  control_type: input
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: None
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    donor:
+      quote: 163734 WT 6M TI
+      source: GSM title
+      label: '163734'
+  probability:
+    age: 1.0
+    donor: 0.94
+    assay: 1.0
+    role: 0.9
+    target: 0.97
+    control_type: 1.0
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825076
+  title: 155688 WT 12M TI
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B16
+  donor: D15
+  assay: ChIP-seq
+  target: null
+  role: control
+  control_type: input
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: None
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    donor:
+      quote: 155688 WT 12M TI
+      source: GSM title
+      label: '155688'
+  probability:
+    age: 1.0
+    donor: 0.96
+    assay: 1.0
+    role: 0.89
+    target: 0.96
+    control_type: 0.99
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM5825077
+  title: 158027 WT 24M TI
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B11
+  donor: D11
+  assay: ChIP-seq
+  target: null
+  role: control
+  control_type: input
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    strain:
+      text: C57/BL6
+      source: GSM characteristics
+    cell type:
+      text: NeuN+ neuronal nuclei
+      source: GSM characteristics
+      id: CL:0020009
+    chip antibody:
+      text: None
+      source: GSM characteristics
+    tissue:
+      text: forebrain
+      source: writer list
+      id: UBERON:0001890
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    donor:
+      quote: 158027 WT 24M TI
+      source: GSM title
+      label: '158027'
+  probability:
+    age: 1.0
+    donor: 0.96
+    assay: 1.0
+    role: 0.91
+    target: 0.97
+    control_type: 0.99
+    attr:sample_type: 0.96
+    attr_id:cell type: 0.6
+    attr_id:tissue: 0.98
+- gsm: GSM8514837
+  title: 363 WT 3M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B01
+  donor: D01
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 363 WT 3M H3K27me3
+      source: GSM title
+      label: '363'
+  probability:
+    age: 0.97
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514838
+  title: 368 WT 3M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B17
+  donor: D16
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 368 WT 3M H3K27me3
+      source: GSM title
+      label: '368'
+  probability:
+    age: 0.87
+    donor: 0.94
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514839
+  title: 512 WT 3M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B04
+  donor: D04
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 512 WT 3M H3K27me3
+      source: GSM title
+      label: '512'
+  probability:
+    age: 0.75
+    donor: 0.95
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514840
+  title: 513 WT 3M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B03
+  donor: D03
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 513 WT 3M H3K27me3
+      source: GSM title
+      label: '513'
+  probability:
+    age: 0.87
+    donor: 0.97
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514841
+  title: 517 WT 3M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 3 months
+  biosample: B02
+  donor: D02
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 517 WT 3M H3K27me3
+      source: GSM title
+      label: '517'
+  probability:
+    age: 0.76
+    donor: 0.96
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514842
+  title: 155668 WT 12M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B08
+  donor: D08
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 155668 WT 12M H3K27me3
+      source: GSM title
+      label: '155668'
+  probability:
+    age: 0.99
+    donor: 0.97
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514843
+  title: 155688 WT 12M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B16
+  donor: D15
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 155688 WT 12M H3K27me3
+      source: GSM title
+      label: '155688'
+  probability:
+    age: 0.99
+    donor: 0.96
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514844
+  title: 156508 WT 12M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B07
+  donor: D07
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 156508 WT 12M H3K27me3
+      source: GSM title
+      label: '156508'
+  probability:
+    age: 0.99
+    donor: 0.97
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514845
+  title: 156509 WT 12M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B14
+  donor: D13
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 156509 WT 12M H3K27me3
+      source: GSM title
+      label: '156509'
+  probability:
+    age: 0.98
+    donor: 0.97
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514846
+  title: 157306 WT 12M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 12 months
+  biosample: B18
+  donor: D17
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 157306 WT 12M H3K27me3
+      source: GSM title
+      label: '157306'
+  probability:
+    age: 0.98
+    donor: 0.91
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514847
+  title: 154468 WT 24M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B09
+  donor: D09
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 154468 WT 24M H3K27me3
+      source: GSM title
+      label: '154468'
+  probability:
+    age: 1.0
+    donor: 0.97
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514848
+  title: 154469 WT 24M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B10
+  donor: D10
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 154469 WT 24M H3K27me3
+      source: GSM title
+      label: '154469'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514849
+  title: 158027 WT 24M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B11
+  donor: D11
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 158027 WT 24M H3K27me3
+      source: GSM title
+      label: '158027'
+  probability:
+    age: 0.99
+    donor: 0.96
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514850
+  title: 158028 WT 24M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B12
+  donor: D12
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 158028 WT 24M H3K27me3
+      source: GSM title
+      label: '158028'
+  probability:
+    age: 1.0
+    donor: 0.97
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+- gsm: GSM8514851
+  title: 158029 WT 24M H3K27me3
+  unsure: []
+  series:
+  - GSE190102
+  factors:
+    age: 24 months
+  biosample: B19
+  donor: D18
+  assay: ChIP-seq
+  target: H3K27me3
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: primary cells
+      source: Jev study question
+    tissue:
+      text: brain
+      source: GSM characteristics
+      id: UBERON:0000955
+    cell type:
+      text: neurons
+      source: GSM characteristics
+      id: CL:0000540
+    genotype:
+      text: WT
+      source: GSM characteristics
+    strain:
+      text: C57/BL6
+      source: writer list
+    sex:
+      text: male
+      source: writer list
+      id: PATO:0000384
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    donor:
+      quote: 158029 WT 24M H3K27me3
+      source: GSM title
+      label: '158029'
+  probability:
+    age: 1.0
+    donor: 0.98
+    assay: 1.0
+    role: 1.0
+    target: 1.0
+    attr:sample_type: 0.96
+    attr_id:tissue: 0.99
+    attr_id:cell type: 0.94
+relations:
+  contrasts:
+  - factor: age
+    test:
+    - GSM5825054
+    - GSM5825055
+    baseline:
+    - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+    fixed: {}
+    assay: ChIP-seq
+    target: H3K4me3
+  - factor: age
+    test:
+    - GSM5825056
+    - GSM5825057
+    baseline:
+    - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+    fixed: {}
+    assay: ChIP-seq
+    target: H3K4me3
+  - factor: age
+    test:
+    - GSM5825058
+    - GSM5825059
+    - GSM5825060
+    - GSM5825061
+    baseline:
+    - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+    fixed: {}
+    assay: ChIP-seq
+    target: H3K4me3
+  - factor: age
+    test:
+    - GSM5825066
+    - GSM5825067
+    - GSM5825068
+    baseline:
+    - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+    fixed: {}
+    assay: ChIP-seq
+    target: H3K27ac
+  - factor: age
+    test:
+    - GSM5825069
+    - GSM5825070
+    - GSM5825071
+    baseline:
+    - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+    fixed: {}
+    assay: ChIP-seq
+    target: H3K27ac
+  - factor: age
+    test:
+    - GSM5825072
+    - GSM5825073
+    baseline:
+    - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+    fixed: {}
+    assay: ChIP-seq
+    target: H3K27ac
+  - factor: age
+    test:
+    - GSM8514842
+    - GSM8514843
+    - GSM8514844
+    - GSM8514845
+    - GSM8514846
+    baseline:
+    - GSM8514837
+    - GSM8514838
+    - GSM8514839
+    - GSM8514840
+    - GSM8514841
+    fixed: {}
+    assay: ChIP-seq
+    target: H3K27me3
+  - factor: age
+    test:
+    - GSM8514847
+    - GSM8514848
+    - GSM8514849
+    - GSM8514850
+    - GSM8514851
+    baseline:
+    - GSM8514837
+    - GSM8514838
+    - GSM8514839
+    - GSM8514840
+    - GSM8514841
+    fixed: {}
+    assay: ChIP-seq
+    target: H3K27me3
+  replicates:
+  - - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+  - - GSM5825054
+    - GSM5825055
+  - - GSM5825056
+    - GSM5825057
+  - - GSM5825058
+    - GSM5825059
+    - GSM5825060
+    - GSM5825061
+  - - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+  - - GSM5825066
+    - GSM5825067
+    - GSM5825068
+  - - GSM5825069
+    - GSM5825070
+    - GSM5825071
+  - - GSM5825072
+    - GSM5825073
+  - - GSM8514837
+    - GSM8514838
+    - GSM8514839
+    - GSM8514840
+    - GSM8514841
+  - - GSM8514842
+    - GSM8514843
+    - GSM8514844
+    - GSM8514845
+    - GSM8514846
+  - - GSM8514847
+    - GSM8514848
+    - GSM8514849
+    - GSM8514850
+    - GSM8514851
+  series:
+  - factor: age
+    members:
+    - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+    - GSM5825054
+    - GSM5825055
+    - GSM5825056
+    - GSM5825057
+    - GSM5825058
+    - GSM5825059
+    - GSM5825060
+    - GSM5825061
+    assay: ChIP-seq
+    target: H3K4me3
+  - factor: age
+    members:
+    - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+    - GSM5825066
+    - GSM5825067
+    - GSM5825068
+    - GSM5825069
+    - GSM5825070
+    - GSM5825071
+    - GSM5825072
+    - GSM5825073
+    assay: ChIP-seq
+    target: H3K27ac
+  - factor: age
+    members:
+    - GSM5825074
+    - GSM5825075
+    - GSM5825076
+    - GSM5825077
+    assay: ChIP-seq
+    target: null
+    role: control
+  - factor: age
+    members:
+    - GSM8514837
+    - GSM8514838
+    - GSM8514839
+    - GSM8514840
+    - GSM8514841
+    - GSM8514842
+    - GSM8514843
+    - GSM8514844
+    - GSM8514845
+    - GSM8514846
+    - GSM8514847
+    - GSM8514848
+    - GSM8514849
+    - GSM8514850
+    - GSM8514851
+    assay: ChIP-seq
+    target: H3K27me3
+  co_measurement:
+  - - GSM5825050
+    - GSM5825062
+    - GSM8514837
+  - - GSM5825051
+    - GSM5825065
+    - GSM8514841
+  - - GSM5825052
+    - GSM5825064
+    - GSM8514840
+  - - GSM5825053
+    - GSM5825063
+    - GSM5825074
+    - GSM8514839
+  - - GSM5825054
+    - GSM5825068
+  - - GSM5825055
+    - GSM5825067
+  - - GSM5825056
+    - GSM5825070
+    - GSM8514844
+  - - GSM5825057
+    - GSM5825069
+    - GSM8514842
+  - - GSM5825058
+    - GSM5825072
+    - GSM8514847
+  - - GSM5825059
+    - GSM8514848
+  - - GSM5825060
+    - GSM5825077
+    - GSM8514849
+  - - GSM5825061
+    - GSM5825073
+    - GSM8514850
+  - - GSM5825071
+    - GSM8514845
+  - - GSM5825076
+    - GSM8514843
+  background_control:
+  - signal: GSM5825050
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM5825051
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM5825052
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM5825053
+    control: GSM5825074
+    basis: same biosample
+  - signal: GSM5825054
+    control: GSM5825075
+    basis: same factor values
+  - signal: GSM5825055
+    control: GSM5825075
+    basis: same factor values
+  - signal: GSM5825056
+    control: GSM5825076
+    basis: same factor values
+  - signal: GSM5825057
+    control: GSM5825076
+    basis: same factor values
+  - signal: GSM5825058
+    control: GSM5825077
+    basis: same factor values
+  - signal: GSM5825059
+    control: GSM5825077
+    basis: same factor values
+  - signal: GSM5825060
+    control: GSM5825077
+    basis: same biosample
+  - signal: GSM5825061
+    control: GSM5825077
+    basis: same factor values
+  - signal: GSM5825062
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM5825063
+    control: GSM5825074
+    basis: same biosample
+  - signal: GSM5825064
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM5825065
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM5825066
+    control: GSM5825075
+    basis: same factor values
+  - signal: GSM5825067
+    control: GSM5825075
+    basis: same factor values
+  - signal: GSM5825068
+    control: GSM5825075
+    basis: same factor values
+  - signal: GSM5825069
+    control: GSM5825076
+    basis: same factor values
+  - signal: GSM5825070
+    control: GSM5825076
+    basis: same factor values
+  - signal: GSM5825071
+    control: GSM5825076
+    basis: same factor values
+  - signal: GSM5825072
+    control: GSM5825077
+    basis: same factor values
+  - signal: GSM5825073
+    control: GSM5825077
+    basis: same factor values
+  - signal: GSM8514837
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM8514838
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM8514839
+    control: GSM5825074
+    basis: same biosample
+  - signal: GSM8514840
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM8514841
+    control: GSM5825074
+    basis: same factor values
+  - signal: GSM8514842
+    control: GSM5825076
+    basis: same factor values
+  - signal: GSM8514843
+    control: GSM5825076
+    basis: same biosample
+  - signal: GSM8514844
+    control: GSM5825076
+    basis: same factor values
+  - signal: GSM8514845
+    control: GSM5825076
+    basis: same factor values
+  - signal: GSM8514846
+    control: GSM5825076
+    basis: same factor values
+  - signal: GSM8514847
+    control: GSM5825077
+    basis: same factor values
+  - signal: GSM8514848
+    control: GSM5825077
+    basis: same factor values
+  - signal: GSM8514849
+    control: GSM5825077
+    basis: same biosample
+  - signal: GSM8514850
+    control: GSM5825077
+    basis: same factor values
+  - signal: GSM8514851
+    control: GSM5825077
+    basis: same factor values

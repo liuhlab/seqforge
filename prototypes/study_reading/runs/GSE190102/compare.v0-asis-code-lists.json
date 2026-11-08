@@ -1,0 +1,4054 @@
+{
+ "gse": "GSE190102",
+ "reading": "reading.v0-asis-code-lists.yaml",
+ "samples": {
+  "gold": 43,
+  "model": 43,
+  "both": 43
+ },
+ "study": {
+  "series": {
+   "gold": [
+    "GSE190102"
+   ],
+   "model": [
+    "GSE190102"
+   ],
+   "equal": true
+  },
+  "superseries": {
+   "gold": null,
+   "model": null,
+   "equal": true
+  },
+  "bioproject": {
+   "gold": [
+    "PRJNA798693"
+   ],
+   "model": [
+    "PRJNA798693"
+   ],
+   "equal": true
+  },
+  "pmid": {
+   "gold": [
+    "39195281"
+   ],
+   "model": [
+    "39195281"
+   ],
+   "equal": true
+  }
+ },
+ "factors": {
+  "per_gold_factor": [
+   {
+    "gold": "age",
+    "model": "age",
+    "level_map": {
+     "3 months": "3 months",
+     "6 months": "6 months",
+     "12 months": "12 months",
+     "24 months": "24 months"
+    },
+    "levels_equal": true,
+    "baseline_equal": true,
+    "ordered_equal": false,
+    "probability": null
+   }
+  ],
+  "missing": [],
+  "extra_model_factors": [
+   "chip antibody"
+  ]
+ },
+ "fields": {
+  "factor:age": {
+   "right": 39,
+   "wrong": 4,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "donor": {
+   "right": 0,
+   "wrong": 42,
+   "unsure_right": 0,
+   "unsure_wrong": 1
+  },
+  "biosample": {
+   "right": 1,
+   "wrong": 27,
+   "unsure_right": 3,
+   "unsure_wrong": 12
+  },
+  "assay": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "target": {
+   "right": 4,
+   "wrong": 39,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "role": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "control_type": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:species": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:species": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:strain": {
+   "right": 28,
+   "wrong": 15,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:sex": {
+   "right": 0,
+   "wrong": 43,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:tissue": {
+   "right": 15,
+   "wrong": 28,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:cell_type": {
+   "right": 0,
+   "wrong": 43,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:sample_type": {
+   "right": 0,
+   "wrong": 43,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:genotype": {
+   "right": 15,
+   "wrong": 28,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:tissue": {
+   "right": 15,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  }
+ },
+ "relations": {
+  "contrasts": {
+   "model": 23,
+   "gold": 8,
+   "match": 6,
+   "precision": 0.261,
+   "recall": 0.75
+  },
+  "replicates": {
+   "model": 12,
+   "gold": 11,
+   "match": 9,
+   "precision": 0.75,
+   "recall": 0.818
+  },
+  "series": {
+   "model": 0,
+   "gold": 4,
+   "match": 0,
+   "precision": null,
+   "recall": 0.0
+  },
+  "co_measurement_groups": {
+   "model": 1,
+   "gold": 14,
+   "match": 0,
+   "precision": 0.0,
+   "recall": 0.0
+  },
+  "co_measurement_pairs": {
+   "model": 1,
+   "gold": 35,
+   "match": 0,
+   "precision": 0.0,
+   "recall": 0.0
+  },
+  "co_measurement_pairs_settled": {
+   "model": 1,
+   "gold": 13,
+   "match": 0,
+   "precision": 0.0,
+   "recall": 0.0
+  },
+  "co_measurement_pairs_claimed_among_unsure": 0,
+  "background_control": {
+   "model": 0,
+   "gold": 39,
+   "match": 0,
+   "precision": null,
+   "recall": 0.0
+  },
+  "donor_pairs": {
+   "model": 0,
+   "gold": 35,
+   "match": 0,
+   "precision": null,
+   "recall": 0.0
+  }
+ },
+ "errors": [
+  {
+   "gsm": "GSM5825050",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825062",
+    "GSM8514837"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825062",
+    "GSM8514837"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825065",
+    "GSM8514841"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825065",
+    "GSM8514841"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825064",
+    "GSM8514840"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825064",
+    "GSM8514840"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825063",
+    "GSM5825074",
+    "GSM8514839"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825063",
+    "GSM5825074",
+    "GSM8514839"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825068"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825068"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825067"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825067"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825070",
+    "GSM8514844"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825070",
+    "GSM8514844"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825069",
+    "GSM8514842"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825069",
+    "GSM8514842"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825072",
+    "GSM8514847"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825072",
+    "GSM8514847"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM8514848"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM8514848"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825077",
+    "GSM8514849"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825077",
+    "GSM8514849"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825073",
+    "GSM8514850"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825073",
+    "GSM8514850"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "target",
+   "model": null,
+   "gold": "H3K4me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825050",
+    "GSM8514837"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825050",
+    "GSM8514837"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825053",
+    "GSM5825074",
+    "GSM8514839"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825053",
+    "GSM5825074",
+    "GSM8514839"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825052",
+    "GSM8514840"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825052",
+    "GSM8514840"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825051",
+    "GSM8514841"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825051",
+    "GSM8514841"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "biosample",
+   "model": [
+    "GSM5825068"
+   ],
+   "gold": [],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825055"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825055"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825054"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "biosample",
+   "model": [
+    "GSM5825066"
+   ],
+   "gold": [
+    "GSM5825054"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825057",
+    "GSM8514842"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825057",
+    "GSM8514842"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825056",
+    "GSM8514844"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825056",
+    "GSM8514844"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM8514845"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM8514845"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825058",
+    "GSM8514847"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825058",
+    "GSM8514847"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825061",
+    "GSM8514850"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825061",
+    "GSM8514850"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27ac",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825053",
+    "GSM5825063",
+    "GSM8514839"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825053",
+    "GSM5825063",
+    "GSM8514839"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM8514843"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM8514843"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825060",
+    "GSM8514849"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825060",
+    "GSM8514849"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "attr:tissue",
+   "model": null,
+   "gold": "forebrain",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "NeuN+ neuronal nuclei",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "attr:genotype",
+   "model": null,
+   "gold": "WT",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825050",
+    "GSM5825062"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825050",
+    "GSM5825062"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514838",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514838",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514838",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514838",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514838",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514838",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825053",
+    "GSM5825063",
+    "GSM5825074"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825053",
+    "GSM5825063",
+    "GSM5825074"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "factor:age",
+   "model": null,
+   "gold": "3 months",
+   "p": 0.53,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825052",
+    "GSM5825064"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825052",
+    "GSM5825064"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "factor:age",
+   "model": null,
+   "gold": "3 months",
+   "p": 0.73,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825051",
+    "GSM5825065"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825051",
+    "GSM5825065"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825057",
+    "GSM5825069"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825057",
+    "GSM5825069"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825076"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825076"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "factor:age",
+   "model": null,
+   "gold": "12 months",
+   "p": 0.63,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825056",
+    "GSM5825070"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825056",
+    "GSM5825070"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "factor:age",
+   "model": null,
+   "gold": "12 months",
+   "p": 0.54,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825071"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825071"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514846",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514846",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514846",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514846",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514846",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514846",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825058",
+    "GSM5825072"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825058",
+    "GSM5825072"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825059"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825059"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825060",
+    "GSM5825077"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825060",
+    "GSM5825077"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM5825061",
+    "GSM5825073"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "biosample",
+   "model": [],
+   "gold": [
+    "GSM5825061",
+    "GSM5825073"
+   ],
+   "p": null,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514851",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514851",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514851",
+   "field": "attr:strain",
+   "model": null,
+   "gold": "C57/BL6",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514851",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514851",
+   "field": "attr:cell_type",
+   "model": null,
+   "gold": "neurons",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514851",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  }
+ ],
+ "calibration": [
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.83,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.65,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.78,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.75,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.91,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.75,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.69,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.53,
+   "correct": false,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.73,
+   "correct": false,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.84,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.91,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.63,
+   "correct": false,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.54,
+   "correct": false,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.65,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.93,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.98,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  }
+ ]
+}

@@ -1,0 +1,1237 @@
+{
+ "gse": "GSE206603",
+ "series": [
+  "GSE206603",
+  "GSE206588",
+  "GSE206602"
+ ],
+ "superseries": "GSE206603",
+ "bioproject": [
+  "PRJNA851435",
+  "PRJNA851439",
+  "PRJNA851445"
+ ],
+ "pmid": [
+  "39754192"
+ ],
+ "series_text": {
+  "GSE206603": {
+   "title": "Transcriptomic and chromatin profiling of familial Alzheimer’s disease mutations in PSEN1, PSEN2, APP",
+   "summary": [
+    "This SuperSeries is composed of the SubSeries listed below."
+   ],
+   "overall_design": [
+    "Refer to individual Series"
+   ],
+   "type": [
+    "Expression profiling by high throughput sequencing",
+    "Genome binding/occupancy profiling by high throughput sequencing"
+   ],
+   "sample_ids": [
+    "GSM6257296",
+    "GSM6257297",
+    "GSM6257298",
+    "GSM6257299",
+    "GSM6257300",
+    "GSM6257301",
+    "GSM6257302",
+    "GSM6257303",
+    "GSM6257304",
+    "GSM6257305",
+    "GSM6257306",
+    "GSM6257307",
+    "GSM6257605",
+    "GSM6257606",
+    "GSM6257607",
+    "GSM6257608",
+    "GSM6257609",
+    "GSM6257610",
+    "GSM6257611",
+    "GSM6257612",
+    "GSM6257613",
+    "GSM6257614",
+    "GSM6257615",
+    "GSM6257616"
+   ],
+   "subseries": [
+    "GSE206588",
+    "GSE206602"
+   ]
+  },
+  "GSE206588": {
+   "title": "Transcriptomic and chromatin profiling of familial Alzheimer’s disease mutations in PSEN1, PSEN2, APP [ATAC-seq]",
+   "summary": [
+    "Mutations in PSEN1, PSEN2, and APP cause familial Alzheimer’s Disease (FAD) with an early age at onset and progressive cognitive decline. We mechanistically characterize mutations in these three FAD genes using patient-derived neurons by integrating RNA- and ATAC-sequencing. Here, we demonstrate that FAD mutations share common disease endotypes with varying severity, particularly activation of non-ectoderm lineage and loss of neuron mitochondrial energy production, paving the way for potential therapeutic interventions."
+   ],
+   "overall_design": [
+    "Chromatin accessibility (ATAC-seq) profiling of iPSC-derived neurons from healthy donors (NDC) and familial Alzheimer's disease (FAD) patients with APP_V717I, PSEN1_A79V, and PSEN2_N141I mutations"
+   ],
+   "type": [
+    "Genome binding/occupancy profiling by high throughput sequencing"
+   ],
+   "sample_ids": [
+    "GSM6257296",
+    "GSM6257297",
+    "GSM6257298",
+    "GSM6257299",
+    "GSM6257300",
+    "GSM6257301",
+    "GSM6257302",
+    "GSM6257303",
+    "GSM6257304",
+    "GSM6257305",
+    "GSM6257306",
+    "GSM6257307"
+   ],
+   "subseries": []
+  },
+  "GSE206602": {
+   "title": "Transcriptomic and chromatin profiling of familial Alzheimer’s disease mutations in PSEN1, PSEN2, APP [RNA-seq]",
+   "summary": [
+    "Mutations in PSEN1, PSEN2, and APP cause familial Alzheimer’s Disease (FAD) with an early age at onset and progressive cognitive decline. We mechanistically characterize mutations in these three FAD genes using patient-derived neurons by integrating RNA- and ATAC-sequencing. Here, we demonstrate that FAD mutations share common disease endotypes with varying severity, particularly activation of non-ectoderm lineage and loss of neuron mitochondrial energy production, paving the way for potential therapeutic interventions."
+   ],
+   "overall_design": [
+    "Gene expression (RNA-seq) profiling of iPSC-derived neurons from healthy donors (NDC) and familial Alzheimer's disease (FAD) patients with APP_V717I, PSEN1_A79V, and PSEN2_N141I mutations"
+   ],
+   "type": [
+    "Expression profiling by high throughput sequencing"
+   ],
+   "sample_ids": [
+    "GSM6257605",
+    "GSM6257606",
+    "GSM6257607",
+    "GSM6257608",
+    "GSM6257609",
+    "GSM6257610",
+    "GSM6257611",
+    "GSM6257612",
+    "GSM6257613",
+    "GSM6257614",
+    "GSM6257615",
+    "GSM6257616"
+   ],
+   "subseries": []
+  }
+ },
+ "samples": [
+  {
+   "gsm": "GSM6257296",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "NDC replicate 1 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Non-demented Control"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ],
+    [
+     "treatment",
+     "M, APOE2/3"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257297",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "NDC replicate 2 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Non-demented Control"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ],
+    [
+     "treatment",
+     "M, APOE2/3"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257298",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "NDC replicate 3 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Non-demented Control"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ],
+    [
+     "treatment",
+     "M, APOE2/3"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257299",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "APP-V717I replicate 1 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "APP_V717I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257300",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "APP-V717I replicate 2 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "APP_V717I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257301",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "APP-V717I replicate 3 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "APP_V717I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257302",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "PSEN1-A79V replicate 1 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN1_A79V"
+    ],
+    [
+     "treatment",
+     "M, APOE3/4"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257303",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "PSEN1-A79V replicate 2 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN1_A79V"
+    ],
+    [
+     "treatment",
+     "M, APOE3/4"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257304",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "PSEN1-A79V replicate 3 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN1_A79V"
+    ],
+    [
+     "treatment",
+     "M, APOE3/4"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257305",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "PSEN2-N141I replicate 1 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN2_N141I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257306",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "PSEN2-N141I replicate 2 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN2_N141I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257307",
+   "series": [
+    "GSE206588",
+    "GSE206603"
+   ],
+   "title": "PSEN2-N141I replicate 3 [ATAC-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN2_N141I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "ATAC-seq",
+   "library_source": "genomic",
+   "library_selection": "other",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "ATAC-seq transposition experiments were performed as previously described on 50,000 cells in NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the Illumina Nextera DNA Sample Preparation Kit (Illumina, catalog no. 15028523) and the QIAGEN MinElute PCR Purification Kit (QIAGEN, catalog no. 28004). ATAC-seq libraries were generated from transposed DNA using the Kapa Biosystems Real-Time Library Amplification Kit (Kapa Biosystems, catalog no. 07959028001) as recommended by the manufacturer, monitoring amplification by qPCR and stopping the reaction when all samples reached a fluorescence amplification intensity between standards 1 and 3. ATAC-seq libraries were then further purified using the QIAGEN MinElute PCR Purification Kit and sequenced at the UC San Diego IGM sequencing core on an Illumina HiSeq 4000 platform generating paired-end, 50-bp reads with an average of 25 million reads per sample."
+   },
+   "data_processing": [
+    "ATAC-seq data preprocessing was performed using TrimGalore! to remove sequencing adaptors and low-quality reads.",
+    "Trimmed reads were then aligned to the GRCh38 human genome (GCA_000001405.15 with no alternative analysis) using BBMap v37.95 in the BBTools suite with the options maxindel=20 ambig=random, followed by sorting and indexing of bam files using SAMtools v1.9, and annotation of PCR duplicates using the Picard v2.23.3 MarkDuplicates function with the option VALIDATION_STRINGENCY=LENIENT. All duplicates and mitochondrial, chromosome X, chromosome Y, and EBV reads were removed using SAMtools v1.9 command view with the options -b -h -f 3 -F 4 -F 8 -F 256 -F 1024 -F 2048.",
+    "To determine open chromatin regions, HMMRATAC v1.2.5 was used to call peaks on the ATAC-seq data and determine regions of open chromatin with the options –m 50,200,400,600 --score all.",
+    "open regions of chromatin were then passed to the Diffbind R package v3.0.15 to determine regions of differential accessibility between NDC and each FAD mutant condition. Consensus peaks selection for each condition were identified (minimum overlap=3) and the subsequent peaksets for all conditions were merged using the dba.peakset function. Read coverage over the combined consensus peakset was determined using the dba.count function with the DBA_SCORE_TMM_READS_EFFECTIVE peak scoring option. Differentially accessible peaks for each FAD condition relative to NDC were determined with the edgeR method with a FDR-adjusted p-value of <0.05 and then subsequently annotated using the annotatePeak function in the ChIPseeker R package v1.26.2, defining the promoter region −1500 to 500 bp from the TSS. Enhancer-associated ATAC-seq regions were defined as differential peaks occurring within the PEREGRINE enhancer region list and then finding the intersecting non-promoter based DNA regions with the join_overlap_inner function in the plyranges R package.",
+    "Assembly: GRCh38 (GCA_000001405.15)",
+    "Supplementary files format and content: Normalized count matrix for all ATSC-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257605",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "NDC replicate 1 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Non-demented Control"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ],
+    [
+     "treatment",
+     "M, APOE2/3"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257606",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "NDC replicate 2 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Non-demented Control"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ],
+    [
+     "treatment",
+     "M, APOE2/3"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257607",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "NDC replicate 3 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Non-demented Control"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ],
+    [
+     "treatment",
+     "M, APOE2/3"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257608",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "APP-V717I replicate 1 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "APP_V717I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257609",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "APP-V717I replicate 2 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "APP_V717I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257610",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "APP-V717I replicate 3 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "APP_V717I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257611",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "PSEN1-A79V replicate 1 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN1_A79V"
+    ],
+    [
+     "treatment",
+     "M, APOE3/4"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257612",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "PSEN1-A79V replicate 2 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN1_A79V"
+    ],
+    [
+     "treatment",
+     "M, APOE3/4"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257613",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "PSEN1-A79V replicate 3 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN1_A79V"
+    ],
+    [
+     "treatment",
+     "M, APOE3/4"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257614",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "PSEN2-N141I replicate 1 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN2_N141I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257615",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "PSEN2-N141I replicate 2 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN2_N141I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  },
+  {
+   "gsm": "GSM6257616",
+   "series": [
+    "GSE206602",
+    "GSE206603"
+   ],
+   "title": "PSEN2-N141I replicate 3 [RNA-seq]",
+   "source": "hiPSC-derived neurons",
+   "organism": "Homo sapiens",
+   "taxid": "9606",
+   "characteristics": [
+    [
+     "disease state",
+     "Alzheimer's disease"
+    ],
+    [
+     "cell type",
+     "hiPSC-derived neurons"
+    ],
+    [
+     "genotype",
+     "PSEN2_N141I"
+    ],
+    [
+     "treatment",
+     "F, APOE3/3"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [],
+   "protocols": {
+    "growth": "Fibroblasts were derived from patient skin biopsies from adult human volunteers; Non-demented control (NDC) and APP_V717I were generated at the Alzheimer’s Disease Research Center at the University of California, San Diego (UCSD) in accordance with UC San Diego IRB approval, whereas PSEN1A79V and PSEN2N141I were generated at the Dominantly Inherited Alzheimer’s Network (DIAN) at Washington University in accordance with the Washington University School of Medicine Institutional Review Board and Ethics Committee (IRB 201104178, 201306108). PSEN1_A79V and PSEN2-N141I fibroblasts were transformed with retroviral transduction using OCT3/4, KLF4, SOX2 and c-MYC. NDC and APP_V717I fibroblasts were transformed using the episcopal method to introduce reprogramming factors. Neurons were differentiated from iPSCs as previously described; PA6 cells were plated in a 10 cm dish and seeded with 100,000 cells iPSC next day. To enhance neural induction, cultures were treated with 5μM dorsomorphin (Sigma) and 10μM SB431542 (Tocris) for the first 6 days of differentiation. On day 12, neural stem cells (NSCs) were sorted using cell surface signature CD24+/CD184+/CD44-/CD271-. NSCs were expanded in NSC growth medium (DMEM:F12+GlutamaxTM (Thermo Fisher Cat. 10565018), 1x B-27 (Thermo Fisher Cat. 17504044), 1x N-2 (Thermo Fisher Cat. 17502001), 1x Penicillin-Streptomycin (Thermo Fisher Cat. 15070063), and 20ng/mL human bFGF-2 (BioPioneer Cat. HRP-0011)). At 80% confluence, the medium was changed to neuron differentiation medium (DMEM:F12+GlutamaxTM, 1x B-27, 1x N-2, 1x Penicillin-Streptomycin) for 3 weeks of differentiation followed by culture dissociation with Accutase (Sigma Cat. A6964). Cells were resuspended in 200μL of iMag buffer (1x neural differentiation medium, 0.5µM EDTA, 0.5% Bovine Serum Albumin) and incubated with PE Mouse Anti-Human CD184 and CD44 antibodies (BD Biosciences Cat. 561733 and 561858, respectively) for 15min on ice in the dark. The mixture was washed with iMag buffer and subsequently incubated with anti-PE conjugated magnetic beads (BD Biosciences) for 30min at room temperature. Magnetic bead separation was carried out for 8min according to the manufacturer’s protocol (BD Biosciences). The supernatant containing purified CD184-/CD44- neurons was then removed and spun down for downstream applications.",
+    "treatment": null,
+    "extract": "Total RNA from magnetically purified human NDC, PSEN1_A79V, PSEN2_N141I, and APP_V717I hiPSC-derived neurons (replicates, n=3) using the RNeasy Plus Micro Kit (QIAGEN, catalog no. 74034) according to the manufacturer’s protocol. On-column deoxyribonuclease digestion was performed on total RNA extracts to remove any genomic contamination (QIAGEN, catalog no 79254) Libraries were prepared for RNA-seq using the TruSeq Stranded Total RNA Library Prep Kit (Illumina, catalog no. RS-122-2303) by the Ribo-Zero ribosomal RNA reduction method (Illumina, catalog no. MRZG12324). Samples were sequenced at the UC San Diego Institute for Genomics Medicine (IGM) sequencing core on an Illumina HiSeq 4000 generating paired-end, 100-bp reads with an average of 25 million reads per sample (Illumina, catalog no. FC-410-1001)"
+   },
+   "data_processing": [
+    "RNA-seq pre-processing was performed using the TrimGalore! package v0.6.4, removing adapter sequences and low-quality reads using CutAdapt v1.18.",
+    "Trimmed RNA-Seq reads were mapped to the GRCh38.99 human transcriptome using kallisto v0.46.1 with the options -bias -rf-stranded -b 100 followed by transcript level summation to the gene level using the R package tximport v1.18.0",
+    "Lowly expressed genes were filtered out using filterByExpr and counts normalized using the weighted mean trimmed of M-values (TMM) in the R package edgeR v3.32.1.",
+    "Assembly: GRCh38.99",
+    "Supplementary files format and content: Normalized count matrix for all RNA-seq samples"
+   ]
+  }
+ ],
+ "paper_files": [
+  "paper_39754192.txt"
+ ]
+}

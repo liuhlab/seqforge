@@ -1,0 +1,20 @@
+{
+ "v1 lists, GSM8514843 role, donor quotes=True": {
+  "signal": 0.43,
+  "control": 0.57
+ },
+ "v1 lists, GSM8514843 role, donor quotes=False": {
+  "signal": 1.0,
+  "control": 0.0
+ },
+ "v2 lists, GSM5825066 donor, donor quotes=True": {
+  "17": 0.98,
+  "not_stated": 0.02,
+  "363": 0.0
+ },
+ "v2 lists, GSM5825066 donor, donor quotes=False": {
+  "not_stated": 0.75,
+  "17": 0.18,
+  "517": 0.02
+ }
+}

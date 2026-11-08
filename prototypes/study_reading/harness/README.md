@@ -8,31 +8,38 @@ MDA5 or a luciferase control, HIV-1 or mock, 0 h or 48 h). Every claim below is 
 
 ## Run it
 
+Three real studies are now read too; results, errors and costs are in `../RESULTS.md`.
+
 ```bash
 cd prototypes/study_reading/harness
-pixi run python run.py GSE201250                  # fetch, lists, Jev, relations -> ../runs/GSE201250/reading.yaml
-pixi run python run.py GSE201250 --writer always  # also run DeepSeek beside the code-drafted lists, for comparison
-pixi run python run.py GSE201250 --writer only    # use DeepSeek's lists -> reading.deepseek-lists.yaml
-pixi run python probes.py GSE201250               # the five probes -> probes.json
-pixi run python estimate.py GSE201250             # 100 / 1,000-sample estimate -> estimate.json
+pixi run python run.py GSE190102 --label v2       # fetch (GEO + paper from PMC), DeepSeek lists, Jev, relations
+                                                  # -> ../runs/<GSE>/reading.yaml, answers.json, cost.v2.json
+REASK=1 pixi run python run.py GSE190102 --label v3   # also re-ask every pick under p 0.9 with options reversed
+pixi run python compare.py all reading.v2.yaml    # score against ../gold/ -> ../runs/<GSE>/compare.v2.json
+pixi run python compare.py --table                # v0, v1, v2 side by side, per study
+pixi run python cost.py v1 v2 v3                  # cost and time per study; estimate for 100 and 1,000 samples
+pixi run python probe_glossary.py                 # does a donor quote in the state move an answer?
+pixi run python probes.py GSE201250               # the dev study's five probes -> probes.json
 ```
 
 Needs `DEEPSEEK_API_KEY` and `TYPESAFE_API_KEY` in the environment. Every model response is cached
 under `runs/<GSE>/cache/`, keyed by the exact request (option order included); a re-run makes no
 model call (**measured**: 0 live calls on the second run). Live calls are logged to
-`runs/<GSE>/calls.jsonl` (model, tokens in and out, dollars, seconds, tag).
+`runs/<GSE>/calls.jsonl` (model, tokens in and out, dollars, seconds, tag, harness version).
 
 | Script | Does |
 |---|---|
-| `fetch.py` | GEO Series and sample text over public HTTP, SubSeries followed, submitter contact lines dropped; `study.json` |
-| `draft.py` | open lists. Code drafts them from typed characteristics that vary across samples; DeepSeek (`deepseek-chat`, served as `deepseek-flash`) writes them otherwise. Every quote is grepped against the fetched text |
-| `ask.py` | closed questions to `jev-1.14.0`: one study request (each key's role, each key's baseline asked speculatively, ontology term among OLS candidates), then one request per sample (level per key, assay, signal or control, control type). Biosample yes/no only among samples code finds identical on every key |
-| `derive.py` | design table and the five relations, in code; `reading.yaml` per `../SCHEMA.md` |
-| `probes.py` | the five probes below, comparisons fixed in its header before the first run |
+| `fetch.py` | GEO Series and sample text over public HTTP, SubSeries followed, submitter contact lines dropped; the paper's abstract and methods from PMC under `raw/` (not committed); `study.json` |
+| `draft.py` | open lists from DeepSeek (`deepseek-chat`): factors, targets, controls, donors, biosample groups, assays, attributes, each with a quote grepped back to GEO or the paper. `draft(gse, "auto")` is the dev study's code-first path (v0) |
+| `ask.py` | closed questions to `jev-1.14.0`: one study request (each factor's role and baseline, ontology terms among OLS candidates, sample type, one individual per sample), one request per sample (level per factor, donor, target, assay, role, control type, varying attributes) with a study glossary in the state, then same-material yes/no for pairs code blocks by donor and factor levels |
+| `derive.py` | design table and the five relations, in code, scoped by assay, target and role; `reading.yaml` |
+| `compare.py` | field-by-field score against `../gold/`, Jev's probability beside each right or wrong |
+| `cost.py` | cost and time per study and version; the 100 and 1,000-sample estimate |
+| `probes.py`, `estimate.py` | the dev study's probes and estimate (GSE201250 only) |
 
-Schema notes: no field added. `evidence.source` is `GSM characteristics`, `GSM title`, or
-`unverified` when code cannot find the label in the sample's own text. `probability` holds Jev's
-probability for the picked value.
+Schema additions in model readings: sample `title`, `series` and `unsure` (labels whose re-ask disagreed),
+as in the gold; factor `probability` (role, baseline); `probability.donor_study` when every sample is its own
+donor by the study question; an attribute's `source` when it is not a GSM characteristic.
 
 ## Result on the dev study
 

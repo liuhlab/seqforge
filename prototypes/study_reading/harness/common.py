@@ -22,6 +22,8 @@ DS_PRICE_IN_MISS, DS_PRICE_IN_HIT, DS_PRICE_OUT = 0.30, 0.006, 1.20
 SPEND_CAP = 9.0  # stop before the $10 total cap
 
 _lock = threading.Lock()
+LEDGER = []  # every model call this process used, cached or live, with its original meta (per-reading cost)
+RUN_LABEL = None  # written into calls.jsonl so a live call can be traced to the harness version that made it
 
 
 def run_dir(gse):
@@ -79,6 +81,8 @@ def jev(gse, state, questions, tag, long_context=False):
     cf = run_dir(gse) / "cache" / "jev" / f"{k}.json"
     if cf.exists():
         r = json.loads(cf.read_text())
+        with _lock:
+            LEDGER.append({"provider": "typesafe", "tag": tag, "cached": True, **r["_meta"]})
         return r["answers"], {"cached": True, **r["_meta"]}
     if total_spend() > SPEND_CAP:
         raise SystemExit("spend cap reached")
@@ -99,7 +103,9 @@ def jev(gse, state, questions, tag, long_context=False):
     }
     r["_meta"] = meta
     cf.write_text(json.dumps(r))
-    _log(gse, {"provider": "typesafe", "tag": tag, "key": k, **meta, "ts": time.time()})
+    _log(gse, {"provider": "typesafe", "tag": tag, "key": k, **meta, "ts": time.time(), "run": RUN_LABEL})
+    with _lock:
+        LEDGER.append({"provider": "typesafe", "tag": tag, "cached": False, **meta})
     return r["answers"], {"cached": False, **meta}
 
 
@@ -113,6 +119,8 @@ def deepseek(gse, system, user, tag, max_tokens=8000):
     cf = run_dir(gse) / "cache" / "deepseek" / f"{k}.json"
     if cf.exists():
         r = json.loads(cf.read_text())
+        with _lock:
+            LEDGER.append({"provider": "deepseek", "tag": tag, "cached": True, **r["_meta"]})
         return json.loads(r["choices"][0]["message"]["content"]), {"cached": True, **r["_meta"]}
     if total_spend() > SPEND_CAP:
         raise SystemExit("spend cap reached")
@@ -134,7 +142,9 @@ def deepseek(gse, system, user, tag, max_tokens=8000):
     }
     r["_meta"] = meta
     cf.write_text(json.dumps(r))
-    _log(gse, {"provider": "deepseek", "tag": tag, "key": k, **meta, "ts": time.time()})
+    _log(gse, {"provider": "deepseek", "tag": tag, "key": k, **meta, "ts": time.time(), "run": RUN_LABEL})
+    with _lock:
+        LEDGER.append({"provider": "deepseek", "tag": tag, "cached": False, **meta})
     return json.loads(r["choices"][0]["message"]["content"]), {"cached": False, **meta}
 
 

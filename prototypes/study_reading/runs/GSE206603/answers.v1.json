@@ -1,0 +1,1890 @@
+{
+ "keys": {
+  "genotype": [
+   "WT",
+   "APP_V717I",
+   "PSEN1_A79V",
+   "PSEN2_N141I"
+  ]
+ },
+ "donors": [],
+ "targets": [],
+ "attrs": {
+  "species": [
+   "Homo sapiens"
+  ],
+  "cell type": [
+   "hiPSC-derived neurons"
+  ],
+  "disease state": [
+   "Non-demented Control",
+   "Alzheimer's disease"
+  ],
+  "treatment": [
+   "M, APOE2/3",
+   "F, APOE3/3",
+   "M, APOE3/4"
+  ]
+ },
+ "multi_attrs": [
+  "disease state",
+  "treatment"
+ ],
+ "glossary": {
+  "design": [
+   "Chromatin accessibility (ATAC-seq) profiling of iPSC-derived neurons from healthy donors (NDC) and familial Alzheimer's disease (FAD) patients with APP_V717I, PSEN1_A79V, and PSEN2_N141I mutations",
+   "Mutations in PSEN1, PSEN2, and APP cause familial Alzheimer’s Disease (FAD) with an early age at onset and progressive cognitive decline. We mechanistically characterize mutations in these three FAD genes using patient-derived neurons by integrating RNA- and ATAC-sequencing. Here, we demonstrate that FAD mutations share common disease endotypes with varying severity, particularly activation of non-ectoderm lineage and loss of neuron mitochondrial energy production, paving the way for potential therapeutic interventions.",
+   "Gene expression (RNA-seq) profiling of iPSC-derived neurons from healthy donors (NDC) and familial Alzheimer's disease (FAD) patients with APP_V717I, PSEN1_A79V, and PSEN2_N141I mutations",
+   "Mutations in PSEN1, PSEN2, and APP cause familial Alzheimer’s Disease (FAD) with an early age at onset and progressive cognitive decline. We mechanistically characterize mutations in these three FAD genes using patient-derived neurons by integrating RNA- and ATAC-sequencing. Here, we demonstrate that FAD mutations share common disease endotypes with varying severity, particularly activation of non-ectoderm lineage and loss of neuron mitochondrial energy production, paving the way for potential therapeutic interventions."
+  ],
+  "factor_levels": {
+   "genotype": {
+    "WT": "genotype: WT",
+    "APP_V717I": "genotype: APP_V717I",
+    "PSEN1_A79V": "genotype: PSEN1_A79V",
+    "PSEN2_N141I": "genotype: PSEN2_N141I"
+   }
+  }
+ },
+ "study": {
+  "role_0": {
+   "type": "choice",
+   "choice": "designed_factor",
+   "confidence": 1.0,
+   "probabilities": {
+    "designed_factor": 1.0,
+    "donor": 0.0,
+    "other": 0.0
+   }
+  },
+  "baseline_0": {
+   "type": "choice",
+   "choice": "WT",
+   "confidence": 1.0,
+   "probabilities": {
+    "WT": 1.0,
+    "APP_V717I": 0.0,
+    "PSEN1_A79V": 0.0,
+    "PSEN2_N141I": 0.0
+   }
+  }
+ },
+ "onto": {},
+ "samples": {
+  "GSM6257296": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.86,
+    "probabilities": {
+     "input": 0.11,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.89
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Non-demented Control",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 1.0,
+     "Alzheimer's disease": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE2/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 1.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257297": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.82,
+    "probabilities": {
+     "input": 0.14,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.86
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Non-demented Control",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 1.0,
+     "Alzheimer's disease": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE2/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 1.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257298": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.8,
+    "probabilities": {
+     "input": 0.16,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.84
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Non-demented Control",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 1.0,
+     "Alzheimer's disease": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE2/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 1.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257299": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.57,
+    "probabilities": {
+     "input": 0.33,
+     "IgG": 0.01,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.66
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257300": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.6,
+    "probabilities": {
+     "input": 0.31,
+     "IgG": 0.01,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.68
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257301": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.65,
+    "probabilities": {
+     "input": 0.28,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.72
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257302": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.61,
+    "probabilities": {
+     "input": 0.31,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.69
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE3/4",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 1.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257303": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.61,
+    "probabilities": {
+     "input": 0.31,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.69
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE3/4",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 1.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257304": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.65,
+    "probabilities": {
+     "input": 0.28,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.72
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE3/4",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 1.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257305": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.66,
+    "probabilities": {
+     "input": 0.27,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.73
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257306": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.73,
+    "probabilities": {
+     "input": 0.22,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.78
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257307": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.62,
+    "probabilities": {
+     "input": 0.3,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.7
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257605": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Non-demented Control",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 1.0,
+     "Alzheimer's disease": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE2/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 1.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257606": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Non-demented Control",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 1.0,
+     "Alzheimer's disease": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE2/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 1.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257607": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.98,
+    "probabilities": {
+     "input": 0.02,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.98
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Non-demented Control",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 1.0,
+     "Alzheimer's disease": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE2/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 1.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257608": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.03,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.97
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257609": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.95,
+    "probabilities": {
+     "input": 0.04,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.96
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257610": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.03,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.97
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257611": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.03,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.97
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE3/4",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 1.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257612": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.03,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.97
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE3/4",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 1.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257613": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.03,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.97
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "M, APOE3/4",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 0.0,
+     "M, APOE3/4": 1.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257614": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.03,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.97
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257615": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.03,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.97
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  },
+  "GSM6257616": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.95,
+    "probabilities": {
+     "input": 0.04,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.96
+    }
+   },
+   "attr_0": {
+    "type": "choice",
+    "choice": "Alzheimer's disease",
+    "confidence": 1.0,
+    "probabilities": {
+     "Non-demented Control": 0.0,
+     "Alzheimer's disease": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "attr_1": {
+    "type": "choice",
+    "choice": "F, APOE3/3",
+    "confidence": 1.0,
+    "probabilities": {
+     "M, APOE2/3": 0.0,
+     "F, APOE3/3": 1.0,
+     "M, APOE3/4": 0.0,
+     "not_stated": 0.0
+    }
+   }
+  }
+ },
+ "biosample_pairs": {
+  "GSM6257296|GSM6257297": 0.12,
+  "GSM6257296|GSM6257298": 0.07,
+  "GSM6257296|GSM6257605": 0.29,
+  "GSM6257296|GSM6257606": 0.19,
+  "GSM6257296|GSM6257607": 0.21,
+  "GSM6257297|GSM6257298": 0.1,
+  "GSM6257297|GSM6257605": 0.19,
+  "GSM6257297|GSM6257606": 0.27,
+  "GSM6257297|GSM6257607": 0.2,
+  "GSM6257298|GSM6257605": 0.19,
+  "GSM6257298|GSM6257606": 0.2,
+  "GSM6257298|GSM6257607": 0.28,
+  "GSM6257299|GSM6257300": 0.11,
+  "GSM6257299|GSM6257301": 0.09,
+  "GSM6257299|GSM6257608": 0.26,
+  "GSM6257299|GSM6257609": 0.15,
+  "GSM6257299|GSM6257610": 0.13,
+  "GSM6257300|GSM6257301": 0.11,
+  "GSM6257300|GSM6257608": 0.18,
+  "GSM6257300|GSM6257609": 0.24,
+  "GSM6257300|GSM6257610": 0.15,
+  "GSM6257301|GSM6257608": 0.15,
+  "GSM6257301|GSM6257609": 0.13,
+  "GSM6257301|GSM6257610": 0.26,
+  "GSM6257302|GSM6257303": 0.16,
+  "GSM6257302|GSM6257304": 0.11,
+  "GSM6257302|GSM6257611": 0.3,
+  "GSM6257302|GSM6257612": 0.2,
+  "GSM6257302|GSM6257613": 0.17,
+  "GSM6257303|GSM6257304": 0.11,
+  "GSM6257303|GSM6257611": 0.22,
+  "GSM6257303|GSM6257612": 0.3,
+  "GSM6257303|GSM6257613": 0.19,
+  "GSM6257304|GSM6257611": 0.18,
+  "GSM6257304|GSM6257612": 0.17,
+  "GSM6257304|GSM6257613": 0.34,
+  "GSM6257305|GSM6257306": 0.14,
+  "GSM6257305|GSM6257307": 0.13,
+  "GSM6257305|GSM6257614": 0.34,
+  "GSM6257305|GSM6257615": 0.17,
+  "GSM6257305|GSM6257616": 0.18,
+  "GSM6257306|GSM6257307": 0.11,
+  "GSM6257306|GSM6257614": 0.2,
+  "GSM6257306|GSM6257615": 0.31,
+  "GSM6257306|GSM6257616": 0.15,
+  "GSM6257307|GSM6257614": 0.19,
+  "GSM6257307|GSM6257615": 0.18,
+  "GSM6257307|GSM6257616": 0.33,
+  "GSM6257605|GSM6257606": 0.1,
+  "GSM6257605|GSM6257607": 0.07,
+  "GSM6257606|GSM6257607": 0.07,
+  "GSM6257608|GSM6257609": 0.11,
+  "GSM6257608|GSM6257610": 0.07,
+  "GSM6257609|GSM6257610": 0.09,
+  "GSM6257611|GSM6257612": 0.15,
+  "GSM6257611|GSM6257613": 0.09,
+  "GSM6257612|GSM6257613": 0.09,
+  "GSM6257614|GSM6257615": 0.16,
+  "GSM6257614|GSM6257616": 0.12,
+  "GSM6257615|GSM6257616": 0.11
+ },
+ "n_requests": 85
+}

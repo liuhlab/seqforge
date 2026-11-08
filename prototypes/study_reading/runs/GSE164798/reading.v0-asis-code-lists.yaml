@@ -1,0 +1,1123 @@
+study:
+  series:
+  - GSE164798
+  superseries: null
+  bioproject:
+  - PRJNA691970
+  pmid:
+  - '33804749'
+  notes: 'model reading: lists drafted by code, labels by jev-1.14.0; donor key: None'
+factors:
+- name: strain
+  levels:
+  - C57BL/6
+  - 5xFAD (C57BL/6)
+  baseline: C57BL/6
+  ordered: false
+- name: genotype
+  levels:
+  - wild-type
+  - 5xFAD
+  baseline: wild-type
+  ordered: false
+- name: treatment
+  levels:
+  - untreated
+  - 30 days voluntary saucer wheel running
+  - one day voluntary saucer wheel running
+  baseline: untreated
+  ordered: false
+- name: treatment synonym
+  levels:
+  - sedentary
+  - chronic
+  - acute
+  baseline: sedentary
+  ordered: false
+samples:
+- gsm: GSM5019734
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: untreated
+    treatment synonym: sedentary
+  biosample: B01
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: untreated'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:tissue: 0.98
+- gsm: GSM5019735
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: untreated
+    treatment synonym: sedentary
+  biosample: B02
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: untreated'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019736
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: untreated
+    treatment synonym: sedentary
+  biosample: B03
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: untreated'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:tissue: 0.98
+- gsm: GSM5019737
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: untreated
+    treatment synonym: sedentary
+  biosample: B04
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: untreated'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:tissue: 0.98
+- gsm: GSM5019738
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: 30 days voluntary saucer wheel running
+    treatment synonym: chronic
+  biosample: B05
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: 30 days voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019739
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: 30 days voluntary saucer wheel running
+    treatment synonym: chronic
+  biosample: B06
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: 30 days voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019740
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: 30 days voluntary saucer wheel running
+    treatment synonym: chronic
+  biosample: B07
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: 30 days voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019741
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: 30 days voluntary saucer wheel running
+    treatment synonym: chronic
+  biosample: B08
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: 30 days voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019742
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: one day voluntary saucer wheel running
+    treatment synonym: acute
+  biosample: B09
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: one day voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019743
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: one day voluntary saucer wheel running
+    treatment synonym: acute
+  biosample: B10
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: one day voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019744
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: one day voluntary saucer wheel running
+    treatment synonym: acute
+  biosample: B11
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: one day voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019745
+  factors:
+    strain: C57BL/6
+    genotype: wild-type
+    treatment: one day voluntary saucer wheel running
+    treatment synonym: acute
+  biosample: B12
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: C57BL/6'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: one day voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019746
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: untreated
+    treatment synonym: sedentary
+  biosample: B13
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: untreated'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:tissue: 0.98
+- gsm: GSM5019747
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: untreated
+    treatment synonym: sedentary
+  biosample: B14
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: untreated'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:tissue: 0.98
+- gsm: GSM5019748
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: untreated
+    treatment synonym: sedentary
+  biosample: B15
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: untreated'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:tissue: 0.98
+- gsm: GSM5019749
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: untreated
+    treatment synonym: sedentary
+  biosample: B16
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: untreated'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:tissue: 0.98
+- gsm: GSM5019750
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: 30 days voluntary saucer wheel running
+    treatment synonym: chronic
+  biosample: B17
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: 30 days voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019751
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: 30 days voluntary saucer wheel running
+    treatment synonym: chronic
+  biosample: B18
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: 30 days voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019752
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: 30 days voluntary saucer wheel running
+    treatment synonym: chronic
+  biosample: B19
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: 30 days voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019753
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: 30 days voluntary saucer wheel running
+    treatment synonym: chronic
+  biosample: B20
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: 30 days voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019754
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: one day voluntary saucer wheel running
+    treatment synonym: acute
+  biosample: B21
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: one day voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019755
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: one day voluntary saucer wheel running
+    treatment synonym: acute
+  biosample: B22
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: one day voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019756
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: one day voluntary saucer wheel running
+    treatment synonym: acute
+  biosample: B23
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: one day voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+- gsm: GSM5019757
+  factors:
+    strain: 5xFAD (C57BL/6)
+    genotype: 5xFAD
+    treatment: one day voluntary saucer wheel running
+    treatment synonym: acute
+  biosample: B24
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: right hemisphere
+      id: UBERON:0002813
+    age:
+      text: 3 months
+    Sex:
+      text: male
+  evidence:
+    strain:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: 5xFAD'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: one day voluntary saucer wheel running'
+      source: GSM characteristics
+    treatment synonym:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    strain: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    treatment synonym: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.98
+relations:
+  contrasts: []
+  replicates:
+  - - GSM5019734
+    - GSM5019735
+    - GSM5019736
+    - GSM5019737
+  - - GSM5019738
+    - GSM5019739
+    - GSM5019740
+    - GSM5019741
+  - - GSM5019742
+    - GSM5019743
+    - GSM5019744
+    - GSM5019745
+  - - GSM5019746
+    - GSM5019747
+    - GSM5019748
+    - GSM5019749
+  - - GSM5019750
+    - GSM5019751
+    - GSM5019752
+    - GSM5019753
+  - - GSM5019754
+    - GSM5019755
+    - GSM5019756
+    - GSM5019757
+  series: []
+  co_measurement: []
+  background_control: []

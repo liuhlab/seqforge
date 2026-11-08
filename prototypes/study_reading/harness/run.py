@@ -1,28 +1,47 @@
 # PROTOTYPE, throwaway: read one GEO study end to end.
-#   pixi run python run.py GSE201250 [--writer auto|always] [--probes]
-# fetch -> draft open lists (code, or DeepSeek) -> quote check -> Jev closed questions -> derive -> reading.yaml
+#   pixi run python run.py GSE164798 [--label v1]
+# fetch -> DeepSeek open lists -> quote check -> Jev closed questions -> derive -> reading.yaml + cost.json
+# (the code-first list path of the dev study is kept as draft(gse, "auto"); its readings are reading.v0-*.yaml)
 import json
 import sys
+import time
 
 import ask
+import common
 import derive
 import draft
 import fetch
 from common import run_dir
 
 gse = sys.argv[1]
-writer = sys.argv[sys.argv.index("--writer") + 1] if "--writer" in sys.argv else "auto"
-n0 = sum(1 for _ in open(run_dir(gse) / "calls.jsonl")) if (run_dir(gse) / "calls.jsonl").exists() else 0
-s = fetch.fetch(gse)
-l = draft.draft(gse, writer)
-a = ask.ask(gse)
-r = derive.derive(gse)
-if "--probes" in sys.argv:
-    import subprocess
-    subprocess.run([sys.executable, "probes.py", gse], check=True)
-n1 = sum(1 for _ in open(run_dir(gse) / "calls.jsonl"))
-print(json.dumps({"gse": gse, "samples": len(s["samples"]), "lists_from": l["used"],
-                  "quote_check": {k: len(v["failed"]) for k, v in l.items() if k.endswith("quote_check")},
-                  "factors": [f["name"] for f in r["factors"]],
+label = sys.argv[sys.argv.index("--label") + 1] if "--label" in sys.argv else "v1"
+common.RUN_LABEL = label
+wall = {}
+t = time.time(); s = fetch.fetch(gse); wall["fetch"] = round(time.time() - t, 2)
+t = time.time(); l = draft.draft(gse, "only"); wall["deepseek_lists"] = round(time.time() - t, 2)
+t = time.time(); a = ask.ask(gse); wall["jev_questions"] = round(time.time() - t, 2)
+t = time.time(); r = derive.derive(gse); wall["derive"] = round(time.time() - t, 3)
+
+
+def tot(p):
+    xs = [x for x in common.LEDGER if x["provider"] == p]
+    return {"calls": len(xs), "live_calls": sum(not x["cached"] for x in xs),
+            "questions": sum(x.get("n_questions", 0) for x in xs),
+            "tokens_in": sum(x["tokens_in"] for x in xs), "tokens_out": sum(x["tokens_out"] for x in xs),
+            "dollars": round(sum(x["dollars"] for x in xs), 5),
+            "seconds_sum_of_calls": round(sum(x["seconds"] for x in xs), 2),
+            "by_tag": {tg: sum(1 for x in xs if x["tag"] == tg) for tg in sorted({x["tag"] for x in xs})}}
+
+
+cost = {"gse": gse, "label": label, "samples": len(s["samples"]), "deepseek": tot("deepseek"), "jev": tot("typesafe"),
+        "wall_seconds_this_process": wall,
+        "note": "seconds_sum_of_calls is each call's own latency from the first (live) run, cached or not; "
+                "Jev requests ran 8 at a time, so its wall time is shorter than the sum"}
+prev = run_dir(gse) / f"cost.{label}.json"
+if not prev.exists() or cost["jev"]["live_calls"] or cost["deepseek"]["live_calls"]:
+    prev.write_text(json.dumps(cost, indent=1))
+print(json.dumps({"gse": gse, "samples": len(s["samples"]),
+                  "quote_check": len(l["deepseek_quote_check"]["failed"]),
+                  "factors": [f["name"] for f in r["factors"]], "donors": len(a["donors"]), "targets": a["targets"],
                   "relations": {k: len(v) for k, v in r["relations"].items()},
-                  "live_model_calls_this_run": n1 - n0}, indent=1))
+                  "deepseek": cost["deepseek"]["dollars"], "jev": cost["jev"]["dollars"], "wall": wall}, indent=None))

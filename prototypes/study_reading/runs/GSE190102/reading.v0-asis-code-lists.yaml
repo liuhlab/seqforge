@@ -1,0 +1,1565 @@
+study:
+  series:
+  - GSE190102
+  superseries: null
+  bioproject:
+  - PRJNA798693
+  pmid:
+  - '39195281'
+  notes: 'model reading: lists drafted by code, labels by jev-1.14.0; donor key: None'
+factors:
+- name: age
+  levels:
+  - 3 months
+  - 6 months
+  - 12 months
+  - 24 months
+  baseline: 3 months
+  ordered: false
+- name: chip antibody
+  levels:
+  - H3K4me3
+  - H3K27ac
+  - None
+  baseline: None
+  ordered: false
+samples:
+- gsm: GSM5825050
+  factors:
+    age: 3 months
+    chip antibody: H3K4me3
+  biosample: B01
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825051
+  factors:
+    age: 3 months
+    chip antibody: H3K4me3
+  biosample: B02
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825052
+  factors:
+    age: 3 months
+    chip antibody: H3K4me3
+  biosample: B03
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825053
+  factors:
+    age: 3 months
+    chip antibody: H3K4me3
+  biosample: B04
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM5825054
+  factors:
+    age: 6 months
+    chip antibody: H3K4me3
+  biosample: B05
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825055
+  factors:
+    age: 6 months
+    chip antibody: H3K4me3
+  biosample: B06
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825056
+  factors:
+    age: 12 months
+    chip antibody: H3K4me3
+  biosample: B07
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825057
+  factors:
+    age: 12 months
+    chip antibody: H3K4me3
+  biosample: B08
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825058
+  factors:
+    age: 24 months
+    chip antibody: H3K4me3
+  biosample: B09
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825059
+  factors:
+    age: 24 months
+    chip antibody: H3K4me3
+  biosample: B10
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825060
+  factors:
+    age: 24 months
+    chip antibody: H3K4me3
+  biosample: B11
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825061
+  factors:
+    age: 24 months
+    chip antibody: H3K4me3
+  biosample: B12
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K4me3'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825062
+  factors:
+    age: 3 months
+    chip antibody: H3K27ac
+  biosample: B13
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825063
+  factors:
+    age: 3 months
+    chip antibody: H3K27ac
+  biosample: B14
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825064
+  factors:
+    age: 3 months
+    chip antibody: H3K27ac
+  biosample: B15
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825065
+  factors:
+    age: 3 months
+    chip antibody: H3K27ac
+  biosample: B16
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825066
+  factors:
+    age: 6 months
+    chip antibody: H3K27ac
+  biosample: B17
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825067
+  factors:
+    age: 6 months
+    chip antibody: H3K27ac
+  biosample: B18
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825068
+  factors:
+    age: 6 months
+    chip antibody: H3K27ac
+  biosample: B17
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825069
+  factors:
+    age: 12 months
+    chip antibody: H3K27ac
+  biosample: B19
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825070
+  factors:
+    age: 12 months
+    chip antibody: H3K27ac
+  biosample: B20
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825071
+  factors:
+    age: 12 months
+    chip antibody: H3K27ac
+  biosample: B21
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825072
+  factors:
+    age: 24 months
+    chip antibody: H3K27ac
+  biosample: B22
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825073
+  factors:
+    age: 24 months
+    chip antibody: H3K27ac
+  biosample: B23
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: H3K27ac'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM5825074
+  factors:
+    age: 3 months
+    chip antibody: None
+  biosample: B24
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: control
+  control_type: input
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 3 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 0.83
+- gsm: GSM5825075
+  factors:
+    age: 6 months
+    chip antibody: None
+  biosample: B25
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: control
+  control_type: input
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 6 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 0.65
+- gsm: GSM5825076
+  factors:
+    age: 12 months
+    chip antibody: None
+  biosample: B26
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: control
+  control_type: input
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 12 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 0.78
+- gsm: GSM5825077
+  factors:
+    age: 24 months
+    chip antibody: None
+  biosample: B27
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: control
+  control_type: input
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    strain:
+      text: C57/BL6
+  evidence:
+    age:
+      quote: 'age: 24 months'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 1.0
+    chip antibody: 1.0
+    assay: 1.0
+    role: 0.75
+- gsm: GSM8514837
+  factors:
+    age: 3 months
+    chip antibody: null
+  biosample: B28
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.91
+    chip antibody: 0.56
+    assay: 1.0
+    role: 1.0
+    attr:tissue: 0.99
+- gsm: GSM8514838
+  factors:
+    age: 3 months
+    chip antibody: null
+  biosample: B29
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.75
+    chip antibody: 0.55
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514839
+  factors:
+    age: 3 months
+    chip antibody: null
+  biosample: B30
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.69
+    chip antibody: 0.58
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514840
+  factors:
+    age: null
+    chip antibody: null
+  biosample: B31
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: 'age: None'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.53
+    chip antibody: 0.58
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514841
+  factors:
+    age: null
+    chip antibody: null
+  biosample: B32
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: 'age: None'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.73
+    chip antibody: 0.57
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514842
+  factors:
+    age: 12 months
+    chip antibody: null
+  biosample: B33
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.84
+    chip antibody: 0.53
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514843
+  factors:
+    age: 12 months
+    chip antibody: null
+  biosample: B34
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.91
+    chip antibody: 0.5
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514844
+  factors:
+    age: null
+    chip antibody: null
+  biosample: B35
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: 'age: None'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.63
+    chip antibody: 0.6
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514845
+  factors:
+    age: null
+    chip antibody: null
+  biosample: B36
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: 'age: None'
+      source: GSM characteristics
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.54
+    chip antibody: 0.58
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514846
+  factors:
+    age: 12 months
+    chip antibody: null
+  biosample: B37
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.65
+    chip antibody: 0.49
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514847
+  factors:
+    age: 24 months
+    chip antibody: null
+  biosample: B38
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.96
+    chip antibody: 0.52
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514848
+  factors:
+    age: 24 months
+    chip antibody: null
+  biosample: B39
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.99
+    chip antibody: 0.57
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514849
+  factors:
+    age: 24 months
+    chip antibody: null
+  biosample: B40
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.96
+    chip antibody: 0.56
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514850
+  factors:
+    age: 24 months
+    chip antibody: null
+  biosample: B41
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.93
+    chip antibody: 0.59
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+- gsm: GSM8514851
+  factors:
+    age: 24 months
+    chip antibody: null
+  biosample: B42
+  donor: null
+  assay: ChIP-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    tissue:
+      text: brain
+      id: UBERON:0000955
+    genotype:
+      text: WT
+  evidence:
+    age:
+      quote: null
+      source: unverified
+    chip antibody:
+      quote: 'chip antibody: None'
+      source: GSM characteristics
+  probability:
+    age: 0.98
+    chip antibody: 0.49
+    assay: 1.0
+    role: 0.99
+    attr:tissue: 0.99
+relations:
+  contrasts:
+  - factor: chip antibody
+    test:
+    - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+    baseline:
+    - GSM5825074
+    fixed:
+      age: 3 months
+  - factor: age
+    test:
+    - GSM5825054
+    - GSM5825055
+    baseline:
+    - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+    fixed:
+      chip antibody: H3K4me3
+  - factor: chip antibody
+    test:
+    - GSM5825054
+    - GSM5825055
+    baseline:
+    - GSM5825075
+    fixed:
+      age: 6 months
+  - factor: age
+    test:
+    - GSM5825056
+    - GSM5825057
+    baseline:
+    - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+    fixed:
+      chip antibody: H3K4me3
+  - factor: chip antibody
+    test:
+    - GSM5825056
+    - GSM5825057
+    baseline:
+    - GSM5825076
+    fixed:
+      age: 12 months
+  - factor: age
+    test:
+    - GSM5825058
+    - GSM5825059
+    - GSM5825060
+    - GSM5825061
+    baseline:
+    - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+    fixed:
+      chip antibody: H3K4me3
+  - factor: chip antibody
+    test:
+    - GSM5825058
+    - GSM5825059
+    - GSM5825060
+    - GSM5825061
+    baseline:
+    - GSM5825077
+    fixed:
+      age: 24 months
+  - factor: chip antibody
+    test:
+    - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+    baseline:
+    - GSM5825074
+    fixed:
+      age: 3 months
+  - factor: age
+    test:
+    - GSM5825066
+    - GSM5825067
+    - GSM5825068
+    baseline:
+    - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+    fixed:
+      chip antibody: H3K27ac
+  - factor: chip antibody
+    test:
+    - GSM5825066
+    - GSM5825067
+    - GSM5825068
+    baseline:
+    - GSM5825075
+    fixed:
+      age: 6 months
+  - factor: age
+    test:
+    - GSM5825069
+    - GSM5825070
+    - GSM5825071
+    baseline:
+    - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+    fixed:
+      chip antibody: H3K27ac
+  - factor: chip antibody
+    test:
+    - GSM5825069
+    - GSM5825070
+    - GSM5825071
+    baseline:
+    - GSM5825076
+    fixed:
+      age: 12 months
+  - factor: age
+    test:
+    - GSM5825072
+    - GSM5825073
+    baseline:
+    - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+    fixed:
+      chip antibody: H3K27ac
+  - factor: chip antibody
+    test:
+    - GSM5825072
+    - GSM5825073
+    baseline:
+    - GSM5825077
+    fixed:
+      age: 24 months
+  - factor: age
+    test:
+    - GSM5825075
+    baseline:
+    - GSM5825074
+    fixed:
+      chip antibody: None
+  - factor: age
+    test:
+    - GSM5825076
+    baseline:
+    - GSM5825074
+    fixed:
+      chip antibody: None
+  - factor: age
+    test:
+    - GSM5825077
+    baseline:
+    - GSM5825074
+    fixed:
+      chip antibody: None
+  - factor: chip antibody
+    test:
+    - GSM8514837
+    - GSM8514838
+    - GSM8514839
+    baseline:
+    - GSM5825074
+    fixed:
+      age: 3 months
+  - factor: age
+    test:
+    - GSM8514840
+    - GSM8514841
+    - GSM8514844
+    - GSM8514845
+    baseline:
+    - GSM8514837
+    - GSM8514838
+    - GSM8514839
+    fixed:
+      chip antibody: null
+  - factor: chip antibody
+    test:
+    - GSM8514842
+    - GSM8514843
+    - GSM8514846
+    baseline:
+    - GSM5825076
+    fixed:
+      age: 12 months
+  - factor: age
+    test:
+    - GSM8514842
+    - GSM8514843
+    - GSM8514846
+    baseline:
+    - GSM8514837
+    - GSM8514838
+    - GSM8514839
+    fixed:
+      chip antibody: null
+  - factor: chip antibody
+    test:
+    - GSM8514847
+    - GSM8514848
+    - GSM8514849
+    - GSM8514850
+    - GSM8514851
+    baseline:
+    - GSM5825077
+    fixed:
+      age: 24 months
+  - factor: age
+    test:
+    - GSM8514847
+    - GSM8514848
+    - GSM8514849
+    - GSM8514850
+    - GSM8514851
+    baseline:
+    - GSM8514837
+    - GSM8514838
+    - GSM8514839
+    fixed:
+      chip antibody: null
+  replicates:
+  - - GSM5825050
+    - GSM5825051
+    - GSM5825052
+    - GSM5825053
+  - - GSM5825054
+    - GSM5825055
+  - - GSM5825056
+    - GSM5825057
+  - - GSM5825058
+    - GSM5825059
+    - GSM5825060
+    - GSM5825061
+  - - GSM5825062
+    - GSM5825063
+    - GSM5825064
+    - GSM5825065
+  - - GSM5825066
+    - GSM5825067
+    - GSM5825068
+  - - GSM5825069
+    - GSM5825070
+    - GSM5825071
+  - - GSM5825072
+    - GSM5825073
+  - - GSM8514837
+    - GSM8514838
+    - GSM8514839
+  - - GSM8514840
+    - GSM8514841
+    - GSM8514844
+    - GSM8514845
+  - - GSM8514842
+    - GSM8514843
+    - GSM8514846
+  - - GSM8514847
+    - GSM8514848
+    - GSM8514849
+    - GSM8514850
+    - GSM8514851
+  series: []
+  co_measurement:
+  - - GSM5825066
+    - GSM5825068
+  background_control: []

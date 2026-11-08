@@ -1,0 +1,3503 @@
+{
+ "gse": "GSE190102",
+ "reading": "reading.v1.yaml",
+ "samples": {
+  "gold": 43,
+  "model": 43,
+  "both": 43
+ },
+ "study": {
+  "series": {
+   "gold": [
+    "GSE190102"
+   ],
+   "model": [
+    "GSE190102"
+   ],
+   "equal": true
+  },
+  "superseries": {
+   "gold": null,
+   "model": null,
+   "equal": true
+  },
+  "bioproject": {
+   "gold": [
+    "PRJNA798693"
+   ],
+   "model": [
+    "PRJNA798693"
+   ],
+   "equal": true
+  },
+  "pmid": {
+   "gold": [
+    "39195281"
+   ],
+   "model": [
+    "39195281"
+   ],
+   "equal": true
+  }
+ },
+ "factors": {
+  "per_gold_factor": [
+   {
+    "gold": "age",
+    "model": "age",
+    "level_map": {
+     "3 months": "3 months",
+     "6 months": "6 months",
+     "12 months": "12 months",
+     "24 months": "24 months"
+    },
+    "levels_equal": true,
+    "baseline_equal": true,
+    "ordered_equal": true,
+    "probability": {
+     "role": 1.0,
+     "baseline": 1.0
+    }
+   }
+  ],
+  "missing": [],
+  "extra_model_factors": []
+ },
+ "fields": {
+  "factor:age": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "donor": {
+   "right": 42,
+   "wrong": 0,
+   "unsure_right": 1,
+   "unsure_wrong": 0
+  },
+  "biosample": {
+   "right": 28,
+   "wrong": 0,
+   "unsure_right": 15,
+   "unsure_wrong": 0
+  },
+  "assay": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "target": {
+   "right": 42,
+   "wrong": 1,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "role": {
+   "right": 42,
+   "wrong": 1,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "control_type": {
+   "right": 42,
+   "wrong": 1,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:species": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:species": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:strain": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:sex": {
+   "right": 0,
+   "wrong": 43,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:tissue": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:tissue": {
+   "right": 15,
+   "wrong": 28,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:cell_type": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:cell_type": {
+   "right": 0,
+   "wrong": 43,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:sample_type": {
+   "right": 0,
+   "wrong": 43,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:genotype": {
+   "right": 43,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  }
+ },
+ "relations": {
+  "contrasts": {
+   "model": 8,
+   "gold": 8,
+   "match": 7,
+   "precision": 0.875,
+   "recall": 0.875
+  },
+  "replicates": {
+   "model": 12,
+   "gold": 11,
+   "match": 10,
+   "precision": 0.833,
+   "recall": 0.909
+  },
+  "series": {
+   "model": 3,
+   "gold": 4,
+   "match": 2,
+   "precision": 0.667,
+   "recall": 0.5
+  },
+  "co_measurement_groups": {
+   "model": 14,
+   "gold": 14,
+   "match": 14,
+   "precision": 1.0,
+   "recall": 1.0
+  },
+  "co_measurement_pairs": {
+   "model": 35,
+   "gold": 35,
+   "match": 35,
+   "precision": 1.0,
+   "recall": 1.0
+  },
+  "co_measurement_pairs_settled": {
+   "model": 13,
+   "gold": 13,
+   "match": 13,
+   "precision": 1.0,
+   "recall": 1.0
+  },
+  "co_measurement_pairs_claimed_among_unsure": 22,
+  "background_control": {
+   "model": 47,
+   "gold": 39,
+   "match": 38,
+   "precision": 0.809,
+   "recall": 0.974
+  },
+  "donor_pairs": {
+   "model": 35,
+   "gold": 35,
+   "match": 35,
+   "precision": 1.0,
+   "recall": 1.0
+  }
+ },
+ "errors": [
+  {
+   "gsm": "GSM5825050",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825050",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825052",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825053",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825054",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825055",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825056",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825057",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825058",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825059",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825060",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825061",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825062",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825063",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825064",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825065",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825066",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825067",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825068",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825069",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825070",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825071",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825072",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825073",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825074",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825075",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825076",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "attr_id:tissue",
+   "model": null,
+   "gold": "UBERON:0001890",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825077",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514837",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514838",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514838",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514838",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514839",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514840",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514841",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514842",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "target",
+   "model": null,
+   "gold": "H3K27me3",
+   "p": 0.55,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "role",
+   "model": "control",
+   "gold": "signal",
+   "p": 0.56,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "control_type",
+   "model": "input",
+   "gold": null,
+   "p": 0.98,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514843",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514844",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514845",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514846",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514846",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514846",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514847",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514848",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514849",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514850",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514851",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514851",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM8514851",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "tissue",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM5825051|GSM8514841",
+   "field": "biosample_pair",
+   "model": 0.5,
+   "gold": true,
+   "p": 0.5,
+   "unsure": true
+  },
+  {
+   "gsm": "GSM5825062|GSM8514837",
+   "field": "biosample_pair",
+   "model": 0.49,
+   "gold": true,
+   "p": 0.49,
+   "unsure": true
+  }
+ ],
+ "calibration": [
+  {
+   "gse": "GSE190102",
+   "field": "study:factor_role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "study:baseline",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.81,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.74,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.87,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.8,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.95,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.55,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.82,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.91,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.68,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.87,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.92,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.82,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "control_type",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.97,
+   "correct": true,
+   "unsure": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "control_type",
+   "p": 0.98,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.98,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "control_type",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.75,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.65,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "control_type",
+   "p": 0.81,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.71,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.98,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.98,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.82,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.8,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.86,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.94,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.92,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.95,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.55,
+   "correct": false,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.56,
+   "correct": false,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "control_type",
+   "p": 0.98,
+   "correct": false,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.98,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.92,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.9,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.9,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.85,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.91,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.94,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.92,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.84,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.93,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 0.89,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 0.9,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "factor:age",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "donor",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "target",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "attr:tissue",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.85,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.85,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.55,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.55,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.87,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.87,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.5,
+   "correct": false,
+   "unsure": true,
+   "p_yes": 0.5,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.86,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.86,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.55,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.55,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.83,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.83,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.87,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.87,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.6,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.6,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.87,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.87,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.84,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.84,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.87,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.87,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.63,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.63,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.88,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.88,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.63,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.63,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.89,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.89,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.63,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.63,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.62,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.62,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.86,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.86,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.59,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.59,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.9,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.9,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.62,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.62,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.51,
+   "correct": false,
+   "unsure": true,
+   "p_yes": 0.49,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.84,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.84,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.62,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.62,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.54,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.54,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.55,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.55,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.61,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.61,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.64,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.64,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.58,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.58,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.61,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.61,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.63,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.63,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.64,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.64,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.58,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.58,
+   "gold_same": true
+  },
+  {
+   "gse": "GSE190102",
+   "field": "biosample_pair",
+   "p": 0.6,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.6,
+   "gold_same": true
+  }
+ ]
+}

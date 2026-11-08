@@ -1,0 +1,1495 @@
+study:
+  series:
+  - GSE164798
+  superseries: null
+  bioproject:
+  - PRJNA691970
+  pmid:
+  - '33804749'
+  notes: 'model reading: lists by DeepSeek (deepseek-flash), labels by jev-1.14.0; donors listed 0, targets listed 0'
+factors:
+- name: genotype
+  levels:
+  - wild-type
+  - 5xFAD
+  baseline: wild-type
+  ordered: false
+  probability:
+    role: 1.0
+    baseline: 0.96
+- name: training duration
+  levels:
+  - sedentary
+  - acute
+  - chronic
+  baseline: sedentary
+  ordered: false
+  probability:
+    role: 1.0
+    baseline: 0.96
+samples:
+- gsm: GSM5019734
+  title: Brain WT sedentary - rep 1
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: sedentary
+  biosample: B01
+  donor: D01
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: untreated
+      source: GSM characteristics
+    treatment synonym:
+      text: sedentary
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019735
+  title: Brain WT sedentary - rep 2
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: sedentary
+  biosample: B02
+  donor: D02
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: untreated
+      source: GSM characteristics
+    treatment synonym:
+      text: sedentary
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019736
+  title: Brain WT sedentary - rep 3
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: sedentary
+  biosample: B03
+  donor: D03
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: untreated
+      source: GSM characteristics
+    treatment synonym:
+      text: sedentary
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019737
+  title: Brain WT sedentary - rep 4
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: sedentary
+  biosample: B04
+  donor: D04
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: untreated
+      source: GSM characteristics
+    treatment synonym:
+      text: sedentary
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019738
+  title: Brain WT chronic - rep 1
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: chronic
+  biosample: B05
+  donor: D05
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: 30 days voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: chronic
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019739
+  title: Brain WT chronic - rep 2
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: chronic
+  biosample: B06
+  donor: D06
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: 30 days voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: chronic
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019740
+  title: Brain WT chronic - rep 3
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: chronic
+  biosample: B07
+  donor: D07
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: 30 days voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: chronic
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019741
+  title: Brain WT chronic - rep 4
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: chronic
+  biosample: B08
+  donor: D08
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: 30 days voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: chronic
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019742
+  title: Brain WT acute - rep 1
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: acute
+  biosample: B09
+  donor: D09
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: one day voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: acute
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019743
+  title: Brain WT acute - rep 2
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: acute
+  biosample: B10
+  donor: D10
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: one day voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: acute
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019744
+  title: Brain WT acute - rep 3
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: acute
+  biosample: B11
+  donor: D11
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: one day voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: acute
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019745
+  title: Brain WT acute - rep 4
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: wild-type
+    training duration: acute
+  biosample: B12
+  donor: D12
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: C57BL/6
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: one day voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: acute
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: wild-type'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019746
+  title: Brain 5xFAD sedentary - rep 1
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: sedentary
+  biosample: B13
+  donor: D13
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: untreated
+      source: GSM characteristics
+    treatment synonym:
+      text: sedentary
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019747
+  title: Brain 5xFAD sedentary - rep 2
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: sedentary
+  biosample: B14
+  donor: D14
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: untreated
+      source: GSM characteristics
+    treatment synonym:
+      text: sedentary
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019748
+  title: Brain 5xFAD sedentary - rep 3
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: sedentary
+  biosample: B15
+  donor: D15
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: untreated
+      source: GSM characteristics
+    treatment synonym:
+      text: sedentary
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019749
+  title: Brain 5xFAD sedentary - rep 4
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: sedentary
+  biosample: B16
+  donor: D16
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: untreated
+      source: GSM characteristics
+    treatment synonym:
+      text: sedentary
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: sedentary'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019750
+  title: Brain 5xFAD chronic - rep 1
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: chronic
+  biosample: B17
+  donor: D17
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: 30 days voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: chronic
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019751
+  title: Brain 5xFAD chronic - rep 2
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: chronic
+  biosample: B18
+  donor: D18
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: 30 days voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: chronic
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019752
+  title: Brain 5xFAD chronic - rep 3
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: chronic
+  biosample: B19
+  donor: D19
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: 30 days voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: chronic
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019753
+  title: Brain 5xFAD chronic - rep 4
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: chronic
+  biosample: B20
+  donor: D20
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: 30 days voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: chronic
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: chronic'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019754
+  title: Brain 5xFAD acute - rep 1
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: acute
+  biosample: B21
+  donor: D21
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: one day voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: acute
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019755
+  title: Brain 5xFAD acute - rep 2
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: acute
+  biosample: B22
+  donor: D22
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: one day voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: acute
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019756
+  title: Brain 5xFAD acute - rep 3
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: acute
+  biosample: B23
+  donor: D23
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: one day voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: acute
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+- gsm: GSM5019757
+  title: Brain 5xFAD acute - rep 4
+  unsure: []
+  series:
+  - GSE164798
+  factors:
+    genotype: 5xFAD
+    training duration: acute
+  biosample: B24
+  donor: D24
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Mus musculus
+      id: NCBITaxon:10090
+    sample_type:
+      text: tissue
+      source: Jev study question
+    strain:
+      text: 5xFAD (C57BL/6)
+      source: GSM characteristics
+    tissue:
+      text: right hemisphere
+      source: GSM characteristics
+      id: UBERON:0002813
+    age:
+      text: 3 months
+      source: GSM characteristics
+    Sex:
+      text: male
+      source: GSM characteristics
+      id: PATO:0000384
+    treatment:
+      text: one day voluntary saucer wheel running
+      source: GSM characteristics
+    treatment synonym:
+      text: acute
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'strain: 5xFAD (C57BL/6)'
+      source: GSM characteristics
+    training duration:
+      quote: 'treatment synonym: acute'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    training duration: 1.0
+    assay: 1.0
+    role: 1.0
+    attr:sample_type: 1.0
+    attr_id:tissue: 0.99
+    donor_study: 0.93
+relations:
+  contrasts:
+  - factor: training duration
+    test:
+    - GSM5019738
+    - GSM5019739
+    - GSM5019740
+    - GSM5019741
+    baseline:
+    - GSM5019734
+    - GSM5019735
+    - GSM5019736
+    - GSM5019737
+    fixed:
+      genotype: wild-type
+  - factor: training duration
+    test:
+    - GSM5019742
+    - GSM5019743
+    - GSM5019744
+    - GSM5019745
+    baseline:
+    - GSM5019734
+    - GSM5019735
+    - GSM5019736
+    - GSM5019737
+    fixed:
+      genotype: wild-type
+  - factor: genotype
+    test:
+    - GSM5019746
+    - GSM5019747
+    - GSM5019748
+    - GSM5019749
+    baseline:
+    - GSM5019734
+    - GSM5019735
+    - GSM5019736
+    - GSM5019737
+    fixed:
+      training duration: sedentary
+  - factor: genotype
+    test:
+    - GSM5019750
+    - GSM5019751
+    - GSM5019752
+    - GSM5019753
+    baseline:
+    - GSM5019738
+    - GSM5019739
+    - GSM5019740
+    - GSM5019741
+    fixed:
+      training duration: chronic
+  - factor: training duration
+    test:
+    - GSM5019750
+    - GSM5019751
+    - GSM5019752
+    - GSM5019753
+    baseline:
+    - GSM5019746
+    - GSM5019747
+    - GSM5019748
+    - GSM5019749
+    fixed:
+      genotype: 5xFAD
+  - factor: genotype
+    test:
+    - GSM5019754
+    - GSM5019755
+    - GSM5019756
+    - GSM5019757
+    baseline:
+    - GSM5019742
+    - GSM5019743
+    - GSM5019744
+    - GSM5019745
+    fixed:
+      training duration: acute
+  - factor: training duration
+    test:
+    - GSM5019754
+    - GSM5019755
+    - GSM5019756
+    - GSM5019757
+    baseline:
+    - GSM5019746
+    - GSM5019747
+    - GSM5019748
+    - GSM5019749
+    fixed:
+      genotype: 5xFAD
+  replicates:
+  - - GSM5019734
+    - GSM5019735
+    - GSM5019736
+    - GSM5019737
+  - - GSM5019738
+    - GSM5019739
+    - GSM5019740
+    - GSM5019741
+  - - GSM5019742
+    - GSM5019743
+    - GSM5019744
+    - GSM5019745
+  - - GSM5019746
+    - GSM5019747
+    - GSM5019748
+    - GSM5019749
+  - - GSM5019750
+    - GSM5019751
+    - GSM5019752
+    - GSM5019753
+  - - GSM5019754
+    - GSM5019755
+    - GSM5019756
+    - GSM5019757
+  series: []
+  co_measurement: []
+  background_control: []

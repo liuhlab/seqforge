@@ -1,0 +1,1347 @@
+{
+ "keys": {
+  "genotype": [
+   "WT",
+   "APP_V717I",
+   "PSEN1_A79V",
+   "PSEN2_N141I"
+  ]
+ },
+ "study": {
+  "role_0": {
+   "type": "choice",
+   "choice": "designed_factor",
+   "confidence": 1.0,
+   "probabilities": {
+    "designed_factor": 1.0,
+    "donor": 0.0,
+    "other": 0.0
+   }
+  },
+  "baseline_0": {
+   "type": "choice",
+   "choice": "WT",
+   "confidence": 1.0,
+   "probabilities": {
+    "WT": 1.0,
+    "APP_V717I": 0.0,
+    "PSEN1_A79V": 0.0,
+    "PSEN2_N141I": 0.0
+   }
+  }
+ },
+ "onto": {},
+ "samples": {
+  "GSM6257296": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.91,
+    "probabilities": {
+     "input": 0.07,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.93
+    }
+   }
+  },
+  "GSM6257297": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.91,
+    "probabilities": {
+     "input": 0.07,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.93
+    }
+   }
+  },
+  "GSM6257298": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.91,
+    "probabilities": {
+     "input": 0.07,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.93
+    }
+   }
+  },
+  "GSM6257299": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.81,
+    "probabilities": {
+     "input": 0.14,
+     "IgG": 0.0,
+     "non-targeting": 0.01,
+     "size-matched input": 0.0,
+     "other": 0.85
+    }
+   }
+  },
+  "GSM6257300": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.81,
+    "probabilities": {
+     "input": 0.14,
+     "IgG": 0.01,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.85
+    }
+   }
+  },
+  "GSM6257301": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.77,
+    "probabilities": {
+     "input": 0.17,
+     "IgG": 0.01,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.82
+    }
+   }
+  },
+  "GSM6257302": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.77,
+    "probabilities": {
+     "input": 0.18,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.82
+    }
+   }
+  },
+  "GSM6257303": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.79,
+    "probabilities": {
+     "input": 0.17,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.83
+    }
+   }
+  },
+  "GSM6257304": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.8,
+    "probabilities": {
+     "input": 0.16,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.84
+    }
+   }
+  },
+  "GSM6257305": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.81,
+    "probabilities": {
+     "input": 0.15,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.85
+    }
+   }
+  },
+  "GSM6257306": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.84,
+    "probabilities": {
+     "input": 0.13,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.87
+    }
+   }
+  },
+  "GSM6257307": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "ATAC-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 0.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 1.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.82,
+    "probabilities": {
+     "input": 0.14,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.86
+    }
+   }
+  },
+  "GSM6257605": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM6257606": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM6257607": {
+   "level_0": {
+    "type": "choice",
+    "choice": "WT",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 1.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM6257608": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM6257609": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM6257610": {
+   "level_0": {
+    "type": "choice",
+    "choice": "APP_V717I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 1.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM6257611": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM6257612": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.98,
+    "probabilities": {
+     "input": 0.02,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.98
+    }
+   }
+  },
+  "GSM6257613": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN1_A79V",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 1.0,
+     "PSEN2_N141I": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.98,
+    "probabilities": {
+     "input": 0.02,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.98
+    }
+   }
+  },
+  "GSM6257614": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM6257615": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM6257616": {
+   "level_0": {
+    "type": "choice",
+    "choice": "PSEN2_N141I",
+    "confidence": 1.0,
+    "probabilities": {
+     "WT": 0.0,
+     "APP_V717I": 0.0,
+     "PSEN1_A79V": 0.0,
+     "PSEN2_N141I": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  }
+ },
+ "biosample_pairs": {
+  "GSM6257296|GSM6257297": 0.23,
+  "GSM6257296|GSM6257298": 0.17,
+  "GSM6257296|GSM6257605": 0.57,
+  "GSM6257296|GSM6257606": 0.39,
+  "GSM6257296|GSM6257607": 0.35,
+  "GSM6257297|GSM6257298": 0.19,
+  "GSM6257297|GSM6257605": 0.41,
+  "GSM6257297|GSM6257606": 0.56,
+  "GSM6257297|GSM6257607": 0.47,
+  "GSM6257298|GSM6257605": 0.36,
+  "GSM6257298|GSM6257606": 0.4,
+  "GSM6257298|GSM6257607": 0.59,
+  "GSM6257605|GSM6257606": 0.18,
+  "GSM6257605|GSM6257607": 0.14,
+  "GSM6257606|GSM6257607": 0.16,
+  "GSM6257299|GSM6257300": 0.16,
+  "GSM6257299|GSM6257301": 0.12,
+  "GSM6257299|GSM6257608": 0.51,
+  "GSM6257299|GSM6257609": 0.35,
+  "GSM6257299|GSM6257610": 0.25,
+  "GSM6257300|GSM6257301": 0.14,
+  "GSM6257300|GSM6257608": 0.31,
+  "GSM6257300|GSM6257609": 0.49,
+  "GSM6257300|GSM6257610": 0.3,
+  "GSM6257301|GSM6257608": 0.29,
+  "GSM6257301|GSM6257609": 0.29,
+  "GSM6257301|GSM6257610": 0.49,
+  "GSM6257608|GSM6257609": 0.14,
+  "GSM6257608|GSM6257610": 0.11,
+  "GSM6257609|GSM6257610": 0.13,
+  "GSM6257302|GSM6257303": 0.19,
+  "GSM6257302|GSM6257304": 0.15,
+  "GSM6257302|GSM6257611": 0.55,
+  "GSM6257302|GSM6257612": 0.33,
+  "GSM6257302|GSM6257613": 0.31,
+  "GSM6257303|GSM6257304": 0.14,
+  "GSM6257303|GSM6257611": 0.38,
+  "GSM6257303|GSM6257612": 0.58,
+  "GSM6257303|GSM6257613": 0.33,
+  "GSM6257304|GSM6257611": 0.32,
+  "GSM6257304|GSM6257612": 0.3,
+  "GSM6257304|GSM6257613": 0.63,
+  "GSM6257611|GSM6257612": 0.2,
+  "GSM6257611|GSM6257613": 0.13,
+  "GSM6257612|GSM6257613": 0.11,
+  "GSM6257305|GSM6257306": 0.2,
+  "GSM6257305|GSM6257307": 0.19,
+  "GSM6257305|GSM6257614": 0.57,
+  "GSM6257305|GSM6257615": 0.34,
+  "GSM6257305|GSM6257616": 0.33,
+  "GSM6257306|GSM6257307": 0.17,
+  "GSM6257306|GSM6257614": 0.36,
+  "GSM6257306|GSM6257615": 0.56,
+  "GSM6257306|GSM6257616": 0.29,
+  "GSM6257307|GSM6257614": 0.28,
+  "GSM6257307|GSM6257615": 0.29,
+  "GSM6257307|GSM6257616": 0.59,
+  "GSM6257614|GSM6257615": 0.22,
+  "GSM6257614|GSM6257616": 0.17,
+  "GSM6257615|GSM6257616": 0.16
+ },
+ "n_requests": 85
+}

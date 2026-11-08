@@ -1,0 +1,39 @@
+{
+ "gse": "GSE190102",
+ "label": "v3",
+ "samples": 43,
+ "deepseek": {
+  "calls": 1,
+  "live_calls": 0,
+  "questions": 0,
+  "tokens_in": 8455,
+  "tokens_out": 684,
+  "dollars": 0.00324,
+  "seconds_sum_of_calls": 3.21,
+  "by_tag": {
+   "writer": 1
+  }
+ },
+ "jev": {
+  "calls": 125,
+  "live_calls": 46,
+  "questions": 346,
+  "tokens_in": 227250,
+  "tokens_out": 28831,
+  "dollars": 0.00954,
+  "seconds_sum_of_calls": 31.71,
+  "by_tag": {
+   "biosample_pair": 35,
+   "reask": 46,
+   "sample": 43,
+   "study": 1
+  }
+ },
+ "wall_seconds_this_process": {
+  "fetch": 0.01,
+  "deepseek_lists": 0.02,
+  "jev_questions": 2.42,
+  "derive": 0.052
+ },
+ "note": "seconds_sum_of_calls is each call's own latency from the first (live) run, cached or not; Jev requests ran 8 at a time, so its wall time is shorter than the sum"
+}

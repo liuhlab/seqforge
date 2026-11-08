@@ -1,0 +1,1591 @@
+{
+ "keys": {
+  "genotype": [
+   "wild-type",
+   "5xFAD"
+  ],
+  "treatment": [
+   "sedentary",
+   "chronic",
+   "acute"
+  ]
+ },
+ "study": {
+  "role_0": {
+   "type": "choice",
+   "choice": "designed_factor",
+   "confidence": 1.0,
+   "probabilities": {
+    "designed_factor": 1.0,
+    "donor": 0.0,
+    "other": 0.0
+   }
+  },
+  "baseline_0": {
+   "type": "choice",
+   "choice": "wild-type",
+   "confidence": 0.92,
+   "probabilities": {
+    "wild-type": 0.96,
+    "5xFAD": 0.04
+   }
+  },
+  "role_1": {
+   "type": "choice",
+   "choice": "designed_factor",
+   "confidence": 1.0,
+   "probabilities": {
+    "designed_factor": 1.0,
+    "donor": 0.0,
+    "other": 0.0
+   }
+  },
+  "baseline_1": {
+   "type": "choice",
+   "choice": "sedentary",
+   "confidence": 1.0,
+   "probabilities": {
+    "sedentary": 1.0,
+    "chronic": 0.0,
+    "acute": 0.0
+   }
+  },
+  "onto_0": {
+   "type": "choice",
+   "choice": "UBERON:0002813",
+   "confidence": 0.98,
+   "probabilities": {
+    "UBERON:0002813": 0.98,
+    "UBERON:0014890": 0.0,
+    "UBERON:0006847": 0.0,
+    "UBERON:0002803": 0.0,
+    "UBERON:0002805": 0.0,
+    "UBERON:0002807": 0.0,
+    "UBERON:0002809": 0.0,
+    "UBERON:0002810": 0.0,
+    "none": 0.02
+   }
+  }
+ },
+ "onto": {
+  "onto_0": {
+   "attr": "tissue",
+   "text": "right hemisphere",
+   "candidates": {
+    "UBERON:0002813": "right cerebral hemisphere",
+    "UBERON:0014890": "right hemisphere of cerebellum",
+    "UBERON:0006847": "cerebellar commissure",
+    "UBERON:0002803": "right parietal lobe",
+    "UBERON:0002805": "right limbic lobe",
+    "UBERON:0002807": "right occipital lobe",
+    "UBERON:0002809": "right temporal lobe",
+    "UBERON:0002810": "right frontal lobe"
+   }
+  }
+ },
+ "samples": {
+  "GSM5019734": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "sedentary",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 1.0,
+     "chronic": 0.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.03,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.97
+    }
+   }
+  },
+  "GSM5019735": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "sedentary",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 1.0,
+     "chronic": 0.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.98,
+    "probabilities": {
+     "input": 0.02,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.98
+    }
+   }
+  },
+  "GSM5019736": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "sedentary",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 1.0,
+     "chronic": 0.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.96,
+    "probabilities": {
+     "input": 0.03,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.97
+    }
+   }
+  },
+  "GSM5019737": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "sedentary",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 1.0,
+     "chronic": 0.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.98,
+    "probabilities": {
+     "input": 0.02,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.98
+    }
+   }
+  },
+  "GSM5019738": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "chronic",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 1.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019739": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "chronic",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 1.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM5019740": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "chronic",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 1.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019741": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "chronic",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 1.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM5019742": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "acute",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 0.0,
+     "acute": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019743": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "acute",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 0.0,
+     "acute": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019744": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "acute",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 0.0,
+     "acute": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM5019745": {
+   "level_0": {
+    "type": "choice",
+    "choice": "wild-type",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 1.0,
+     "5xFAD": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "acute",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 0.0,
+     "acute": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019746": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "sedentary",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 1.0,
+     "chronic": 0.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM5019747": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "sedentary",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 1.0,
+     "chronic": 0.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM5019748": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "sedentary",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 1.0,
+     "chronic": 0.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM5019749": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "sedentary",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 1.0,
+     "chronic": 0.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 1.0,
+    "probabilities": {
+     "signal": 1.0,
+     "control": 0.0
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM5019750": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "chronic",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 1.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019751": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "chronic",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 1.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM5019752": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "chronic",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 1.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019753": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "chronic",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 1.0,
+     "acute": 0.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  },
+  "GSM5019754": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "acute",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 0.0,
+     "acute": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019755": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "acute",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 0.0,
+     "acute": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019756": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "acute",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 0.0,
+     "acute": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 1.0,
+    "probabilities": {
+     "input": 0.0,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 1.0
+    }
+   }
+  },
+  "GSM5019757": {
+   "level_0": {
+    "type": "choice",
+    "choice": "5xFAD",
+    "confidence": 1.0,
+    "probabilities": {
+     "wild-type": 0.0,
+     "5xFAD": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "level_1": {
+    "type": "choice",
+    "choice": "acute",
+    "confidence": 1.0,
+    "probabilities": {
+     "sedentary": 0.0,
+     "chronic": 0.0,
+     "acute": 1.0,
+     "not_stated": 0.0
+    }
+   },
+   "assay": {
+    "type": "choice",
+    "choice": "RNA-seq",
+    "confidence": 1.0,
+    "probabilities": {
+     "RNA-seq": 1.0,
+     "ChIP-seq": 0.0,
+     "ATAC-seq": 0.0,
+     "CUT&RUN": 0.0,
+     "CUT&Tag": 0.0,
+     "scRNA-seq": 0.0,
+     "CRISPR screen": 0.0,
+     "CLIP": 0.0,
+     "Ribo-seq": 0.0,
+     "other": 0.0
+    }
+   },
+   "role": {
+    "type": "choice",
+    "choice": "signal",
+    "confidence": 0.98,
+    "probabilities": {
+     "signal": 0.99,
+     "control": 0.01
+    }
+   },
+   "control_type": {
+    "type": "choice",
+    "choice": "other",
+    "confidence": 0.99,
+    "probabilities": {
+     "input": 0.01,
+     "IgG": 0.0,
+     "non-targeting": 0.0,
+     "size-matched input": 0.0,
+     "other": 0.99
+    }
+   }
+  }
+ },
+ "biosample_pairs": {
+  "GSM5019734|GSM5019735": 0.13,
+  "GSM5019734|GSM5019736": 0.09,
+  "GSM5019734|GSM5019737": 0.07,
+  "GSM5019735|GSM5019736": 0.09,
+  "GSM5019735|GSM5019737": 0.08,
+  "GSM5019736|GSM5019737": 0.11,
+  "GSM5019738|GSM5019739": 0.08,
+  "GSM5019738|GSM5019740": 0.07,
+  "GSM5019738|GSM5019741": 0.06,
+  "GSM5019739|GSM5019740": 0.07,
+  "GSM5019739|GSM5019741": 0.07,
+  "GSM5019740|GSM5019741": 0.07,
+  "GSM5019742|GSM5019743": 0.08,
+  "GSM5019742|GSM5019744": 0.07,
+  "GSM5019742|GSM5019745": 0.07,
+  "GSM5019743|GSM5019744": 0.09,
+  "GSM5019743|GSM5019745": 0.08,
+  "GSM5019744|GSM5019745": 0.07,
+  "GSM5019746|GSM5019747": 0.1,
+  "GSM5019746|GSM5019748": 0.09,
+  "GSM5019746|GSM5019749": 0.06,
+  "GSM5019747|GSM5019748": 0.08,
+  "GSM5019747|GSM5019749": 0.08,
+  "GSM5019748|GSM5019749": 0.07,
+  "GSM5019750|GSM5019751": 0.08,
+  "GSM5019750|GSM5019752": 0.06,
+  "GSM5019750|GSM5019753": 0.05,
+  "GSM5019751|GSM5019752": 0.06,
+  "GSM5019751|GSM5019753": 0.06,
+  "GSM5019752|GSM5019753": 0.07,
+  "GSM5019754|GSM5019755": 0.09,
+  "GSM5019754|GSM5019756": 0.06,
+  "GSM5019754|GSM5019757": 0.06,
+  "GSM5019755|GSM5019756": 0.06,
+  "GSM5019755|GSM5019757": 0.07,
+  "GSM5019756|GSM5019757": 0.07
+ },
+ "n_requests": 61
+}

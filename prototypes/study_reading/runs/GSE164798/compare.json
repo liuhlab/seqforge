@@ -1,0 +1,1278 @@
+{
+ "gse": "GSE164798",
+ "reading": "reading.yaml",
+ "samples": {
+  "gold": 24,
+  "model": 24,
+  "both": 24
+ },
+ "study": {
+  "series": {
+   "gold": [
+    "GSE164798"
+   ],
+   "model": [
+    "GSE164798"
+   ],
+   "equal": true
+  },
+  "superseries": {
+   "gold": null,
+   "model": null,
+   "equal": true
+  },
+  "bioproject": {
+   "gold": [
+    "PRJNA691970"
+   ],
+   "model": [
+    "PRJNA691970"
+   ],
+   "equal": true
+  },
+  "pmid": {
+   "gold": [
+    "33804749"
+   ],
+   "model": [
+    "33804749"
+   ],
+   "equal": true
+  }
+ },
+ "factors": {
+  "per_gold_factor": [
+   {
+    "gold": "genotype",
+    "model": "genotype",
+    "level_map": {
+     "wild-type": "WT",
+     "5xFAD": "5xFAD"
+    },
+    "levels_equal": true,
+    "baseline_equal": true,
+    "ordered_equal": true,
+    "probability": {
+     "role": 1.0,
+     "baseline": 0.96
+    }
+   },
+   {
+    "gold": "treatment",
+    "model": "training duration",
+    "level_map": {
+     "sedentary": "sedentary",
+     "chronic": "chronic",
+     "acute": "acute"
+    },
+    "levels_equal": true,
+    "baseline_equal": true,
+    "ordered_equal": true,
+    "probability": {
+     "role": 1.0,
+     "baseline": 0.96
+    }
+   }
+  ],
+  "missing": [],
+  "extra_model_factors": []
+ },
+ "fields": {
+  "factor:genotype": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "factor:treatment": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "donor": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "biosample": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "assay": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "target": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "role": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "control_type": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:species": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:species": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:strain": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:sex": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:sex": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:age": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:tissue": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:sample_type": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  }
+ },
+ "relations": {
+  "contrasts": {
+   "model": 7,
+   "gold": 7,
+   "match": 7,
+   "precision": 1.0,
+   "recall": 1.0
+  },
+  "replicates": {
+   "model": 6,
+   "gold": 6,
+   "match": 6,
+   "precision": 1.0,
+   "recall": 1.0
+  },
+  "series": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "co_measurement_groups": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "co_measurement_pairs": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "co_measurement_pairs_settled": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "co_measurement_pairs_claimed_among_unsure": 0,
+  "background_control": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "donor_pairs": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  }
+ },
+ "errors": [],
+ "calibration": [
+  {
+   "gse": "GSE164798",
+   "field": "study:factor_role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "study:baseline",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "study:factor_role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "study:baseline",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "factor:treatment",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "study:donor",
+   "p": 0.93,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "study:attr:sample_type",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.95,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.05,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.04,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.04,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.04,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.04,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.04,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.04,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.98,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.02,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.04,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.04,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.96,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.04,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE164798",
+   "field": "biosample_pair",
+   "p": 0.97,
+   "correct": true,
+   "unsure": false,
+   "p_yes": 0.03,
+   "gold_same": false
+  }
+ ]
+}

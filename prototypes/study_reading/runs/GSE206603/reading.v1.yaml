@@ -1,0 +1,944 @@
+study:
+  series:
+  - GSE206603
+  - GSE206588
+  - GSE206602
+  superseries: GSE206603
+  bioproject:
+  - PRJNA851435
+  - PRJNA851439
+  - PRJNA851445
+  pmid:
+  - '39754192'
+  notes: 'model reading: lists by DeepSeek (deepseek-flash), labels by jev-1.14.0; donors listed 0, targets listed 0'
+factors:
+- name: genotype
+  levels:
+  - WT
+  - APP_V717I
+  - PSEN1_A79V
+  - PSEN2_N141I
+  baseline: WT
+  ordered: false
+  probability:
+    role: 1.0
+    baseline: 1.0
+samples:
+- gsm: GSM6257296
+  title: NDC replicate 1 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: WT
+  biosample: B01
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Non-demented Control
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE2/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257297
+  title: NDC replicate 2 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: WT
+  biosample: B02
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Non-demented Control
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE2/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257298
+  title: NDC replicate 3 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: WT
+  biosample: B03
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Non-demented Control
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE2/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257299
+  title: APP-V717I replicate 1 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: APP_V717I
+  biosample: B04
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257300
+  title: APP-V717I replicate 2 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: APP_V717I
+  biosample: B05
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257301
+  title: APP-V717I replicate 3 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: APP_V717I
+  biosample: B06
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257302
+  title: PSEN1-A79V replicate 1 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: PSEN1_A79V
+  biosample: B07
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE3/4
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257303
+  title: PSEN1-A79V replicate 2 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: PSEN1_A79V
+  biosample: B08
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE3/4
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257304
+  title: PSEN1-A79V replicate 3 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: PSEN1_A79V
+  biosample: B09
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE3/4
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257305
+  title: PSEN2-N141I replicate 1 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: PSEN2_N141I
+  biosample: B10
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257306
+  title: PSEN2-N141I replicate 2 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: PSEN2_N141I
+  biosample: B11
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257307
+  title: PSEN2-N141I replicate 3 [ATAC-seq]
+  series:
+  - GSE206588
+  - GSE206603
+  factors:
+    genotype: PSEN2_N141I
+  biosample: B12
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257605
+  title: NDC replicate 1 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: WT
+  biosample: B13
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Non-demented Control
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE2/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257606
+  title: NDC replicate 2 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: WT
+  biosample: B14
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Non-demented Control
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE2/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257607
+  title: NDC replicate 3 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: WT
+  biosample: B15
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Non-demented Control
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE2/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257608
+  title: APP-V717I replicate 1 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: APP_V717I
+  biosample: B16
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257609
+  title: APP-V717I replicate 2 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: APP_V717I
+  biosample: B17
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257610
+  title: APP-V717I replicate 3 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: APP_V717I
+  biosample: B18
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257611
+  title: PSEN1-A79V replicate 1 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: PSEN1_A79V
+  biosample: B19
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE3/4
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257612
+  title: PSEN1-A79V replicate 2 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: PSEN1_A79V
+  biosample: B20
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE3/4
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257613
+  title: PSEN1-A79V replicate 3 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: PSEN1_A79V
+  biosample: B21
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: M, APOE3/4
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257614
+  title: PSEN2-N141I replicate 1 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: PSEN2_N141I
+  biosample: B22
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257615
+  title: PSEN2-N141I replicate 2 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: PSEN2_N141I
+  biosample: B23
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257616
+  title: PSEN2-N141I replicate 3 [RNA-seq]
+  series:
+  - GSE206602
+  - GSE206603
+  factors:
+    genotype: PSEN2_N141I
+  biosample: B24
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    disease state:
+      text: Alzheimer's disease
+      source: GSM characteristics
+    cell type:
+      text: hiPSC-derived neurons
+      source: GSM characteristics
+    treatment:
+      text: F, APOE3/3
+      source: GSM characteristics
+  evidence:
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    assay: 1.0
+    role: 1.0
+relations:
+  contrasts:
+  - factor: genotype
+    test:
+    - GSM6257299
+    - GSM6257300
+    - GSM6257301
+    baseline:
+    - GSM6257296
+    - GSM6257297
+    - GSM6257298
+    fixed: {}
+    assay: ATAC-seq
+    target: null
+  - factor: genotype
+    test:
+    - GSM6257302
+    - GSM6257303
+    - GSM6257304
+    baseline:
+    - GSM6257296
+    - GSM6257297
+    - GSM6257298
+    fixed: {}
+    assay: ATAC-seq
+    target: null
+  - factor: genotype
+    test:
+    - GSM6257305
+    - GSM6257306
+    - GSM6257307
+    baseline:
+    - GSM6257296
+    - GSM6257297
+    - GSM6257298
+    fixed: {}
+    assay: ATAC-seq
+    target: null
+  - factor: genotype
+    test:
+    - GSM6257608
+    - GSM6257609
+    - GSM6257610
+    baseline:
+    - GSM6257605
+    - GSM6257606
+    - GSM6257607
+    fixed: {}
+    assay: RNA-seq
+    target: null
+  - factor: genotype
+    test:
+    - GSM6257611
+    - GSM6257612
+    - GSM6257613
+    baseline:
+    - GSM6257605
+    - GSM6257606
+    - GSM6257607
+    fixed: {}
+    assay: RNA-seq
+    target: null
+  - factor: genotype
+    test:
+    - GSM6257614
+    - GSM6257615
+    - GSM6257616
+    baseline:
+    - GSM6257605
+    - GSM6257606
+    - GSM6257607
+    fixed: {}
+    assay: RNA-seq
+    target: null
+  replicates:
+  - - GSM6257296
+    - GSM6257297
+    - GSM6257298
+  - - GSM6257299
+    - GSM6257300
+    - GSM6257301
+  - - GSM6257302
+    - GSM6257303
+    - GSM6257304
+  - - GSM6257305
+    - GSM6257306
+    - GSM6257307
+  - - GSM6257605
+    - GSM6257606
+    - GSM6257607
+  - - GSM6257608
+    - GSM6257609
+    - GSM6257610
+  - - GSM6257611
+    - GSM6257612
+    - GSM6257613
+  - - GSM6257614
+    - GSM6257615
+    - GSM6257616
+  series: []
+  co_measurement: []
+  background_control: []

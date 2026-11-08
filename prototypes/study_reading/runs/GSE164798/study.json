@@ -1,0 +1,1502 @@
+{
+ "gse": "GSE164798",
+ "series": [
+  "GSE164798"
+ ],
+ "superseries": null,
+ "bioproject": [
+  "PRJNA691970"
+ ],
+ "pmid": [
+  "33804749"
+ ],
+ "series_text": {
+  "GSE164798": {
+   "title": "Voluntary wheel running did not alter gene expression in 5xFAD mice, but in wild-type animals exclusively after one-day exercise bout",
+   "summary": [
+    "Physical activity is considered a promising preventive intervention to reduce the risk of developing Alzheimer’s disease (AD). However, the positive effect of exercise therapy has not been proven conclusively yet, likely due to confounding factors such as varying activity regimens and life or disease stages.",
+    "To examine the impact of different exercise regimens in the early disease stages, we subjected young 5xFAD and wild-type mice to 1-day (acute, 3-month-old) and 30-day (chronic, 2-month-old) voluntary wheel running and compared them with age-matched sedentary controls.",
+    "We observed a significant increase in brain lactate levels in acutely trained 5xFAD mice relative to all other experimental groups. Subsequent RNA-seq analysis from brain did not reveal major differences in transcriptomic regulation between training durations in 5xFAD mice. In contrast, acute training yielded large gene expression differences in wild-type animals relative to their chronically trained and sedentary counterparts. The comparison of 5xFAD and wild-type mice showed the highest transcriptional differences in the chronic and sedentary groups, whereas acute training was associated with much fewer DEGs.",
+    "In conclusion, our results suggest that different training durations did not affect the global transcriptome of 3-month-old 5xFAD mice, whereas acute running seemed to induce a similar transcriptional stress state in wild-type animals as already known for 5xFAD mice."
+   ],
+   "overall_design": [
+    "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+   ],
+   "type": [
+    "Expression profiling by high throughput sequencing"
+   ],
+   "sample_ids": [
+    "GSM5019734",
+    "GSM5019735",
+    "GSM5019736",
+    "GSM5019737",
+    "GSM5019738",
+    "GSM5019739",
+    "GSM5019740",
+    "GSM5019741",
+    "GSM5019742",
+    "GSM5019743",
+    "GSM5019744",
+    "GSM5019745",
+    "GSM5019746",
+    "GSM5019747",
+    "GSM5019748",
+    "GSM5019749",
+    "GSM5019750",
+    "GSM5019751",
+    "GSM5019752",
+    "GSM5019753",
+    "GSM5019754",
+    "GSM5019755",
+    "GSM5019756",
+    "GSM5019757"
+   ],
+   "subseries": []
+  }
+ },
+ "samples": [
+  {
+   "gsm": "GSM5019734",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT sedentary - rep 1",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "untreated"
+    ],
+    [
+     "treatment synonym",
+     "sedentary"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_01_wt_A_USC_1643_S1.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019735",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT sedentary - rep 2",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "untreated"
+    ],
+    [
+     "treatment synonym",
+     "sedentary"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_02_wt_A_USC_1630_S2.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019736",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT sedentary - rep 3",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "untreated"
+    ],
+    [
+     "treatment synonym",
+     "sedentary"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_03_wt_A_USC_1650_S3.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019737",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT sedentary - rep 4",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "untreated"
+    ],
+    [
+     "treatment synonym",
+     "sedentary"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_04_wt_A_USC_1482_S4.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019738",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT chronic - rep 1",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "30 days voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "chronic"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_05_wt_B_USC_1631_S5.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019739",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT chronic - rep 2",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "30 days voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "chronic"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_06_wt_B_USC_1644_S6.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019740",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT chronic - rep 3",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "30 days voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "chronic"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_07_wt_B_USC_1634_S7.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019741",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT chronic - rep 4",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "30 days voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "chronic"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_08_wt_B_USC_1483_S8.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019742",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT acute - rep 1",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "one day voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "acute"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_09_wt_C_USC_1626_S9.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019743",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT acute - rep 2",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "one day voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "acute"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_10_wt_C_USC_1490_S10.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019744",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT acute - rep 3",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "one day voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "acute"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_11_wt_C_USC_1645_S11.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019745",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain WT acute - rep 4",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57BL/6"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "wild-type"
+    ],
+    [
+     "treatment",
+     "one day voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "acute"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_12_wt_C_USC_1696_S12.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019746",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD sedentary - rep 1",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "untreated"
+    ],
+    [
+     "treatment synonym",
+     "sedentary"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_13_tg_A_USC_1724_S13.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019747",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD sedentary - rep 2",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "untreated"
+    ],
+    [
+     "treatment synonym",
+     "sedentary"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_14_tg_A_USC_1731_S14.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019748",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD sedentary - rep 3",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "untreated"
+    ],
+    [
+     "treatment synonym",
+     "sedentary"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_15_tg_A_USC_1800_S15.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019749",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD sedentary - rep 4",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "untreated"
+    ],
+    [
+     "treatment synonym",
+     "sedentary"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_16_tg_A_USC_1764_S5.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019750",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD chronic - rep 1",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "30 days voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "chronic"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_17_tg_B_USC_1815_S17.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019751",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD chronic - rep 2",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "30 days voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "chronic"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_18_tg_B_USC_1775_S18.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019752",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD chronic - rep 3",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "30 days voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "chronic"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_19_tg_B_USC_1801_S19.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019753",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD chronic - rep 4",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "30 days voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "chronic"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_20_tg_B_USC_1765_S20.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019754",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD acute - rep 1",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "one day voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "acute"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_21_tg_C_USC_1776_S21.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019755",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD acute - rep 2",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "one day voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "acute"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_22_tg_C_USC_1802_S22.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019756",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD acute - rep 3",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "one day voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "acute"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_23_tg_C_USC_1768_S23.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  },
+  {
+   "gsm": "GSM5019757",
+   "series": [
+    "GSE164798"
+   ],
+   "title": "Brain 5xFAD acute - rep 4",
+   "source": "Brain - Right hemisphere",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "5xFAD (C57BL/6)"
+    ],
+    [
+     "tissue",
+     "right hemisphere"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "Sex",
+     "male"
+    ],
+    [
+     "genotype",
+     "5xFAD"
+    ],
+    [
+     "treatment",
+     "one day voluntary saucer wheel running"
+    ],
+    [
+     "treatment synonym",
+     "acute"
+    ]
+   ],
+   "library_strategy": "RNA-Seq",
+   "library_source": "transcriptomic",
+   "library_selection": "cDNA",
+   "molecule": "total RNA",
+   "description": [
+    "Raw_gene_counts_matrix.txt",
+    "imb_roignant_2018_12_24_tg_C_USC_1697_S24.R1"
+   ],
+   "protocols": {
+    "growth": "Male B6SJL-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax (5xFAD) mice (Jackson Lab, Bar Harbor, Maine, USA) were crossbred with female C57BL/6J mice and maintained as heterozygous transgenics on the C57BL/6J background. The animals were single-caged in type II cages with a 12h day/night cycle. Food and water were available ad libitum. The non-transgenic littermates were used as control. All procedures were performed in accordance with the European Communities Council Directive regarding care and use of animals for experimental procedures and were approved by local authorities (Landesuntersuchungsamt Rhineland-Palatinate; approval number G 14-1-087).",
+    "treatment": "Mice were randomly assigned to three groups: untrained (sedentary), access to a saucer wheel (15 cm diameter; med associates Inc.) for 30 days, or access to a saucer wheel for 18h before sacrifice. The saucer wheel contained a WLAN connection to a computer for measuring running counts. Food consumption and body weight were assessed regularly.",
+    "extract": "The right hemisphere was cut into small cubicles and incubated at RT for 20 min in RNAlater (Qiagen, Hilden, Germany) before being stored at -80°C. NGS library preparation was performed with Illumina's TruSeq stranded mRNA LT Sample Prep Kit following Illumina’s standard protocol (Part # 15031047 Rev, E). The libraries were prepared with a starting amount of 302 ng and amplified in 12 PCR cycles, profiled in a DNA 1000 Chip on a 2100 Bioanalyzer (Agilent Technologies) and quantified using the Qubit dsDNA HS Assay Kit, in a Qubit 2,0 Fluorometer (Life technologies). All 24 samples were pooled in equimolar ratio and sequenced on 1 NextSeq 500 Highoutput FC, PE for 2x 42 cycles plus 7 cycles for the index read."
+   },
+   "data_processing": [
+    "Five technical replicates were merged together and the raw file from Sample 16 was down-sampled to 50 % of total reads.",
+    "Sequenced reads were trimmed using BBDuk (version 38.06) with parameters , then mapped to the UCSC mm10 reference genome provided by iGenomes using the splice-aware mapper STAR (version 2.7.0d, default options of 2-pass mapping).",
+    "The aligned reads were counted per gene and sample (based on the mm10 UCSC annotation file from iGenomes) using FeatureCounts provided by SubRead (version 1.6.2, default options for single-end reads).",
+    "Genome_build: mm10",
+    "Supplementary_files_format_and_content: Matrix table with raw gene counts for every gene and every sample"
+   ]
+  }
+ ],
+ "paper_files": [
+  "paper_33804749.txt"
+ ]
+}

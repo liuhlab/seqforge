@@ -1,0 +1,192 @@
+{
+ "code": {
+  "source": "code",
+  "candidate_keys": [
+   {
+    "name": "strain",
+    "levels": [
+     {
+      "value": "C57BL/6",
+      "quote": "strain: C57BL/6"
+     },
+     {
+      "value": "5xFAD (C57BL/6)",
+      "quote": "strain: 5xFAD (C57BL/6)"
+     }
+    ]
+   },
+   {
+    "name": "genotype",
+    "levels": [
+     {
+      "value": "wild-type",
+      "quote": "genotype: wild-type"
+     },
+     {
+      "value": "5xFAD",
+      "quote": "genotype: 5xFAD"
+     }
+    ]
+   },
+   {
+    "name": "treatment",
+    "levels": [
+     {
+      "value": "untreated",
+      "quote": "treatment: untreated"
+     },
+     {
+      "value": "30 days voluntary saucer wheel running",
+      "quote": "treatment: 30 days voluntary saucer wheel running"
+     },
+     {
+      "value": "one day voluntary saucer wheel running",
+      "quote": "treatment: one day voluntary saucer wheel running"
+     }
+    ]
+   },
+   {
+    "name": "treatment synonym",
+    "levels": [
+     {
+      "value": "sedentary",
+      "quote": "treatment synonym: sedentary"
+     },
+     {
+      "value": "chronic",
+      "quote": "treatment synonym: chronic"
+     },
+     {
+      "value": "acute",
+      "quote": "treatment synonym: acute"
+     }
+    ]
+   }
+  ],
+  "constant": [
+   {
+    "name": "tissue",
+    "levels": [
+     {
+      "value": "right hemisphere",
+      "quote": "tissue: right hemisphere"
+     }
+    ]
+   },
+   {
+    "name": "age",
+    "levels": [
+     {
+      "value": "3 months",
+      "quote": "age: 3 months"
+     }
+    ]
+   },
+   {
+    "name": "Sex",
+    "levels": [
+     {
+      "value": "male",
+      "quote": "Sex: male"
+     }
+    ]
+   }
+  ]
+ },
+ "code_quote_check": {
+  "quotes": 10,
+  "failed": []
+ },
+ "deepseek": {
+  "factors": [
+   {
+    "name": "genotype",
+    "ordered": false,
+    "levels": [
+     {
+      "value": "wild-type",
+      "quote": "genotype: wild-type"
+     },
+     {
+      "value": "5xFAD",
+      "quote": "genotype: 5xFAD"
+     }
+    ]
+   },
+   {
+    "name": "training duration",
+    "ordered": true,
+    "levels": [
+     {
+      "value": "sedentary",
+      "quote": "treatment synonym: sedentary"
+     },
+     {
+      "value": "acute",
+      "quote": "treatment synonym: acute"
+     },
+     {
+      "value": "chronic",
+      "quote": "treatment synonym: chronic"
+     }
+    ]
+   }
+  ],
+  "targets": [],
+  "controls": [],
+  "donors": [],
+  "biosample_sharing": [],
+  "assays": [
+   {
+    "kind": "RNA-seq",
+    "quote": "library strategy: RNA-Seq"
+   }
+  ],
+  "attributes": [
+   {
+    "name": "species",
+    "value": "Mus musculus",
+    "quote": "organism: Mus musculus"
+   },
+   {
+    "name": "tissue",
+    "value": "right hemisphere",
+    "quote": "tissue: right hemisphere"
+   },
+   {
+    "name": "sex",
+    "value": "male",
+    "quote": "Sex: male"
+   },
+   {
+    "name": "age",
+    "value": "3 months",
+    "quote": "age: 3 months"
+   },
+   {
+    "name": "strain",
+    "value": "C57BL/6",
+    "quote": "strain: C57BL/6"
+   },
+   {
+    "name": "strain",
+    "value": "5xFAD (C57BL/6)",
+    "quote": "strain: 5xFAD (C57BL/6)"
+   }
+  ],
+  "source": "deepseek",
+  "_meta": {
+   "cached": true,
+   "model": "deepseek-flash",
+   "tokens_in": 5193,
+   "tokens_out": 375,
+   "dollars": 0.001970268,
+   "seconds": 2.329
+  }
+ },
+ "deepseek_quote_check": {
+  "quotes": 12,
+  "failed": []
+ },
+ "used": "deepseek"
+}

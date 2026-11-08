@@ -1,0 +1,878 @@
+study:
+  series:
+  - GSE206603
+  - GSE206588
+  - GSE206602
+  superseries: GSE206603
+  bioproject:
+  - PRJNA851435
+  - PRJNA851439
+  - PRJNA851445
+  pmid:
+  - '39754192'
+  notes: 'model reading: lists drafted by code, labels by jev-1.14.0; donor key: None'
+factors:
+- name: disease state
+  levels:
+  - Non-demented Control
+  - Alzheimer's disease
+  baseline: Non-demented Control
+  ordered: false
+- name: genotype
+  levels:
+  - WT
+  - APP_V717I
+  - PSEN1_A79V
+  - PSEN2_N141I
+  baseline: WT
+  ordered: false
+- name: treatment
+  levels:
+  - M, APOE2/3
+  - F, APOE3/3
+  - M, APOE3/4
+  baseline: M, APOE2/3
+  ordered: false
+samples:
+- gsm: GSM6257296
+  factors:
+    disease state: Non-demented Control
+    genotype: WT
+    treatment: M, APOE2/3
+  biosample: B01
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Non-demented Control'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE2/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257297
+  factors:
+    disease state: Non-demented Control
+    genotype: WT
+    treatment: M, APOE2/3
+  biosample: B02
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Non-demented Control'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE2/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257298
+  factors:
+    disease state: Non-demented Control
+    genotype: WT
+    treatment: M, APOE2/3
+  biosample: B03
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Non-demented Control'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE2/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257299
+  factors:
+    disease state: Alzheimer's disease
+    genotype: APP_V717I
+    treatment: F, APOE3/3
+  biosample: B04
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257300
+  factors:
+    disease state: Alzheimer's disease
+    genotype: APP_V717I
+    treatment: F, APOE3/3
+  biosample: B05
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257301
+  factors:
+    disease state: Alzheimer's disease
+    genotype: APP_V717I
+    treatment: F, APOE3/3
+  biosample: B06
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257302
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN1_A79V
+    treatment: M, APOE3/4
+  biosample: B07
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE3/4'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257303
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN1_A79V
+    treatment: M, APOE3/4
+  biosample: B08
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE3/4'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257304
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN1_A79V
+    treatment: M, APOE3/4
+  biosample: B09
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE3/4'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257305
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN2_N141I
+    treatment: F, APOE3/3
+  biosample: B10
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257306
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN2_N141I
+    treatment: F, APOE3/3
+  biosample: B11
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257307
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN2_N141I
+    treatment: F, APOE3/3
+  biosample: B12
+  donor: null
+  assay: ATAC-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257605
+  factors:
+    disease state: Non-demented Control
+    genotype: WT
+    treatment: M, APOE2/3
+  biosample: B01
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Non-demented Control'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE2/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257606
+  factors:
+    disease state: Non-demented Control
+    genotype: WT
+    treatment: M, APOE2/3
+  biosample: B02
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Non-demented Control'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE2/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257607
+  factors:
+    disease state: Non-demented Control
+    genotype: WT
+    treatment: M, APOE2/3
+  biosample: B03
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Non-demented Control'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: WT'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE2/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257608
+  factors:
+    disease state: Alzheimer's disease
+    genotype: APP_V717I
+    treatment: F, APOE3/3
+  biosample: B04
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257609
+  factors:
+    disease state: Alzheimer's disease
+    genotype: APP_V717I
+    treatment: F, APOE3/3
+  biosample: B13
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257610
+  factors:
+    disease state: Alzheimer's disease
+    genotype: APP_V717I
+    treatment: F, APOE3/3
+  biosample: B14
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: APP_V717I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257611
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN1_A79V
+    treatment: M, APOE3/4
+  biosample: B07
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE3/4'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257612
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN1_A79V
+    treatment: M, APOE3/4
+  biosample: B08
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE3/4'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257613
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN1_A79V
+    treatment: M, APOE3/4
+  biosample: B09
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN1_A79V'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: M, APOE3/4'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257614
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN2_N141I
+    treatment: F, APOE3/3
+  biosample: B10
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 1.0
+- gsm: GSM6257615
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN2_N141I
+    treatment: F, APOE3/3
+  biosample: B11
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 0.99
+- gsm: GSM6257616
+  factors:
+    disease state: Alzheimer's disease
+    genotype: PSEN2_N141I
+    treatment: F, APOE3/3
+  biosample: B12
+  donor: null
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: hiPSC-derived neurons
+  evidence:
+    disease state:
+      quote: 'disease state: Alzheimer''s disease'
+      source: GSM characteristics
+    genotype:
+      quote: 'genotype: PSEN2_N141I'
+      source: GSM characteristics
+    treatment:
+      quote: 'treatment: F, APOE3/3'
+      source: GSM characteristics
+  probability:
+    disease state: 1.0
+    genotype: 1.0
+    treatment: 1.0
+    assay: 1.0
+    role: 1.0
+relations:
+  contrasts: []
+  replicates:
+  - - GSM6257296
+    - GSM6257297
+    - GSM6257298
+    - GSM6257605
+    - GSM6257606
+    - GSM6257607
+  - - GSM6257299
+    - GSM6257300
+    - GSM6257301
+    - GSM6257608
+    - GSM6257609
+    - GSM6257610
+  - - GSM6257302
+    - GSM6257303
+    - GSM6257304
+    - GSM6257611
+    - GSM6257612
+    - GSM6257613
+  - - GSM6257305
+    - GSM6257306
+    - GSM6257307
+    - GSM6257614
+    - GSM6257615
+    - GSM6257616
+  series: []
+  co_measurement:
+  - - GSM6257296
+    - GSM6257605
+  - - GSM6257297
+    - GSM6257606
+  - - GSM6257298
+    - GSM6257607
+  - - GSM6257299
+    - GSM6257608
+  - - GSM6257302
+    - GSM6257611
+  - - GSM6257303
+    - GSM6257612
+  - - GSM6257304
+    - GSM6257613
+  - - GSM6257305
+    - GSM6257614
+  - - GSM6257306
+    - GSM6257615
+  - - GSM6257307
+    - GSM6257616
+  background_control: []

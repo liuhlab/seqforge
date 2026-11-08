@@ -1,0 +1,2095 @@
+{
+ "gse": "GSE190102",
+ "series": [
+  "GSE190102"
+ ],
+ "superseries": null,
+ "bioproject": [
+  "PRJNA798693"
+ ],
+ "pmid": [
+  "39195281"
+ ],
+ "series_text": {
+  "GSE190102": {
+   "title": "Ageing-Related Changes to H3K4me3, H3K27ac and H3K27me3 in Purified Mouse Neurons",
+   "summary": [
+    "Neurons are central to lifelong learning and memory, but ageing disrupts their morphology and function, leading to cognitive decline. Although epigenetic mechanisms are known to play crucial roles in learning and memory, neuron-specific genome-wide epigenetic maps into old age remain scarce, often being limited to whole-brain homogenates and confounded by glial cells. Here, we mapped H3K4me3, H3K27ac, and H3K27me3 in mouse neurons across their lifespan. This revealed stable H3K4me3 and global losses of H3K27ac and H3K27me3 into old age. We observed patterns of synaptic function gene deactivation, regulated through the loss of the active mark H3K27ac, but not H3K4me3. Alongside this, embryonic development loci lost repressive H3K27me3 in old age. This suggests a loss of a highly refined neuronal cellular identity linked to global chromatin reconfigu-ration. Collectively, these findings indicate a key role for epigenetic regulation in neurons that is inextricably linked with ageing."
+   ],
+   "overall_design": [
+    "H3K4me3 and H3K27ac ChIP-seq from 3, 6, 12, and 24m old Mus musculus forebrain neuronal nuclei sorted by FACS. Biological replicates (2-4 samples) for H3K4me3 and H3K27ac, and total input controls are included as fastq files, and analysed bigwigs."
+   ],
+   "type": [
+    "Genome binding/occupancy profiling by high throughput sequencing"
+   ],
+   "sample_ids": [
+    "GSM5825050",
+    "GSM5825051",
+    "GSM5825052",
+    "GSM5825053",
+    "GSM5825054",
+    "GSM5825055",
+    "GSM5825056",
+    "GSM5825057",
+    "GSM5825058",
+    "GSM5825059",
+    "GSM5825060",
+    "GSM5825061",
+    "GSM5825062",
+    "GSM5825063",
+    "GSM5825064",
+    "GSM5825065",
+    "GSM5825066",
+    "GSM5825067",
+    "GSM5825068",
+    "GSM5825069",
+    "GSM5825070",
+    "GSM5825071",
+    "GSM5825072",
+    "GSM5825073",
+    "GSM5825074",
+    "GSM5825075",
+    "GSM5825076",
+    "GSM5825077",
+    "GSM8514837",
+    "GSM8514838",
+    "GSM8514839",
+    "GSM8514840",
+    "GSM8514841",
+    "GSM8514842",
+    "GSM8514843",
+    "GSM8514844",
+    "GSM8514845",
+    "GSM8514846",
+    "GSM8514847",
+    "GSM8514848",
+    "GSM8514849",
+    "GSM8514850",
+    "GSM8514851"
+   ],
+   "subseries": []
+  }
+ },
+ "samples": [
+  {
+   "gsm": "GSM5825050",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "363 WT 3M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 3m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825051",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "517 WT 3M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 3m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825052",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "513 WT 3M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 3m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825053",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "512 WT 3M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 3m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825054",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "163736 WT 6M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "6 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 6m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825055",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "325 WT 6M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "6 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 6m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825056",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "156508 WT 12M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "12 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 12m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825057",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "155668 WT 12M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "12 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 12m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825058",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "154468 WT 24M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "24 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 24m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825059",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "154469 WT 24M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "24 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 24m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825060",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "158027 WT 24M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "24 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 24m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825061",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "158028 WT 24M H3K4me3",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "24 months"
+    ],
+    [
+     "chip antibody",
+     "H3K4me3"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K4me3 ChIP-seq from NeuN+ nuclei of 24m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825062",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "363 WT 3M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 3m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825063",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "512 WT 3M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 3m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825064",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "513 WT 3M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 3m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825065",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "517 WT 3M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 3m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825066",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "17 WT 6M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "6 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 6m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825067",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "325 WT 6M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "6 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 6m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825068",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "163736 WT 6M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "6 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 6m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825069",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "155668 WT 12M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "12 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 12m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825070",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "156508 WT 12M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "12 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 12m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825071",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "156509 WT 12M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "12 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 12m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825072",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "154468 WT 24M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "24 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 24m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825073",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "158028 WT 24M H3K27ac",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "24 months"
+    ],
+    [
+     "chip antibody",
+     "H3K27ac"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "H3K27ac ChIP-seq from NeuN+ nuclei of 24m old C57/BL6 mice."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825074",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "512 WT 3M TI",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "3 months"
+    ],
+    [
+     "chip antibody",
+     "None"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "Total input control."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825075",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "163734 WT 6M TI",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "6 months"
+    ],
+    [
+     "chip antibody",
+     "None"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "Total input control."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825076",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "155688 WT 12M TI",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "12 months"
+    ],
+    [
+     "chip antibody",
+     "None"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "Total input control."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM5825077",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "158027 WT 24M TI",
+   "source": "C57/BL6 mouse forebrain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "strain",
+     "C57/BL6"
+    ],
+    [
+     "cell type",
+     "NeuN+ neuronal nuclei"
+    ],
+    [
+     "age",
+     "24 months"
+    ],
+    [
+     "chip antibody",
+     "None"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [
+    "Total input control."
+   ],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Flash Frozen forebrains were extracted in nuclei extraction buffer, labelled with NeuN for 1hr then sorted with FACS. NeuN+ nuclei were pelleted, then split into ~200K aliquots for ChIP-seq. Nuclei were sonicated into 300bp fragments, then H3K4me3 or H3K27ac ChIP was performed. Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Genome_build: mm10 (GRCm38)",
+    "Supplementary_files_format_and_content: bigwig files for pseudoreplicates."
+   ]
+  },
+  {
+   "gsm": "GSM8514837",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "363 WT 3M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514838",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "368 WT 3M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514839",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "512 WT 3M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514840",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "513 WT 3M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514841",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "517 WT 3M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514842",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "155668 WT 12M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514843",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "155688 WT 12M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514844",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "156508 WT 12M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514845",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "156509 WT 12M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514846",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "157306 WT 12M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514847",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "154468 WT 24M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514848",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "154469 WT 24M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514849",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "158027 WT 24M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514850",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "158028 WT 24M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  },
+  {
+   "gsm": "GSM8514851",
+   "series": [
+    "GSE190102"
+   ],
+   "title": "158029 WT 24M H3K27me3",
+   "source": "brain",
+   "organism": "Mus musculus",
+   "taxid": "10090",
+   "characteristics": [
+    [
+     "tissue",
+     "brain"
+    ],
+    [
+     "cell type",
+     "neurons"
+    ],
+    [
+     "genotype",
+     "WT"
+    ]
+   ],
+   "library_strategy": "ChIP-Seq",
+   "library_source": "genomic",
+   "library_selection": "ChIP",
+   "molecule": "genomic DNA",
+   "description": [],
+   "protocols": {
+    "growth": null,
+    "treatment": null,
+    "extract": "Mice aged and samples collected at 3, 12, 24m, purified neurons extracted with FACS Nugen Ovation Ultralow V2 library preparation - amplification for 17 cycles (H3K27ac), or 18 cycles (H3K4me3) 0347 V2 1-96/0344 V2 1-16."
+   },
+   "data_processing": [
+    "Sequenced using HiSeq 2500 - mean read depth 13.9M H3K4me3, 16.2M H3K27ac.",
+    "Removed library tags.",
+    "Pseudoreplicates generated.",
+    "Mapped to MM10 using bowtie2.",
+    "bigwigs generated.",
+    "Assembly: MM10",
+    "Supplementary files format and content: Bigwigs"
+   ]
+  }
+ ],
+ "paper_files": [
+  "paper_39195281.txt"
+ ]
+}

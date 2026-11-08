@@ -1,0 +1,30 @@
+{
+ "measured_means": {
+  "jev_tokens_per_sample_request": 2068,
+  "jev_tokens_per_pair_request": 1893,
+  "pairs_per_sample": 1.44,
+  "study_request_tokens_per_sample_line": 112,
+  "deepseek_tokens_per_sample_line": 88,
+  "jev_wall_s_per_request_8_parallel": 0.041
+ },
+ "N=100": {
+  "jev_requests": 245,
+  "jev_tokens": 492518,
+  "jev_usd": 0.021,
+  "deepseek_calls": 1,
+  "deepseek_tokens_in": 13277,
+  "deepseek_usd": 0.005,
+  "jev_minutes_8_parallel": 0.2,
+  "deepseek_seconds_parallel_chunks": 4
+ },
+ "N=1000": {
+  "jev_requests": 2441,
+  "jev_tokens": 4823044,
+  "jev_usd": 0.203,
+  "deepseek_calls": 8,
+  "deepseek_tokens_in": 126659,
+  "deepseek_usd": 0.046,
+  "jev_minutes_8_parallel": 1.7,
+  "deepseek_seconds_parallel_chunks": 8
+ }
+}

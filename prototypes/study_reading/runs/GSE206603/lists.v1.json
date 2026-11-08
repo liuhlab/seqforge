@@ -1,0 +1,164 @@
+{
+ "code": {
+  "source": "code",
+  "candidate_keys": [
+   {
+    "name": "disease state",
+    "levels": [
+     {
+      "value": "Non-demented Control",
+      "quote": "disease state: Non-demented Control"
+     },
+     {
+      "value": "Alzheimer's disease",
+      "quote": "disease state: Alzheimer's disease"
+     }
+    ]
+   },
+   {
+    "name": "genotype",
+    "levels": [
+     {
+      "value": "WT",
+      "quote": "genotype: WT"
+     },
+     {
+      "value": "APP_V717I",
+      "quote": "genotype: APP_V717I"
+     },
+     {
+      "value": "PSEN1_A79V",
+      "quote": "genotype: PSEN1_A79V"
+     },
+     {
+      "value": "PSEN2_N141I",
+      "quote": "genotype: PSEN2_N141I"
+     }
+    ]
+   },
+   {
+    "name": "treatment",
+    "levels": [
+     {
+      "value": "M, APOE2/3",
+      "quote": "treatment: M, APOE2/3"
+     },
+     {
+      "value": "F, APOE3/3",
+      "quote": "treatment: F, APOE3/3"
+     },
+     {
+      "value": "M, APOE3/4",
+      "quote": "treatment: M, APOE3/4"
+     }
+    ]
+   }
+  ],
+  "constant": [
+   {
+    "name": "cell type",
+    "levels": [
+     {
+      "value": "hiPSC-derived neurons",
+      "quote": "cell type: hiPSC-derived neurons"
+     }
+    ]
+   }
+  ]
+ },
+ "code_quote_check": {
+  "quotes": 9,
+  "failed": []
+ },
+ "deepseek": {
+  "factors": [
+   {
+    "name": "genotype",
+    "ordered": false,
+    "levels": [
+     {
+      "value": "WT",
+      "quote": "genotype: WT"
+     },
+     {
+      "value": "APP_V717I",
+      "quote": "genotype: APP_V717I"
+     },
+     {
+      "value": "PSEN1_A79V",
+      "quote": "genotype: PSEN1_A79V"
+     },
+     {
+      "value": "PSEN2_N141I",
+      "quote": "genotype: PSEN2_N141I"
+     }
+    ]
+   }
+  ],
+  "targets": [],
+  "controls": [],
+  "donors": [],
+  "biosample_sharing": [],
+  "assays": [
+   {
+    "kind": "ATAC-seq",
+    "quote": "library strategy: ATAC-seq"
+   },
+   {
+    "kind": "RNA-seq",
+    "quote": "library strategy: RNA-Seq"
+   }
+  ],
+  "attributes": [
+   {
+    "name": "species",
+    "value": "Homo sapiens",
+    "quote": "organism: Homo sapiens"
+   },
+   {
+    "name": "cell type",
+    "value": "hiPSC-derived neurons",
+    "quote": "cell type: hiPSC-derived neurons"
+   },
+   {
+    "name": "disease state",
+    "value": "Non-demented Control",
+    "quote": "disease state: Non-demented Control"
+   },
+   {
+    "name": "disease state",
+    "value": "Alzheimer's disease",
+    "quote": "disease state: Alzheimer's disease"
+   },
+   {
+    "name": "treatment",
+    "value": "M, APOE2/3",
+    "quote": "treatment: M, APOE2/3"
+   },
+   {
+    "name": "treatment",
+    "value": "F, APOE3/3",
+    "quote": "treatment: F, APOE3/3"
+   },
+   {
+    "name": "treatment",
+    "value": "M, APOE3/4",
+    "quote": "treatment: M, APOE3/4"
+   }
+  ],
+  "source": "deepseek",
+  "_meta": {
+   "cached": true,
+   "model": "deepseek-flash",
+   "tokens_in": 3986,
+   "tokens_out": 328,
+   "dollars": 0.001514136,
+   "seconds": 2.521
+  }
+ },
+ "deepseek_quote_check": {
+  "quotes": 13,
+  "failed": []
+ },
+ "used": "deepseek"
+}

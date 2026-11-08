@@ -1,0 +1,211 @@
+{
+ "GSE164798 v1": {
+  "samples": 24,
+  "deepseek": {
+   "calls": 1,
+   "tokens_in": 3437,
+   "tokens_out": 374,
+   "dollars": 0.00148,
+   "seconds_sum_of_calls": 2.54
+  },
+  "jev": {
+   "calls": 61,
+   "questions": 185,
+   "tokens_in": 95055,
+   "dollars": 0.00399,
+   "seconds_sum_of_calls": 12.74,
+   "by_tag": {
+    "biosample_pair": 36,
+    "sample": 24,
+    "study": 1
+   }
+  },
+  "jev_live_wall_s": 2.35
+ },
+ "GSE164798 v2": {
+  "samples": 24,
+  "deepseek": {
+   "calls": 1,
+   "tokens_in": 5193,
+   "tokens_out": 375,
+   "dollars": 0.00197,
+   "seconds_sum_of_calls": 2.33
+  },
+  "jev": {
+   "calls": 61,
+   "questions": 187,
+   "tokens_in": 95485,
+   "dollars": 0.00401,
+   "seconds_sum_of_calls": 13.62,
+   "by_tag": {
+    "biosample_pair": 36,
+    "sample": 24,
+    "study": 1
+   }
+  },
+  "jev_live_wall_s": 2.56
+ },
+ "GSE164798 v3": {
+  "samples": 24,
+  "deepseek": {
+   "calls": 1,
+   "tokens_in": 5193,
+   "tokens_out": 375,
+   "dollars": 0.00197,
+   "seconds_sum_of_calls": 2.33
+  },
+  "jev": {
+   "calls": 61,
+   "questions": 187,
+   "tokens_in": 95485,
+   "dollars": 0.00401,
+   "seconds_sum_of_calls": 13.62,
+   "by_tag": {
+    "biosample_pair": 36,
+    "sample": 24,
+    "study": 1
+   }
+  },
+  "jev_live_wall_s": null
+ },
+ "GSE190102 v1": {
+  "samples": 43,
+  "deepseek": {
+   "calls": 1,
+   "tokens_in": 4323,
+   "tokens_out": 690,
+   "dollars": 0.00205,
+   "seconds_sum_of_calls": 3.6
+  },
+  "jev": {
+   "calls": 79,
+   "questions": 297,
+   "tokens_in": 196102,
+   "dollars": 0.00824,
+   "seconds_sum_of_calls": 16.87,
+   "by_tag": {
+    "biosample_pair": 35,
+    "sample": 43,
+    "study": 1
+   }
+  },
+  "jev_live_wall_s": 3.11
+ },
+ "GSE190102 v2": {
+  "samples": 43,
+  "deepseek": {
+   "calls": 1,
+   "tokens_in": 8455,
+   "tokens_out": 684,
+   "dollars": 0.00324,
+   "seconds_sum_of_calls": 3.21
+  },
+  "jev": {
+   "calls": 79,
+   "questions": 300,
+   "tokens_in": 169412,
+   "dollars": 0.00712,
+   "seconds_sum_of_calls": 16.99,
+   "by_tag": {
+    "biosample_pair": 35,
+    "sample": 43,
+    "study": 1
+   }
+  },
+  "jev_live_wall_s": 3.25
+ },
+ "GSE190102 v3": {
+  "samples": 43,
+  "deepseek": {
+   "calls": 1,
+   "tokens_in": 8455,
+   "tokens_out": 684,
+   "dollars": 0.00324,
+   "seconds_sum_of_calls": 3.21
+  },
+  "jev": {
+   "calls": 125,
+   "questions": 346,
+   "tokens_in": 227250,
+   "dollars": 0.00954,
+   "seconds_sum_of_calls": 31.71,
+   "by_tag": {
+    "biosample_pair": 35,
+    "reask": 46,
+    "sample": 43,
+    "study": 1
+   }
+  },
+  "jev_live_wall_s": 2.33
+ },
+ "GSE206603 v1": {
+  "samples": 24,
+  "deepseek": {
+   "calls": 1,
+   "tokens_in": 3986,
+   "tokens_out": 328,
+   "dollars": 0.00151,
+   "seconds_sum_of_calls": 2.52
+  },
+  "jev": {
+   "calls": 85,
+   "questions": 206,
+   "tokens_in": 173742,
+   "dollars": 0.0073,
+   "seconds_sum_of_calls": 18.81,
+   "by_tag": {
+    "biosample_pair": 60,
+    "sample": 24,
+    "study": 1
+   }
+  },
+  "jev_live_wall_s": 2.9
+ },
+ "GSE206603 v2": {
+  "samples": 24,
+  "deepseek": {
+   "calls": 1,
+   "tokens_in": 7919,
+   "tokens_out": 564,
+   "dollars": 0.00286,
+   "seconds_sum_of_calls": 3.27
+  },
+  "jev": {
+   "calls": 85,
+   "questions": 258,
+   "tokens_in": 187111,
+   "dollars": 0.00786,
+   "seconds_sum_of_calls": 20.04,
+   "by_tag": {
+    "biosample_pair": 60,
+    "sample": 24,
+    "study": 1
+   }
+  },
+  "jev_live_wall_s": 3.48
+ },
+ "GSE206603 v3": {
+  "samples": 24,
+  "deepseek": {
+   "calls": 1,
+   "tokens_in": 7919,
+   "tokens_out": 564,
+   "dollars": 0.00286,
+   "seconds_sum_of_calls": 3.27
+  },
+  "jev": {
+   "calls": 103,
+   "questions": 276,
+   "tokens_in": 205570,
+   "dollars": 0.00863,
+   "seconds_sum_of_calls": 24.63,
+   "by_tag": {
+    "biosample_pair": 60,
+    "reask": 18,
+    "sample": 24,
+    "study": 1
+   }
+  },
+  "jev_live_wall_s": 0.82
+ }
+}

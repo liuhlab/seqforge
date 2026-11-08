@@ -1,0 +1,2589 @@
+{
+ "gse": "GSE206603",
+ "reading": "reading.v1.yaml",
+ "samples": {
+  "gold": 24,
+  "model": 24,
+  "both": 24
+ },
+ "study": {
+  "series": {
+   "gold": [
+    "GSE206603",
+    "GSE206602",
+    "GSE206588"
+   ],
+   "model": [
+    "GSE206603",
+    "GSE206588",
+    "GSE206602"
+   ],
+   "equal": true
+  },
+  "superseries": {
+   "gold": "GSE206603",
+   "model": "GSE206603",
+   "equal": true
+  },
+  "bioproject": {
+   "gold": [
+    "PRJNA851445",
+    "PRJNA851439",
+    "PRJNA851435"
+   ],
+   "model": [
+    "PRJNA851435",
+    "PRJNA851439",
+    "PRJNA851445"
+   ],
+   "equal": true
+  },
+  "pmid": {
+   "gold": [
+    "39754192"
+   ],
+   "model": [
+    "39754192"
+   ],
+   "equal": true
+  }
+ },
+ "factors": {
+  "per_gold_factor": [
+   {
+    "gold": "genotype",
+    "model": "genotype",
+    "level_map": {
+     "WT": "WT",
+     "APP_V717I": "APP_V717I",
+     "PSEN1_A79V": "PSEN1_A79V",
+     "PSEN2_N141I": "PSEN2_N141I"
+    },
+    "levels_equal": true,
+    "baseline_equal": true,
+    "ordered_equal": true,
+    "probability": {
+     "role": 1.0,
+     "baseline": 1.0
+    }
+   }
+  ],
+  "missing": [],
+  "extra_model_factors": []
+ },
+ "fields": {
+  "factor:genotype": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "donor": {
+   "right": 0,
+   "wrong": 24,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "biosample": {
+   "right": 0,
+   "wrong": 0,
+   "unsure_right": 24,
+   "unsure_wrong": 0
+  },
+  "assay": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "target": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "role": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "control_type": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:species": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:species": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:sex": {
+   "right": 0,
+   "wrong": 24,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:apoe_genotype": {
+   "right": 0,
+   "wrong": 24,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:disease": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:disease": {
+   "right": 0,
+   "wrong": 24,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:cell_type": {
+   "right": 24,
+   "wrong": 0,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr_id:cell_type": {
+   "right": 0,
+   "wrong": 24,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  },
+  "attr:sample_type": {
+   "right": 0,
+   "wrong": 24,
+   "unsure_right": 0,
+   "unsure_wrong": 0
+  }
+ },
+ "relations": {
+  "contrasts": {
+   "model": 6,
+   "gold": 6,
+   "match": 6,
+   "precision": 1.0,
+   "recall": 1.0
+  },
+  "replicates": {
+   "model": 8,
+   "gold": 8,
+   "match": 8,
+   "precision": 1.0,
+   "recall": 1.0
+  },
+  "series": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "co_measurement_groups": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "co_measurement_pairs": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "co_measurement_pairs_settled": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "co_measurement_pairs_claimed_among_unsure": 0,
+  "background_control": {
+   "model": 0,
+   "gold": 0,
+   "match": 0,
+   "precision": null,
+   "recall": null
+  },
+  "donor_pairs": {
+   "model": 0,
+   "gold": 60,
+   "match": 0,
+   "precision": null,
+   "recall": 0.0
+  }
+ },
+ "errors": [
+  {
+   "gsm": "GSM6257605",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257296",
+    "GSM6257297",
+    "GSM6257298",
+    "GSM6257606",
+    "GSM6257607"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257605",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257605",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE2/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257605",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "PATO:0000461",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257605",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257605",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257606",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257296",
+    "GSM6257297",
+    "GSM6257298",
+    "GSM6257605",
+    "GSM6257607"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257606",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257606",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE2/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257606",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "PATO:0000461",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257606",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257606",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257607",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257296",
+    "GSM6257297",
+    "GSM6257298",
+    "GSM6257605",
+    "GSM6257606"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257607",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257607",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE2/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257607",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "PATO:0000461",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257607",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257607",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257608",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257299",
+    "GSM6257300",
+    "GSM6257301",
+    "GSM6257609",
+    "GSM6257610"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257608",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257608",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257608",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257608",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257608",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257609",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257299",
+    "GSM6257300",
+    "GSM6257301",
+    "GSM6257608",
+    "GSM6257610"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257609",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257609",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257609",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257609",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257609",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257610",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257299",
+    "GSM6257300",
+    "GSM6257301",
+    "GSM6257608",
+    "GSM6257609"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257610",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257610",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257610",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257610",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257610",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257611",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257302",
+    "GSM6257303",
+    "GSM6257304",
+    "GSM6257612",
+    "GSM6257613"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257611",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257611",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/4",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257611",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257611",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257611",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257612",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257302",
+    "GSM6257303",
+    "GSM6257304",
+    "GSM6257611",
+    "GSM6257613"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257612",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257612",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/4",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257612",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257612",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257612",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257613",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257302",
+    "GSM6257303",
+    "GSM6257304",
+    "GSM6257611",
+    "GSM6257612"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257613",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257613",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/4",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257613",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257613",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257613",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257614",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257305",
+    "GSM6257306",
+    "GSM6257307",
+    "GSM6257615",
+    "GSM6257616"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257614",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257614",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257614",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257614",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257614",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257615",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257305",
+    "GSM6257306",
+    "GSM6257307",
+    "GSM6257614",
+    "GSM6257616"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257615",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257615",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257615",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257615",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257615",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257616",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257305",
+    "GSM6257306",
+    "GSM6257307",
+    "GSM6257614",
+    "GSM6257615"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257616",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257616",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257616",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257616",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257616",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257296",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257297",
+    "GSM6257298",
+    "GSM6257605",
+    "GSM6257606",
+    "GSM6257607"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257296",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257296",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE2/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257296",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "PATO:0000461",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257296",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257296",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257297",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257296",
+    "GSM6257298",
+    "GSM6257605",
+    "GSM6257606",
+    "GSM6257607"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257297",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257297",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE2/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257297",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "PATO:0000461",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257297",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257297",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257298",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257296",
+    "GSM6257297",
+    "GSM6257605",
+    "GSM6257606",
+    "GSM6257607"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257298",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257298",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE2/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257298",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "PATO:0000461",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257298",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257298",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257299",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257300",
+    "GSM6257301",
+    "GSM6257608",
+    "GSM6257609",
+    "GSM6257610"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257299",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257299",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257299",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257299",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257299",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257300",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257299",
+    "GSM6257301",
+    "GSM6257608",
+    "GSM6257609",
+    "GSM6257610"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257300",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257300",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257300",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257300",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257300",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257301",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257299",
+    "GSM6257300",
+    "GSM6257608",
+    "GSM6257609",
+    "GSM6257610"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257301",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257301",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257301",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257301",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257301",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257302",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257303",
+    "GSM6257304",
+    "GSM6257611",
+    "GSM6257612",
+    "GSM6257613"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257302",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257302",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/4",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257302",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257302",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257302",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257303",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257302",
+    "GSM6257304",
+    "GSM6257611",
+    "GSM6257612",
+    "GSM6257613"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257303",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257303",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/4",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257303",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257303",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257303",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257304",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257302",
+    "GSM6257303",
+    "GSM6257611",
+    "GSM6257612",
+    "GSM6257613"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257304",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "male",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257304",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/4",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257304",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257304",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257304",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257305",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257306",
+    "GSM6257307",
+    "GSM6257614",
+    "GSM6257615",
+    "GSM6257616"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257305",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257305",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257305",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257305",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257305",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257306",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257305",
+    "GSM6257307",
+    "GSM6257614",
+    "GSM6257615",
+    "GSM6257616"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257306",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257306",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257306",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257306",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257306",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257307",
+   "field": "donor",
+   "model": "not stated",
+   "gold": [
+    "GSM6257305",
+    "GSM6257306",
+    "GSM6257614",
+    "GSM6257615",
+    "GSM6257616"
+   ],
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257307",
+   "field": "attr:sex",
+   "model": null,
+   "gold": "female",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257307",
+   "field": "attr:apoe_genotype",
+   "model": null,
+   "gold": "APOE3/3",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257307",
+   "field": "attr_id:disease",
+   "model": null,
+   "gold": "MONDO:0004975",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257307",
+   "field": "attr_id:cell_type",
+   "model": null,
+   "gold": "CL:0000540",
+   "p": null,
+   "unsure": false
+  },
+  {
+   "gsm": "GSM6257307",
+   "field": "attr:sample_type",
+   "model": null,
+   "gold": "in vitro differentiated cells",
+   "p": null,
+   "unsure": false
+  }
+ ],
+ "calibration": [
+  {
+   "gse": "GSE206603",
+   "field": "study:factor_role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "study:baseline",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "factor:genotype",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "assay",
+   "p": 1.0,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "role",
+   "p": 0.99,
+   "correct": true,
+   "unsure": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.88,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.12,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.9299999999999999,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.07,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.71,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.29,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.81,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.19,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.79,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.21,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.9,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.1,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.81,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.19,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.73,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.27,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.8,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.2,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.81,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.19,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.8,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.2,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.72,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.28,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.89,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.11,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.91,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.09,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.74,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.26,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.85,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.15,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.87,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.13,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.89,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.11,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.8200000000000001,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.18,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.76,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.24,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.85,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.15,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.85,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.15,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.87,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.13,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.74,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.26,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.84,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.16,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.89,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.11,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.7,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.3,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.8,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.2,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.83,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.17,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.89,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.11,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.78,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.22,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.7,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.3,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.81,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.19,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.8200000000000001,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.18,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.83,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.17,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.6599999999999999,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.34,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.86,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.14,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.87,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.13,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.6599999999999999,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.34,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.83,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.17,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.8200000000000001,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.18,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.89,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.11,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.8,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.2,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.69,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.31,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.85,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.15,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.81,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.19,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.8200000000000001,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.18,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.6699999999999999,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.33,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.9,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.1,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.9299999999999999,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.07,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.9299999999999999,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.07,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.89,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.11,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.9299999999999999,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.07,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.91,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.09,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.85,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.15,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.91,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.09,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.91,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.09,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.84,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.16,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.88,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.12,
+   "gold_same": false
+  },
+  {
+   "gse": "GSE206603",
+   "field": "biosample_pair",
+   "p": 0.89,
+   "correct": true,
+   "unsure": true,
+   "p_yes": 0.11,
+   "gold_same": false
+  }
+ ]
+}

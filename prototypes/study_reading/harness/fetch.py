@@ -117,13 +117,56 @@ def fetch(gse):
         "series_text": series_text,
         "samples": [samples[k] for k in sorted(samples)],
     }
+    for p in study["pmid"]:
+        paper(gse, p)  # kept under raw/ (not committed); study_text reads it from there
+    study["paper_files"] = [f"paper_{p}.txt" for p in study["pmid"]]
     save(gse, "study.json", study)
     return study
 
 
+def paper(gse, pmid, limit=16000):
+    """v2: abstract + methods of the linked paper from PMC (NCBI E-utilities), flattened; '' if not in PMC."""
+    import json
+    import xml.etree.ElementTree as ET
+
+    f = run_dir(gse) / "raw" / f"paper_{pmid}.txt"
+    if f.exists():
+        return f.read_text()
+    url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?ids={pmid}&format=json&tool=proto&email=none@example.org"
+    try:
+        with urllib.request.urlopen(url, timeout=60) as r:
+            pmc = json.load(r)["records"][0].get("pmcid")
+    except Exception:
+        pmc = None
+    txt = ""
+    if pmc:
+        time.sleep(0.4)
+        u = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pmc&id={pmc}&rettype=xml"
+        with urllib.request.urlopen(u, timeout=120) as r:
+            root = ET.fromstring(r.read())
+
+        def flat(e):
+            return re.sub(r"\s+", " ", "".join(e.itertext())).strip()
+        parts = [f"Paper {pmc} (PMID {pmid})"]
+        for ab in root.iter("abstract"):
+            parts.append("Abstract: " + flat(ab))
+            break
+        body = next(root.iter("body"), root)  # not the structured abstract's own "Methods"
+        for sec in body.iter("sec"):
+            title = sec.find("title")
+            tt = flat(title) if title is not None else ""
+            if re.search(r"method|material", tt, re.I) and sec.get("sec-type") != "supplementary-material":
+                parts.append(f"{tt}: " + flat(sec)[len(tt):])
+                break
+        txt = "\n".join(parts)[:limit]
+    f.write_text(txt)
+    return txt
+
+
 def corpus(gse):
-    """All fetched raw text, for grepping quotes back."""
-    return "\n".join(f.read_text(errors="replace") for f in sorted((run_dir(gse) / "raw").glob("*.soft")))
+    """All fetched raw text, for grepping quotes back (GEO SOFT, and the paper text from v2 on)."""
+    raw = run_dir(gse) / "raw"
+    return "\n".join(f.read_text(errors="replace") for f in sorted(list(raw.glob("*.soft")) + list(raw.glob("paper_*.txt"))))
 
 
 if __name__ == "__main__":
