@@ -1,0 +1,1 @@
+{"model": "jev-1.14.0", "answers": {"q": {"type": "choice", "choice": "MDA5 KD", "confidence": 1.0, "probabilities": {"control": 0.0, "MDA5 KD": 1.0, "not_stated": 0.0}}}, "usage": {"input_tokens": 675, "output_tokens": 46}, "_meta": {"model": "jev-1.14.0", "tokens_in": 675, "tokens_out": 46, "dollars": 2.835e-05, "seconds": 0.125, "n_questions": 1}}

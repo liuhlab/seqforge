@@ -1,0 +1,1 @@
+{"model": "jev-1.14.0", "answers": {"q": {"type": "choice", "choice": "2d", "confidence": 0.75, "probabilities": {"36h": 0.14, "1 day": 0.06, "2d": 0.8, "90 min": 0.0, "2h": 0.0}}}, "usage": {"input_tokens": 328, "output_tokens": 60}, "_meta": {"model": "jev-1.14.0", "tokens_in": 328, "tokens_out": 60, "dollars": 1.3776000000000002e-05, "seconds": 0.292, "n_questions": 1}}

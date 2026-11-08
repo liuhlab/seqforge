@@ -1,0 +1,921 @@
+# Hand reading (gold) of GSE164798. Shape: ../SCHEMA.md. Additions: sample `title`; `unsure` items are {label, note}.
+study:
+  series: ["GSE164798"]
+  superseries: null
+  bioproject: ["PRJNA691970"]
+  pmid: ["33804749"]
+  notes: "A 2 x 3 crossed design: genotype (wild-type littermates, 5xFAD) by voluntary wheel running (sedentary, acute = one day or 18 h, chronic = 30 days). The baseline running level is spelled 'treatment: untreated' with 'treatment synonym: sedentary'. Running is not an ordered series: GEO gives regimens, not numbers, and the paper compares regimens. Acute vs chronic, which the paper also tests, is not a contrast under the rule because neither side is the baseline. Genotype leaks into the strain field ('5xFAD (C57BL/6)'). All mice male; RNA from the right hemisphere; the left hemisphere went to lactate assays and was not sequenced. GEO gives age 3 months for every sample; the summary's '2-month-old' for the chronic group is the age at the start of 30 days of running. GEO's 'one day' of running is '18 h before sacrifice' in the paper."
+factors:
+  - name: "genotype"
+    levels: ["WT", "5xFAD"]
+    baseline: "WT"
+    ordered: false
+  - name: "treatment"
+    levels: ["sedentary", "acute", "chronic"]
+    baseline: "sedentary"
+    ordered: false
+samples:
+  - gsm: "GSM5019734"
+    title: "Brain WT sedentary - rep 1"
+    factors: {genotype: "WT", treatment: "sedentary"}
+    biosample: "B01"
+    donor: "D01"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "untreated"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: sedentary"
+        source: "GSM characteristics (beside 'treatment: untreated')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019735"
+    title: "Brain WT sedentary - rep 2"
+    factors: {genotype: "WT", treatment: "sedentary"}
+    biosample: "B02"
+    donor: "D02"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "untreated"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: sedentary"
+        source: "GSM characteristics (beside 'treatment: untreated')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019736"
+    title: "Brain WT sedentary - rep 3"
+    factors: {genotype: "WT", treatment: "sedentary"}
+    biosample: "B03"
+    donor: "D03"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "untreated"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: sedentary"
+        source: "GSM characteristics (beside 'treatment: untreated')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019737"
+    title: "Brain WT sedentary - rep 4"
+    factors: {genotype: "WT", treatment: "sedentary"}
+    biosample: "B04"
+    donor: "D04"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "untreated"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: sedentary"
+        source: "GSM characteristics (beside 'treatment: untreated')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019738"
+    title: "Brain WT chronic - rep 1"
+    factors: {genotype: "WT", treatment: "chronic"}
+    biosample: "B05"
+    donor: "D05"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "30 days voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: chronic"
+        source: "GSM characteristics (beside 'treatment: 30 days voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019739"
+    title: "Brain WT chronic - rep 2"
+    factors: {genotype: "WT", treatment: "chronic"}
+    biosample: "B06"
+    donor: "D06"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "30 days voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: chronic"
+        source: "GSM characteristics (beside 'treatment: 30 days voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019740"
+    title: "Brain WT chronic - rep 3"
+    factors: {genotype: "WT", treatment: "chronic"}
+    biosample: "B07"
+    donor: "D07"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "30 days voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: chronic"
+        source: "GSM characteristics (beside 'treatment: 30 days voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019741"
+    title: "Brain WT chronic - rep 4"
+    factors: {genotype: "WT", treatment: "chronic"}
+    biosample: "B08"
+    donor: "D08"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "30 days voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: chronic"
+        source: "GSM characteristics (beside 'treatment: 30 days voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019742"
+    title: "Brain WT acute - rep 1"
+    factors: {genotype: "WT", treatment: "acute"}
+    biosample: "B09"
+    donor: "D09"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "one day voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: acute"
+        source: "GSM characteristics (beside 'treatment: one day voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019743"
+    title: "Brain WT acute - rep 2"
+    factors: {genotype: "WT", treatment: "acute"}
+    biosample: "B10"
+    donor: "D10"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "one day voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: acute"
+        source: "GSM characteristics (beside 'treatment: one day voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019744"
+    title: "Brain WT acute - rep 3"
+    factors: {genotype: "WT", treatment: "acute"}
+    biosample: "B11"
+    donor: "D11"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "one day voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: acute"
+        source: "GSM characteristics (beside 'treatment: one day voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019745"
+    title: "Brain WT acute - rep 4"
+    factors: {genotype: "WT", treatment: "acute"}
+    biosample: "B12"
+    donor: "D12"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57BL/6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "wild-type"}
+      treatment: {text: "one day voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: wild-type", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: acute"
+        source: "GSM characteristics (beside 'treatment: one day voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019746"
+    title: "Brain 5xFAD sedentary - rep 1"
+    factors: {genotype: "5xFAD", treatment: "sedentary"}
+    biosample: "B13"
+    donor: "D13"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "untreated"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: sedentary"
+        source: "GSM characteristics (beside 'treatment: untreated')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019747"
+    title: "Brain 5xFAD sedentary - rep 2"
+    factors: {genotype: "5xFAD", treatment: "sedentary"}
+    biosample: "B14"
+    donor: "D14"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "untreated"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: sedentary"
+        source: "GSM characteristics (beside 'treatment: untreated')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019748"
+    title: "Brain 5xFAD sedentary - rep 3"
+    factors: {genotype: "5xFAD", treatment: "sedentary"}
+    biosample: "B15"
+    donor: "D15"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "untreated"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: sedentary"
+        source: "GSM characteristics (beside 'treatment: untreated')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019749"
+    title: "Brain 5xFAD sedentary - rep 4"
+    factors: {genotype: "5xFAD", treatment: "sedentary"}
+    biosample: "B16"
+    donor: "D16"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "untreated"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: sedentary"
+        source: "GSM characteristics (beside 'treatment: untreated')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019750"
+    title: "Brain 5xFAD chronic - rep 1"
+    factors: {genotype: "5xFAD", treatment: "chronic"}
+    biosample: "B17"
+    donor: "D17"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "30 days voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: chronic"
+        source: "GSM characteristics (beside 'treatment: 30 days voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019751"
+    title: "Brain 5xFAD chronic - rep 2"
+    factors: {genotype: "5xFAD", treatment: "chronic"}
+    biosample: "B18"
+    donor: "D18"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "30 days voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: chronic"
+        source: "GSM characteristics (beside 'treatment: 30 days voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019752"
+    title: "Brain 5xFAD chronic - rep 3"
+    factors: {genotype: "5xFAD", treatment: "chronic"}
+    biosample: "B19"
+    donor: "D19"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "30 days voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: chronic"
+        source: "GSM characteristics (beside 'treatment: 30 days voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019753"
+    title: "Brain 5xFAD chronic - rep 4"
+    factors: {genotype: "5xFAD", treatment: "chronic"}
+    biosample: "B20"
+    donor: "D20"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "30 days voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: chronic"
+        source: "GSM characteristics (beside 'treatment: 30 days voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019754"
+    title: "Brain 5xFAD acute - rep 1"
+    factors: {genotype: "5xFAD", treatment: "acute"}
+    biosample: "B21"
+    donor: "D21"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "one day voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: acute"
+        source: "GSM characteristics (beside 'treatment: one day voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019755"
+    title: "Brain 5xFAD acute - rep 2"
+    factors: {genotype: "5xFAD", treatment: "acute"}
+    biosample: "B22"
+    donor: "D22"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "one day voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: acute"
+        source: "GSM characteristics (beside 'treatment: one day voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019756"
+    title: "Brain 5xFAD acute - rep 3"
+    factors: {genotype: "5xFAD", treatment: "acute"}
+    biosample: "B23"
+    donor: "D23"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "one day voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: acute"
+        source: "GSM characteristics (beside 'treatment: one day voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5019757"
+    title: "Brain 5xFAD acute - rep 4"
+    factors: {genotype: "5xFAD", treatment: "acute"}
+    biosample: "B24"
+    donor: "D24"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "5xFAD (C57BL/6)"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "right hemisphere"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "5xFAD"}
+      treatment: {text: "one day voluntary saucer wheel running"}
+    evidence:
+      genotype: {quote: "genotype: 5xFAD", source: "GSM characteristics"}
+      treatment:
+        quote: "treatment synonym: acute"
+        source: "GSM characteristics (beside 'treatment: one day voluntary saucer wheel running')"
+      sex: {quote: "Sex: male", source: "GSM characteristics"}
+      donor:
+        quote: "The animals were single-caged in type II cages"
+        source: "paper methods (PMC8004053); one mouse per GSM ('rep N' in the title)"
+      biosample:
+        quote: "The right hemisphere was cut into small cubicles and incubated at Room Temperature for 20 min in RNAlater"
+        source: "paper methods (PMC8004053)"
+      assay: {quote: "TruSeq stranded mRNA LT Sample Prep Kit", source: "paper methods (PMC8004053)"}
+      role:
+        quote: "Brain mRNA profiles of 3-month-old wild type (WT) and 5xFAD male mice after three different training levels"
+        source: "Series overall design"
+    probability: {}
+    unsure: []
+relations:
+  contrasts:
+    - factor: "genotype"
+      test: ["GSM5019746", "GSM5019747", "GSM5019748", "GSM5019749"]
+      baseline: ["GSM5019734", "GSM5019735", "GSM5019736", "GSM5019737"]
+      fixed: {treatment: "sedentary"}
+    - factor: "genotype"
+      test: ["GSM5019754", "GSM5019755", "GSM5019756", "GSM5019757"]
+      baseline: ["GSM5019742", "GSM5019743", "GSM5019744", "GSM5019745"]
+      fixed: {treatment: "acute"}
+    - factor: "genotype"
+      test: ["GSM5019750", "GSM5019751", "GSM5019752", "GSM5019753"]
+      baseline: ["GSM5019738", "GSM5019739", "GSM5019740", "GSM5019741"]
+      fixed: {treatment: "chronic"}
+    - factor: "treatment"
+      test: ["GSM5019742", "GSM5019743", "GSM5019744", "GSM5019745"]
+      baseline: ["GSM5019734", "GSM5019735", "GSM5019736", "GSM5019737"]
+      fixed: {genotype: "WT"}
+    - factor: "treatment"
+      test: ["GSM5019738", "GSM5019739", "GSM5019740", "GSM5019741"]
+      baseline: ["GSM5019734", "GSM5019735", "GSM5019736", "GSM5019737"]
+      fixed: {genotype: "WT"}
+    - factor: "treatment"
+      test: ["GSM5019754", "GSM5019755", "GSM5019756", "GSM5019757"]
+      baseline: ["GSM5019746", "GSM5019747", "GSM5019748", "GSM5019749"]
+      fixed: {genotype: "5xFAD"}
+    - factor: "treatment"
+      test: ["GSM5019750", "GSM5019751", "GSM5019752", "GSM5019753"]
+      baseline: ["GSM5019746", "GSM5019747", "GSM5019748", "GSM5019749"]
+      fixed: {genotype: "5xFAD"}
+  replicates:
+    - ["GSM5019734", "GSM5019735", "GSM5019736", "GSM5019737"]
+    - ["GSM5019738", "GSM5019739", "GSM5019740", "GSM5019741"]
+    - ["GSM5019742", "GSM5019743", "GSM5019744", "GSM5019745"]
+    - ["GSM5019746", "GSM5019747", "GSM5019748", "GSM5019749"]
+    - ["GSM5019750", "GSM5019751", "GSM5019752", "GSM5019753"]
+    - ["GSM5019754", "GSM5019755", "GSM5019756", "GSM5019757"]
+  series: []
+  co_measurement: []
+  background_control: []

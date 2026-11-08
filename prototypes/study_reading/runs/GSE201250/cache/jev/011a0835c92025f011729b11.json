@@ -1,0 +1,1 @@
+{"model": "jev-1.14.0", "answers": {"q": {"type": "noul", "noul": 0.98}}, "usage": {"input_tokens": 308, "output_tokens": 20}, "_meta": {"model": "jev-1.14.0", "tokens_in": 308, "tokens_out": 20, "dollars": 1.2936e-05, "seconds": 0.195, "n_questions": 1}}

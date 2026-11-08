@@ -1,0 +1,1 @@
+{"model": "jev-1.14.0", "answers": {"q": {"type": "choice", "choice": "HIV1", "confidence": 1.0, "probabilities": {"Mock": 0.0, "HIV1": 1.0, "not_stated": 0.0}}}, "usage": {"input_tokens": 602, "output_tokens": 44}, "_meta": {"model": "jev-1.14.0", "tokens_in": 602, "tokens_out": 44, "dollars": 2.5284000000000004e-05, "seconds": 0.175, "n_questions": 1}}

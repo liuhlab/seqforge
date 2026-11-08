@@ -1,0 +1,79 @@
+{
+ "code": {
+  "source": "code",
+  "candidate_keys": [
+   {
+    "name": "donor number",
+    "levels": [
+     {
+      "value": "M27",
+      "quote": "donor number: M27"
+     },
+     {
+      "value": "M28",
+      "quote": "donor number: M28"
+     },
+     {
+      "value": "M29",
+      "quote": "donor number: M29"
+     }
+    ]
+   },
+   {
+    "name": "genotype",
+    "levels": [
+     {
+      "value": "control",
+      "quote": "genotype: control"
+     },
+     {
+      "value": "MDA5 KD",
+      "quote": "genotype: MDA5 KD"
+     }
+    ]
+   },
+   {
+    "name": "infection",
+    "levels": [
+     {
+      "value": "Mock",
+      "quote": "infection: Mock"
+     },
+     {
+      "value": "HIV1",
+      "quote": "infection: HIV1"
+     }
+    ]
+   },
+   {
+    "name": "time",
+    "levels": [
+     {
+      "value": "0h",
+      "quote": "time: 0h"
+     },
+     {
+      "value": "48h",
+      "quote": "time: 48h"
+     }
+    ]
+   }
+  ],
+  "constant": [
+   {
+    "name": "cell type",
+    "levels": [
+     {
+      "value": "Monocyte-derived dendritic cells",
+      "quote": "cell type: Monocyte-derived dendritic cells"
+     }
+    ]
+   }
+  ]
+ },
+ "code_quote_check": {
+  "quotes": 9,
+  "failed": []
+ },
+ "used": "code"
+}

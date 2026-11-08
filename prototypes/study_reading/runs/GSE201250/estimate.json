@@ -1,0 +1,32 @@
+{
+ "measured_on": "GSE201250",
+ "state_tokens_per_sample_request": 580,
+ "tokens_per_extra_question": 100,
+ "mean_request_s": 0.223,
+ "N=100": {
+  "jev_questions": 883,
+  "jev_requests": 211,
+  "jev_tokens": 220406,
+  "jev_usd": 0.0093,
+  "deepseek_usd_if_needed": 0.0051,
+  "minutes_8_parallel": 0.31,
+  "pairwise_all_pairs_instead": {
+   "questions": 4950,
+   "usd": 0.16
+  },
+  "whole_study_state_fits_64k": false
+ },
+ "N=1000": {
+  "jev_questions": 8713,
+  "jev_requests": 2101,
+  "jev_tokens": 2173140,
+  "jev_usd": 0.0913,
+  "deepseek_usd_if_needed": 0.0446,
+  "minutes_8_parallel": 3.11,
+  "pairwise_all_pairs_instead": {
+   "questions": 499500,
+   "usd": 15.94
+  },
+  "whole_study_state_fits_64k": false
+ }
+}

@@ -1,0 +1,642 @@
+{
+ "P1_option_order": {
+  "original": {
+   "n": 187,
+   "accuracy": 0.995,
+   "mean_p_truth": 0.983,
+   "flips_vs_original": 0,
+   "first_option_rate": 0.626,
+   "by_context": {
+    "chars": {
+     "n": 90,
+     "accuracy": 1.0,
+     "mean_p_truth": 0.998
+    },
+    "nochar": {
+     "n": 90,
+     "accuracy": 0.989,
+     "mean_p_truth": 0.968
+    },
+    "study": {
+     "n": 7,
+     "accuracy": 1.0,
+     "mean_p_truth": 0.987
+    }
+   },
+   "flipped": [],
+   "cost": {
+    "requests": 31,
+    "questions": 188,
+    "tokens_in": 38372,
+    "dollars": 0.001611624,
+    "mean_request_s": 0.222,
+    "wall_s_8_parallel": 1.04
+   }
+  },
+  "reversed": {
+   "n": 187,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.989,
+   "flips_vs_original": 1,
+   "first_option_rate": 0.0,
+   "by_context": {
+    "chars": {
+     "n": 90,
+     "accuracy": 1.0,
+     "mean_p_truth": 0.997
+    },
+    "nochar": {
+     "n": 90,
+     "accuracy": 1.0,
+     "mean_p_truth": 0.982
+    },
+    "study": {
+     "n": 7,
+     "accuracy": 1.0,
+     "mean_p_truth": 0.99
+    }
+   },
+   "flipped": [
+    [
+     "nochar",
+     "GSM6056605",
+     "level_1",
+     "MDA5 KD",
+     "control"
+    ]
+   ],
+   "cost": {
+    "requests": 31,
+    "questions": 188,
+    "tokens_in": 38372,
+    "dollars": 0.001611624,
+    "mean_request_s": 0.205,
+    "wall_s_8_parallel": 0.97
+   }
+  },
+  "shuffle1": {
+   "n": 187,
+   "accuracy": 0.984,
+   "mean_p_truth": 0.981,
+   "flips_vs_original": 2,
+   "first_option_rate": 0.278,
+   "by_context": {
+    "chars": {
+     "n": 90,
+     "accuracy": 1.0,
+     "mean_p_truth": 0.997
+    },
+    "nochar": {
+     "n": 90,
+     "accuracy": 0.967,
+     "mean_p_truth": 0.966
+    },
+    "study": {
+     "n": 7,
+     "accuracy": 1.0,
+     "mean_p_truth": 0.989
+    }
+   },
+   "flipped": [
+    [
+     "nochar",
+     "GSM6056604",
+     "level_1",
+     "control",
+     "MDA5 KD"
+    ],
+    [
+     "nochar",
+     "GSM6056606",
+     "level_1",
+     "control",
+     "MDA5 KD"
+    ]
+   ],
+   "cost": {
+    "requests": 31,
+    "questions": 188,
+    "tokens_in": 38372,
+    "dollars": 0.001611624,
+    "mean_request_s": 0.217,
+    "wall_s_8_parallel": 1.01
+   }
+  },
+  "shuffle2": {
+   "n": 187,
+   "accuracy": 0.995,
+   "mean_p_truth": 0.985,
+   "flips_vs_original": 0,
+   "first_option_rate": 0.321,
+   "by_context": {
+    "chars": {
+     "n": 90,
+     "accuracy": 1.0,
+     "mean_p_truth": 0.996
+    },
+    "nochar": {
+     "n": 90,
+     "accuracy": 0.989,
+     "mean_p_truth": 0.973
+    },
+    "study": {
+     "n": 7,
+     "accuracy": 1.0,
+     "mean_p_truth": 0.989
+    }
+   },
+   "flipped": [],
+   "cost": {
+    "requests": 31,
+    "questions": 188,
+    "tokens_in": 38372,
+    "dollars": 0.001611624,
+    "mean_request_s": 0.21,
+    "wall_s_8_parallel": 1.01
+   }
+  },
+  "any_flip": {
+   "questions": 187,
+   "unstable": 3,
+   "unstable_ids": [
+    [
+     "nochar",
+     "GSM6056604",
+     "level_1"
+    ],
+    [
+     "nochar",
+     "GSM6056605",
+     "level_1"
+    ],
+    [
+     "nochar",
+     "GSM6056606",
+     "level_1"
+    ]
+   ]
+  }
+ },
+ "P2_P3_size_context": {
+  "atomic_chars": {
+   "n": 60,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.999,
+   "by_key": {
+    "donor number": 1.0,
+    "genotype": 1.0,
+    "infection": 1.0,
+    "time": 1.0
+   },
+   "cost": {
+    "requests": 60,
+    "questions": 60,
+    "tokens_in": 40803,
+    "dollars": 0.001713726,
+    "mean_request_s": 0.218,
+    "wall_s_8_parallel": 1.97
+   }
+  },
+  "packed_chars": {
+   "n": 60,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.999,
+   "by_key": {
+    "donor number": 1.0,
+    "genotype": 1.0,
+    "infection": 1.0,
+    "time": 1.0
+   },
+   "cost": {
+    "requests": 15,
+    "questions": 60,
+    "tokens_in": 14712,
+    "dollars": 0.000617904,
+    "mean_request_s": 0.223,
+    "wall_s_8_parallel": 0.53
+   }
+  },
+  "joint_chars": {
+   "n": 15,
+   "accuracy": 1.0,
+   "mean_p_truth": 1.0,
+   "note": "one label = all 3 factors at once; donor not included",
+   "cost": {
+    "requests": 15,
+    "questions": 15,
+    "tokens_in": 11142,
+    "dollars": 0.0004679640000000001,
+    "mean_request_s": 0.348,
+    "wall_s_8_parallel": 1.28
+   }
+  },
+  "batch_chars": {
+   "n": 60,
+   "accuracy": 1.0,
+   "mean_p_truth": 1.0,
+   "by_key": {
+    "donor number": 1.0,
+    "genotype": 1.0,
+    "infection": 1.0,
+    "time": 1.0
+   },
+   "cost": {
+    "requests": 1,
+    "questions": 60,
+    "tokens_in": 10553,
+    "dollars": 0.00044322600000000007,
+    "mean_request_s": 0.231,
+    "wall_s_8_parallel": 0.24
+   }
+  },
+  "atomic_nochar": {
+   "n": 60,
+   "accuracy": 0.983,
+   "mean_p_truth": 0.961,
+   "by_key": {
+    "donor number": 1.0,
+    "genotype": 0.933,
+    "infection": 1.0,
+    "time": 1.0
+   },
+   "cost": {
+    "requests": 60,
+    "questions": 60,
+    "tokens_in": 36735,
+    "dollars": 0.0015428700000000002,
+    "mean_request_s": 0.222,
+    "wall_s_8_parallel": 2.01
+   }
+  },
+  "packed_nochar": {
+   "n": 60,
+   "accuracy": 0.967,
+   "mean_p_truth": 0.959,
+   "by_key": {
+    "donor number": 1.0,
+    "genotype": 0.867,
+    "infection": 1.0,
+    "time": 1.0
+   },
+   "cost": {
+    "requests": 15,
+    "questions": 60,
+    "tokens_in": 13695,
+    "dollars": 0.0005751900000000001,
+    "mean_request_s": 0.227,
+    "wall_s_8_parallel": 0.53
+   }
+  },
+  "joint_nochar": {
+   "n": 15,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.943,
+   "note": "one label = all 3 factors at once; donor not included",
+   "cost": {
+    "requests": 15,
+    "questions": 15,
+    "tokens_in": 10125,
+    "dollars": 0.00042525,
+    "mean_request_s": 0.227,
+    "wall_s_8_parallel": 0.57
+   }
+  },
+  "batch_nochar": {
+   "n": 60,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.998,
+   "by_key": {
+    "donor number": 1.0,
+    "genotype": 1.0,
+    "infection": 1.0,
+    "time": 1.0
+   },
+   "cost": {
+    "requests": 1,
+    "questions": 60,
+    "tokens_in": 9536,
+    "dollars": 0.000400512,
+    "mean_request_s": 0.276,
+    "wall_s_8_parallel": 0.3
+   }
+  },
+  "whole1_nochar": {
+   "n": 60,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.999,
+   "by_key": {
+    "donor number": 1.0,
+    "genotype": 1.0,
+    "infection": 1.0,
+    "time": 1.0
+   },
+   "cost": {
+    "requests": 60,
+    "questions": 60,
+    "tokens_in": 138510,
+    "dollars": 0.00581742,
+    "mean_request_s": 0.195,
+    "wall_s_8_parallel": 1.8
+   }
+  },
+  "batch_vs_single_same_state": {
+   "same_choice": 60,
+   "of": 60,
+   "max_abs_dp": 0.04
+  }
+ },
+ "P4_numbers": {
+  "span_pick_time": {
+   "n": 15,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.0,
+   "note": "pick the time span among regex-found spans (protocol says 48 hours for all; title says 0h for three)",
+   "spans_offered_example": [
+    "0h",
+    "48 hours"
+   ]
+  },
+  "threshold_gt_24h": {
+   "n": 15,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.913
+  },
+  "unit_change_days": {
+   "n": 15,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.903
+  },
+  "cost_sample_level": {
+   "requests": 15,
+   "questions": 45,
+   "tokens_in": 8487,
+   "dollars": 0.000356454,
+   "mean_request_s": 0.214,
+   "wall_s_8_parallel": 0.52
+  },
+  "pairwise_later_than": {
+   "n": 72,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.973,
+   "cost": {
+    "requests": 72,
+    "questions": 72,
+    "tokens_in": 44676,
+    "dollars": 0.001876392,
+    "mean_request_s": 0.203,
+    "wall_s_8_parallel": 2.18
+   }
+  },
+  "count_and_dose_original": {
+   "n_donors": {
+    "truth": "3",
+    "choice": "3",
+    "p_truth": 1.0,
+    "p_choice": 1.0
+   },
+   "n_samples": {
+    "truth": "15",
+    "choice": "15",
+    "p_truth": 0.99,
+    "p_choice": 0.99
+   },
+   "n_hiv": {
+    "truth": "6",
+    "choice": "6",
+    "p_truth": 0.98,
+    "p_choice": 0.98
+   },
+   "hepes": {
+    "truth": "25 mM",
+    "choice": "25 mM",
+    "p_truth": 1.0,
+    "p_choice": 1.0
+   },
+   "more": {
+    "truth": "HEPES",
+    "choice": "HEPES",
+    "p_truth": 0.97,
+    "p_choice": 0.97
+   }
+  },
+  "count_and_dose_reversed": {
+   "n_donors": {
+    "truth": "3",
+    "choice": "3",
+    "p_truth": 1.0,
+    "p_choice": 1.0
+   },
+   "n_samples": {
+    "truth": "15",
+    "choice": "15",
+    "p_truth": 1.0,
+    "p_choice": 1.0
+   },
+   "n_hiv": {
+    "truth": "6",
+    "choice": "6",
+    "p_truth": 0.77,
+    "p_choice": 0.77
+   },
+   "hepes": {
+    "truth": "25 mM",
+    "choice": "25 mM",
+    "p_truth": 1.0,
+    "p_choice": 1.0
+   },
+   "more": {
+    "truth": "HEPES",
+    "choice": "HEPES",
+    "p_truth": 0.96,
+    "p_choice": 0.96
+   }
+  }
+ },
+ "P5_grouping": {
+  "pairwise_donor_chars": {
+   "n": 105,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.939,
+   "transitivity_violations": 0,
+   "false_yes": 0,
+   "cost": {
+    "requests": 105,
+    "questions": 105,
+    "tokens_in": 79548,
+    "dollars": 0.003341016,
+    "mean_request_s": 0.194,
+    "wall_s_8_parallel": 3.09
+   }
+  },
+  "pairwise_donor_nochar": {
+   "n": 105,
+   "accuracy": 0.514,
+   "mean_p_truth": 0.507,
+   "transitivity_violations": 218,
+   "false_yes": 47,
+   "cost": {
+    "requests": 105,
+    "questions": 105,
+    "tokens_in": 65310,
+    "dollars": 0.00274302,
+    "mean_request_s": 0.196,
+    "wall_s_8_parallel": 3.12
+   }
+  },
+  "pairwise_biosample_chars": {
+   "n": 105,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.898,
+   "transitivity_violations": 0,
+   "false_yes": 0,
+   "cost": {
+    "requests": 105,
+    "questions": 105,
+    "tokens_in": 80913,
+    "dollars": 0.003398346,
+    "mean_request_s": 0.207,
+    "wall_s_8_parallel": 3.25
+   }
+  },
+  "pairwise_biosample_nochar": {
+   "n": 105,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.834,
+   "transitivity_violations": 0,
+   "false_yes": 0,
+   "cost": {
+    "requests": 105,
+    "questions": 105,
+    "tokens_in": 66675,
+    "dollars": 0.0028003500000000005,
+    "mean_request_s": 0.2,
+    "wall_s_8_parallel": 3.2
+   }
+  },
+  "choice_chars": {
+   "donor": {
+    "n": 15,
+    "accuracy": 1.0,
+    "mean_p_truth": 1.0
+   },
+   "biosample_partner": {
+    "n": 15,
+    "accuracy": 0.0,
+    "mean_p_truth": 0.167
+   },
+   "partner_picks": [
+    "GSM6056600",
+    "GSM6056599",
+    "GSM6056600",
+    "GSM6056603",
+    "GSM6056602",
+    "GSM6056605",
+    "GSM6056604",
+    "GSM6056605",
+    "GSM6056608",
+    "GSM6056607",
+    "GSM6056610",
+    "GSM6056609",
+    "GSM6056610",
+    "GSM6056613",
+    "GSM6056612"
+   ],
+   "cost": {
+    "requests": 15,
+    "questions": 30,
+    "tokens_in": 23577,
+    "dollars": 0.000990234,
+    "mean_request_s": 0.259,
+    "wall_s_8_parallel": 0.74
+   }
+  },
+  "choice_nochar": {
+   "donor": {
+    "n": 15,
+    "accuracy": 1.0,
+    "mean_p_truth": 1.0
+   },
+   "biosample_partner": {
+    "n": 15,
+    "accuracy": 0.0,
+    "mean_p_truth": 0.161
+   },
+   "partner_picks": [
+    "GSM6056600",
+    "GSM6056599",
+    "GSM6056600",
+    "GSM6056603",
+    "GSM6056602",
+    "GSM6056605",
+    "GSM6056604",
+    "GSM6056604",
+    "GSM6056608",
+    "GSM6056607",
+    "GSM6056610",
+    "GSM6056609",
+    "GSM6056610",
+    "GSM6056613",
+    "GSM6056612"
+   ],
+   "cost": {
+    "requests": 15,
+    "questions": 30,
+    "tokens_in": 22560,
+    "dollars": 0.0009475200000000001,
+    "mean_request_s": 0.205,
+    "wall_s_8_parallel": 0.55
+   }
+  }
+ },
+ "P4b_mixed_numbers": {
+  "mixed_unit_later_than": {
+   "n": 54,
+   "accuracy": 0.981,
+   "mean_p_truth": 0.907,
+   "wrong": [
+    [
+     "2d",
+     "36h",
+     0.1
+    ]
+   ],
+   "cost": {
+    "requests": 54,
+    "questions": 54,
+    "tokens_in": 16534,
+    "dollars": 0.000694428,
+    "mean_request_s": 0.27,
+    "wall_s_8_parallel": 2.58
+   },
+   "code_parse_accuracy": 1.0
+  },
+  "age_older_than": {
+   "n": 6,
+   "accuracy": 1.0,
+   "mean_p_truth": 0.865,
+   "wrong": []
+  },
+  "latest_of_5_original": {
+   "truth": "2d",
+   "choice": "2d",
+   "probabilities": {
+    "36h": 0.14,
+    "1 day": 0.06,
+    "2d": 0.8,
+    "90 min": 0.0,
+    "2h": 0.0
+   }
+  },
+  "latest_of_5_reversed": {
+   "truth": "2d",
+   "choice": "2d",
+   "probabilities": {
+    "2h": 0.0,
+    "90 min": 0.0,
+    "2d": 0.69,
+    "1 day": 0.01,
+    "36h": 0.3
+   }
+  }
+ }
+}

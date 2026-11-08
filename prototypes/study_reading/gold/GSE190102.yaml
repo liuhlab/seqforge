@@ -1,0 +1,1650 @@
+# Hand reading (gold) of GSE190102. Shape: ../SCHEMA.md. Additions: sample `title`; `target`/`role`/`order`
+# keys on contrasts and series; `basis` on background controls; `unsure` items are {label, note}.
+study:
+  series: ["GSE190102"]
+  superseries: null
+  bioproject: ["PRJNA798693"]
+  pmid: ["39195281"]
+  notes: "One Series, two deposits. The 28 samples of 2021 (H3K4me3, H3K27ac, total input) carry age and antibody as characteristics. The 15 H3K27me3 samples added in 2024 carry age and mark only in the title, their characteristics say 'tissue: brain; cell type: neurons; genotype: WT', and the Series overall design still names only H3K4me3 and H3K27ac. 'TI' in a title is total input; its antibody is 'None'. GEO has 6-month samples the paper never analyses (the paper says 3, 12 and 24 months, n = 5 per age). The title's leading number is the animal id, shared across marks, so one animal is one donor and one biosample. Strain is wild-type C57BL/6 throughout; genotype is not a factor."
+factors:
+  - name: "age"
+    levels: ["3 months", "6 months", "12 months", "24 months"]
+    baseline: "3 months"
+    ordered: true
+samples:
+  - gsm: "GSM5825050"
+    title: "363 WT 3M H3K4me3"
+    factors: {age: "3 months"}
+    biosample: "B01"
+    donor: "D01"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 3 months", source: "GSM characteristics"}
+      donor: {quote: "363 WT 3M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "363 WT 3M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825051"
+    title: "517 WT 3M H3K4me3"
+    factors: {age: "3 months"}
+    biosample: "B02"
+    donor: "D02"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 3 months", source: "GSM characteristics"}
+      donor: {quote: "517 WT 3M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "517 WT 3M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825052"
+    title: "513 WT 3M H3K4me3"
+    factors: {age: "3 months"}
+    biosample: "B03"
+    donor: "D03"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 3 months", source: "GSM characteristics"}
+      donor: {quote: "513 WT 3M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "513 WT 3M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825053"
+    title: "512 WT 3M H3K4me3"
+    factors: {age: "3 months"}
+    biosample: "B04"
+    donor: "D04"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 3 months", source: "GSM characteristics"}
+      donor: {quote: "512 WT 3M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "512 WT 3M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825054"
+    title: "163736 WT 6M H3K4me3"
+    factors: {age: "6 months"}
+    biosample: "B06"
+    donor: "D06"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "6 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 6 months", source: "GSM characteristics"}
+      donor: {quote: "163736 WT 6M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "163736 WT 6M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825055"
+    title: "325 WT 6M H3K4me3"
+    factors: {age: "6 months"}
+    biosample: "B07"
+    donor: "D07"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "6 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 6 months", source: "GSM characteristics"}
+      donor: {quote: "325 WT 6M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "325 WT 6M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825056"
+    title: "156508 WT 12M H3K4me3"
+    factors: {age: "12 months"}
+    biosample: "B10"
+    donor: "D10"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 12 months", source: "GSM characteristics"}
+      donor: {quote: "156508 WT 12M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "156508 WT 12M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825057"
+    title: "155668 WT 12M H3K4me3"
+    factors: {age: "12 months"}
+    biosample: "B11"
+    donor: "D11"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 12 months", source: "GSM characteristics"}
+      donor: {quote: "155668 WT 12M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "155668 WT 12M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825058"
+    title: "154468 WT 24M H3K4me3"
+    factors: {age: "24 months"}
+    biosample: "B15"
+    donor: "D15"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 24 months", source: "GSM characteristics"}
+      donor: {quote: "154468 WT 24M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "154468 WT 24M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825059"
+    title: "154469 WT 24M H3K4me3"
+    factors: {age: "24 months"}
+    biosample: "B16"
+    donor: "D16"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 24 months", source: "GSM characteristics"}
+      donor: {quote: "154469 WT 24M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "154469 WT 24M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825060"
+    title: "158027 WT 24M H3K4me3"
+    factors: {age: "24 months"}
+    biosample: "B17"
+    donor: "D17"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 24 months", source: "GSM characteristics"}
+      donor: {quote: "158027 WT 24M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "158027 WT 24M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825061"
+    title: "158028 WT 24M H3K4me3"
+    factors: {age: "24 months"}
+    biosample: "B18"
+    donor: "D18"
+    assay: "ChIP-seq"
+    target: "H3K4me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 24 months", source: "GSM characteristics"}
+      donor: {quote: "158028 WT 24M H3K4me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "158028 WT 24M H3K4me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K4me3", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825062"
+    title: "363 WT 3M H3K27ac"
+    factors: {age: "3 months"}
+    biosample: "B01"
+    donor: "D01"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 3 months", source: "GSM characteristics"}
+      donor: {quote: "363 WT 3M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "363 WT 3M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825063"
+    title: "512 WT 3M H3K27ac"
+    factors: {age: "3 months"}
+    biosample: "B04"
+    donor: "D04"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 3 months", source: "GSM characteristics"}
+      donor: {quote: "512 WT 3M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "512 WT 3M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825064"
+    title: "513 WT 3M H3K27ac"
+    factors: {age: "3 months"}
+    biosample: "B03"
+    donor: "D03"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 3 months", source: "GSM characteristics"}
+      donor: {quote: "513 WT 3M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "513 WT 3M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825065"
+    title: "517 WT 3M H3K27ac"
+    factors: {age: "3 months"}
+    biosample: "B02"
+    donor: "D02"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 3 months", source: "GSM characteristics"}
+      donor: {quote: "517 WT 3M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "517 WT 3M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825066"
+    title: "17 WT 6M H3K27ac"
+    factors: {age: "6 months"}
+    biosample: "B08"
+    donor: "D08"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "6 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 6 months", source: "GSM characteristics"}
+      donor: {quote: "17 WT 6M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "17 WT 6M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825067"
+    title: "325 WT 6M H3K27ac"
+    factors: {age: "6 months"}
+    biosample: "B07"
+    donor: "D07"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "6 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 6 months", source: "GSM characteristics"}
+      donor: {quote: "325 WT 6M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "325 WT 6M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825068"
+    title: "163736 WT 6M H3K27ac"
+    factors: {age: "6 months"}
+    biosample: "B06"
+    donor: "D06"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "6 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 6 months", source: "GSM characteristics"}
+      donor: {quote: "163736 WT 6M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "163736 WT 6M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825069"
+    title: "155668 WT 12M H3K27ac"
+    factors: {age: "12 months"}
+    biosample: "B11"
+    donor: "D11"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 12 months", source: "GSM characteristics"}
+      donor: {quote: "155668 WT 12M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "155668 WT 12M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825070"
+    title: "156508 WT 12M H3K27ac"
+    factors: {age: "12 months"}
+    biosample: "B10"
+    donor: "D10"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 12 months", source: "GSM characteristics"}
+      donor: {quote: "156508 WT 12M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "156508 WT 12M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825071"
+    title: "156509 WT 12M H3K27ac"
+    factors: {age: "12 months"}
+    biosample: "B12"
+    donor: "D12"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 12 months", source: "GSM characteristics"}
+      donor: {quote: "156509 WT 12M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "156509 WT 12M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825072"
+    title: "154468 WT 24M H3K27ac"
+    factors: {age: "24 months"}
+    biosample: "B15"
+    donor: "D15"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 24 months", source: "GSM characteristics"}
+      donor: {quote: "154468 WT 24M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "154468 WT 24M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825073"
+    title: "158028 WT 24M H3K27ac"
+    factors: {age: "24 months"}
+    biosample: "B18"
+    donor: "D18"
+    assay: "ChIP-seq"
+    target: "H3K27ac"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 24 months", source: "GSM characteristics"}
+      donor: {quote: "158028 WT 24M H3K27ac", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "158028 WT 24M H3K27ac"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      role: {quote: "chip antibody: H3K27ac", source: "GSM characteristics"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825074"
+    title: "512 WT 3M TI"
+    factors: {age: "3 months"}
+    biosample: "B04"
+    donor: "D04"
+    assay: "ChIP-seq"
+    target: null
+    role: "control"
+    control_type: "input"
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 3 months", source: "GSM characteristics"}
+      donor: {quote: "512 WT 3M TI", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "512 WT 3M TI"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: None", source: "GSM characteristics"}
+      role: {quote: "chip antibody: None", source: "GSM characteristics"}
+      control_type:
+        quote: "total input controls are included as fastq files"
+        source: "Series overall design ('TI' in the title)"
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825075"
+    title: "163734 WT 6M TI"
+    factors: {age: "6 months"}
+    biosample: "B09"
+    donor: "D09"
+    assay: "ChIP-seq"
+    target: null
+    role: "control"
+    control_type: "input"
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "6 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 6 months", source: "GSM characteristics"}
+      donor: {quote: "163734 WT 6M TI", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "163734 WT 6M TI"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: None", source: "GSM characteristics"}
+      role: {quote: "chip antibody: None", source: "GSM characteristics"}
+      control_type:
+        quote: "total input controls are included as fastq files"
+        source: "Series overall design ('TI' in the title)"
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "donor"
+        note: "Animal 163734 has only this input on GEO. It may be a typo for 163736, the 6-month animal with H3K4me3 and H3K27ac; if so it shares biosample with GSM5825054 and GSM5825068. Kept as its own animal because the title says 163734, and the paper's 'All the samples (n = 20) were processed in parallel' leaves room for a fifth 6-month animal."
+  - gsm: "GSM5825076"
+    title: "155688 WT 12M TI"
+    factors: {age: "12 months"}
+    biosample: "B13"
+    donor: "D13"
+    assay: "ChIP-seq"
+    target: null
+    role: "control"
+    control_type: "input"
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 12 months", source: "GSM characteristics"}
+      donor: {quote: "155688 WT 12M TI", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "155688 WT 12M TI"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: None", source: "GSM characteristics"}
+      role: {quote: "chip antibody: None", source: "GSM characteristics"}
+      control_type:
+        quote: "total input controls are included as fastq files"
+        source: "Series overall design ('TI' in the title)"
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM5825077"
+    title: "158027 WT 24M TI"
+    factors: {age: "24 months"}
+    biosample: "B17"
+    donor: "D17"
+    assay: "ChIP-seq"
+    target: null
+    role: "control"
+    control_type: "input"
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "forebrain", id: "UBERON:0001890"}
+      cell_type: {text: "NeuN+ neuronal nuclei", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "age: 24 months", source: "GSM characteristics"}
+      donor: {quote: "158027 WT 24M TI", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "158027 WT 24M TI"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target: {quote: "chip antibody: None", source: "GSM characteristics"}
+      role: {quote: "chip antibody: None", source: "GSM characteristics"}
+      control_type:
+        quote: "total input controls are included as fastq files"
+        source: "Series overall design ('TI' in the title)"
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure: []
+  - gsm: "GSM8514837"
+    title: "363 WT 3M H3K27me3"
+    factors: {age: "3 months"}
+    biosample: "B01"
+    donor: "D01"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "363 WT 3M H3K27me3", source: "GSM title (no age characteristic on this sample)"}
+      donor: {quote: "363 WT 3M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "363 WT 3M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "363 WT 3M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "363 WT 3M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514838"
+    title: "368 WT 3M H3K27me3"
+    factors: {age: "3 months"}
+    biosample: "B05"
+    donor: "D05"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "368 WT 3M H3K27me3", source: "GSM title (no age characteristic on this sample)"}
+      donor: {quote: "368 WT 3M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "368 WT 3M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "368 WT 3M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "368 WT 3M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514839"
+    title: "512 WT 3M H3K27me3"
+    factors: {age: "3 months"}
+    biosample: "B04"
+    donor: "D04"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "512 WT 3M H3K27me3", source: "GSM title (no age characteristic on this sample)"}
+      donor: {quote: "512 WT 3M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "512 WT 3M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "512 WT 3M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "512 WT 3M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514840"
+    title: "513 WT 3M H3K27me3"
+    factors: {age: "3 months"}
+    biosample: "B03"
+    donor: "D03"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "513 WT 3M H3K27me3", source: "GSM title (no age characteristic on this sample)"}
+      donor: {quote: "513 WT 3M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "513 WT 3M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "513 WT 3M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "513 WT 3M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514841"
+    title: "517 WT 3M H3K27me3"
+    factors: {age: "3 months"}
+    biosample: "B02"
+    donor: "D02"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "3 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age: {quote: "517 WT 3M H3K27me3", source: "GSM title (no age characteristic on this sample)"}
+      donor: {quote: "517 WT 3M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "517 WT 3M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "517 WT 3M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "517 WT 3M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514842"
+    title: "155668 WT 12M H3K27me3"
+    factors: {age: "12 months"}
+    biosample: "B11"
+    donor: "D11"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "155668 WT 12M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "155668 WT 12M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "155668 WT 12M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "155668 WT 12M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "155668 WT 12M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514843"
+    title: "155688 WT 12M H3K27me3"
+    factors: {age: "12 months"}
+    biosample: "B13"
+    donor: "D13"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "155688 WT 12M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "155688 WT 12M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "155688 WT 12M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "155688 WT 12M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "155688 WT 12M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514844"
+    title: "156508 WT 12M H3K27me3"
+    factors: {age: "12 months"}
+    biosample: "B10"
+    donor: "D10"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "156508 WT 12M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "156508 WT 12M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "156508 WT 12M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "156508 WT 12M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "156508 WT 12M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514845"
+    title: "156509 WT 12M H3K27me3"
+    factors: {age: "12 months"}
+    biosample: "B12"
+    donor: "D12"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "156509 WT 12M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "156509 WT 12M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "156509 WT 12M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "156509 WT 12M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "156509 WT 12M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514846"
+    title: "157306 WT 12M H3K27me3"
+    factors: {age: "12 months"}
+    biosample: "B14"
+    donor: "D14"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "12 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "157306 WT 12M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "157306 WT 12M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "157306 WT 12M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "157306 WT 12M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "157306 WT 12M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514847"
+    title: "154468 WT 24M H3K27me3"
+    factors: {age: "24 months"}
+    biosample: "B15"
+    donor: "D15"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "154468 WT 24M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "154468 WT 24M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "154468 WT 24M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "154468 WT 24M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "154468 WT 24M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514848"
+    title: "154469 WT 24M H3K27me3"
+    factors: {age: "24 months"}
+    biosample: "B16"
+    donor: "D16"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "154469 WT 24M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "154469 WT 24M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "154469 WT 24M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "154469 WT 24M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "154469 WT 24M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514849"
+    title: "158027 WT 24M H3K27me3"
+    factors: {age: "24 months"}
+    biosample: "B17"
+    donor: "D17"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "158027 WT 24M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "158027 WT 24M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "158027 WT 24M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "158027 WT 24M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "158027 WT 24M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514850"
+    title: "158028 WT 24M H3K27me3"
+    factors: {age: "24 months"}
+    biosample: "B18"
+    donor: "D18"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "158028 WT 24M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "158028 WT 24M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "158028 WT 24M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "158028 WT 24M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "158028 WT 24M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+  - gsm: "GSM8514851"
+    title: "158029 WT 24M H3K27me3"
+    factors: {age: "24 months"}
+    biosample: "B19"
+    donor: "D19"
+    assay: "ChIP-seq"
+    target: "H3K27me3"
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Mus musculus", id: "NCBITaxon:10090"}
+      strain: {text: "C57/BL6"}
+      sex: {text: "male", id: "PATO:0000384"}
+      age: {text: "24 months"}
+      tissue: {text: "brain", id: "UBERON:0000955"}
+      cell_type: {text: "neurons", id: "CL:0000540"}
+      sample_type: {text: "tissue"}
+      genotype: {text: "WT"}
+    evidence:
+      age:
+        quote: "158029 WT 24M H3K27me3"
+        source: "GSM title (no age characteristic on this sample)"
+      donor: {quote: "158029 WT 24M H3K27me3", source: "GSM title (leading number is the animal id)"}
+      biosample:
+        quote: "158029 WT 24M H3K27me3"
+        source: "GSM titles: the animal id recurs across marks; paper: NeuN+ nuclei sorted from each forebrain, then used per IP"
+      assay: {quote: "library strategy: ChIP-Seq", source: "GSM library strategy"}
+      target:
+        quote: "158029 WT 24M H3K27me3"
+        source: "GSM title (no antibody characteristic on this sample)"
+      role: {quote: "158029 WT 24M H3K27me3", source: "GSM title"}
+      sex:
+        quote: "H3K27me3 dynamics in purified neurons across the lifespan in C57/BL6 male mice"
+        source: "paper introduction (PMC11353134); GEO has no sex"
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "H3K27me3 was deposited in 2024; the other marks and the inputs in 2021. The paper lists all three antibodies in one ChIP protocol on the sorted NeuN+ nuclei, but does not say H3K27me3 came from the same sort as the animal's other marks. Assumed same biosample."
+relations:
+  contrasts:
+    - factor: "age"
+      target: "H3K4me3"
+      test: ["GSM5825054", "GSM5825055"]
+      baseline: ["GSM5825050", "GSM5825051", "GSM5825052", "GSM5825053"]
+      fixed: {}
+    - factor: "age"
+      target: "H3K4me3"
+      test: ["GSM5825056", "GSM5825057"]
+      baseline: ["GSM5825050", "GSM5825051", "GSM5825052", "GSM5825053"]
+      fixed: {}
+    - factor: "age"
+      target: "H3K4me3"
+      test: ["GSM5825058", "GSM5825059", "GSM5825060", "GSM5825061"]
+      baseline: ["GSM5825050", "GSM5825051", "GSM5825052", "GSM5825053"]
+      fixed: {}
+    - factor: "age"
+      target: "H3K27ac"
+      test: ["GSM5825066", "GSM5825067", "GSM5825068"]
+      baseline: ["GSM5825062", "GSM5825063", "GSM5825064", "GSM5825065"]
+      fixed: {}
+    - factor: "age"
+      target: "H3K27ac"
+      test: ["GSM5825069", "GSM5825070", "GSM5825071"]
+      baseline: ["GSM5825062", "GSM5825063", "GSM5825064", "GSM5825065"]
+      fixed: {}
+    - factor: "age"
+      target: "H3K27ac"
+      test: ["GSM5825072", "GSM5825073"]
+      baseline: ["GSM5825062", "GSM5825063", "GSM5825064", "GSM5825065"]
+      fixed: {}
+    - factor: "age"
+      target: "H3K27me3"
+      test: ["GSM8514842", "GSM8514843", "GSM8514844", "GSM8514845", "GSM8514846"]
+      baseline: ["GSM8514837", "GSM8514838", "GSM8514839", "GSM8514840", "GSM8514841"]
+      fixed: {}
+    - factor: "age"
+      target: "H3K27me3"
+      test: ["GSM8514847", "GSM8514848", "GSM8514849", "GSM8514850", "GSM8514851"]
+      baseline: ["GSM8514837", "GSM8514838", "GSM8514839", "GSM8514840", "GSM8514841"]
+      fixed: {}
+  replicates:
+    - ["GSM5825050", "GSM5825051", "GSM5825052", "GSM5825053"]
+    - ["GSM5825054", "GSM5825055"]
+    - ["GSM5825056", "GSM5825057"]
+    - ["GSM5825058", "GSM5825059", "GSM5825060", "GSM5825061"]
+    - ["GSM5825062", "GSM5825063", "GSM5825064", "GSM5825065"]
+    - ["GSM5825066", "GSM5825067", "GSM5825068"]
+    - ["GSM5825069", "GSM5825070", "GSM5825071"]
+    - ["GSM5825072", "GSM5825073"]
+    - ["GSM8514837", "GSM8514838", "GSM8514839", "GSM8514840", "GSM8514841"]
+    - ["GSM8514842", "GSM8514843", "GSM8514844", "GSM8514845", "GSM8514846"]
+    - ["GSM8514847", "GSM8514848", "GSM8514849", "GSM8514850", "GSM8514851"]
+  series:
+    - factor: "age"
+      target: "H3K4me3"
+      order: ["3 months", "6 months", "12 months", "24 months"]
+      members:
+        - "GSM5825050"
+        - "GSM5825051"
+        - "GSM5825052"
+        - "GSM5825053"
+        - "GSM5825054"
+        - "GSM5825055"
+        - "GSM5825056"
+        - "GSM5825057"
+        - "GSM5825058"
+        - "GSM5825059"
+        - "GSM5825060"
+        - "GSM5825061"
+    - factor: "age"
+      target: "H3K27ac"
+      order: ["3 months", "6 months", "12 months", "24 months"]
+      members:
+        - "GSM5825062"
+        - "GSM5825063"
+        - "GSM5825064"
+        - "GSM5825065"
+        - "GSM5825066"
+        - "GSM5825067"
+        - "GSM5825068"
+        - "GSM5825069"
+        - "GSM5825070"
+        - "GSM5825071"
+        - "GSM5825072"
+        - "GSM5825073"
+    - factor: "age"
+      target: "H3K27me3"
+      order: ["3 months", "12 months", "24 months"]
+      members:
+        - "GSM8514837"
+        - "GSM8514838"
+        - "GSM8514839"
+        - "GSM8514840"
+        - "GSM8514841"
+        - "GSM8514842"
+        - "GSM8514843"
+        - "GSM8514844"
+        - "GSM8514845"
+        - "GSM8514846"
+        - "GSM8514847"
+        - "GSM8514848"
+        - "GSM8514849"
+        - "GSM8514850"
+        - "GSM8514851"
+    - factor: "age"
+      target: null
+      role: "control"
+      order: ["3 months", "6 months", "12 months", "24 months"]
+      members: ["GSM5825074", "GSM5825075", "GSM5825076", "GSM5825077"]
+  co_measurement:
+    - ["GSM5825050", "GSM5825062", "GSM8514837"]
+    - ["GSM5825051", "GSM5825065", "GSM8514841"]
+    - ["GSM5825052", "GSM5825064", "GSM8514840"]
+    - ["GSM5825053", "GSM5825063", "GSM5825074", "GSM8514839"]
+    - ["GSM5825054", "GSM5825068"]
+    - ["GSM5825055", "GSM5825067"]
+    - ["GSM5825056", "GSM5825070", "GSM8514844"]
+    - ["GSM5825057", "GSM5825069", "GSM8514842"]
+    - ["GSM5825058", "GSM5825072", "GSM8514847"]
+    - ["GSM5825059", "GSM8514848"]
+    - ["GSM5825060", "GSM5825077", "GSM8514849"]
+    - ["GSM5825061", "GSM5825073", "GSM8514850"]
+    - ["GSM5825071", "GSM8514845"]
+    - ["GSM5825076", "GSM8514843"]
+  background_control:
+    - {signal: "GSM5825050", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM5825051", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM5825052", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM5825053", control: "GSM5825074", basis: "same biosample"}
+    - {signal: "GSM5825054", control: "GSM5825075", basis: "same factor values"}
+    - {signal: "GSM5825055", control: "GSM5825075", basis: "same factor values"}
+    - {signal: "GSM5825056", control: "GSM5825076", basis: "same factor values"}
+    - {signal: "GSM5825057", control: "GSM5825076", basis: "same factor values"}
+    - {signal: "GSM5825058", control: "GSM5825077", basis: "same factor values"}
+    - {signal: "GSM5825059", control: "GSM5825077", basis: "same factor values"}
+    - {signal: "GSM5825060", control: "GSM5825077", basis: "same biosample"}
+    - {signal: "GSM5825061", control: "GSM5825077", basis: "same factor values"}
+    - {signal: "GSM5825062", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM5825063", control: "GSM5825074", basis: "same biosample"}
+    - {signal: "GSM5825064", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM5825065", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM5825066", control: "GSM5825075", basis: "same factor values"}
+    - {signal: "GSM5825067", control: "GSM5825075", basis: "same factor values"}
+    - {signal: "GSM5825068", control: "GSM5825075", basis: "same factor values"}
+    - {signal: "GSM5825069", control: "GSM5825076", basis: "same factor values"}
+    - {signal: "GSM5825070", control: "GSM5825076", basis: "same factor values"}
+    - {signal: "GSM5825071", control: "GSM5825076", basis: "same factor values"}
+    - {signal: "GSM5825072", control: "GSM5825077", basis: "same factor values"}
+    - {signal: "GSM5825073", control: "GSM5825077", basis: "same factor values"}
+    - {signal: "GSM8514837", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM8514838", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM8514839", control: "GSM5825074", basis: "same biosample"}
+    - {signal: "GSM8514840", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM8514841", control: "GSM5825074", basis: "same factor values"}
+    - {signal: "GSM8514842", control: "GSM5825076", basis: "same factor values"}
+    - {signal: "GSM8514843", control: "GSM5825076", basis: "same biosample"}
+    - {signal: "GSM8514844", control: "GSM5825076", basis: "same factor values"}
+    - {signal: "GSM8514845", control: "GSM5825076", basis: "same factor values"}
+    - {signal: "GSM8514846", control: "GSM5825076", basis: "same factor values"}
+    - {signal: "GSM8514847", control: "GSM5825077", basis: "same factor values"}
+    - {signal: "GSM8514848", control: "GSM5825077", basis: "same factor values"}
+    - {signal: "GSM8514849", control: "GSM5825077", basis: "same biosample"}
+    - {signal: "GSM8514850", control: "GSM5825077", basis: "same factor values"}
+    - {signal: "GSM8514851", control: "GSM5825077", basis: "same factor values"}

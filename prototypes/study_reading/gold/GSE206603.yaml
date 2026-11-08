@@ -1,0 +1,850 @@
+# Hand reading (gold) of GSE206603. Shape: ../SCHEMA.md. Additions: sample `title` and `series`; `assay` key on
+# contrasts; `unsure` items are {label, note}; an attribute NCBI has no name for carries 'unlisted: true'.
+study:
+  series: ["GSE206603", "GSE206602", "GSE206588"]
+  superseries: "GSE206603"
+  bioproject: ["PRJNA851445", "PRJNA851439", "PRJNA851435"]
+  pmid: ["39754192"]
+  notes: "SuperSeries of two SubSeries: RNA-seq (GSE206602) and ATAC-seq (GSE206588), 12 samples each, from neurons differentiated from four patient iPSC lines: one non-demented control and three familial AD mutations. Each genotype is one donor, so genotype is confounded with donor, sex and APOE; the three replicates per line are parallel differentiations, not people. Sex and APOE genotype sit in a field named 'treatment' ('M, APOE2/3'); there is no treatment. 'disease state' duplicates genotype (control vs AD) and is an attribute, not a second factor. Whether RNA replicate k and ATAC replicate k share a differentiation is not stated; see each sample's unsure note. No controls in either assay."
+factors:
+  - name: "genotype"
+    levels: ["WT", "APP_V717I", "PSEN1_A79V", "PSEN2_N141I"]
+    baseline: "WT"
+    ordered: false
+samples:
+  - gsm: "GSM6257605"
+    title: "NDC replicate 1 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "WT"}
+    biosample: "B01"
+    donor: "D01"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE2/3", unlisted: true}
+      disease: {text: "Non-demented Control", id: "PATO:0000461"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "WT"}
+    evidence:
+      genotype: {quote: "genotype: WT", source: "GSM characteristics"}
+      disease: {quote: "disease state: Non-demented Control", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE2/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "NDC replicate 1 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257296 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257606"
+    title: "NDC replicate 2 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "WT"}
+    biosample: "B02"
+    donor: "D01"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE2/3", unlisted: true}
+      disease: {text: "Non-demented Control", id: "PATO:0000461"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "WT"}
+    evidence:
+      genotype: {quote: "genotype: WT", source: "GSM characteristics"}
+      disease: {quote: "disease state: Non-demented Control", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE2/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "NDC replicate 2 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257297 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257607"
+    title: "NDC replicate 3 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "WT"}
+    biosample: "B03"
+    donor: "D01"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE2/3", unlisted: true}
+      disease: {text: "Non-demented Control", id: "PATO:0000461"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "WT"}
+    evidence:
+      genotype: {quote: "genotype: WT", source: "GSM characteristics"}
+      disease: {quote: "disease state: Non-demented Control", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE2/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "NDC replicate 3 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257298 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257608"
+    title: "APP-V717I replicate 1 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "APP_V717I"}
+    biosample: "B04"
+    donor: "D02"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "APP_V717I"}
+    evidence:
+      genotype: {quote: "genotype: APP_V717I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "APP-V717I replicate 1 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257299 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257609"
+    title: "APP-V717I replicate 2 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "APP_V717I"}
+    biosample: "B05"
+    donor: "D02"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "APP_V717I"}
+    evidence:
+      genotype: {quote: "genotype: APP_V717I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "APP-V717I replicate 2 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257300 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257610"
+    title: "APP-V717I replicate 3 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "APP_V717I"}
+    biosample: "B06"
+    donor: "D02"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "APP_V717I"}
+    evidence:
+      genotype: {quote: "genotype: APP_V717I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "APP-V717I replicate 3 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257301 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257611"
+    title: "PSEN1-A79V replicate 1 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "PSEN1_A79V"}
+    biosample: "B07"
+    donor: "D03"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE3/4", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN1_A79V"}
+    evidence:
+      genotype: {quote: "genotype: PSEN1_A79V", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE3/4"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN1-A79V replicate 1 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257302 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257612"
+    title: "PSEN1-A79V replicate 2 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "PSEN1_A79V"}
+    biosample: "B08"
+    donor: "D03"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE3/4", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN1_A79V"}
+    evidence:
+      genotype: {quote: "genotype: PSEN1_A79V", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE3/4"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN1-A79V replicate 2 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257303 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257613"
+    title: "PSEN1-A79V replicate 3 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "PSEN1_A79V"}
+    biosample: "B09"
+    donor: "D03"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE3/4", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN1_A79V"}
+    evidence:
+      genotype: {quote: "genotype: PSEN1_A79V", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE3/4"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN1-A79V replicate 3 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257304 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257614"
+    title: "PSEN2-N141I replicate 1 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "PSEN2_N141I"}
+    biosample: "B10"
+    donor: "D04"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN2_N141I"}
+    evidence:
+      genotype: {quote: "genotype: PSEN2_N141I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN2-N141I replicate 1 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257305 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257615"
+    title: "PSEN2-N141I replicate 2 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "PSEN2_N141I"}
+    biosample: "B11"
+    donor: "D04"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN2_N141I"}
+    evidence:
+      genotype: {quote: "genotype: PSEN2_N141I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN2-N141I replicate 2 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257306 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257616"
+    title: "PSEN2-N141I replicate 3 [RNA-seq]"
+    series: "GSE206602"
+    factors: {genotype: "PSEN2_N141I"}
+    biosample: "B12"
+    donor: "D04"
+    assay: "RNA-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN2_N141I"}
+    evidence:
+      genotype: {quote: "genotype: PSEN2_N141I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN2-N141I replicate 3 [RNA-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: RNA-Seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257307 (ATAC-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257296"
+    title: "NDC replicate 1 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "WT"}
+    biosample: "B13"
+    donor: "D01"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE2/3", unlisted: true}
+      disease: {text: "Non-demented Control", id: "PATO:0000461"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "WT"}
+    evidence:
+      genotype: {quote: "genotype: WT", source: "GSM characteristics"}
+      disease: {quote: "disease state: Non-demented Control", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE2/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "NDC replicate 1 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257605 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257297"
+    title: "NDC replicate 2 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "WT"}
+    biosample: "B14"
+    donor: "D01"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE2/3", unlisted: true}
+      disease: {text: "Non-demented Control", id: "PATO:0000461"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "WT"}
+    evidence:
+      genotype: {quote: "genotype: WT", source: "GSM characteristics"}
+      disease: {quote: "disease state: Non-demented Control", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE2/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "NDC replicate 2 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257606 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257298"
+    title: "NDC replicate 3 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "WT"}
+    biosample: "B15"
+    donor: "D01"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE2/3", unlisted: true}
+      disease: {text: "Non-demented Control", id: "PATO:0000461"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "WT"}
+    evidence:
+      genotype: {quote: "genotype: WT", source: "GSM characteristics"}
+      disease: {quote: "disease state: Non-demented Control", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE2/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "NDC replicate 3 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257607 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257299"
+    title: "APP-V717I replicate 1 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "APP_V717I"}
+    biosample: "B16"
+    donor: "D02"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "APP_V717I"}
+    evidence:
+      genotype: {quote: "genotype: APP_V717I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "APP-V717I replicate 1 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257608 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257300"
+    title: "APP-V717I replicate 2 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "APP_V717I"}
+    biosample: "B17"
+    donor: "D02"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "APP_V717I"}
+    evidence:
+      genotype: {quote: "genotype: APP_V717I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "APP-V717I replicate 2 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257609 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257301"
+    title: "APP-V717I replicate 3 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "APP_V717I"}
+    biosample: "B18"
+    donor: "D02"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "APP_V717I"}
+    evidence:
+      genotype: {quote: "genotype: APP_V717I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "APP-V717I replicate 3 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257610 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257302"
+    title: "PSEN1-A79V replicate 1 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "PSEN1_A79V"}
+    biosample: "B19"
+    donor: "D03"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE3/4", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN1_A79V"}
+    evidence:
+      genotype: {quote: "genotype: PSEN1_A79V", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE3/4"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN1-A79V replicate 1 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257611 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257303"
+    title: "PSEN1-A79V replicate 2 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "PSEN1_A79V"}
+    biosample: "B20"
+    donor: "D03"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE3/4", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN1_A79V"}
+    evidence:
+      genotype: {quote: "genotype: PSEN1_A79V", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE3/4"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN1-A79V replicate 2 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257612 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257304"
+    title: "PSEN1-A79V replicate 3 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "PSEN1_A79V"}
+    biosample: "B21"
+    donor: "D03"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "male", id: "PATO:0000384"}
+      apoe_genotype: {text: "APOE3/4", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN1_A79V"}
+    evidence:
+      genotype: {quote: "genotype: PSEN1_A79V", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: M, APOE3/4"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN1-A79V replicate 3 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257613 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257305"
+    title: "PSEN2-N141I replicate 1 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "PSEN2_N141I"}
+    biosample: "B22"
+    donor: "D04"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN2_N141I"}
+    evidence:
+      genotype: {quote: "genotype: PSEN2_N141I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN2-N141I replicate 1 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257614 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257306"
+    title: "PSEN2-N141I replicate 2 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "PSEN2_N141I"}
+    biosample: "B23"
+    donor: "D04"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN2_N141I"}
+    evidence:
+      genotype: {quote: "genotype: PSEN2_N141I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN2-N141I replicate 2 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257615 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+  - gsm: "GSM6257307"
+    title: "PSEN2-N141I replicate 3 [ATAC-seq]"
+    series: "GSE206588"
+    factors: {genotype: "PSEN2_N141I"}
+    biosample: "B24"
+    donor: "D04"
+    assay: "ATAC-seq"
+    target: null
+    role: "signal"
+    control_type: null
+    attributes:
+      species: {text: "Homo sapiens", id: "NCBITaxon:9606"}
+      sex: {text: "female", id: "PATO:0000383"}
+      apoe_genotype: {text: "APOE3/3", unlisted: true}
+      disease: {text: "Alzheimer's disease", id: "MONDO:0004975"}
+      cell_type: {text: "hiPSC-derived neurons", id: "CL:0000540"}
+      sample_type: {text: "in vitro differentiated cells"}
+      genotype: {text: "PSEN2_N141I"}
+    evidence:
+      genotype: {quote: "genotype: PSEN2_N141I", source: "GSM characteristics"}
+      disease: {quote: "disease state: Alzheimer's disease", source: "GSM characteristics"}
+      sex:
+        quote: "treatment: F, APOE3/3"
+        source: "GSM characteristics (sex and APOE filed under 'treatment')"
+      donor:
+        quote: "n = 3 replicates differentiated in parallel from individual donor patients"
+        source: "paper methods (PMC11699654)"
+      biosample: {quote: "PSEN2-N141I replicate 3 [ATAC-seq]", source: "GSM title"}
+      assay: {quote: "library strategy: ATAC-seq", source: "GSM library strategy"}
+    probability: {}
+    unsure:
+      - label: "biosample"
+        note: "May share a biosample with GSM6257616 (RNA-seq, same line, same replicate number). Neither GEO nor the paper says the RNA and ATAC replicates came from the same differentiation; the same lab's 2020 study of the same design had unequal replicate counts per assay (RNA n = 8, ATAC n = 5 for the control). Minted as separate biosamples; co-measurement is certain only at the donor (iPSC line) level."
+relations:
+  contrasts:
+    - factor: "genotype"
+      assay: "RNA-seq"
+      test: ["GSM6257608", "GSM6257609", "GSM6257610"]
+      baseline: ["GSM6257605", "GSM6257606", "GSM6257607"]
+      fixed: {}
+    - factor: "genotype"
+      assay: "RNA-seq"
+      test: ["GSM6257611", "GSM6257612", "GSM6257613"]
+      baseline: ["GSM6257605", "GSM6257606", "GSM6257607"]
+      fixed: {}
+    - factor: "genotype"
+      assay: "RNA-seq"
+      test: ["GSM6257614", "GSM6257615", "GSM6257616"]
+      baseline: ["GSM6257605", "GSM6257606", "GSM6257607"]
+      fixed: {}
+    - factor: "genotype"
+      assay: "ATAC-seq"
+      test: ["GSM6257299", "GSM6257300", "GSM6257301"]
+      baseline: ["GSM6257296", "GSM6257297", "GSM6257298"]
+      fixed: {}
+    - factor: "genotype"
+      assay: "ATAC-seq"
+      test: ["GSM6257302", "GSM6257303", "GSM6257304"]
+      baseline: ["GSM6257296", "GSM6257297", "GSM6257298"]
+      fixed: {}
+    - factor: "genotype"
+      assay: "ATAC-seq"
+      test: ["GSM6257305", "GSM6257306", "GSM6257307"]
+      baseline: ["GSM6257296", "GSM6257297", "GSM6257298"]
+      fixed: {}
+  replicates:
+    - ["GSM6257605", "GSM6257606", "GSM6257607"]
+    - ["GSM6257608", "GSM6257609", "GSM6257610"]
+    - ["GSM6257611", "GSM6257612", "GSM6257613"]
+    - ["GSM6257614", "GSM6257615", "GSM6257616"]
+    - ["GSM6257296", "GSM6257297", "GSM6257298"]
+    - ["GSM6257299", "GSM6257300", "GSM6257301"]
+    - ["GSM6257302", "GSM6257303", "GSM6257304"]
+    - ["GSM6257305", "GSM6257306", "GSM6257307"]
+  series: []
+  co_measurement: []
+  background_control: []

@@ -1,0 +1,689 @@
+study:
+  series:
+  - GSE201250
+  superseries: null
+  bioproject:
+  - PRJNA830499
+  pmid:
+  - '38014177'
+  - '38985764'
+  notes: 'model reading: lists drafted by deepseek, labels by jev-1.14.0; donor key: donor'
+factors:
+- name: genotype
+  levels:
+  - control
+  - MDA5 KD
+  baseline: control
+  ordered: false
+- name: infection
+  levels:
+  - Mock
+  - HIV1
+  baseline: Mock
+  ordered: false
+- name: time
+  levels:
+  - 0h
+  - 48h
+  baseline: 0h
+  ordered: true
+samples:
+- gsm: GSM6056599
+  factors:
+    genotype: control
+    infection: Mock
+    time: 0h
+  biosample: B01
+  donor: D01
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M27
+  evidence:
+    genotype:
+      quote: 'genotype: control'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: Mock'
+      source: GSM characteristics
+    time:
+      quote: 'time: 0h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056600
+  factors:
+    genotype: control
+    infection: Mock
+    time: 48h
+  biosample: B02
+  donor: D01
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M27
+  evidence:
+    genotype:
+      quote: 'genotype: control'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: Mock'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 0.99
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056601
+  factors:
+    genotype: control
+    infection: HIV1
+    time: 48h
+  biosample: B03
+  donor: D01
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M27
+  evidence:
+    genotype:
+      quote: 'genotype: control'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: HIV1'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 0.98
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.98
+    attr:cell type: 0.97
+- gsm: GSM6056602
+  factors:
+    genotype: MDA5 KD
+    infection: Mock
+    time: 48h
+  biosample: B04
+  donor: D01
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M27
+  evidence:
+    genotype:
+      quote: 'genotype: MDA5 KD'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: Mock'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056603
+  factors:
+    genotype: MDA5 KD
+    infection: HIV1
+    time: 48h
+  biosample: B05
+  donor: D01
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M27
+  evidence:
+    genotype:
+      quote: 'genotype: MDA5 KD'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: HIV1'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056604
+  factors:
+    genotype: control
+    infection: Mock
+    time: 0h
+  biosample: B06
+  donor: D02
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M28
+  evidence:
+    genotype:
+      quote: 'genotype: control'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: Mock'
+      source: GSM characteristics
+    time:
+      quote: 'time: 0h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056605
+  factors:
+    genotype: control
+    infection: Mock
+    time: 48h
+  biosample: B07
+  donor: D02
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M28
+  evidence:
+    genotype:
+      quote: 'genotype: control'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: Mock'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056606
+  factors:
+    genotype: control
+    infection: HIV1
+    time: 48h
+  biosample: B08
+  donor: D02
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M28
+  evidence:
+    genotype:
+      quote: 'genotype: control'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: HIV1'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 0.99
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.98
+    attr:cell type: 0.97
+- gsm: GSM6056607
+  factors:
+    genotype: MDA5 KD
+    infection: Mock
+    time: 48h
+  biosample: B09
+  donor: D02
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M28
+  evidence:
+    genotype:
+      quote: 'genotype: MDA5 KD'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: Mock'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056608
+  factors:
+    genotype: MDA5 KD
+    infection: HIV1
+    time: 48h
+  biosample: B10
+  donor: D02
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M28
+  evidence:
+    genotype:
+      quote: 'genotype: MDA5 KD'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: HIV1'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.98
+    attr:cell type: 0.97
+- gsm: GSM6056609
+  factors:
+    genotype: control
+    infection: Mock
+    time: 0h
+  biosample: B11
+  donor: D03
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M29
+  evidence:
+    genotype:
+      quote: 'genotype: control'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: Mock'
+      source: GSM characteristics
+    time:
+      quote: 'time: 0h'
+      source: GSM characteristics
+  probability:
+    genotype: 0.99
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056610
+  factors:
+    genotype: control
+    infection: Mock
+    time: 48h
+  biosample: B12
+  donor: D03
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M29
+  evidence:
+    genotype:
+      quote: 'genotype: control'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: Mock'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056611
+  factors:
+    genotype: control
+    infection: HIV1
+    time: 48h
+  biosample: B13
+  donor: D03
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M29
+  evidence:
+    genotype:
+      quote: 'genotype: control'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: HIV1'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 0.98
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056612
+  factors:
+    genotype: MDA5 KD
+    infection: Mock
+    time: 48h
+  biosample: B14
+  donor: D03
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M29
+  evidence:
+    genotype:
+      quote: 'genotype: MDA5 KD'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: Mock'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.99
+    attr:cell type: 0.97
+- gsm: GSM6056613
+  factors:
+    genotype: MDA5 KD
+    infection: HIV1
+    time: 48h
+  biosample: B15
+  donor: D03
+  assay: RNA-seq
+  target: null
+  role: signal
+  control_type: null
+  attributes:
+    species:
+      text: Homo sapiens
+      id: NCBITaxon:9606
+    cell type:
+      text: Monocyte-derived dendritic cells
+      id: CL:0011031
+    donor number:
+      text: M29
+  evidence:
+    genotype:
+      quote: 'genotype: MDA5 KD'
+      source: GSM characteristics
+    infection:
+      quote: 'infection: HIV1'
+      source: GSM characteristics
+    time:
+      quote: 'time: 48h'
+      source: GSM characteristics
+  probability:
+    genotype: 1.0
+    infection: 1.0
+    time: 1.0
+    donor: 1.0
+    assay: 1.0
+    role: 0.98
+    attr:cell type: 0.97
+relations:
+  contrasts:
+  - factor: time
+    test:
+    - GSM6056600
+    - GSM6056605
+    - GSM6056610
+    baseline:
+    - GSM6056599
+    - GSM6056604
+    - GSM6056609
+    fixed:
+      genotype: control
+      infection: Mock
+  - factor: infection
+    test:
+    - GSM6056601
+    - GSM6056606
+    - GSM6056611
+    baseline:
+    - GSM6056600
+    - GSM6056605
+    - GSM6056610
+    fixed:
+      genotype: control
+      time: 48h
+  - factor: genotype
+    test:
+    - GSM6056602
+    - GSM6056607
+    - GSM6056612
+    baseline:
+    - GSM6056600
+    - GSM6056605
+    - GSM6056610
+    fixed:
+      infection: Mock
+      time: 48h
+  - factor: genotype
+    test:
+    - GSM6056603
+    - GSM6056608
+    - GSM6056613
+    baseline:
+    - GSM6056601
+    - GSM6056606
+    - GSM6056611
+    fixed:
+      infection: HIV1
+      time: 48h
+  - factor: infection
+    test:
+    - GSM6056603
+    - GSM6056608
+    - GSM6056613
+    baseline:
+    - GSM6056602
+    - GSM6056607
+    - GSM6056612
+    fixed:
+      genotype: MDA5 KD
+      time: 48h
+  replicates:
+  - - GSM6056599
+    - GSM6056604
+    - GSM6056609
+  - - GSM6056600
+    - GSM6056605
+    - GSM6056610
+  - - GSM6056601
+    - GSM6056606
+    - GSM6056611
+  - - GSM6056602
+    - GSM6056607
+    - GSM6056612
+  - - GSM6056603
+    - GSM6056608
+    - GSM6056613
+  series:
+  - factor: time
+    members:
+    - GSM6056599
+    - GSM6056600
+    - GSM6056604
+    - GSM6056605
+    - GSM6056609
+    - GSM6056610
+  co_measurement: []
+  background_control: []
