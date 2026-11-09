@@ -161,6 +161,21 @@ button{cursor:pointer}
 .C textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface);font:12.5px/1.5 var(--f-mono)}
 .C .bot .who{background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
 
+.C h4{font-family:var(--f-head);font-size:14px;margin:14px 0 6px;border-bottom:1px solid var(--line);padding-bottom:3px}
+.C .gh{margin:10px 0 3px;font-weight:500}
+.C .tick{display:flex;gap:7px;align-items:flex-start;padding:2px 0}
+.C .tick input{margin-top:3px}
+.C .ev{padding:0 4px}
+.ctabs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.ctabs button{border:1px solid var(--line);background:var(--surface);padding:5px 10px;border-radius:6px}
+.ctabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tw{overflow-x:auto}
+.ptable{border-collapse:collapse;width:100%;font-size:12.5px;background:var(--surface)}
+.ptable th{text-align:left;font-weight:500;color:var(--muted);font-size:11.5px;letter-spacing:.03em;text-transform:uppercase;border-bottom:1px solid var(--line);padding:6px 8px;white-space:nowrap}
+.ptable td{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top}
+.ptable .grp td{background:var(--sunk);font-weight:600}
+.ptable select{border:1px solid var(--line);border-radius:5px;padding:3px 6px;background:var(--surface)}
+.linkish{border:0;background:none;padding:0;color:var(--accent);text-align:left;text-decoration:underline;text-underline-offset:2px}
 @media (max-width:820px){
   .A,.B .grid,.C{grid-template-columns:minmax(0,1fr)}
   .B .bar{grid-template-columns:130px minmax(0,1fr) 44px}
@@ -171,7 +186,7 @@ button{cursor:pointer}
 <header class="proto">
   <span class="tag">Prototype · throwaway</span>
   <h1>Review queue: where does a person settle a unit?</h1>
-  <p>Three places a person could work the queue of bounding units, each a group of linked GEO records. Records and their links are real public GEO; the model answers, pass history and queue counts are made up.</p>
+  <p>Round 2: issues in a private repo, answered by ticking and closing. A (files) and B (page) stay for comparison. Records and their links are real public GEO; the model answers, pass history and queue counts are made up.</p>
   <button class="btn" id="storedBtn">Stored answers (<span id="storedN">0</span>)</button>
 </header>
 
@@ -378,8 +393,8 @@ const VARIANTS = [
   judge:["One YAML file per unit, edited in any editor or by an agent in the terminal.","Would you rather type an answer than click one?","Is the comment block enough context for a unit of 12 records? Of 40?"]},
  {id:"page", key:"B", name:"A review page",
   judge:["One page the command writes; pick a pass's answer, then move Series between studies.","Is choosing a study per Series enough, or do you need to type?","Which sort would you work the waiting queue in?"]},
- {id:"issues", key:"C", name:"GitHub issues",
-  judge:["A weekly sample filed as issues; answer with slash commands in a comment, discuss with others.","Is talking a unit over worth an issue per unit?","Is a sample of a few per failed check enough, with the rest left waiting?"]},
+ {id:"issues", key:"C", name:"Issues in a private repo",
+  judge:["Round 2. Answer by ticking boxes in the issue and closing it; type only to rename or to build a study from scratch. The project table answers the easy ones in one click.","Are ticks plus the close reason enough for most units?","Would you work from the table or from the issues?"]},
 ];
 let vi = 0;
 
@@ -645,24 +660,74 @@ function decideB(u,action){
 function stepB(k){ const list=bUnits(); const i=list.findIndex(x=>x.key===B.cur); const nx=list[(i+k+list.length)%list.length]; if(nx) B.cur=nx.key; render(); }
 
 /* ---------- C: issues ---------- */
-const C = {sel:null, threads:{}, drafts:{}, input:""};
+const C = {sel:null, view:"issue", threads:{}, drafts:{}, ticks:{}, input:"", closedAs:{}, group:"check", quickMsg:{}};
 function issueTitle(u){ return `Review bounding: ${u.key}, ${u.ending} after pass ${u.passes.length}`; }
+const mainPaper = u => u.key.startsWith("PMID")? u.key : null;
+const allName = u => `Study of ${mainPaper(u)}`;
+// Series a person most likely has to place: the passes disagree on them, or a failed check names them.
+function disputed(u){
+  const ids=new Set(); const ans=u.passes.filter(p=>p.studies);
+  seriesOf(u).forEach(r=>{ const names=ans.map(p=>{const i=studyIndex(p.studies,r.id); return i<0?"":p.studies[i].name;}); if(new Set(names).size>1) ids.add(r.id); });
+  u.passes.forEach(p=>Object.values(p.checks).forEach(v=>{ if(!v[0]&&v[1]) (v[1].match(/GSE\d+/g)||[]).forEach(id=>{ if(u.records.some(r=>r.id===id)) ids.add(id); }); }));
+  return [...ids];
+}
+// The tick boxes the command writes into the issue body. Every option is data the command can read back.
+function optionsC(u){
+  const o=[]; let n=0; const add=(group,label,extra)=>o.push({k:"o"+(n++),group,label,...extra});
+  if(!u.illustrative){
+    u.passes.filter(p=>p.studies).forEach(p=>add("start",`Start from pass ${p.n}'s answer`,{start:"p"+p.n}));
+    if(!u.passes.some(p=>p.studies) && mainPaper(u)) add("start",`Start from one study holding every Series (one paper, ${mainPaper(u)}, joins them all)`,{start:"all"});
+    const names=[]; u.passes.forEach(p=>(p.studies||[]).forEach(s=>{ if(!names.includes(s.name)) names.push(s.name); }));
+    if(!u.passes.some(p=>p.studies) && mainPaper(u)) names.push(allName(u));
+    disputed(u).forEach(id=>{
+      const r=u.records.find(x=>x.id===id);
+      names.forEach(nm=>add("move:"+id,nm,{id,target:nm}));
+      const first=(r.papers||[])[0];
+      if(first && first!==mainPaper(u) && !names.includes(`Study of ${first}`)) add("move:"+id,`a new study for ${first}, the first paper to cite it`,{id,target:`Study of ${first}`});
+      add("move:"+id,"a new study of its own",{id,target:`${id} (own study)`});
+    });
+  }
+  DROP_REASONS.forEach(r=>add("drop",r,{reason:r}));
+  return o;
+}
+function ticksOf(u){ return C.ticks[u.key]||(C.ticks[u.key]=new Set()); }
+function answerFromTicks(u){
+  const opts=optionsC(u), t=ticksOf(u), on=opts.filter(x=>t.has(x.k));
+  if(u.illustrative) return {errs:[`${u.seriesCount} Series is too many to place by ticking. Close it as not planned, or comment.`]};
+  const starts=on.filter(x=>x.group==="start");
+  if(starts.length!==1) return {errs:[starts.length?"Tick only one starting answer.":"Tick a starting answer."]};
+  let studies, from;
+  if(starts[0].start==="all"){ studies=[{name:allName(u),series:seriesOf(u).map(r=>r.id)}]; from="one study with every Series"; }
+  else { const p=u.passes.find(p=>"p"+p.n===starts[0].start); studies=clone(p.studies); from=`pass ${p.n}`; }
+  const errs=[], changes=[];
+  disputed(u).forEach(id=>{
+    const mv=on.filter(x=>x.group==="move:"+id);
+    if(mv.length>1){ errs.push(`Tick one place for ${id}, not ${mv.length}.`); return; }
+    if(!mv.length) return;
+    const f=studyIndex(studies,id); if(f>=0) studies[f].series=studies[f].series.filter(x=>x!==id);
+    let j=studies.findIndex(s=>s.name===mv[0].target); if(j<0){ studies.push({name:mv[0].target,series:[]}); j=studies.length-1; }
+    studies[j].series.push(id); changes.push(`${id} to ${mv[0].target}`);
+  });
+  studies=studies.filter(s=>s.series.length);
+  return {errs, dec:{action:"settle",studies,from,changes}};
+}
 function botBody(u){
-  const last=lastAnswer(u);
   const recs = u.illustrative? `<p>${u.seriesCount} Series, 37 papers, one BioProject: attached as umbrella.tsv.</p>` :
     `<table><tr><th>record</th><th>kind</th><th>what</th></tr>${u.records.map(r=>`<tr><td class="mono">${r.id}</td><td class="k-${r.kind}">${r.kind}</td><td>${esc(r.desc)}${r.papers?` · cites ${r.papers.join(", ")}`:""}</td></tr>`).join("")}</table>`;
   const passes = u.passes.map(ps=>`<p style="margin:10px 0 4px"><b>Pass ${ps.n}</b> <span class="pill e-${ps.ending}">${ps.ending}</span> <span class="small muted">${esc(ps.models)}</span></p>
     ${ps.studies?`<ol style="margin:0;padding-left:20px">${ps.studies.map(s=>`<li>${esc(s.name)}: <span class="mono">${s.series.join(" ")}</span></li>`).join("")}</ol>`:`<p class="small" style="margin:0">No answer kept. ${esc(ps.sentBack)}</p>`}
     <p class="small" style="margin:4px 0 0">${Object.entries(ps.checks).filter(([,v])=>!v[0]).map(([c,v])=>`✗ ${CHECKS[c]}: ${esc(v[1]||"")}`).join("<br>")}</p>`).join("");
-  return `<p class="small muted" style="margin:0 0 8px">${STAMP}</p><p style="margin:0 0 8px">${esc(u.headline)}</p>${u.note?`<p class="small muted">${esc(u.note)}</p>`:""}${recs}${passes}
-   <p style="margin:12px 0 0">Reply with commands, one per line. ${last?`Your draft starts from pass ${last.n}'s answer.`:"No pass kept an answer, so your draft starts empty."}</p>
-   <pre class="small muted">/take pass-2
-/move GSE245380 to new Study of PMID 38597673
-/move GSE104997 to 2
-/rename 1 Fly brain chromatin profiling
-/study Liver tumours (PMID 36797228): GSE169287 GSE169288
-/settle
-/drop needs a rule in bounding's code</pre>`;
+  const opts=optionsC(u), t=ticksOf(u), closed=!!C.closedAs[u.key];
+  const box=x=>`<label class="tick"><input type="checkbox" data-tick="${x.k}" ${t.has(x.k)?"checked":""} ${closed?"disabled":""}> <span>${esc(x.label)}</span></label>`;
+  const groups=[...new Set(opts.map(x=>x.group))];
+  const sect=g=> g==="start"? `<p class="gh">Start from</p>${opts.filter(x=>x.group===g).map(box).join("")}`
+    : g==="drop"? `<p class="gh">Or drop it, because (then close as not planned)</p>${opts.filter(x=>x.group===g).map(box).join("")}`
+    : `<p class="gh">${g.slice(5)} goes to <span class="muted small">(leave blank to keep it where the starting answer has it)</span></p>${opts.filter(x=>x.group===g).map(box).join("")}`;
+  return `<p class="small muted" style="margin:0 0 8px">Written by <code>seqforge review file</code> · ${STAMP}</p><p style="margin:0 0 8px">${esc(u.headline)}</p>${u.note?`<p class="small muted">${esc(u.note)}</p>`:""}
+   <h4>Records</h4>${recs}<h4>What the models answered</h4>${passes}
+   <h4>Your answer: tick, then close the issue</h4>
+   <p class="small muted" style="margin:0 0 6px">Close as completed to settle with your ticks; close as not planned to drop. Study names come from code; comment <code>/rename 2 …</code> to change one.</p>
+   ${groups.map(sect).join("")}`;
 }
 function draftC(u){ if(!C.drafts[u.key]){ const last=lastAnswer(u); C.drafts[u.key]= last?{from:`pass ${last.n}`,studies:clone(last.studies),changes:[]}:{from:"written by hand",studies:[],changes:[]}; } return C.drafts[u.key]; }
 function fmtDraft(d){ return d.studies.length? d.studies.map((s,i)=>`${i+1}. ${s.name||"(unnamed)"}: ${s.series.join(" ")||"(empty)"}`).join("\n") : "(no studies yet)"; }
@@ -685,44 +750,106 @@ function runCommands(u,text){
     if((m=line.match(/^\/rename\s+(\d+)\s+(.+)$/i))){ const dd=draftC(u); const t=+m[1]-1; if(!dd.studies[t]){ out.push(`✗ there is no study ${m[1]}`); continue; } dd.studies[t].name=m[2].trim(); dd.changes.push(line.slice(1)); out.push(`✓ renamed study ${m[1]}`); continue; }
     if(/^\/settle$/i.test(line)){ const dd=draftC(u); const dec={action:"settle",studies:clone(dd.studies),from:dd.from,changes:dd.changes.slice()};
       const errs=checkPerson(u,dec); if(errs.length){ out.push("✗ not stored:"); errs.forEach(e=>out.push("  "+e)); continue; }
-      store(u,dec,"GitHub issues"); stored_=true; out.push("✓ stored as settled; closing this issue"); continue; }
+      store(u,dec,"a GitHub issue (typed)"); C.closedAs[u.key]="completed"; stored_=true; out.push("✓ stored as settled; closing this issue"); continue; }
     if((m=line.match(/^\/drop\s*(.*)$/i))){ const dec={action:"drop",reason:m[1].trim()}; const errs=checkPerson(u,dec);
-      if(errs.length){ out.push("✗ "+errs[0]); continue; } store(u,dec,"GitHub issues"); stored_=true; out.push("✓ stored as dropped; closing this issue"); continue; }
+      if(errs.length){ out.push("✗ "+errs[0]); continue; } store(u,dec,"a GitHub issue (typed)"); C.closedAs[u.key]="not planned"; stored_=true; out.push("✓ stored as dropped; closing this issue"); continue; }
     out.push(`✗ unknown command: ${line}`);
   }
   if(!out.length) out.push("No commands found; nothing changed. Comments without commands are kept as discussion.");
   if(!stored_) out.push("", "Draft now:", fmtDraft(draftC(u)));
   return out.join("\n");
 }
+function closeC(u,how){
+  const th=C.threads[u.key];
+  th.push({who:"you",event:how==="completed"?"closed this as completed":"closed this as not planned"});
+  let msg;
+  if(how==="completed"){
+    const {errs,dec}=answerFromTicks(u); const all=errs.length?errs:checkPerson(u,dec);
+    if(all.length){ msg=["Not stored. Reopened:",...all.map(e=>"  "+e)].join("\n"); th.push({who:"seqforge-review[bot]",bot:true,html:`<pre>${esc(msg)}</pre>`}); th.push({who:"seqforge-review[bot]",event:"reopened this"}); render(); return; }
+    store(u,dec,"a GitHub issue (ticks)"); C.closedAs[u.key]="completed";
+    msg=["Stored as settled:",...dec.studies.map((s,i)=>`  ${i+1}. ${s.name}: ${s.series.join(" ")}`)].join("\n");
+  } else {
+    const on=optionsC(u).filter(x=>x.group==="drop"&&ticksOf(u).has(x.k));
+    if(!on.length){ th.push({who:"seqforge-review[bot]",bot:true,html:`<pre>Not stored. Reopened: tick a reason to drop.</pre>`}); th.push({who:"seqforge-review[bot]",event:"reopened this"}); render(); return; }
+    const reason=on.map(x=>x.reason).join("; ");
+    store(u,{action:"drop",reason},"a GitHub issue (ticks)"); C.closedAs[u.key]="not planned"; msg=`Stored as dropped: ${reason}`;
+  }
+  th.push({who:"seqforge-review[bot]",bot:true,html:`<pre>${esc(msg)}</pre>`}); render();
+}
+function quickC(u,val){
+  if(!val) return;
+  let dec;
+  if(val.startsWith("p")){ const p=u.passes.find(p=>"p"+p.n===val); dec={action:"settle",studies:clone(p.studies),from:`pass ${p.n}, as is`,changes:[]}; }
+  else dec={action:"drop",reason:val.slice(5)};
+  const errs=checkPerson(u,dec);
+  if(errs.length){ C.quickMsg[u.key]=errs[0]; render(); return; }
+  store(u,dec,"the project table"); C.closedAs[u.key]= dec.action==="drop"?"not planned":"completed"; C.quickMsg[u.key]="";
+  (C.threads[u.key]||(C.threads[u.key]=[{who:"seqforge-review[bot]",bot:true,html:botBody(u)}])).push({who:"seqforge-review[bot]",bot:true,html:`<pre>${esc(dec.action==="drop"?`Stored as dropped from the project table: ${dec.reason}`:`Stored as settled from the project table: ${dec.from}`)}</pre>`});
+  render();
+}
+function statusC(u){ return C.closedAs[u.key]? `<span class="pill ${C.closedAs[u.key]==="completed"?"e-settled":"e-dropped"}">closed · ${C.closedAs[u.key]}</span>` : `<span class="pill e-open">open</span>`; }
 function renderC(el){
   const issues=UNITS.filter(u=>u.status==="waiting");
   if(!C.sel) C.sel=issues[0].key;
+  issues.forEach(u=>{ if(!C.threads[u.key]) C.threads[u.key]=[{who:"seqforge-review[bot]",bot:true,html:null}].concat(u.key==="PMID 41340160"?[{who:"a colleague",text:"Worth checking GSE245380's sample names against the 2024 paper before settling. If they match, it is reuse."}]:[]); });
   const u=U[C.sel];
-  if(!C.threads[u.key]) C.threads[u.key]=[{who:"seqforge-review[bot]",bot:true,html:botBody(u)}].concat(u.key==="PMID 41340160"?[{who:"a colleague",text:"Before settling, worth checking GSE245380's sample names against the 2024 paper. If they match, it is reuse."}]:[]);
-  const labels=u=>[`review:bounding`,`pass-${u.passes.length}`,...u.failed.map(c=>`check:${c}`)];
-  el.innerHTML=`<div class="C">
+  const labels=x=>[`review:bounding`,`pass-${x.passes.length}`,...x.failed.map(c=>`check:${c}`)];
+  const toggle=`<div class="tabs ctabs">${[["issue","Issues"],["project","Project table"]].map(([k,l])=>`<button data-view="${k}" class="${C.view===k?"on":""}">${l}</button>`).join("")}
+     <span class="small muted">A private review repo · label <b>review:bounding</b> · filed in samples, not all ${QUEUE.total.toLocaleString()} (made-up count)</span></div>`;
+  if(C.view==="project"){
+    const key=x=> C.group==="check"? CHECK_SHORT[x.failed[0]] : C.group==="ending"? x.ending : "pilot direction: none";
+    const groups=[...new Set(issues.map(key))];
+    const qopts=x=>`<option value="">—</option>${x.passes.filter(p=>p.studies).map(p=>`<option value="p${p.n}">Pass ${p.n} as is</option>`).join("")}${DROP_REASONS.slice(0,3).map(r=>`<option value="drop:${esc(r)}">Drop: ${esc(r)}</option>`).join("")}`;
+    el.innerHTML=`<div class="Cp">${toggle}
+      <p class="small muted" style="margin:6px 0 10px">A GitHub Project over the review repo's issues. The command fills Failed check, Pilot direction and Series when it files an issue; <b>Answer</b> is yours, for units where a pass is simply right. Anything needing a move goes through the issue.</p>
+      <label class="small">Group by <select id="cgroup"><option value="check" ${C.group==="check"?"selected":""}>failed check</option><option value="ending" ${C.group==="ending"?"selected":""}>ending</option><option value="pilot" ${C.group==="pilot"?"selected":""}>pilot direction</option></select></label>
+      <div class="tw" style="margin-top:10px"><table class="ptable">
+        <thead><tr><th>Issue</th><th>Status</th><th>Failed check</th><th>Pilot direction</th><th>Series</th><th>Passes</th><th>Answer</th></tr></thead>
+        ${groups.map(g=>`<tbody><tr class="grp"><td colspan="7">${esc(g)} <span class="muted">${issues.filter(x=>key(x)===g).length}</span></td></tr>
+          ${issues.filter(x=>key(x)===g).map(x=>`<tr><td><button class="linkish" data-open="${esc(x.key)}">${esc(issueTitle(x))}</button></td><td>${statusC(x)}</td><td>${x.failed.map(c=>esc(CHECK_SHORT[c])).join("<br>")}</td><td class="muted">—</td><td class="tabnum">${x.illustrative?x.seriesCount:leafSeries(x).length}</td><td class="tabnum">${x.passes.length}</td>
+            <td>${C.closedAs[x.key]?`<span class="muted small">answered</span>`:`<select data-quick="${esc(x.key)}" aria-label="Answer for ${esc(x.key)}">${qopts(x)}</select>`}${C.quickMsg[x.key]?`<div class="bad small">${esc(C.quickMsg[x.key])}</div>`:""}</td></tr>`).join("")}</tbody>`).join("")}
+      </table></div></div>`;
+    el.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{C.view=b.dataset.view; render();});
+    el.querySelector("#cgroup").onchange=e=>{C.group=e.target.value; render();};
+    el.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{C.sel=b.dataset.open; C.view="issue"; render();});
+    el.querySelectorAll("[data-quick]").forEach(s=>s.onchange=()=>quickC(U[s.dataset.quick],s.value));
+    return;
+  }
+  const closed=!!C.closedAs[u.key];
+  el.innerHTML=`${toggle}<div class="C">
     <nav class="list" aria-label="Issues">
-      <div class="lh">liuhlab/seqforge-review (private) · label <b>review:bounding</b> · filed weekly: up to 3 per failed check · ${QUEUE.total.toLocaleString()} more wait unfiled (made-up count)</div>
-      ${issues.map(x=>`<button data-k="${esc(x.key)}" class="${x.key===C.sel?"on":""}"><span class="dot ${stored[x.key]?"closed":""}"></span><span><b>${esc(issueTitle(x))}</b><br>${labels(x).map(l=>`<span class="lab">${l}</span>`).join("")}</span></button>`).join("")}
+      ${issues.map(x=>`<button data-k="${esc(x.key)}" class="${x.key===C.sel?"on":""}"><span class="dot ${C.closedAs[x.key]?"closed":""}"></span><span><b>${esc(issueTitle(x))}</b><br>${labels(x).map(l=>`<span class="lab">${l}</span>`).join("")}</span></button>`).join("")}
     </nav>
     <section class="thread">
-      <h2>${esc(issueTitle(u))} ${stored[u.key]?`<span class="pill e-${stored[u.key].ending}">closed · ${stored[u.key].ending}</span>`:`<span class="pill e-open">open</span>`}</h2>
-      ${C.threads[u.key].map(c=>`<article class="cm ${c.bot?"bot":""}"><div class="who"><b>${esc(c.who)}</b> commented</div><div class="body">${c.html||`<pre>${esc(c.text)}</pre>`}</div></article>`).join("")}
-      <textarea id="cbox" placeholder="Write a comment. Lines starting with / are commands." aria-label="Comment">${esc(C.input)}</textarea>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="cpost">Comment</button><button class="btn" id="cex">Fill in an example reply</button></div>
+      <h2>${esc(issueTitle(u))} ${statusC(u)}</h2>
+      ${C.threads[u.key].map((c,i)=>c.event?`<div class="ev small muted"><b>${esc(c.who)}</b> ${esc(c.event)}</div>`:`<article class="cm ${c.bot?"bot":""}"><div class="who"><b>${esc(c.who)}</b> ${i===0?"opened this issue":"commented"}</div><div class="body">${i===0?botBody(u):(c.html||`<pre>${esc(c.text)}</pre>`)}</div></article>`).join("")}
+      <textarea id="cbox" placeholder="Comment to discuss. Lines starting with / are commands, for what ticks cannot say: /rename 2 …, /study Name: GSE… GSE…, /settle" aria-label="Comment">${esc(C.input)}</textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${closed?`<button class="btn" id="creopen">Reopen</button>`:`<button class="btn primary" id="cdone">Close as completed</button><button class="btn" id="cnp">Close as not planned</button>`}
+        <button class="btn" id="cpost">Comment</button>
+        ${closed?"":`<button class="btn" id="cex">Tick an example answer</button>`}
+      </div>
     </section></div>`;
+  el.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{C.view=b.dataset.view; render();});
   el.querySelectorAll(".list button").forEach(b=>b.onclick=()=>{C.sel=b.dataset.k; C.input=""; render();});
+  el.querySelectorAll("[data-tick]").forEach(cb=>cb.onchange=()=>{ const t=ticksOf(u); cb.checked?t.add(cb.dataset.tick):t.delete(cb.dataset.tick); });
   const box=el.querySelector("#cbox"); box.oninput=()=>{C.input=box.value;};
-  el.querySelector("#cex").onclick=()=>{ C.input={ "PMID 41340160":"Checked: the samples match the 2024 paper, so it is reuse.\n/take pass-2\n/move GSE245380 to new Study of PMID 38597673\n/settle",
-      "PMID 30454645":"Same paper, two systems. Two studies.\n/move GSE104997 to new Mouse ovarian-cancer line methylation (PMID 30454645)\n/settle",
-      "PMID 36797228":"One paper, one study.\n/study Liver tumours and organoids (PMID 36797228): GSE169391 GSE169287 GSE169288 GSE169289 GSE190239 GSE182593\n/settle",
-      "Umbrella BioProject":"Not a hand job.\n/drop needs a rule in bounding's code for umbrella BioProjects"}[u.key]||""; render(); };
+  const cd=el.querySelector("#cdone"); if(cd) cd.onclick=()=>closeC(u,"completed");
+  const cn=el.querySelector("#cnp"); if(cn) cn.onclick=()=>closeC(u,"not planned");
+  const cr=el.querySelector("#creopen"); if(cr) cr.onclick=()=>{ delete C.closedAs[u.key]; C.threads[u.key].push({who:"you",event:"reopened this"}); render(); };
+  const ce=el.querySelector("#cex"); if(ce) ce.onclick=()=>{
+    const opts=optionsC(u), t=ticksOf(u); t.clear();
+    const pick=f=>{ const x=opts.find(f); if(x) t.add(x.k); };
+    if(u.key==="PMID 41340160"){ pick(x=>x.start==="p2"); pick(x=>x.id==="GSE245380"&&x.target==="Study of PMID 38597673"); }
+    else if(u.key==="PMID 30454645"){ pick(x=>x.start==="p1"); pick(x=>x.id==="GSE104997"&&x.target.endsWith("(own study)")); }
+    else if(u.key==="PMID 36797228"){ pick(x=>x.start==="all"); }
+    else pick(x=>x.reason&&x.reason.startsWith("needs a rule"));
+    render(); };
   el.querySelector("#cpost").onclick=()=>{ const t=C.input.trim(); if(!t) return;
     C.threads[u.key].push({who:"you",text:t});
     C.threads[u.key].push({who:"seqforge-review[bot]",bot:true,html:`<pre>${esc(runCommands(u,t))}</pre>`});
     C.input=""; render(); };
 }
-
 /* ===================== frame ===================== */
 function render(){
   const v=VARIANTS[vi];
@@ -732,7 +859,7 @@ function render(){
   ({files:renderA,page:renderB,issues:renderC})[v.id](el);
 }
 function go(i){ vi=(i+VARIANTS.length)%VARIANTS.length; const h="#"+VARIANTS[vi].id; if(location.hash!==h) history.replaceState(null,"",h); render(); }
-function fromHash(){ const i=VARIANTS.findIndex(v=>"#"+v.id===location.hash); vi=i<0?0:i; render(); }
+function fromHash(){ const i=VARIANTS.findIndex(v=>"#"+v.id===location.hash); vi=i<0?2:i; render(); }
 document.getElementById("prev").onclick=()=>go(vi-1);
 document.getElementById("next").onclick=()=>go(vi+1);
 document.getElementById("storedBtn").onclick=()=>{document.getElementById("sheet").hidden=false;};
