@@ -325,7 +325,7 @@ def run_cmd(
         None,
         "--model",
         help="Override the extraction model (DeepSeek: deepseek-v4-pro is the default | "
-        "deepseek-v4-flash).",
+        "deepseek-flash).",
     ),
     ceiling: int = typer.Option(
         0,

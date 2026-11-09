@@ -447,6 +447,7 @@ def test_a_failed_attempt_still_counts_against_the_ledger(
 _CLASSIFY = [
     pytest.param(429, "3", (True, "3"), id="429-is-transient-and-honours-retry-after"),
     pytest.param(503, None, (True, None), id="5xx-is-transient-and-backs-off"),
+    pytest.param(529, "7", (True, "7"), id="529-overloaded-is-transient-and-honours-retry-after"),
     pytest.param(400, None, (False, None), id="400-is-a-verdict-not-a-blip"),
     pytest.param(401, None, (False, None), id="401-is-a-verdict-not-a-blip"),
     pytest.param(404, None, (False, None), id="404-is-a-verdict-not-a-blip"),
@@ -522,9 +523,10 @@ def test_resolve_provider_walks_the_precedence_table(
 
 def test_provider_defaults() -> None:
     assert AnthropicProvider().default_model() == ANTHROPIC_DEFAULT_MODEL == "claude-opus-4-8"
-    # V4 explicitly: deepseek-chat / -reasoner are deprecated aliases (2026-07-24) onto V4-Flash
     assert deepseek_provider(api_key="k").default_model() == DEEPSEEK_DEFAULT_MODEL
-    assert all(m.startswith("deepseek-v4") for m in DEEPSEEK_MODELS)
+    # The names DeepSeek serves today, never a routed alias: `deepseek-v4-flash` was retired on
+    # 2026-09-10 and is only temporarily routed to `deepseek-flash`, as `deepseek-chat` was before it.
+    assert set(DEEPSEEK_MODELS) == {"deepseek-flash", "deepseek-v4-pro"}
     # Pro is the default. Flash was, on the argument that it is the cheap end of V4 — and the same
     # benchmark that argument was made for falsified it (#188): pro is faster AND spends fewer output
     # tokens. Cost is still the only axis a model can move (R2 re-greps every quote whichever one
@@ -540,6 +542,45 @@ def test_deepseek_model_catalogue_is_not_an_allowlist() -> None:
         system="s", user="u", schema={}, model="deepseek-v9-unreleased", max_tokens=64
     )
     assert client.captured["model"] == "deepseek-v9-unreleased"
+
+
+#: Thinking is a request parameter DeepSeek reads, not a property of the model name. Left unsent, a
+#: V4 call reasons at the provider's default effort while the exchange's mode said nothing was set.
+#: The preset now sends its setting on every request and its mode names exactly what it sent; any
+#: other OpenAI-shaped endpoint gets no parameter it may not accept, and its mode says so.
+_THINKING = [
+    pytest.param(
+        lambda client: deepseek_provider(api_key="k", client=client),
+        {"extra_body": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}},
+        "enabled:high",
+        id="deepseek-sends-its-documented-default",
+    ),
+    pytest.param(
+        lambda client: deepseek_provider(api_key="k", client=client, thinking="disabled"),
+        {"extra_body": {"thinking": {"type": "disabled"}}},
+        "disabled",
+        id="deepseek-can-be-told-not-to-think",
+    ),
+    pytest.param(
+        lambda client: OpenAICompatibleProvider(
+            base_url="http://localhost:8000/v1", api_key="k", client=client
+        ),
+        {},
+        "model-default",
+        id="another-endpoint-is-sent-nothing-and-its-mode-says-so",
+    ),
+]
+
+
+@pytest.mark.parametrize(("make", "sent", "recorded"), _THINKING)
+def test_thinking_is_sent_where_the_endpoint_takes_it_and_recorded_as_sent(
+    make: Any, sent: dict[str, Any], recorded: str
+) -> None:
+    client = _FakeOpenAIClient('{"drafts": []}')
+    response = make(client).complete_json(system="s", user="u", schema={}, model="m", max_tokens=64)
+    thinking_kwargs = {"reasoning_effort", "extra_body"}
+    assert {k: v for k, v in client.captured.items() if k in thinking_kwargs} == sent
+    assert response.mode["thinking"] == recorded
 
 
 def test_openai_compatible_needs_a_key() -> None:

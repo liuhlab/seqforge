@@ -22,18 +22,23 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from ..io.remote import _RETRY_STATUS
+
+#: The network surface's transient statuses, plus 529: the "overloaded" reply the Anthropic API sends
+#: and no archive does. Derived rather than restated, so the two sets cannot drift apart.
+_API_RETRY_STATUS = _RETRY_STATUS | {529}
 
 #: Anthropic. Adaptive thinking + strict schema.
 ANTHROPIC_DEFAULT_MODEL = "claude-opus-4-8"
 
-#: DeepSeek V4, the two models the API serves. Both are V4 (1M ctx) and speak the same json_object
-#: contract; they differ in price and in recall on hard prose. NB `deepseek-chat` /
-#: `deepseek-reasoner` are deprecated (2026-07-24) aliases onto V4-Flash; we name a V4 model
-#: explicitly so nothing breaks when they are withdrawn.
-DEEPSEEK_FLASH_MODEL = "deepseek-v4-flash"
+#: The two models DeepSeek's API serves, under the names it serves them by. Both have a 1M context
+#: and speak the same json_object contract; they differ in price and in recall on hard prose. We name
+#: current models, never a routed alias, so nothing breaks when an alias is withdrawn:
+#: `deepseek-v4-flash` was retired on 2026-09-10 and is only "temporarily routed" to `deepseek-flash`,
+#: as `deepseek-chat` / `deepseek-reasoner` were onto V4-Flash before it.
+DEEPSEEK_FLASH_MODEL = "deepseek-flash"
 DEEPSEEK_PRO_MODEL = "deepseek-v4-pro"
 
 #: What `--model` may name on the DeepSeek preset — a **catalogue, not an allowlist**. The model
@@ -52,6 +57,16 @@ DEEPSEEK_MODELS = (DEEPSEEK_FLASH_MODEL, DEEPSEEK_PRO_MODEL)
 #: and the run that decided it".
 DEEPSEEK_DEFAULT_MODEL = DEEPSEEK_PRO_MODEL
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+
+#: DeepSeek's thinking setting: ``disabled``, or ``enabled:<effort>`` at one of the three efforts
+#: DeepSeek documents. One string decides the request's keywords and is written verbatim into the
+#: exchange's ``mode``, so what was sent and what the mode says cannot differ.
+Thinking = Literal["disabled", "enabled:low", "enabled:high", "enabled:max"]
+
+#: Thinking on at `high` is DeepSeek's documented default (its thinking-mode guide, read 2026-11-08),
+#: so sending it explicitly keeps what an unset request gets today. What changes is the exchange's
+#: ``mode``, which now names the setting instead of saying none was made.
+DEEPSEEK_DEFAULT_THINKING: Thinking = "enabled:high"
 
 #: Exception *type* names that mean the call never reached a verdict — the transport gave out. Matched
 #: by name rather than by class because both SDKs are optional imports: naming `openai.APITimeoutError`
@@ -94,14 +109,15 @@ def classify_api_error(exc: Exception) -> tuple[bool, str | None]:
 
     Duck-typed on purpose. Both SDKs raise status-carrying errors shaped like httpx's, so reading
     ``status_code`` and the ``Retry-After`` header covers them without importing either. The status
-    set is the network surface's — a rate limit and the 5xx family are blips; a 400 or a 401 is a
-    verdict, and retrying it four times only makes the failure slower.
+    set is the network surface's plus an "overloaded" 529 — a rate limit, an overload and the 5xx
+    family are blips; a 400 or a 401 is a verdict, and retrying it four times only makes the failure
+    slower.
     """
     status = getattr(exc, "status_code", None)
     if isinstance(status, int):
         headers: Any = getattr(getattr(exc, "response", None), "headers", None) or {}
         raw = headers.get("retry-after") if hasattr(headers, "get") else None
-        return status in _RETRY_STATUS, str(raw) if raw is not None else None
+        return status in _API_RETRY_STATUS, str(raw) if raw is not None else None
     name = type(exc).__name__.lower()
     return any(token in name for token in _TRANSIENT_EXC_NAMES), None
 
@@ -216,6 +232,10 @@ class OpenAICompatibleProvider:
     the provider — enforces the shape. Prefix caching is automatic server-side (DeepSeek reports it
     as cache hit/miss tokens), so there is no ``cache_control`` to place; keeping the prefix stable
     is the whole job.
+
+    ``thinking`` is sent only when given. DeepSeek reads it; vLLM, Ollama and the like may reject a
+    parameter they do not know, so a generic endpoint is sent none and its exchange's ``mode`` says
+    ``model-default``.
     """
 
     name = "openai-compatible"
@@ -228,11 +248,13 @@ class OpenAICompatibleProvider:
         default_model: str = DEEPSEEK_DEFAULT_MODEL,
         name: str | None = None,
         client: Any | None = None,
+        thinking: Thinking | None = None,
     ) -> None:
         self.base_url = base_url
         self._api_key = api_key
         self._default_model = default_model
         self._client = client
+        self._thinking = thinking
         if name:
             self.name = name
 
@@ -276,6 +298,7 @@ class OpenAICompatibleProvider:
                 ],
                 # json_object guarantees valid JSON, NOT the right shape — Pydantic checks shape.
                 response_format={"type": "json_object"},
+                **_thinking_request(self._thinking),
             )
         except Exception as exc:
             transient, retry_after = classify_api_error(exc)
@@ -299,27 +322,49 @@ class OpenAICompatibleProvider:
                 retry_after="0",
                 usage=usage,
             )
-        # `thinking` is the MODEL's own (how much a V4 reasons is baked into -flash vs -pro); the API
-        # takes no toggle, so it is the model name's business, not a flag we set. `response_format` is
-        # the weaker json_object contract: Pydantic — not the provider — enforces the shape.
+        # `thinking` is the setting this request sent, or `model-default` where none was sent and the
+        # endpoint chose. `response_format` is the weaker json_object contract: Pydantic — not the
+        # provider — enforces the shape.
         return LLMResponse(
             text=text,
             usage=usage,
             mode={
-                "thinking": "model-default",
+                "thinking": self._thinking or "model-default",
                 "max_tokens": max_tokens,
                 "response_format": "json_object",
             },
         )
 
 
-def deepseek_provider(api_key: str | None = None, **kwargs: Any) -> OpenAICompatibleProvider:
-    """DeepSeek preset of the OpenAI-compatible provider."""
+def _thinking_request(thinking: Thinking | None) -> dict[str, Any]:
+    """The ``chat.completions.create`` keywords that carry a thinking setting, per DeepSeek's guide.
+
+    Both travel in ``extra_body``, which the SDK merges into the top of the request body: the OpenAI
+    SDK has no ``thinking`` argument, and older releases inside the declared ``openai`` floor have no
+    ``reasoning_effort`` argument either. A disabled call sends no effort.
+    """
+    if thinking is None:
+        return {}
+    if thinking == "disabled":
+        return {"extra_body": {"thinking": {"type": "disabled"}}}
+    return {
+        "extra_body": {
+            "thinking": {"type": "enabled"},
+            "reasoning_effort": thinking.removeprefix("enabled:"),
+        }
+    }
+
+
+def deepseek_provider(
+    api_key: str | None = None, *, thinking: Thinking = DEEPSEEK_DEFAULT_THINKING, **kwargs: Any
+) -> OpenAICompatibleProvider:
+    """DeepSeek preset of the OpenAI-compatible provider, sending its thinking setting every call."""
     return OpenAICompatibleProvider(
         base_url=DEEPSEEK_BASE_URL,
         api_key=api_key or os.environ.get("DEEPSEEK_API_KEY"),
         default_model=DEEPSEEK_DEFAULT_MODEL,
         name="deepseek",
+        thinking=thinking,
         **kwargs,
     )
 

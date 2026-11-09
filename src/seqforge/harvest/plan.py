@@ -177,11 +177,12 @@ BATCH_OUTPUT_BUDGET = 32_000
 #: in the other direction costs a truncated response, which is a re-ask of the whole batch.
 #:
 #: **Calibrated on the one provider that was measured, and it is not a bound on every provider.**
-#: On DeepSeek V4 there is nothing to bound: how much a V4 reasons is baked into ``-flash`` versus
-#: ``-pro`` and the API takes no toggle. But :class:`~seqforge.harvest.providers.AnthropicProvider`
-#: sends ``thinking={"type": "adaptive"}``, which is a toggle, and adaptive thinking bills against
-#: this same ``max_tokens`` with no bound we set — so a reasoning-heavy turn there can spend past this
-#: reserve. ADR-0009 makes the provider pluggable, so state the limit rather than imply generality.
+#: It was measured on DeepSeek before the preset sent a thinking setting, so at whatever effort the
+#: API defaulted to then; the preset now sends ``enabled:high``, DeepSeek's documented default. A
+#: higher DeepSeek effort, or the ``thinking={"type": "adaptive"}`` that
+#: :class:`~seqforge.harvest.providers.AnthropicProvider` sends, bills against this same
+#: ``max_tokens`` with no bound we set — so a reasoning-heavy turn there can spend past this reserve.
+#: ADR-0009 makes the provider pluggable, so state the limit rather than imply generality.
 #: What it costs when it happens is a truncated response, which is a batch-level failure
 #: :func:`extract_planned` already re-asks one document at a time without losing a claim.
 REASONING_HEADROOM_TOKENS = 1_000

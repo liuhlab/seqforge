@@ -38,7 +38,7 @@ spent, the transcript says what it spent it on. Stdout carries the path, never t
 
 Providers: `--provider anthropic|deepseek|openai-compatible`, `--model ...`. Auto-detects
 `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` and **refuses rather than guessing** when neither is set.
-DeepSeek serves two V4 models: `deepseek-v4-pro` (the default) and `deepseek-v4-flash`. Pro is the
+DeepSeek serves two models: `deepseek-v4-pro` (the default) and `deepseek-flash`. Pro is the
 default because the benchmark measured it there — faster, and fewer output tokens (#188). The choice
 moves cost, never correctness: R2 re-greps every quote after.
 
