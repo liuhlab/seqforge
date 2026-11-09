@@ -1,0 +1,753 @@
+<title>Review queue prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<!--
+PROTOTYPE, throwaway. Question: how does a person review a seqforge unit in the run engine's queue?
+Three variants of where the person works, switchable by #files, #page, #issues and the bottom bar.
+Records are real public GEO links (from the study-span research note). Model answers, pass history
+and queue counts are made up. Nothing here is stored anywhere; reload to start over.
+-->
+<style>
+/* Layout: a thin prototype header, the variant's own surface below it, a floating switcher pill. */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --sunk:#e9edeb; --ink:#18201d; --muted:#56635d; --line:#d3dbd7;
+  --accent:#16645f; --accent-ink:#ffffff;
+  --paper:#9a6412; --series:#24609e; --super:#5b44a8; --project:#5f6f68;
+  --ok:#22764a; --warn:#a2640b; --bad:#b42828; --drop:#6a7570;
+  --s1:#24609e; --s2:#b4531a; --s3:#22764a; --s4:#7a4fc0; --s5:#a8306f; --s0:#9aa59f;
+  --term-bg:#141b18; --term-fg:#cfe0d8; --term-dim:#7d9389; --term-ok:#7fd1a3; --term-bad:#ff8f8f;
+  --pill-bg:#18201d; --pill-fg:#f3f5f4;
+  --f-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-head:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121715; --surface:#1a211e; --sunk:#232c28; --ink:#e3ebe7; --muted:#9aaba3; --line:#33403a;
+  --accent:#58b3aa; --accent-ink:#0d1412;
+  --paper:#e0a54a; --series:#6fa7e0; --super:#a993ec; --project:#9db0a7;
+  --ok:#5ec48c; --warn:#e3a646; --bad:#f07a7a; --drop:#97a49e;
+  --s1:#6fa7e0; --s2:#ec8b55; --s3:#5ec48c; --s4:#b493f0; --s5:#e77bb0; --s0:#66736d;
+  --term-bg:#0b100e; --pill-bg:#e3ebe7; --pill-fg:#121715; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#121715; --surface:#1a211e; --sunk:#232c28; --ink:#e3ebe7; --muted:#9aaba3; --line:#33403a;
+  --accent:#58b3aa; --accent-ink:#0d1412;
+  --paper:#e0a54a; --series:#6fa7e0; --super:#a993ec; --project:#9db0a7;
+  --ok:#5ec48c; --warn:#e3a646; --bad:#f07a7a; --drop:#97a49e;
+  --s1:#6fa7e0; --s2:#ec8b55; --s3:#5ec48c; --s4:#b493f0; --s5:#e77bb0; --s0:#66736d;
+  --term-bg:#0b100e; --pill-bg:#e3ebe7; --pill-fg:#121715; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 96px}
+h1,h2,h3{font-family:var(--f-head);font-weight:600;text-wrap:balance;margin:0}
+code,.mono{font-family:var(--f-mono);font-size:12.5px}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabnum{font-variant-numeric:tabular-nums}
+
+/* prototype header */
+.proto{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding-block:14px 12px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.proto .tag{font:600 11px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;background:var(--warn);color:var(--surface);padding:5px 7px;border-radius:3px}
+.proto h1{font-size:19px}
+.proto p{margin:0;color:var(--muted);flex:1 1 360px;min-width:0}
+.btn{border:1px solid var(--line);background:var(--surface);padding:6px 11px;border-radius:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{border-color:var(--bad);color:var(--bad)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.kbd{font:500 11px var(--f-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
+
+.judge{background:var(--sunk);border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;gap:6px 18px;flex-wrap:wrap;align-items:baseline}
+.judge b{font-family:var(--f-head);font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.judge span{min-width:0}
+
+/* shared bits */
+.pill{display:inline-block;font:600 11px/1.6 var(--f-mono);padding:0 7px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.e-unsettled{color:var(--warn)} .e-refused{color:var(--bad)} .e-settled{color:var(--ok)} .e-dropped{color:var(--drop)} .e-open{color:var(--muted)}
+.k-paper{color:var(--paper)} .k-Series{color:var(--series)} .k-SuperSeries{color:var(--super)} .k-BioProject{color:var(--project)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.ok{color:var(--ok)} .bad{color:var(--bad)}
+.chip{display:inline-flex;align-items:center;font:500 12px var(--f-mono);padding:1px 7px;border-radius:4px;background:var(--sunk);margin:2px 3px 2px 0;border-left:3px solid var(--s0)}
+
+/* stored sheet */
+.sheet{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--surface);border-left:1px solid var(--line);
+  box-shadow:-12px 0 30px rgba(0,0,0,.12);z-index:40;display:flex;flex-direction:column;
+  padding:calc(14px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) 16px}
+.sheet header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.sheet pre{flex:1;overflow:auto;margin:0;background:var(--sunk);border-radius:6px;padding:12px;font:12px/1.5 var(--f-mono);white-space:pre}
+
+/* switcher */
+.switcher{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:50;
+  display:flex;align-items:center;gap:4px;background:var(--pill-bg);color:var(--pill-fg);border-radius:99px;padding:5px;box-shadow:0 6px 24px rgba(0,0,0,.28);max-width:calc(100% - 24px)}
+.switcher button{background:transparent;border:0;color:inherit;width:34px;height:34px;border-radius:99px;font-size:17px}
+.switcher button:hover{background:rgba(127,127,127,.25)}
+.switcher .lbl{font:600 13px var(--f-mono);padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- A: files ---------- */
+.A{display:grid;grid-template-columns:230px minmax(0,1fr);gap:14px}
+.A .tree{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 0;font:12.5px var(--f-mono);align-self:start}
+.A .tree .dir{padding:4px 12px;color:var(--muted)}
+.A .tree button{display:flex;width:100%;text-align:left;border:0;background:transparent;padding:5px 12px 5px 24px;gap:6px;align-items:center}
+.A .tree button.on{background:var(--sunk);font-weight:500}
+.A .tree .mark{margin-left:auto;font-size:11px}
+.A .ed{display:flex;flex-direction:column;gap:10px;min-width:0}
+.A .tabbar{display:flex;align-items:center;gap:10px;font:12.5px var(--f-mono);color:var(--muted)}
+.A textarea{width:100%;min-height:520px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--surface);
+  padding:12px 14px;font:12.5px/1.55 var(--f-mono);white-space:pre;overflow:auto;tab-size:2}
+.term{background:var(--term-bg);color:var(--term-fg);border-radius:8px;padding:12px 14px;font:12.5px/1.6 var(--f-mono);overflow-x:auto;white-space:pre}
+.term .p{color:var(--term-dim)} .term .g{color:var(--term-ok)} .term .r{color:var(--term-bad)}
+.A .run{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- B: page ---------- */
+.B .top{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:12px}
+.B .tabs{display:flex;gap:4px;flex-wrap:wrap}
+.B .tabs button{border:1px solid var(--line);background:var(--surface);padding:5px 10px;border-radius:6px}
+.B .tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.B .bars{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1 1 320px}
+.B .bar{display:grid;grid-template-columns:200px minmax(0,1fr) 54px;gap:8px;align-items:center;font-size:12px}
+.B .bar i{display:block;height:8px;border-radius:2px;background:var(--warn);opacity:.75}
+.B .grid{display:grid;grid-template-columns:270px minmax(0,1fr);gap:14px;align-items:start}
+.B .queue{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.B .queue button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:9px 12px}
+.B .queue button.on{background:var(--sunk);box-shadow:inset 3px 0 0 var(--accent)}
+.B .queue .t{font:500 13px var(--f-mono)} .B .queue .s{font-size:12px;color:var(--muted)}
+.B .detail{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.B .hd{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline}
+.B .hd h2{font-size:20px;font-family:var(--f-mono);font-weight:500}
+.B .graph{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.B .graph svg{display:block}
+.B table{border-collapse:collapse;width:100%;font-size:12.5px}
+.B th{text-align:left;font-weight:500;color:var(--muted);font-size:11.5px;letter-spacing:.03em;text-transform:uppercase;border-bottom:1px solid var(--line);padding:6px 8px}
+.B td{border-bottom:1px solid var(--line);padding:6px 8px;vertical-align:top}
+.B .tw{overflow-x:auto}
+.B .names{display:flex;flex-direction:column;gap:6px}
+.B .names div{display:flex;gap:6px;align-items:center}
+.B .names input{flex:1;min-width:0;border:1px solid var(--line);border-radius:5px;padding:4px 8px;background:var(--surface)}
+.B select{border:1px solid var(--line);border-radius:5px;padding:3px 6px;background:var(--surface)}
+.B .acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:14px}
+.B .checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.B .pass{border:1px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0}
+.B .pass h3{font-size:14px;display:flex;justify-content:space-between;gap:6px;align-items:baseline;flex-wrap:wrap}
+.B .pass ul{margin:6px 0 0;padding-left:18px}
+.B .pass li{margin:2px 0}
+.B .tray{margin-top:14px}
+.B .tray pre{margin:6px 0 0;background:var(--sunk);border-radius:6px;padding:12px;font:12px/1.5 var(--f-mono);max-height:260px;overflow:auto}
+.B .note{background:var(--sunk);border-radius:6px;padding:10px 12px}
+
+/* ---------- C: issues ---------- */
+.C{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:14px;align-items:start}
+.C .list{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.C .list .lh{padding:10px 12px;border-bottom:1px solid var(--line);background:var(--sunk);font-size:12.5px;color:var(--muted)}
+.C .list button{display:flex;gap:10px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:10px 12px}
+.C .list button.on{background:var(--sunk)}
+.C .dot{flex:none;width:14px;height:14px;border-radius:99px;border:2px solid var(--ok);margin-top:3px}
+.C .dot.closed{border-color:var(--super);background:var(--super)}
+.C .lab{display:inline-block;font-size:11px;padding:0 7px;border-radius:99px;background:var(--sunk);border:1px solid var(--line);margin:3px 4px 0 0}
+.C .thread{display:flex;flex-direction:column;gap:12px;min-width:0}
+.C .thread h2{font-size:20px}
+.C .cm{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.C .cm .who{background:var(--sunk);padding:7px 12px;font-size:12.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+.C .cm .who b{color:var(--ink)}
+.C .cm .body{padding:10px 14px;overflow-x:auto}
+.C .cm .body pre{margin:0;font:12.5px/1.55 var(--f-mono);white-space:pre-wrap}
+.C .cm table{border-collapse:collapse;font-size:12.5px}
+.C .cm td,.C .cm th{border:1px solid var(--line);padding:3px 8px;text-align:left}
+.C textarea{width:100%;min-height:96px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface);font:12.5px/1.5 var(--f-mono)}
+.C .bot .who{background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
+
+@media (max-width:820px){
+  .A,.B .grid,.C{grid-template-columns:minmax(0,1fr)}
+  .B .bar{grid-template-columns:130px minmax(0,1fr) 44px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="proto">
+  <span class="tag">Prototype · throwaway</span>
+  <h1>Review queue: where does a person settle a unit?</h1>
+  <p>Three places a person could work the queue of bounding units, each a group of linked GEO records. Records and their links are real public GEO; the model answers, pass history and queue counts are made up.</p>
+  <button class="btn" id="storedBtn">Stored answers (<span id="storedN">0</span>)</button>
+</header>
+
+<div id="judge" class="judge"></div>
+<main id="app"></main>
+
+<aside class="sheet" id="sheet" hidden>
+  <header><h2 style="font-size:16px">What the engine stores</h2><button class="btn" id="sheetClose">Close</button></header>
+  <p class="small muted" style="margin:0 0 8px">One entry per unit a person answered, from any of the three variants. A person's answer outranks the models and holds until the unit's records change.</p>
+  <pre id="storedPre"></pre>
+</aside>
+
+<nav class="switcher" aria-label="Prototype variant">
+  <button id="prev" aria-label="Previous variant">&larr;</button>
+  <span class="lbl" id="vlabel"></span>
+  <button id="next" aria-label="Next variant">&rarr;</button>
+</nav>
+
+<script>
+/* ===================== data ===================== */
+const CHECKS = {
+  placed: "Every Series placed once",
+  inunit: "Every record named is in this unit",
+  earlier: "No Series first cited by an earlier paper sits in a later paper's study",
+  judge: "The judge (Jev) gives every placement at least 0.70",
+  size: "The unit fits in one request",
+};
+const CHECK_SHORT = {placed:"Series placed twice or not at all", inunit:"Names a record not in the unit", earlier:"Earlier paper's Series merged in", judge:"Judge below 0.70", size:"Too big for one request"};
+const CHEAP = "writer deepseek-flash (thinking off) · judge Jev";
+const STRONG = "writer deepseek-pro (thinking on) · judge Jev";
+const STAMP = "kind bounding 2026.11.0 · store build 2026-11-07";
+
+const UNITS = [
+ { key:"PMID 41340160", headline:"Fly brain chromatin, plus three older Series the paper re-cites",
+   status:"waiting", ending:"unsettled", failed:["earlier","judge"],
+   records:[
+    {id:"PMID 41340160",kind:"paper",desc:"the new paper; GEO links every Series here to it"},
+    {id:"PMID 29490272",kind:"paper",desc:"first paper to cite GSE100578"},
+    {id:"PMID 38597673",kind:"paper",desc:"first paper to cite GSE245380"},
+    {id:"PMID 26673323",kind:"paper",desc:"first paper of GSE70591 (public 2015)"},
+    {id:"PRJNA1188621",kind:"BioProject",desc:"joins the three new Series"},
+    {id:"GSE282534",kind:"Series",desc:"ATAC-seq · fly brains",papers:["PMID 41340160"],project:"PRJNA1188621"},
+    {id:"GSE282535",kind:"Series",desc:"CUT&RUN · fly brains",papers:["PMID 41340160"],project:"PRJNA1188621"},
+    {id:"GSE282537",kind:"Series",desc:"targeted DamID · fly brains · typed Other in GEO",papers:["PMID 41340160"],project:"PRJNA1188621"},
+    {id:"GSE100578",kind:"Series",desc:"RNA-seq",papers:["PMID 29490272","PMID 41340160"]},
+    {id:"GSE245380",kind:"Series",desc:"assay not checked",papers:["PMID 38597673","PMID 41340160"]},
+    {id:"GSE70591",kind:"SuperSeries",desc:"SuperSeries · public 2015",papers:["PMID 26673323","PMID 41340160"]},
+    {id:"GSE70589",kind:"Series",desc:"SubSeries of GSE70591",papers:["PMID 26673323"],parent:"GSE70591"},
+   ],
+   passes:[
+    {n:1,models:CHEAP,ending:"unsettled",sentBack:"sent back once with the earlier-paper message; the second answer kept both",
+     studies:[{name:"Fly brain chromatin profiling (PMID 41340160)",series:["GSE282534","GSE282535","GSE282537","GSE100578","GSE245380"]},
+              {name:"Study of PMID 26673323",series:["GSE70591","GSE70589"]}],
+     checks:{placed:[1],inunit:[1],earlier:[0,"GSE100578 (first cited by PMID 29490272) and GSE245380 (first cited by PMID 38597673) sit in PMID 41340160's study"],judge:[0,"GSE100578 0.38, GSE245380 0.46"]}},
+    {n:2,models:STRONG,ending:"unsettled",sentBack:"",
+     studies:[{name:"Fly brain chromatin profiling (PMID 41340160)",series:["GSE282534","GSE282535","GSE282537","GSE245380"]},
+              {name:"Study of PMID 29490272",series:["GSE100578"]},
+              {name:"Study of PMID 26673323",series:["GSE70591","GSE70589"]}],
+     checks:{placed:[1],inunit:[1],earlier:[0,"GSE245380 (first cited by PMID 38597673) sits in PMID 41340160's study"],judge:[0,"GSE245380 0.52"]}},
+   ]},
+ { key:"PMID 30454645", headline:"One paper, four Series: colon-cancer cells and a mouse ovarian line",
+   status:"waiting", ending:"unsettled", failed:["judge"],
+   note:"Each Series has its own BioProject; no SuperSeries. Public on two dates three months apart. Only the paper joins them.",
+   records:[
+    {id:"PMID 30454645",kind:"paper",desc:"the one paper all four Series cite"},
+    {id:"GSE104837",kind:"Series",desc:"RNA-seq · YB5 colon-cancer cells, HH1",papers:["PMID 30454645"]},
+    {id:"GSE113608",kind:"Series",desc:"ATAC-seq · YB5 colon-cancer cells, HH1",papers:["PMID 30454645"]},
+    {id:"GSE104998",kind:"Series",desc:"bisulfite seq · YB5 colon-cancer cells, HH1",papers:["PMID 30454645"]},
+    {id:"GSE104997",kind:"Series",desc:"methylation seq · mouse ovarian-cancer line",papers:["PMID 30454645"]},
+   ],
+   passes:[
+    {n:1,models:CHEAP,ending:"unsettled",sentBack:"sent back once with the judge's doubt; the writer kept all four together",
+     studies:[{name:"YB5 colon-cancer cells treated with HH1 (PMID 30454645)",series:["GSE104837","GSE113608","GSE104998","GSE104997"]}],
+     checks:{placed:[1],inunit:[1],earlier:[1],judge:[0,"GSE104997 0.31 (a mouse ovarian line, not YB5 cells)"]}},
+   ]},
+ { key:"PMID 36797228", headline:"Liver tumours under a SuperSeries, and an organoid Series outside it",
+   status:"waiting", ending:"refused", failed:["inunit","placed"],
+   records:[
+    {id:"PMID 36797228",kind:"paper",desc:"the one paper every Series cites"},
+    {id:"GSE169391",kind:"SuperSeries",desc:"SuperSeries over four of the five",papers:["PMID 36797228"]},
+    {id:"GSE169287",kind:"Series",desc:"liver tumour + adjacent · circRNA, small or total RNA",papers:["PMID 36797228"],parent:"GSE169391"},
+    {id:"GSE169288",kind:"Series",desc:"liver tumour + adjacent · circRNA, small or total RNA",papers:["PMID 36797228"],parent:"GSE169391"},
+    {id:"GSE169289",kind:"Series",desc:"liver tumour + adjacent · circRNA, small or total RNA",papers:["PMID 36797228"],parent:"GSE169391"},
+    {id:"GSE190239",kind:"Series",desc:"pull-down",papers:["PMID 36797228"],parent:"GSE169391"},
+    {id:"GSE182593",kind:"Series",desc:"organoid RNA-seq · outside the SuperSeries",papers:["PMID 36797228"]},
+   ],
+   passes:[
+    {n:1,models:CHEAP,ending:"refused",sentBack:"first answer named GSE169290, which is not in this unit; sent back once; the second left GSE182593 out",
+     studies:null,
+     checks:{placed:[0,"GSE182593 placed nowhere (second answer)"],inunit:[0,"GSE169290 is not in this unit (first answer)"]}},
+   ]},
+ { key:"Umbrella BioProject", illustrative:true, headline:"Made-up example: 412 Series and 37 papers joined by one umbrella BioProject",
+   status:"waiting", ending:"refused", failed:["size"],
+   note:"Made up for the prototype, no real accession. Bounding's own map decides how a record linked from very many Series is handled; until then a unit like this reaches the queue.",
+   records:[], seriesCount:412,
+   passes:[
+    {n:1,models:CHEAP,ending:"refused",sentBack:"sent back once; the second answer stopped at the output limit too",
+     studies:null, checks:{size:[0,"the writer's answer stopped at its output limit, twice"]}},
+   ]},
+ { key:"PMID 38030596", headline:"Melanoma cell lines, plus a single-cell Series from 2021",
+   status:"cleared", ending:"settled", failed:[],
+   records:[
+    {id:"PMID 38030596",kind:"paper",desc:"the new paper"},
+    {id:"PMID 34035069",kind:"paper",desc:"first paper to cite GSE174401"},
+    {id:"GSE218625",kind:"Series",desc:"RNA-seq · melanoma cell lines",papers:["PMID 38030596"]},
+    {id:"GSE240307",kind:"Series",desc:"RNA-seq · melanoma cell lines",papers:["PMID 38030596"]},
+    {id:"GSE174401",kind:"Series",desc:"single-cell · public 2021",papers:["PMID 34035069","PMID 38030596"]},
+   ],
+   passes:[
+    {n:1,models:CHEAP,ending:"unsettled",sentBack:"",
+     studies:[{name:"Melanoma cell-line RNA-seq (PMID 38030596)",series:["GSE218625","GSE240307"]},{name:"Single-cell study of PMID 34035069",series:["GSE174401"]}],
+     checks:{placed:[1],inunit:[1],earlier:[1],judge:[0,"GSE240307 0.66"]}},
+    {n:2,models:STRONG,ending:"settled",sentBack:"",
+     studies:[{name:"Melanoma cell-line RNA-seq (PMID 38030596)",series:["GSE218625","GSE240307"]},{name:"Single-cell study of PMID 34035069",series:["GSE174401"]}],
+     checks:{placed:[1],inunit:[1],earlier:[1],judge:[1,"all placements 0.81 or higher"]}},
+   ]},
+ { key:"PMID 38875320", headline:"ATAC and RNA, settled; the paper's text names a third Series GEO does not link",
+   status:"audit", ending:"settled", failed:[],
+   note:"The paper's text also names GSE266323, submitted by nine of its authors. It cites no paper and sits in no SuperSeries, so it is a unit of its own and the models here never saw it.",
+   records:[
+    {id:"PMID 38875320",kind:"paper",desc:"the paper"},
+    {id:"GSE265872",kind:"Series",desc:"ATAC-seq",papers:["PMID 38875320"]},
+    {id:"GSE266561",kind:"Series",desc:"RNA-seq",papers:["PMID 38875320"]},
+   ],
+   passes:[
+    {n:1,models:CHEAP,ending:"settled",sentBack:"",
+     studies:[{name:"ATAC and RNA (PMID 38875320)",series:["GSE265872","GSE266561"]}],
+     checks:{placed:[1],inunit:[1],earlier:[1],judge:[1,"0.93 and 0.95"]}},
+   ]},
+ { key:"PMID 36690616", headline:"One SuperSeries joins every Series; code settled it with no model call",
+   status:"audit", ending:"settled", failed:[],
+   records:[
+    {id:"PMID 36690616",kind:"paper",desc:"the paper"},
+    {id:"GSE168415",kind:"SuperSeries",desc:"SuperSeries over all six",papers:["PMID 36690616"]},
+    ...["GSE168411","GSE168412","GSE168413","GSE168414","GSE207730","GSE222844"].map(id=>({id,kind:"Series",desc:"ChIP, RNA or bisulfite seq",papers:["PMID 36690616"],parent:"GSE168415"})),
+   ],
+   passes:[
+    {n:1,models:"code only: one SuperSeries and one paper join every Series",ending:"settled",sentBack:"",
+     studies:[{name:"PMID 36690616 (SuperSeries GSE168415)",series:["GSE168415","GSE168411","GSE168412","GSE168413","GSE168414","GSE207730","GSE222844"]}],
+     checks:{placed:[1],inunit:[1]}},
+   ]},
+];
+// Illustrative counts for the full queue after the bounding pass over all of GEO. Made up.
+const QUEUE = {total:9400, byCheck:[["earlier",3900],["judge",1700],["placed",1700],["inunit",1400],["size",700]], pilot:760};
+
+const U = Object.fromEntries(UNITS.map(u=>[u.key,u]));
+const seriesOf = u => u.records.filter(r=>r.kind==="Series"||r.kind==="SuperSeries");
+const leafSeries = u => u.records.filter(r=>r.kind==="Series");
+const lastAnswer = u => { for(let i=u.passes.length-1;i>=0;i--) if(u.passes[i].studies) return u.passes[i]; return null; };
+const clone = x => JSON.parse(JSON.stringify(x));
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const SC = i => i<0 ? "var(--s0)" : `var(--s${(i%5)+1})`;
+const today = "2026-11-08";
+
+/* ===================== the one check every variant uses ===================== */
+function checkPerson(u, decision){
+  const errs=[];
+  if(decision.action==="drop"){ if(!String(decision.reason||"").trim()) errs.push("A drop needs a reason."); return errs; }
+  if(decision.action!=="settle") return errs;
+  if(u.illustrative) { errs.push(`This unit holds ${u.seriesCount} Series: too many to place here. Drop it, or leave it open with a note.`); return errs; }
+  const studies = decision.studies||[];
+  if(!studies.length) errs.push("Settling needs at least one study.");
+  const ids = new Set(u.records.map(r=>r.id)); const seen={};
+  studies.forEach((s,i)=>{
+    if(!String(s.name||"").trim()) errs.push(`Study ${i+1} has no name.`);
+    const ser = s.series||[];
+    if(!ser.length) errs.push(`Study ${i+1} has no Series.`);
+    ser.forEach(id=>{ id=String(id);
+      if(!ids.has(id)) errs.push(`${id} is not in this unit${id==="GSE266323"?" (it is a unit of its own; adding it would merge two units)":""}.`);
+      (seen[id]=seen[id]||[]).push(i+1); });
+  });
+  seriesOf(u).forEach(r=>{
+    const at=seen[r.id]||[];
+    if(at.length>1) errs.push(`${r.id} is placed ${at.length} times (studies ${at.join(", ")}).`);
+    if(!at.length && r.kind==="Series") errs.push(`${r.id} is placed nowhere.`);
+  });
+  return errs;
+}
+
+/* ===================== shared state ===================== */
+const stored = {}; // unit key -> entry
+function store(u, decision, via){
+  const prev = stored[u.key];
+  stored[u.key] = {unit:`bounding / ${u.key}`, ending: decision.action==="drop"?"dropped":"settled",
+    by:`a person (you), ${today}, via ${via}`, from: decision.from||"written by hand",
+    changes: decision.changes&&decision.changes.length? decision.changes : undefined,
+    reason: decision.action==="drop"? decision.reason : undefined,
+    note: decision.note||undefined,
+    studies: decision.action==="settle"? decision.studies.map(s=>({name:s.name,series:s.series})) : undefined,
+    holds_until:"the unit's records change", replaces: prev? `an earlier answer given via ${prev.by.split("via ")[1]}` : undefined};
+  renderStored();
+}
+function renderStored(){
+  const list=Object.values(stored);
+  document.getElementById("storedN").textContent=list.length;
+  const clean=list.map(e=>JSON.parse(JSON.stringify(e)));
+  document.getElementById("storedPre").textContent = list.length ? jsyamlDump(clean) : "# nothing stored yet\n# settle or drop a unit in any variant";
+}
+function jsyamlDump(x){ try{ return window.jsyaml.dump(x,{lineWidth:96,flowLevel:4}); }catch(e){ return JSON.stringify(x,null,2); } }
+
+/* ===================== variants ===================== */
+const VARIANTS = [
+ {id:"files", key:"A", name:"Files in a folder",
+  judge:["One YAML file per unit, edited in any editor or by an agent in the terminal.","Would you rather type an answer than click one?","Is the comment block enough context for a unit of 12 records? Of 40?"]},
+ {id:"page", key:"B", name:"A review page",
+  judge:["One page the command writes; pick a pass's answer, then move Series between studies.","Is choosing a study per Series enough, or do you need to type?","Which sort would you work the waiting queue in?"]},
+ {id:"issues", key:"C", name:"GitHub issues",
+  judge:["A weekly sample filed as issues; answer with slash commands in a comment, discuss with others.","Is talking a unit over worth an issue per unit?","Is a sample of a few per failed check enough, with the rest left waiting?"]},
+];
+let vi = 0;
+
+/* ---------- A: files ---------- */
+const A = {files:{}, order:[], sel:null, term:[]};
+function fname(u,i){ return `${String(i+1).padStart(3,"0")}-${u.key.replace(/[^A-Za-z0-9]+/g,"")}.yaml`; }
+function yamlFor(u){
+  const L=[]; const p=(s="")=>L.push(s);
+  const last=lastAnswer(u);
+  p(`# seqforge review · ${STAMP}`);
+  p(`# unit: bounding / ${u.key}${u.illustrative?"   (MADE-UP EXAMPLE)":""}`);
+  p(`# ${u.headline}`);
+  p(`# waiting: ${u.ending} after pass ${u.passes.length}; failed: ${u.failed.map(c=>CHECKS[c]).join("; ")}`);
+  if(u.note) p(`# note: ${u.note}`);
+  p("#");
+  if(u.illustrative){ p(`# RECORDS: ${u.seriesCount} Series, 37 papers, 1 BioProject (list in records/umbrella.tsv)`); }
+  else { p("# RECORDS"); u.records.forEach(r=>p(`#   ${r.kind.padEnd(11)} ${r.id.padEnd(14)} ${r.desc}${r.papers?" · cites "+r.papers.join(", "):""}`)); }
+  u.passes.forEach(ps=>{
+    p("#"); p(`# PASS ${ps.n}  ${ps.models}  ->  ${ps.ending}${ps.sentBack?" ("+ps.sentBack+")":""}`);
+    if(ps.studies) ps.studies.forEach((s,i)=>p(`#   ${i+1}. ${s.name}: ${s.series.join(" ")}`));
+    else p("#   no answer kept");
+    Object.entries(ps.checks).forEach(([c,v])=>p(`#   ${v[0]?"ok  ":"FAIL"} ${CHECKS[c]}${v[1]?": "+v[1]:""}`));
+  });
+  p("#");
+  p("# YOUR ANSWER. Set decision to settle or drop, or leave it open for later.");
+  p(last? `# The studies below are copied from pass ${last.n}. Move, split, merge or rename.` : "# No pass kept an answer. Write the studies yourself, or drop the unit.");
+  p("");
+  p("decision: open        # settle | drop | open");
+  p("reason:               # needed to drop");
+  p("note:                 # optional, for whoever opens this unit next");
+  if(u.illustrative){ p("studies: []"); }
+  else if(last){ p("studies:"); last.studies.forEach(s=>{ p(`  - name: ${s.name}`); p(`    series: [${s.series.join(", ")}]`); }); }
+  else { p("studies:"); p("  - name: "); p("    series: []"); p(`# not placed yet: ${seriesOf(u).map(r=>r.id).join(", ")}`); }
+  return L.join("\n")+"\n";
+}
+function initA(){
+  const waiting = UNITS.filter(u=>u.status==="waiting");
+  A.order = waiting.map((u,i)=>({file:fname(u,i), key:u.key}));
+  A.order.forEach(f=>A.files[f.file]=yamlFor(U[f.key]));
+  A.sel = A.order[0].file;
+  A.term = [
+    ["p","$ seqforge review pull --kind bounding --order pilot-first --take 25 review/"],
+    ["", `wrote ${waiting.length} files to review/bounding/  (${QUEUE.total.toLocaleString()} units waiting; ${QUEUE.pilot} touch a pilot direction)`],
+    ["p", "# illustrative counts. edit a file, set decision, then push."]];
+}
+function pushA(){
+  A.term.push(["p","$ seqforge review push review/bounding/"]);
+  let n={settled:0,dropped:0,open:0,refused:0};
+  A.order.forEach(f=>{
+    const u=U[f.key]; let doc;
+    try{ doc = window.jsyaml.load(A.files[f.file])||{}; }
+    catch(e){ A.term.push(["r",`${f.file}  refused: not valid YAML (${String(e.reason||e.message).split("\n")[0]})`]); n.refused++; return; }
+    const action = String(doc.decision||"open").trim();
+    if(action==="open"){ A.term.push(["",`${f.file}  left open${doc.note?" · note kept":""}`]); n.open++; return; }
+    if(!["settle","drop"].includes(action)){ A.term.push(["r",`${f.file}  refused: decision must be settle, drop or open, not "${action}"`]); n.refused++; return; }
+    const studies = (doc.studies||[]).map(s=>({name:String((s&&s.name)||"").trim(), series:((s&&s.series)||[]).map(String)}));
+    const last=lastAnswer(u);
+    const dec = {action, reason:doc.reason, note:doc.note, studies, from: last? `pass ${last.n}, edited in the file`:"written by hand"};
+    const errs = checkPerson(u,dec);
+    if(errs.length){ A.term.push(["r",`${f.file}  refused, nothing stored:`]); errs.forEach(e=>A.term.push(["r",`    ${e}`])); n.refused++; return; }
+    store(u,dec,"files");
+    A.term.push(["g",`${f.file}  stored: ${action==="drop"?"dropped":"settled"}${action==="settle"?` as ${studies.length} ${studies.length>1?"studies":"study"}`:""}`]);
+    action==="drop"?n.dropped++:n.settled++;
+  });
+  A.term.push(["",`${n.settled} settled, ${n.dropped} dropped, ${n.open} left open, ${n.refused} refused`]);
+  render();
+}
+function renderA(el){
+  const doneMark = k => stored[k]? `<span class="mark e-${stored[k].ending}">${stored[k].ending}</span>` : "";
+  el.innerHTML = `<div class="A">
+    <nav class="tree" aria-label="Files">
+      <div class="dir">review/</div><div class="dir" style="padding-left:20px">bounding/</div>
+      ${A.order.map(f=>`<button data-f="${f.file}" class="${f.file===A.sel?"on":""}">${f.file}${doneMark(f.key)}</button>`).join("")}
+      <div class="dir" style="margin-top:8px">records/umbrella.tsv</div>
+    </nav>
+    <section class="ed">
+      <div class="tabbar"><span>review/bounding/${A.sel}</span><span style="margin-left:auto">edit freely; nothing is saved until you push</span></div>
+      <textarea id="yaml" spellcheck="false" aria-label="Unit file">${esc(A.files[A.sel])}</textarea>
+      <div class="run">
+        <button class="btn primary" id="push">Run: seqforge review push</button>
+        <button class="btn" id="tryA">Fill in an example answer for this file</button>
+        <button class="btn" id="resetA">Reset this file</button>
+      </div>
+      <div class="term" id="term">${A.term.map(([c,t])=>`<span class="${c}">${esc(t)}</span>`).join("\n")}</div>
+    </section></div>`;
+  el.querySelectorAll(".tree button").forEach(b=>b.onclick=()=>{A.sel=b.dataset.f; render();});
+  const ta=el.querySelector("#yaml"); ta.oninput=()=>{A.files[A.sel]=ta.value;};
+  el.querySelector("#push").onclick=pushA;
+  el.querySelector("#resetA").onclick=()=>{const f=A.order.find(x=>x.file===A.sel); A.files[A.sel]=yamlFor(U[f.key]); render();};
+  el.querySelector("#tryA").onclick=()=>{const f=A.order.find(x=>x.file===A.sel); A.files[A.sel]=exampleA(U[f.key]); render();};
+  const t=el.querySelector("#term"); t.scrollTop=t.scrollHeight;
+}
+function exampleA(u){
+  let txt=yamlFor(u);
+  const body = {
+    "PMID 41340160":`decision: settle\nreason:\nnote: GSE245380 belongs to the 2024 paper; pass 2 had the rest right\nstudies:\n  - name: Fly brain chromatin profiling (PMID 41340160)\n    series: [GSE282534, GSE282535, GSE282537]\n  - name: Study of PMID 38597673\n    series: [GSE245380]\n  - name: Study of PMID 29490272\n    series: [GSE100578]\n  - name: Study of PMID 26673323\n    series: [GSE70591, GSE70589]\n`,
+    "PMID 30454645":`decision: settle\nreason:\nnote: one paper, two systems\nstudies:\n  - name: YB5 colon-cancer cells treated with HH1 (PMID 30454645)\n    series: [GSE104837, GSE113608, GSE104998]\n  - name: Mouse ovarian-cancer line methylation (PMID 30454645)\n    series: [GSE104997]\n`,
+    "PMID 36797228":`decision: settle\nreason:\nnote:\nstudies:\n  - name: Liver tumours and organoids (PMID 36797228)\n    series: [GSE169391, GSE169287, GSE169288, GSE169289, GSE190239, GSE182593, GSE169290]\n# GSE169290 left in on purpose: push refuses it\n`,
+    "Umbrella BioProject":`decision: drop\nreason: needs a rule in bounding's code for umbrella BioProjects, not a hand answer\nnote:\nstudies: []\n`,
+  }[u.key];
+  return txt.slice(0, txt.indexOf("decision: open")) + body;
+}
+
+/* ---------- B: page ---------- */
+const B = {tab:"waiting", sort:"check", cur:null, drafts:{}, pending:{}, dropReason:""};
+const DROP_REASONS = ["not sequencing data","needs a rule in bounding's code, not a hand answer","records withdrawn from GEO","other"];
+function bUnits(){
+  let list = UNITS.filter(u=>u.status===B.tab);
+  if(B.tab==="waiting"){
+    const order=Object.keys(CHECKS);
+    const n=u=>u.illustrative?u.seriesCount:leafSeries(u).length;
+    if(B.sort==="check") list.sort((a,b)=>order.indexOf(a.failed[0])-order.indexOf(b.failed[0]));
+    if(B.sort==="size") list.sort((a,b)=>n(b)-n(a));
+    if(B.sort==="pilot") list.sort((a,b)=>(b.dirs||[]).length-(a.dirs||[]).length || n(a)-n(b));
+  }
+  return list;
+}
+function draftOf(u){
+  if(!B.drafts[u.key]){ const last=lastAnswer(u);
+    B.drafts[u.key] = last? {from:`pass ${last.n}`, studies:clone(last.studies), changes:[]} : {from:"written by hand", studies:[{name:"",series:[]}], changes:[]}; }
+  return B.drafts[u.key];
+}
+function studyIndex(studies,id){ return studies.findIndex(s=>s.series.includes(id)); }
+function graphSVG(u, studies){
+  if(u.illustrative) return `<div class="note small">${u.seriesCount} Series under one BioProject: no drawing at this size.</div>`;
+  const papers=u.records.filter(r=>r.kind==="paper"), mids=u.records.filter(r=>r.kind==="SuperSeries"||r.kind==="BioProject"), ser=u.records.filter(r=>r.kind==="Series");
+  const colW=118, W=Math.max(papers.length,mids.length,ser.length)*colW+20, H=250;
+  const pos={}; const place=(rows,y)=>{const off=(W-rows.length*colW)/2; rows.forEach((r,i)=>pos[r.id]={x:off+i*colW+colW/2,y});};
+  place(papers,34); place(mids,118); place(ser,205);
+  let lines="";
+  const edge=(a,b,dash)=>{ if(pos[a]&&pos[b]) lines+=`<line x1="${pos[a].x}" y1="${pos[a].y}" x2="${pos[b].x}" y2="${pos[b].y}" style="stroke:var(--line);stroke-width:1.4${dash?';stroke-dasharray:4 3':''}"/>`; };
+  u.records.forEach(r=>{ (r.papers||[]).forEach(p=>edge(r.id,p)); if(r.parent) edge(r.id,r.parent); if(r.project) edge(r.id,r.project,true); });
+  const node=r=>{ const {x,y}=pos[r.id]; const i=studyIndex(studies,r.id);
+    const isS=r.kind==="Series"||r.kind==="SuperSeries";
+    const fill = isS? (i>=0?SC(i):"var(--surface)") : "var(--surface)";
+    const stroke = r.kind==="paper"?"var(--paper)": r.kind==="BioProject"?"var(--project)": r.kind==="SuperSeries"?"var(--super)":(i>=0?SC(i):"var(--bad)");
+    const txt = isS&&i>=0? "var(--surface)" : "var(--ink)";
+    const shape = r.kind==="paper"? `<rect x="${x-52}" y="${y-13}" width="104" height="26" rx="3" style="fill:${fill};stroke:${stroke};stroke-width:1.6"/>`
+      : r.kind==="BioProject"? `<rect x="${x-52}" y="${y-13}" width="104" height="26" rx="13" style="fill:${fill};stroke:${stroke};stroke-width:1.4;stroke-dasharray:4 3"/>`
+      : `<rect x="${x-50}" y="${y-13}" width="100" height="26" rx="6" style="fill:${fill};stroke:${stroke};stroke-width:${r.kind==="SuperSeries"?2.4:1.6}${i<0&&r.kind==="Series"?';stroke-dasharray:3 2':''}"/>`;
+    return `${shape}<text x="${x}" y="${y+4}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" style="fill:${txt}">${esc(r.id)}</text>`; };
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Records in this unit and their links">${lines}${u.records.map(node).join("")}
+    <text x="8" y="14" font-size="10" style="fill:var(--muted)" font-family="IBM Plex Sans, sans-serif">papers</text>
+    <text x="8" y="98" font-size="10" style="fill:var(--muted)" font-family="IBM Plex Sans, sans-serif">SuperSeries · BioProjects</text>
+    <text x="8" y="184" font-size="10" style="fill:var(--muted)" font-family="IBM Plex Sans, sans-serif">Series, coloured by your answer</text></svg>`;
+}
+function renderB(el){
+  const list=bUnits();
+  if(!list.find(u=>u.key===B.cur)) B.cur = list[0]?.key;
+  const u=U[B.cur];
+  const counts = {waiting:UNITS.filter(x=>x.status==="waiting").length, cleared:UNITS.filter(x=>x.status==="cleared").length, audit:UNITS.filter(x=>x.status==="audit").length};
+  const maxC=Math.max(...QUEUE.byCheck.map(x=>x[1]));
+  const sortNote = {check:"Grouped by the first failed check, so a pattern shows up and gets fixed in code rather than unit by unit.",
+    size:"Most Series first: one answer places the most records.",
+    pilot:`Units that touch a pilot direction (aging, neurodegeneration, C. elegans) first: ${QUEUE.pilot} of ${QUEUE.total.toLocaleString()} in the illustrative counts. None of the real examples here do.`}[B.sort];
+  const tabNote = {waiting:"Every unit whose current answer is unsettled or refused.",
+    cleared:"Units a stronger pass settled after they had queued; nothing for a person to do, shown so you can check the stamps.",
+    audit:"A random sample of settled units, for an accuracy estimate. Would this be the same queue as the benchmark's review?"}[B.tab];
+  el.innerHTML = `<div class="B">
+   <div class="top">
+     <div class="tabs" role="tablist">
+       ${[["waiting","Waiting"],["cleared","Cleared by a stronger pass"],["audit","Audit sample of settled"]].map(([k,l])=>`<button data-tab="${k}" class="${B.tab===k?"on":""}">${l} (${counts[k]})</button>`).join("")}
+     </div>
+     ${B.tab==="waiting"?`<label class="small">Sort <select id="sort">
+        <option value="check" ${B.sort==="check"?"selected":""}>by failed check</option>
+        <option value="pilot" ${B.sort==="pilot"?"selected":""}>pilot directions first</option>
+        <option value="size" ${B.sort==="size"?"selected":""}>most Series first</option></select></label>`:""}
+     <div class="bars" aria-label="Full queue by failed check (illustrative)">
+       <div class="small muted">Full queue, made-up counts: ${QUEUE.total.toLocaleString()} units waiting</div>
+       ${QUEUE.byCheck.map(([c,n])=>`<div class="bar"><span class="muted">${CHECK_SHORT[c]}</span><i style="width:${n/maxC*100}%"></i><span class="tabnum">${n.toLocaleString()}</span></div>`).join("")}
+     </div>
+   </div>
+   <p class="small muted" style="margin:0 0 10px">${tabNote} ${B.tab==="waiting"?sortNote:""}</p>
+   <div class="grid">
+     <nav class="queue" aria-label="Units">
+      ${list.map(x=>`<button data-k="${esc(x.key)}" class="${x.key===B.cur?"on":""}">
+        <div class="t">${esc(x.key)} ${B.pending[x.key]?`<span class="pill e-${B.pending[x.key].action==="drop"?"dropped":"settled"}">${B.pending[x.key].action==="drop"?"dropped":"settled"}</span>`:stored[x.key]?`<span class="pill e-${stored[x.key].ending}">stored</span>`:""}</div>
+        <div class="s"><span class="e-${x.ending}">${x.ending}</span> · ${x.illustrative?x.seriesCount:leafSeries(x).length} Series · ${x.passes.length} pass${x.passes.length>1?"es":""}${x.failed.length?" · "+x.failed.join(", "):""}</div></button>`).join("")}
+     </nav>
+     ${u? detailB(u) : `<div class="detail muted">Nothing here.</div>`}
+   </div>
+   <div class="tray">
+     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+       <h3 style="font-size:15px">decisions.yaml</h3><span class="small muted">answers given on this page, not yet applied</span>
+       <button class="btn" id="copyB" style="margin-left:auto">Copy</button>
+       <button class="btn primary" id="applyB" ${Object.keys(B.pending).length?"":"disabled"}>Run: seqforge review apply decisions.yaml</button>
+     </div>
+     <pre id="decB">${esc(Object.keys(B.pending).length? jsyamlDump(Object.entries(B.pending).map(([k,d])=>({unit:`bounding / ${k}`, decision:d.action, from:d.from, changes:d.changes?.length?d.changes:undefined, reason:d.reason||undefined, studies:d.action==="settle"?d.studies:undefined})).map(o=>JSON.parse(JSON.stringify(o)))) : "# settle or drop a unit above")}</pre>
+   </div></div>`;
+  wireB(el,u,list);
+}
+function detailB(u){
+  const d=draftOf(u); const errs=checkPerson(u,{action:"settle",studies:d.studies});
+  const ser=seriesOf(u);
+  const passCols = u.passes.map(ps=>`<div class="pass">
+      <h3><span>Pass ${ps.n} <span class="pill e-${ps.ending}">${ps.ending}</span></span>${ps.studies?`<button class="btn small" data-from="${ps.n}">Start from pass ${ps.n} <span class="kbd">${ps.n}</span></button>`:""}</h3>
+      <div class="small muted">${esc(ps.models)}</div>
+      ${ps.sentBack?`<div class="small muted">${esc(ps.sentBack)}</div>`:""}
+      ${ps.studies?`<ul>${ps.studies.map((s,i)=>`<li><span class="sw" style="background:${SC(i)}"></span>${esc(s.name)}<br>${s.series.map(id=>`<span class="chip" style="border-left-color:${SC(i)}">${id}</span>`).join("")}</li>`).join("")}</ul>`:`<p class="small" style="margin:6px 0 0">No answer kept.</p>`}
+      <ul class="small" style="list-style:none;padding:0;margin-top:8px">${Object.entries(ps.checks).map(([c,v])=>`<li class="${v[0]?"ok":"bad"}">${v[0]?"✓":"✗"} ${CHECKS[c]}${v[1]?`<br><span class="muted">${esc(v[1])}</span>`:""}</li>`).join("")}</ul>
+    </div>`).join("");
+  const opts = i => d.studies.map((s,j)=>`<option value="${j}" ${i===j?"selected":""}>${j+1}. ${esc((s.name||"(unnamed)").slice(0,38))}</option>`).join("") + `<option value="-1" ${i<0?"selected":""}>not placed</option><option value="new">+ new study</option>`;
+  const passCell=(ps,id)=>{ if(!ps.studies) return `<span class="muted">—</span>`; const i=studyIndex(ps.studies,id); return i<0?`<span class="muted">—</span>`:`<span class="sw" style="background:${SC(i)}"></span>${i+1}`; };
+  return `<section class="detail" aria-label="Unit">
+    <div class="hd"><h2>${esc(u.key)}</h2><span class="pill e-${u.ending}">${u.ending}</span><span class="small muted">${esc(u.headline)}</span></div>
+    <div class="small muted mono">${STAMP} · been through: ${u.passes.map(p=>"pass "+p.n).join(", ")}</div>
+    ${u.note?`<div class="note small">${esc(u.note)}</div>`:""}
+    <div class="graph">${graphSVG(u,d.studies)}</div>
+    <div class="checks">${passCols}</div>
+    ${u.illustrative? "" : `<div>
+      <h3 style="font-size:15px;margin-bottom:8px">Your answer <span class="small muted" style="font-family:var(--f-ui);font-weight:400">started from ${esc(d.from)}${d.changes.length?`, ${d.changes.length} change${d.changes.length>1?"s":""}`:""}</span></h3>
+      <div class="names">${d.studies.map((s,j)=>`<div><span class="sw" style="background:${SC(j)}"></span><span class="mono">${j+1}.</span><input data-name="${j}" value="${esc(s.name)}" placeholder="study name" aria-label="Name of study ${j+1}"></div>`).join("")}</div>
+      <div class="tw" style="margin-top:10px"><table>
+        <thead><tr><th>Series</th><th>What</th>${u.passes.map(p=>`<th>Pass ${p.n}</th>`).join("")}<th>Your study</th></tr></thead>
+        <tbody>${ser.map(r=>{const i=studyIndex(d.studies,r.id); return `<tr><td class="mono k-${r.kind}">${r.id}</td><td>${esc(r.desc)}${r.papers?`<br><span class="muted small">cites ${r.papers.join(", ")}</span>`:""}</td>${u.passes.map(p=>`<td>${passCell(p,r.id)}</td>`).join("")}<td><select data-move="${r.id}" aria-label="Study for ${r.id}">${opts(i)}</select></td></tr>`;}).join("")}</tbody>
+      </table></div>
+      <p class="small ${errs.length?"bad":"ok"}" style="margin:8px 0 0">${errs.length? errs.map(esc).join(" "): "✓ Every Series placed once."}</p>
+    </div>`}
+    <div class="acts">
+      ${u.illustrative?"":`<button class="btn primary" id="settleB" ${errs.length?"disabled":""}>Settle with my answer <span class="kbd">S</span></button>`}
+      <select id="dropWhy" aria-label="Reason to drop">${DROP_REASONS.map(r=>`<option ${B.dropReason===r?"selected":""}>${r}</option>`).join("")}</select>
+      <button class="btn danger" id="dropB">Drop <span class="kbd">D</span></button>
+      <button class="btn" id="skipB">Skip <span class="kbd">J</span></button>
+      <span class="small muted">J / K move through the queue</span>
+    </div></section>`;
+}
+function wireB(el,u,list){
+  el.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{B.tab=b.dataset.tab; B.cur=null; render();});
+  const s=el.querySelector("#sort"); if(s) s.onchange=()=>{B.sort=s.value; render();};
+  el.querySelectorAll(".queue button").forEach(b=>b.onclick=()=>{B.cur=b.dataset.k; render();});
+  el.querySelector("#copyB").onclick=()=>{const t=el.querySelector("#decB").textContent; navigator.clipboard?.writeText(t).catch(()=>{});};
+  el.querySelector("#applyB").onclick=()=>{ Object.entries(B.pending).forEach(([k,d])=>store(U[k],d,"the review page")); B.pending={}; render(); };
+  if(!u) return;
+  const d=draftOf(u);
+  el.querySelectorAll("[data-from]").forEach(b=>b.onclick=()=>startFrom(u,+b.dataset.from));
+  el.querySelectorAll("[data-name]").forEach(inp=>inp.onchange=()=>{const j=+inp.dataset.name; const old=d.studies[j].name; d.studies[j].name=inp.value; d.changes.push(`renamed study ${j+1}: "${old}" to "${inp.value}"`); render();});
+  el.querySelectorAll("[data-move]").forEach(sel=>sel.onchange=()=>moveB(u,sel.dataset.move,sel.value));
+  const st=el.querySelector("#settleB"); if(st) st.onclick=()=>decideB(u,"settle");
+  el.querySelector("#dropWhy").onchange=e=>{B.dropReason=e.target.value;};
+  el.querySelector("#dropB").onclick=()=>decideB(u,"drop");
+  el.querySelector("#skipB").onclick=()=>stepB(1);
+}
+function startFrom(u,n){ const ps=u.passes.find(p=>p.n===n); B.drafts[u.key]={from:`pass ${n}`,studies:clone(ps.studies),changes:[]}; render(); }
+function moveB(u,id,to){
+  const d=draftOf(u); const from=studyIndex(d.studies,id);
+  if(from>=0) d.studies[from].series=d.studies[from].series.filter(x=>x!==id);
+  let label;
+  if(to==="new"){ d.studies.push({name:"",series:[id]}); label=`new study ${d.studies.length}`; }
+  else if(+to>=0){ d.studies[+to].series.push(id); label=`study ${+to+1}`; }
+  else label="nowhere";
+  d.changes.push(`moved ${id} from ${from>=0?"study "+(from+1):"nowhere"} to ${label}`);
+  // drop studies left empty, keeping numbering readable
+  d.studies = d.studies.filter(s=>s.series.length || !s.name);
+  render();
+}
+function decideB(u,action){
+  const d=draftOf(u);
+  const reason = action==="drop"? (B.dropReason||DROP_REASONS[0]) : undefined;
+  const dec = action==="drop"? {action,reason,from:"none"} : {action,studies:clone(d.studies),from:d.from,changes:d.changes.slice()};
+  if(checkPerson(u,dec).length) return;
+  B.pending[u.key]=dec; stepB(1);
+}
+function stepB(k){ const list=bUnits(); const i=list.findIndex(x=>x.key===B.cur); const nx=list[(i+k+list.length)%list.length]; if(nx) B.cur=nx.key; render(); }
+
+/* ---------- C: issues ---------- */
+const C = {sel:null, threads:{}, drafts:{}, input:""};
+function issueTitle(u){ return `Review bounding: ${u.key}, ${u.ending} after pass ${u.passes.length}`; }
+function botBody(u){
+  const last=lastAnswer(u);
+  const recs = u.illustrative? `<p>${u.seriesCount} Series, 37 papers, one BioProject: attached as umbrella.tsv.</p>` :
+    `<table><tr><th>record</th><th>kind</th><th>what</th></tr>${u.records.map(r=>`<tr><td class="mono">${r.id}</td><td class="k-${r.kind}">${r.kind}</td><td>${esc(r.desc)}${r.papers?` · cites ${r.papers.join(", ")}`:""}</td></tr>`).join("")}</table>`;
+  const passes = u.passes.map(ps=>`<p style="margin:10px 0 4px"><b>Pass ${ps.n}</b> <span class="pill e-${ps.ending}">${ps.ending}</span> <span class="small muted">${esc(ps.models)}</span></p>
+    ${ps.studies?`<ol style="margin:0;padding-left:20px">${ps.studies.map(s=>`<li>${esc(s.name)}: <span class="mono">${s.series.join(" ")}</span></li>`).join("")}</ol>`:`<p class="small" style="margin:0">No answer kept. ${esc(ps.sentBack)}</p>`}
+    <p class="small" style="margin:4px 0 0">${Object.entries(ps.checks).filter(([,v])=>!v[0]).map(([c,v])=>`✗ ${CHECKS[c]}: ${esc(v[1]||"")}`).join("<br>")}</p>`).join("");
+  return `<p class="small muted" style="margin:0 0 8px">${STAMP}</p><p style="margin:0 0 8px">${esc(u.headline)}</p>${u.note?`<p class="small muted">${esc(u.note)}</p>`:""}${recs}${passes}
+   <p style="margin:12px 0 0">Reply with commands, one per line. ${last?`Your draft starts from pass ${last.n}'s answer.`:"No pass kept an answer, so your draft starts empty."}</p>
+   <pre class="small muted">/take pass-2
+/move GSE245380 to new Study of PMID 38597673
+/move GSE104997 to 2
+/rename 1 Fly brain chromatin profiling
+/study Liver tumours (PMID 36797228): GSE169287 GSE169288
+/settle
+/drop needs a rule in bounding's code</pre>`;
+}
+function draftC(u){ if(!C.drafts[u.key]){ const last=lastAnswer(u); C.drafts[u.key]= last?{from:`pass ${last.n}`,studies:clone(last.studies),changes:[]}:{from:"written by hand",studies:[],changes:[]}; } return C.drafts[u.key]; }
+function fmtDraft(d){ return d.studies.length? d.studies.map((s,i)=>`${i+1}. ${s.name||"(unnamed)"}: ${s.series.join(" ")||"(empty)"}`).join("\n") : "(no studies yet)"; }
+function runCommands(u,text){
+  const d=draftC(u); const out=[]; let stored_=false;
+  for(const raw of text.split("\n")){
+    const line=raw.trim(); if(!line.startsWith("/")) continue;
+    let m;
+    if((m=line.match(/^\/take\s+pass-?(\d+)$/i))){ const ps=u.passes.find(p=>p.n===+m[1]);
+      if(!ps||!ps.studies){ out.push(`✗ pass ${m[1]} has no answer to take`); continue; }
+      C.drafts[u.key]={from:`pass ${ps.n}`,studies:clone(ps.studies),changes:[]}; out.push(`✓ draft is now pass ${ps.n}'s answer`); continue; }
+    if((m=line.match(/^\/move\s+(\S+)\s+to\s+(new\s+(.*)|\d+)$/i))){ const dd=draftC(u); const id=m[1].toUpperCase();
+      const from=studyIndex(dd.studies,id); if(from>=0) dd.studies[from].series=dd.studies[from].series.filter(x=>x!==id);
+      if(m[3]!==undefined){ dd.studies.push({name:m[3].trim(),series:[id]}); }
+      else { const t=+m[2]-1; if(!dd.studies[t]){ out.push(`✗ there is no study ${m[2]}`); if(from>=0) dd.studies[from].series.push(id); continue; } dd.studies[t].series.push(id); }
+      dd.studies=dd.studies.filter(s=>s.series.length); dd.changes.push(line.slice(1)); out.push(`✓ moved ${id}`); continue; }
+    if((m=line.match(/^\/study\s+(.+?):\s*(.+)$/i))){ const dd=draftC(u); const ids=m[2].split(/[\s,]+/).filter(Boolean).map(x=>x.toUpperCase());
+      ids.forEach(id=>{ const f=studyIndex(dd.studies,id); if(f>=0) dd.studies[f].series=dd.studies[f].series.filter(x=>x!==id); });
+      dd.studies=dd.studies.filter(s=>s.series.length); dd.studies.push({name:m[1].trim(),series:ids}); dd.changes.push(line.slice(1)); out.push(`✓ new study with ${ids.length} Series`); continue; }
+    if((m=line.match(/^\/rename\s+(\d+)\s+(.+)$/i))){ const dd=draftC(u); const t=+m[1]-1; if(!dd.studies[t]){ out.push(`✗ there is no study ${m[1]}`); continue; } dd.studies[t].name=m[2].trim(); dd.changes.push(line.slice(1)); out.push(`✓ renamed study ${m[1]}`); continue; }
+    if(/^\/settle$/i.test(line)){ const dd=draftC(u); const dec={action:"settle",studies:clone(dd.studies),from:dd.from,changes:dd.changes.slice()};
+      const errs=checkPerson(u,dec); if(errs.length){ out.push("✗ not stored:"); errs.forEach(e=>out.push("  "+e)); continue; }
+      store(u,dec,"GitHub issues"); stored_=true; out.push("✓ stored as settled; closing this issue"); continue; }
+    if((m=line.match(/^\/drop\s*(.*)$/i))){ const dec={action:"drop",reason:m[1].trim()}; const errs=checkPerson(u,dec);
+      if(errs.length){ out.push("✗ "+errs[0]); continue; } store(u,dec,"GitHub issues"); stored_=true; out.push("✓ stored as dropped; closing this issue"); continue; }
+    out.push(`✗ unknown command: ${line}`);
+  }
+  if(!out.length) out.push("No commands found; nothing changed. Comments without commands are kept as discussion.");
+  if(!stored_) out.push("", "Draft now:", fmtDraft(draftC(u)));
+  return out.join("\n");
+}
+function renderC(el){
+  const issues=UNITS.filter(u=>u.status==="waiting");
+  if(!C.sel) C.sel=issues[0].key;
+  const u=U[C.sel];
+  if(!C.threads[u.key]) C.threads[u.key]=[{who:"seqforge-review[bot]",bot:true,html:botBody(u)}].concat(u.key==="PMID 41340160"?[{who:"a colleague",text:"Before settling, worth checking GSE245380's sample names against the 2024 paper. If they match, it is reuse."}]:[]);
+  const labels=u=>[`review:bounding`,`pass-${u.passes.length}`,...u.failed.map(c=>`check:${c}`)];
+  el.innerHTML=`<div class="C">
+    <nav class="list" aria-label="Issues">
+      <div class="lh">liuhlab/seqforge-review (private) · label <b>review:bounding</b> · filed weekly: up to 3 per failed check · ${QUEUE.total.toLocaleString()} more wait unfiled (made-up count)</div>
+      ${issues.map(x=>`<button data-k="${esc(x.key)}" class="${x.key===C.sel?"on":""}"><span class="dot ${stored[x.key]?"closed":""}"></span><span><b>${esc(issueTitle(x))}</b><br>${labels(x).map(l=>`<span class="lab">${l}</span>`).join("")}</span></button>`).join("")}
+    </nav>
+    <section class="thread">
+      <h2>${esc(issueTitle(u))} ${stored[u.key]?`<span class="pill e-${stored[u.key].ending}">closed · ${stored[u.key].ending}</span>`:`<span class="pill e-open">open</span>`}</h2>
+      ${C.threads[u.key].map(c=>`<article class="cm ${c.bot?"bot":""}"><div class="who"><b>${esc(c.who)}</b> commented</div><div class="body">${c.html||`<pre>${esc(c.text)}</pre>`}</div></article>`).join("")}
+      <textarea id="cbox" placeholder="Write a comment. Lines starting with / are commands." aria-label="Comment">${esc(C.input)}</textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="cpost">Comment</button><button class="btn" id="cex">Fill in an example reply</button></div>
+    </section></div>`;
+  el.querySelectorAll(".list button").forEach(b=>b.onclick=()=>{C.sel=b.dataset.k; C.input=""; render();});
+  const box=el.querySelector("#cbox"); box.oninput=()=>{C.input=box.value;};
+  el.querySelector("#cex").onclick=()=>{ C.input={ "PMID 41340160":"Checked: the samples match the 2024 paper, so it is reuse.\n/take pass-2\n/move GSE245380 to new Study of PMID 38597673\n/settle",
+      "PMID 30454645":"Same paper, two systems. Two studies.\n/move GSE104997 to new Mouse ovarian-cancer line methylation (PMID 30454645)\n/settle",
+      "PMID 36797228":"One paper, one study.\n/study Liver tumours and organoids (PMID 36797228): GSE169391 GSE169287 GSE169288 GSE169289 GSE190239 GSE182593\n/settle",
+      "Umbrella BioProject":"Not a hand job.\n/drop needs a rule in bounding's code for umbrella BioProjects"}[u.key]||""; render(); };
+  el.querySelector("#cpost").onclick=()=>{ const t=C.input.trim(); if(!t) return;
+    C.threads[u.key].push({who:"you",text:t});
+    C.threads[u.key].push({who:"seqforge-review[bot]",bot:true,html:`<pre>${esc(runCommands(u,t))}</pre>`});
+    C.input=""; render(); };
+}
+
+/* ===================== frame ===================== */
+function render(){
+  const v=VARIANTS[vi];
+  document.getElementById("vlabel").textContent=`${v.key} · ${v.name}`;
+  document.getElementById("judge").innerHTML=`<b>${v.key}: ${esc(v.name)}</b><span>${esc(v.judge[0])}</span><span class="muted">Judge: ${esc(v.judge[1])} ${esc(v.judge[2])}</span>`;
+  const el=document.getElementById("app");
+  ({files:renderA,page:renderB,issues:renderC})[v.id](el);
+}
+function go(i){ vi=(i+VARIANTS.length)%VARIANTS.length; const h="#"+VARIANTS[vi].id; if(location.hash!==h) history.replaceState(null,"",h); render(); }
+function fromHash(){ const i=VARIANTS.findIndex(v=>"#"+v.id===location.hash); vi=i<0?0:i; render(); }
+document.getElementById("prev").onclick=()=>go(vi-1);
+document.getElementById("next").onclick=()=>go(vi+1);
+document.getElementById("storedBtn").onclick=()=>{document.getElementById("sheet").hidden=false;};
+document.getElementById("sheetClose").onclick=()=>{document.getElementById("sheet").hidden=true;};
+window.addEventListener("hashchange",fromHash);
+document.addEventListener("keydown",e=>{
+  const t=e.target; if(t.closest&&t.closest("input,textarea,select,[contenteditable]")) return;
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  if(e.key==="ArrowLeft"){go(vi-1);return;} if(e.key==="ArrowRight"){go(vi+1);return;}
+  if(VARIANTS[vi].id!=="page") return;
+  const u=U[B.cur]; if(!u) return;
+  if(e.key==="j") stepB(1); else if(e.key==="k") stepB(-1);
+  else if(e.key==="s" && !u.illustrative && !checkPerson(u,{action:"settle",studies:draftOf(u).studies}).length) decideB(u,"settle");
+  else if(e.key==="d") decideB(u,"drop");
+  else if(/^[1-9]$/.test(e.key)){ const ps=u.passes.find(p=>p.n===+e.key); if(ps&&ps.studies) startFrom(u,ps.n); }
+});
+initA(); renderStored(); fromHash();
+</script>
