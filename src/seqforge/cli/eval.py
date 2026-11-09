@@ -116,7 +116,7 @@ def eval_run(
         None,
         "--model",
         help="Override the provider's default model — on DeepSeek that default is "
-        "deepseek-v4-pro; deepseek-v4-flash is the other V4 it serves. Whichever ran is recorded "
+        "deepseek-v4-pro; deepseek-flash is the other model it serves. Whichever ran is recorded "
         "in the report's `extractor`, because a baseline does not transfer across models.",
     ),
     trials: int = typer.Option(

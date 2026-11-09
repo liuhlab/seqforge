@@ -5,7 +5,7 @@ seqforge eval list                       # what is in the corpus
 seqforge eval plan --cases evals/benchmark   # what an --llm pass would cost; spends nothing
 seqforge eval run                        # deterministic cases only — no API key, no network
 seqforge eval run --llm --trials 3       # include the prose cases (costs tokens)
-seqforge eval run --llm --model deepseek-v4-flash  # the other V4; the default is -v4-pro
+seqforge eval run --llm --model deepseek-flash  # the other DeepSeek model; the default is -v4-pro
 seqforge eval run --llm --provider anthropic --model claude-opus-4-8
 seqforge eval run --case chemistry-unstated-trap --llm
 seqforge eval run --llm --ceiling 2000000  # raise the per-case token ceiling; 0 removes it
@@ -68,7 +68,7 @@ things here cannot, and both matter.
 **So every number here is scoped to an extractor**, and the report says which one:
 `extractor: {provider, model, prompt_version}`. `--llm` takes the provider's own default —
 `deepseek-v4-pro`, and this corpus is what settled that (see the bottom of this file) — and
-`--model deepseek-v4-flash` is the other V4 DeepSeek serves. The same prompt on a different model is
+`--model deepseek-flash` is the other model DeepSeek serves. The same prompt on a different model is
 a **different extractor** (ADR-0009), so a run's numbers may only be compared against a baseline that
 names the same one.
 
