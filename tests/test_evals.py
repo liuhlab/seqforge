@@ -1588,6 +1588,7 @@ def _field_diff(harness: dict[str, Any], front_door: dict[str, Any]) -> str:
     )
 
 
+@pytest.mark.slow
 def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1791,6 +1792,7 @@ def test_a_record_less_multi_lane_deposit_stays_two_samples(
 STARVED_CASE_ID = "plate-with-a-starved-cell"
 
 
+@pytest.mark.slow
 def test_a_starved_cell_leaves_the_manifest_whole_and_the_pipeline_short(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

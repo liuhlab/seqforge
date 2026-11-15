@@ -1816,6 +1816,7 @@ _SHARDED_PLATE_CELLS = 4
 @pytest.mark.parametrize(
     "module", [m for m in list_modules() if get_module(m).fan_in_artifact is not None]
 )
+@pytest.mark.slow
 def test_a_shard_naming_the_fan_ins_inputs_keeps_them_while_a_whole_plate_reclaims_them(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
@@ -2212,6 +2213,7 @@ def _plate_run_dir(
     return config
 
 
+@pytest.mark.slow
 def test_the_plate_module_plans_a_whole_run_from_a_hand_written_config(
     tmp_path: Path, dry_run: DryRun
 ) -> None:
@@ -2522,6 +2524,7 @@ def test_the_chimeric_twin_partitions_its_archives_beside_the_split_and_counts_p
     assert not any(QC_BUNDLE_SUFFIX in path for path in removed), sorted(removed)
 
 
+@pytest.mark.slow
 def test_the_three_prime_clip_takes_its_arity_from_the_same_fact_the_read_type_does(
     tmp_path: Path, dry_run: DryRun
 ) -> None:

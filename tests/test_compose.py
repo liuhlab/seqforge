@@ -740,6 +740,7 @@ def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
     assert saw_cram, "no rule runs `seqforge io cram`; this test is looking at the wrong place"
 
 
+@pytest.mark.slow
 def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe(
     tmp_path: Path, dry_run: DryRun
 ) -> None:
@@ -1088,6 +1089,7 @@ def test_the_params_gate_refuses_a_mate_the_layout_does_not_have(
     assert any("mate2" in p for p in problems), problems
 
 
+@pytest.mark.slow
 def test_the_bulk_plan_hands_star_its_mates_and_declares_the_memory_it_sorts_in(
     synth_bulk_pe: SynthDataset, tmp_path: Path, dry_run: DryRun
 ) -> None:
@@ -1889,6 +1891,7 @@ def _e2e_shell(command: str, work: Path) -> None:
 @NO_STAR_ALIGNMENT_ON_MACOS
 @pytest.mark.external
 @pytest.mark.xdist_group("composed-plate")
+@pytest.mark.slow
 def test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_counts(
     composed_plate: ComposedPlate, tmp_path: Path
 ) -> None:
@@ -2177,6 +2180,7 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
 @NO_STAR_ALIGNMENT_ON_MACOS
 @pytest.mark.external
 @pytest.mark.xdist_group("composed-plate-se")
+@pytest.mark.slow
 def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_counts(
     composed_plate_se: ComposedPlate, tmp_path: Path
 ) -> None:

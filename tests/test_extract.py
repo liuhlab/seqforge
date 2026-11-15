@@ -102,6 +102,7 @@ _BAD = {**_GOOD, "value": None}  # the flaky token: a null value where a string 
 
 
 # ---------- the wire schema ----------
+@pytest.mark.slow
 def test_anthropic_strict_transform_drops_unsupported_constraints() -> None:
     """Constraints live in the canonical schema (Pydantic enforces them at ingest) and
     are stripped from the LLM-facing one. The SDK performs that transform, so there is no second
