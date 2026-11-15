@@ -50,7 +50,7 @@ jobs:
           # hatch-vcs reads the newest tag, so a shallow clone would stamp a released commit
           # as a dev build.
           fetch-depth: 0
-      - uses: prefix-dev/setup-pixi@v0.10.2
+      - uses: prefix-dev/setup-pixi@v0.11.3
         with:
           # `default` carries the test, docs and wf features, so every lane and both prose linters
           # run in it. `test-star` holds the aligner the external lane needs on PATH; `dist` holds
