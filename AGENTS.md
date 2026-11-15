@@ -92,11 +92,11 @@ test was considered and declined, and is the fallback if the bar drifts.
   cache is local, so a failure only CI has seen is not in it: run the test CI named, and the verb
   has it from then on. **Once, before pushing** — `pixi run check`: the three test lanes plus lint,
   formatting, types and conformance. **It is not everything CI runs, on purpose.** Markdownlint,
-  vale, the strict docs build and the wheel build are steps of CI's one job, and they stay out of
-  the gate because they answer questions a code change does not ask — do not "fix" this by adding
-  them. Touched documentation? Run `pixi run docs-build`, `pixi run vale` and `pixi run
-  markdownlint` yourself, then. **After pushing** — read CI, which runs on pull requests only,
-  skips a draft, and tests the merge commit; do not re-run it locally. **Never** run the whole
+  vale, the strict docs build and the wheel build are CI steps, and they stay out of the gate because
+  they answer questions a code change does not ask — do not "fix" this by adding them. Touched
+  documentation? Run `pixi run docs-build`, `pixi run vale` and `pixi run markdownlint` yourself,
+  then. **After pushing** — read CI (pull requests only, on the merge commit); do not re-run it
+  locally. **Never** run the whole
   suite to check a change that is not finished, re-run the gate to confirm a failure CI has already
   named, or run the gate twice in one session. Nothing enforces the ladder, and what it guards is
   not the suite's cost: the gate is cheap and reading CI is free, so a session's minutes are the
@@ -105,10 +105,8 @@ test was considered and declined, and is the fallback if the bar drifts.
   consistency, not `src/` behaviour). Three lanes — unit, corpus, external — partition the suite,
   and CI runs each as a step; **selection may not be a function of a fact living outside the
   suite**, which is why there is a marker split and no path-filtered lane (ADR-0002).
-- **Test time has two limits**, set in `[tool.pytest.ini_options]` and nowhere else: `timeout`
-  caps one test, setup and teardown included, and `suite_budget` caps each lane's run, which
-  prints its time against it. A test marked `slow` is held to neither and runs only in
-  `pixi run test-slow`.
+- **Test time has two limits** in `[tool.pytest.ini_options]`: `timeout` per test, setup
+  included, and `suite_budget` per lane. `slow` tests are exempt; `pixi run test-slow` runs them.
 - **A test clears three clauses or it goes**, the same bar a record clears. **(1) It can go red for
   something the code can actually do.** An assertion whose subject is the *text* of source or of a
   docstring is banned — a rename breaks it falsely and an indirection passes it falsely. A
