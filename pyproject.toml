@@ -421,7 +421,7 @@ warn_unreachable = true
 plugins = ["pydantic.mypy"]
 # The scope lives here, not in the `typecheck` task: an editor's language server never reads a task
 # string. `test_nothing_tracked_escapes_the_type_checker` holds it open at both ends.
-files = ["src", "tests", "scripts", "skills", "conftest.py"]
+files = ["src", "tests", "scripts", "skills"]
 # The gitignored scratch harnesses, and nothing else — that guard fails if an exclusion ever hides a
 # file git is tracking.
 exclude = ['^tests/_[^/]*_test\.py$', '^tests/_test_[^/]*\.py$']
@@ -473,14 +473,14 @@ addopts = [
 ]
 xfail_strict = true
 filterwarnings = ["error"]
-# Both markers here are semantic: what a test needs, and what it is about. The root `conftest.py`
+# Both markers here are semantic: what a test needs, and what it is about. `tests/time_limits.py`
 # registers the third, `slow`, which takes a test out of the time limits below.
 markers = [
   "external: needs a binary seqforge does not own (snakemake/STAR/htslib/build)",
   "repo: checks repo consistency, not src/ behaviour",
 ]
 # The two time limits, here and nowhere else: conformance fails a copy in a workflow, a task or
-# a test. `conftest.py` reads `suite_budget`; pytest-timeout reads `timeout`, which covers a
+# a test. `tests/time_limits.py` reads `suite_budget`; pytest-timeout reads `timeout`, which covers a
 # test's setup, call and teardown. A test marked `slow` is held to neither.
 timeout = 2
 suite_budget = 45

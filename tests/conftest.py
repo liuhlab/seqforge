@@ -60,6 +60,10 @@ from typing import TYPE_CHECKING, Any, Protocol
 import pytest
 import yaml
 
+from time_limits import pytest_addoption as pytest_addoption
+from time_limits import pytest_configure as pytest_configure
+from time_limits import pytest_timeout_set_timer as pytest_timeout_set_timer
+
 if TYPE_CHECKING:  # the count-matrix narrowing needs the names, not the import cost
     import anndata as ad
     from scipy.sparse import csr_matrix

@@ -1,6 +1,6 @@
 """The suite budget, the per-test timeout and the slow lane, through pytest itself.
 
-Each test runs pytest over a scratch tree carrying this repo's own `conftest.py` and
+Each test runs pytest over a scratch tree carrying this repo's own `time_limits.py` and
 `[tool.pytest.ini_options]`, with the two limits shrunk so a short sleep crosses them.
 """
 
@@ -42,7 +42,7 @@ def scratch(
     ini = dict(MANIFEST["tool"]["pytest"]["ini_options"], timeout=timeout, suite_budget=budget)
     lines = "".join(f"{key} = {json.dumps(value)}\n" for key, value in ini.items())
     pytester.makepyprojecttoml(f"[tool.pytest.ini_options]\n{lines}")
-    pytester.makeconftest((REPO / "conftest.py").read_text(encoding="utf-8"))
+    pytester.makeconftest((REPO / "tests" / "time_limits.py").read_text(encoding="utf-8"))
     path = pytester.path / where
     path.parent.mkdir(parents=True)
     path.write_text(tests, encoding="utf-8")
