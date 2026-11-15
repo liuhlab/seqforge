@@ -58,7 +58,7 @@ jobs:
           environments: dist
           locked: true
 
-      # The same task the `build` job in ci.yml runs, so what is published was built the way every
+      # The same task the `build` step in ci.yml runs, so what is published was built the way every
       # pull request already proved.
       - name: Build
         run: pixi run build

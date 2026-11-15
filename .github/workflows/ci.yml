@@ -1,201 +1,109 @@
-name: CI
-
+# The gate, run on the pull request rather than on the branch.
+#
 # THE mechanism. Most of seqforge's non-negotiable rules are enforced by tests (the parse/count line,
 # the KB round-trip over every spec, the rung-0-2 separability guard, the read/byte budget), and
 # nothing else runs them automatically: pre-commit deliberately carries only the fast hooks, so a red
 # commit can exist on a branch. This is where it is caught -- and on a machine that is not yours.
+#
+# ONE job, because GitHub bills every job rounded up to a whole minute: several short jobs bill
+# far more than one longer one. Every step after the first gate step runs even when one before it
+# failed, so a run still reports every failure.
+#
+# Every step invokes `pixi run <task>` and never a command line. Conformance rule
+# `workflow-step-tasks` holds every workflow in the repo to it; a step may pass arguments after
+# `--`, and the rule prints them rather than forbidding them.
+name: CI
 
 on:
-  push:
-    branches: [main]
+  # `pull_request` tests the MERGE commit — the code that will exist after the merge, not the
+  # branch tip — and it is the only event that produces a run for a pull request from a fork.
+  # Nothing runs on a push to `main`: it would test again what the pull request just tested.
+  # `workflow_dispatch` is for checking `main` by hand.
+  #
+  # `ready_for_review` is listed because a draft runs nothing (the job's `if:` below): open a
+  # pull request as a draft, pass the local gate, then mark it ready to run CI once.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
+# Keyed on the workflow and the ref, so pushing again to a pull request cancels the run it
+# supersedes. A run started by hand is never cancelled.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
-  lint:
-    name: lint + typecheck + docs
+  check:
+    # Skipped on a draft, which bills nothing. A run by hand has no pull request, so it runs.
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.10.0
+      # A real checkout, not a source archive: `conformance` shells out to `git ls-files`
+      # and exits 2 without a `.git` — its "could not run", spelled apart from the 1 a
+      # broken rule exits, so a bad checkout never reads as a rule this repo failed.
+      - uses: actions/checkout@v7
         with:
-          environments: default
-          locked: true
-      - name: ruff (lint)
-        run: pixi run -e default lint
-      - name: ruff format check
-        run: pixi run -e default fmt-check
-      - name: mypy --strict
-        run: pixi run -e default typecheck
-      # The template's rules against this repo. It lists tracked files with git, which the checkout
-      # above provides, shallow or not; without `.git` it exits 2, "could not run", never 1.
-      - name: conformance
-        run: pixi run -e default conformance
-      # Does the SITE build: a dead internal link, a nav entry naming a file that moved, a snippet
-      # include whose target was renamed. `markdownlint` sees none of those -- it reads one file's
-      # prose style, never the graph between files. Until this step existed the strict build ran
-      # only on push-to-main, so a PR broke it and the next pusher owned the red.
-      #
-      # Folded in here rather than given a fifth runner: `default` already carries the `docs` feature
-      # (pyproject's [tool.pixi.environments]), so this reuses the setup-pixi above and its whole
-      # marginal cost is the build -- 1.7s measured end to end, against ~28s for another setup-pixi.
-      # Last in the job because it is the only step that writes (`site/`, gitignored).
-      #
-      # Build, never publish. Deploying stays in docs.yml, the only workflow granted
-      # `contents: write` and unreachable from a pull_request; this workflow is read-only throughout.
-      - name: mkdocs build --strict
-        run: pixi run -e default docs-build
-
-  # Lints the human-facing docs (the site pages, the KB assay READMEs that render into them, and the
-  # top-level README) per `.markdownlint-cli2.yaml`. The task, its pinned version and its scope are
-  # pyproject's, so this job and the pre-commit hook run one copy. `docs` is the smallest environment
-  # that carries it.
-  markdown:
-    name: markdownlint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.10.0
-        with:
-          environments: docs
-          locked: true
-      - name: markdownlint (docs + README)
-        run: pixi run -e docs markdownlint
-
-  # The lab's prose rules (`.vale.ini`, `styles/Lab/`): word caps on agent-facing pages, jargon and
-  # reading grade on the site. Its own job rather than a step of `lint`, so a prose finding is its own
-  # red check and never stops the code steps after it. Outside `pixi run check`, like markdownlint, and
-  # in the same `docs` environment.
-  vale:
-    name: vale
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.10.0
-        with:
-          environments: docs
-          locked: true
-      - name: vale (prose rules)
-        run: pixi run -e docs vale
-
-  # The unit lane. Three jobs run the suite and between them they are a PARTITION of it -- this one,
-  # `test-corpus` below, and `test-external` after that. The task table owns which selection is which.
-  #
-  # `--durations=10` on every pytest invocation here because the thing that sets a lane's wall is one
-  # indivisible item, and no worker count goes below one item. A per-item budget was considered and
-  # refused -- the same unchanged item measured 17.9 s alone and 22.7 s under contention, so the
-  # assertion would be keyed on hardware and load rather than on the test. Printing it makes the
-  # floor visible in every log instead; it is a measurement, not a gate.
-  test:
-    name: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.10.0
-        with:
-          environments: test
-          locked: true
-      - name: pytest
-        run: pixi run -e test test -- --durations=10
-
-  # The hermetic corpus: every case in `evals/cases/` through the real compiler, no LLM and no
-  # network. It is a different KIND of claim from a unit test's -- a grade, not a behaviour -- and it
-  # was the module that dominated the suite's wall, so it runs BESIDE the unit lane rather than
-  # inside it. That is a lane, not a deletion: nothing here stops being checked on every commit.
-  #
-  # The networked tier is not this. It lives in `benchmark.yml` and runs on release only.
-  test-corpus:
-    name: test (hermetic corpus)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.10.0
-        with:
-          environments: test
-          locked: true
-      - name: pytest (corpus)
-        run: pixi run -e test test-corpus -- --durations=10
-
-  # The `external` tests -- the ones needing a binary seqforge does not own. Until this job existed
-  # the marker meant three different things: snakemake is a dependency, so those ran in the job above;
-  # bgzip/tabix are not, so the fragments test skipped here and passed only on a developer box that
-  # happened to carry htslib; and the STAR test -- the end-to-end proof that a UMI tag put on a read
-  # survives into the aligner's own output -- ran on no host this project's CI can reach, ever. A skip
-  # is green, so nothing was ever red about a claim nothing was checking. See #333.
-  #
-  # The binaries now come from THIS repo's `test-star` environment, which exists only to hold them.
-  # The first attempt at that (#336) put them in a feature solved alongside everything else and was
-  # reverted (#338): on `osx-arm64` STAR caps `htslib <1.23`, whose `libdeflate 1.22` cannot coexist
-  # with the `libdeflate >=1.25` mupdf needs, so it had to be pinned to `linux-64` and the maintainer
-  # could not build it. `test-star` sets `no-default-feature` and its own solve group, so that
-  # collision cannot arise; STAR reaches the suite on PATH, which is all it ever needed, because
-  # nothing imports an aligner. An alignment environment a RULE names is still liulab-runtime's.
-  #
-  # What that replaces is a clone of `liuhlab/liulab-runtime@main`, deliberately UNPINNED so CI
-  # tracked what the owner ships. It also meant an upstream commit could turn this repo red for a
-  # reason no PR here caused, on the job that is closest to being the critical path, and cost an
-  # uncached 26 s environment build every run. `setup-pixi` caches `test-star` because it is ours.
-  #
-  # `test` is the environment, exactly as the unit lane builds it -- the only difference between the
-  # jobs is that this one also installs `test-star`. This job used to RE-RUN the snakemake-gated
-  # externals the unit lane had already run, and that duplication was defended: deselecting them
-  # there would have made the unit lane's selection a function of what this job happens to cover.
-  #
-  # What replaced it is not a hand-deselection but a MARKER PARTITION -- `-m external` here against
-  # `-m 'not external'` there. Boolean negation is total, so no test can fall between the two jobs
-  # however the marker is applied, and `--strict-markers` refuses one that was invented. The
-  # protection the duplication bought is bought by a checkable guard instead:
-  # `test_every_gate_on_an_external_binary_carries_the_marker` fails the build when a test gates on
-  # one of these binaries without carrying the marker, which is the only way a test could reach the
-  # wrong side of the split. The old defence was in any case already hollow -- the unit lane does not
-  # install `test-star`, so the STAR and htslib tests SKIPPED there rather than ran, and its coverage
-  # was a function of an installed environment the whole time, just silently.
-  test-external:
-    name: test (external binaries)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.10.0
-        with:
-          environments: >-
-            test
-            test-star
-          locked: true
-      - name: pytest -m external
-        # THE BINARIES ARE PROVED TO ANSWER BEFORE THE SELECTION HAPPENS -- but that check now lives
-        # inside the verb, as a `depends-on` pixi runs first, so the local gate refuses for the same
-        # reason instead of this job being the only place that looks. Spelling the probe here as well
-        # would be a second copy of the one thing that must not drift: which binaries the lane needs.
-        # See scripts/require_binaries.sh.
-        run: pixi run -e test test-external -- --durations=10
-
-  build:
-    name: build wheel + sdist
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          # hatch-vcs reads the newest tag, and a shallow clone has none, so without this the wheel
-          # is a `0.1.devN` build even on a released commit.
+          # Full history, because `build` needs the tags: the version is dynamic and
+          # hatch-vcs reads the newest tag, so a shallow clone would stamp a released commit
+          # as a dev build.
           fetch-depth: 0
-      - uses: prefix-dev/setup-pixi@v0.10.0
+      - uses: prefix-dev/setup-pixi@v0.10.2
         with:
-          environments: dist
+          # `default` carries the test, docs and wf features, so every lane and both prose linters
+          # run in it. `test-star` holds the aligner the external lane needs on PATH; `dist` holds
+          # the build frontend and twine, and solves alone.
+          environments: >-
+            default
+            test-star
+            dist
+          # Fail if `pixi.lock` no longer matches `pyproject.toml`, rather than silently
+          # solving something else. This is what makes CI run the versions the laptop ran.
           locked: true
-      - name: build
-        run: pixi run build
-      # The wheel exists now, so inspect it here rather than build a second one under pytest. The
-      # package data is not Python -- if `io/onlists/*.codes.gz`, the `.smk` modules, the KB specs or
-      # the report assets fall out of the wheel, every real dataset breaks while the unit suite (which
-      # reads the source tree) stays green. See scripts/check_wheel_contents.py and #108.
-      - name: wheel ships its package data
-        run: pixi run check-wheel
+      # lint, fmt-check, mypy and conformance, concurrently through `check.sh`.
+      - run: pixi run check-static
+      # THREE LANES, AND TOGETHER THEY ARE THE SUITE: `-m external` against `-m 'not external'`,
+      # and the corpus one file, so no test falls between them. The task table owns which selection
+      # is which. `--durations=10` because a lane's wall is set by one indivisible item, and printing
+      # it makes that floor visible in every log; it is a measurement, not a gate.
+      - run: pixi run test -- --durations=10
+        if: ${{ !cancelled() }}
+      # The hermetic corpus: every case in `evals/cases/` through the real compiler, no LLM and no
+      # network. The networked tier is not this; it lives in `benchmark.yml` and runs on release.
+      - run: pixi run test-corpus -- --durations=10
+        if: ${{ !cancelled() }}
+      # The tests needing a binary seqforge does not own. The task proves the binaries answer before
+      # it selects anything (`require-binaries`), so a missing `test-star` is red, not a green skip.
+      - run: pixi run test-external -- --durations=10
+        if: ${{ !cancelled() }}
+      # Outside `pixi run check`, for the reason AGENTS.md gives: each answers a question a code
+      # change does not ask.
+      - run: pixi run markdownlint
+        if: ${{ !cancelled() }}
+      - run: pixi run vale
+        if: ${{ !cancelled() }}
+      # Does the SITE build: a dead internal link, a nav entry naming a file that moved, a snippet
+      # include whose target was renamed. Build, never publish: deploying stays in docs.yml.
+      - run: pixi run docs-build
+        if: ${{ !cancelled() }}
+      - run: pixi run build
+        id: build
+        if: ${{ !cancelled() }}
+      # The wheel exists now, so inspect it here rather than build a second one under pytest. If
+      # the package data falls out of the wheel, every real dataset breaks while the unit suite
+      # (which reads the source tree) stays green.
+      - run: pixi run check-wheel
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
       # The release job runs this too; here it fails on the pull request, not on release day.
-      - name: twine check
-        run: pixi run check-dist
+      - run: pixi run check-dist
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+      - uses: actions/upload-artifact@v7
+        # Only a wheel that was built: a failed build would otherwise fail this step too.
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        with:
+          name: dist
+          path: dist/
+          # An empty upload is a green step that proved nothing.
+          if-no-files-found: error

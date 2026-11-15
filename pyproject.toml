@@ -179,6 +179,7 @@ python = "3.13.*"
 pytest = "*"
 pytest-cov = "*"
 pytest-xdist = "*"
+pytest-timeout = "*"
 
 # One thread per worker: every xdist worker is its own process and each would otherwise size a BLAS/
 # OpenMP pool to the whole box, then fight the others for it. Three names because three libraries are
@@ -264,9 +265,12 @@ typecheck = "mypy"
 # THREE LANES, AND TOGETHER THEY ARE THE SUITE. `test` is the unit lane, `test-corpus` grades the
 # hermetic corpus, `test-external` needs binaries we do not own. Every test lands in exactly one:
 # `external` against its negation is total by boolean negation, and the corpus is one file, so
-# nothing outside the suite decides where a test runs. CI gives each lane a job and `check` runs all
+# nothing outside the suite decides where a test runs. CI gives each lane a step and `check` runs all
 # three at once. `test_every_gate_on_an_external_binary_carries_the_marker` is what keeps the first
 # split honest — an unmarked gate would sit in the unit lane and skip itself green.
+#
+# A lane's `-m` replaces the `-m "not slow"` in `addopts`, so each lane says `not slow` again;
+# `test-slow` runs what all of them leave out.
 #
 # `auto` capped: bare `auto` is slower on a big box, a bare number is wrong on a 2-core runner. The
 # caps are DIVIDED between the lanes because `check` runs them concurrently and each would otherwise
@@ -282,7 +286,7 @@ typecheck = "mypy"
 #
 # The corpus path is spelled twice, here and in `test-corpus`. They are one decision and move
 # together — a stale `--ignore` would run the corpus in both lanes rather than drop it from neither.
-test      = "pytest -m 'not external' --ignore=tests/test_evals.py -n auto --maxprocesses 6 --dist=loadgroup"
+test      = "pytest -m 'not external and not slow' --ignore=tests/test_evals.py -n auto --maxprocesses 6 --dist=loadgroup"
 # The corpus grades every case in `evals/cases/` through the real compiler. That is a different claim
 # from a unit test's, and it was the module that dominated the suite's wall, so it gets its own lane
 # rather than its own deletion. It leaves the unit lane, not the gate.
@@ -291,28 +295,33 @@ test      = "pytest -m 'not external' --ignore=tests/test_evals.py -n auto --max
 # lanes are disjoint only by that happening to stay true, and an external test added to this module
 # would run in BOTH. With it, the three selections are disjoint by construction rather than by
 # inspection — which is the only kind of partition worth claiming.
-test-corpus = "pytest tests/test_evals.py -m 'not external' -n auto --maxprocesses 4 --dist=loadgroup"
+test-corpus = "pytest tests/test_evals.py -m 'not external and not slow' -n auto --maxprocesses 4 --dist=loadgroup"
 # Drops what needs a binary we do not own and what checks the repo — for a machine with no snakemake,
 # or one that would rather not install `test-star`. Alone, so it keeps the whole box.
-test-fast   = "pytest -m 'not external and not repo' -n auto --maxprocesses 12 --dist=loadgroup -q"
+test-fast   = "pytest -m 'not external and not repo and not slow' -n auto --maxprocesses 12 --dist=loadgroup -q"
 # `depends-on` here precisely BECAUSE pixi runs it sequentially: the binaries must be proved to answer
 # before the selection happens. Without that, a missing `test-star` is a PATH entry that does not
 # exist, every gated test skips itself, and this verb reports green having run nothing — which is the
 # failure the lane exists to end. `test`'s activation already put `test-star/bin` in front, so on any
 # machine that ran `pixi install` this is the whole command.
-test-external = { cmd = "pytest -m external -n auto --maxprocesses 4 --dist=loadgroup", depends-on = ["require-binaries"] }
+test-external = { cmd = "pytest -m 'external and not slow' -n auto --maxprocesses 4 --dist=loadgroup", depends-on = ["require-binaries"] }
 require-binaries = "bash scripts/require_binaries.sh"
+# Every test marked `slow`, from all three lanes: held to neither time limit, and run by hand.
+test-slow = "pytest -m slow"
 # Serial on purpose: `-x` is unreliable under xdist, and 12 workers to re-run three tests loses.
 test-failed = "pytest --lf --new-first -x -q"
 test-cov  = "pytest --cov=seqforge --cov-report=term-missing"
 # The networked validation benchmark, not part of `check`. Exits 3 on any false-accept.
 eval      = "seqforge eval run"
 # Not `depends-on`: pixi runs those sequentially. `check.sh` runs its steps concurrently and prints
-# each one's output whole, in a fixed order. The three test lanes are separate steps rather than one,
-# so the corpus and the binaries land in what was idle time — the suite does not saturate its workers,
-# and a lane that finishes early gives its share back to the one that has not. The gate runs the same
-# three selections CI does, which is the point: what goes red here is what goes red there.
-check     = "bash scripts/check.sh lint fmt-check typecheck conformance test test-corpus test-external"
+# each one's output whole, in a fixed order. CI's first step, so the static list lives here once.
+check-static = "bash scripts/check.sh lint fmt-check typecheck conformance"
+# `test` runs whatever `check-static` returned; `depends-on` would skip it. After it, not beside
+# it, so pytest's time limits never share the machine with the static steps. pixi's task shell
+# has `$?` but no arithmetic. The three test lanes are separate steps rather than one, so the
+# corpus and the binaries land in what was idle time. The gate runs the same three selections CI
+# does, which is the point: what goes red here is what goes red there.
+check     = "pixi run check-static; static=$?; bash scripts/check.sh test test-corpus test-external && exit $static"
 install-skills = "python skills/install.py --user"
 # The template's rules, checked against this repo. `python`, so the skill-link rule runs
 # `install.py --check` on the environment's interpreter. The script is a verbatim copy: change a rule
@@ -412,7 +421,7 @@ warn_unreachable = true
 plugins = ["pydantic.mypy"]
 # The scope lives here, not in the `typecheck` task: an editor's language server never reads a task
 # string. `test_nothing_tracked_escapes_the_type_checker` holds it open at both ends.
-files = ["src", "tests", "scripts", "skills"]
+files = ["src", "tests", "scripts", "skills", "conftest.py"]
 # The gitignored scratch harnesses, and nothing else — that guard fails if an exclusion ever hides a
 # file git is tracking.
 exclude = ['^tests/_[^/]*_test\.py$', '^tests/_test_[^/]*\.py$']
@@ -460,15 +469,21 @@ addopts = [
   "--strict-config",
   "-p", "no:zarr",
   "-p", "no:anyio",
+  "-m", "not slow",
 ]
 xfail_strict = true
 filterwarnings = ["error"]
-# Both markers are semantic, not speed: what a test needs, and what it is about. A `slow` marker was
-# rejected — a hand-maintained list keyed on a number that changes whenever you optimise.
+# Both markers here are semantic: what a test needs, and what it is about. The root `conftest.py`
+# registers the third, `slow`, which takes a test out of the time limits below.
 markers = [
   "external: needs a binary seqforge does not own (snakemake/STAR/htslib/build)",
   "repo: checks repo consistency, not src/ behaviour",
 ]
+# The two time limits, here and nowhere else: conformance fails a copy in a workflow, a task or
+# a test. `conftest.py` reads `suite_budget`; pytest-timeout reads `timeout`, which covers a
+# test's setup, call and teardown. A test marked `slow` is held to neither.
+timeout = 2
+suite_budget = 45
 
 [tool.coverage.run]
 branch = true

@@ -14,3 +14,7 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
 - The package version now comes from the git tag, through hatch-vcs. The release wheel is built
   by `pixi run build`, the same task every pull request's CI runs, and is checked by
   `pixi run check-dist`.
+- Tests now have time limits: 2 seconds per test and 45 seconds per test run, set once in
+  `pyproject.toml`. A test marked `slow` is exempt and runs only through `pixi run test-slow`.
+- CI is one job that runs on pull requests only and skips drafts, instead of six jobs that also
+  ran on every push to `main`.

@@ -46,6 +46,7 @@ from __future__ import annotations
 import ast
 import gzip
 import hashlib
+import itertools
 import os
 import re
 import sys
@@ -157,6 +158,12 @@ def _is_the_whole_suite(config: pytest.Config) -> bool:
     return bool(roots) and {a.rstrip("/") for a in config.args} == roots
 
 
+def _addopts_markexpr(config: pytest.Config) -> str | None:
+    """The `-m` that `addopts` passes on every run: it leaves out the slow lane, not a subset."""
+    addopts: list[str] = config.getini("addopts")
+    return next((value for flag, value in itertools.pairwise(addopts) if flag == "-m"), None)
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_cmdline_main(config: pytest.Config) -> None:
     """Give a full-suite run its workers, so no one has to remember to ask for them.
@@ -183,7 +190,9 @@ def pytest_cmdline_main(config: pytest.Config) -> None:
         return
     if not _is_the_whole_suite(config):
         return
-    if any(getattr(config.option, dest, None) for dest in _SELECTORS):
+    if any(getattr(config.option, dest, None) for dest in _SELECTORS if dest != "markexpr"):
+        return
+    if config.option.markexpr and config.option.markexpr != _addopts_markexpr(config):
         return
     if config.option.capture == "no":  # -s: output a human is watching, and workers interleave it
         return
