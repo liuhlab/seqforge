@@ -325,6 +325,7 @@ def test_hook_check_fails_when_the_installed_shim_denies_what_it_must_permit(
     assert [c["expected"] for c in failed] == ["allow", "allow"]
 
 
+@pytest.mark.slow
 def test_hook_check_passes_against_an_installation_that_answers_correctly(tmp_path: Path) -> None:
     """The green path, driven by a shim that routes to the REAL guard the way the shipped one does.
 

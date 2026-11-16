@@ -37,6 +37,7 @@ from conftest import (
     planning_route,
     plate_of,
     solo_block,
+    stage_reference,
     star_modules,
     write_fastq_gz,
 )
@@ -740,6 +741,7 @@ def test_the_aligner_rule_runs_in_a_pinned_container() -> None:
     assert saw_cram, "no rule runs `seqforge io cram`; this test is looking at the wrong place"
 
 
+@pytest.mark.slow
 def test_star_rules_clear_startmp_before_running_so_reruns_are_preemption_safe(
     tmp_path: Path, dry_run: DryRun
 ) -> None:
@@ -1088,6 +1090,7 @@ def test_the_params_gate_refuses_a_mate_the_layout_does_not_have(
     assert any("mate2" in p for p in problems), problems
 
 
+@pytest.mark.slow
 def test_the_bulk_plan_hands_star_its_mates_and_declares_the_memory_it_sorts_in(
     synth_bulk_pe: SynthDataset, tmp_path: Path, dry_run: DryRun
 ) -> None:
@@ -1528,6 +1531,9 @@ def _units_by_read(pipeline_dir: Path) -> dict[tuple[str, str], str]:
         }
 
 
+# `composed_plate` is two 96-cell spawns, gate and plan, after building the plate deposit: over
+# 2 s for its first reader in CI, and the gate's spawn alone took 1.9 s on a CI-sized runner.
+@pytest.mark.slow
 @pytest.mark.xdist_group("composed-plate")
 def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     composed_plate: ComposedPlate,
@@ -1618,6 +1624,9 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     assert "|| true" in helper, helper
 
 
+# `composed_plate` is two 96-cell spawns, gate and plan, after building the plate deposit: over
+# 2 s for its first reader in CI, and the gate's spawn alone took 1.9 s on a CI-sized runner.
+@pytest.mark.slow
 @pytest.mark.xdist_group("composed-plate")
 def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_plain_one(
     composed_plate: ComposedPlate,
@@ -1666,6 +1675,9 @@ def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_pl
         assert re.search(rf"--summary \S*{re.escape(cell)}/{re.escape(cell)}\S+", command), command
 
 
+# `composed_plate` is two 96-cell spawns, gate and plan, after building the plate deposit: over
+# 2 s for its first reader in CI, and the gate's spawn alone took 1.9 s on a CI-sized runner.
+@pytest.mark.slow
 @pytest.mark.xdist_group("composed-plate")
 def test_the_composed_plate_derives_the_offsets_the_protocol_published(
     composed_plate: ComposedPlate,
@@ -1889,6 +1901,7 @@ def _e2e_shell(command: str, work: Path) -> None:
 @NO_STAR_ALIGNMENT_ON_MACOS
 @pytest.mark.external
 @pytest.mark.xdist_group("composed-plate")
+@pytest.mark.slow
 def test_a_composed_plate_runs_end_to_end_at_small_n_and_recovers_its_injected_counts(
     composed_plate: ComposedPlate, tmp_path: Path
 ) -> None:
@@ -2125,7 +2138,13 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
     of jobs...` at exit 1 — the same class, at the same point, as the ADR's measurement at 7e2488f.
     The mate-less half of that config is left exactly as compose emitted it, so what is under test is
     the gate's reach and not the layout.
+
+    The break goes into a copy of the composed directory, so the two verdicts are two gates over two
+    directories that differ by that one key, and they run at the same time: back to back, the two
+    spawns were this test's whole time limit.
     """
+    from concurrent.futures import ThreadPoolExecutor
+
     from seqforge.compose.gates import REASON_TAIL_LINES, wiring_gate
 
     manifest, reg = synth_plate_se.manifest, synth_plate_se.registry
@@ -2133,15 +2152,21 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
     result = compose(manifest, processing, registry=reg, workspace=tmp_path, run_wiring_gate=False)
     pipeline_dir = (tmp_path / result.snakefile_path).parent
     p = plan(manifest, processing, registry=reg)
-    assert wiring_gate(pipeline_dir, p).status == "pass", (
-        "the unbroken single-end plate must plan, or the red below says nothing"
-    )
 
-    config_path = pipeline_dir / "config.yaml"
+    broken = tmp_path / "broken"
+    shutil.copytree(pipeline_dir, broken)
+    config_path = broken / "config.yaml"
     config = yaml.safe_load(config_path.read_text())
     del config["read_files_in"]["umi_cdna"]
     config_path.write_text(yaml.safe_dump(config, sort_keys=True))
-    verdict = wiring_gate(pipeline_dir, p)
+
+    stage_reference(pipeline_dir)  # once, before the threads: `_stand_up`'s cache holds no lock
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        red = pool.submit(wiring_gate, broken, p)
+        assert wiring_gate(pipeline_dir, p).status == "pass", (
+            "the unbroken single-end plate must plan, or the red below says nothing"
+        )
+        verdict = red.result()
     assert verdict.status == "fail", (
         "a plate whose tagged read the module cannot name dies while the DAG is being built, and "
         "the gate called it a pass"
@@ -2177,6 +2202,7 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
 @NO_STAR_ALIGNMENT_ON_MACOS
 @pytest.mark.external
 @pytest.mark.xdist_group("composed-plate-se")
+@pytest.mark.slow
 def test_a_composed_single_end_plate_runs_end_to_end_and_recovers_its_injected_counts(
     composed_plate_se: ComposedPlate, tmp_path: Path
 ) -> None:

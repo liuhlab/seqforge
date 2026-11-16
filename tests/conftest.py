@@ -46,11 +46,13 @@ from __future__ import annotations
 import ast
 import gzip
 import hashlib
+import itertools
 import os
 import re
 import sys
 import types
 from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -58,6 +60,11 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 import pytest
 import yaml
+
+from time_limits import pytest_addoption as pytest_addoption
+from time_limits import pytest_configure as pytest_configure
+from time_limits import pytest_runtest_makereport as pytest_runtest_makereport
+from time_limits import pytest_timeout_set_timer as pytest_timeout_set_timer
 
 if TYPE_CHECKING:  # the count-matrix narrowing needs the names, not the import cost
     import anndata as ad
@@ -107,14 +114,15 @@ SrcTrees = dict[Path, ast.Module]
 #: it fine), and not Rosetta (the box is a real Intel i7).
 #:
 #: So this is NOT the invisible skip #333 is about. That one hid a claim NOBODY checked; this one is
-#: checked on every pull request by CI's ``test (external binaries)`` job on ``linux-64``, which is
-#: also the only kind of machine this project ever maps on. What is skipped here is a broken aligner,
-#: named, on a platform that is a development environment and not a target. The other ``external``
-#: tests — the DAG and planning ones — still run on macOS, because they do not make STAR align.
+#: checked on ``linux-64``, the only kind of machine this project ever maps on: by CI's external lane
+#: on every pull request, or, for a test marked ``slow``, by ``pixi run test-slow`` on Linux, which
+#: no CI job runs. What is skipped here is a broken aligner, named, on a platform that is a
+#: development environment and not a target. The other ``external`` tests — the DAG and planning
+#: ones — still run on macOS, because they do not make STAR align.
 NO_STAR_ALIGNMENT_ON_MACOS = pytest.mark.skipif(
     sys.platform == "darwin",
     reason="STAR's osx-64 build reads 0 input reads and cannot spawn a readFilesCommand (#345); "
-    "mapping runs on Linux, where CI covers these on every PR",
+    "mapping runs on Linux: CI's external lane, or `pixi run test-slow` there for a slow test",
 )
 
 
@@ -157,6 +165,12 @@ def _is_the_whole_suite(config: pytest.Config) -> bool:
     return bool(roots) and {a.rstrip("/") for a in config.args} == roots
 
 
+def _addopts_markexpr(config: pytest.Config) -> str | None:
+    """The `-m` that `addopts` passes on every run: it leaves out the slow lane, not a subset."""
+    addopts: list[str] = config.getini("addopts")
+    return next((value for flag, value in itertools.pairwise(addopts) if flag == "-m"), None)
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_cmdline_main(config: pytest.Config) -> None:
     """Give a full-suite run its workers, so no one has to remember to ask for them.
@@ -183,7 +197,9 @@ def pytest_cmdline_main(config: pytest.Config) -> None:
         return
     if not _is_the_whole_suite(config):
         return
-    if any(getattr(config.option, dest, None) for dest in _SELECTORS):
+    if any(getattr(config.option, dest, None) for dest in _SELECTORS if dest != "markexpr"):
+        return
+    if config.option.markexpr and config.option.markexpr != _addopts_markexpr(config):
         return
     if config.option.capture == "no":  # -s: output a human is watching, and workers interleave it
         return
@@ -371,16 +387,31 @@ def _no_wiring_gate(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPa
 
     Patching the module ATTRIBUTE rather than flipping the default is what reaches the CLI-driven
     callers: ``compose.core`` imports ``wiring_gate`` inside the function body, so every path — the
-    ``run`` verb, the report fixture, the fingerprint spine — resolves it here at call time.
+    ``run`` verb, the fingerprint spine — resolves it here at call time.
+
+    **A module- or session-scoped fixture is built before this applies**, so it composes under the
+    session's real gate unless it says otherwise. One that does not want the spawn builds inside
+    :func:`no_wiring_gate`; the report workspace once spawned ``snakemake`` from the unit lane this
+    way, and its build was the gate for most of its time.
     """
     if _UNSTUBS_THE_GATE & set(request.fixturenames):
         return
-    monkeypatch.setattr(
-        "seqforge.compose.gates.wiring_gate",
-        lambda pipeline_dir, plan: GateVerdict(
-            status="skip", reason=["stubbed by `_no_wiring_gate`; this test did not ask to spawn"]
-        ),
+    monkeypatch.setattr("seqforge.compose.gates.wiring_gate", _skipped_gate)
+
+
+def _skipped_gate(pipeline_dir: Path, plan: ComposePlan) -> GateVerdict:
+    """The verdict a stubbed gate returns: planned nothing, spawned nothing."""
+    return GateVerdict(
+        status="skip", reason=["stubbed by `_no_wiring_gate`; this test did not ask to spawn"]
     )
+
+
+@contextmanager
+def no_wiring_gate() -> Iterator[None]:
+    """:func:`_no_wiring_gate`'s stub, for a fixture scoped wider than one test."""
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr("seqforge.compose.gates.wiring_gate", _skipped_gate)
+        yield
 
 
 @pytest.fixture(autouse=True)

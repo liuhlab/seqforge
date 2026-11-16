@@ -535,9 +535,10 @@ def test_an_overrun_kills_the_tree_and_not_just_the_launcher(tmp_path: Path) -> 
         f"import os, time; open({str(pidfile)!r}, 'w').write(str(os.getpid()))\ntime.sleep(300)\n",
     )
     # Long enough that the launched program is certainly up (interpreter start is ~100 ms even on a
-    # loaded runner), short enough that waiting out a deliberate timeout costs the suite ~3 s.
+    # loaded runner), short enough that waiting out a deliberate timeout fits the 2 s test limit.
+    # The pidfile assertion below says so if the machine was ever too slow for that.
     with pytest.raises(E2EUnavailable, match="budget"):
-        _run_measured([str(launcher)], outdir=tmp_path, timeout=3)
+        _run_measured([str(launcher)], outdir=tmp_path, timeout=1)
 
     # If this is missing the runner never got the program up inside the budget, which is a statement
     # about the machine and not about the code -- so it says so rather than raising a FileNotFoundError

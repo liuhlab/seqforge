@@ -362,7 +362,10 @@ def onlist_hit_rate(
             # `valid` is the all-ACGT mask, so `packable` is exactly the set of reads that COULD have
             # hit. It is both the numerator's candidate pool and the denominator — the block comment
             # above this function argues why, and against which neighbouring statistic.
-            packable = packed[valid]
+            # In the onlist's own dtype, which holds every code of this width exactly. A uint64
+            # window against a uint32 onlist makes `searchsorted` cast the whole onlist on every
+            # call: 9 ms instead of 0.04 ms against a 6.8 M-barcode onlist.
+            packable = packed[valid].astype(wl.dtype, copy=False)
             tested = int(packable.size)
             if tested == 0:
                 continue

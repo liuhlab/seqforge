@@ -4,8 +4,8 @@ name: Docs
 # Mirrors liulab-runtime's mechanism (a gh-pages branch), not liulab-genome's (a Pages artifact):
 # the two siblings differ, and CLAUDE.md's own wording says gh-pages.
 #
-# Publishing only. Whether the site BUILDS is asked on every PR by ci.yml's lint job, which runs the
-# same `--strict` build on the `default` environment. That split is the point: this workflow holds
+# Publishing only. Whether the site BUILDS is asked on every PR by ci.yml's `docs-build` step, which
+# runs the same `--strict` build on the `default` environment. That split is the point: this workflow holds
 # `contents: write` and pushes a branch, so no trigger a pull request can fire may ever appear below.
 #
 # Setup (one-off, by a maintainer):
@@ -28,12 +28,14 @@ concurrency:
 jobs:
   deploy:
     name: Build & deploy to gh-pages
+    # A private repo skips the deploy: on a free plan, GitHub Pages serves public repos only.
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: prefix-dev/setup-pixi@v0.10.0
+      - uses: prefix-dev/setup-pixi@v0.11.3
         with:
           environments: docs
           locked: true

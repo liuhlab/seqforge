@@ -53,12 +53,12 @@ jobs:
 
       # The `dist` environment holds a build frontend and twine and not seqforge, so this job never
       # has to reach the lab git packages.
-      - uses: prefix-dev/setup-pixi@v0.10.0
+      - uses: prefix-dev/setup-pixi@v0.11.3
         with:
           environments: dist
           locked: true
 
-      # The same task the `build` job in ci.yml runs, so what is published was built the way every
+      # The same task the `build` step in ci.yml runs, so what is published was built the way every
       # pull request already proved.
       - name: Build
         run: pixi run build

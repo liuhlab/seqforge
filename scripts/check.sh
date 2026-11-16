@@ -7,10 +7,14 @@
 # was 6.8s of a 23s gate — a third of it, spent waiting on ruff and mypy that share no inputs with
 # each other or with pytest.
 #
-# CI is unaffected: `.github/workflows/ci.yml` calls the individual tasks and never this script. It
-# runs `lint`, `fmt-check`, `typecheck` and `conformance` as STEPS of one job (with the docs build),
-# and gives each of the three test lanes a job of its own — so the concurrency this script buys is a
-# local-only win, and CI's shape is more runners rather than more background jobs.
+# `check-static` runs the four static steps through this script, and CI runs `check-static` as the
+# first step of its one job. The test lanes follow there as steps of their own, after the static
+# steps rather than beside them, so the test time limits never share the machine with mypy.
+#
+# `--serial` runs the steps one after another instead, and `check` hands it the three test lanes.
+# Each lane is held to the test time limits, and CI runs the lanes one after another; three lanes
+# at once on one machine pushed tests past the per-test limit that CI, running them alone, never
+# saw. Output, verdicts and exit code are the same in both modes.
 #
 # `conformance` is a step because what it checks is repo structure a code change can break — a skill
 # link, a CI step that stops naming a task, a Python version declared in two places — and it costs
@@ -18,14 +22,14 @@
 #
 # THE GATE IS A SUBSET OF CI AND STAYS ONE. Every lane named on the `check` line is a selection CI
 # also runs, so a lane red here is red there for the same reason — but the converse does not hold,
-# and three CI jobs have no step here: markdownlint, the strict docs build, and the wheel build. That
+# and three CI steps have none here: markdownlint, the strict docs build, and the wheel build. That
 # is a choice and not an omission to be tidied up. Each of them answers a question a code change does
 # not ask, and this gate's whole justification is that it is cheap enough to run without thinking
 # about it. Adding a couple of seconds each is not the cost that matters; making the pre-push rung a
 # thing you weigh before running is. Whoever touched documentation runs `docs-build` and the
 # markdownlint pre-commit hook, which is the trigger those two already have — and a packaging change
 # is CI's to confirm. This paragraph exists because the prose here used to claim the gate ran CI's
-# selections outright, which drifted the moment those jobs were added and then read as a bug.
+# selections outright, which drifted the moment those steps were added and then read as a bug.
 #
 # Each step's output is captured to its own file and printed whole, in a fixed order, after every
 # step has finished. Attribution therefore gets BETTER, not worse: a failure is one contiguous
@@ -55,8 +59,10 @@
 # past `pixi` to the pytest run underneath it.
 set -muo pipefail
 
+serial=0
+if [ "${1:-}" = "--serial" ]; then serial=1; shift; fi
 STEPS=("$@")
-[ ${#STEPS[@]} -gt 0 ] || { echo "usage: check.sh <task>..." >&2; exit 2; }
+[ ${#STEPS[@]} -gt 0 ] || { echo "usage: check.sh [--serial] <task>..." >&2; exit 2; }
 
 out=$(mktemp -d)
 # Kill, then delete -- in that order, and never one without the other. The steps write into $out, so
@@ -78,24 +84,30 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 start=$SECONDS
-pids=()
-for step in "${STEPS[@]}"; do
-    # shellcheck disable=SC2086  # each step is a single bare task name, never a word-split command
-    pixi run --no-progress $step >"$out/$step.log" 2>&1 &
-    pids+=("$!")
-done
-
 rc=0
+pids=()
 # Indexed by position, parallel to STEPS -- see the note above on why this is not a map.
 status=()
 for i in "${!STEPS[@]}"; do
-    if wait "${pids[$i]}"; then
-        status[$i]="ok"
-    else
-        status[$i]="FAILED"
-        rc=1
+    # shellcheck disable=SC2086  # each step is a single bare task name, never a word-split command
+    pixi run --no-progress ${STEPS[$i]} >"$out/${STEPS[$i]}.log" 2>&1 &
+    pids+=("$!")
+    # Still a background job in its own process group, so the cleanup above reaches it.
+    if [ "$serial" = 1 ]; then
+        if wait "$!"; then status[$i]="ok"; else status[$i]="FAILED"; rc=1; fi
     fi
 done
+
+if [ "$serial" = 0 ]; then
+    for i in "${!STEPS[@]}"; do
+        if wait "${pids[$i]}"; then
+            status[$i]="ok"
+        else
+            status[$i]="FAILED"
+            rc=1
+        fi
+    done
+fi
 
 for i in "${!STEPS[@]}"; do
     printf '\n\033[1m=== %s: %s ===\033[0m\n' "${STEPS[$i]}" "${status[$i]}"

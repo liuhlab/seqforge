@@ -1323,7 +1323,11 @@ def _alive(pid: int) -> bool:
 
 @pytest.mark.repo
 @pytest.mark.parametrize("bash", _bash_interpreters())
-def test_the_gate_exits_non_zero_and_says_which_step_failed(bash: str, tmp_path: Path) -> None:
+# `--serial` is how `check` runs the test lanes, and it collects verdicts by a separate path.
+@pytest.mark.parametrize("mode", [[], ["--serial"]], ids=["concurrent", "serial"])
+def test_the_gate_exits_non_zero_and_says_which_step_failed(
+    bash: str, mode: list[str], tmp_path: Path
+) -> None:
     """The pre-PR gate is a gate, and this is the test that says so.
 
     It went years with nothing exercising the runner itself, and under bash 3.2 -- what macOS ships
@@ -1346,7 +1350,7 @@ def test_the_gate_exits_non_zero_and_says_which_step_failed(bash: str, tmp_path:
     env = _gate_env(bin_dir, tmpdir, pid_dir)
 
     red = subprocess.run(
-        [bash, str(_GATE), "alpha", "boom", "gamma"],
+        [bash, str(_GATE), *mode, "alpha", "boom", "gamma"],
         cwd=_REPO,
         env=env,
         capture_output=True,
@@ -1375,7 +1379,7 @@ def test_the_gate_exits_non_zero_and_says_which_step_failed(bash: str, tmp_path:
     # ...and the gate discriminates: the same runner over steps that all pass is green, so the
     # non-zero above is the failing step and not the runner refusing everything.
     green = subprocess.run(
-        [bash, str(_GATE), "alpha", "gamma"],
+        [bash, str(_GATE), *mode, "alpha", "gamma"],
         cwd=_REPO,
         env=env,
         capture_output=True,
