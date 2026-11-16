@@ -114,14 +114,15 @@ SrcTrees = dict[Path, ast.Module]
 #: it fine), and not Rosetta (the box is a real Intel i7).
 #:
 #: So this is NOT the invisible skip #333 is about. That one hid a claim NOBODY checked; this one is
-#: checked on every pull request by CI's ``test (external binaries)`` job on ``linux-64``, which is
-#: also the only kind of machine this project ever maps on. What is skipped here is a broken aligner,
-#: named, on a platform that is a development environment and not a target. The other ``external``
-#: tests — the DAG and planning ones — still run on macOS, because they do not make STAR align.
+#: checked on ``linux-64``, the only kind of machine this project ever maps on: by CI's external lane
+#: on every pull request, or, for a test marked ``slow``, by ``pixi run test-slow`` on Linux, which
+#: no CI job runs. What is skipped here is a broken aligner, named, on a platform that is a
+#: development environment and not a target. The other ``external`` tests — the DAG and planning
+#: ones — still run on macOS, because they do not make STAR align.
 NO_STAR_ALIGNMENT_ON_MACOS = pytest.mark.skipif(
     sys.platform == "darwin",
     reason="STAR's osx-64 build reads 0 input reads and cannot spawn a readFilesCommand (#345); "
-    "mapping runs on Linux, where CI covers these on every PR",
+    "mapping runs on Linux: CI's external lane, or `pixi run test-slow` there for a slow test",
 )
 
 
@@ -1236,25 +1237,10 @@ def composed_plate(
     :data:`synth_plate_se` composed the same way is the ``{umi_cdna}`` half. Nothing stubs the gate
     here — a session fixture is built before the function-scoped autouse stub applies, and a verdict
     of ``"skip"`` would fail its reader's assertion loudly rather than pass for the wrong reason.
-
-    **The two spawns run AT THE SAME TIME**, which is what keeps the fixture inside one test's time
-    limit: back to back they were its whole 2s. The plan starts from inside the gate ``compose``
-    calls, the moment the directory is complete, and is taken over a replica of its own, so the
-    verdict is still the one ``compose`` ran and the plan text is still the one its readers assert on.
     """
-    from concurrent.futures import Future, ThreadPoolExecutor
-
     import yaml
 
-    from seqforge.compose import compose, gates
-
-    staged_gate = gates.wiring_gate
-    planned: list[Future[str]] = []
-
-    def gate_beside_the_plan(directory: Path, plan: ComposePlan) -> GateVerdict:
-        stage_reference(directory)  # once, before the threads: `_stand_up`'s cache holds no lock
-        planned.append(pool.submit(snakemake_dry_run, directory, plan))
-        return staged_gate(directory, plan)
+    from seqforge.compose import compose
 
     workdir = tmp_path_factory.mktemp("composed-plate")
     dataset = synth_smartseq3
@@ -1265,19 +1251,16 @@ def composed_plate(
         accession="PRJNA1027859",
     )
     processing = _processing(manifest)
-    with ThreadPoolExecutor(max_workers=1) as pool, pytest.MonkeyPatch.context() as patch:
-        patch.setattr(gates, "wiring_gate", gate_beside_the_plan)
-        result = compose(
-            manifest,
-            processing,
-            registry=dataset.registry,
-            workspace=workdir / "ws",
-            run_wiring_gate=True,
-        )
-        assert len(planned) == 1, "compose never reached its wiring gate, so nothing was planned"
-        plan_text = planned[0].result()
+    result = compose(
+        manifest,
+        processing,
+        registry=dataset.registry,
+        workspace=workdir / "ws",
+        run_wiring_gate=True,
+    )
     pipeline_dir = (workdir / "ws" / result.snakefile_path).parent
     config = yaml.safe_load((workdir / "ws" / result.config_path).read_text())
+    plan = compose_core.plan(manifest, processing, registry=dataset.registry)
     return ComposedPlate(
         manifest=manifest,
         processing=processing,
@@ -1285,7 +1268,7 @@ def composed_plate(
         pipeline_dir=pipeline_dir,
         config=config,
         gate=dict(result.gate),
-        plan_text=plan_text,
+        plan_text=snakemake_dry_run(pipeline_dir, plan),
         cells=cells,
     )
 

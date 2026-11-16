@@ -1531,6 +1531,9 @@ def _units_by_read(pipeline_dir: Path) -> dict[tuple[str, str], str]:
         }
 
 
+# `composed_plate` is two 96-cell spawns, gate and plan, after building the plate deposit: over
+# 2 s for its first reader in CI, and the gate's spawn alone took 1.9 s on a CI-sized runner.
+@pytest.mark.slow
 @pytest.mark.xdist_group("composed-plate")
 def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     composed_plate: ComposedPlate,
@@ -1621,6 +1624,9 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     assert "|| true" in helper, helper
 
 
+# `composed_plate` is two 96-cell spawns, gate and plan, after building the plate deposit: over
+# 2 s for its first reader in CI, and the gate's spawn alone took 1.9 s on a CI-sized runner.
+@pytest.mark.slow
 @pytest.mark.xdist_group("composed-plate")
 def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_plain_one(
     composed_plate: ComposedPlate,
@@ -1669,6 +1675,9 @@ def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_pl
         assert re.search(rf"--summary \S*{re.escape(cell)}/{re.escape(cell)}\S+", command), command
 
 
+# `composed_plate` is two 96-cell spawns, gate and plan, after building the plate deposit: over
+# 2 s for its first reader in CI, and the gate's spawn alone took 1.9 s on a CI-sized runner.
+@pytest.mark.slow
 @pytest.mark.xdist_group("composed-plate")
 def test_the_composed_plate_derives_the_offsets_the_protocol_published(
     composed_plate: ComposedPlate,
