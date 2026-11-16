@@ -11,6 +11,11 @@
 # first step of its one job. The test lanes follow there as steps of their own, after the static
 # steps rather than beside them, so the test time limits never share the machine with mypy.
 #
+# `--serial` runs the steps one after another instead, and `check` hands it the three test lanes.
+# Each lane is held to the test time limits, and CI runs the lanes one after another; three lanes
+# at once on one machine pushed tests past the per-test limit that CI, running them alone, never
+# saw. Output, verdicts and exit code are the same in both modes.
+#
 # `conformance` is a step because what it checks is repo structure a code change can break — a skill
 # link, a CI step that stops naming a task, a Python version declared in two places — and it costs
 # under half a second.
@@ -54,8 +59,10 @@
 # past `pixi` to the pytest run underneath it.
 set -muo pipefail
 
+serial=0
+if [ "${1:-}" = "--serial" ]; then serial=1; shift; fi
 STEPS=("$@")
-[ ${#STEPS[@]} -gt 0 ] || { echo "usage: check.sh <task>..." >&2; exit 2; }
+[ ${#STEPS[@]} -gt 0 ] || { echo "usage: check.sh [--serial] <task>..." >&2; exit 2; }
 
 out=$(mktemp -d)
 # Kill, then delete -- in that order, and never one without the other. The steps write into $out, so
@@ -77,24 +84,30 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 start=$SECONDS
-pids=()
-for step in "${STEPS[@]}"; do
-    # shellcheck disable=SC2086  # each step is a single bare task name, never a word-split command
-    pixi run --no-progress $step >"$out/$step.log" 2>&1 &
-    pids+=("$!")
-done
-
 rc=0
+pids=()
 # Indexed by position, parallel to STEPS -- see the note above on why this is not a map.
 status=()
 for i in "${!STEPS[@]}"; do
-    if wait "${pids[$i]}"; then
-        status[$i]="ok"
-    else
-        status[$i]="FAILED"
-        rc=1
+    # shellcheck disable=SC2086  # each step is a single bare task name, never a word-split command
+    pixi run --no-progress ${STEPS[$i]} >"$out/${STEPS[$i]}.log" 2>&1 &
+    pids+=("$!")
+    # Still a background job in its own process group, so the cleanup above reaches it.
+    if [ "$serial" = 1 ]; then
+        if wait "$!"; then status[$i]="ok"; else status[$i]="FAILED"; rc=1; fi
     fi
 done
+
+if [ "$serial" = 0 ]; then
+    for i in "${!STEPS[@]}"; do
+        if wait "${pids[$i]}"; then
+            status[$i]="ok"
+        else
+            status[$i]="FAILED"
+            rc=1
+        fi
+    done
+fi
 
 for i in "${!STEPS[@]}"; do
     printf '\n\033[1m=== %s: %s ===\033[0m\n' "${STEPS[$i]}" "${status[$i]}"

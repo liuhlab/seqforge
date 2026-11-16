@@ -265,16 +265,17 @@ typecheck = "mypy"
 # THREE LANES, AND TOGETHER THEY ARE THE SUITE. `test` is the unit lane, `test-corpus` grades the
 # hermetic corpus, `test-external` needs binaries we do not own. Every test lands in exactly one:
 # `external` against its negation is total by boolean negation, and the corpus is one file, so
-# nothing outside the suite decides where a test runs. CI gives each lane a step and `check` runs all
-# three at once. `test_every_gate_on_an_external_binary_carries_the_marker` is what keeps the first
-# split honest — an unmarked gate would sit in the unit lane and skip itself green.
+# nothing outside the suite decides where a test runs. CI gives each lane a step and `check` runs the
+# three one after another, as CI does. `test_every_gate_on_an_external_binary_carries_the_marker`
+# is what keeps the first split honest — an unmarked gate would sit in the unit lane and skip
+# itself green.
 #
 # A lane's `-m` replaces the `-m "not slow"` in `addopts`, so each lane says `not slow` again;
 # `test-slow` runs what all of them leave out.
 #
 # `auto` capped: bare `auto` is slower on a big box, a bare number is wrong on a 2-core runner. The
-# caps are DIVIDED between the lanes because `check` runs them concurrently and each would otherwise
-# size itself to the whole box. 6/4/4 is proportional to the CPU each lane actually costs, which is
+# caps were DIVIDED between the lanes while `check` ran them concurrently, so that each would not
+# size itself to the whole box; it now runs them one after another, and the caps are unchanged. 6/4/4 is proportional to the CPU each lane actually costs, which is
 # what balances them — measured, and the three walls land within four seconds of each other. It sums
 # to more than the cores on the maintainer's box ON PURPOSE: taking it down to exactly twelve has to
 # come out of the unit lane, which then cannot finish inside the wall this split exists to beat, and
@@ -318,10 +319,11 @@ eval      = "seqforge eval run"
 check-static = "bash scripts/check.sh lint fmt-check typecheck conformance"
 # `test` runs whatever `check-static` returned; `depends-on` would skip it. After it, not beside
 # it, so pytest's time limits never share the machine with the static steps. pixi's task shell
-# has `$?` but no arithmetic. The three test lanes are separate steps rather than one, so the
-# corpus and the binaries land in what was idle time. The gate runs the same three selections CI
-# does, which is the point: what goes red here is what goes red there.
-check     = "pixi run check-static; static=$?; bash scripts/check.sh test test-corpus test-external && exit $static"
+# has `$?` but no arithmetic. The three test lanes run one after another (`--serial`), as CI runs
+# them, because each is held to the time limits: three at once pushed tests past the per-test
+# limit that CI never saw. The gate runs the same three selections CI does, which is the point:
+# what goes red here is what goes red there.
+check     = "pixi run check-static; static=$?; bash scripts/check.sh --serial test test-corpus test-external && exit $static"
 install-skills = "python skills/install.py --user"
 # The template's rules, checked against this repo. `python`, so the skill-link rule runs
 # `install.py --check` on the environment's interpreter. The script is a verbatim copy: change a rule
