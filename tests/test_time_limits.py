@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import shlex
+import time
 import tomllib
 from pathlib import Path
 
@@ -62,10 +63,33 @@ def test_a_suite_inside_its_budget_passes_and_says_so(pytester: pytest.Pytester)
     result.stdout.fnmatch_lines(["suite time: * s of its 30 s budget"])
 
 
-# The second place is a directory named `slow`, which an unmarked test is not exempted by.
+class SlowFinish:
+    """Session-finish work that runs before the budget's, as pytest's temp-folder clean-up does."""
+
+    def pytest_sessionfinish(self) -> None:
+        time.sleep(0.8)
+
+
+def test_the_budget_stops_where_the_tests_end(pytester: pytest.Pytester) -> None:
+    scratch(pytester, "def test_quick():\n    pass\n", timeout=1, budget=0.75)
+    result = pytester.runpytest(plugins=[SlowFinish()])
+    assert result.ret == pytest.ExitCode.OK
+    result.stdout.fnmatch_lines(["suite time: * s of its 0.75 s budget"])
+
+
+# An unmarked test is not exempted by a parametrize id or a directory named `slow`.
 @pytest.mark.parametrize("where", ["tests/test_scratch.py", "tests/slow/test_scratch.py"])
 def test_a_suite_past_its_budget_fails_the_run(pytester: pytest.Pytester, where: str) -> None:
-    tests = "import time\n\n\ndef test_sleeps():\n    time.sleep(0.3)\n"
+    tests = """
+import time
+
+import pytest
+
+
+@pytest.mark.parametrize("case", ["slow"])
+def test_sleeps(case):
+    time.sleep(0.3)
+"""
     scratch(pytester, tests, timeout=1, budget=0.1, where=where)
     result = pytester.runpytest()
     result.assert_outcomes(passed=1)
@@ -112,3 +136,4 @@ def test_the_slow_lane_holds_a_slow_test_to_neither_limit(pytester: pytest.Pytes
     result = pytester.runpytest(*slow_lane())
     result.assert_outcomes(passed=1)
     assert result.ret == pytest.ExitCode.OK
+    result.stdout.fnmatch_lines(["suite time: not checked, because slow tests ran"])

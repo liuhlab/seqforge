@@ -106,7 +106,8 @@ test was considered and declined, and is the fallback if the bar drifts.
   and CI runs each as a step; **selection may not be a function of a fact living outside the
   suite**, which is why there is a marker split and no path-filtered lane (ADR-0002).
 - **Test time has two limits** in `[tool.pytest.ini_options]`: `timeout` per test, setup
-  included, and `suite_budget` per lane. `slow` tests are exempt; `pixi run test-slow` runs them.
+  included, and `suite_budget` per lane without a slow test. `slow` tests are exempt;
+  `pixi run test-slow` runs them.
 - **A test clears three clauses or it goes**, the same bar a record clears. **(1) It can go red for
   something the code can actually do.** An assertion whose subject is the *text* of source or of a
   docstring is banned — a rename breaks it falsely and an indirection passes it falsely. A
