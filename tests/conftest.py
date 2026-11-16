@@ -52,6 +52,7 @@ import re
 import sys
 import types
 from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -385,16 +386,31 @@ def _no_wiring_gate(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPa
 
     Patching the module ATTRIBUTE rather than flipping the default is what reaches the CLI-driven
     callers: ``compose.core`` imports ``wiring_gate`` inside the function body, so every path — the
-    ``run`` verb, the report fixture, the fingerprint spine — resolves it here at call time.
+    ``run`` verb, the fingerprint spine — resolves it here at call time.
+
+    **A module- or session-scoped fixture is built before this applies**, so it composes under the
+    session's real gate unless it says otherwise. One that does not want the spawn builds inside
+    :func:`no_wiring_gate`; the report workspace once spawned ``snakemake`` from the unit lane this
+    way, and its build was the gate for most of its time.
     """
     if _UNSTUBS_THE_GATE & set(request.fixturenames):
         return
-    monkeypatch.setattr(
-        "seqforge.compose.gates.wiring_gate",
-        lambda pipeline_dir, plan: GateVerdict(
-            status="skip", reason=["stubbed by `_no_wiring_gate`; this test did not ask to spawn"]
-        ),
+    monkeypatch.setattr("seqforge.compose.gates.wiring_gate", _skipped_gate)
+
+
+def _skipped_gate(pipeline_dir: Path, plan: ComposePlan) -> GateVerdict:
+    """The verdict a stubbed gate returns: planned nothing, spawned nothing."""
+    return GateVerdict(
+        status="skip", reason=["stubbed by `_no_wiring_gate`; this test did not ask to spawn"]
     )
+
+
+@contextmanager
+def no_wiring_gate() -> Iterator[None]:
+    """:func:`_no_wiring_gate`'s stub, for a fixture scoped wider than one test."""
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr("seqforge.compose.gates.wiring_gate", _skipped_gate)
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -1220,10 +1236,25 @@ def composed_plate(
     :data:`synth_plate_se` composed the same way is the ``{umi_cdna}`` half. Nothing stubs the gate
     here — a session fixture is built before the function-scoped autouse stub applies, and a verdict
     of ``"skip"`` would fail its reader's assertion loudly rather than pass for the wrong reason.
+
+    **The two spawns run AT THE SAME TIME**, which is what keeps the fixture inside one test's time
+    limit: back to back they were its whole 2s. The plan starts from inside the gate ``compose``
+    calls, the moment the directory is complete, and is taken over a replica of its own, so the
+    verdict is still the one ``compose`` ran and the plan text is still the one its readers assert on.
     """
+    from concurrent.futures import Future, ThreadPoolExecutor
+
     import yaml
 
-    from seqforge.compose import compose
+    from seqforge.compose import compose, gates
+
+    staged_gate = gates.wiring_gate
+    planned: list[Future[str]] = []
+
+    def gate_beside_the_plan(directory: Path, plan: ComposePlan) -> GateVerdict:
+        stage_reference(directory)  # once, before the threads: `_stand_up`'s cache holds no lock
+        planned.append(pool.submit(snakemake_dry_run, directory, plan))
+        return staged_gate(directory, plan)
 
     workdir = tmp_path_factory.mktemp("composed-plate")
     dataset = synth_smartseq3
@@ -1234,16 +1265,19 @@ def composed_plate(
         accession="PRJNA1027859",
     )
     processing = _processing(manifest)
-    result = compose(
-        manifest,
-        processing,
-        registry=dataset.registry,
-        workspace=workdir / "ws",
-        run_wiring_gate=True,
-    )
+    with ThreadPoolExecutor(max_workers=1) as pool, pytest.MonkeyPatch.context() as patch:
+        patch.setattr(gates, "wiring_gate", gate_beside_the_plan)
+        result = compose(
+            manifest,
+            processing,
+            registry=dataset.registry,
+            workspace=workdir / "ws",
+            run_wiring_gate=True,
+        )
+        assert len(planned) == 1, "compose never reached its wiring gate, so nothing was planned"
+        plan_text = planned[0].result()
     pipeline_dir = (workdir / "ws" / result.snakefile_path).parent
     config = yaml.safe_load((workdir / "ws" / result.config_path).read_text())
-    plan = compose_core.plan(manifest, processing, registry=dataset.registry)
     return ComposedPlate(
         manifest=manifest,
         processing=processing,
@@ -1251,7 +1285,7 @@ def composed_plate(
         pipeline_dir=pipeline_dir,
         config=config,
         gate=dict(result.gate),
-        plan_text=snakemake_dry_run(pipeline_dir, plan),
+        plan_text=plan_text,
         cells=cells,
     )
 

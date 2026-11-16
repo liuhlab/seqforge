@@ -21,7 +21,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from conftest import write_fastq_gz
+from conftest import no_wiring_gate, write_fastq_gz
 from seqforge import kb
 from seqforge.cli import app
 from seqforge.report import collect_report, render_html
@@ -83,8 +83,12 @@ def _bulk_workspace(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
     `_build_bulk_workspace` runs the whole `seqforge run` verb — 2.2s measured, and it was the top
     13 entries in `--durations` because every test below re-ran it to look at the same page.
+
+    Under the stubbed wiring gate, as every unit test composes: nothing here reads its verdict, and
+    a module fixture is built before the per-test stub applies.
     """
-    return _build_bulk_workspace(tmp_path_factory.mktemp("report-bulk"))
+    with no_wiring_gate():
+        return _build_bulk_workspace(tmp_path_factory.mktemp("report-bulk"))
 
 
 @pytest.fixture

@@ -1433,6 +1433,12 @@ def _two_bulk_runs(tmp_path: Path) -> Path:
     shape the resolver reads differently. The seeds differ because the two runs must be different
     bytes: identical reads content-address to identical shas, and a manifest keyed by sha would
     silently hold two files where four were handed to it.
+
+    **400 reads a file, not the case's 3000.** Both front doors probe and score every file, so
+    depth is paid four times over and is not the subject: the contract compares two doors over the
+    same bytes. Bulk is decided by the distinct-ratio of its two cDNA mates, which 400 reads settle
+    as 3000 do (`grouping/record-less-two-libraries-two-lanes` decides bulk at 400), so the
+    single-cell claim a divergent reduction picks still meets bulk bytes and still stops at exit 4.
     """
     import dataclasses
 
@@ -1440,7 +1446,7 @@ def _two_bulk_runs(tmp_path: Path) -> Path:
     data = tmp_path / "data"
     data.mkdir(parents=True, exist_ok=True)
     for seed, accession in enumerate(CONTRACT_RUNS):
-        seeded = case.recipe.generate.model_copy(update={"seed": seed})
+        seeded = case.recipe.generate.model_copy(update={"seed": seed, "n": 400})
         built = materialize(
             dataclasses.replace(case, recipe=case.recipe.model_copy(update={"generate": seeded})),
             tmp_path / f"gen-{accession}",
@@ -1588,7 +1594,6 @@ def _field_diff(harness: dict[str, Any], front_door: dict[str, Any]) -> str:
     )
 
 
-@pytest.mark.slow
 def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1792,7 +1797,6 @@ def test_a_record_less_multi_lane_deposit_stays_two_samples(
 STARVED_CASE_ID = "plate-with-a-starved-cell"
 
 
-@pytest.mark.slow
 def test_a_starved_cell_leaves_the_manifest_whole_and_the_pipeline_short(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

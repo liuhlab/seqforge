@@ -1063,7 +1063,6 @@ def test_run_carries_the_knowledge_base_divergence_on_its_machine_surface(
     )
 
 
-@pytest.mark.slow
 def test_run_says_the_knowledge_base_agrees_when_it_does(tmp_path: Path) -> None:
     """...and reports agreement on the ordinary path, which is what makes the field readable.
 
@@ -1320,7 +1319,6 @@ def test_no_module_under_src_prints_to_stdout(src_trees: SrcTrees) -> None:
     )
 
 
-@pytest.mark.slow
 def test_manifest_fill_on_a_three_run_dataset_keeps_every_file(tmp_path: Path) -> None:
     """A multi-run dataset through the real CLI: 6 files, 3 runs, 3 samples, 0 files dropped.
 

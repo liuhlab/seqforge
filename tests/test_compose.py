@@ -37,6 +37,7 @@ from conftest import (
     planning_route,
     plate_of,
     solo_block,
+    stage_reference,
     star_modules,
     write_fastq_gz,
 )
@@ -2128,7 +2129,13 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
     of jobs...` at exit 1 — the same class, at the same point, as the ADR's measurement at 7e2488f.
     The mate-less half of that config is left exactly as compose emitted it, so what is under test is
     the gate's reach and not the layout.
+
+    The break goes into a copy of the composed directory, so the two verdicts are two gates over two
+    directories that differ by that one key, and they run at the same time: back to back, the two
+    spawns were this test's whole time limit.
     """
+    from concurrent.futures import ThreadPoolExecutor
+
     from seqforge.compose.gates import REASON_TAIL_LINES, wiring_gate
 
     manifest, reg = synth_plate_se.manifest, synth_plate_se.registry
@@ -2136,15 +2143,21 @@ def test_a_plate_the_dag_builder_cannot_plan_would_be_caught(
     result = compose(manifest, processing, registry=reg, workspace=tmp_path, run_wiring_gate=False)
     pipeline_dir = (tmp_path / result.snakefile_path).parent
     p = plan(manifest, processing, registry=reg)
-    assert wiring_gate(pipeline_dir, p).status == "pass", (
-        "the unbroken single-end plate must plan, or the red below says nothing"
-    )
 
-    config_path = pipeline_dir / "config.yaml"
+    broken = tmp_path / "broken"
+    shutil.copytree(pipeline_dir, broken)
+    config_path = broken / "config.yaml"
     config = yaml.safe_load(config_path.read_text())
     del config["read_files_in"]["umi_cdna"]
     config_path.write_text(yaml.safe_dump(config, sort_keys=True))
-    verdict = wiring_gate(pipeline_dir, p)
+
+    stage_reference(pipeline_dir)  # once, before the threads: `_stand_up`'s cache holds no lock
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        red = pool.submit(wiring_gate, broken, p)
+        assert wiring_gate(pipeline_dir, p).status == "pass", (
+            "the unbroken single-end plate must plan, or the red below says nothing"
+        )
+        verdict = red.result()
     assert verdict.status == "fail", (
         "a plate whose tagged read the module cannot name dies while the DAG is being built, and "
         "the gate called it a pass"

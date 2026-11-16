@@ -59,7 +59,7 @@ from seqforge import kb
 from seqforge.compose import compose, core
 from seqforge.manifest import intron_length_cap
 from seqforge.models.dataset import ReadDef, ReadElement, ReadLayout
-from seqforge.models.processing import RuntimeEnv, SoloFeature
+from seqforge.models.processing import ProcessingManifest, RuntimeEnv, SoloFeature
 from seqforge.workflows import (
     CHIMERIC_VARIANTS,
     PLATE_COMPONENT_H5AD,
@@ -1490,6 +1490,35 @@ def test_every_registered_module_wires_into_a_runnable_dag(
     assert not strays, f"the gate left zero-byte stand-ins in the run dir: {strays}"
 
 
+#: Each module's composed route and the plan snakemake made of it, keyed by module, per worker.
+_MODULE_PLANS: dict[str, tuple[ProcessingManifest, str]] = {}
+
+
+def _module_plan(module: str, tmp_path: Path, dry_run: DryRun) -> tuple[ProcessingManifest, str]:
+    """``module``'s :func:`~conftest.planning_route`, composed and planned ONCE: its processing and plan.
+
+    Three invariants below read the same plan of the same route, so a spawn each re-rendered the
+    one text three times. The first caller composes into its own ``tmp_path`` and spawns; the rest
+    read the text. :func:`_by_module` keeps every case of one module on one worker, which is what
+    makes the cache shared under xdist.
+    """
+    if module not in _MODULE_PLANS:
+        tech, assembly = planning_route(module)
+        manifest, reg = _build(tmp_path, tech)
+        processing = _processing(manifest, assembly=assembly)
+        result = compose(manifest, processing, registry=reg, workspace=tmp_path)
+        assert result.modules[0].name == module
+        pipeline_dir = (tmp_path / result.snakefile_path).parent
+        text = dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg))
+        _MODULE_PLANS[module] = (processing, text)
+    return _MODULE_PLANS[module]
+
+
+def _by_module(modules: Sequence[str]) -> list[Any]:
+    """``modules`` as parametrize cases, each in its module's ``xdist_group``: see :func:`_module_plan`."""
+    return [pytest.param(m, marks=pytest.mark.xdist_group(f"module-plan-{m}")) for m in modules]
+
+
 @dataclass(frozen=True)
 class _PlannedJob:
     """One job snakemake said it would run — its rule, its wildcards, and the paths on both sides.
@@ -1563,7 +1592,7 @@ def _planned_jobs(plan_text: str) -> list[_PlannedJob]:
 MODULES_WITHOUT_A_COMPLETION_RECORD: frozenset[str] = frozenset()
 
 
-@pytest.mark.parametrize("module", list_modules())
+@pytest.mark.parametrize("module", _by_module(list_modules()))
 def test_rule_all_names_one_file_per_sample_and_that_file_waits_for_the_whole_sample(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
@@ -1609,14 +1638,7 @@ def test_rule_all_names_one_file_per_sample_and_that_file_waits_for_the_whole_sa
     """
     from seqforge.workflows import stats as stats_registry
 
-    tech, assembly = planning_route(module)
-    manifest, reg = _build(tmp_path, tech)
-    processing = _processing(manifest, assembly=assembly)
-    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
-    assert result.modules[0].name == module
-    pipeline_dir = (tmp_path / result.snakefile_path).parent
-
-    jobs = _planned_jobs(dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg)))
+    jobs = _planned_jobs(_module_plan(module, tmp_path, dry_run)[1])
     # The shorter target list may not have shortened the DAG, and this is the clause the other two
     # rest on. A rule unreachable from `rule all` plans nothing at all, so a name dropped from the
     # list and a rule that stopped being demanded look identical from inside a plan — every claim
@@ -1718,7 +1740,7 @@ def test_rule_all_names_one_file_per_sample_and_that_file_waits_for_the_whole_sa
 RULES_THAT_MAY_OWN_A_SHARED_PATH: frozenset[str] = frozenset({"load_genome"})
 
 
-@pytest.mark.parametrize("module", list_modules())
+@pytest.mark.parametrize("module", _by_module(list_modules()))
 def test_no_planned_job_owns_a_path_a_concurrent_instance_would_delete(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
@@ -1754,14 +1776,7 @@ def test_no_planned_job_owns_a_path_a_concurrent_instance_would_delete(
     it is there; a shared output added to THAT one is what this cannot see, so the load flag is
     additionally held to being a single file.
     """
-    tech, assembly = planning_route(module)
-    manifest, reg = _build(tmp_path, tech)
-    processing = _processing(manifest, assembly=assembly)
-    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
-    assert result.modules[0].name == module
-    pipeline_dir = (tmp_path / result.snakefile_path).parent
-
-    jobs = _planned_jobs(dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg)))
+    jobs = _planned_jobs(_module_plan(module, tmp_path, dry_run)[1])
     fan_in = get_module(module).fan_in_artifact
     pattern = re.escape(fan_in or "").replace(r"\{component\}", r"[^/]+")
     shared: dict[str, str] = {}
@@ -1909,7 +1924,7 @@ def test_a_shard_naming_the_fan_ins_inputs_keeps_them_while_a_whole_plate_reclai
     )
 
 
-@pytest.mark.parametrize("module", star_modules())
+@pytest.mark.parametrize("module", _by_module(star_modules()))
 def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_it_stamps(
     module: str, tmp_path: Path, dry_run: DryRun
 ) -> None:
@@ -2015,14 +2030,7 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
     That is not an exemption: the twin carries a fourth copy of this lifecycle and owes every claim
     below, and the route is what lets it pay them with no fixture and nothing on disk.
     """
-    tech, assembly = planning_route(module)
-    manifest, reg = _build(tmp_path, tech)
-    processing = _processing(manifest, assembly=assembly)
-    result = compose(manifest, processing, registry=reg, workspace=tmp_path)
-    assert result.modules[0].name == module
-    pipeline_dir = (tmp_path / result.snakefile_path).parent
-
-    plan_text = dry_run(pipeline_dir, core.plan(manifest, processing, registry=reg))
+    processing, plan_text = _module_plan(module, tmp_path, dry_run)
     rendered = _rendered_shell(plan_text)
 
     assert list(rendered.get("load_genome", {})) == [""], (
@@ -2710,6 +2718,8 @@ def test_a_mate_the_module_will_not_stage_and_the_table_still_offers_is_refused_
     assert "must be the same answer" in refusal, refusal
 
 
+# Two spawns in series (the plan, then the `seqforge` CLI it renders): about 2.1s in CI.
+@pytest.mark.slow
 def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_two_runs(
     tmp_path: Path, dry_run: DryRun
 ) -> None:
