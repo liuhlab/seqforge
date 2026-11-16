@@ -29,7 +29,9 @@ on:
 # Keyed on the workflow and the ref, so pushing again to a pull request cancels the run it
 # supersedes. A run started by hand is never cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # The draft state is part of the key: a draft's run is skipped, and must not cancel the
+  # real run that marking the pull request ready starts in the same second.
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.draft }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
