@@ -20,6 +20,10 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   ran on every push to `main`.
 - `pixi run check` runs the three test lanes one after another, as CI does, so each lane is timed
   with the machine to itself.
+- liulab-genome is now pinned at `2026.11.1.dev15+gb88e2c40e`, up from
+  `2026.8.1.dev2+g30e302516`. seqforge now imports from `genome.assembly.metadata` and
+  `genome.assembly.chimera`, so an installed liulab-genome older than this pin fails with an
+  `ImportError`.
 
 ### Fixed
 

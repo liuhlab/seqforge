@@ -110,7 +110,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from genome.chimera import ChimeraNamingError, split_suffixed
+from genome.assembly.chimera import ChimeraNamingError, split_suffixed
 
 from .. import __version__
 from . import WORKFLOW_VERSION
