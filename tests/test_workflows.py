@@ -32,7 +32,7 @@ import anndata as ad
 import pysam
 import pytest
 import yaml
-from genome.chimera import derive_separator, split_suffixed, suffixed
+from genome.assembly.chimera import derive_separator, split_suffixed, suffixed
 from scipy.sparse import csr_matrix
 
 from conftest import (
@@ -5147,7 +5147,7 @@ _READ_LEN = 20
 def _annotation_db(tmp_path: Path) -> Path:
     """The synthetic GTF, built into a gffutils database the way liulab-genome builds one.
 
-    The flags mirror `genome.io.gtf.register_gtf` — `keep_order`, `merge_strategy="create_unique"`,
+    The flags mirror `genome.annotation.register_gtf` — `keep_order`, `merge_strategy="create_unique"`,
     `sort_attribute_values`, and inference disabled because a real annotation declares its own
     `gene` rows. Building it here rather than reaching for a registered assembly is what keeps this
     species-free and runnable with no genome on the box: what the counter consumes is a database,

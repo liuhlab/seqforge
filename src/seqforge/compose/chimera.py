@@ -18,7 +18,7 @@ This module owns the *conversion of upstream's refusal into a value*, and nothin
 
 from __future__ import annotations
 
-from genome.chimera import ChimeraNamingError, split_name
+from genome.assembly.chimera import ChimeraNamingError, split_name
 
 
 def components(assembly: str) -> tuple[str, ...] | None:

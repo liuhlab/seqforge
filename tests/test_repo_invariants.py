@@ -149,7 +149,7 @@ def test_seqforge_only_calls_liulab_genome_methods_that_exist() -> None:
     nobody visits. That is the fix; renaming the method was just the symptom.
     """
     from genome import AnnotationRegistry, Genome
-    from genome import metadata as genome_metadata
+    from genome.assembly import metadata as genome_metadata
 
     missing = sorted(name for name in _GENOME_API if not hasattr(Genome, name))
     assert not missing, (

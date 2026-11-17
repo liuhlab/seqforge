@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from genome.metadata import assembly_metadata
+from genome.assembly.metadata import assembly_metadata
 
 from ..compose.chimera import components
 from ..harvest.prep import normalize_prep_type as _normalize_prep_type
