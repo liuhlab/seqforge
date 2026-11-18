@@ -31,7 +31,7 @@ This runs the kind over its default units, in the kind's own order. Each unit en
 ways:
 
 | Ending | What it means |
-|---|---|
+| --- | --- |
 | settled | The answer passed every check |
 | unsettled | The answer failed a check, and a person or a stronger model should look |
 | refused | The kind's code declined to answer the unit |
@@ -41,7 +41,7 @@ ways:
 The options:
 
 | Option | What it does |
-|---|---|
+| --- | --- |
 | `--ceiling-usd` | The most the pass may spend, in dollars. Required: it has no default |
 | `--model ROLE=PROVIDER/NAME[,KEY=VALUE...]` | The model for one role, such as `writer=deepseek/deepseek-v4-flash,thinking=off`. Repeat it for more roles. The keys are `thinking` (`on` or `off`), `effort`, `temperature` and `max-output-tokens`. A role you do not name takes the kind's default model |
 | `--keys FILE` | Run exactly these units, one key per line, in this order |
@@ -61,7 +61,7 @@ While the pass runs, a progress line goes to stderr at most every 30 seconds. It
 ended so far, by ending, and the dollars spent. stdout carries one JSON object and nothing else:
 
 | Field | Value |
-|---|---|
+| --- | --- |
 | `kind`, `kind_version` | The kind, and its hand-set version |
 | `task` | The task folder |
 | `pass_id`, `label` | The pass's number in the task, and its label |
@@ -79,7 +79,7 @@ one build, even if the store is refreshed while it runs.
 ### Exit codes
 
 | Exit | When |
-|---|---|
+| --- | --- |
 | 0 | The pass reached the end of its units, whatever the counts |
 | 2 | A setup it cannot use: an unknown kind, models that do not fill the kind's roles, a model or keys file it cannot read, no review clone, no gateway address, or a task folder this liulab-llms cannot read. One line on stderr says which |
 | 3 | The pass stopped: at its ceiling, at a provider's balance or cap, or because a provider or the gateway was unavailable. Or another process holds the task, and `message` names it |
