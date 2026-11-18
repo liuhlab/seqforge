@@ -1,0 +1,65 @@
+"""The registry of seqforge's unit kinds, by name.
+
+A kind is registered once, by the module that defines it, and every pass and review command finds
+it here by the name a person types. It holds no production kind yet: bounding registers the first
+one. Tests register their own.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from . import SetupRefused
+
+if TYPE_CHECKING:
+    # liulab-data is a pixi dependency and not a wheel one, so nothing here imports it at run time.
+    from labdata import Store
+    from labllm import Model, UnitKind
+
+
+@dataclass(frozen=True)
+class Kind:
+    """A seqforge unit kind: liulab-llms's kind plus what seqforge decides around it.
+
+    ``build`` makes the liulab-llms ``UnitKind``, named ``name``. It is handed the store a pass
+    opened -- one build, read once when the pass starts -- when the kind reads liulab-data's store,
+    and ``None`` when it does not, so the kind's ``load`` closes over that one build and never opens
+    the store itself. ``default_keys`` gives the units a pass covers when it names none, in the order
+    they should start, from the same store. ``default_models`` fills every role a pass does not name.
+    """
+
+    name: str
+    build: Callable[[Store | None], UnitKind]
+    default_models: Mapping[str, Model]
+    default_keys: Callable[[Store | None], Iterable[str]]
+    reads_store: bool = False
+
+    def unit_kind(self, store: Store | None) -> UnitKind:
+        """The liulab-llms kind over ``store``. Raises ``ValueError`` if its name is not this one's."""
+        made = self.build(store)
+        if made.name != self.name:
+            raise ValueError(f"kind {self.name!r} builds a liulab-llms kind named {made.name!r}")
+        return made
+
+
+#: Every registered kind, by name.
+KINDS: dict[str, Kind] = {}
+
+
+def register(kind: Kind) -> Kind:
+    """Register ``kind`` under its name. Raises ``ValueError`` if that name is taken."""
+    if kind.name in KINDS:
+        raise ValueError(f"a kind named {kind.name!r} is already registered")
+    KINDS[kind.name] = kind
+    return kind
+
+
+def kind_named(name: str) -> Kind:
+    """The kind registered as ``name``. Raises :class:`SetupRefused` naming the ones there are."""
+    try:
+        return KINDS[name]
+    except KeyError:
+        known = ", ".join(sorted(KINDS)) or "none yet"
+        raise SetupRefused(f"no kind named {name!r}; registered kinds: {known}") from None

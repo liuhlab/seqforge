@@ -82,6 +82,11 @@ FINGERPRINT_DIRNAME = "fingerprint"
 #: outputs a human reaches for, not under `cache/`.
 REPORT_HTML = "report.html"
 
+#: The run engine's tasks, one `passes/<kind>/` per seqforge unit kind: liulab-llms's state file
+#: of every pass over that kind's units. State, not cache -- deleting it does not lose the answers,
+#: which the gateway's cache replays, but it loses which pass gave which ending and what each cost.
+PASSES_DIRNAME = "passes"
+
 
 def state_dir(workspace: str | Path = ".", *parts: str) -> Path:
     """``<workspace>/seqforge/<parts...>``. Does not create anything — callers that write, mkdir."""
@@ -138,6 +143,11 @@ def fingerprint_dir(workspace: str | Path = ".") -> Path:
     nothing.
     """
     return state_dir(workspace, FINGERPRINT_DIRNAME)
+
+
+def passes_dir(workspace: str | Path = ".", *parts: str) -> Path:
+    """``seqforge/passes/<parts...>`` — a kind's task folder is ``passes_dir(workspace, kind)``."""
+    return state_dir(workspace, PASSES_DIRNAME, *parts)
 
 
 def eval_dir(workspace: str | Path = ".") -> Path:

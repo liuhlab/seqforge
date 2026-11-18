@@ -47,19 +47,22 @@ import ast
 import gzip
 import hashlib
 import itertools
+import json
 import os
 import re
 import sys
 import types
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
 import pytest
 import yaml
+from labllm import Held, Inputs, Model, Role, Unit, UnitKind
+from labllm.testing import FakeGateway, Price
 
 from time_limits import pytest_addoption as pytest_addoption
 from time_limits import pytest_configure as pytest_configure
@@ -442,6 +445,8 @@ class StubStore:
     experiments: dict[str, list[str]]
     texts: dict[str, str]
     raw_calls: list[list[str]]
+    #: The parsed store marker, as the real store's ``settings`` is: ``build`` names the build read.
+    settings: dict[str, Any] = field(default_factory=lambda: {"build": "stub-build"})
 
     def experiments_for(self, accession: str, *, partial: bool = False) -> list[Any]:
         from labdata.exceptions import NotFound
@@ -506,6 +511,106 @@ def stored_pilot(monkeypatch: pytest.MonkeyPatch) -> StubStore:
     store = stub_store("PRJNA1027859", **PILOT_XML)
     monkeypatch.setattr(labdata, "open_store", lambda root=None: store)
     return store
+
+
+# The run engine's test-only kind. No production kind is registered until bounding exists, so the
+# pass and review commands are exercised on this one: one writer role that writes a text in capitals,
+# over fixture texts, behind liulab-llms's fake gateway.
+
+#: The texts the echo kind's units read, by key, in the kind's default order.
+ECHO_TEXTS = {"u1": "alpha", "u2": "beta", "u3": "gamma", "u4": "delta"}
+ECHO_SCHEMA = {
+    "type": "object",
+    "properties": {"word": {"type": "string"}},
+    "required": ["word"],
+    "additionalProperties": False,
+}
+
+
+ECHO_WEAK = Model("test", "echo-weak", max_output_tokens=50)
+ECHO_STRONG = Model("test", "echo-strong", max_output_tokens=50)
+#: Input is free and output costs a tenth of a cent a character, so each call holds back five cents
+#: against the ceiling: a ceiling of six cents lets exactly one call through.
+ECHO_PRICES = {
+    m.name: Price(input_usd_per_token=0.0, output_usd_per_token=0.001)
+    for m in (ECHO_WEAK, ECHO_STRONG)
+}
+
+
+def echo_writer(form: dict[str, Any]) -> str:
+    """Plays the writer. The strong model answers every text right; the weak one answers alpha right,
+    beta and delta wrong (unsettled) and gamma with no word (refused)."""
+    text = form["messages"][-1]["content"]
+    if form["model"] == ECHO_STRONG.name:
+        return json.dumps({"word": text.upper()})
+    return json.dumps({"word": {"alpha": "ALPHA", "gamma": ""}.get(text, text[::-1])})
+
+
+def echo_unit_kind(texts: dict[str, str], *, name: str = "echo") -> UnitKind:
+    """The liulab-llms kind: write the unit's text in capitals, checked by code."""
+
+    def load(key: str) -> Inputs:
+        if key not in texts:
+            raise Held(f"no text for {key}")
+        return Inputs(texts[key], tag=f"text={texts[key]}")
+
+    def run(u: Unit) -> dict[str, str]:
+        word = json.loads(u.chat("writer", user=u.inputs.data, schema=ECHO_SCHEMA).text)["word"]
+        if not word:
+            u.refuse("answered", "the writer gave no word")
+        return {"word": word}
+
+    def in_capitals(inputs: Inputs, answer: dict[str, str]) -> str | None:
+        wanted = inputs.data.upper()
+        return None if answer["word"] == wanted else f"{answer['word']!r} is not {wanted!r}"
+
+    return UnitKind(
+        name=name,
+        version="1",
+        roles={"writer": Role("chat", "writes a text in capitals")},
+        load=load,
+        run=run,
+        answer_schema=ECHO_SCHEMA,
+        answer_checks=(in_capitals,),
+    )
+
+
+@pytest.fixture
+def echo_kind(monkeypatch: pytest.MonkeyPatch) -> Any:
+    """The echo kind, registered under ``echo`` for this test only."""
+    from seqforge.passes.kinds import KINDS, Kind
+
+    kind = Kind(
+        name="echo",
+        build=lambda store: echo_unit_kind(ECHO_TEXTS),
+        default_models={"writer": ECHO_WEAK},
+        default_keys=lambda store: list(ECHO_TEXTS),
+    )
+    monkeypatch.setitem(KINDS, kind.name, kind)
+    return kind
+
+
+@pytest.fixture
+def echo_gateway(monkeypatch: pytest.MonkeyPatch) -> FakeGateway:
+    """liulab-llms's fake gateway, with :func:`echo_writer` as the provider, behind the commands."""
+    fake = FakeGateway(echo_writer, prices=ECHO_PRICES)
+    monkeypatch.setattr(
+        "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
+    )
+    return fake
+
+
+@pytest.fixture
+def review_clone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """An empty clone of the review repo, and the working directory a pass's task defaults under.
+
+    ``SEQFORGE_REVIEWS`` is cleared, so a machine that sets it cannot hand a test its real clone.
+    """
+    monkeypatch.delenv("SEQFORGE_REVIEWS", raising=False)
+    monkeypatch.chdir(tmp_path)
+    clone = tmp_path / "review-clone"
+    (clone / "reviews").mkdir(parents=True)
+    return clone
 
 
 @pytest.fixture

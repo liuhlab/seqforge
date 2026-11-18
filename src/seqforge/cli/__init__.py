@@ -1,8 +1,9 @@
 """The ``seqforge`` Typer application, assembled from one module per command group.
 
 The CLI is the API: every skill action maps to a deterministic ``seqforge <verb>`` (JSON on stdout by
-default) that runs with no LLM in the loop -- only ``harvest extract`` and the opt-in
-``resolve adjudicate`` touch an LLM. Exit codes are uniform: ``0`` OK, ``1`` ERROR, ``2`` USAGE,
+default) that runs with no LLM in the loop -- only ``harvest extract``, the opt-in
+``resolve adjudicate`` and ``pass start``, which runs a unit kind's model work through the lab
+gateway, touch an LLM. Exit codes are uniform: ``0`` OK, ``1`` ERROR, ``2`` USAGE,
 ``3`` BLOCKED (a Blocker), ``4`` NEEDS_HUMAN (an open Conflict / question).
 
 Importing this package builds ``app``: :mod:`.root` defines the shared Typer instances, and importing
@@ -23,6 +24,7 @@ from . import (  # noqa: F401
     io,
     kb,
     manifest,
+    passes,
     preflight,
     probe,
     processing,

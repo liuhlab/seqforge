@@ -1,0 +1,244 @@
+"""`seqforge pass`, driven in-process through the CLI with liulab-llms's fake gateway behind it.
+
+A pass of a seqforge kind is the run engine's (liulab-llms's) work; what seqforge owns is the
+command around it: which kind, which models, which keys, which task, and what a caller gets back --
+one JSON object on stdout and an exit code it can act on. So every test here asserts only on that
+JSON, the exit code, and the fake gateway's record, which is part of liulab-llms's contract. None
+reads the task's state file.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import socket
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+import pytest
+from labllm import Reviews, Task
+from labllm.testing import FakeGateway
+from typer.testing import CliRunner
+
+from conftest import ECHO_STRONG, ECHO_TEXTS, ECHO_WEAK, StubStore, echo_unit_kind
+from seqforge.cli import app
+from seqforge.passes import gateway
+from seqforge.passes.kinds import KINDS, Kind
+
+runner = CliRunner()
+
+
+def start(clone: Path, *argv: str) -> tuple[int, dict[str, Any]]:
+    """Run ``seqforge pass start`` and return its exit code and its JSON."""
+    result = runner.invoke(app, ["pass", "start", *argv, "--reviews", str(clone)])
+    assert result.stdout, result.stderr
+    return result.exit_code, json.loads(result.stdout)
+
+
+def test_a_pass_that_reaches_the_end_of_its_keys_exits_0_and_counts_every_ending(
+    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
+) -> None:
+    code, out = start(review_clone, "echo", "--ceiling-usd", "1")
+
+    assert code == 0
+    assert out == {
+        "kind": "echo",
+        "kind_version": "1",
+        "task": str(Path("seqforge", "passes", "echo")),
+        "pass_id": 1,
+        "label": "echo",
+        "store_build": None,
+        "models": {
+            "writer": {
+                "provider": ECHO_WEAK.provider,
+                "name": ECHO_WEAK.name,
+                "thinking": None,
+                "effort": None,
+                "temperature": None,
+                "max_output_tokens": 50,
+            }
+        },
+        "keys": 4,
+        "counts": {"settled": 1, "unsettled": 2, "refused": 1, "unfinished": 0, "held": 0},
+        "stopped": None,
+        "message": None,
+        "spent_usd": out["spent_usd"],
+        "first_cost_usd": out["first_cost_usd"],
+        "requests": 4,
+        "cache_hits": 0,
+    }
+    assert out["spent_usd"] == out["first_cost_usd"] > 0
+
+
+def test_a_pass_stopped_at_its_ceiling_exits_3_and_its_rerun_replays_answers_at_no_cost(
+    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
+) -> None:
+    # Each call holds back five cents, so six cents lets the first unit through and stops the next.
+    code, out = start(review_clone, "echo", "--ceiling-usd", "0.06", "--units-at-once", "1")
+
+    assert code == 3
+    assert out["stopped"] == "ceiling_reached"
+    # The gateway's own words for the stop, not only the reason already in `stopped`.
+    assert "over its ceiling of 0.06" in out["message"]
+    assert out["counts"] == {"settled": 1, "unsettled": 0, "refused": 0, "unfinished": 3, "held": 0}
+
+    sent = len(echo_gateway.record)
+    code, out = start(review_clone, "echo", "--ceiling-usd", "1", "--units-at-once", "1")
+
+    assert code == 0, out
+    assert (out["stopped"], out["message"]) == (None, None)
+    assert out["counts"] == {"settled": 1, "unsettled": 2, "refused": 1, "unfinished": 0, "held": 0}
+    rerun = echo_gateway.record[sent:]
+    assert {x.tag for x in rerun if x.cached} == {"u1"}
+    assert all(x.cost_usd == 0 for x in rerun if x.cached)
+    assert out["cache_hits"] == 1
+
+
+def test_only_unsettled_and_refused_runs_those_units_on_a_stronger_model_and_skips_reviewed_ones(
+    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
+) -> None:
+    code, _ = start(review_clone, "echo", "--ceiling-usd", "1")
+    assert code == 0
+    # A person settles delta, one of the weak model's two wrong answers, as review read will.
+    Reviews(review_clone / "reviews").save(
+        echo_unit_kind(ECHO_TEXTS),
+        "u4",
+        who="a reviewer",
+        inputs_tag="text=delta",
+        answer={"word": "DELTA"},
+    )
+
+    strong = f"writer={ECHO_STRONG.provider}/{ECHO_STRONG.name},max-output-tokens=50"
+    sent = len(echo_gateway.record)
+    code, out = start(
+        review_clone, "echo", "--ceiling-usd", "1", "--only", "unsettled,refused", "--model", strong
+    )
+
+    assert code == 0
+    assert out["keys"] == 2
+    assert out["models"]["writer"]["name"] == ECHO_STRONG.name
+    assert out["counts"] == {"settled": 2, "unsettled": 0, "refused": 0, "unfinished": 0, "held": 0}
+    assert {x.tag for x in echo_gateway.record[sent:]} == {"u2", "u3"}
+
+
+def test_keys_file_runs_exactly_its_keys_in_its_order(
+    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path, tmp_path: Path
+) -> None:
+    keys = tmp_path / "keys.txt"
+    keys.write_text("u3\nu1\n")
+
+    code, out = start(
+        review_clone, "echo", "--ceiling-usd", "1", "--keys", str(keys), "--units-at-once", "1"
+    )
+
+    assert code == 0
+    assert out["keys"] == 2
+    assert [x.tag for x in echo_gateway.record] == ["u3", "u1"]
+
+
+def test_a_task_another_process_holds_exits_3_naming_the_holder(
+    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
+) -> None:
+    folder = Path("seqforge", "passes", "echo")
+    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
+        code, out = start(review_clone, "echo", "--ceiling-usd", "1")
+
+    assert code == 3
+    assert out["stopped"] == "task_in_use"
+    assert f"process {os.getpid()} on {socket.gethostname()}" in out["message"]
+    assert echo_gateway.record == []
+
+
+def _no_gateway_address(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", _REAL_MAKE_GATEWAY)
+    monkeypatch.delenv("LABLLM_GATEWAY", raising=False)
+
+
+def _state_file_of_another_layout(monkeypatch: pytest.MonkeyPatch) -> None:
+    folder = Path("seqforge", "passes", "echo")
+    folder.mkdir(parents=True)
+    (folder / "state.sqlite").write_text("a file liulab-llms did not write")
+
+
+#: The real gateway seam, before a test's fixture replaces it with the fake's client.
+_REAL_MAKE_GATEWAY = gateway.make_gateway
+_CLONE = "<the review clone>"
+_SET_UP = ["echo", "--ceiling-usd", "1", "--reviews", _CLONE]
+
+
+@pytest.mark.parametrize(
+    ("argv", "arrange", "reason"),
+    [
+        pytest.param(["nope", *_SET_UP[1:]], None, "no kind named 'nope'", id="unknown-kind"),
+        pytest.param(
+            [*_SET_UP, "--model", "reader=test/echo-weak"], None, "no role reader", id="roles"
+        ),
+        pytest.param(
+            [*_SET_UP, "--model", "writer=echo-weak"], None, "ROLE=PROVIDER/NAME", id="model"
+        ),
+        pytest.param(
+            [*_SET_UP, "--keys", "absent.txt"], None, "cannot read the keys file", id="keys-file"
+        ),
+        pytest.param(_SET_UP[:3], None, "no reviews folder", id="no-reviews"),
+        pytest.param(_SET_UP, _no_gateway_address, "LABLLM_GATEWAY", id="no-gateway"),
+        pytest.param(
+            _SET_UP, _state_file_of_another_layout, "not a task's state file", id="layout"
+        ),
+        pytest.param(["echo", "--reviews", _CLONE], None, None, id="no-ceiling"),
+    ],
+)
+def test_a_setup_the_pass_cannot_use_exits_2_with_a_one_line_reason(
+    argv: list[str],
+    arrange: Callable[[pytest.MonkeyPatch], None] | None,
+    reason: str | None,
+    echo_kind: Any,
+    echo_gateway: FakeGateway,
+    review_clone: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    if arrange is not None:
+        arrange(monkeypatch)
+
+    argv = [str(review_clone) if a == _CLONE else a for a in argv]
+    result = runner.invoke(app, ["pass", "start", *argv])
+
+    assert result.exit_code == 2, result.stdout + result.stderr
+    assert result.stdout == ""
+    assert echo_gateway.record == []
+    if reason is None:  # the ceiling has no default: leaving it out is the CLI's usage error
+        assert "--ceiling-usd" in result.stderr
+    else:
+        assert reason in result.stderr
+        assert len(result.stderr.strip().splitlines()) == 1, result.stderr
+
+
+def test_a_kind_that_reads_the_store_reads_one_build_and_names_it(
+    echo_gateway: FakeGateway, review_clone: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import labdata
+
+    # The store is refreshed as soon as the pass has opened it: every later open reads build b2.
+    first = StubStore({}, {"u1": "alpha", "u2": "beta"}, [], settings={"build": "b1"})
+    refreshed = StubStore({}, {"u1": "omega", "u3": "psi"}, [], settings={"build": "b2"})
+    opens = iter([first])
+    monkeypatch.setattr(labdata, "open_store", lambda root=None: next(opens, refreshed))
+
+    def texts(store: Any) -> dict[str, str]:
+        return dict(store.texts)
+
+    kind = Kind(
+        name="stored-echo",
+        build=lambda store: echo_unit_kind(texts(store), name="stored-echo"),
+        default_models={"writer": ECHO_WEAK},
+        default_keys=lambda store: sorted(texts(store)),
+        reads_store=True,
+    )
+    monkeypatch.setitem(KINDS, kind.name, kind)
+
+    code, out = start(review_clone, "stored-echo", "--ceiling-usd", "1")
+
+    assert code == 0
+    assert out["store_build"] == "b1"
+    asked = sorted(x.form["messages"][-1]["content"] for x in echo_gateway.record if x.form)
+    assert asked == ["alpha", "beta"]
