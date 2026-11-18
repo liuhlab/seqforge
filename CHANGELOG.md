@@ -7,6 +7,17 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
 
 ## Unreleased
 
+### Added
+
+- `seqforge pass start <kind>` runs one pass of a seqforge unit kind through the lab gateway, with
+  a dollar ceiling you must give (`--ceiling-usd`), the models per role (`--model`), and which units
+  to run (`--keys FILE`, `--only unsettled,refused`, or the kind's own). It prints one JSON object
+  with the count of each ending and the dollars spent, and exits 0 at the end of its units, 3 when
+  it stops, and 2 for a setup it cannot use. Rerunning the same command resumes it, and every unit
+  answered before comes back from the gateway's cache at no cost. No kind is registered yet. The
+  new "Passes and reviews" page of the docs describes it.
+- seqforge now depends on liulab-llms (2026.11.0 or later), from PyPI.
+
 ### Changed
 
 - Python 3.13 is now the minimum supported version (`requires-python = ">=3.13"`). Every pixi

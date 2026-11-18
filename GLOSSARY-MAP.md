@@ -28,6 +28,14 @@ module, interface, depth, seam, adapter, leverage, locality — are fixed, and "
 - [Compose](./src/seqforge/compose/GLOSSARY.md) — covers `compose/`, `workflows/`, `report/`,
   `pipeline.py`: the recipe, the compiled pipeline, and what it reported
 
+## The run engine's words
+
+`passes/` is not a sixth context. It starts passes of seqforge's unit kinds on the run engine,
+liulab-llms, whose [glossary](https://github.com/liuhlab/liulab-llms/blob/main/GLOSSARY.md) defines
+its words: Unit, Unit kind, Pass, Task, Settled, Unsettled, Refused, Dropped, Unfinished, Held,
+Inputs tag, Stamp, Review, Review queue, Gateway, Meter and Waiting call. Nothing here redefines
+them. A pass is never a *run*, *batch*, *job* or *round*.
+
 ## Relationships
 
 - **Probe → Resolve**: probe reads bytes under a budget and reports what it saw, naming no roles;
