@@ -44,7 +44,7 @@ dependencies = [
     "openai>=1.40",      # any OpenAI-compatible endpoint (DeepSeek, vLLM, Ollama, ...)
     # The run engine and the lab gateway's client: `seqforge pass` runs a unit kind through it.
     # On PyPI, so unlike the two lab packages below it can be a plain range here.
-    "liulab-llms>=2026.11.1",
+    "liulab-llms>=2026.11.2",
     # liulab-genome and liulab-data are absent on purpose: PyPI rejects metadata carrying a
     # `git+https` reference. They are declared in the pixi tables, which never fold into the wheel.
     # A PyPI user who wants those features installs them from git:
@@ -99,7 +99,7 @@ liulab-genome = { git = "https://github.com/liuhlab/liulab-genome.git" }
 liulab-data = { git = "https://github.com/liuhlab/liulab-data.git" }
 # Not on conda-forge, so it is a PyPI dependency here as in the wheel. Its one runtime need,
 # fastjsonschema, comes from PyPI with it.
-liulab-llms = ">=2026.11.1"
+liulab-llms = ">=2026.11.2"
 
 [tool.pixi.dependencies]
 pydantic = ">=2.7"

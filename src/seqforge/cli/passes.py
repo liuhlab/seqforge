@@ -108,11 +108,11 @@ def _pass_start(
     reviews: Path | None,
 ) -> _StageOut:
     """The body of ``pass start``: every setup refusal first, then the hold, then the pass."""
-    from labllm import GatewayUnreachable, Rejected
+    from labllm import GatewayUnreachable, Rejected, Task
 
     from ..passes import gateway
     from ..passes.model_text import parse_models
-    from ..passes.progress import ProgressTask
+    from ..passes.progress import run_with_progress
     from ..passes.status import pass_json
     from ..passes.task import store_for
 
@@ -140,14 +140,15 @@ def _pass_start(
         if unfilled := sorted(set(unit_kind.roles) - set(models)):
             raise SetupRefused(f"no model for role {', '.join(unfilled)}: name one with --model")
 
-        with setup.open(ProgressTask, gateway=client) as opened:
+        with setup.open(Task, gateway=client) as opened:
             if file_keys is not None:
                 keys = file_keys
             elif endings is not None:
                 keys = opened.keys(unit_kind, endings=endings)
             else:
                 keys = list(kind.default_keys(store))
-            result = opened.run_pass(
+            result = run_with_progress(
+                opened,
                 unit_kind,
                 keys,
                 models=models,

@@ -35,7 +35,7 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   ending, a person's review included, and, for each pass, its models, store build, ceiling and
   spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
   It reads the task folder only, so it works with the gateway down.
-- seqforge now depends on liulab-llms (2026.11.1 or later), from PyPI.
+- seqforge now depends on liulab-llms (2026.11.2 or later), from PyPI.
 
 ### Changed
 
