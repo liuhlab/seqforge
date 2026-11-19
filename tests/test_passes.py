@@ -789,12 +789,15 @@ def test_review_read_stores_nothing_it_cannot_and_reopens_only_what_a_person_can
     github: FakeGitHub,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setitem(ECHO_TEXTS, "u5", "epsilon")
     seqforge(review_clone, *PASS_START)
     seqforge(review_clone, "review", "file", "echo")
     beta = answer(github, "u2", "Pass 1's answer")  # the weak model's ateb: it fails in_capitals
     gamma = answer(github, "u3")  # closed with nothing ticked
     delta = answer(github, "u4", "The text, capitalised")
     monkeypatch.setitem(ECHO_TEXTS, "u4", "delta, revised")  # its inputs change after filing
+    epsilon = answer(github, "u5", "The text, capitalised")
+    monkeypatch.delitem(ECHO_TEXTS, "u5")  # its text is missing for now, so liulab-llms holds it
 
     code, out = seqforge(review_clone, "review", "read", "echo")
 
@@ -815,13 +818,20 @@ def test_review_read_stores_nothing_it_cannot_and_reopens_only_what_a_person_can
     assert "inputs-changed" in github.filed[delta - 1].labels
     (comment,) = github.comments[delta]
     assert "from `text=delta` to `text=delta, revised`" in comment
+    # Epsilon is held, which passes: it is listed, and its issue is left as it was for a later read.
+    assert out["held"] == [{"key": "u5", "url": github.filed[epsilon - 1].url}]
+    assert github.filed[epsilon - 1].state == "closed"
+    assert "inputs-changed" not in github.filed[epsilon - 1].labels
+    assert epsilon not in github.comments
     assert (out["answered"], out["dropped"], out["pushed"]) == ([], [], None)
     assert not (review_clone / "reviews" / "echo.jsonl").exists()
+    monkeypatch.setitem(ECHO_TEXTS, "u5", "epsilon")  # its text is back
 
     code, out = seqforge(review_clone, "review", "read", "echo")
 
     assert code == 0, out
-    assert (out["reopened"], out["inputs_changed"]) == ([], [])
+    assert [a["key"] for a in out["answered"]] == ["u5"]
+    assert (out["reopened"], out["inputs_changed"], out["held"]) == ([], [], [])
     assert len(github.comments[delta]) == 1
 
 

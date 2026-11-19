@@ -214,6 +214,10 @@ longer has, so nothing is stored. The command says so in a comment, adds the lab
 `inputs-changed`, and leaves the issue closed. A pass answers the new inputs, and the unit is filed
 again if it still needs a person.
 
+If the unit's inputs are missing for now, the unit is held. The command stores nothing, and it
+does not comment on the issue, label it or reopen it. It lists the unit under `held`, and the next
+run reads the issue again.
+
 Each issue is read back only once. After storing, the command commits the kind's review file, and
 nothing else in the clone, then pushes it. If another clone pushed first, the command pulls, and
 git's union merge keeps the lines from both. If the push still fails, the reviews stay committed in
@@ -234,6 +238,7 @@ stdout carries one JSON object:
 | `dropped` | Each stored drop: `key`, `url`, `who` and `note` |
 | `reopened` | Each reopened issue: `key`, `url`, and the `reason` that its comment gives |
 | `inputs_changed` | Each issue left closed because its unit's inputs changed: `key` and `url` |
+| `held` | Each issue left for a later run because its unit's inputs are missing for now: `key` and `url` |
 | `pushed` | `true` if it pushed, `false` if the push failed, or `null` if there was nothing to push |
 | `stopped`, `message` | Only on exit 3: `github_failed` or `git_failed`, and the message from GitHub or git |
 

@@ -130,7 +130,8 @@ def review_read(
     An issue closed as completed stores the answer its ticks make, and one closed as not planned
     a drop with the reasons ticked, each as the person who closed it. An issue already read back is
     passed over. Ticks that make no answer, or an answer that fails the kind's checks, store
-    nothing: the issue gets a comment saying why and is reopened. The kind's reviews file is then
+    nothing: the issue gets a comment saying why and is reopened. A unit whose inputs are missing
+    for now (held) is left as it is, for the next read. The kind's reviews file is then
     committed alone and pushed. Exit 0; 4 when it reopened an issue; 2 for a setup it cannot use;
     3 when GitHub or git fails (stored reviews stay committed in the clone; rerun to push them).
     """
@@ -177,6 +178,7 @@ def _read_back(kind: Kind, unit_kind: UnitKind, repo: GitHub, review_files: Path
         "dropped": [],
         "reopened": [],
         "inputs_changed": [],
+        "held": [],
     }
     stop: tuple[str, str] | None = None
     try:
@@ -194,9 +196,12 @@ def _read_back(kind: Kind, unit_kind: UnitKind, repo: GitHub, review_files: Path
             if (marker.key, marker.inputs_tag) in stored:
                 continue
             inputs = inputs_now(unit_kind, marker.key)
-            now = None if inputs is None else inputs.tag
-            if now != marker.inputs_tag:
-                _set_inputs_changed(repo, issue, marker.inputs_tag, now)
+            if inputs is None:
+                # Held is for now: nothing is stored or said, and the next read tries it again.
+                out["held"].append({"key": marker.key, "url": issue.url})
+                continue
+            if inputs.tag != marker.inputs_tag:
+                _set_inputs_changed(repo, issue, marker.inputs_tag, inputs.tag)
                 out["inputs_changed"].append({"key": marker.key, "url": issue.url})
                 continue
             entry: dict[str, Any] = {"key": marker.key, "url": issue.url}
@@ -272,7 +277,7 @@ def _reopen(repo: GitHub, issue: Issue, reason: str) -> None:
     repo.reopen(issue.number)
 
 
-def _set_inputs_changed(repo: GitHub, issue: Issue, filed: str, now: str | None) -> None:
+def _set_inputs_changed(repo: GitHub, issue: Issue, filed: str, now: str) -> None:
     """Say on the issue that its unit's inputs changed, and label it so it is never read again.
 
     liulab-llms stores no review made for inputs a unit no longer has, and no person can change
@@ -281,11 +286,10 @@ def _set_inputs_changed(repo: GitHub, issue: Issue, filed: str, now: str | None)
     """
     from ..passes.review import INPUTS_CHANGED_COLOR, INPUTS_CHANGED_LABEL
 
-    changed = f"from `{filed}` to `{now}`" if now is not None else "and are not there now"
     repo.comment(
         issue.number,
         f"`seqforge review read` stored nothing from this issue: the unit's inputs changed after "
-        f"it was filed, {changed}, so this answer is for inputs the unit no longer has. A pass "
+        f"it was filed, from `{filed}` to `{now}`, so this answer is for inputs the unit no longer has. A pass "
         "answers the new inputs, and the unit is filed again if it still needs a person. This "
         "issue stays closed.",
     )
