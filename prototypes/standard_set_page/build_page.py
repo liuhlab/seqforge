@@ -236,15 +236,27 @@ def flag(study: dict) -> tuple[str, str, list[str]]:
         had, has = strs(first.get("series")), strs(second.get("series"))
         said = {}
         for gse in strs(had + has):
-            share = len(strs((second.get("split_samples") or {}).get(gse)))
+            # An empty selection means the whole Series, so the two are compared as sets.
+            mine = set(strs((first.get("split_samples") or {}).get(gse)))
+            theirs = set(strs((second.get("split_samples") or {}).get(gse)))
             if gse in had and gse not in has:
                 said[gse] = f"only the first put in the dataset marked {MARK}"
             elif gse in has and gse not in had:
                 said[gse] = f"only the checking model put in the dataset marked {MARK}"
-            elif share and not (first.get("split_samples") or {}).get(gse):
+            elif mine == theirs:
+                continue
+            elif not mine:
                 said[gse] = (
-                    f"the first took all of the dataset marked {MARK}, the checking model only {share} samples"
+                    f"the first took all of the dataset marked {MARK}, "
+                    f"the checking model only {len(theirs)} samples"
                 )
+            elif not theirs:
+                said[gse] = (
+                    f"the first took only {len(mine)} samples of the dataset marked {MARK}, "
+                    "the checking model all of it"
+                )
+            else:
+                said[gse] = f"the two took different samples of the dataset marked {MARK}"
         if len(said) == 1:
             what = f": {next(iter(said.values()))}"
         elif said:
@@ -254,6 +266,8 @@ def flag(study: dict) -> tuple[str, str, list[str]]:
         text = (
             f"<b>The two models disagreed</b>{what}; the picture shows the checking model's choice."
         )
+        if verdict.get("unsure") or study.get("status") == "unsure":
+            text += " <b>The checking model was not sure</b> of its own choice either."
         return "differ", text, list(said)
     if verdict.get("unsure") or study.get("status") == "unsure":
         return "unsure", "<b>The checking model was not sure</b> about this study.", []

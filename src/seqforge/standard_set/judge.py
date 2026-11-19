@@ -8,7 +8,9 @@ read. :func:`judge_study` then writes ``verdict.yaml`` and ``study.yaml`` beside
 the judge disagrees its bounds become the study's; a study it is unsure about stays, flagged.
 
 A judge that refuses, or a call that fails, raises :class:`JudgeStopped` and writes neither file.
-Nothing here retries or rewords the request: a refusal is reported, and the study waits.
+Nothing here retries or rewords the request: a refusal is reported, and the study waits. The
+verdict is written first and the study file is made from the draft and the verdict alone, so a
+call that was cut off between the two is finished by the next one without asking the judge again.
 """
 
 from __future__ import annotations
@@ -153,15 +155,23 @@ def judge_study(
     ``entry`` is the study's row of the pick and ``group`` its linked group. ``work`` is where the
     judge's reading material, its prompt and its raw result go; record text lands there and never
     in ``set_dir``. Raises :class:`JudgeStopped`, having written neither file, when the study has
-    no draft, already has a verdict, or the judge gives no usable one.
+    no draft, already has its study file, or the judge gives no usable verdict.
+
+    A study with a verdict but no study file was cut off between the two. Its study file is then
+    written from the draft and that verdict, and the judge is not asked again.
     """
     key = str(entry["id"])
     folder = set_dir / key
     if not (folder / DRAFT).exists():
         raise JudgeStopped(f"{key} has no draft: run the drafting pass and write its draft first")
-    if (folder / VERDICT).exists() or (folder / STUDY).exists():
+    if (folder / STUDY).exists():
         raise JudgeStopped(f"{key} is already judged: no file is overwritten")
     draft = yaml.safe_load((folder / DRAFT).read_text())
+    if (folder / VERDICT).exists():
+        verdict = yaml.safe_load((folder / VERDICT).read_text())
+        study = _study_file(entry, group, draft, verdict, store_build)
+        (folder / STUDY).write_text(yaml.safe_dump(study, sort_keys=False, width=100))
+        return {**_account(verdict, study), "finished_from_verdict": True}
 
     work.mkdir(parents=True, exist_ok=True)
     files = stage(group, work)
@@ -189,13 +199,25 @@ def judge_study(
     own = None if answer["agrees"] or answer["bounds"] is None else answer["bounds"]
     if not answer["agrees"] and own is None:
         raise JudgeStopped(f"the judge disagreed about {key} but gave no bounds of its own")
-    bounds = draft["bounds"] if own is None else file_bounds(own)
-    as_answered = {
-        **bounds,
-        "left_out": [{"id": k, "reason": v} for k, v in bounds["left_out"].items()],
-        "split_samples": [{"series": k, "samples": v} for k, v in bounds["split_samples"].items()],
-    }
-    if problems := bounds_problems(as_answered, group):
+    if own is None:
+        # The draft's file keys its lists by identifier, which hides a repeat the model wrote, so
+        # what the drafting pass's own check recorded is asked as well as the bounds on disk.
+        kept = draft["bounds"]
+        problems = [c for c in draft.get("checks_failed") or [] if c.startswith("well_formed")]
+        problems += bounds_problems(
+            {
+                **kept,
+                "left_out": [{"id": k, "reason": v} for k, v in kept["left_out"].items()],
+                "split_samples": [
+                    {"series": k, "samples": v} for k, v in kept["split_samples"].items()
+                ],
+            },
+            group,
+        )
+    else:
+        # The judge's bounds are checked as it wrote them, before any list is keyed.
+        problems = bounds_problems(own, group)
+    if problems:
         raise JudgeStopped(
             f"the bounds the judge left for {key} are malformed: {'; '.join(problems)}"
         )
@@ -206,13 +228,35 @@ def judge_study(
         "model": model,
         "when": stamp,
         "agrees": bool(answer["agrees"]),
-        "bounds": None if own is None else bounds,
+        "bounds": None if own is None else file_bounds(own),
         "reason": " ".join(answer["reason"].split()),
         "unsure": bool(answer["unsure"]),
         "read": [name for name in READ if name in answer["read"]],
     }
-    study = {
-        "id": key,
+    study = _study_file(entry, group, draft, verdict, store_build)
+    # The verdict first: it is the one file that cannot be made again without the judge.
+    for name, body in ((VERDICT, verdict), (STUDY, study)):
+        (folder / name).write_text(yaml.safe_dump(body, sort_keys=False, width=100))
+    return {
+        **_account(verdict, study),
+        "cost_usd": result.get("total_cost_usd"),
+        "seconds": None if result.get("duration_ms") is None else result["duration_ms"] / 1000,
+        "turns": result.get("num_turns"),
+        "work": str(work),
+    }
+
+
+def _study_file(
+    entry: Mapping[str, Any],
+    group: Mapping[str, Any],
+    draft: Mapping[str, Any],
+    verdict: Mapping[str, Any],
+    store_build: str | None,
+) -> dict[str, Any]:
+    """A study's file, from its row of the pick, its linked group, its draft and its verdict."""
+    own = verdict["bounds"]
+    return {
+        "id": str(entry["id"]),
         "summary": draft["summary"],
         "direction": entry["direction"],
         "also_fits": list(entry.get("also_fits") or []),
@@ -220,23 +264,21 @@ def judge_study(
         "reason_picked": entry["reason_picked"],
         "store_build": store_build,
         "records": record_ids(group),
-        "bounds": bounds,
+        "bounds": draft["bounds"] if own is None else own,
         "bounds_from": "draft" if own is None else "judge",
         "status": "unsure" if verdict["unsure"] else "settled",
-        "read_to_decide": verdict["read"],
+        "read_to_decide": list(verdict["read"]),
     }
-    for name, body in ((VERDICT, verdict), (STUDY, study)):
-        (folder / name).write_text(yaml.safe_dump(body, sort_keys=False, width=100))
+
+
+def _account(verdict: Mapping[str, Any], study: Mapping[str, Any]) -> dict[str, Any]:
+    """What a caller is told about one judged study."""
     return {
-        "id": key,
-        "model": model,
+        "id": study["id"],
+        "model": verdict["model"],
         "agrees": verdict["agrees"],
         "unsure": verdict["unsure"],
         "bounds_from": study["bounds_from"],
         "status": study["status"],
-        "read": verdict["read"],
-        "cost_usd": result.get("total_cost_usd"),
-        "seconds": None if result.get("duration_ms") is None else result["duration_ms"] / 1000,
-        "turns": result.get("num_turns"),
-        "work": str(work),
+        "read": list(verdict["read"]),
     }

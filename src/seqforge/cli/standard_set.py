@@ -114,11 +114,13 @@ def standard_set_judge(
         return
     try:
         store, papers = open_sources()
-        if papers is None and entry.get("pmids"):
-            _emit(_StageOut("no paper store is configured: set LABDATA_PAPERS", 2, err=True))
         group = read_group(store, papers, entry)
     except LabdataError as exc:
         _emit(_StageOut(f"liulab-data's store cannot be read: {exc}", 2, err=True))
+        return
+    if papers is None and group["papers"]:
+        # The group's papers, not the pick's: a record may link a paper the pick never listed.
+        _emit(_StageOut("no paper store is configured: set LABDATA_PAPERS", 2, err=True))
         return
     build = store.settings.get("build")
     try:

@@ -109,11 +109,25 @@ def bounds_problems(bounds: Mapping[str, Any], group: Mapping[str, Any]) -> list
     papers = {p["id"] for p in group["papers"]}
     inside = [*bounds["series"], *bounds["papers"]]
     out = [entry["id"] for entry in bounds["left_out"]]
+    split = [entry["series"] for entry in bounds["split_samples"]]
     problems = []
     if not bounds["series"]:
         problems.append("no Series is in the study")
-    if strangers := sorted(set(inside + out) - set(series) - papers):
-        problems.append(f"not in the linked group: {', '.join(strangers)}")
+    # Each list is held against its own record type: a paper is no Series, and a Series no paper.
+    if strangers := sorted(
+        (set(bounds["series"]) - set(series))
+        | (set(bounds["papers"]) - papers)
+        | (set(out) - set(series) - papers)
+    ):
+        problems.append(f"not in the linked group, or in the wrong list: {', '.join(strangers)}")
+    for name, ids in (
+        ("series", bounds["series"]),
+        ("papers", bounds["papers"]),
+        ("left_out", out),
+        ("split_samples", split),
+    ):
+        if repeated := sorted({i for i in ids if ids.count(i) > 1}):
+            problems.append(f"listed more than once in {name}: {', '.join(repeated)}")
     if both := sorted(set(inside) & set(out)):
         problems.append(f"both in the study and left out: {', '.join(both)}")
     if unplaced := sorted((set(series) | papers) - set(inside) - set(out)):
@@ -121,14 +135,16 @@ def bounds_problems(bounds: Mapping[str, Any], group: Mapping[str, Any]) -> list
     superseries = group.get("superseries")
     if superseries in bounds["series"]:
         problems.append(f"{superseries} is a SuperSeries, so its sub-Series are listed, not it")
-    for split in bounds["split_samples"]:
-        gse = split["series"]
+    for entry in bounds["split_samples"]:
+        gse, samples = entry["series"], entry["samples"]
         if gse not in bounds["series"]:
             problems.append(f"{gse} is split but is not in the study")
             continue
         own = {sample["id"] for sample in series.get(gse, {}).get("samples", [])}
-        if not split["samples"] or set(split["samples"]) - own:
-            problems.append(f"the split of {gse} names no sample of it, or samples of another")
+        if not samples or set(samples) - own or len(set(samples)) != len(samples):
+            problems.append(
+                f"the split of {gse} names no sample of it, samples of another, or one twice"
+            )
     return problems
 
 
@@ -181,9 +197,10 @@ def _build(store: Any) -> UnitKind:
 
     def read(key: str) -> Mapping[str, Any]:
         entry = entries[key]
-        if papers is None and entry.get("pmids"):
+        group = read_group(store, papers, entry)
+        if papers is None and group["papers"]:
             raise Held("no paper store is configured, so the abstracts cannot be read")
-        return read_group(store, papers, entry)
+        return group
 
     return bounds_kind(read)
 

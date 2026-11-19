@@ -145,6 +145,53 @@ def test_a_draft_that_leaves_a_linked_record_unplaced_is_kept_and_says_so(drafte
     assert short["checks_failed"] == ["well_formed: neither in the study nor left out: pmid:22"]
 
 
+@pytest.mark.parametrize(
+    ("change", "problem"),
+    [
+        pytest.param(
+            {"series": ["pmid:11"], "papers": ["GSE1"]}, "wrong list", id="a paper as a Series"
+        ),
+        pytest.param({"series": ["GSE1", "GSE1"]}, "more than once in series", id="a Series twice"),
+        pytest.param(
+            {"split_samples": [{"series": "GSE1", "samples": ["GSM1"]}] * 2},
+            "more than once in split_samples",
+            id="a Series split twice",
+        ),
+    ],
+)
+def test_bounds_name_each_record_once_and_in_the_list_of_its_own_kind(
+    change: dict[str, Any], problem: str
+) -> None:
+    """The study files key their lists by identifier, so a repeat or a paper among the Series
+    would be lost or misread there: it is refused while it is still what the model wrote."""
+    assert draft.bounds_problems(_bounds(COMPLETE), _group("S1")) == []
+
+    problems = draft.bounds_problems({**_bounds(COMPLETE), **change}, _group("S1"))
+
+    assert any(problem in found for found in problems), problems
+
+
+def test_judging_a_study_whose_records_link_a_paper_needs_the_paper_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The judge is owed every paper of the linked group. The pick may list none of them, since
+    a record can gain a paper after picking, so the group as read decides, not the pick."""
+    (tmp_path / "pick.yaml").write_text(
+        yaml.safe_dump({"studies": [{"id": "S1", "linked_series": ["GSE1"], "pmids": []}]})
+    )
+    store = types.SimpleNamespace(settings={})
+    monkeypatch.setattr("seqforge.standard_set.material.open_sources", lambda: (store, None))
+    monkeypatch.setattr(
+        "seqforge.standard_set.material.read_group", lambda store, papers, entry: _group("S1")
+    )
+    monkeypatch.setattr(judge, "ask_claude", lambda prompt, folder: pytest.fail("judge was asked"))
+
+    result = runner.invoke(app, ["standard-set", "judge", "S1", "--dir", str(tmp_path)])
+
+    assert result.exit_code == 2
+    assert "no paper store" in result.output
+
+
 ENTRY = {
     "id": "S2",
     "direction": "aging",
@@ -196,6 +243,14 @@ def test_where_the_judge_disagrees_its_bounds_become_the_study_and_the_draft_sta
     assert (drafted / "S2" / "draft.yaml").read_text() == before
     with pytest.raises(judge.JudgeStopped, match="already judged"):
         _run_judge(drafted, tmp_path)
+
+    # A call cut off after the verdict left no study file. The next call finishes the pair from
+    # the draft and the verdict, and must not ask the judge again.
+    whole = (drafted / "S2" / "study.yaml").read_text()
+    (drafted / "S2" / "study.yaml").unlink()
+    monkeypatch.setattr(judge, "ask_claude", lambda prompt, folder: pytest.fail("asked again"))
+    assert _run_judge(drafted, tmp_path)["finished_from_verdict"] is True
+    assert (drafted / "S2" / "study.yaml").read_text() == whole
 
 
 @pytest.mark.parametrize(
