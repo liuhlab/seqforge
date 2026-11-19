@@ -16,6 +16,13 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   it stops, and 2 for a setup it cannot use. Rerunning the same command resumes it, and every unit
   answered before comes back from the gateway's cache at no cost. No kind is registered yet. The
   new "Passes and reviews" page of the docs describes it.
+- `seqforge review file <kind>` files a small sample of a kind's review queue, the units that
+  ended unsettled or refused, as issues in the lab's private review repo: five by default, more
+  with `--count`, in the kind's own review order. Each issue shows the unit's records, each pass's
+  answer and the checks it failed, and a person answers by ticking boxes and closing it. A unit is
+  never filed twice for the same inputs. The command reaches GitHub through the GitHub CLI, `gh`,
+  as the person running it. The "Passes and reviews" page of the docs describes it, and how the
+  review repo was set up.
 - `seqforge pass status <kind>` reports where a kind's task stands: how many units have each
   ending, a person's review included, and, for each pass, its models, store build, ceiling and
   spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.

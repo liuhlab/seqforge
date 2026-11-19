@@ -21,9 +21,6 @@ if TYPE_CHECKING:
 #: The folder of review files inside a clone of the review repo, one ``<kind>.jsonl`` per kind.
 REVIEWS_DIRNAME = "reviews"
 
-#: The state file liulab-llms keeps in a task's folder; a folder without one holds no task.
-STATE_FILE = "state.sqlite"
-
 
 def reviews_folder(clone: Path | None) -> Path:
     """The review files' folder in ``clone``, a local clone of the review repo.
@@ -74,3 +71,19 @@ def open_task[T: Task](cls: type[T], folder: Path, *, gateway: Gateway, reviews:
         return cls(folder, gateway=gateway, reviews=reviews)
     except UnknownLayout as exc:
         raise SetupRefused(str(exc)) from exc
+
+
+#: The file liulab-llms keeps a task's state in, inside the task's folder.
+STATE_FILENAME = "state.sqlite"
+
+
+def require_task(folder: Path, kind: str) -> None:
+    """Refuse a folder that holds no task.
+
+    Opening a task makes one where there is none, so a command that only reads a task checks
+    first, rather than read an empty one it just made.
+    """
+    if not (folder / STATE_FILENAME).is_file():
+        raise SetupRefused(
+            f"no task in {folder}: run seqforge pass start {kind} first, or give --task DIR"
+        )

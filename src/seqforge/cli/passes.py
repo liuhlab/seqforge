@@ -231,23 +231,19 @@ def pass_status(
 
 
 def _pass_status(*, name: str, task: Path | None, reviews: Path | None) -> _StageOut:
-    from labllm import Gateway, Task, TaskInUse
+    from labllm import Task, TaskInUse
 
     from ..passes import gateway
     from ..passes.kinds import kind_named
     from ..passes.status import read_only_kind, task_status
-    from ..passes.task import STATE_FILE, open_task, reviews_folder
+    from ..passes.task import open_task, require_task, reviews_folder
 
     try:
         kind = kind_named(name)
         review_files = reviews_folder(reviews)
         folder = task if task is not None else passes_dir(Path(), kind.name)
-        if not (folder / STATE_FILE).is_file():
-            # Opening a task makes one: a folder with none is a wrong --task, not an empty report.
-            raise SetupRefused(f"no task in {folder}: no pass of {kind.name!r} has run there")
-        # The reads call no gateway; this client, which can reach none, makes sure of it.
-        client = Gateway(repo=gateway.REPO, transport=_NoGateway())
-        opened = open_task(Task, folder, gateway=client, reviews=review_files)
+        require_task(folder, kind.name)
+        opened = open_task(Task, folder, gateway=gateway.offline_gateway(), reviews=review_files)
     except SetupRefused as exc:
         return _StageOut(str(exc), 2, err=True)
     except TaskInUse as exc:
@@ -255,13 +251,6 @@ def _pass_status(*, name: str, task: Path | None, reviews: Path | None) -> _Stag
     with opened:
         report = task_status(opened, read_only_kind(kind.name))
     return _StageOut({"kind": kind.name, "task": str(folder), **report}, 0)
-
-
-class _NoGateway:
-    """A gateway transport that reaches nothing: ``pass status`` sends no request."""
-
-    def send(self, path: str, body: bytes) -> tuple[int, bytes]:
-        raise ConnectionRefusedError(f"pass status sends no request ({path})")
 
 
 def _held(kind: str, folder: Path, exc: Exception) -> _StageOut:
