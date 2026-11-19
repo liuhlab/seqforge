@@ -32,31 +32,29 @@ def _checked(clone: Path, *argv: str) -> str:
     return done.stdout
 
 
-def commit(clone: Path, path: Path, message: str) -> bool:
-    """Commit ``path``, a file in ``clone``, alone, if it differs from the last commit.
+def share(clone: Path, path: Path, message: str) -> bool:
+    """Commit ``path``, a file in ``clone``, alone if it changed, then push what upstream lacks.
 
-    Anything else staged or changed in the clone stays as it was. Returns whether it committed.
-    """
-    if not path.is_file():
-        return False
-    relative = str(path.relative_to(clone))
-    _checked(clone, "add", "--", relative)
-    if _git(clone, "diff", "--cached", "--quiet", "--", relative).returncode == 0:
-        return False
-    _checked(clone, "commit", "--quiet", "--message", message, "--", relative)
-    return True
-
-
-def push(clone: Path) -> bool:
-    """Push the clone's branch, if it has commits its upstream lacks. Returns whether it pushed.
+    Anything else staged or changed in the clone stays as it was, and a file that is gone is never
+    committed as a deletion. Returns whether it pushed: nothing to push is not a failure.
 
     A push rejected because the upstream moved on pulls and pushes once more; the union merge
     joins the reviews files' lines. A pull that fails leaves no merge half done. Raises
-    :class:`GitFailed` when the push still fails, with the commits kept in the clone.
+    :class:`GitFailed` when a step fails, with whatever was committed kept in the clone.
     """
-    ahead = _git(clone, "rev-list", "--count", "@{upstream}..HEAD")
-    if ahead.returncode == 0 and ahead.stdout.strip() == "0":
+    relative = str(path.relative_to(clone))
+    # One status read says both whether the file changed and how far the branch is ahead.
+    status = _checked(clone, "status", "--porcelain=v2", "--branch", "--", relative).splitlines()
+    ahead = next((int(line.split()[2]) for line in status if line.startswith("# branch.ab ")), None)
+    changed = [line for line in status if not line.startswith("#")]
+    if changed and path.is_file():
+        if changed[0].startswith("?"):  # a kind's first reviews: git does not know the file yet
+            _checked(clone, "add", "--", relative)
+        _checked(clone, "commit", "--quiet", "--message", message, "--", relative)
+        ahead = None if ahead is None else ahead + 1
+    if ahead == 0:
         return False
+    # No upstream to count against: the push itself says what is wrong.
     pushed = _git(clone, "push", "--quiet")
     if pushed.returncode == 0:
         return True

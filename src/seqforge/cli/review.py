@@ -261,10 +261,8 @@ def _review_read(*, name: str, reviews: Path | None) -> _StageOut:
     # Whatever was stored is shared, even after GitHub failed part of the way through.
     pushed: bool | None
     try:
-        clone.commit(
-            review_files.parent, saved.path(unit_kind), f"Read back reviews of {kind.name}"
-        )
-        pushed = True if clone.push(review_files.parent) else None
+        message = f"Read back reviews of {kind.name}"
+        pushed = True if clone.share(review_files.parent, saved.path(unit_kind), message) else None
     except clone.GitFailed as exc:
         pushed = False
         stop = stop or ("git_failed", str(exc))
