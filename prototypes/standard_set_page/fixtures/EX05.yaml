@@ -1,23 +1,42 @@
 # EXAMPLE DATA, made up for the reading-page prototype. Not a real study; the identifiers do not exist.
 id: EX05
+summary: Aging time course in wild-type C. elegans, bulk RNA-seq
 direction: c_elegans
-also_fits: [aging]
+also_fits:
+- aging
 hard_shape: series_with_two_studies
-reason_picked: One Series holds the samples of two papers from the same lab. Six samples are a lifespan time course, six are a separate mutant comparison.
+reason_picked: One Series holds the samples of two papers from the same lab. Six samples are a lifespan
+  time course, six are a separate mutant comparison.
 store_build: 2026-11-12
 records:
-  series: [GSE9990051]
+  series:
+  - GSE9990051
   superseries: null
-  bioprojects: [PRJNA9990051]
-  pmids: [99900051, 99900052]
+  bioprojects:
+  - PRJNA9990051
+  pmids:
+  - 99900051
+  - 99900052
 bounds:
-  series: [GSE9990051]
-  papers: ["99900051"]
-  reason: Only the six time-course samples belong to this study. The other six are the mutant comparison of PMID 99900052.
+  series:
+  - GSE9990051
+  papers:
+  - '99900051'
+  reason: Only the six time-course samples belong to this study. The other six are the mutant comparison
+    of PMID 99900052.
   split_samples:
-    GSE9990051: [GSM99900511, GSM99900512, GSM99900513, GSM99900514, GSM99900515, GSM99900516]
+    GSE9990051:
+    - GSM99900511
+    - GSM99900512
+    - GSM99900513
+    - GSM99900514
+    - GSM99900515
+    - GSM99900516
+  left_out:
+    GSE9990051: These are long-lived mutants, published in a second paper.
+    '99900052': The second paper. It describes the mutants, not the time course.
 bounds_from: judge
 status: settled
 read_to_decide:
-  - Full text of PMID 99900051 and PMID 99900052, methods
-  - The twelve sample records of GSE9990051
+- Full text of PMID 99900051 and PMID 99900052, methods
+- The twelve sample records of GSE9990051

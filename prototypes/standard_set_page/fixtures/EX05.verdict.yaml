@@ -1,17 +1,24 @@
 model: claude-fable-5-2
-when: 2026-11-19T10:02:26Z
+when: 2026-11-19 10:02:26+00:00
 agrees: false
 bounds:
-  series: [GSE9990051]
-  papers: ["99900051"]
-  reason: Only the six time-course samples belong to this study. The other six are the mutant comparison of PMID 99900052.
+  series:
+  - GSE9990051
+  papers:
+  - '99900051'
+  reason: Only the six time-course samples belong to this study. The other six are the mutant comparison
+    of PMID 99900052.
   split_samples:
-    GSE9990051: [GSM99900511, GSM99900512, GSM99900513, GSM99900514, GSM99900515, GSM99900516]
-reason: >-
-  The two papers use different halves of the Series. PMID 99900051 reports the wild-type time course
-  (days 1, 5 and 10, in duplicate); PMID 99900052 reports the day-1 mutants. The sample titles separate
-  them cleanly, so the Series is split and each half is its own study.
+    GSE9990051:
+    - GSM99900511
+    - GSM99900512
+    - GSM99900513
+    - GSM99900514
+    - GSM99900515
+    - GSM99900516
+reason: 'The two papers use different halves of the dataset: one reports the wild-type time course, the
+  other the young-adult mutants. The sample names separate them cleanly.'
 unsure: false
 read:
-  - Full text of PMID 99900051 and PMID 99900052, methods
-  - The twelve sample records of GSE9990051
+- Full text of PMID 99900051 and PMID 99900052, methods
+- The twelve sample records of GSE9990051

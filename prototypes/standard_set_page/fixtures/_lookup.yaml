@@ -1,0 +1,20 @@
+# EXAMPLE DATA, made up. This file stands in for the lookup the real build will do against the
+# record store at build time: titles, assays and sample counts are record text, which the study
+# files never hold. Only the page may carry them.
+series:
+  GSE9990011: {title: Single-nucleus RNA-seq of hippocampus from young and aged mice, assay: single-nucleus RNA-seq, n_samples: 8, pmids: ["99900011"]}
+  GSE9990021: {title: "Cortex of an amyloid mouse model: gene expression in single nuclei", assay: single-nucleus RNA-seq, n_samples: 12, pmids: ["99900021"]}
+  GSE9990022: {title: "Cortex of an amyloid mouse model: open chromatin in single nuclei", assay: single-nucleus ATAC-seq, n_samples: 12, pmids: ["99900021"]}
+  GSE9990023: {title: Human prefrontal cortex across stages of Alzheimer's disease, assay: bulk RNA-seq, n_samples: 48, pmids: ["99900023", "99900021"]}
+  GSE9990031: {title: Gene expression of C. elegans raised on two bacterial diets, assay: bulk RNA-seq, n_samples: 8, pmids: []}
+  GSE9990041: {title: "Aging mouse liver: gene expression", assay: bulk RNA-seq, n_samples: 12, pmids: ["99900041"]}
+  GSE9990042: {title: "Aging mouse liver: open chromatin", assay: ATAC-seq, n_samples: 12, pmids: ["99900041"]}
+  GSE9990043: {title: "Aging mouse liver: gene expression after a diet change", assay: bulk RNA-seq, n_samples: 6, pmids: ["99900041"]}
+  GSE9990051: {title: C. elegans aging time course and long-lived mutants, assay: bulk RNA-seq, n_samples: 12, pmids: ["99900051", "99900052"]}
+papers:
+  "99900011": {title: Cell-type-specific changes in gene expression in the aging mouse hippocampus}
+  "99900021": {title: Linked changes in gene expression and chromatin in the cortex of an amyloid mouse model}
+  "99900023": {title: Gene expression in human prefrontal cortex across stages of Alzheimer's disease}
+  "99900041": {title: Chromatin accessibility and gene expression drift apart in the aging mouse liver}
+  "99900051": {title: A time course of gene expression during aging in wild-type C. elegans}
+  "99900052": {title: Gene expression in young adults of long-lived C. elegans mutants}
