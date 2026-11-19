@@ -233,10 +233,7 @@ def paper_states(
               SELECT 'PMID:' || pmid AS key, paper, status FROM read_parquet({table})
               WHERE pmid IS NOT NULL
               UNION ALL
-              SELECT 'DOI:' || doi, paper, status FROM read_parquet({table}) WHERE doi IS NOT NULL
-              UNION ALL
-              SELECT 'DOI:' || d, paper, status
-              FROM (SELECT unnest(other_dois) AS d, paper, status FROM read_parquet({table})))
+              SELECT 'DOI:' || doi, paper, status FROM read_parquet({table}) WHERE doi IS NOT NULL)
         SELECT ids.key, any_value(ids.status),
                bool_or(i.abstract IS NOT NULL AND length(trim(i.abstract)) > 0)
         FROM ids JOIN wanted_paper w ON w.key = ids.key
