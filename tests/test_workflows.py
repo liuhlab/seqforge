@@ -3335,6 +3335,9 @@ rule x:
 """
 
 
+# Slow by what it asks, and not only by its two seconds: it runs no line of this repo, so its answer
+# can change only when the snakemake version does. Run it with `pixi run test-slow` when that moves.
+@pytest.mark.slow
 @pytest.mark.external
 @pytest.mark.skipif(shutil.which("snakemake") is None, reason="snakemake not on PATH")
 def test_a_snakemake_retry_re_expands_a_resource_and_never_a_param(tmp_path: Path) -> None:
