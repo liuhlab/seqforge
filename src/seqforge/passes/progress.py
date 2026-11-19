@@ -16,12 +16,13 @@ from typing import Any
 
 import typer
 from labllm import Gateway, Model, PassResult, Task, UnitKind
+from labllm.state import NOT_ENDINGS, PASS_ENDINGS
 
 #: The fewest seconds between two progress lines.
 EVERY_S = 30.0
 
-#: Every outcome a pass gives a unit, in the order a line lists them.
-OUTCOMES = ("settled", "unsettled", "refused", "unfinished", "held")
+#: Every outcome a pass gives a unit, in the order a line lists them: liulab-llms's own.
+OUTCOMES = (*PASS_ENDINGS, *NOT_ENDINGS)
 
 
 class ProgressTask(Task):
@@ -39,10 +40,8 @@ class ProgressTask(Task):
         *,
         gateway: Gateway,
         reviews: str | Path,
-        every_s: float = EVERY_S,
     ) -> None:
         super().__init__(folder, gateway=gateway, reviews=reviews)
-        self._every_s = every_s
         self._lock = threading.Lock()
         self._name = ""
         self._total = 0
@@ -104,7 +103,7 @@ class ProgressTask(Task):
                 self._counts[ending] += 1
             self._spent += spent
             now = time.monotonic()
-            if now - self._last >= self._every_s:
+            if now - self._last >= EVERY_S:
                 self._last = now
                 _say(
                     f"{self._name}: {_tally(self._counts, self._total)}; "

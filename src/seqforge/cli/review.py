@@ -73,7 +73,7 @@ def _review_file(*, name: str, count: int, task: Path | None, reviews: Path | No
         folder = task if task is not None else passes_dir(Path(), kind.name)
         require_task(folder, kind.name)
         repo = github.make_github(review_files.parent)
-        store, build = store_for(kind)
+        store, _ = store_for(kind)
         unit_kind = kind.unit_kind(store)
         # Reading the queue takes the task's hold, so a running pass makes this exit 3.
         opened = open_task(Task, folder, gateway=gateway.offline_gateway(), reviews=review_files)
@@ -100,7 +100,7 @@ def _review_file(*, name: str, count: int, task: Path | None, reviews: Path | No
             inputs = _current_inputs(unit_kind, entry)
             if inputs is None:
                 continue
-            title, body = issue_for(kind.review_form, entry, inputs, store_build=build)
+            title, body = issue_for(kind.review_form, entry, inputs)
             wanted = labels_for(entry)
             for label, (color, description) in wanted.items():
                 if label not in labels:

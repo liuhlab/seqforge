@@ -1,9 +1,9 @@
 """The review form: a queued unit as an issue a person answers by ticking, and the ticks read back.
 
 A unit in a kind's review queue becomes an issue a person answers by ticking boxes, and the ticks
-become an answer again. What is about a kind's own units is the kind's :class:`ReviewForm`: how its records and answers
-show, which starting answers its code offers, which per-item questions it asks, how a per-item
-choice changes an answer, and its drop reasons. The rest is here and the same for every kind: the
+become an answer again. What is about a kind's own units is the kind's :class:`ReviewForm`: how its
+records and answers show, which starting answers its code offers, which per-item questions it asks,
+how a per-item choice changes an answer, and its drop reasons. The rest is here and the same for every kind: the
 issue's title, sections and labels, the tick boxes, and the hidden marker.
 
 The marker lets the answer be read back with no task. Opening a task takes its hold, which a
@@ -101,9 +101,7 @@ def labels_for(entry: QueueEntry) -> dict[str, tuple[str, str]]:
     return labels
 
 
-def issue_for(
-    form: ReviewForm, entry: QueueEntry, inputs: Inputs, *, store_build: str | None
-) -> tuple[str, str]:
+def issue_for(form: ReviewForm, entry: QueueEntry, inputs: Inputs) -> tuple[str, str]:
     """The title and body of the issue that asks a person to review ``entry``.
 
     ``inputs`` are the unit's, loaded for the inputs tag ``entry`` holds.
@@ -122,11 +120,10 @@ def issue_for(
     }
     # Every character that could close the comment early is escaped; JSON reads it back the same.
     text = json.dumps(marker, sort_keys=True).replace("<", "\\u003c").replace(">", "\\u003e")
-    build = "" if store_build is None else f", reading store build {store_build}"
     lines = [
         f"<!-- seqforge-review {text} -->",
         "",
-        f"Filed by `seqforge review file`: unit `{entry.key}` of kind {entry.kind}{build}.",
+        f"Filed by `seqforge review file`: unit `{entry.key}` of kind {entry.kind}.",
         "",
         "## Records",
         "",
@@ -271,8 +268,9 @@ def _ticked(body: str) -> list[tuple[list[str], str]]:
 def read_answer(form: ReviewForm, body: str) -> tuple[Any, int | None]:
     """The answer an issue's ticks make, and the pass whose answer the person started from.
 
-    The pass is None when they started from an answer the kind's code offered. Raises :class:`Unreadable` when the body has lost its marker, no starting answer or more than
-    one is ticked, an item has more than one option ticked, or the kind's ``place`` cannot make
+    The pass is None when they started from an answer the kind's code offered. Raises
+    :class:`Unreadable` when the body has lost its marker, no starting answer or more than one is
+    ticked, an item has more than one option ticked, or the kind's ``place`` cannot make
     an answer. The answer is not checked here: storing it runs the kind's answer checks.
     """
     marker = read_marker(body)

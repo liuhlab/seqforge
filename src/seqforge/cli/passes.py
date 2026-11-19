@@ -26,9 +26,6 @@ if TYPE_CHECKING:
     # verb's start would otherwise pay.
     from labllm import Model
 
-#: The stop reason of a pass the gateway's rejection of a request ended: a setup refusal, not a stop.
-REJECTED = "rejected"
-
 #: The settings a ``--model`` value may carry after its name, and the ``Model`` field each sets.
 _SETTINGS = {
     "thinking": "thinking",
@@ -51,7 +48,7 @@ def pass_start(
         "--model",
         metavar="ROLE=PROVIDER/NAME[,KEY=VALUE...]",
         help=(
-            "The model for one role, repeatable, e.g. writer=deepseek/deepseek-flash,thinking=off. "
+            "The model for one role, repeatable, e.g. writer=deepseek/deepseek-v4-flash,thinking=off. "
             "Keys: thinking (on/off), effort, temperature, max-output-tokens. A role not named takes "
             "the kind's default; a named one takes exactly what is written."
         ),
@@ -89,8 +86,9 @@ def pass_start(
     The units are the kind's default keys, or `--keys FILE`, or `--only ENDINGS`. Exit 0 when the
     pass reached the end of its keys, whatever its counts; 3 when it stopped -- at its ceiling, a
     provider's balance or cap, a provider or the gateway unavailable -- or another process holds the
-    task; 2 for a setup it cannot use, a model name the gateway rejects included. Rerun the same command to resume: units already answered
-    replay from the gateway's cache at no cost. Progress goes to stderr; stdout carries only JSON.
+    task; 2 for a setup it cannot use, a model name the gateway rejects included. Rerun the same
+    command to resume: units already answered replay from the gateway's cache at no cost. Progress
+    goes to stderr; stdout carries only JSON.
     """
     _emit(
         _pass_start(
@@ -122,7 +120,7 @@ def _pass_start(
     reviews: Path | None,
 ) -> _StageOut:
     """The body of ``pass start``: every setup refusal first, then the hold, then the pass."""
-    from labllm import GatewayUnreachable, TaskInUse
+    from labllm import GatewayUnreachable, Rejected, TaskInUse
 
     from ..passes import gateway
     from ..passes.kinds import kind_named
@@ -182,7 +180,7 @@ def _pass_start(
     except TaskInUse as exc:
         # Another process took the task over mid-pass, as it may once this one's hold goes stale.
         return _held(kind.name, folder, exc)
-    if result.stopped == REJECTED:
+    if result.stopped == Rejected.reason:
         # The gateway refused a request outright, such as one for a model it has no price for: the
         # setup is wrong, and rerunning the same command would only meet it again.
         return _StageOut(f"the gateway rejected a request: {result.stop_message}", 2, err=True)
