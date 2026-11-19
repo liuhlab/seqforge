@@ -62,6 +62,22 @@ class GitHub(Protocol):
         """File an issue with ``labels``, each of which the repo already has."""
         ...
 
+    def closer(self, number: int) -> str:
+        """The GitHub login of whoever last closed issue ``number``."""
+        ...
+
+    def comment(self, number: int, body: str) -> None:
+        """Add a comment to issue ``number``."""
+        ...
+
+    def reopen(self, number: int) -> None:
+        """Reopen issue ``number``."""
+        ...
+
+    def add_labels(self, number: int, labels: Sequence[str]) -> None:
+        """Add ``labels``, each of which the repo already has, to issue ``number``."""
+        ...
+
 
 def make_github(clone: Path) -> GitHub:
     """A client of the GitHub repo that ``clone``'s ``origin`` remote names, as the person running.
@@ -130,6 +146,31 @@ class GhClient:
         sent = {"title": title, "body": body, "labels": list(labels)}
         out = self._call(f"repos/{self.repo}/issues", "--method", "POST", "--input", "-", sent=sent)
         return _issue(json.loads(out))
+
+    def closer(self, number: int) -> str:
+        """The GitHub login of whoever last closed issue ``number``.
+
+        A listing of issues leaves out who closed each, so this reads the one issue. An account
+        since deleted is GitHub's ``ghost``.
+        """
+        raw = json.loads(self._call(f"repos/{self.repo}/issues/{number}"))
+        closed_by = raw.get("closed_by") or {"login": "ghost"}
+        return str(closed_by["login"])
+
+    def comment(self, number: int, body: str) -> None:
+        """Add a comment to issue ``number``."""
+        path = f"repos/{self.repo}/issues/{number}/comments"
+        self._call(path, "--method", "POST", "--input", "-", sent={"body": body})
+
+    def reopen(self, number: int) -> None:
+        """Reopen issue ``number``."""
+        path = f"repos/{self.repo}/issues/{number}"
+        self._call(path, "--method", "PATCH", "--input", "-", sent={"state": "open"})
+
+    def add_labels(self, number: int, labels: Sequence[str]) -> None:
+        """Add ``labels``, each of which the repo already has, to issue ``number``."""
+        path = f"repos/{self.repo}/issues/{number}/labels"
+        self._call(path, "--method", "POST", "--input", "-", sent={"labels": list(labels)})
 
     def _pages(self, path: str) -> list[dict[str, Any]]:
         """Every item of a listing, every page.

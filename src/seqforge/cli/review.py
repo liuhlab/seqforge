@@ -5,12 +5,16 @@ issues, one unit each, which a person answers by ticking boxes and closing. Each
 hidden marker naming its kind, key and inputs tag, so a unit is never filed twice for the same
 inputs and reading back needs no local list of what was filed. It prints one JSON object and exits
 0, 2 for a setup it cannot use, or 3 when another process holds the task or GitHub fails.
+
+`review read` reads the closed issues back: each answer or drop is stored through liulab-llms into
+the kind's reviews file in the clone, which it commits and pushes. It never opens the task, so it
+runs while a pass holds it. It exits 4 when it reopened an issue for a person to answer again.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import typer
 
@@ -22,6 +26,8 @@ from .root import review_app
 
 if TYPE_CHECKING:
     from labllm import Inputs, QueueEntry, UnitKind
+
+    from ..passes.github import GitHub, Issue
 
 
 @review_app.command("file")
@@ -129,3 +135,191 @@ def _current_inputs(unit_kind: UnitKind, entry: QueueEntry) -> Inputs | None:
     except Held:
         return None
     return inputs if inputs.tag == entry.inputs_tag else None
+
+
+@review_app.command("read")
+def review_read(
+    kind: str = typer.Argument(..., help="The registered seqforge kind whose issues to read back."),
+    reviews: Path | None = typer.Option(
+        None,
+        "--reviews",
+        envvar="SEQFORGE_REVIEWS",
+        help="A local clone of the review repo: the reviews are stored in it, committed and pushed.",
+    ),
+) -> None:
+    """Read people's answers back from a kind's closed issues, store them, and print its JSON.
+
+    An issue closed as completed stores the answer its ticks make, and one closed as not planned
+    a drop with the reasons ticked, each as the person who closed it. An issue already read back is
+    passed over. Ticks that make no answer, or an answer that fails the kind's checks, store
+    nothing: the issue gets a comment saying why and is reopened. The kind's reviews file is then
+    committed alone and pushed. Exit 0; 4 when it reopened an issue; 2 for a setup it cannot use;
+    3 when GitHub or git fails (stored reviews stay committed in the clone; rerun to push them).
+    """
+    _emit(_review_read(name=kind, reviews=reviews))
+
+
+def _review_read(*, name: str, reviews: Path | None) -> _StageOut:
+    """The body of ``review read``: every setup refusal, then each closed issue, then git."""
+    from labllm import ChecksFailed, Reviews
+
+    from ..passes import clone, github
+    from ..passes.github import GitHubError
+    from ..passes.kinds import kind_named
+    from ..passes.review import (
+        INPUTS_CHANGED_LABEL,
+        KIND_LABEL,
+        LOST_MARKER,
+        Unreadable,
+        read_answer,
+        read_drop,
+        read_marker,
+    )
+    from ..passes.task import reviews_folder, store_for
+
+    try:
+        kind = kind_named(name)
+        review_files = reviews_folder(reviews)
+        repo = github.make_github(review_files.parent)
+        # Storing a review loads the unit's inputs, so a kind that reads the store needs it now.
+        store, _ = store_for(kind)
+        unit_kind = kind.unit_kind(store)
+    except SetupRefused as exc:
+        return _StageOut(str(exc), 2, err=True)
+
+    # No task is opened: liulab-llms's reviews need none, so a running pass never blocks this.
+    saved = Reviews(review_files)
+    stored = {(review.key, review.inputs_tag) for review in saved.read(unit_kind)}
+    out: dict[str, Any] = {
+        "kind": kind.name,
+        "answered": [],
+        "dropped": [],
+        "reopened": [],
+        "inputs_changed": [],
+    }
+    stop: tuple[str, str] | None = None
+    try:
+        for issue in sorted(repo.issues(KIND_LABEL.format(kind.name)), key=lambda i: i.number):
+            # An issue labelled as having changed inputs was read once and has nothing to store.
+            if issue.state != "closed" or INPUTS_CHANGED_LABEL in issue.labels:
+                continue
+            marker = read_marker(issue.body)
+            if marker is None or marker.kind != kind.name:
+                reason = LOST_MARKER if marker is None else _other_kind(marker.kind, kind.name)
+                _reopen(repo, issue, reason)
+                key = None if marker is None else marker.key
+                out["reopened"].append({"key": key, "url": issue.url, "reason": reason})
+                continue
+            if (marker.key, marker.inputs_tag) in stored:
+                continue
+            now = _inputs_tag(unit_kind, marker.key)
+            if now != marker.inputs_tag:
+                _set_inputs_changed(repo, issue, marker.inputs_tag, now)
+                out["inputs_changed"].append({"key": marker.key, "url": issue.url})
+                continue
+            entry: dict[str, Any] = {"key": marker.key, "url": issue.url}
+            try:
+                if issue.state_reason == "not_planned":
+                    note = read_drop(issue.body)
+                    who = repo.closer(issue.number)
+                    saved.save(
+                        unit_kind,
+                        marker.key,
+                        who=who,
+                        inputs_tag=marker.inputs_tag,
+                        drop=True,
+                        note=note,
+                    )
+                    out["dropped"].append({**entry, "who": who, "note": note})
+                else:
+                    answer, accepted = read_answer(kind.review_form, issue.body)
+                    who = repo.closer(issue.number)
+                    saved.save(
+                        unit_kind,
+                        marker.key,
+                        who=who,
+                        inputs_tag=marker.inputs_tag,
+                        answer=answer,
+                        accepted_pass=accepted,
+                    )
+                    out["answered"].append({**entry, "who": who, "accepted_pass": accepted})
+            except ChecksFailed as exc:
+                failed = "; ".join(f"{check.name}: {check.message}" for check in exc.failed)
+                reason = f"The answer fails the kind's checks: {failed}."
+            except Unreadable as exc:
+                reason = str(exc)
+            except ValueError as exc:
+                reason = f"The answer cannot be stored: {exc}."
+            else:
+                stored.add((marker.key, marker.inputs_tag))
+                continue
+            _reopen(repo, issue, reason)
+            out["reopened"].append({**entry, "reason": reason})
+    except GitHubError as exc:
+        stop = ("github_failed", str(exc))
+
+    # Whatever was stored is shared, even after GitHub failed part of the way through.
+    pushed: bool | None
+    try:
+        clone.commit(
+            review_files.parent, saved.path(unit_kind), f"Read back reviews of {kind.name}"
+        )
+        pushed = True if clone.push(review_files.parent) else None
+    except clone.GitFailed as exc:
+        pushed = False
+        stop = stop or ("git_failed", str(exc))
+    out["pushed"] = pushed
+    if stop is not None:
+        out["stopped"], out["message"] = stop
+        return _StageOut(out, 3)
+    return _StageOut(out, 4 if out["reopened"] else 0)
+
+
+def _inputs_tag(unit_kind: UnitKind, key: str) -> str | None:
+    """The unit's inputs tag now, or None when its inputs are not there."""
+    from labllm import Held
+
+    try:
+        return unit_kind.load(key).tag
+    except Held:
+        return None
+
+
+def _other_kind(found: str, wanted: str) -> str:
+    return f"The issue's seqforge marker names kind {found}, not {wanted}."
+
+
+#: What a person reads on an issue reopened because nothing could be stored from it.
+_REOPENED = (
+    "`seqforge review read` stored nothing from this issue: {reason}\n\n"
+    "Fix this in the issue, then close it again: as completed to keep your answer, or as not "
+    "planned to drop the unit."
+)
+
+
+def _reopen(repo: GitHub, issue: Issue, reason: str) -> None:
+    repo.comment(issue.number, _REOPENED.format(reason=reason))
+    repo.reopen(issue.number)
+
+
+def _set_inputs_changed(repo: GitHub, issue: Issue, filed: str, now: str | None) -> None:
+    """Say on the issue that its unit's inputs changed, and label it so it is never read again.
+
+    liulab-llms stores no review made for inputs a unit no longer has, and no person can change
+    that from the issue, so it stays closed. The comment comes first: a label added without it
+    would hide the issue from the next read with nothing said.
+    """
+    from ..passes.review import INPUTS_CHANGED_COLOR, INPUTS_CHANGED_LABEL
+
+    changed = f"from `{filed}` to `{now}`" if now is not None else "and are not there now"
+    repo.comment(
+        issue.number,
+        f"`seqforge review read` stored nothing from this issue: the unit's inputs changed after "
+        f"it was filed, {changed}, so this answer is for inputs the unit no longer has. A pass "
+        "answers the new inputs, and the unit is filed again if it still needs a person. This "
+        "issue stays closed.",
+    )
+    if INPUTS_CHANGED_LABEL not in repo.labels():
+        description = "The unit's inputs changed after filing, so nothing was stored"
+        repo.create_label(INPUTS_CHANGED_LABEL, color=INPUTS_CHANGED_COLOR, description=description)
+    repo.add_labels(issue.number, [INPUTS_CHANGED_LABEL])

@@ -10,9 +10,12 @@ issues and labels in the review repo stand-in. None reads the task's state file.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import os
+import shutil
 import socket
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -383,3 +386,267 @@ def test_review_file_on_a_folder_with_no_task_exits_2_and_makes_none(
     assert result.exit_code == 2, result.stdout + result.stderr
     assert "no task in" in result.stderr
     assert not Path("seqforge", "passes", "echo").exists()
+
+
+#: Git as the tests run it: no configuration of the machine's own, and the same person everywhere.
+_GIT_ENV = {
+    "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_AUTHOR_NAME": "a reviewer",
+    "GIT_AUTHOR_EMAIL": "reviewer@example.org",
+    "GIT_COMMITTER_NAME": "a reviewer",
+    "GIT_COMMITTER_EMAIL": "reviewer@example.org",
+}
+#: The review repo's remote, beside the clone: ``origin`` names it by this relative path, so a copy
+#: of the pair works wherever it lands.
+_REMOTE = "review-remote.git"
+
+
+def git(where: Path, *argv: str) -> str:
+    """Run git in ``where`` and return its output; a failure fails the test."""
+    done = subprocess.run(
+        ["git", "-C", str(where), *argv],
+        capture_output=True,
+        text=True,
+        env={**os.environ, **_GIT_ENV},
+    )
+    assert done.returncode == 0, done.stderr
+    return done.stdout
+
+
+@pytest.fixture(scope="session")
+def _review_repo(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A folder holding the review repo's remote, a bare git repo, and a clone of it, made once.
+
+    Its ``reviews/`` folder joins JSON Lines files on a merge, as the real repo's does.
+    """
+    made = tmp_path_factory.mktemp("review-repo")
+    git(made, "init", "--quiet", "--bare", "--initial-branch=main", _REMOTE)
+    clone = made / "review-clone"
+    (clone / "reviews").mkdir(parents=True)
+    git(clone, "init", "--quiet", "--initial-branch=main")
+    (clone / "reviews" / ".gitattributes").write_text("*.jsonl merge=union\n")
+    git(clone, "add", "reviews/.gitattributes")
+    git(clone, "commit", "--quiet", "-m", "Set up the review repo")
+    git(clone, "remote", "add", "origin", f"../{_REMOTE}")
+    git(clone, "push", "--quiet", "--set-upstream", "origin", "main")
+    return made
+
+
+@pytest.fixture
+def review_remote(
+    _review_repo: Path, review_clone: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Path:
+    """The review repo's remote, a local bare git repo, with ``review_clone`` a clone of it."""
+    for name, value in _GIT_ENV.items():
+        monkeypatch.setenv(name, value)
+    shutil.rmtree(review_clone)
+    shutil.copytree(_review_repo / "review-clone", review_clone)
+    return Path(shutil.copytree(_review_repo / _REMOTE, tmp_path / _REMOTE))
+
+
+def read_reviews(clone: Path, *argv: str) -> tuple[int, dict[str, Any]]:
+    """Run ``seqforge review read`` and return its exit code and its JSON."""
+    result = runner.invoke(app, ["review", "read", *argv, "--reviews", str(clone)])
+    assert result.stdout, result.stderr
+    return result.exit_code, json.loads(result.stdout)
+
+
+def answer(github: FakeGitHub, key: str, *ticks: str, reason: str = "completed") -> int:
+    """A person ticks the boxes labelled ``ticks`` on ``key``'s issue and closes it as ``reason``.
+
+    Returns the issue's number. The person is ``octo-reviewer`` on GitHub.
+    """
+    (number,) = [
+        n
+        for n, issue in enumerate(github.filed, 1)
+        if (m := read_marker(issue.body)) and m.key == key
+    ]
+    issue = github.filed[number - 1]
+    body = issue.body
+    for label in ticks:
+        body = tick(body, label)
+    github.filed[number - 1] = dataclasses.replace(issue, body=body)
+    github.close(number, reason, by="octo-reviewer")
+    return number
+
+
+def test_review_read_stores_a_completed_issue_once_while_a_pass_holds_the_task(
+    echo_kind: Any,
+    echo_gateway: FakeGateway,
+    review_remote: Path,
+    review_clone: Path,
+    github: FakeGitHub,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Delta's text reads the same backwards, so the weak model's answer is right but for its case.
+    monkeypatch.setitem(ECHO_TEXTS, "u4", "level")
+    start(review_clone, "echo", "--ceiling-usd", "1")
+    file_reviews(review_clone, "echo")
+    number = answer(github, "u4", "Pass 1's answer", "Write it in capitals")
+    (review_clone / "notes.txt").write_text("the reviewer's own file, not the command's\n")
+
+    folder = Path("seqforge", "passes", "echo")
+    kind = echo_unit_kind(ECHO_TEXTS)
+    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
+        code, out = read_reviews(review_clone, "echo")
+
+    assert code == 0, out
+    url = github.filed[number - 1].url
+    assert out["answered"] == [
+        {"key": "u4", "url": url, "who": "octo-reviewer", "accepted_pass": 1}
+    ]
+    assert (out["dropped"], out["reopened"], out["inputs_changed"]) == ([], [], [])
+    assert out["pushed"] is True
+    (review,) = Reviews(review_clone / "reviews").read(kind)
+    assert (review.key, review.who, review.accepted_pass) == ("u4", "octo-reviewer", 1)
+    assert (review.inputs_tag, review.answer) == ("text=level", {"word": "LEVEL"})
+    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews") as task:
+        assert task.keys(kind, endings=("settled",)) == ["u1", "u4"]
+    # The reviews file alone is committed, and pushed to the review repo.
+    pushed = git(review_remote, "show", "main:reviews/echo.jsonl")
+    assert pushed == (review_clone / "reviews" / "echo.jsonl").read_text()
+    assert git(review_clone, "status", "--porcelain") == "?? notes.txt\n"
+
+    code, out = read_reviews(review_clone, "echo")
+
+    assert code == 0, out
+    assert (out["answered"], out["pushed"]) == ([], None)
+    assert len(Reviews(review_clone / "reviews").read(kind)) == 1
+
+
+def test_review_read_stores_an_issue_closed_as_not_planned_as_a_drop_with_its_ticked_reasons(
+    echo_kind: Any,
+    echo_gateway: FakeGateway,
+    review_remote: Path,
+    review_clone: Path,
+    github: FakeGitHub,
+) -> None:
+    start(review_clone, "echo", "--ceiling-usd", "1")
+    file_reviews(review_clone, "echo")
+    number = answer(github, "u3", "not a word", "other", reason="not_planned")
+
+    code, out = read_reviews(review_clone, "echo")
+
+    assert code == 0, out
+    url = github.filed[number - 1].url
+    assert out["dropped"] == [
+        {"key": "u3", "url": url, "who": "octo-reviewer", "note": "not a word; other"}
+    ]
+    assert (out["answered"], out["reopened"], out["pushed"]) == ([], [], True)
+    kind = echo_unit_kind(ECHO_TEXTS)
+    (review,) = Reviews(review_clone / "reviews").read(kind)
+    assert (review.key, review.ending, review.note) == ("u3", "dropped", "not a word; other")
+    assert (review.who, review.inputs_tag) == ("octo-reviewer", "text=gamma")
+    folder = Path("seqforge", "passes", "echo")
+    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews") as task:
+        assert task.keys(kind, endings=("dropped",)) == ["u3"]
+
+
+def test_review_read_stores_nothing_it_cannot_and_reopens_only_what_a_person_can_fix(
+    echo_kind: Any,
+    echo_gateway: FakeGateway,
+    review_remote: Path,
+    review_clone: Path,
+    github: FakeGitHub,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    start(review_clone, "echo", "--ceiling-usd", "1")
+    file_reviews(review_clone, "echo")
+    beta = answer(github, "u2", "Pass 1's answer")  # the weak model's ateb: it fails in_capitals
+    gamma = answer(github, "u3")  # closed with nothing ticked
+    delta = answer(github, "u4", "The text, capitalised")
+    monkeypatch.setitem(ECHO_TEXTS, "u4", "delta, revised")  # its inputs change after filing
+
+    code, out = read_reviews(review_clone, "echo")
+
+    assert code == 4, out
+    reasons = {entry["key"]: entry["reason"] for entry in out["reopened"]}
+    assert reasons == {
+        "u2": "The answer fails the kind's checks: in_capitals: 'ateb' is not 'BETA'.",
+        "u3": "Tick a starting answer.",
+    }
+    for number, key in ((beta, "u2"), (gamma, "u3")):
+        assert github.filed[number - 1].state == "open"
+        (comment,) = github.comments[number]
+        assert reasons[key] in comment
+    # Delta's answer was for inputs it no longer has. No person can fix that, so its issue stays
+    # closed, says why, and is marked so that reading back passes over it from then on.
+    assert out["inputs_changed"] == [{"key": "u4", "url": github.filed[delta - 1].url}]
+    assert github.filed[delta - 1].state == "closed"
+    assert "inputs-changed" in github.filed[delta - 1].labels
+    (comment,) = github.comments[delta]
+    assert "from `text=delta` to `text=delta, revised`" in comment
+    assert (out["answered"], out["dropped"], out["pushed"]) == ([], [], None)
+    assert not (review_clone / "reviews" / "echo.jsonl").exists()
+
+    code, out = read_reviews(review_clone, "echo")
+
+    assert code == 0, out
+    assert (out["reopened"], out["inputs_changed"]) == ([], [])
+    assert len(github.comments[delta]) == 1
+
+
+def pushed_keys(remote: Path) -> list[str]:
+    """The keys of the echo kind's reviews the review repo holds, in key order."""
+    lines = git(remote, "show", "main:reviews/echo.jsonl").splitlines()
+    return sorted(json.loads(line)["key"] for line in lines)
+
+
+def test_review_read_whose_push_is_behind_pulls_and_keeps_both_clones_reviews(
+    echo_kind: Any,
+    echo_gateway: FakeGateway,
+    review_remote: Path,
+    review_clone: Path,
+    github: FakeGitHub,
+    tmp_path: Path,
+) -> None:
+    start(review_clone, "echo", "--ceiling-usd", "1")
+    file_reviews(review_clone, "echo")
+    # Another person's clone pushes a review of alpha first, so this clone's push is behind.
+    other = Path(shutil.copytree(review_clone, tmp_path / "other-clone"))
+    Reviews(other / "reviews").save(
+        echo_unit_kind(ECHO_TEXTS),
+        "u1",
+        who="someone else",
+        inputs_tag="text=alpha",
+        answer={"word": "ALPHA"},
+    )
+    git(other, "add", "reviews/echo.jsonl")
+    git(other, "commit", "--quiet", "-m", "A review from another clone")
+    git(other, "push", "--quiet")
+    answer(github, "u2", "The text, capitalised")
+
+    code, out = read_reviews(review_clone, "echo")
+
+    assert code == 0, out
+    assert ([a["key"] for a in out["answered"]], out["pushed"]) == (["u2"], True)
+    assert pushed_keys(review_remote) == ["u1", "u2"]
+
+
+def test_review_read_whose_push_fails_exits_3_with_the_reviews_committed_for_its_rerun(
+    echo_kind: Any,
+    echo_gateway: FakeGateway,
+    review_remote: Path,
+    review_clone: Path,
+    github: FakeGitHub,
+    tmp_path: Path,
+) -> None:
+    start(review_clone, "echo", "--ceiling-usd", "1")
+    file_reviews(review_clone, "echo")
+    answer(github, "u3", "not a word", reason="not_planned")
+    review_remote.rename(tmp_path / "unreachable.git")  # the review repo cannot be reached
+
+    code, out = read_reviews(review_clone, "echo")
+
+    assert code == 3, out
+    assert (out["stopped"], out["pushed"]) == ("git_failed", False)
+    assert [d["key"] for d in out["dropped"]] == ["u3"]
+    assert git(review_clone, "status", "--porcelain") == ""  # committed, waiting in the clone
+
+    (tmp_path / "unreachable.git").rename(review_remote)
+    code, out = read_reviews(review_clone, "echo")
+
+    assert code == 0, out
+    assert (out["dropped"], out["pushed"]) == ([], True)
+    assert pushed_keys(review_remote) == ["u3"]

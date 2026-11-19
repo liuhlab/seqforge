@@ -667,7 +667,8 @@ class FakeGitHub:
 
     It starts as the real repo was made, with the ``hand-check`` label only. Like GitHub, it refuses
     a label it already has. It also refuses an issue naming a label it lacks, so a command that
-    forgot to create its labels goes red here. ``filed`` holds every issue, in the order filed.
+    forgot to create its labels goes red here. ``filed`` holds every issue, in the order filed;
+    ``closers`` who last closed each, and ``comments`` each issue's comments, oldest first.
     """
 
     repo: str = "lab/seqforge-review"
@@ -675,6 +676,8 @@ class FakeGitHub:
         default_factory=lambda: {"hand-check": ("ededed", "The benchmark's hand-check")}
     )
     filed: list[Issue] = field(default_factory=list)
+    closers: dict[int, str] = field(default_factory=dict)
+    comments: dict[int, list[str]] = field(default_factory=dict)
 
     def labels(self) -> set[str]:
         return set(self.label_table)
@@ -696,10 +699,28 @@ class FakeGitHub:
         self.filed.append(issue)
         return issue
 
-    def close(self, number: int, reason: str) -> None:
-        """A person closes issue ``number``, as ``completed`` or ``not_planned``."""
+    def closer(self, number: int) -> str:
+        return self.closers[number]
+
+    def comment(self, number: int, body: str) -> None:
+        self.comments.setdefault(number, []).append(body)
+
+    def reopen(self, number: int) -> None:
+        issue = self.filed[number - 1]
+        self.filed[number - 1] = dataclasses.replace(issue, state="open", state_reason="reopened")
+
+    def add_labels(self, number: int, labels: Sequence[str]) -> None:
+        if missing := sorted(set(labels) - set(self.label_table)):
+            raise GitHubError(f"no label {', '.join(missing)} in {self.repo}")
+        issue = self.filed[number - 1]
+        kept = tuple(dict.fromkeys((*issue.labels, *labels)))
+        self.filed[number - 1] = dataclasses.replace(issue, labels=kept)
+
+    def close(self, number: int, reason: str, *, by: str = "a-reviewer") -> None:
+        """``by`` closes issue ``number``, as ``completed`` or ``not_planned``."""
         closed = dataclasses.replace(self.filed[number - 1], state="closed", state_reason=reason)
         self.filed[number - 1] = closed
+        self.closers[number] = by
 
 
 @pytest.fixture

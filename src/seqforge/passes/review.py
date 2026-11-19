@@ -88,6 +88,9 @@ class ReviewForm:
 KIND_LABEL, KIND_COLOR = "review:{}", "1d76db"
 #: The label for each check the current answer failed, and its colour.
 CHECK_LABEL, CHECK_COLOR = "check:{}", "d93f0b"
+#: The label on a closed issue whose unit's inputs changed after filing, so nothing was stored from
+#: it; reading back passes over it from then on.
+INPUTS_CHANGED_LABEL, INPUTS_CHANGED_COLOR = "inputs-changed", "cfd3d7"
 
 
 def labels_for(entry: QueueEntry) -> dict[str, tuple[str, str]]:
@@ -214,6 +217,10 @@ class Unreadable(ValueError):
     """The ticks make no answer. The message says why, in words for the person who ticked."""
 
 
+#: Why an issue whose marker is gone or unreadable cannot be read back.
+LOST_MARKER = "The issue has lost its seqforge marker, so its ticks cannot be read."
+
+
 @dataclass(frozen=True)
 class Start:
     """A starting answer the issue offered, and the pass that gave it (None: the kind's code)."""
@@ -270,7 +277,7 @@ def read_answer(form: ReviewForm, body: str) -> tuple[Any, int | None]:
     """
     marker = read_marker(body)
     if marker is None:
-        raise Unreadable("The issue has lost its seqforge marker, so its ticks cannot be read.")
+        raise Unreadable(LOST_MARKER)
     ticked = _ticked(body)
     starts = [ids[1] for ids, _ in ticked if ids[0] == "start" and len(ids) == 2]
     if not starts:
