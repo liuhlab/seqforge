@@ -2,7 +2,7 @@
 
 It drives the GitHub CLI, ``gh``, as the person running the command: their ``gh auth login`` is
 its whole authentication, so seqforge holds no token, adds no dependency, and needs only the plain
-``repo`` scope. The repo is the one the review clone's ``origin`` remote names. Tests replace
+``repo`` scope. It needs gh 2.48 or later, the first with ``gh api --slurp``. The repo is the one the review clone's ``origin`` remote names. Tests replace
 :func:`make_github` with an in-memory stand-in, so the commands must call it through this module
 at the moment they need it, never bind it at import.
 """
@@ -173,19 +173,9 @@ class GhClient:
         self._call(path, "--method", "POST", "--input", "-", sent={"labels": list(labels)})
 
     def _pages(self, path: str) -> list[dict[str, Any]]:
-        """Every item of a listing, every page.
-
-        ``gh api --paginate`` prints one JSON array per page, one after another, so the output is
-        read as a stream of arrays.
-        """
-        text = self._call(path, "--paginate")
-        decoder = json.JSONDecoder()
-        items: list[dict[str, Any]] = []
-        at = 0
-        while (at := _skip_space(text, at)) < len(text):
-            page, at = decoder.raw_decode(text, at)
-            items.extend(page)
-        return items
+        """Every item of a listing, every page: ``--slurp`` gives one array of the pages' arrays."""
+        pages = json.loads(self._call(path, "--paginate", "--slurp"))
+        return [item for page in pages for item in page]
 
     def _call(self, path: str, *flags: str, sent: dict[str, Any] | None = None) -> str:
         done = subprocess.run(
@@ -198,12 +188,6 @@ class GhClient:
         if done.returncode != 0:
             raise GitHubError(done.stderr.strip() or f"gh api {path} exited {done.returncode}")
         return done.stdout
-
-
-def _skip_space(text: str, at: int) -> int:
-    while at < len(text) and text[at].isspace():
-        at += 1
-    return at
 
 
 def _issue(raw: dict[str, Any]) -> Issue:

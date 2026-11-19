@@ -21,8 +21,9 @@ You need two things:
   `SEQFORGE_REVIEWS` to it. A pass reads the reviews in its `reviews/` folder to learn which units
   a person has already answered. Make the clone with `gh repo clone liuhlab/seqforge-review`.
 
-The review commands also need the GitHub CLI, `gh`, logged in with `gh auth login`. They act on
-GitHub as you, and need no more than the `repo` scope that login gives by default.
+The review commands also need the GitHub CLI, `gh`, version 2.48 or later, logged in with
+`gh auth login`. They act on GitHub as you, and need no more than the `repo` scope that login gives
+by default.
 
 ## Start a pass
 
