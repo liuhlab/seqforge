@@ -7,6 +7,36 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
 
 ## Unreleased
 
+### Added
+
+- `seqforge pass start <kind>` runs one pass of a seqforge unit kind through the lab gateway, with
+  a dollar ceiling you must give (`--ceiling-usd`), the models per role (`--model`), and which units
+  to run (`--keys FILE`, `--only unsettled,refused`, or the kind's own). It prints one JSON object
+  with the count of each ending and the dollars spent, and exits 0 at the end of its units, 3 when
+  it stops, and 2 for a setup it cannot use. A model name the gateway rejects, such as a misspelled
+  one, is such a setup: the gateway's message goes to stderr. Rerunning the same command resumes
+  it, and every unit answered before comes back from the gateway's cache at no cost. No kind is
+  registered yet. The new "Passes and reviews" page of the docs describes it.
+- `seqforge review file <kind>` files a small sample of a kind's review queue, the units that
+  ended unsettled or refused, as issues in the lab's private review repo: five by default, more
+  with `--count`, in the kind's own review order. Each issue shows the unit's records, each pass's
+  answer and the checks it failed, and a person answers by ticking boxes and closing it. A unit is
+  never filed twice for the same inputs. The command reaches GitHub through the GitHub CLI, `gh`
+  2.48 or later, as the person running it. The "Passes and reviews" page of the docs describes it,
+  and how the review repo was set up.
+- `seqforge review read <kind>` reads people's answers back from a kind's closed issues in the
+  review repo. An issue closed as completed stores the answer that its ticks make, and one closed
+  as not planned stores a drop with the reasons ticked, each with the GitHub login of the person
+  who closed it. The reviews go into the kind's file in the review clone, which the command commits
+  alone and pushes. Ticks that make no answer, or an answer that fails one of the kind's checks,
+  store nothing: the issue gets a comment that says why and is reopened, and the command exits 4.
+  It works while a pass is running.
+- `seqforge pass status <kind>` reports where a kind's task stands: how many units have each
+  ending, a person's review included, and, for each pass, its models, store build, ceiling and
+  spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
+  It reads the task folder only, so it works with the gateway down.
+- seqforge now depends on liulab-llms (2026.11.2 or later), from PyPI.
+
 ### Changed
 
 - Python 3.13 is now the minimum supported version (`requires-python = ">=3.13"`). Every pixi

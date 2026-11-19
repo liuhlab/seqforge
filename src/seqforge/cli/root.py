@@ -64,6 +64,17 @@ project_app = typer.Typer(
 )
 app.add_typer(project_app, name="project")
 
+# `pass` is a Python keyword, so the group's variable and its module (`cli/passes.py`) say `passes`.
+pass_app = typer.Typer(
+    help="Passes of a seqforge unit kind over its units, through the lab gateway (liulab-llms)."
+)
+app.add_typer(pass_app, name="pass")
+
+review_app = typer.Typer(
+    help="A kind's review queue as issues in the lab's private review repo, answered by ticking."
+)
+app.add_typer(review_app, name="review")
+
 
 @app.command()
 def version() -> None:

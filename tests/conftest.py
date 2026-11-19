@@ -53,7 +53,7 @@ import sys
 import types
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
@@ -442,6 +442,8 @@ class StubStore:
     experiments: dict[str, list[str]]
     texts: dict[str, str]
     raw_calls: list[list[str]]
+    #: The parsed store marker, as the real store's ``settings`` is: ``build`` names the build read.
+    settings: dict[str, Any] = field(default_factory=lambda: {"build": "stub-build"})
 
     def experiments_for(self, accession: str, *, partial: bool = False) -> list[Any]:
         from labdata.exceptions import NotFound
