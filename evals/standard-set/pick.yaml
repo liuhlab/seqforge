@@ -1,0 +1,1007 @@
+# PROVISIONAL. The candidate studies for the standard set, picked 2026-11-19.
+# Identifiers and the picker's own short words only; no record text is copied here.
+# Counts (n_samples, n_experiments) and linked_series are the whole linked group, read from the
+# pool measured on the store build below. Direction, shape and design were judged by reading each
+# Series' public GEO record and its paper's PubMed abstract on the picking date.
+# hard_shape: recites_older_series | paper_over_several_series | superseries |
+#             series_with_two_studies | series_without_paper | null (the plain case).
+# compiles_today: the knowledge-base spec the record's protocol text points to (no read was probed),
+#   a list when the study has two compiling chemistries, or null. `10x-3p-gex` without a version
+#   means the record names the kit family and the version was not read.
+# linked_series: every Series of the linked group, the picked one included; pmids: every paper
+#   linked to any of them in the store build.
+
+store_build: "20261107T163933Z"
+picked_on: "2026-11-19"
+limits:
+  max_samples: 24
+  max_experiments: 24
+  max_linked_series: 3
+  hard_shape_max_samples: 48
+  hard_shape_max_experiments: 48
+  hard_shape_max_linked_series: 5
+  min_sequenced_runs: 1
+
+# status: settled = the Series record(s) were read and the direction, shape and design confirmed
+#   (for a hard shape the paper abstract was read too); shape_to_confirm = picked on a real
+#   signal, but only the full paper can say which samples each paper uses.
+# compiles_fully: true when every sequenced library of the study is in a chemistry named in
+#   compiles_today; false when only part is, or none.
+
+studies:
+  - id: GSE60340
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE60340]
+    pmids: ["25483067"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 24
+    n_experiments: 24
+    design: "One fibroblast line: passages to senescence plus several induced arrests"
+    reason_picked: "Twenty-four libraries where passage number and inducing drug are separate fields that must be combined to name a group."
+    status: settled
+  - id: GSE222631
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE222631]
+    pmids: ["37771191"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 24
+    n_experiments: 24
+    design: "Two sorted Schwann cell types from the same young and aged mice"
+    reason_picked: "Cell type crossed with age, with both cell types sorted from the same animals, so samples pair up across groups."
+    status: settled
+  - id: GSE106105
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE106105]
+    pmids: ["28891792"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 11
+    n_experiments: 11
+    design: "Unreplicated mix of tissues, stages, genotypes and drug induction"
+    reason_picked: "A fly Series with two unrelated sample blocks and no replicates, a test of reading a design that has no repeated groups."
+    status: settled
+  - id: GSE253651
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE253651]
+    pmids: ["38763956"]
+    assay: "bulk RNA-seq of sorted cells (low input)"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 18
+    n_experiments: 18
+    design: "Two sorted macrophage subsets from control, aged and high-fat hearts"
+    reason_picked: "Sorted subset crossed with three conditions, where the subset is only in the sample title and the condition only in a field."
+    status: settled
+  - id: GSE135532
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE135532]
+    pmids: ["31415241"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 16
+    n_experiments: 16
+    design: "Four diet groups, four hearts each, one factor"
+    reason_picked: "The simplest aging design in the set: one factor with four levels and even replicates."
+    status: settled
+  - id: GSE97461
+    direction: aging
+    also_fits: [neurodegeneration]
+    hard_shape: null
+    linked_series: [GSE97461]
+    pmids: ["30485811"]
+    assay: "bulk RNA-seq of ribosome-bound RNA, plus ribosome profiling"
+    compiles_today: bulk-rnaseq
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 19
+    n_experiments: 19
+    design: "Neuron type by age, plus an unrelated cell-line side experiment"
+    reason_picked: "One Series and one paper, yet it holds a mouse cell-type by age experiment and a separate small cell-line experiment in another assay."
+    status: settled
+  - id: GSE165978
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE165978]
+    pmids: ["34323217"]
+    assay: "10x single-cell RNA-seq, two kit versions"
+    compiles_today: 10x-3p-gex
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 9
+    n_experiments: 9
+    design: "Age, genotype and days after injury, one library per condition"
+    reason_picked: "Three factors spread thinly over nine unreplicated libraries, and the kit version differs by sample and is recorded as a field."
+    status: settled
+  - id: GSE196554
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE196554]
+    pmids: ["37192223"]
+    assay: "10x single-cell RNA-seq"
+    compiles_today: 10x-3p-gex
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Twelve human donors, each with age, sex and muscle"
+    reason_picked: "Every sample is one donor with its own age, sex and muscle, the donor-as-sample case with a continuous age."
+    status: settled
+  - id: GSE235532
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE235532]
+    pmids: ["38637528"]
+    assay: "ChIP-seq"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 24
+    n_experiments: 24
+    design: "Age by genotype by histone mark, each with its input"
+    reason_picked: "A fly ChIP design where every pull-down has a matching input, so samples must be paired as well as grouped."
+    status: settled
+  - id: GSE272899
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE272899]
+    pmids: ["39386655"]
+    assay: "ATAC-seq"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 9
+    n_experiments: 9
+    design: "Young and old macrophages across four genotypes, uneven groups"
+    reason_picked: "Age crossed with a conditional knockout and its several control genotypes, with uneven group sizes."
+    status: settled
+  - id: GSE175410
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE175410]
+    pmids: ["34932867"]
+    assay: "reduced-representation bisulfite sequencing"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 15
+    n_experiments: 15
+    design: "Young, old and old-exercised mice: an incomplete two-factor cross"
+    reason_picked: "Age and exercise are two fields but only three of the four combinations exist."
+    status: settled
+  - id: GSE241718
+    direction: aging
+    also_fits: []
+    hard_shape: paper_over_several_series
+    linked_series: [GSE241275, GSE241718]
+    pmids: ["38997312"]
+    assay: "10x single-cell and single-nucleus RNA-seq"
+    compiles_today: 10x-3p-gex
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 8
+    n_experiments: 8
+    design: "Fat depot by age, split across a cell and a nucleus Series"
+    reason_picked: "One paper deposited two Series under the same title with no SuperSeries, one for whole cells and one for nuclei."
+    status: settled
+  - id: GSE240375
+    direction: aging
+    also_fits: []
+    hard_shape: superseries
+    linked_series: [GSE240373, GSE240374, GSE240375]
+    pmids: []
+    assay: "bulk RNA-seq and 10x single-cell RNA-seq"
+    compiles_today: [bulk-rnaseq, 10x-3p-gex]
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 10
+    n_experiments: 10
+    design: "Young versus aged kidney glomeruli by bulk and single-cell"
+    reason_picked: "A SuperSeries over two sub-Series, one per assay, and none of the three records links a paper."
+    status: settled
+  - id: GSE132886
+    direction: aging
+    also_fits: []
+    hard_shape: series_with_two_studies
+    linked_series: [GSE132886]
+    pmids: ["33258951", "39010112"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 21
+    n_experiments: 21
+    design: "Uterus at four ages, sequenced as two separate experiments"
+    reason_picked: "One Series with two papers and two sequencing experiments inside it; the second paper says it re-analyses the first, so whether this is two studies is for the drawing to settle."
+    status: shape_to_confirm
+  - id: GSE112068
+    direction: aging
+    also_fits: []
+    hard_shape: series_without_paper
+    linked_series: [GSE112068]
+    pmids: []
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 23
+    n_experiments: 23
+    design: "Drug dose by time course in one cell line, 23 libraries"
+    reason_picked: "A dense dose and time series with no paper linked after eight years, so the bounds rest on the Series record alone."
+    status: settled
+  - id: GSE306935
+    direction: aging
+    also_fits: []
+    hard_shape: recites_older_series
+    linked_series: [GSE143476, GSE306935]
+    pmids: ["32198156", "41256688"]
+    assay: "10x single-cell RNA-seq"
+    compiles_today: 10x-3p-gex
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 28
+    n_experiments: 28
+    design: "Age by drug in muscle stem cells; paper also cites 2020 Series"
+    reason_picked: "A 2025 Series whose paper is also linked to a 2020 Series that has its own earlier paper."
+    status: settled
+  - id: GSE100021
+    direction: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE100021]
+    pmids: ["28645186"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 8
+    n_experiments: 8
+    design: "Aged rats, gene therapy against control, four each"
+    reason_picked: "A two-group design in aged rats, the plain case in a third mammal."
+    status: settled
+  - id: GSE275435
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE275435]
+    pmids: ["40537787"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Disease model crossed with a gene knockout: four genotypes"
+    reason_picked: "The textbook two-by-two genotype cross written as one four-level genotype field, with even triplicates."
+    status: settled
+  - id: GSE77720
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE77720]
+    pmids: ["26637796"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 23
+    n_experiments: 23
+    design: "Cortex and spinal cord from the same mice, three genotypes"
+    reason_picked: "Two tissues taken from each animal across three genotypes, with animal numbers in the sample titles."
+    status: settled
+  - id: GSE153881
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE153881]
+    pmids: ["33304899"]
+    assay: "RNA-seq of plasma vesicle RNA"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 15
+    n_experiments: 15
+    design: "Fifteen people in three diagnosis groups with clinical fields"
+    reason_picked: "A human cohort where each sample carries age, sex and clinical scores, and diagnosis is written in two overlapping fields."
+    status: settled
+  - id: GSE302826
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE302826]
+    pmids: ["40983680"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 18
+    n_experiments: 18
+    design: "Gene-variant pairs in two cell-line backgrounds, two batches"
+    reason_picked: "Isogenic line pairs from two backgrounds sequenced in batches years apart, so pairing and batch both matter."
+    status: settled
+  - id: GSE314221
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE314221]
+    pmids: ["42547584"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 16
+    n_experiments: 16
+    design: "Genotype by drug in mice; sample titles are single letters"
+    reason_picked: "A two-by-two design whose sample titles say nothing, so the design can only be read from the fields."
+    status: settled
+  - id: GSE335500
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE335500]
+    pmids: ["42570239"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Mouse brains grafted with human cells of two gene variants"
+    reason_picked: "Each sample is mouse tissue carrying human cells, with donor line, variant and age as separate facts."
+    status: settled
+  - id: GSE329430
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE329430]
+    pmids: ["42711429"]
+    assay: "10x single-cell RNA-seq with sample-tag and antibody libraries"
+    compiles_today: 10x-3p-gex
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 20
+    n_experiments: 20
+    design: "Tagged samples pooled into shared libraries; three tissues, chimeras"
+    reason_picked: "Several animals share one library and are told apart by tags, so a GEO sample is not a biological sample."
+    status: settled
+  - id: GSE288106
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE288106]
+    pmids: ["42327368"]
+    assay: "10x single-nucleus RNA-seq"
+    compiles_today: 10x-3p-gex
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 16
+    n_experiments: 16
+    design: "Sixteen human brains in four diagnosis groups"
+    reason_picked: "Post-mortem donors in three disease subtypes and controls, where the subtype is only in the title and the overall design."
+    status: settled
+  - id: GSE125850
+    direction: neurodegeneration
+    also_fits: [aging]
+    hard_shape: null
+    linked_series: [GSE125850]
+    pmids: ["30668640"]
+    assay: "ChIP-seq"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Wild type, disease and treated mice, each with own input"
+    reason_picked: "Every animal gives one pull-down and one input, and the sample titles name each pair."
+    status: settled
+  - id: GSE288182
+    direction: neurodegeneration
+    also_fits: [aging]
+    hard_shape: null
+    linked_series: [GSE288182]
+    pmids: ["42210397"]
+    assay: "reduced-representation bisulfite sequencing"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 9
+    n_experiments: 9
+    design: "Wild type, disease and treated-disease mice in triplicate"
+    reason_picked: "Genotype and treatment are two fields but form a three-group design, the incomplete cross again in another assay."
+    status: settled
+  - id: GSE146013
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE146013]
+    pmids: ["32549330"]
+    assay: "small RNA-seq"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 24
+    n_experiments: 24
+    design: "Infection by disease stage, age-matched controls, uneven groups"
+    reason_picked: "Infected and control mice at two stages, where stage and age say the same thing in two fields."
+    status: settled
+  - id: GSE254687
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: recites_older_series
+    linked_series: [GSE115571, GSE254687, GSE256105]
+    pmids: ["30206190", "39014482"]
+    assay: "bulk RNA-seq and Drop-seq single-cell RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 23
+    n_experiments: 19
+    design: "Knockout by inflammation in bulk; single-cell pairs, one from 2018"
+    reason_picked: "A 2024 paper linked to its two new Series and to a 2018 Series that has its own earlier paper."
+    status: settled
+  - id: GSE255902
+    direction: neurodegeneration
+    also_fits: [aging]
+    hard_shape: paper_over_several_series
+    linked_series: [GSE255902, GSE255904]
+    pmids: ["38582079"]
+    assay: "bulk RNA-seq and 10x single-cell RNA-seq"
+    compiles_today: [bulk-rnaseq, 10x-3p-gex]
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 22
+    n_experiments: 22
+    design: "Mutation by fibril treatment in bulk; a dose set in single-cell"
+    reason_picked: "One paper, two Series with matching titles and no SuperSeries, one per assay, with different designs in each."
+    status: settled
+  - id: GSE140511
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: superseries
+    linked_series: [GSE140399, GSE140510, GSE140511]
+    pmids: ["31932797"]
+    assay: "10x single-nucleus RNA-seq, one sub-Series 3-prime and one 5-prime"
+    compiles_today: [10x-3p-gex, 10x-5p-gex]
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 20
+    n_experiments: 20
+    design: "Two-gene cross at two ages; each age its own sub-Series"
+    reason_picked: "A SuperSeries whose sub-Series are the two ages of one mouse experiment, made with different kits, under a paper that also has human data."
+    status: settled
+  - id: GSE101112
+    direction: neurodegeneration
+    also_fits: [aging]
+    hard_shape: series_with_two_studies
+    linked_series: [GSE101112]
+    pmids: ["31742554", "32884834", "33294943"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 32
+    n_experiments: 32
+    design: "Aging mice on two drugs, plus drug-treated rat neurons"
+    reason_picked: "One Series with a mouse experiment and a rat cell experiment, and two linked papers on different questions."
+    status: shape_to_confirm
+  - id: GSE142633
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: series_without_paper
+    linked_series: [GSE142633]
+    pmids: []
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 13
+    n_experiments: 13
+    design: "Disease model by age, uneven groups, strain as genotype"
+    reason_picked: "A plain genotype by age design with no paper linked after seven years."
+    status: settled
+  - id: GSE137213
+    direction: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE137213]
+    pmids: ["31749671"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 19
+    n_experiments: 19
+    design: "Genotype by housing condition, uneven groups"
+    reason_picked: "A two-by-two with missing animals, visible in the sample numbering."
+    status: settled
+  - id: GSE126954
+    direction: c_elegans
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE126954]
+    pmids: ["31488706"]
+    assay: "10x single-cell RNA-seq"
+    compiles_today: 10x-3p-gex-v2
+    compiles_fully: true
+    known_dataset: true
+    n_samples: 8
+    n_experiments: 8
+    design: "Embryo time windows from two labs, three strains"
+    reason_picked: "Already compiled; samples differ by lab, strain and time window, and the record says one sample re-uses data from an older Series."
+    status: settled
+  - id: GSE256266
+    direction: c_elegans
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE256266]
+    pmids: ["40527319"]
+    assay: "10x single-nucleus RNA-seq"
+    compiles_today: 10x-3p-gex-v3
+    compiles_fully: true
+    known_dataset: true
+    n_samples: 4
+    n_experiments: 4
+    design: "Two sexes in duplicate; sex shown only by the genotype"
+    reason_picked: "Already compiled; the sex of each sample has to be read from a strain marker because no sex field exists."
+    status: settled
+  - id: GSE78252
+    direction: c_elegans
+    also_fits: [aging]
+    hard_shape: null
+    linked_series: [GSE78252]
+    pmids: ["27133166"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 18
+    n_experiments: 18
+    design: "Three genotypes by gene knockdown, in triplicate"
+    reason_picked: "A clean genotype by knockdown cross in worms, the standard shape for the direction."
+    status: settled
+  - id: GSE243994
+    direction: c_elegans
+    also_fits: [aging]
+    hard_shape: null
+    linked_series: [GSE243994]
+    pmids: ["38851828"]
+    assay: "bulk RNA-seq of dissected tissue (low input)"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Mutant and double mutant at two adult ages"
+    reason_picked: "Genotype crossed with age where the comparison is a mutant against its double mutant and no wild type is present."
+    status: settled
+  - id: GSE281157
+    direction: c_elegans
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE281157]
+    pmids: ["40199585"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Wild type, two single mutants and the double mutant"
+    reason_picked: "The four-genotype design used to ask whether two genes act in one pathway."
+    status: settled
+  - id: GSE114951
+    direction: c_elegans
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE114951]
+    pmids: ["33473112"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Two experiments, each a mutant with its own wild type"
+    reason_picked: "Wild-type samples belong to one of two experiments, so each control must be matched to the right mutant."
+    status: settled
+  - id: GSE151164
+    direction: c_elegans
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE151164]
+    pmids: ["32518061"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Mutant and wild type, with and without heat shock"
+    reason_picked: "A balanced genotype by treatment cross with strain and genotype given as two fields for one fact."
+    status: settled
+  - id: GSE310667
+    direction: c_elegans
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE310667]
+    pmids: ["41332732"]
+    assay: "10x single-cell RNA-seq"
+    compiles_today: 10x-3p-gex
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 16
+    n_experiments: 16
+    design: "Sixteen libraries of sorted neuron classes from eleven strains"
+    reason_picked: "Each sample is a sorted cell population defined by its reporter strain, so strain stands for cell class and not for a genetic change."
+    status: settled
+  - id: GSE129928
+    direction: c_elegans
+    also_fits: [aging]
+    hard_shape: null
+    linked_series: [GSE129928]
+    pmids: ["31815663"]
+    assay: "ChIP-seq"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Generations by genotype across two experiments, one histone mark"
+    reason_picked: "Samples are ordered by generation within numbered experiments, a time course across generations."
+    status: settled
+  - id: GSE234962
+    direction: c_elegans
+    also_fits: []
+    hard_shape: recites_older_series
+    linked_series: [GSE234962, GSE314726]
+    pmids: ["38421866", "41390837", "41509263", "42711312"]
+    assay: "10x single-cell RNA-seq"
+    compiles_today: 10x-3p-gex-v3
+    compiles_fully: true
+    known_dataset: true
+    n_samples: 7
+    n_experiments: 7
+    design: "Sorted motor neurons from two strains; later Series re-uses two samples"
+    reason_picked: "Already compiled; a 2026 Series states that it re-uses two samples of this 2023 Series, and four papers link the pair."
+    status: settled
+  - id: GSE274290
+    direction: c_elegans
+    also_fits: []
+    hard_shape: paper_over_several_series
+    linked_series: [GSE274290, GSE274291]
+    pmids: ["40097379"]
+    assay: "BD Rhapsody single-cell RNA-seq, plus small RNA-seq"
+    compiles_today: bd-rhapsody-wta
+    compiles_fully: false
+    known_dataset: true
+    n_samples: 7
+    n_experiments: 7
+    design: "One sorted-cell library; a separate small-RNA knockdown experiment"
+    reason_picked: "Already compiled; one paper over two Series with no SuperSeries, in two assays with unrelated designs."
+    status: settled
+  - id: GSE117724
+    direction: c_elegans
+    also_fits: []
+    hard_shape: superseries
+    linked_series: [GSE117700, GSE117719, GSE117724]
+    pmids: ["30668573"]
+    assay: "bulk RNA-seq and ChIP-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 20
+    n_experiments: 20
+    design: "Three genotypes by drug in RNA; one unreplicated ChIP pair"
+    reason_picked: "A SuperSeries with one paper whose sub-Series are a replicated expression design and a two-sample binding experiment."
+    status: settled
+  - id: GSE131269
+    direction: c_elegans
+    also_fits: []
+    hard_shape: series_with_two_studies
+    linked_series: [GSE131269]
+    pmids: ["31279658", "32494643"]
+    assay: "bulk RNA-seq and ribosome profiling"
+    compiles_today: bulk-rnaseq
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 24
+    n_experiments: 24
+    design: "Strain by temperature, each sample in two assays"
+    reason_picked: "The Series carries the title of one paper, its worm samples match a second paper, and both are linked."
+    status: shape_to_confirm
+  - id: GSE208154
+    direction: c_elegans
+    also_fits: [aging]
+    hard_shape: series_without_paper
+    linked_series: [GSE208154]
+    pmids: []
+    assay: "10x single-cell RNA-seq, deposited as aligned files"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: true
+    n_samples: 11
+    n_experiments: 11
+    design: "Six adult ages, uneven repeats, one strain"
+    reason_picked: "Already in the benchmark, where seqforge refuses it because the barcode read was not deposited; no paper is linked to the record."
+    status: settled
+  - id: GSE182981
+    direction: c_elegans
+    also_fits: [aging]
+    hard_shape: null
+    linked_series: [GSE182981]
+    pmids: ["36261415"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 18
+    n_experiments: 18
+    design: "Diet started at two ages, plus killed-bacteria controls"
+    reason_picked: "Five conditions that mix a timing factor with a food control."
+    status: settled
+  - id: GSE147401
+    direction: c_elegans
+    also_fits: []
+    hard_shape: recites_older_series
+    linked_series: [GSE107190, GSE147401]
+    pmids: ["29167199", "34519784"]
+    assay: "ChIP-seq and bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 33
+    n_experiments: 33
+    design: "Two histone marks on four genotypes with inputs; cites 2017 Series"
+    reason_picked: "A 2021 paper linked to its own large Series and to a three-sample 2017 Series that has its own earlier paper."
+    status: settled
+
+spares:
+  - id: GSE267091
+    direction: aging
+    spare_for: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE267091]
+    pmids: ["41175301"]
+    assay: "10x single-cell RNA-seq"
+    compiles_today: 10x-3p-gex
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 23
+    n_experiments: 23
+    design: "Age by wounding in skin, three mice each, repeated libraries"
+    reason_picked: "Two crossed factors with animals as replicates and a second library per animal, so replicate level has to be worked out."
+    status: settled
+  - id: GSE242153
+    direction: neurodegeneration
+    spare_for: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE242153]
+    pmids: ["37863057"]
+    assay: "10x single-nucleus RNA-seq"
+    compiles_today: 10x-3p-gex
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 15
+    n_experiments: 15
+    design: "Gene variant by drug treatment, one mouse per library"
+    reason_picked: "Two crossed factors with individual mice as replicates and mouse numbers in the titles."
+    status: settled
+  - id: GSE135687
+    direction: c_elegans
+    spare_for: c_elegans
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE135687]
+    pmids: ["31757604"]
+    assay: "bulk RNA-seq of sorted neurons (low input)"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Two genotypes of one sorted neuron type, six repeats each"
+    reason_picked: "A two-group worm design on sorted cells."
+    status: settled
+  - id: GSE128935
+    direction: c_elegans
+    spare_for: c_elegans
+    also_fits: [aging]
+    hard_shape: null
+    linked_series: [GSE128935]
+    pmids: ["32213289"]
+    assay: "small RNA-seq"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 6
+    n_experiments: 6
+    design: "Mutant against double mutant, replicates numbered by batch"
+    reason_picked: "A two-group design in an assay that does not compile, with no wild type."
+    status: settled
+  - id: GSE200459
+    direction: c_elegans
+    spare_for: series_without_paper
+    also_fits: [aging]
+    hard_shape: series_without_paper
+    linked_series: [GSE200459]
+    pmids: []
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 12
+    n_experiments: 12
+    design: "Compound by genotype; a sister Series holds the first experiment"
+    reason_picked: "No paper is linked, and an older Series with the same title and a smaller design is tied to it by no record."
+    status: settled
+  - id: GSE207848
+    direction: aging
+    spare_for: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE207848]
+    pmids: ["36580914"]
+    assay: "10x single-nucleus RNA-seq"
+    compiles_today: 10x-3p-gex
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 8
+    n_experiments: 8
+    design: "Young and aged brains, two mice each, two libraries each"
+    reason_picked: "Nested replicates in a simple age comparison."
+    status: settled
+  - id: GSE105077
+    direction: aging
+    spare_for: aging
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE105077]
+    pmids: ["30065345"]
+    assay: "ATAC-seq"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 21
+    n_experiments: 21
+    design: "Two human cell types from young and old donors"
+    reason_picked: "A human donor design in an assay that does not compile."
+    status: settled
+  - id: GSE155567
+    direction: neurodegeneration
+    spare_for: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE155567]
+    pmids: ["33539598"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 24
+    n_experiments: 24
+    design: "Knockout crossed with knockdown, six repeats per group"
+    reason_picked: "A balanced two-by-two in a human cell line."
+    status: settled
+  - id: GSE272373
+    direction: neurodegeneration
+    spare_for: neurodegeneration
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE272373]
+    pmids: ["40264187"]
+    assay: "10x single-nucleus RNA-seq"
+    compiles_today: 10x-3p-gex-v3
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 8
+    n_experiments: 8
+    design: "Genotype by drug by sex, duplicate libraries"
+    reason_picked: "Three factors over eight libraries."
+    status: settled
+  - id: GSE68203
+    direction: c_elegans
+    spare_for: c_elegans
+    also_fits: []
+    hard_shape: null
+    linked_series: [GSE68203]
+    pmids: ["26588990"]
+    assay: "ChIP-seq"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 9
+    n_experiments: 9
+    design: "Four genotypes at two stages, with lysate controls"
+    reason_picked: "A ChIP design whose controls are not called input."
+    status: settled
+  - id: GSE248515
+    direction: neurodegeneration
+    spare_for: recites_older_series
+    also_fits: []
+    hard_shape: recites_older_series
+    linked_series: [GSE184484, GSE248515]
+    pmids: ["34502460", "38302474"]
+    assay: "bulk RNA-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: true
+    known_dataset: false
+    n_samples: 26
+    n_experiments: 26
+    design: "Four genotypes in fat; paper also cites 2021 spinal-cord Series"
+    reason_picked: "A 2024 paper linked to its own Series and to an older Series that has its own paper."
+    status: settled
+  - id: GSE269587
+    direction: c_elegans
+    spare_for: paper_over_several_series
+    also_fits: [aging]
+    hard_shape: paper_over_several_series
+    linked_series: [GSE269587, GSE269589]
+    pmids: ["40326887"]
+    assay: "bulk RNA-seq and ribosome profiling"
+    compiles_today: bulk-rnaseq
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 20
+    n_experiments: 20
+    design: "Four temperature conditions, each sample in two assays"
+    reason_picked: "One paper, two Series split by assay with the same design and no SuperSeries."
+    status: settled
+  - id: GSE95230
+    direction: c_elegans
+    spare_for: superseries
+    also_fits: []
+    hard_shape: superseries
+    linked_series: [GSE95228, GSE95229, GSE95230]
+    pmids: []
+    assay: "bulk RNA-seq and ChIP-seq"
+    compiles_today: bulk-rnaseq
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 22
+    n_experiments: 22
+    design: "Three strains by infection in RNA; ChIP pairs with inputs"
+    reason_picked: "A SuperSeries with no paper linked on any of its three records."
+    status: settled
+  - id: GSE250280
+    direction: neurodegeneration
+    spare_for: series_with_two_studies
+    also_fits: []
+    hard_shape: series_with_two_studies
+    linked_series: [GSE250280]
+    pmids: ["40596721", "40913764", "41648346", "41684752"]
+    assay: "droplet single-nucleus RNA-seq"
+    compiles_today: null
+    compiles_fully: false
+    known_dataset: false
+    n_samples: 39
+    n_experiments: 39
+    design: "Human patient brains, plus mouse single and double knockouts"
+    reason_picked: "One Series with human and mouse samples and four linked papers on different questions."
+    status: shape_to_confirm
