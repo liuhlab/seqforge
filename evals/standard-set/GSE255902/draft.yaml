@@ -1,0 +1,17 @@
+id: GSE255902
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.2/pass-2
+when: '2026-11-19T23:38:27Z'
+summary: Human iPSC 4R tau neurons with P301S mutation model tau seeding and identify genetic modifiers
+  of tau propagation.
+bounds:
+  series:
+  - GSE255902
+  - GSE255904
+  papers:
+  - pmid:38582079
+  reason: Both Series report the same Cell paper's bulk and single-cell RNA-seq of the 4R tauopathy iPSC
+    model.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

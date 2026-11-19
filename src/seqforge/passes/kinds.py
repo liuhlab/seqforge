@@ -1,12 +1,14 @@
 """The registry of seqforge's unit kinds, by name.
 
 A kind is registered once, by the module that defines it, and every pass and review command finds
-it here by the name a person types. It holds no production kind yet: bounding registers the first
-one. Tests register their own.
+it here by the name a person types. A module that defines a kind imports liulab-llms, so it is
+imported only when its kind is asked for: :data:`KIND_MODULES` says which module registers which
+name. Tests register their own.
 """
 
 from __future__ import annotations
 
+import importlib
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -55,6 +57,9 @@ class Kind:
 #: Every registered kind, by name.
 KINDS: dict[str, Kind] = {}
 
+#: The module that registers each of seqforge's own kinds when it is imported, by the kind's name.
+KIND_MODULES: dict[str, str] = {"standard-set-bounds": "seqforge.standard_set.draft"}
+
 
 def register(kind: Kind) -> Kind:
     """Register ``kind`` under its name. Raises ``ValueError`` if that name is taken."""
@@ -66,8 +71,10 @@ def register(kind: Kind) -> Kind:
 
 def kind_named(name: str) -> Kind:
     """The kind registered as ``name``. Raises :class:`SetupRefused` naming the ones there are."""
+    if name not in KINDS and name in KIND_MODULES:
+        importlib.import_module(KIND_MODULES[name])
     try:
         return KINDS[name]
     except KeyError:
-        known = ", ".join(sorted(KINDS)) or "none yet"
+        known = ", ".join(sorted({*KINDS, *KIND_MODULES})) or "none yet"
         raise SetupRefused(f"no kind named {name!r}; registered kinds: {known}") from None

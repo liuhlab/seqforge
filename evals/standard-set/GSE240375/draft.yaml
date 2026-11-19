@@ -1,0 +1,16 @@
+id: GSE240375
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.2/pass-2
+when: '2026-11-19T23:38:27Z'
+summary: Bulk and single-cell RNA-seq of young versus aged mouse kidney glomeruli reveals aging and senescence
+  signatures.
+bounds:
+  series:
+  - GSE240373
+  - GSE240374
+  papers: []
+  reason: Both SubSeries profile young and aged glomeruli in one aging study under a common SuperSeries.
+  left_out:
+    GSE240375: SuperSeries repeating sub-Series samples
+  split_samples: {}
+checks_failed: []

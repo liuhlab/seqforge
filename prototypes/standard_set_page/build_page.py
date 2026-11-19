@@ -6,8 +6,10 @@ a time, and all of them as a gallery.
 
     python prototypes/standard_set_page/build_page.py FOLDER OUT.html [--lookup FILE] [--notice TEXT]
 
-Titles, assays and sample counts are record text the study files never hold. `--lookup` names a
-YAML file that stands in for reading them from the record store at build time.
+Titles, assays and sample counts are record text the study files never hold. They are looked up
+when the page is built, from liulab-data's stores named by LABDATA_STORE and LABDATA_PAPERS. So
+the page carries record text: write it outside the repo, or to a folder git ignores. `--lookup`
+names a YAML file to read them from instead, which is how the made-up example page is built.
 """
 
 from __future__ import annotations
@@ -43,7 +45,8 @@ def strs(items: object) -> list[str]:
     """A YAML list as strings, PMIDs without their prefix, duplicates dropped."""
     out: list[str] = []
     for item in items or []:
-        text = str(item).removeprefix("PMID:").strip()
+        text = str(item).strip()
+        text = text[5:] if text.lower().startswith("pmid:") else text
         if text not in out:
             out.append(text)
     return out
@@ -76,9 +79,10 @@ def diagram(study: dict, lookup: dict, disputed: list[str]) -> str:
     known = lookup.get("series") or {}
     inside, papers_in = strs(bounds.get("series")), strs(bounds.get("papers"))
     split = {str(k): strs(v) for k, v in (bounds.get("split_samples") or {}).items()}
-    why_out = {str(k): str(v) for k, v in (bounds.get("left_out") or {}).items()}
+    why_out = {strs([k])[0]: str(v) for k, v in (bounds.get("left_out") or {}).items()}
     superseries = str(records.get("superseries") or "")
-    every = strs(inside + strs(records.get("series")))
+    # A SuperSeries is the outline around its parts, never a box of its own.
+    every = [g for g in strs(inside + strs(records.get("series"))) if g != superseries]
     members = strs((lookup.get("superseries_members") or {}).get(superseries)) or every
 
     # Right column: the Series. A SuperSeries' own sub-Series come first, so one outline holds them.
@@ -263,6 +267,8 @@ def card(study: dict, lookup: dict) -> tuple[int, str]:
     tags = [DIRECTION.get(study.get("direction"), study.get("direction"))]
     if study.get("hard_shape"):
         tags.append(SHAPE.get(study["hard_shape"], study["hard_shape"]))
+    if "stand-in" in str((study.get("verdict") or {}).get("model")):
+        tags.append("written by hand, not by the models")
     note = ""
     if sentence:
         reason = escape(str((study.get("verdict") or {}).get("reason") or "").strip())
@@ -280,13 +286,63 @@ def card(study: dict, lookup: dict) -> tuple[int, str]:
     return {"differ": 0, "unsure": 1}.get(kind, 2), html
 
 
+def assay(libraries: list[str]) -> str:
+    """A Series' assay in a few words, from its samples' library strategy and source."""
+    names = []
+    for library in libraries:
+        strategy, _, source = library.partition(" / ")
+        strategy = {"RNA-Seq": "RNA-seq", "ATAC-seq": "ATAC-seq", "ChIP-Seq": "ChIP-seq"}.get(
+            strategy, strategy
+        )
+        name = f"single-cell {strategy}" if "single cell" in source else strategy
+        if name and name not in names:
+            names.append(name)
+    return " + ".join(names)
+
+
+def store_lookup(studies: list[dict]) -> dict:
+    """Titles, assays, sample counts and record links of every record the studies name, from the stores.
+
+    A record the store does not hold is left out, and its box shows the identifier alone.
+    """
+    from seqforge.standard_set.material import open_sources, read_group
+
+    store, papers = open_sources()
+    lookup: dict = {"series": {}, "superseries_members": {}, "papers": {}}
+    for study in studies:
+        records = study.get("records") or {}
+        entry = {
+            "id": study["id"],
+            "linked_series": strs(records.get("series")),
+            "pmids": strs(records.get("pmids")),
+        }
+        group = read_group(store, papers, entry)
+        for s in group["series"]:
+            if not s["held"]:
+                continue
+            lookup["series"][s["id"]] = {
+                "title": " ".join(s["fields"]["Title"]),
+                "assay": assay([sample["library"] for sample in s["samples"]]),
+                "n_samples": len(s["samples"]),
+                "pmids": s["pmids"],
+            }
+            if s["superseries_of"]:
+                lookup["superseries_members"][s["id"]] = s["superseries_of"]
+        for paper in group["papers"]:
+            if paper["title"]:
+                lookup["papers"][paper["pmid"]] = {"title": paper["title"].rstrip(".")}
+    return lookup
+
+
 def main() -> None:
     """Write the page."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("folder", type=Path, help="folder with one subfolder per study")
     parser.add_argument("out", type=Path, help="the HTML file to write")
     parser.add_argument(
-        "--lookup", type=Path, help="YAML of titles, assays, sample counts and record links"
+        "--lookup",
+        type=Path,
+        help="YAML of titles, assays, sample counts and record links, read instead of the stores",
     )
     parser.add_argument("--title", default="The standard set of studies")
     parser.add_argument(
@@ -294,14 +350,15 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    lookup = load(args.lookup) if args.lookup else {}
-    cards = []
+    studies = []
     for path in sorted(args.folder.glob("*/study.yaml")):
         study = load(path)
         study.setdefault("id", path.parent.name)
         study["draft"] = load(path.with_name("draft.yaml"))
         study["verdict"] = load(path.with_name("verdict.yaml"))
-        cards.append((*card(study, lookup), str(study["id"])))
+        studies.append(study)
+    lookup = load(args.lookup) if args.lookup else store_lookup(studies)
+    cards = [(*card(study, lookup), str(study["id"])) for study in studies]
     cards.sort(key=lambda c: (c[0], c[2]))
 
     page = (HERE / "template.html").read_text()

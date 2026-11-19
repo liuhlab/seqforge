@@ -1,0 +1,12 @@
+id: GSE240375
+model: claude-fable-5-2
+when: '2026-11-19T23:38:58Z'
+agrees: true
+bounds: null
+reason: 'The records settle it: GSE240375 is a SuperSeries whose two sub-Series (bulk RNA-seq GSE240373
+  and scRNA-seq GSE240374) share the same title, summary, submission date and young-versus-aged glomeruli
+  design. No record links any paper, so the paper list is correctly empty, and no Series mixes samples
+  from another study.'
+unsure: false
+read:
+- records

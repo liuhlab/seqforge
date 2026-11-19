@@ -1,15 +1,46 @@
-# The standard set (prototype)
+# The standard set (first version)
 
-**Prototype.** This folder shows what one study of the standard set looks like on disk. It holds
-one study, GSE206603, and its format is provisional. The draft and the verdict here were written
-by hand as stand-ins, and each says so in its first line.
+**Provisional.** The standard set is the 50 small GEO studies that later work is built and checked
+on. A study's **bounds** say which GEO Series and which papers belong to it. This folder holds the
+list the studies were picked into, [`pick.yaml`](pick.yaml), and one subfolder for each study drawn
+so far. The file format can still change.
 
-The standard set is the 50 small GEO studies that later work is built and checked on. A study's
-**bounds** say which GEO Series and which papers belong to it.
+Five studies have been drawn by the two models. GSE206603 is older: its draft and verdict were
+written by hand as stand-ins, and each says so in its first line.
 
 ```bash
 seqforge standard-set list     # one JSON object per study
 ```
+
+## Draw a study
+
+A small model drafts the bounds, and a large model judges the draft once. Both read liulab-data's
+stores, so set `LABDATA_STORE` and `LABDATA_PAPERS` to the store that holds the picked studies. The
+drafting pass also needs the lab gateway and a clone of the review repo: see
+[Passes and reviews](../../docs/passes-and-reviews.md).
+
+```bash
+seqforge pass start standard-set-bounds --ceiling-usd 0.5 --keys KEYS.txt
+seqforge standard-set draft
+seqforge standard-set judge <id>
+```
+
+1. **The drafting pass** runs `deepseek/deepseek-v4-flash` over the studies in `KEYS.txt`, one id a
+   line. Without `--keys` it runs every study of the pick. The model reads the records of the
+   linked group and each paper's abstract, nothing else.
+2. **`draft`** writes `<id>/draft.yaml` from the pass's answers, for each study that has none.
+3. **`judge`** asks Claude (`claude -p`, model `claude-fable-5-2`) about one study. It gets the
+   draft and what the drafting model saw, and may open the full records and the full paper texts.
+   It writes `<id>/verdict.yaml` and `<id>/study.yaml`. Judge one study at a time. If the judge
+   refuses a study, the command exits 3 and writes nothing: report it, and do not rephrase the
+   request.
+
+Where the judge disagrees, its bounds become the study's and the draft is kept. A study the judge
+is unsure about stays, with `status: unsure`. The judge's reading material holds record and paper
+text, so it goes to a work folder that git ignores (`--work`), never into this folder.
+
+To look at the drawn studies, build the reading page:
+[`prototypes/standard_set_page/`](../../prototypes/standard_set_page/).
 
 ## One folder per study
 
@@ -32,7 +63,7 @@ correction file is written only when a person actually corrects a study.
 | `also_fits` | Other directions it could count under. May be empty. |
 | `hard_shape` | `recites_older_series`, `paper_over_several_series`, `superseries`, `series_with_two_studies`, `series_without_paper`, or `null` for the plain case. |
 | `reason_picked` | One or two sentences. |
-| `store_build` | Date of the liulab-data store build the identifiers were read from. |
+| `store_build` | The liulab-data store build the identifiers were read from. |
 | `records` | Every linked record, by identifier only: `series`, `superseries` (which of those Series is the SuperSeries, or `null`), `bioprojects`, `pmids`. No record text. |
 | `bounds` | What belongs to the study. See below. |
 | `bounds_from` | `draft` when the judge agreed, `judge` when its version replaced the draft. |
@@ -53,6 +84,8 @@ The pipeline writes the last three together with the verdict.
 
 ## The other two files
 
-- **Draft:** `model`, `pass` (the drafting pass's identifier), `when`, `summary`, `bounds`.
+- **Draft:** `model`, `pass` (the drafting kind, its version and the pass's number), `when`,
+  `summary`, `bounds`, and `checks_failed`: what the code found malformed in the draft, if anything.
+  A malformed draft is still judged, and the judge then has to give its own bounds.
 - **Verdict:** `model`, `when`, `agrees`, `bounds` (the judge's own, only when it disagrees),
   `reason`, `unsure`, `read`.

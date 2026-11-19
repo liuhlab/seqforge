@@ -1,0 +1,39 @@
+id: GSE234962
+summary: Single-cell atlas of adult C. elegans motor neuron diversity defined by Hox and neuropeptide
+  expression codes.
+direction: c_elegans
+also_fits: []
+hard_shape: recites_older_series
+reason_picked: Already compiled; a 2026 Series states that it re-uses two samples of this 2023 Series,
+  and four papers link the pair.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE234962
+  - GSE314726
+  superseries: null
+  bioprojects:
+  - PRJNA983807
+  - PRJNA1392502
+  pmids:
+  - '38421866'
+  - '41390837'
+  - '41509263'
+  - '42711312'
+bounds:
+  series:
+  - GSE234962
+  papers:
+  - pmid:38421866
+  reason: GSE234962 and its reporting atlas paper describe the adult motor neuron scRNA-seq atlas.
+  left_out:
+    GSE314726: Different study, re-uses this data
+    pmid:41390837: Different study, re-uses this data
+    pmid:41509263: Preprint of different UNC-3 study
+    pmid:42711312: Journal version of different UNC-3 study
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract
