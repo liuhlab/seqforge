@@ -9,7 +9,6 @@ resumes: every unit already answered replays from the gateway's cache at no cost
 
 from __future__ import annotations
 
-import dataclasses
 import math
 from pathlib import Path
 
@@ -115,6 +114,7 @@ def _pass_start(
     from ..passes.kinds import kind_named
     from ..passes.model_text import parse_models
     from ..passes.progress import ProgressTask
+    from ..passes.status import pass_json
     from ..passes.task import open_task, reviews_folder, store_for
 
     try:
@@ -167,6 +167,7 @@ def _pass_start(
                 units_at_once=units_at_once,
                 note=build,
             )
+            (record,) = [p for p in opened.passes(unit_kind) if p.pass_id == result.pass_id]
     except TaskInUse as exc:
         # Another process took the task over mid-pass, as it may once this one's hold goes stale.
         return _held(kind.name, folder, exc)
@@ -174,26 +175,14 @@ def _pass_start(
         # The gateway refused a request outright, such as one for a model it has no price for: the
         # setup is wrong, and rerunning the same command would only meet it again.
         return _StageOut(f"the gateway rejected a request: {result.stop_message}", 2, err=True)
-    return _StageOut(
-        {
-            "kind": kind.name,
-            "kind_version": unit_kind.version,
-            "task": str(folder),
-            "pass_id": result.pass_id,
-            "label": label,
-            "store_build": build,
-            "models": {role: dataclasses.asdict(m) for role, m in sorted(models.items())},
-            "keys": len(keys),
-            "counts": result.counts,
-            "stopped": result.stopped,
-            "message": result.stop_message,
-            "spent_usd": result.spent_usd,
-            "first_cost_usd": result.first_cost_usd,
-            "requests": result.requests,
-            "cache_hits": result.cache_hits,
-        },
-        0 if result.stopped is None else 3,
-    )
+    payload = {
+        "kind": kind.name,
+        "task": str(folder),
+        "keys": len(keys),
+        **pass_json(record),
+        "message": result.stop_message,
+    }
+    return _StageOut(payload, 0 if result.stopped is None else 3)
 
 
 @pass_app.command("status")

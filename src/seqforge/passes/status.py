@@ -17,7 +17,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
-from labllm import Inputs, Task, Unit, UnitCost, UnitKind
+from labllm import Inputs, Pass, Task, Unit, UnitCost, UnitKind
 from labllm.state import ENDINGS, NOT_ENDINGS
 
 #: Each per-unit figure of a pass, and how it is read from one unit's cost.
@@ -71,23 +71,30 @@ def task_status(task: Task, kind: UnitKind) -> dict[str, Any]:
         "counts": counts,
         "passes": [
             {
-                "pass_id": p.pass_id,
-                "label": p.label,
-                "kind_version": p.kind_version,
-                "models": {role: dataclasses.asdict(m) for role, m in sorted(p.models.items())},
-                "store_build": p.note,
+                **pass_json(p),
                 "ceiling_usd": p.ceiling_usd,
                 "ended": p.ended,
-                "stopped": p.stopped,
-                "counts": p.counts,
-                "spent_usd": p.spent_usd,
-                "first_cost_usd": p.first_cost_usd,
-                "requests": p.requests,
-                "cache_hits": p.cache_hits,
                 "per_unit": _per_unit(costs[p.pass_id]),
             }
             for p in task.passes(kind)
         ],
+    }
+
+
+def pass_json(p: Pass) -> dict[str, Any]:
+    """What ``pass start`` and ``pass status`` both say of one pass, from the task's record of it."""
+    return {
+        "pass_id": p.pass_id,
+        "label": p.label,
+        "kind_version": p.kind_version,
+        "models": {role: dataclasses.asdict(m) for role, m in sorted(p.models.items())},
+        "store_build": p.note,
+        "counts": p.counts,
+        "stopped": p.stopped,
+        "spent_usd": p.spent_usd,
+        "first_cost_usd": p.first_cost_usd,
+        "requests": p.requests,
+        "cache_hits": p.cache_hits,
     }
 
 
