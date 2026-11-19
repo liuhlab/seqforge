@@ -74,8 +74,10 @@ class ReviewForm:
     ``candidates`` are starting answers the kind's code offers beside each pass's answer, and
     ``items`` the per-item questions, both from the queue entry and the unit's inputs. ``place``
     makes the answer from the ticked starting answer and the option ticked for each item (an item
-    left unticked is absent), or raises :class:`Unreadable` saying why it cannot. ``drop_reasons``
-    are the reasons a person can tick to drop the unit.
+    left unticked is absent), or raises :class:`Unreadable` saying why it cannot. An unticked item
+    keeps the starting answer's placement, so ``place`` must raise for an item that the starting
+    answer leaves unplaced and no tick places: refusing an answer with an item left unplaced is the
+    kind's to do. ``drop_reasons`` are the reasons a person can tick to drop the unit.
     """
 
     records: Callable[[Inputs], str]
