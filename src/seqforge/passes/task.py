@@ -21,6 +21,9 @@ if TYPE_CHECKING:
 #: The folder of review files inside a clone of the review repo, one ``<kind>.jsonl`` per kind.
 REVIEWS_DIRNAME = "reviews"
 
+#: The state file liulab-llms keeps in a task's folder; a folder without one holds no task.
+STATE_FILE = "state.sqlite"
+
 
 def reviews_folder(clone: Path | None) -> Path:
     """The review files' folder in ``clone``, a local clone of the review repo.

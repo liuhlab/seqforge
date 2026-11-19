@@ -21,7 +21,15 @@ from labllm import Reviews, Task
 from labllm.testing import FakeGateway
 from typer.testing import CliRunner
 
-from conftest import ECHO_STRONG, ECHO_TEXTS, ECHO_WEAK, StubStore, echo_unit_kind
+from conftest import (
+    ECHO_PRICES,
+    ECHO_STRONG,
+    ECHO_TEXTS,
+    ECHO_WEAK,
+    StubStore,
+    echo_unit_kind,
+    echo_writer,
+)
 from seqforge.cli import app
 from seqforge.passes import gateway
 from seqforge.passes.kinds import KINDS, Kind
@@ -248,3 +256,182 @@ def test_a_kind_that_reads_the_store_reads_one_build_and_names_it(
     assert out["store_build"] == "b1"
     asked = sorted(x.form["messages"][-1]["content"] for x in echo_gateway.record if x.form)
     assert asked == ["alpha", "beta"]
+
+    # The build is kept with the pass, and status reads it back with no store to open.
+    def no_store(root: Any = None) -> Any:
+        raise AssertionError("pass status opened the store")
+
+    monkeypatch.setattr(labdata, "open_store", no_store)
+    code, out = status(review_clone, "stored-echo")
+    assert (code, out["passes"][0]["store_build"]) == (0, "b1")
+
+
+# `seqforge pass status`: what a task holds, read back with no gateway.
+
+#: How long the provider takes to answer each text, in seconds on the fake gateway's clock.
+ECHO_SECONDS = {"alpha": 1.0, "beta": 2.0, "gamma": 3.0, "delta": 4.0}
+
+
+@pytest.fixture
+def timed_gateway(monkeypatch: pytest.MonkeyPatch) -> FakeGateway:
+    """The echo kind's fake gateway, whose provider takes :data:`ECHO_SECONDS` to answer."""
+
+    def writer(form: dict[str, Any]) -> str:
+        fake.clock.sleep(ECHO_SECONDS[form["messages"][-1]["content"]])
+        return echo_writer(form)
+
+    fake = FakeGateway(writer, prices=ECHO_PRICES)
+    monkeypatch.setattr(
+        "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
+    )
+    return fake
+
+
+def status(clone: Path, *argv: str) -> tuple[int, dict[str, Any]]:
+    """Run ``seqforge pass status`` and return its exit code and its JSON."""
+    result = runner.invoke(app, ["pass", "status", *argv, "--reviews", str(clone)])
+    assert result.stdout, result.stderr
+    return result.exit_code, json.loads(result.stdout)
+
+
+def _spread(total: float, median: float, p90: float) -> dict[str, Any]:
+    return {
+        "total": pytest.approx(total),
+        "median": pytest.approx(median),
+        "p90": pytest.approx(p90),
+    }
+
+
+def test_status_counts_each_units_ending_and_each_passs_cost_and_time_per_unit(
+    echo_kind: Any, timed_gateway: FakeGateway, review_clone: Path, tmp_path: Path
+) -> None:
+    # Output costs a tenth of a cent a character of the reply, so each reply's price is its length:
+    # {"word": "ALPHA"} is 17 characters, $0.017. One unit at a time, so each unit's seconds are its
+    # own call's.
+    one = ("--units-at-once", "1")
+    assert start(review_clone, "echo", "--ceiling-usd", "1", *one)[0] == 0
+    # A person drops delta, one of the weak model's two wrong answers.
+    Reviews(review_clone / "reviews").save(
+        echo_unit_kind(ECHO_TEXTS),
+        "u4",
+        who="a reviewer",
+        inputs_tag="text=delta",
+        drop=True,
+        note="not a word",
+    )
+    strong = f"writer={ECHO_STRONG.provider}/{ECHO_STRONG.name},max-output-tokens=50"
+    step_up = ("--only", "unsettled,refused", "--model", strong, "--label", "step up")
+    assert start(review_clone, "echo", "--ceiling-usd", "1", *step_up, *one)[0] == 0
+    # u9 has no text, so it is held; u2 replays from the cache at no cost; u1 pays; u4 meets the
+    # ceiling, since each call holds back five cents against it.
+    keys = tmp_path / "keys.txt"
+    keys.write_text("u9\nu2\nu1\nu4\n")
+    code, _ = start(
+        review_clone, "echo", "--ceiling-usd", "0.06", "--keys", str(keys), "--model", strong, *one
+    )
+    assert code == 3
+
+    code, out = status(review_clone, "echo")
+
+    assert code == 0, out
+    assert out["units"] == 5
+    # u4 counts twice: its current ending is the person's drop, and its latest outcome is unfinished.
+    assert out["counts"] == {
+        "settled": 3,
+        "unsettled": 0,
+        "refused": 0,
+        "dropped": 1,
+        "unfinished": 1,
+        "held": 1,
+    }
+    first, second, third = out["passes"]
+    assert (first["pass_id"], first["label"], first["store_build"]) == (1, "echo", None)
+    assert first["models"]["writer"]["name"] == ECHO_WEAK.name
+    assert first["ceiling_usd"] == 1
+    assert first["counts"] == {
+        "settled": 1,
+        "unsettled": 2,
+        "refused": 1,
+        "unfinished": 0,
+        "held": 0,
+    }
+    assert first["spent_usd"] == pytest.approx(0.062)
+    # alpha, beta, gamma, delta: 17, 16, 12 and 17 characters, 1 to 4 seconds, one request each.
+    assert first["per_unit"] == {
+        "units": 4,
+        "spent_usd": _spread(0.062, 0.0165, 0.017),
+        "first_cost_usd": _spread(0.062, 0.0165, 0.017),
+        "requests": {"total": 4, "median": 1, "p90": 1},
+        "seconds": _spread(10, 2.5, 4),
+    }
+    assert (second["label"], second["models"]["writer"]["name"]) == ("step up", ECHO_STRONG.name)
+    assert second["per_unit"]["seconds"] == _spread(5, 2.5, 3)
+    assert third["stopped"] == "ceiling_reached"
+    assert third["counts"] == {
+        "settled": 2,
+        "unsettled": 0,
+        "refused": 0,
+        "unfinished": 1,
+        "held": 1,
+    }
+    # The held unit called no model, so it is not among the units the pass ran. u2's answer came
+    # from the cache: nothing paid now, $0.016 when first paid.
+    assert third["per_unit"]["units"] == 3
+    assert third["per_unit"]["spent_usd"] == _spread(0.017, 0, 0.017)
+    assert third["per_unit"]["first_cost_usd"] == _spread(0.033, 0.016, 0.017)
+
+
+def _gateway_refusing_connections(monkeypatch: pytest.MonkeyPatch, fake: FakeGateway) -> None:
+    fake.refuse_connections()
+
+
+def _gateway_address_unset(monkeypatch: pytest.MonkeyPatch, fake: FakeGateway) -> None:
+    _no_gateway_address(monkeypatch)
+
+
+@pytest.mark.parametrize("gateway_down", [_gateway_refusing_connections, _gateway_address_unset])
+def test_status_reads_a_task_with_the_gateway_down(
+    gateway_down: Callable[[pytest.MonkeyPatch, FakeGateway], None],
+    echo_kind: Any,
+    echo_gateway: FakeGateway,
+    review_clone: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    code, ran = start(review_clone, "echo", "--ceiling-usd", "1")
+    assert code == 0
+    gateway_down(monkeypatch, echo_gateway)
+    sent = len(echo_gateway.record)
+
+    code, out = status(review_clone, "echo")
+
+    assert code == 0, out
+    assert out["counts"] == {
+        "settled": 1,
+        "unsettled": 2,
+        "refused": 1,
+        "dropped": 0,
+        "unfinished": 0,
+        "held": 0,
+    }
+    assert [p["spent_usd"] for p in out["passes"]] == [ran["spent_usd"]]
+    assert len(echo_gateway.record) == sent
+
+
+def test_status_of_a_folder_with_no_task_exits_2_and_of_a_held_task_exits_3_naming_the_holder(
+    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
+) -> None:
+    folder = Path("seqforge", "passes", "echo")
+    result = runner.invoke(app, ["pass", "status", "echo", "--reviews", str(review_clone)])
+
+    assert result.exit_code == 2, result.stdout
+    assert result.stdout == ""
+    assert f"no task in {folder}" in result.stderr
+    assert not folder.exists()
+
+    assert start(review_clone, "echo", "--ceiling-usd", "1")[0] == 0
+    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
+        code, out = status(review_clone, "echo")
+
+    assert code == 3
+    assert out["stopped"] == "task_in_use"
+    assert f"process {os.getpid()} on {socket.gethostname()}" in out["message"]

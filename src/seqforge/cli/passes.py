@@ -1,4 +1,4 @@
-"""`seqforge pass`: start a pass of a seqforge unit kind through the lab gateway.
+"""`seqforge pass`: start a pass of a seqforge unit kind through the lab gateway, and read its task.
 
 The pass itself is liulab-llms's. This module turns the options into what it takes -- a kind, models
 by role, keys in order, a dollar ceiling, a task -- and its result into one JSON object on stdout
@@ -206,6 +206,62 @@ def _pass_start(
         },
         0 if result.stopped is None else 3,
     )
+
+
+@pass_app.command("status")
+def pass_status(
+    kind: str = typer.Argument(..., help="The registered seqforge kind whose task to read."),
+    task: Path | None = typer.Option(
+        None, "--task", help="The task's folder. Default: seqforge/passes/<kind>/ here."
+    ),
+    reviews: Path | None = typer.Option(
+        None,
+        "--reviews",
+        envvar="SEQFORGE_REVIEWS",
+        help="A local clone of the review repo, whose reviews/ give a person's endings.",
+    ),
+) -> None:
+    """Report where a kind's task stands, and what each of its passes cost per unit, as JSON.
+
+    It reads the task's state and the reviews only, so it works with the gateway down. Exit 0 with
+    the report; 2 for an unknown kind, no review clone, or a folder that holds no task; 3 when a
+    running pass holds the task, whose stderr is then the live view.
+    """
+    _emit(_pass_status(name=kind, task=task, reviews=reviews))
+
+
+def _pass_status(*, name: str, task: Path | None, reviews: Path | None) -> _StageOut:
+    from labllm import Gateway, Task, TaskInUse
+
+    from ..passes import gateway
+    from ..passes.kinds import kind_named
+    from ..passes.status import read_only_kind, task_status
+    from ..passes.task import STATE_FILE, open_task, reviews_folder
+
+    try:
+        kind = kind_named(name)
+        review_files = reviews_folder(reviews)
+        folder = task if task is not None else passes_dir(Path(), kind.name)
+        if not (folder / STATE_FILE).is_file():
+            # Opening a task makes one: a folder with none is a wrong --task, not an empty report.
+            raise SetupRefused(f"no task in {folder}: no pass of {kind.name!r} has run there")
+        # The reads call no gateway; this client, which can reach none, makes sure of it.
+        client = Gateway(repo=gateway.REPO, transport=_NoGateway())
+        opened = open_task(Task, folder, gateway=client, reviews=review_files)
+    except SetupRefused as exc:
+        return _StageOut(str(exc), 2, err=True)
+    except TaskInUse as exc:
+        return _held(kind.name, folder, exc)
+    with opened:
+        report = task_status(opened, read_only_kind(kind.name))
+    return _StageOut({"kind": kind.name, "task": str(folder), **report}, 0)
+
+
+class _NoGateway:
+    """A gateway transport that reaches nothing: ``pass status`` sends no request."""
+
+    def send(self, path: str, body: bytes) -> tuple[int, bytes]:
+        raise ConnectionRefusedError(f"pass status sends no request ({path})")
 
 
 def _held(kind: str, folder: Path, exc: Exception) -> _StageOut:
