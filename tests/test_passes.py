@@ -186,6 +186,10 @@ _SET_UP = ["echo", "--ceiling-usd", "1", "--reviews", _CLONE]
             _SET_UP, _state_file_of_another_layout, "not a task's state file", id="layout"
         ),
         pytest.param(["echo", "--reviews", _CLONE], None, None, id="no-ceiling"),
+        # The gateway is the only judge of a model name: the pass starts, and its first request stops it.
+        pytest.param(
+            [*_SET_UP, "--model", "writer=test/echo-typo"], None, "no price", id="rejected-model"
+        ),
     ],
 )
 def test_a_setup_the_pass_cannot_use_exits_2_with_a_one_line_reason(
@@ -209,8 +213,10 @@ def test_a_setup_the_pass_cannot_use_exits_2_with_a_one_line_reason(
     if reason is None:  # the ceiling has no default: leaving it out is the CLI's usage error
         assert "--ceiling-usd" in result.stderr
     else:
-        assert reason in result.stderr
-        assert len(result.stderr.strip().splitlines()) == 1, result.stderr
+        # One line says why; a pass that started first writes only its own progress lines before it.
+        *progress, last = result.stderr.strip().splitlines()
+        assert reason in last
+        assert all(line.startswith("echo: ") for line in progress), result.stderr
 
 
 def test_a_kind_that_reads_the_store_reads_one_build_and_names_it(

@@ -26,6 +26,9 @@ if TYPE_CHECKING:
     # verb's start would otherwise pay.
     from labllm import Model
 
+#: The stop reason of a pass the gateway's rejection of a request ended: a setup refusal, not a stop.
+REJECTED = "rejected"
+
 #: The settings a ``--model`` value may carry after its name, and the ``Model`` field each sets.
 _SETTINGS = {
     "thinking": "thinking",
@@ -86,7 +89,7 @@ def pass_start(
     The units are the kind's default keys, or `--keys FILE`, or `--only ENDINGS`. Exit 0 when the
     pass reached the end of its keys, whatever its counts; 3 when it stopped -- at its ceiling, a
     provider's balance or cap, a provider or the gateway unavailable -- or another process holds the
-    task; 2 for a setup it cannot use. Rerun the same command to resume: units already answered
+    task; 2 for a setup it cannot use, a model name the gateway rejects included. Rerun the same command to resume: units already answered
     replay from the gateway's cache at no cost. Progress goes to stderr; stdout carries only JSON.
     """
     _emit(
@@ -174,11 +177,15 @@ def _pass_start(
                 label=label,
                 off_peak_only=off_peak_only,
                 units_at_once=units_at_once,
+                note=build,
             )
-            message = opened.stop_message(result)
     except TaskInUse as exc:
         # Another process took the task over mid-pass, as it may once this one's hold goes stale.
         return _held(kind.name, folder, exc)
+    if result.stopped == REJECTED:
+        # The gateway refused a request outright, such as one for a model it has no price for: the
+        # setup is wrong, and rerunning the same command would only meet it again.
+        return _StageOut(f"the gateway rejected a request: {result.stop_message}", 2, err=True)
     return _StageOut(
         {
             "kind": kind.name,
@@ -191,7 +198,7 @@ def _pass_start(
             "keys": len(keys),
             "counts": result.counts,
             "stopped": result.stopped,
-            "message": message,
+            "message": result.stop_message,
             "spent_usd": result.spent_usd,
             "first_cost_usd": result.first_cost_usd,
             "requests": result.requests,

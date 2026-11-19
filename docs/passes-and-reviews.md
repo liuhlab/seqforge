@@ -81,7 +81,7 @@ one build, even if the store is refreshed while it runs.
 | Exit | When |
 | --- | --- |
 | 0 | The pass reached the end of its units, whatever the counts |
-| 2 | A setup it cannot use: an unknown kind, models that do not fill the kind's roles, a model or keys file it cannot read, no review clone, no gateway address, or a task folder this liulab-llms cannot read. One line on stderr says which |
+| 2 | A setup it cannot use: an unknown kind, models that do not fill the kind's roles, a model or keys file it cannot read, no review clone, no gateway address, a model name the gateway rejects, or a task folder this liulab-llms cannot read. One line on stderr says which |
 | 3 | The pass stopped: at its ceiling, at a provider's balance or cap, or because a provider or the gateway was unavailable. Or another process holds the task, and `message` names it |
 
 ## Resume a pass

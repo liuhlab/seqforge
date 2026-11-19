@@ -15,17 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
-from labllm import (
-    CeilingReached,
-    Gateway,
-    GatewayUnreachable,
-    Model,
-    PassResult,
-    ProviderExhausted,
-    ProviderUnavailable,
-    Task,
-    UnitKind,
-)
+from labllm import Gateway, Model, PassResult, Task, UnitKind
 
 #: The fewest seconds between two progress lines.
 EVERY_S = 30.0
@@ -33,19 +23,14 @@ EVERY_S = 30.0
 #: Every outcome a pass gives a unit, in the order a line lists them.
 OUTCOMES = ("settled", "unsettled", "refused", "unfinished", "held")
 
-#: The reasons of the stops, each of which the unit that met it records as ``"<reason>: <message>"``.
-_STOPS = tuple(
-    s.reason for s in (CeilingReached, ProviderExhausted, ProviderUnavailable, GatewayUnreachable)
-)
-
 
 class ProgressTask(Task):
-    """A liulab-llms task whose passes report their progress to stderr, and their stop's message.
+    """A liulab-llms task whose passes report their progress to stderr.
 
-    The tally hooks the engine's per-unit step, ``_run_unit``: the one place a unit's ending, cost
-    and reason are all known. It is a private method, so if a later liulab-llms renames it this
-    override is simply never called. The pass then runs and records exactly as before; only the
-    lines between the first and the last go quiet, and :meth:`stop_message` falls back to the reason.
+    The tally hooks the engine's per-unit step, ``_run_unit``: the one place a unit's ending and
+    cost are both known. It is a private method, so if a later liulab-llms renames it this override
+    is simply never called. The pass then runs and records exactly as before; only the lines
+    between the first and the last go quiet.
     """
 
     def __init__(
@@ -64,7 +49,6 @@ class ProgressTask(Task):
         self._counts = dict.fromkeys(OUTCOMES, 0)
         self._spent = 0.0
         self._began = self._last = time.monotonic()
-        self._met: str | None = None
 
     def run_pass(
         self,
@@ -76,13 +60,14 @@ class ProgressTask(Task):
         label: str,
         off_peak_only: bool = False,
         units_at_once: int = 32,
+        note: str | None = None,
     ) -> PassResult:
         """Run the pass as liulab-llms does, writing a line as it starts, as it goes and as it ends."""
         keys = list(keys)
         with self._lock:
             self._name, self._total = kind.name, len(keys)
             self._counts = dict.fromkeys(OUTCOMES, 0)
-            self._spent, self._met = 0.0, None
+            self._spent = 0.0
             self._began = self._last = time.monotonic()
         _say(
             f"{kind.name}: a pass over {len(keys):,} units starts, ceiling ${ceiling_usd:,.2f}, "
@@ -96,11 +81,12 @@ class ProgressTask(Task):
             label=label,
             off_peak_only=off_peak_only,
             units_at_once=units_at_once,
+            note=note,
         )
         ending = (
             "reached the end of its keys"
             if result.stopped is None
-            else f"stopped, {result.stopped}: {self.stop_message(result)}"
+            else f"stopped, {result.stopped}: {result.stop_message}"
         )
         _say(
             f"{kind.name}: pass {result.pass_id} {ending}. "
@@ -109,30 +95,14 @@ class ProgressTask(Task):
         )
         return result
 
-    def stop_message(self, result: PassResult) -> str | None:
-        """The message of the stop that ended ``result``'s pass, as the gateway gave it; None if none.
-
-        The unit that met the stop records the gateway's own message, such as the ceiling crossed or
-        the provider's balance; every unit after it records only that the pass stopped.
-        """
-        if result.stopped is None:
-            return None
-        with self._lock:
-            return self._met or f"the pass stopped: {result.stopped}"
-
     def _run_unit(self, *args: Any, **kwargs: Any) -> Any:
         ended = super()._run_unit(*args, **kwargs)
         ending = getattr(ended, "ending", None)
         spent = getattr(getattr(ended, "cost", None), "spent_usd", 0.0)
-        reason = getattr(ended, "reason", None)
         with self._lock:
             if ending in self._counts:
                 self._counts[ending] += 1
             self._spent += spent
-            if self._met is None and ending == "unfinished" and isinstance(reason, str):
-                stop, sep, message = reason.partition(": ")
-                if sep and stop in _STOPS:
-                    self._met = message
             now = time.monotonic()
             if now - self._last >= self._every_s:
                 self._last = now
