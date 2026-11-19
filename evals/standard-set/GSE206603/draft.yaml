@@ -5,9 +5,12 @@ id: GSE206603
 model: "stand-in, written by hand for the prototype"   # a real draft names the drafting model
 pass: null                   # the drafting pass's identifier on the run engine; none exists yet
 when: "2026-11-19"
+summary: "Neurons from familial Alzheimer's patient cell lines: gene expression and open chromatin"
 bounds:
   series: [GSE206602, GSE206588]
   papers: ["pmid:39754192"]
   reason: >-
     Both sub-Series cite the same paper and hold the same four cell lines, one assay each.
+  left_out:
+    GSE206603: "umbrella record; repeats the two sub-Series"
   split_samples: {}

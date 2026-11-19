@@ -1,8 +1,0 @@
-# PROTOTYPE. The person's answer. Empty: nobody has read this study yet.
-
-id: GSE206603
-mark: null                   # accept | fix | drop
-note: null
-bounds: null                 # the corrected bounds, only when mark is fix; same keys as the study file's bounds
-who: null
-when: null

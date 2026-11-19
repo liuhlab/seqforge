@@ -23,19 +23,18 @@ def default_standard_set_dir() -> Path:
 @standard_set_app.command("list")
 def standard_set_list(
     set_dir: Path | None = typer.Option(
-        None, "--dir", help="Folder of study files (default: evals/standard-set)."
+        None, "--dir", help="Folder of study folders (default: evals/standard-set)."
     ),
 ) -> None:
-    """List the standard set: one object per study, from its study file."""
+    """List the standard set: one object per study, from its ``<id>/study.yaml``."""
     root = set_dir or default_standard_set_dir()
-    # A study file is `<id>.yaml`. Its draft, verdict and answer carry a second suffix.
-    study_files = sorted(p for p in root.glob("*.yaml") if "." not in p.stem)
     payload = []
-    for path in study_files:
+    for path in sorted(root.glob("*/study.yaml")):
         study = yaml.safe_load(path.read_text())
         payload.append(
             {
                 "id": study["id"],
+                "summary": study["summary"],
                 "direction": study["direction"],
                 "hard_shape": study["hard_shape"],
                 "status": study["status"],

@@ -1,7 +1,8 @@
 # PROTOTYPE. One study of the standard set, written out to react to the shape. The format is
-# provisional. The fields are explained in README.md beside this file.
+# provisional. The fields are explained in ../README.md.
 
-id: GSE206603                # the Series the study was picked by
+id: GSE206603                # the folder name: the Series the study was picked by
+summary: "Neurons from familial Alzheimer's patient cell lines: gene expression and open chromatin"
 direction: neurodegeneration # aging | neurodegeneration | c_elegans
 also_fits: []                # other directions the study could count under
 hard_shape: superseries      # null for the plain case
@@ -22,15 +23,17 @@ records:
   bioprojects: [PRJNA851445, PRJNA851439, PRJNA851435]   # same order as series
   pmids: ["39754192"]
 
-# What belongs to the study. A SuperSeries only repeats the samples of its sub-Series, so the
-# bounds name the sub-Series and leave the SuperSeries out.
+# What belongs to the study, and what was linked to it but does not.
 bounds:
   series: [GSE206602, GSE206588]
   papers: ["pmid:39754192"]
   reason: >-
     Both sub-Series cite the same paper and hold the same four cell lines, one assay each.
+  left_out:                  # every linked Series or paper that is not in the study, with a short reason
+    GSE206603: "umbrella record; repeats the two sub-Series"
   split_samples: {}          # Series -> samples of this study, only for a Series split between two studies
 
+# Written by the pipeline together with the verdict.
 bounds_from: draft           # draft | judge: whose bounds these are
 status: settled              # settled | unsure
 read_to_decide: [records, abstract]
