@@ -124,6 +124,58 @@ def test_sleeps(phases):
     result.stdout.fnmatch_lines(["*Timeout*"])
 
 
+def sleeper(*, setup: float = 0, call: float = 0, teardown: float = 0) -> str:
+    """A test file whose one test sleeps this long in each phase."""
+    return f"""
+import time
+
+import pytest
+
+
+@pytest.fixture
+def phases():
+    time.sleep({setup})
+    yield
+    time.sleep({teardown})
+
+
+def test_sleeps(phases):
+    time.sleep({call})
+"""
+
+
+class SlowReport:
+    """Writing the call's report takes as long as the whole limit, as it can on a loaded runner."""
+
+    def pytest_runtest_logreport(self, report: pytest.TestReport) -> None:
+        if report.when == "call":
+            time.sleep(0.3)
+
+
+def test_a_timeout_after_a_slow_report_fails_the_test_by_name(pytester: pytest.Pytester) -> None:
+    scratch(pytester, sleeper(call=0.05, teardown=0.3), timeout=0.3, budget=30)
+    result = pytester.runpytest(plugins=[SlowReport()])
+    assert result.ret == pytest.ExitCode.TESTS_FAILED
+    result.assert_outcomes(passed=1, errors=1)
+    result.stdout.fnmatch_lines(
+        ["*ERROR at teardown of test_sleeps*", "E * Failed: Timeout (>0.3s) from pytest-timeout."]
+    )
+
+
+def test_the_time_a_report_takes_is_not_the_tests(pytester: pytest.Pytester) -> None:
+    scratch(pytester, sleeper(call=0.05), timeout=0.3, budget=30)
+    result = pytester.runpytest(plugins=[SlowReport()])
+    result.assert_outcomes(passed=1)
+    assert result.ret == pytest.ExitCode.OK
+
+
+def test_setup_and_call_share_one_timeout(pytester: pytest.Pytester) -> None:
+    scratch(pytester, sleeper(setup=0.21, call=0.21), timeout=0.4, budget=30)
+    result = pytester.runpytest()
+    result.assert_outcomes(failed=1)
+    result.stdout.fnmatch_lines(["E * Failed: Timeout (>0.4s) from pytest-timeout."])
+
+
 def test_a_slow_test_is_deselected_by_default(pytester: pytest.Pytester) -> None:
     scratch(pytester, SLOW_TEST + "\n\ndef test_quick():\n    pass\n", timeout=0.2, budget=0.6)
     result = pytester.runpytest()

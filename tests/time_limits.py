@@ -1,4 +1,4 @@
-"""The suite budget and the slow lane.
+"""The suite budget, the per-test timeout and the slow lane.
 
 `suite_budget` in `[tool.pytest.ini_options]` is the most seconds a run may take, and
 `timeout`, read by pytest-timeout, the most one test may take. A test marked `slow` is held
@@ -7,15 +7,21 @@ to neither: the default run deselects it, and a run in which one ran is not time
 
 from __future__ import annotations
 
+import signal
 import time
 from collections.abc import Generator
+from types import FrameType
 
 import pytest
+import pytest_timeout  # type: ignore[import-untyped]
 
 SLOW = "slow"
 
 #: Rides on a `slow` test's reports, which pytest-xdist carries from a worker to the controller.
 SLOW_TAG = (SLOW, True)
+
+#: The shortest wait a signal timer takes: 0 switches it off.
+SOONEST = 1e-6
 
 
 class SuiteBudget:
@@ -69,6 +75,89 @@ class SuiteBudget:
         terminalreporter.write_line(self.verdict, red=self.over, bold=self.over)
 
 
+class PerTestTimeout:
+    """Holds each test to `timeout` seconds, shared by its setup, call and teardown.
+
+    It replaces pytest-timeout's own timer, which runs from before a test's setup until after
+    its teardown. pytest catches what a test raises inside those three hooks and nowhere else,
+    so an alarm that went off between them, while a report was built or written, ended the
+    whole run as an internal error. This timer runs only inside the three hooks. What is left
+    of the allowance carries from one to the next, and the time between them is not counted.
+    """
+
+    def __init__(self) -> None:
+        #: The running test and its pytest-timeout settings, while the limit can still fail it.
+        self.timed: tuple[pytest.Item, pytest_timeout.Settings] | None = None
+        #: Seconds of that test's allowance still unused.
+        self.left = 0.0
+        #: When the phase now running uses the allowance up, on `time.perf_counter`.
+        self.due: float | None = None
+
+    def pytest_timeout_set_timer(
+        self, item: pytest.Item, settings: pytest_timeout.Settings
+    ) -> bool:
+        """Take the timer from pytest-timeout. A `slow` test gets no allowance, so no timer."""
+        if not item.get_closest_marker(SLOW):
+            self.timed, self.left = (item, settings), settings.timeout
+        return True
+
+    def pytest_timeout_cancel_timer(self) -> bool:
+        """Time the test no further: pytest-timeout asks once a phase has failed, and at the end."""
+        self.timed = None
+        return True
+
+    @pytest.hookimpl(wrapper=True, tryfirst=True)
+    def _phase(self) -> Generator[None, object, object]:
+        """Run the timer while one phase of the test does.
+
+        The signal timer is one per process, and a test may itself be a pytest run started
+        inside a test of another run, whose timer is then running. That one is stopped for the
+        phase and set going again after it, with the phase's time taken off.
+        """
+        if self.timed is None:
+            return (yield)
+        found_left = signal.setitimer(signal.ITIMER_REAL, 0)[0]
+        found_alarm = signal.signal(signal.SIGALRM, self._alarm)
+        started = time.perf_counter()
+        try:
+            try:
+                self.due = started + self.left
+                signal.setitimer(signal.ITIMER_REAL, max(self.left, SOONEST))
+                return (yield)
+            finally:
+                # From here the alarm does nothing, so it cannot go off outside the hook.
+                self.due = None
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            took = time.perf_counter() - started
+            self.left -= took
+            # The handler stays unless a timer was found: the default one would end the process
+            # on an alarm that arrives late.
+            if found_left:
+                signal.signal(signal.SIGALRM, found_alarm)
+                signal.setitimer(signal.ITIMER_REAL, max(found_left - took, SOONEST))
+
+    pytest_runtest_setup = pytest_runtest_call = pytest_runtest_teardown = _phase
+
+    def _alarm(self, signum: int, frame: FrameType | None) -> None:
+        """Fail the test the way pytest-timeout does, once: the rest of it runs untimed.
+
+        An alarm can arrive after its timer was switched off, so this goes by the clock and not
+        by the signal: outside a phase it does nothing, and in a phase with allowance left it
+        sets the timer again.
+        """
+        __tracebackhide__ = True
+        if self.timed is None or self.due is None:
+            return
+        left = self.due - time.perf_counter()
+        if left > 0:
+            signal.setitimer(signal.ITIMER_REAL, left)
+            return
+        item, settings = self.timed
+        self.timed = self.due = None
+        pytest_timeout.timeout_sigalrm(item, settings)
+
+
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register `suite_budget`."""
     parser.addini(
@@ -81,11 +170,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Register the `slow` marker, and the budget when one is set, outside xdist's workers."""
+    """Register the `slow` marker and the timeout; outside xdist's workers, the budget when one is set."""
     config.addinivalue_line(
         "markers",
         f"{SLOW}: exempt from timeout and suite_budget, and deselected unless -m {SLOW}",
     )
+    config.pluginmanager.register(PerTestTimeout(), "per-test-timeout")
     budget = config.getini("suite_budget")
     if budget and not hasattr(config, "workerinput"):
         config.pluginmanager.register(SuiteBudget(budget), "suite-budget")
@@ -100,8 +190,3 @@ def pytest_runtest_makereport(
     if item.get_closest_marker(SLOW):
         report.user_properties.append(SLOW_TAG)
     return report
-
-
-def pytest_timeout_set_timer(item: pytest.Item) -> bool | None:
-    """Set no timer for a `slow` test; pytest-timeout sets one for every other."""
-    return True if item.get_closest_marker(SLOW) else None
