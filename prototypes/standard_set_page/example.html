@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The standard set of studies</title>
-<!-- PROTOTYPE, throwaway. A view-only gallery written by build_page.py: one picture per study. -->
+<!-- PROTOTYPE, throwaway. View-only, written by build_page.py: one picture per study, shown one
+     at a time (#<study id>) or all together (#all). Nothing is collected or stored. -->
 <style>
 :root{
   --bg:#f5f4ef; --surface:#ffffff; --ink:#1c2220; --muted:#5c6662; --line:#d9d7cd;
@@ -23,41 +24,78 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 h1,h2,p{margin:0}
-.notice{background:var(--warn-bg);color:var(--warn-ink);font-weight:600;font-size:13px;padding:6px 24px}
-.top{padding:18px 24px 6px;max-width:1500px;margin:0 auto}
-.top h1{font-size:21px}
-.top p{color:var(--muted);margin-top:2px}
-.legend{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:12px;font-size:13px;align-items:center}
+:focus-visible{outline:2px solid var(--in);outline-offset:2px}
+.notice{background:var(--warn-bg);color:var(--warn-ink);font-size:12.5px;padding:5px 28px}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;padding:18px 28px 0;max-width:1500px;margin:0 auto}
+.top h1{font-size:17px}
+.top p{color:var(--muted);flex:1 1 300px}
+.views{display:flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;font-size:13px}
+.views a{padding:4px 14px;color:var(--muted);text-decoration:none}
+.views a.on{background:var(--ink);color:var(--bg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 22px;padding:12px 28px 0;max-width:1500px;margin:0 auto;font-size:12.5px;color:var(--muted)}
 .legend span{display:inline-flex;align-items:center;gap:7px}
-.legend svg{width:34px;height:20px;flex:none}
+.legend svg{width:30px;height:18px;flex:none}
+.legend .q{width:16px;height:16px;font-size:11px}
 
-.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:16px;padding:14px 24px 60px;
+/* all studies: a gallery */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:20px;padding:22px 28px 70px;
   max-width:1500px;margin:0 auto;align-items:start}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px 12px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;min-width:0}
 .card.differ{border-left:5px solid var(--differ)}
 .card.unsure{border-left:5px solid var(--unsure)}
+body.all .card{cursor:pointer}
+body.all .card:hover{border-color:var(--muted)}
 .card h2{font-size:16px;line-height:1.3;text-wrap:balance}
-.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 10px;font-size:12px}
-.tags span{border:1px solid var(--line);border-radius:99px;padding:0 9px;color:var(--muted)}
-.tags code{margin-left:auto;color:var(--muted);font:11px ui-monospace,SFMono-Regular,Menlo,monospace}
+.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 16px;font-size:12px;color:var(--muted)}
+.tags span{border:1px solid var(--line);border-radius:99px;padding:0 9px}
+.tags code{margin-left:auto;font:11px ui-monospace,SFMono-Regular,Menlo,monospace}
 .card svg{display:block;width:100%;height:auto}
-.note{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:13px}
+.note{margin-top:16px;font-size:13px}
+.note details{margin-top:4px;color:var(--muted)}
+.note summary{cursor:pointer;width:fit-content;font-size:12.5px}
+.q{display:inline-grid;place-items:center;width:1.25em;height:1.25em;border-radius:50%;background:var(--differ);
+  color:#fff;font-size:.85em;font-weight:700;line-height:1;vertical-align:.05em}
+
+/* one study at a time: the same card, alone and larger */
+.nav,.arrow{display:none}
+body.one .nav{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 28px 0}
+.nav #count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+#dots{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;max-width:900px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dot.differ{background:var(--differ)} .dot.unsure{background:var(--unsure)}
+.dot.on{outline:2px solid var(--ink);outline-offset:2px}
+body.one .arrow{display:grid;place-items:center;position:fixed;top:50%;width:46px;height:46px;margin-top:-23px;
+  border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:24px;
+  line-height:1;text-decoration:none;padding-bottom:3px}
+.arrow:hover{border-color:var(--muted)}
+#prev{left:max(14px,calc(50% - 540px))} #next{right:max(14px,calc(50% - 540px))}
+.arrow.off{opacity:.25;pointer-events:none}
+body.one .gallery{display:block;max-width:900px;padding:30px 28px 90px}
+body.one .card{display:none}
+body.one .card.current{display:block;background:none;border:0;padding:0}
+body.one .card h2{font-size:25px}
+body.one .tags{margin:12px 0 34px;font-size:13px}
+body.one .note{margin-top:34px;font-size:16px;padding-left:14px;border-left:4px solid var(--line)}
+body.one .differ .note{border-color:var(--differ)}
+body.one .unsure .note{border-color:var(--unsure)}
+body.one .note summary{font-size:14px}
 
 /* the picture */
 svg text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:var(--ink)}
 svg .t{font-size:13px;font-weight:600}
 svg .d{font-size:11.5px;fill:var(--muted)}
 svg .r{font-size:11px;font-style:italic;fill:var(--muted)}
-svg .kind,svg .sslabel{font-size:10px;font-weight:700;letter-spacing:.06em;fill:var(--muted)}
-svg .sslabel{fill:var(--ss)}
-svg .id{font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:var(--link);text-decoration:underline}
+svg .sslabel{font-size:10.5px;font-weight:600;fill:var(--ss)}
+svg .id{font:10px ui-monospace,SFMono-Regular,Menlo,monospace;fill:var(--link)}
+svg a:hover .id{text-decoration:underline}
 svg .box{fill:var(--in-bg);stroke:var(--in);stroke-width:1.6}
-svg .box.paper{fill:var(--surface);stroke:var(--ink)}
-svg .out .box,svg .box.nopaper{fill:var(--surface);stroke:var(--out);stroke-width:1.3;stroke-dasharray:5 4}
+svg .box.paper{fill:var(--surface);stroke:var(--ink);stroke-width:1.4;stroke-linejoin:round}
+svg .fold{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-linejoin:round}
+svg .out .box{fill:var(--surface);stroke:var(--out);stroke-width:1.3;stroke-dasharray:5 4}
+svg .out .fold{stroke:var(--out)}
 svg .out .t{fill:var(--muted);font-weight:500}
 svg .rest{fill:var(--surface)}
 svg .share{fill:var(--in-bg)}
-svg .cut{stroke:var(--in);stroke-width:1.3;stroke-dasharray:3 3}
 svg .box.edge{fill:none}
 svg .link{fill:none;stroke:var(--in);stroke-width:1.8}
 svg .link.out,svg .link.none{stroke:var(--out);stroke-width:1.3;stroke-dasharray:5 4}
@@ -65,33 +103,73 @@ svg .ss{fill:none;stroke:var(--ss);stroke-width:1.5}
 svg .mark circle{fill:var(--differ)}
 svg .mark text{fill:#fff;font-size:12px;font-weight:700}
 
-@media (max-width:600px){.gallery{grid-template-columns:1fr;padding-inline:12px}.top{padding-inline:12px}}
+@media (max-width:640px){.gallery{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="notice">Example data: these studies are made up, and the links lead nowhere.</div>
 <header class="top">
   <h1>The standard set of studies</h1>
-  <p>One picture per study: its paper on the left, its GEO datasets on the right. 5 studies, 3 with a coloured edge shown first: the two models disagreed there, or one was not sure.</p>
-  <div class="legend">
-    <span><svg viewBox="0 0 34 20"><rect class="box" x="1" y="2" width="32" height="16" rx="4"/></svg>dataset in the study</span>
-    <span><svg viewBox="0 0 34 20"><g class="out"><rect class="box" x="1" y="2" width="32" height="16" rx="4"/></g></svg>linked, but left out</span>
-    <span><svg viewBox="0 0 34 20"><rect class="share" x="1" y="2" width="16" height="16"/><rect class="box edge" x="1" y="2" width="32" height="16" rx="4"/></svg>only part of the dataset belongs</span>
-    <span><svg viewBox="0 0 34 20"><rect class="ss" x="1" y="1" width="32" height="18" rx="5"/><rect class="box" x="6" y="6" width="22" height="8" rx="2"/></svg>outline: a SuperSeries</span>
-    <span><svg viewBox="0 0 34 20"><rect class="box paper" x="1" y="2" width="32" height="16" rx="4"/></svg>paper</span>
-    <span><svg viewBox="0 0 34 20"><g class="mark"><circle cx="17" cy="10" r="9"/><text x="17" y="14" text-anchor="middle">?</text></g></svg>the two models disagreed about this one</span>
-  </div>
+  <p>One picture per study: the paper on the left, its datasets on the right.</p>
+  <nav class="views"><a id="v-one" href="#">One at a time</a><a id="v-all" href="#all">All</a></nav>
 </header>
+<div class="legend">
+  <span><svg viewBox="0 0 30 18"><rect class="box" x="1" y="2" width="28" height="14" rx="4"/></svg>in the study</span>
+  <span><svg viewBox="0 0 30 18"><g class="out"><rect class="box" x="1" y="2" width="28" height="14" rx="4"/></g></svg>linked, but left out</span>
+  <span><svg viewBox="0 0 30 18"><rect class="share" x="1" y="2" width="14" height="14"/><rect class="box edge" x="1" y="2" width="28" height="14" rx="4"/></svg>only part belongs</span>
+  <span><svg viewBox="0 0 30 18"><rect class="ss" x="1" y="1" width="28" height="16" rx="5"/></svg>a SuperSeries</span>
+  <span><svg viewBox="0 0 30 18"><path class="box paper" d="M4 2H21L26 7V16H4Z"/><path class="fold" d="M21 2V7H26"/></svg>paper</span>
+  <span><span class="q">?</span>the two models disagreed</span>
+</div>
+<div class="nav"><span id="count"></span><div id="dots"></div></div>
+<a class="arrow" id="prev" href="#" aria-label="Previous study">‹</a>
+<a class="arrow" id="next" href="#" aria-label="Next study">›</a>
 <main class="gallery">
-<article class="card differ" id="EX02"><header><h2>Cortex of an amyloid mouse model: gene expression and open chromatin from the same animals</h2><div class="tags"><span>Neurodegeneration</span><span>one paper, several datasets</span><code>EX02</code></div></header><svg viewBox="0 0 580 279" role="img" aria-label="Cortex of an amyloid mouse model: gene expression and open chromatin from the same animals"><path class="link in" d="M182 66.5 C210.0 66.5 210.0 47.5 238 47.5"/><path class="link in" d="M182 66.5 C210.0 66.5 210.0 125.5 238 125.5"/><path class="link out" d="M182 66.5 C210.0 66.5 210.0 217.5 238 217.5"/><path class="link out" d="M182 207 C210.0 207 210.0 217.5 238 217.5"/><g class="in"><title>Linked changes in gene expression and chromatin in the cortex of an amyloid mouse model</title><rect class="box paper" x="4" y="6" width="178" height="121" rx="8"/><text class="kind" x="16" y="23">PAPER</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900021/" target="_blank" rel="noopener"><text class="id" x="170" y="23.0" text-anchor="end">PMID 99900021</text></a><text class="t" x="16" y="43.0">Linked changes in gene</text><text class="t" x="16" y="58.0">expression and</text><text class="t" x="16" y="73.0">chromatin in the</text><text class="t" x="16" y="88.0">cortex of an amyloid</text><text class="t" x="16" y="103.0">mouse model</text></g><g class="out"><title>Gene expression in human prefrontal cortex across stages of Alzheimer&#x27;s disease</title><rect class="box paper" x="4" y="141" width="178" height="132" rx="8"/><text class="kind" x="16" y="158">PAPER</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900023/" target="_blank" rel="noopener"><text class="id" x="170" y="158.0" text-anchor="end">PMID 99900023</text></a><text class="t" x="16" y="178.0">Gene expression in</text><text class="t" x="16" y="193.0">human prefrontal</text><text class="t" x="16" y="208.0">cortex across stages</text><text class="t" x="16" y="223.0">of Alzheimer&#x27;s disease</text><text class="r" x="16" y="243.0">The paper that belongs to</text><text class="r" x="16" y="256.0">that older dataset.</text></g><g class="in"><rect class="box" x="238" y="13.5" width="328" height="68" rx="8"/><text class="t" x="250" y="34.5">Cortex of an amyloid mouse model: gene</text><text class="t" x="250" y="50.5">expression in single nuclei</text><text class="d" x="250" y="67.5">single-nucleus RNA-seq · 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990021" target="_blank" rel="noopener"><text class="id" x="554" y="67.5" text-anchor="end">GSE9990021</text></a></g><g class="in"><rect class="box" x="238" y="91.5" width="328" height="68" rx="8"/><text class="t" x="250" y="112.5">Cortex of an amyloid mouse model: open</text><text class="t" x="250" y="128.5">chromatin in single nuclei</text><text class="d" x="250" y="145.5">single-nucleus ATAC-seq · 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990022" target="_blank" rel="noopener"><text class="id" x="554" y="145.5" text-anchor="end">GSE9990022</text></a></g><g class="mark"><title>The two models disagreed about this dataset</title><circle cx="564" cy="93.5" r="9"/><text x="564" y="97.5" text-anchor="middle">?</text></g><g class="out"><rect class="box" x="238" y="169.5" width="328" height="96" rx="8"/><text class="t" x="250" y="190.5">Human prefrontal cortex across stages of</text><text class="t" x="250" y="206.5">Alzheimer&#x27;s disease</text><text class="d" x="250" y="223.5">bulk RNA-seq · 48 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990023" target="_blank" rel="noopener"><text class="id" x="554" y="223.5" text-anchor="end">GSE9990023</text></a><text class="r" x="250" y="239.5">An older human dataset from another lab. This paper only</text><text class="r" x="250" y="253.5">re-analysed it.</text></g><g class="mark"><title>The two models disagreed about this dataset</title><circle cx="564" cy="171.5" r="9"/><text x="564" y="175.5" text-anchor="middle">?</text></g></svg><p class="note"><b>The two models disagreed</b> about “Human prefrontal cortex across stages of Alzheimer&#x27;s disease” (only the first put it in) and “Cortex of an amyloid mouse model: open chromatin in single nuclei” (only the checking model put it in). The picture follows the checking model. The paper&#x27;s data availability statement names the open-chromatin dataset as the other half of the same experiment. The human dataset was deposited three years earlier by another group and is only re-analysed here.</p></article>
-<article class="card differ" id="EX05"><header><h2>Aging time course in wild-type C. elegans, bulk RNA-seq</h2><div class="tags"><span>C. elegans</span><span>one dataset shared by two studies</span><code>EX05</code></div></header><svg viewBox="0 0 580 277" role="img" aria-label="Aging time course in wild-type C. elegans, bulk RNA-seq"><path class="link in" d="M182 59 C210.0 59 210.0 138.5 238 138.5"/><path class="link out" d="M182 198.5 C210.0 198.5 210.0 138.5 238 138.5"/><g class="in"><title>A time course of gene expression during aging in wild-type C. elegans</title><rect class="box paper" x="4" y="6" width="178" height="106" rx="8"/><text class="kind" x="16" y="23">PAPER</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900051/" target="_blank" rel="noopener"><text class="id" x="170" y="23.0" text-anchor="end">PMID 99900051</text></a><text class="t" x="16" y="43.0">A time course of gene</text><text class="t" x="16" y="58.0">expression during</text><text class="t" x="16" y="73.0">aging in wild-type C.</text><text class="t" x="16" y="88.0">elegans</text></g><g class="out"><title>Gene expression in young adults of long- lived C. elegans mutants</title><rect class="box paper" x="4" y="126" width="178" height="145" rx="8"/><text class="kind" x="16" y="143">PAPER</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900052/" target="_blank" rel="noopener"><text class="id" x="170" y="143.0" text-anchor="end">PMID 99900052</text></a><text class="t" x="16" y="163.0">Gene expression in</text><text class="t" x="16" y="178.0">young adults of long-</text><text class="t" x="16" y="193.0">lived C. elegans</text><text class="t" x="16" y="208.0">mutants</text><text class="r" x="16" y="228.0">The second paper. It</text><text class="r" x="16" y="241.0">describes the mutants, not</text><text class="r" x="16" y="254.0">the time course.</text></g><g class="in"><clipPath id="clip-EX05-0"><rect x="238" y="90.5" width="328" height="96" rx="8"/></clipPath><rect class="rest" x="238" y="90.5" width="328" height="96" rx="8"/><rect class="share" x="238" y="90.5" width="164" height="96" clip-path="url(#clip-EX05-0)"/><rect class="box edge" x="238" y="90.5" width="328" height="96" rx="8"/><text class="t" x="250" y="111.5">C. elegans aging time course and long-lived</text><text class="t" x="250" y="127.5">mutants</text><text class="d" x="250" y="144.5">bulk RNA-seq · 6 of 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990051" target="_blank" rel="noopener"><text class="id" x="554" y="144.5" text-anchor="end">GSE9990051</text></a><text class="r" x="250" y="160.5">The rest: These are long-lived mutants, published in a</text><text class="r" x="250" y="174.5">second paper.</text></g><g class="mark"><title>The two models disagreed about this dataset</title><circle cx="564" cy="92.5" r="9"/><text x="564" y="96.5" text-anchor="middle">?</text></g></svg><p class="note"><b>The two models disagreed</b> about “C. elegans aging time course and long-lived mutants” (the first took all of it, the checking model 6 samples). The picture follows the checking model. The two papers use different halves of the dataset: one reports the wild-type time course, the other the young-adult mutants. The sample names separate them cleanly.</p></article>
-<article class="card unsure" id="EX03"><header><h2>C. elegans raised on two bacterial diets, bulk RNA-seq</h2><div class="tags"><span>C. elegans</span><span>dataset with no paper</span><code>EX03</code></div></header><svg viewBox="0 0 580 80" role="img" aria-label="C. elegans raised on two bacterial diets, bulk RNA-seq"><path class="link none" d="M182 40 C210.0 40 210.0 40 238 40"/><g class="out"><rect class="box nopaper" x="4" y="12" width="178" height="56" rx="8"/><text class="d" x="93.0" y="44" text-anchor="middle">No paper</text></g><g class="in"><rect class="box" x="238" y="6" width="328" height="68" rx="8"/><text class="t" x="250" y="27.0">Gene expression of C. elegans raised on two</text><text class="t" x="250" y="43.0">bacterial diets</text><text class="d" x="250" y="60">bulk RNA-seq · 8 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990031" target="_blank" rel="noopener"><text class="id" x="554" y="60.0" text-anchor="end">GSE9990031</text></a></g></svg><p class="note"><b>The checking model was not sure.</b> A preprint from the same group describes worms on the same two diets and may be the paper for this dataset. But it never names the dataset, and it reports twelve samples where this one has eight.</p></article>
-<article class="card " id="EX01"><header><h2>Young and aged mouse hippocampus, single-nucleus RNA-seq</h2><div class="tags"><span>Aging</span><code>EX01</code></div></header><svg viewBox="0 0 580 133" role="img" aria-label="Young and aged mouse hippocampus, single-nucleus RNA-seq"><path class="link in" d="M182 66.5 C210.0 66.5 210.0 66.5 238 66.5"/><g class="in"><title>Cell-type-specific changes in gene expression in the aging mouse hippocampus</title><rect class="box paper" x="4" y="6" width="178" height="121" rx="8"/><text class="kind" x="16" y="23">PAPER</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900011/" target="_blank" rel="noopener"><text class="id" x="170" y="23.0" text-anchor="end">PMID 99900011</text></a><text class="t" x="16" y="43.0">Cell-type-specific</text><text class="t" x="16" y="58.0">changes in gene</text><text class="t" x="16" y="73.0">expression in the</text><text class="t" x="16" y="88.0">aging mouse</text><text class="t" x="16" y="103.0">hippocampus</text></g><g class="in"><rect class="box" x="238" y="32.5" width="328" height="68" rx="8"/><text class="t" x="250" y="53.5">Single-nucleus RNA-seq of hippocampus from</text><text class="t" x="250" y="69.5">young and aged mice</text><text class="d" x="250" y="86.5">single-nucleus RNA-seq · 8 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990011" target="_blank" rel="noopener"><text class="id" x="554" y="86.5" text-anchor="end">GSE9990011</text></a></g></svg></article>
-<article class="card " id="EX04"><header><h2>Aging mouse liver: gene expression, open chromatin and a small follow-up</h2><div class="tags"><span>Aging</span><span>SuperSeries</span><code>EX04</code></div></header><svg viewBox="0 0 580 236" role="img" aria-label="Aging mouse liver: gene expression, open chromatin and a small follow-up"><path class="link in" d="M182 126 C210.0 126 210.0 56 238 56"/><path class="link in" d="M182 126 C210.0 126 210.0 118 238 118"/><path class="link in" d="M182 126 C210.0 126 210.0 188 238 188"/><rect class="ss" x="228" y="6" width="348" height="226" rx="12"/><text class="sslabel" x="238" y="22">SuperSeries: GEO lists these together</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990040" target="_blank" rel="noopener"><text class="id" x="566" y="22.0" text-anchor="end">GSE9990040</text></a><g class="in"><title>Chromatin accessibility and gene expression drift apart in the aging mouse liver</title><rect class="box paper" x="4" y="65.5" width="178" height="121" rx="8"/><text class="kind" x="16" y="82.5">PAPER</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900041/" target="_blank" rel="noopener"><text class="id" x="170" y="82.5" text-anchor="end">PMID 99900041</text></a><text class="t" x="16" y="102.5">Chromatin</text><text class="t" x="16" y="117.5">accessibility and gene</text><text class="t" x="16" y="132.5">expression drift apart</text><text class="t" x="16" y="147.5">in the aging mouse</text><text class="t" x="16" y="162.5">liver</text></g><g class="in"><rect class="box" x="238" y="30" width="328" height="52" rx="8"/><text class="t" x="250" y="51.0">Aging mouse liver: gene expression</text><text class="d" x="250" y="68">bulk RNA-seq · 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990041" target="_blank" rel="noopener"><text class="id" x="554" y="68.0" text-anchor="end">GSE9990041</text></a></g><g class="in"><rect class="box" x="238" y="92" width="328" height="52" rx="8"/><text class="t" x="250" y="113.0">Aging mouse liver: open chromatin</text><text class="d" x="250" y="130">ATAC-seq · 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990042" target="_blank" rel="noopener"><text class="id" x="554" y="130.0" text-anchor="end">GSE9990042</text></a></g><g class="in"><rect class="box" x="238" y="154" width="328" height="68" rx="8"/><text class="t" x="250" y="175.0">Aging mouse liver: gene expression after a</text><text class="t" x="250" y="191.0">diet change</text><text class="d" x="250" y="208">bulk RNA-seq · 6 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990043" target="_blank" rel="noopener"><text class="id" x="554" y="208.0" text-anchor="end">GSE9990043</text></a></g></svg></article>
+<article class="card differ" id="EX02" data-kind="differ"><h2>Cortex of an amyloid mouse model: gene expression and open chromatin from the same animals</h2><div class="tags"><span>Neurodegeneration</span><span>one paper, several datasets</span><code>EX02</code></div><svg viewBox="0 0 580 269" role="img" aria-label="Cortex of an amyloid mouse model: gene expression and open chromatin from the same animals"><path class="link in" d="M184 63.5 C212.0 63.5 212.0 43 240 43"/><path class="link in" d="M184 63.5 C212.0 63.5 212.0 127 240 127"/><path class="link out" d="M184 63.5 C212.0 63.5 212.0 218.5 240 218.5"/><path class="link out" d="M184 192.5 C212.0 192.5 212.0 218.5 240 218.5"/><g class="in"><title>Linked changes in gene expression and chromatin in the cortex of an amyloid mouse model</title><path class="box paper" d="M4 12.5H170L184 26.5V114.5H4Z"/><path class="fold" d="M170 12.5V26.5H184"/><text class="t" x="16" y="34.5">Linked changes in</text><text class="t" x="16" y="49.5">gene expression and</text><text class="t" x="16" y="64.5">chromatin in the</text><text class="t" x="16" y="79.5">cortex of an amyloid…</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900021/" target="_blank" rel="noopener"><text class="id" x="16" y="104.5" text-anchor="start">PMID 99900021</text></a></g><g class="out"><title>Gene expression in human prefrontal cortex across stages of Alzheimer&#x27;s disease</title><path class="box paper" d="M4 128.5H170L184 142.5V256.5H4Z"/><path class="fold" d="M170 128.5V142.5H184"/><text class="t" x="16" y="150.5">Gene expression in</text><text class="t" x="16" y="165.5">human prefrontal</text><text class="t" x="16" y="180.5">cortex across stages</text><text class="t" x="16" y="195.5">of Alzheimer&#x27;s…</text><text class="r" x="16" y="212.5">Paper of that older</text><text class="r" x="16" y="225.5">dataset</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900023/" target="_blank" rel="noopener"><text class="id" x="16" y="246.5" text-anchor="start">PMID 99900023</text></a></g><g class="in"><title>Cortex of an amyloid mouse model: gene expression in single nuclei</title><rect class="box" x="240" y="8" width="326" height="70" rx="8"/><text class="t" x="254" y="30">Cortex of an amyloid mouse model: gene</text><text class="t" x="254" y="46">expression in single nuclei</text><text class="d" x="254" y="63">single-nucleus RNA-seq · 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990021" target="_blank" rel="noopener"><text class="id" x="552" y="63" text-anchor="end">GSE9990021</text></a></g><g class="in"><title>Cortex of an amyloid mouse model: open chromatin in single nuclei</title><rect class="box" x="240" y="92" width="326" height="70" rx="8"/><text class="t" x="254" y="114">Cortex of an amyloid mouse model: open</text><text class="t" x="254" y="130">chromatin in single nuclei</text><text class="d" x="254" y="147">single-nucleus ATAC-seq · 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990022" target="_blank" rel="noopener"><text class="id" x="552" y="147" text-anchor="end">GSE9990022</text></a></g><g class="mark"><title>The two models disagreed about this dataset</title><circle cx="564" cy="94" r="9"/><text x="564" y="98" text-anchor="middle">?</text></g><g class="out"><title>Human prefrontal cortex across stages of Alzheimer&#x27;s disease</title><rect class="box" x="240" y="176" width="326" height="85" rx="8"/><text class="t" x="254" y="198">Human prefrontal cortex across stages of</text><text class="t" x="254" y="214">Alzheimer&#x27;s disease</text><text class="d" x="254" y="231">bulk RNA-seq · 48 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990023" target="_blank" rel="noopener"><text class="id" x="552" y="231" text-anchor="end">GSE9990023</text></a><text class="r" x="254" y="247">Older dataset from another lab, only re-analysed</text></g><g class="mark"><title>The two models disagreed about this dataset</title><circle cx="564" cy="178" r="9"/><text x="564" y="182" text-anchor="middle">?</text></g></svg><div class="note"><p><b>The two models disagreed</b> about the 2 datasets marked <span class="q">?</span>; the picture shows the checking model's choice.</p><details><summary>Why</summary>The paper&#x27;s data availability statement names the open-chromatin dataset as the other half of the same experiment. The human dataset was deposited three years earlier by another group and is only re-analysed here.</details></div></article>
+<article class="card differ" id="EX05" data-kind="differ"><h2>Aging time course in wild-type C. elegans, bulk RNA-seq</h2><div class="tags"><span>C. elegans</span><span>one dataset shared by two studies</span><code>EX05</code></div><svg viewBox="0 0 580 260" role="img" aria-label="Aging time course in wild-type C. elegans, bulk RNA-seq"><path class="link in" d="M184 59 C212.0 59 212.0 130 240 130"/><path class="link out" d="M184 188 C212.0 188 212.0 130 240 130"/><g class="in"><title>A time course of gene expression during aging in wild-type C. elegans</title><path class="box paper" d="M4 8H170L184 22V110H4Z"/><path class="fold" d="M170 8V22H184"/><text class="t" x="16" y="30">A time course of gene</text><text class="t" x="16" y="45">expression during</text><text class="t" x="16" y="60">aging in wild-type C.</text><text class="t" x="16" y="75">elegans</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900051/" target="_blank" rel="noopener"><text class="id" x="16" y="100" text-anchor="start">PMID 99900051</text></a></g><g class="out"><title>Gene expression in young adults of long-lived C. elegans mutants</title><path class="box paper" d="M4 124H170L184 138V252H4Z"/><path class="fold" d="M170 124V138H184"/><text class="t" x="16" y="146">Gene expression in</text><text class="t" x="16" y="161">young adults of long-</text><text class="t" x="16" y="176">lived C. elegans</text><text class="t" x="16" y="191">mutants</text><text class="r" x="16" y="208">The second paper, about</text><text class="r" x="16" y="221">the mutants</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900052/" target="_blank" rel="noopener"><text class="id" x="16" y="242" text-anchor="start">PMID 99900052</text></a></g><g class="in"><title>C. elegans aging time course and long-lived mutants</title><clipPath id="clip-EX05-0"><rect x="240" y="87.5" width="326" height="85" rx="8"/></clipPath><rect class="rest" x="240" y="87.5" width="326" height="85" rx="8"/><rect class="share" x="240" y="87.5" width="163" height="85" clip-path="url(#clip-EX05-0)"/><rect class="box edge" x="240" y="87.5" width="326" height="85" rx="8"/><text class="t" x="254" y="109.5">C. elegans aging time course and long-lived</text><text class="t" x="254" y="125.5">mutants</text><text class="d" x="254" y="142.5">bulk RNA-seq · 6 of 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990051" target="_blank" rel="noopener"><text class="id" x="552" y="142.5" text-anchor="end">GSE9990051</text></a><text class="r" x="254" y="158.5">The rest: long-lived mutants, from a second paper</text></g><g class="mark"><title>The two models disagreed about this dataset</title><circle cx="564" cy="89.5" r="9"/><text x="564" y="93.5" text-anchor="middle">?</text></g></svg><div class="note"><p><b>The two models disagreed</b>: the first took all of the dataset marked <span class="q">?</span>, the checking model only 6 samples; the picture shows the checking model's choice.</p><details><summary>Why</summary>The two papers use different halves of the dataset: one reports the wild-type time course, the other the young-adult mutants. The sample names separate them cleanly.</details></div></article>
+<article class="card unsure" id="EX03" data-kind="unsure"><h2>C. elegans raised on two bacterial diets, bulk RNA-seq</h2><div class="tags"><span>C. elegans</span><span>dataset with no paper</span><code>EX03</code></div><svg viewBox="0 0 580 86" role="img" aria-label="C. elegans raised on two bacterial diets, bulk RNA-seq"><path class="link none" d="M184 43 C212.0 43 212.0 43 240 43"/><g class="out"><rect class="box" x="4" y="15" width="180" height="56" rx="3"/><text class="d" x="94.0" y="47" text-anchor="middle">No paper</text></g><g class="in"><title>Gene expression of C. elegans raised on two bacterial diets</title><rect class="box" x="240" y="8" width="326" height="70" rx="8"/><text class="t" x="254" y="30">Gene expression of C. elegans raised on two</text><text class="t" x="254" y="46">bacterial diets</text><text class="d" x="254" y="63">bulk RNA-seq · 8 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990031" target="_blank" rel="noopener"><text class="id" x="552" y="63" text-anchor="end">GSE9990031</text></a></g></svg><div class="note"><p><b>The checking model was not sure</b> about this study.</p><details><summary>Why</summary>A preprint from the same group describes worms on the same two diets and may be the paper for this dataset. But it never names the dataset, and it reports twelve samples where this one has eight.</details></div></article>
+<article class="card " id="EX01" data-kind=""><h2>Young and aged mouse hippocampus, single-nucleus RNA-seq</h2><div class="tags"><span>Aging</span><code>EX01</code></div><svg viewBox="0 0 580 118" role="img" aria-label="Young and aged mouse hippocampus, single-nucleus RNA-seq"><path class="link in" d="M184 59 C212.0 59 212.0 59 240 59"/><g class="in"><title>Cell-type-specific changes in gene expression in the aging mouse hippocampus</title><path class="box paper" d="M4 8H170L184 22V110H4Z"/><path class="fold" d="M170 8V22H184"/><text class="t" x="16" y="30">Cell-type-specific</text><text class="t" x="16" y="45">changes in gene</text><text class="t" x="16" y="60">expression in the</text><text class="t" x="16" y="75">aging mouse…</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900011/" target="_blank" rel="noopener"><text class="id" x="16" y="100" text-anchor="start">PMID 99900011</text></a></g><g class="in"><title>Single-nucleus RNA-seq of hippocampus from young and aged mice</title><rect class="box" x="240" y="24" width="326" height="70" rx="8"/><text class="t" x="254" y="46">Single-nucleus RNA-seq of hippocampus from</text><text class="t" x="254" y="62">young and aged mice</text><text class="d" x="254" y="79">single-nucleus RNA-seq · 8 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990011" target="_blank" rel="noopener"><text class="id" x="552" y="79" text-anchor="end">GSE9990011</text></a></g></svg></article>
+<article class="card " id="EX04" data-kind=""><h2>Aging mouse liver: gene expression, open chromatin and a small follow-up</h2><div class="tags"><span>Aging</span><span>SuperSeries</span><code>EX04</code></div><svg viewBox="0 0 580 258" role="img" aria-label="Aging mouse liver: gene expression, open chromatin and a small follow-up"><path class="link in" d="M184 141 C212.0 141 212.0 59 240 59"/><path class="link in" d="M184 141 C212.0 141 212.0 127 240 127"/><path class="link in" d="M184 141 C212.0 141 212.0 203 240 203"/><rect class="ss" x="230" y="6" width="346" height="242" rx="12"/><text class="sslabel" x="240" y="23">SuperSeries</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990040" target="_blank" rel="noopener"><text class="id" x="566" y="23" text-anchor="end">GSE9990040</text></a><g class="in"><title>Chromatin accessibility and gene expression drift apart in the aging mouse liver</title><path class="box paper" d="M4 90H170L184 104V192H4Z"/><path class="fold" d="M170 90V104H184"/><text class="t" x="16" y="112">Chromatin</text><text class="t" x="16" y="127">accessibility and</text><text class="t" x="16" y="142">gene expression drift</text><text class="t" x="16" y="157">apart in the aging…</text><a href="https://pubmed.ncbi.nlm.nih.gov/99900041/" target="_blank" rel="noopener"><text class="id" x="16" y="182" text-anchor="start">PMID 99900041</text></a></g><g class="in"><title>Aging mouse liver: gene expression</title><rect class="box" x="240" y="32" width="326" height="54" rx="8"/><text class="t" x="254" y="54">Aging mouse liver: gene expression</text><text class="d" x="254" y="71">bulk RNA-seq · 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990041" target="_blank" rel="noopener"><text class="id" x="552" y="71" text-anchor="end">GSE9990041</text></a></g><g class="in"><title>Aging mouse liver: open chromatin</title><rect class="box" x="240" y="100" width="326" height="54" rx="8"/><text class="t" x="254" y="122">Aging mouse liver: open chromatin</text><text class="d" x="254" y="139">ATAC-seq · 12 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990042" target="_blank" rel="noopener"><text class="id" x="552" y="139" text-anchor="end">GSE9990042</text></a></g><g class="in"><title>Aging mouse liver: gene expression after a diet change</title><rect class="box" x="240" y="168" width="326" height="70" rx="8"/><text class="t" x="254" y="190">Aging mouse liver: gene expression after a</text><text class="t" x="254" y="206">diet change</text><text class="d" x="254" y="223">bulk RNA-seq · 6 samples</text><a href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE9990043" target="_blank" rel="noopener"><text class="id" x="552" y="223" text-anchor="end">GSE9990043</text></a></g></svg></article>
 </main>
 <script>
-/* Only so a screenshot can force a theme: example.html?theme=dark */
-var t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.dataset.theme = t;
+/* View state only: which view, which study. It lives in the URL hash and nowhere else. */
+(function(){
+  var theme = new URLSearchParams(location.search).get('theme');
+  if (theme) document.documentElement.dataset.theme = theme;
+  var cards = [].slice.call(document.querySelectorAll('.card'));
+  if (!cards.length) return;
+  var ids = cards.map(function(c){ return c.id; }), at = 0;
+  function $(id){ return document.getElementById(id); }
+  function href(i){ return '#' + encodeURIComponent(ids[i]); }
+  cards.forEach(function(c, i){
+    var dot = document.createElement('a');
+    dot.className = 'dot ' + (c.dataset.kind || ''); dot.href = href(i);
+    dot.title = c.querySelector('h2').textContent; $('dots').appendChild(dot);
+  });
+  function show(){
+    var hash = decodeURIComponent(location.hash.slice(1)), all = hash === 'all', i = ids.indexOf(hash);
+    if (i >= 0) at = i;
+    document.body.className = all ? 'all' : 'one';
+    cards.forEach(function(c, k){ c.classList.toggle('current', k === at); });
+    [].forEach.call($('dots').children, function(d, k){ d.classList.toggle('on', k === at); });
+    $('count').textContent = (at + 1) + ' of ' + ids.length;
+    $('prev').href = href(Math.max(at - 1, 0)); $('prev').classList.toggle('off', at === 0);
+    $('next').href = href(Math.min(at + 1, ids.length - 1)); $('next').classList.toggle('off', at === ids.length - 1);
+    $('v-one').href = href(at); $('v-one').classList.toggle('on', !all); $('v-all').classList.toggle('on', all);
+    if (all) cards[at].scrollIntoView({block: 'center'}); else window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', show);
+  document.addEventListener('keydown', function(e){
+    if (document.body.className !== 'one' || e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = at + (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0);
+    if (k !== at && k >= 0 && k < ids.length) location.hash = href(k);
+  });
+  document.querySelector('.gallery').addEventListener('click', function(e){
+    if (document.body.className !== 'all' || e.target.closest('a,details')) return;
+    var c = e.target.closest('.card'); if (c) location.hash = '#' + encodeURIComponent(c.id);
+  });
+  show();
+})();
 </script>
 </body>
 </html>

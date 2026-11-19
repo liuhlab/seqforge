@@ -1,8 +1,8 @@
 """PROTOTYPE, throwaway: draw each study of the standard set as one small picture.
 
-Reads a folder of study files (<ID>.yaml, with <ID>.draft.yaml and <ID>.verdict.yaml beside it) and
-writes one self-contained, view-only HTML page: a card per study, the paper on the left, its GEO
-Series on the right.
+Reads a folder holding one subfolder per study (<ID>/study.yaml, draft.yaml, verdict.yaml) and
+writes one self-contained, view-only HTML page with two views of the same pictures: one study at
+a time, and all of them as a gallery.
 
     python prototypes/standard_set_page/build_page.py FOLDER OUT.html [--lookup FILE] [--notice TEXT]
 
@@ -30,7 +30,8 @@ SHAPE = {
     "series_without_paper": "dataset with no paper",
 }
 # The picture's geometry, in SVG units: papers in a left column, Series in a right one.
-WIDTH, PAPER_X, PAPER_W, SERIES_X, SERIES_W = 580, 4, 178, 238, 328
+WIDTH, PAPER_X, PAPER_W, SERIES_X, SERIES_W, GAP = 580, 4, 180, 240, 326, 14
+MARK = '<span class="q">?</span>'
 
 
 def load(path: Path) -> dict:
@@ -49,21 +50,14 @@ def strs(items: object) -> list[str]:
 
 
 def wrap(text: str, width: int, lines: int) -> list[str]:
-    """Break a title to fit a box, since SVG text does not wrap by itself."""
-    return textwrap.wrap(text, width, max_lines=lines, placeholder="…")
-
-
-def paper_link(paper: str) -> tuple[str, str]:
-    """The small label and the outside link of one paper identifier."""
-    if paper.startswith("10."):
-        return paper, f"https://doi.org/{paper}"
-    return f"PMID {paper}", f"https://pubmed.ncbi.nlm.nih.gov/{paper}/"
+    """Break text to fit a box, since SVG text does not wrap by itself."""
+    return textwrap.wrap(text, width, max_lines=lines, placeholder="…") if text else []
 
 
 def text_lines(lines: list[str], x: float, y: float, step: int, cls: str) -> str:
     """Stacked lines of SVG text, the first baseline at y."""
     return "".join(
-        f'<text class="{cls}" x="{x}" y="{y + i * step}">{escape(line)}</text>'
+        f'<text class="{cls}" x="{x}" y="{y + i * step:g}">{escape(line)}</text>'
         for i, line in enumerate(lines)
     )
 
@@ -72,7 +66,7 @@ def link(label: str, url: str, x: float, y: float, anchor: str = "end") -> str:
     """A small identifier that opens GEO or PubMed."""
     return (
         f'<a href="{escape(url)}" target="_blank" rel="noopener">'
-        f'<text class="id" x="{x}" y="{y}" text-anchor="{anchor}">{escape(label)}</text></a>'
+        f'<text class="id" x="{x}" y="{y:g}" text-anchor="{anchor}">{escape(label)}</text></a>'
     )
 
 
@@ -80,60 +74,73 @@ def diagram(study: dict, lookup: dict, disputed: list[str]) -> str:
     """The picture of one study, as inline SVG."""
     records, bounds = study.get("records") or {}, study.get("bounds") or {}
     known = lookup.get("series") or {}
-    inside = strs(bounds.get("series"))
+    inside, papers_in = strs(bounds.get("series")), strs(bounds.get("papers"))
     split = {str(k): strs(v) for k, v in (bounds.get("split_samples") or {}).items()}
     why_out = {str(k): str(v) for k, v in (bounds.get("left_out") or {}).items()}
-    papers_in = strs(bounds.get("papers"))
+    superseries = str(records.get("superseries") or "")
+    every = strs(inside + strs(records.get("series")))
+    members = strs((lookup.get("superseries_members") or {}).get(superseries)) or every
 
-    # Right column: the Series, the ones in the study first.
+    # Right column: the Series. A SuperSeries' own sub-Series come first, so one outline holds them.
     series = []
-    for gse in strs(inside + strs(records.get("series"))):
+    for gse in sorted(every, key=lambda g: not (superseries and g in members)):
         info = known.get(gse) or {}
         total, part = info.get("n_samples"), len(split.get(gse, [])) or None
-        count = (
-            f"{part} of {total or '?'} samples" if part else (f"{total} samples" if total else "")
-        )
+        count = f"{part} of {total or '?'} samples" if part else f"{total} samples" if total else ""
         reason = why_out.get(gse, "")
+        if reason and part:
+            reason = "The rest: " + reason[0].lower() + reason[1:]
         box = {
             "id": gse,
             "in": gse in inside,
+            "member": bool(superseries) and gse in members,
             "frac": (part / total if total else 0.5) if part else None,
-            "title": wrap(info.get("title") or f"GEO Series {gse}", 46, 2),
+            "full": info.get("title") or gse,
+            "title": wrap(info.get("title") or f"GEO Series {gse}", 44, 2),
             "detail": " · ".join(x for x in (info.get("assay"), count) if x),
-            "reason": wrap(("The rest: " if part else "") + reason, 56, 2) if reason else [],
+            "reason": wrap(reason, 56, 1),
             "pmids": strs(info["pmids"]) if "pmids" in info else None,
         }
-        box["h"] = 16 * len(box["title"]) + 14 * len(box["reason"]) + 36
+        box["h"] = 16 * len(box["title"]) + 15 * len(box["reason"]) + 38
         series.append(box)
 
     # Left column: the papers, or one empty box when there is none.
     papers = []
     for pmid in strs(papers_in + strs(records.get("pmids"))):
-        title = ((lookup.get("papers") or {}).get(pmid) or {}).get("title") or "Paper"
-        reason = wrap(why_out.get(pmid, ""), 27, 4) if pmid not in papers_in else []
-        lines = wrap(title, 22, 5)
-        height = 15 * len(lines) + 13 * len(reason) + 46
+        full = ((lookup.get("papers") or {}).get(pmid) or {}).get("title") or "Paper"
+        reason = wrap(why_out.get(pmid, ""), 26, 2) if pmid not in papers_in else []
+        lines = wrap(full, 21, 4)
         papers.append(
-            {"id": pmid, "in": pmid in papers_in, "title": lines, "reason": reason, "h": height}
+            {
+                "id": pmid,
+                "in": pmid in papers_in,
+                "full": full,
+                "title": lines,
+                "reason": reason,
+                "h": 15 * len(lines) + 13 * len(reason) + 42,
+            }
         )
     if not papers:
-        papers.append({"id": None, "in": False, "title": [], "reason": [], "h": 56})
+        papers.append({"id": None, "in": False, "h": 56})
 
-    superseries = records.get("superseries")
-    top = 30 if superseries else 6
-    right_h = sum(b["h"] for b in series) + 10 * (len(series) - 1)
-    left_h = sum(p["h"] for p in papers) + 14 * (len(papers) - 1)
-    height = top + max(left_h, right_h) + (14 if superseries else 6)
-    y = top + (max(left_h, right_h) - right_h) / 2
+    # Stack both columns, then centre the shorter one against the taller.
+    y = 0.0
+    for i, box in enumerate(series):
+        box["y"], y = y, y + box["h"] + GAP
+        if box["member"] and (i + 1 == len(series) or not series[i + 1]["member"]):
+            y += 12  # room for the bottom edge of the SuperSeries outline
+    right_h = y - GAP
+    left_h = sum(p["h"] for p in papers) + GAP * (len(papers) - 1)
+    top = 32 if superseries else 8
+    height = top + max(left_h, right_h) + 8
     for box in series:
-        box["y"], y = y, y + box["h"] + 10
+        box["y"] += top + (max(left_h, right_h) - right_h) / 2
     y = top + (max(left_h, right_h) - left_h) / 2
     for paper in papers:
-        paper["y"], y = y, y + paper["h"] + 14
+        paper["y"], y = y, y + paper["h"] + GAP
 
-    out = [
-        f'<svg viewBox="0 0 {WIDTH} {height:g}" role="img" aria-label="{escape(study.get("summary") or str(study.get("id")))}">'
-    ]
+    label = escape(study.get("summary") or str(study.get("id")))
+    out = [f'<svg viewBox="0 0 {WIDTH} {height:g}" role="img" aria-label="{label}">']
 
     # Lines first, so the boxes sit on top of them.
     for paper in papers:
@@ -153,114 +160,121 @@ def diagram(study: dict, lookup: dict, disputed: list[str]) -> str:
                 f'<path class="link {cls}" d="M{x1} {y1:g} C{mid} {y1:g} {mid} {y2:g} {x2} {y2:g}"/>'
             )
 
-    if superseries and series:
-        first, last = series[0], series[-1]
+    inner = [b for b in series if b["member"]]
+    if inner:
+        first, last = inner[0], inner[-1]
         out.append(
-            f'<rect class="ss" x="{SERIES_X - 10}" y="{first["y"] - 24:g}" width="{SERIES_W + 20}" '
-            f'height="{last["y"] + last["h"] - first["y"] + 34:g}" rx="12"/>'
-            f'<text class="sslabel" x="{SERIES_X}" y="{first["y"] - 8:g}">SuperSeries: GEO lists these together</text>'
-            + link(str(superseries), GEO + str(superseries), SERIES_X + SERIES_W, first["y"] - 8)
+            f'<rect class="ss" x="{SERIES_X - 10}" y="{first["y"] - 26:g}" width="{SERIES_W + 20}" '
+            f'height="{last["y"] + last["h"] - first["y"] + 36:g}" rx="12"/>'
+            f'<text class="sslabel" x="{SERIES_X}" y="{first["y"] - 9:g}">SuperSeries</text>'
+            + link(superseries, GEO + superseries, SERIES_X + SERIES_W, first["y"] - 9)
         )
 
     for paper in papers:
-        x, y, h = PAPER_X, paper["y"], paper["h"]
+        x, y, h, w = PAPER_X, paper["y"], paper["h"], PAPER_W
         if paper["id"] is None:
             out.append(
-                f'<g class="out"><rect class="box nopaper" x="{x}" y="{y:g}" width="{PAPER_W}" height="{h}" rx="8"/>'
-                f'<text class="d" x="{x + PAPER_W / 2}" y="{y + h / 2 + 4:g}" text-anchor="middle">No paper</text></g>'
+                f'<g class="out"><rect class="box" x="{x}" y="{y:g}" width="{w}" height="{h}" rx="3"/>'
+                f'<text class="d" x="{x + w / 2}" y="{y + h / 2 + 4:g}" text-anchor="middle">No paper</text></g>'
             )
             continue
-        label, url = paper_link(paper["id"])
-        title_end = y + 34 + 15 * len(paper["title"])
-        out.append(
-            f'<g class="{"in" if paper["in"] else "out"}"><title>{escape(" ".join(paper["title"]))}</title>'
-            f'<rect class="box paper" x="{x}" y="{y:g}" width="{PAPER_W}" height="{h}" rx="8"/>'
-            f'<text class="kind" x="{x + 12}" y="{y + 17:g}">PAPER</text>'
-            + link(label, url, x + PAPER_W - 12, y + 17)
-            + text_lines(paper["title"], x + 12, y + 37, 15, "t")
-            + text_lines(paper["reason"], x + 12, title_end + 8, 13, "r")
+        doi = paper["id"].startswith("10.")
+        url = (
+            f"https://doi.org/{paper['id']}"
+            if doi
+            else f"https://pubmed.ncbi.nlm.nih.gov/{paper['id']}/"
+        )
+        after = y + 22 + 15 * len(paper["title"])
+        out.append(  # a sheet with a folded corner, so a paper needs no label
+            f'<g class="{"in" if paper["in"] else "out"}"><title>{escape(paper["full"])}</title>'
+            f'<path class="box paper" d="M{x} {y:g}H{x + w - 14}L{x + w} {y + 14:g}V{y + h:g}H{x}Z"/>'
+            f'<path class="fold" d="M{x + w - 14} {y:g}V{y + 14:g}H{x + w}"/>'
+            + text_lines(paper["title"], x + 12, y + 22, 15, "t")
+            + text_lines(paper["reason"], x + 12, after + 2, 13, "r")
+            + link(paper["id"] if doi else f"PMID {paper['id']}", url, x + 12, y + h - 10, "start")
             + "</g>"
         )
 
     for n, box in enumerate(series):
-        x, y, h = SERIES_X, box["y"], box["h"]
-        detail_y = y + 22 + 16 * len(box["title"])
-        shape = f'<rect class="box" x="{x}" y="{y:g}" width="{SERIES_W}" height="{h}" rx="8"/>'
-        if (
-            box["frac"] is not None
-        ):  # a Series split between two studies: filled only as far as its share
-            clip, cut = f"clip-{escape(str(study.get('id')))}-{n}", x + SERIES_W * box["frac"]
+        x, y, h, w = SERIES_X, box["y"], box["h"], SERIES_W
+        detail_y = y + 23 + 16 * len(box["title"])
+        shape = f'<rect class="box" x="{x}" y="{y:g}" width="{w}" height="{h}" rx="8"/>'
+        if box["frac"] is not None:  # split between two studies: filled only as far as its share
+            clip = f"clip-{escape(str(study.get('id')))}-{n}"
             shape = (
-                f'<clipPath id="{clip}"><rect x="{x}" y="{y:g}" width="{SERIES_W}" height="{h}" rx="8"/></clipPath>'
-                f'<rect class="rest" x="{x}" y="{y:g}" width="{SERIES_W}" height="{h}" rx="8"/>'
-                f'<rect class="share" x="{x}" y="{y:g}" width="{cut - x:g}" height="{h}" clip-path="url(#{clip})"/>'
-                f'<rect class="box edge" x="{x}" y="{y:g}" width="{SERIES_W}" height="{h}" rx="8"/>'
+                f'<clipPath id="{clip}"><rect x="{x}" y="{y:g}" width="{w}" height="{h}" rx="8"/></clipPath>'
+                f'<rect class="rest" x="{x}" y="{y:g}" width="{w}" height="{h}" rx="8"/>'
+                f'<rect class="share" x="{x}" y="{y:g}" width="{w * box["frac"]:g}" height="{h}" clip-path="url(#{clip})"/>'
+                f'<rect class="box edge" x="{x}" y="{y:g}" width="{w}" height="{h}" rx="8"/>'
             )
         out.append(
-            f'<g class="{"in" if box["in"] else "out"}">{shape}'
-            + text_lines(box["title"], x + 12, y + 21, 16, "t")
-            + f'<text class="d" x="{x + 12}" y="{detail_y:g}">{escape(box["detail"])}</text>'
-            + link(box["id"], GEO + box["id"], x + SERIES_W - 12, detail_y)
-            + text_lines(box["reason"], x + 12, detail_y + 16, 14, "r")
+            f'<g class="{"in" if box["in"] else "out"}"><title>{escape(box["full"])}</title>{shape}'
+            + text_lines(box["title"], x + 14, y + 22, 16, "t")
+            + f'<text class="d" x="{x + 14}" y="{detail_y:g}">{escape(box["detail"])}</text>'
+            + link(box["id"], GEO + box["id"], x + w - 14, detail_y)
+            + text_lines(box["reason"], x + 14, detail_y + 16, 15, "r")
             + "</g>"
         )
         if box["id"] in disputed:
-            cx = x + SERIES_W - 2
             out.append(
                 f'<g class="mark"><title>The two models disagreed about this dataset</title>'
-                f'<circle cx="{cx}" cy="{y + 2:g}" r="9"/><text x="{cx}" y="{y + 6:g}" text-anchor="middle">?</text></g>'
+                f'<circle cx="{x + w - 2}" cy="{y + 2:g}" r="9"/>'
+                f'<text x="{x + w - 2}" y="{y + 6:g}" text-anchor="middle">?</text></g>'
             )
     return "".join(out) + "</svg>"
 
 
-def flag(study: dict, lookup: dict) -> tuple[str, str, list[str]]:
-    """('differ' | 'unsure' | '', one plain sentence as HTML, the Series the two models disagreed about)."""
+def flag(study: dict) -> tuple[str, str, list[str]]:
+    """('differ' | 'unsure' | '', one short sentence as HTML, the Series the two models disagreed about)."""
     draft, verdict = study.get("draft") or {}, study.get("verdict") or {}
-    reason = escape(str(verdict.get("reason") or "").strip())
-    known = lookup.get("series") or {}
-
-    def name(gse: str) -> str:
-        return escape(f"“{(known.get(gse) or {}).get('title') or gse}”")
-
     if verdict.get("agrees") is False:
         first, second = draft.get("bounds") or {}, verdict.get("bounds") or {}
         had, has = strs(first.get("series")), strs(second.get("series"))
-        parts, disputed = [], []
+        said = {}
         for gse in strs(had + has):
             share = len(strs((second.get("split_samples") or {}).get(gse)))
             if gse in had and gse not in has:
-                parts.append(f"{name(gse)} (only the first put it in)")
+                said[gse] = f"only the first put in the dataset marked {MARK}"
             elif gse in has and gse not in had:
-                parts.append(f"{name(gse)} (only the checking model put it in)")
+                said[gse] = f"only the checking model put in the dataset marked {MARK}"
             elif share and not (first.get("split_samples") or {}).get(gse):
-                parts.append(
-                    f"{name(gse)} (the first took all of it, the checking model {share} samples)"
+                said[gse] = (
+                    f"the first took all of the dataset marked {MARK}, the checking model only {share} samples"
                 )
-            else:
-                continue
-            disputed.append(gse)
-        what = " and ".join(parts) or "which paper belongs"
-        also = " It was also not sure." if verdict.get("unsure") else ""
-        text = f"<b>The two models disagreed</b> about {what}. The picture follows the checking model.{also} {reason}"
-        return "differ", text, disputed
+        if len(said) == 1:
+            what = f": {next(iter(said.values()))}"
+        elif said:
+            what = f" about the {len(said)} datasets marked {MARK}"
+        else:
+            what = " about which paper belongs"
+        text = (
+            f"<b>The two models disagreed</b>{what}; the picture shows the checking model's choice."
+        )
+        return "differ", text, list(said)
     if verdict.get("unsure") or study.get("status") == "unsure":
-        return "unsure", f"<b>The checking model was not sure.</b> {reason}", []
+        return "unsure", "<b>The checking model was not sure</b> about this study.", []
     return "", "", []
 
 
 def card(study: dict, lookup: dict) -> tuple[int, str]:
     """One study's card and its place in the order: unsettled studies first."""
-    kind, sentence, disputed = flag(study, lookup)
+    kind, sentence, disputed = flag(study)
+    sid = escape(str(study["id"]))
     tags = [DIRECTION.get(study.get("direction"), study.get("direction"))]
     if study.get("hard_shape"):
         tags.append(SHAPE.get(study["hard_shape"], study["hard_shape"]))
+    note = ""
+    if sentence:
+        reason = escape(str((study.get("verdict") or {}).get("reason") or "").strip())
+        why = f"<details><summary>Why</summary>{reason}</details>" if reason else ""
+        note = f'<div class="note"><p>{sentence}</p>{why}</div>'
     html = (
-        f'<article class="card {kind}" id="{escape(str(study["id"]))}"><header>'
+        f'<article class="card {kind}" id="{sid}" data-kind="{kind}">'
         f'<h2>{escape(study.get("summary") or str(study["id"]))}</h2><div class="tags">'
         + "".join(f"<span>{escape(str(tag))}</span>" for tag in tags if tag)
-        + f"<code>{escape(str(study['id']))}</code></div></header>"
+        + f"<code>{sid}</code></div>"
         + diagram(study, lookup, disputed)
-        + (f'<p class="note">{sentence}</p>' if sentence else "")
+        + note
         + "</article>"
     )
     return {"differ": 0, "unsure": 1}.get(kind, 2), html
@@ -269,10 +283,10 @@ def card(study: dict, lookup: dict) -> tuple[int, str]:
 def main() -> None:
     """Write the page."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("folder", type=Path, help="folder of study files")
+    parser.add_argument("folder", type=Path, help="folder with one subfolder per study")
     parser.add_argument("out", type=Path, help="the HTML file to write")
     parser.add_argument(
-        "--lookup", type=Path, help="YAML of titles, assays, sample counts and paper titles"
+        "--lookup", type=Path, help="YAML of titles, assays, sample counts and record links"
     )
     parser.add_argument("--title", default="The standard set of studies")
     parser.add_argument(
@@ -282,29 +296,18 @@ def main() -> None:
 
     lookup = load(args.lookup) if args.lookup else {}
     cards = []
-    for path in sorted(args.folder.glob("*.yaml")):
-        if path.name.startswith("_") or path.stem.rsplit(".", 1)[-1] in (
-            "draft",
-            "verdict",
-            "answer",
-        ):
-            continue
+    for path in sorted(args.folder.glob("*/study.yaml")):
         study = load(path)
-        study.setdefault("id", path.stem)
-        study["draft"] = load(args.folder / f"{path.stem}.draft.yaml")
-        study["verdict"] = load(args.folder / f"{path.stem}.verdict.yaml")
+        study.setdefault("id", path.parent.name)
+        study["draft"] = load(path.with_name("draft.yaml"))
+        study["verdict"] = load(path.with_name("verdict.yaml"))
         cards.append((*card(study, lookup), str(study["id"])))
     cards.sort(key=lambda c: (c[0], c[2]))
-    unsettled = sum(1 for c in cards if c[0] < 2)
 
-    count = f"{len(cards)} studies"
-    if unsettled:
-        count += f", {unsettled} with a coloured edge shown first: the two models disagreed there, or one was not sure"
     page = (HERE / "template.html").read_text()
     for slot, value in {
         "{{TITLE}}": escape(args.title),
         "{{NOTICE}}": f'<div class="notice">{escape(args.notice)}</div>' if args.notice else "",
-        "{{COUNT}}": escape(count),
         "{{CARDS}}": "\n".join(c[1] for c in cards),
     }.items():
         page = page.replace(slot, value)

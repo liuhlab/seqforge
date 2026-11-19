@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{TITLE}}</title>
-<!-- PROTOTYPE, throwaway. A view-only gallery written by build_page.py: one picture per study. -->
+<!-- PROTOTYPE, throwaway. View-only, written by build_page.py: one picture per study, shown one
+     at a time (#<study id>) or all together (#all). Nothing is collected or stored. -->
 <style>
 :root{
   --bg:#f5f4ef; --surface:#ffffff; --ink:#1c2220; --muted:#5c6662; --line:#d9d7cd;
@@ -23,41 +24,78 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 h1,h2,p{margin:0}
-.notice{background:var(--warn-bg);color:var(--warn-ink);font-weight:600;font-size:13px;padding:6px 24px}
-.top{padding:18px 24px 6px;max-width:1500px;margin:0 auto}
-.top h1{font-size:21px}
-.top p{color:var(--muted);margin-top:2px}
-.legend{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:12px;font-size:13px;align-items:center}
+:focus-visible{outline:2px solid var(--in);outline-offset:2px}
+.notice{background:var(--warn-bg);color:var(--warn-ink);font-size:12.5px;padding:5px 28px}
+.top{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;padding:18px 28px 0;max-width:1500px;margin:0 auto}
+.top h1{font-size:17px}
+.top p{color:var(--muted);flex:1 1 300px}
+.views{display:flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;font-size:13px}
+.views a{padding:4px 14px;color:var(--muted);text-decoration:none}
+.views a.on{background:var(--ink);color:var(--bg)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 22px;padding:12px 28px 0;max-width:1500px;margin:0 auto;font-size:12.5px;color:var(--muted)}
 .legend span{display:inline-flex;align-items:center;gap:7px}
-.legend svg{width:34px;height:20px;flex:none}
+.legend svg{width:30px;height:18px;flex:none}
+.legend .q{width:16px;height:16px;font-size:11px}
 
-.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:16px;padding:14px 24px 60px;
+/* all studies: a gallery */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:20px;padding:22px 28px 70px;
   max-width:1500px;margin:0 auto;align-items:start}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px 12px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;min-width:0}
 .card.differ{border-left:5px solid var(--differ)}
 .card.unsure{border-left:5px solid var(--unsure)}
+body.all .card{cursor:pointer}
+body.all .card:hover{border-color:var(--muted)}
 .card h2{font-size:16px;line-height:1.3;text-wrap:balance}
-.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 10px;font-size:12px}
-.tags span{border:1px solid var(--line);border-radius:99px;padding:0 9px;color:var(--muted)}
-.tags code{margin-left:auto;color:var(--muted);font:11px ui-monospace,SFMono-Regular,Menlo,monospace}
+.tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0 16px;font-size:12px;color:var(--muted)}
+.tags span{border:1px solid var(--line);border-radius:99px;padding:0 9px}
+.tags code{margin-left:auto;font:11px ui-monospace,SFMono-Regular,Menlo,monospace}
 .card svg{display:block;width:100%;height:auto}
-.note{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:13px}
+.note{margin-top:16px;font-size:13px}
+.note details{margin-top:4px;color:var(--muted)}
+.note summary{cursor:pointer;width:fit-content;font-size:12.5px}
+.q{display:inline-grid;place-items:center;width:1.25em;height:1.25em;border-radius:50%;background:var(--differ);
+  color:#fff;font-size:.85em;font-weight:700;line-height:1;vertical-align:.05em}
+
+/* one study at a time: the same card, alone and larger */
+.nav,.arrow{display:none}
+body.one .nav{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 28px 0}
+.nav #count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+#dots{display:flex;flex-wrap:wrap;justify-content:center;gap:7px;max-width:900px}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dot.differ{background:var(--differ)} .dot.unsure{background:var(--unsure)}
+.dot.on{outline:2px solid var(--ink);outline-offset:2px}
+body.one .arrow{display:grid;place-items:center;position:fixed;top:50%;width:46px;height:46px;margin-top:-23px;
+  border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:24px;
+  line-height:1;text-decoration:none;padding-bottom:3px}
+.arrow:hover{border-color:var(--muted)}
+#prev{left:max(14px,calc(50% - 540px))} #next{right:max(14px,calc(50% - 540px))}
+.arrow.off{opacity:.25;pointer-events:none}
+body.one .gallery{display:block;max-width:900px;padding:30px 28px 90px}
+body.one .card{display:none}
+body.one .card.current{display:block;background:none;border:0;padding:0}
+body.one .card h2{font-size:25px}
+body.one .tags{margin:12px 0 34px;font-size:13px}
+body.one .note{margin-top:34px;font-size:16px;padding-left:14px;border-left:4px solid var(--line)}
+body.one .differ .note{border-color:var(--differ)}
+body.one .unsure .note{border-color:var(--unsure)}
+body.one .note summary{font-size:14px}
 
 /* the picture */
 svg text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:var(--ink)}
 svg .t{font-size:13px;font-weight:600}
 svg .d{font-size:11.5px;fill:var(--muted)}
 svg .r{font-size:11px;font-style:italic;fill:var(--muted)}
-svg .kind,svg .sslabel{font-size:10px;font-weight:700;letter-spacing:.06em;fill:var(--muted)}
-svg .sslabel{fill:var(--ss)}
-svg .id{font:10.5px ui-monospace,SFMono-Regular,Menlo,monospace;fill:var(--link);text-decoration:underline}
+svg .sslabel{font-size:10.5px;font-weight:600;fill:var(--ss)}
+svg .id{font:10px ui-monospace,SFMono-Regular,Menlo,monospace;fill:var(--link)}
+svg a:hover .id{text-decoration:underline}
 svg .box{fill:var(--in-bg);stroke:var(--in);stroke-width:1.6}
-svg .box.paper{fill:var(--surface);stroke:var(--ink)}
-svg .out .box,svg .box.nopaper{fill:var(--surface);stroke:var(--out);stroke-width:1.3;stroke-dasharray:5 4}
+svg .box.paper{fill:var(--surface);stroke:var(--ink);stroke-width:1.4;stroke-linejoin:round}
+svg .fold{fill:none;stroke:var(--ink);stroke-width:1.2;stroke-linejoin:round}
+svg .out .box{fill:var(--surface);stroke:var(--out);stroke-width:1.3;stroke-dasharray:5 4}
+svg .out .fold{stroke:var(--out)}
 svg .out .t{fill:var(--muted);font-weight:500}
 svg .rest{fill:var(--surface)}
 svg .share{fill:var(--in-bg)}
-svg .cut{stroke:var(--in);stroke-width:1.3;stroke-dasharray:3 3}
 svg .box.edge{fill:none}
 svg .link{fill:none;stroke:var(--in);stroke-width:1.8}
 svg .link.out,svg .link.none{stroke:var(--out);stroke-width:1.3;stroke-dasharray:5 4}
@@ -65,29 +103,69 @@ svg .ss{fill:none;stroke:var(--ss);stroke-width:1.5}
 svg .mark circle{fill:var(--differ)}
 svg .mark text{fill:#fff;font-size:12px;font-weight:700}
 
-@media (max-width:600px){.gallery{grid-template-columns:1fr;padding-inline:12px}.top{padding-inline:12px}}
+@media (max-width:640px){.gallery{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 {{NOTICE}}
 <header class="top">
   <h1>{{TITLE}}</h1>
-  <p>One picture per study: its paper on the left, its GEO datasets on the right. {{COUNT}}.</p>
-  <div class="legend">
-    <span><svg viewBox="0 0 34 20"><rect class="box" x="1" y="2" width="32" height="16" rx="4"/></svg>dataset in the study</span>
-    <span><svg viewBox="0 0 34 20"><g class="out"><rect class="box" x="1" y="2" width="32" height="16" rx="4"/></g></svg>linked, but left out</span>
-    <span><svg viewBox="0 0 34 20"><rect class="share" x="1" y="2" width="16" height="16"/><rect class="box edge" x="1" y="2" width="32" height="16" rx="4"/></svg>only part of the dataset belongs</span>
-    <span><svg viewBox="0 0 34 20"><rect class="ss" x="1" y="1" width="32" height="18" rx="5"/><rect class="box" x="6" y="6" width="22" height="8" rx="2"/></svg>outline: a SuperSeries</span>
-    <span><svg viewBox="0 0 34 20"><rect class="box paper" x="1" y="2" width="32" height="16" rx="4"/></svg>paper</span>
-    <span><svg viewBox="0 0 34 20"><g class="mark"><circle cx="17" cy="10" r="9"/><text x="17" y="14" text-anchor="middle">?</text></g></svg>the two models disagreed about this one</span>
-  </div>
+  <p>One picture per study: the paper on the left, its datasets on the right.</p>
+  <nav class="views"><a id="v-one" href="#">One at a time</a><a id="v-all" href="#all">All</a></nav>
 </header>
+<div class="legend">
+  <span><svg viewBox="0 0 30 18"><rect class="box" x="1" y="2" width="28" height="14" rx="4"/></svg>in the study</span>
+  <span><svg viewBox="0 0 30 18"><g class="out"><rect class="box" x="1" y="2" width="28" height="14" rx="4"/></g></svg>linked, but left out</span>
+  <span><svg viewBox="0 0 30 18"><rect class="share" x="1" y="2" width="14" height="14"/><rect class="box edge" x="1" y="2" width="28" height="14" rx="4"/></svg>only part belongs</span>
+  <span><svg viewBox="0 0 30 18"><rect class="ss" x="1" y="1" width="28" height="16" rx="5"/></svg>a SuperSeries</span>
+  <span><svg viewBox="0 0 30 18"><path class="box paper" d="M4 2H21L26 7V16H4Z"/><path class="fold" d="M21 2V7H26"/></svg>paper</span>
+  <span><span class="q">?</span>the two models disagreed</span>
+</div>
+<div class="nav"><span id="count"></span><div id="dots"></div></div>
+<a class="arrow" id="prev" href="#" aria-label="Previous study">‹</a>
+<a class="arrow" id="next" href="#" aria-label="Next study">›</a>
 <main class="gallery">
 {{CARDS}}
 </main>
 <script>
-/* Only so a screenshot can force a theme: example.html?theme=dark */
-var t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.dataset.theme = t;
+/* View state only: which view, which study. It lives in the URL hash and nowhere else. */
+(function(){
+  var theme = new URLSearchParams(location.search).get('theme');
+  if (theme) document.documentElement.dataset.theme = theme;
+  var cards = [].slice.call(document.querySelectorAll('.card'));
+  if (!cards.length) return;
+  var ids = cards.map(function(c){ return c.id; }), at = 0;
+  function $(id){ return document.getElementById(id); }
+  function href(i){ return '#' + encodeURIComponent(ids[i]); }
+  cards.forEach(function(c, i){
+    var dot = document.createElement('a');
+    dot.className = 'dot ' + (c.dataset.kind || ''); dot.href = href(i);
+    dot.title = c.querySelector('h2').textContent; $('dots').appendChild(dot);
+  });
+  function show(){
+    var hash = decodeURIComponent(location.hash.slice(1)), all = hash === 'all', i = ids.indexOf(hash);
+    if (i >= 0) at = i;
+    document.body.className = all ? 'all' : 'one';
+    cards.forEach(function(c, k){ c.classList.toggle('current', k === at); });
+    [].forEach.call($('dots').children, function(d, k){ d.classList.toggle('on', k === at); });
+    $('count').textContent = (at + 1) + ' of ' + ids.length;
+    $('prev').href = href(Math.max(at - 1, 0)); $('prev').classList.toggle('off', at === 0);
+    $('next').href = href(Math.min(at + 1, ids.length - 1)); $('next').classList.toggle('off', at === ids.length - 1);
+    $('v-one').href = href(at); $('v-one').classList.toggle('on', !all); $('v-all').classList.toggle('on', all);
+    if (all) cards[at].scrollIntoView({block: 'center'}); else window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', show);
+  document.addEventListener('keydown', function(e){
+    if (document.body.className !== 'one' || e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = at + (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0);
+    if (k !== at && k >= 0 && k < ids.length) location.hash = href(k);
+  });
+  document.querySelector('.gallery').addEventListener('click', function(e){
+    if (document.body.className !== 'all' || e.target.closest('a,details')) return;
+    var c = e.target.closest('.card'); if (c) location.hash = '#' + encodeURIComponent(c.id);
+  });
+  show();
+})();
 </script>
 </body>
 </html>

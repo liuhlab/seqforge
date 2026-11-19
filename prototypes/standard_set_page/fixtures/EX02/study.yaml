@@ -29,8 +29,8 @@ bounds:
   reason: The paper generated GSE9990021 and GSE9990022. GSE9990023 is an older Series it only re-analysed.
   split_samples: null
   left_out:
-    GSE9990023: An older human dataset from another lab. This paper only re-analysed it.
-    '99900023': The paper that belongs to that older dataset.
+    GSE9990023: Older dataset from another lab, only re-analysed
+    '99900023': Paper of that older dataset
 bounds_from: judge
 status: settled
 read_to_decide:

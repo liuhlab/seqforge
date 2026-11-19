@@ -11,6 +11,9 @@ series:
   GSE9990042: {title: "Aging mouse liver: open chromatin", assay: ATAC-seq, n_samples: 12, pmids: ["99900041"]}
   GSE9990043: {title: "Aging mouse liver: gene expression after a diet change", assay: bulk RNA-seq, n_samples: 6, pmids: ["99900041"]}
   GSE9990051: {title: C. elegans aging time course and long-lived mutants, assay: bulk RNA-seq, n_samples: 12, pmids: ["99900051", "99900052"]}
+# which Series GEO lists under each SuperSeries
+superseries_members:
+  GSE9990040: [GSE9990041, GSE9990042, GSE9990043]
 papers:
   "99900011": {title: Cell-type-specific changes in gene expression in the aging mouse hippocampus}
   "99900021": {title: Linked changes in gene expression and chromatin in the cortex of an amyloid mouse model}

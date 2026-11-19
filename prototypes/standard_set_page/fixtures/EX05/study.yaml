@@ -33,8 +33,8 @@ bounds:
     - GSM99900515
     - GSM99900516
   left_out:
-    GSE9990051: These are long-lived mutants, published in a second paper.
-    '99900052': The second paper. It describes the mutants, not the time course.
+    GSE9990051: Long-lived mutants, from a second paper
+    '99900052': The second paper, about the mutants
 bounds_from: judge
 status: settled
 read_to_decide:
