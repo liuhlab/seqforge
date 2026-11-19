@@ -28,8 +28,10 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from .model_text import model_text
+
 if TYPE_CHECKING:
-    from labllm import Inputs, Model, QueueEntry
+    from labllm import Inputs, QueueEntry
 
 
 @dataclass(frozen=True)
@@ -133,7 +135,7 @@ def issue_for(form: ReviewForm, entry: QueueEntry, inputs: Inputs) -> tuple[str,
     ]
     for outcome in entry.outcomes:
         stamp = outcome.stamp
-        models = ", ".join(f"`{_model_text(r, m)}`" for r, m in sorted(stamp.models.items()))
+        models = ", ".join(f"`{model_text(r, m)}`" for r, m in sorted(stamp.models.items()))
         lines += [
             "",
             f"### Pass {stamp.pass_id}: {outcome.ending}",
@@ -186,28 +188,6 @@ def _tick(label: str, group: str, *ids: str) -> str:
     if "\n" in label or "<!--" in label:
         raise ValueError(f"a review form's tick label {label!r} is not one plain line")
     return f"- [ ] {label} <!-- seqforge {' '.join((group, *ids))} -->"
-
-
-def _model_text(role: str, model: Model) -> str:
-    """``ROLE=PROVIDER/NAME[,KEY=VALUE...]``, as ``pass start --model`` takes it.
-
-    It names each setting that differs from liulab-llms's default.
-    """
-    from labllm import Model
-
-    plain = Model(model.provider, model.name)
-    text = f"{role}={model.provider}/{model.name}"
-    for field, key in (
-        ("thinking", "thinking"),
-        ("effort", "effort"),
-        ("temperature", "temperature"),
-        ("max_output_tokens", "max-output-tokens"),
-    ):
-        value = getattr(model, field)
-        if value != getattr(plain, field):
-            shown = ("on" if value else "off") if isinstance(value, bool) else value
-            text += f",{key}={shown}"
-    return text
 
 
 class Unreadable(ValueError):

@@ -10,6 +10,7 @@ nothing here knows what a study is.
 - :mod:`.kinds` -- the registry of seqforge kinds, by name.
 - :mod:`.gateway` -- the one place a command builds its gateway client, which tests replace.
 - :mod:`.task` -- opening a kind's task, and the review clone every pass and review command reads.
+- :mod:`.model_text` -- the ``--model`` text, read into a model and written back.
 - :mod:`.review` -- the review form: a queued unit as an issue body, and its ticks read back.
 - :mod:`.github` -- the one place a review command builds its client of the review repo.
 - :mod:`.clone` -- committing a reviews file in the review clone, and pushing it.

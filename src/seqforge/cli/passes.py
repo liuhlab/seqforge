@@ -12,7 +12,6 @@ from __future__ import annotations
 import dataclasses
 import math
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
 
 import typer
 
@@ -21,18 +20,8 @@ from ..workspace import passes_dir
 from ._common import _emit, _StageOut
 from .root import pass_app
 
-if TYPE_CHECKING:
-    # liulab-llms is imported where it is used: it costs a few tenths of a second, which every other
-    # verb's start would otherwise pay.
-    from labllm import Model
-
-#: The settings a ``--model`` value may carry after its name, and the ``Model`` field each sets.
-_SETTINGS = {
-    "thinking": "thinking",
-    "effort": "effort",
-    "temperature": "temperature",
-    "max-output-tokens": "max_output_tokens",
-}
+# liulab-llms is imported where it is used: it costs a few tenths of a second, which every other
+# verb's start would otherwise pay.
 
 
 @pass_app.command("start")
@@ -124,12 +113,13 @@ def _pass_start(
 
     from ..passes import gateway
     from ..passes.kinds import kind_named
+    from ..passes.model_text import parse_models
     from ..passes.progress import ProgressTask
     from ..passes.task import open_task, reviews_folder, store_for
 
     try:
         kind = kind_named(name)
-        named = dict(_parse_model(text) for text in _no_role_twice(model))
+        named = parse_models(model)
         if keys_file is not None and only is not None:
             raise SetupRefused("give --keys FILE or --only ENDINGS, not both")
         file_keys = None if keys_file is None else _read_keys(keys_file)
@@ -256,59 +246,6 @@ def _held(kind: str, folder: Path, exc: Exception) -> _StageOut:
     return _StageOut(
         {"kind": kind, "task": str(folder), "stopped": "task_in_use", "message": str(exc)}, 3
     )
-
-
-def _no_role_twice(values: list[str]) -> list[str]:
-    roles = [v.partition("=")[0].strip() for v in values]
-    if twice := sorted({r for r in roles if roles.count(r) > 1}):
-        raise SetupRefused(f"--model names role {', '.join(twice)} more than once")
-    return values
-
-
-def _parse_model(text: str) -> tuple[str, Model]:
-    """``ROLE=PROVIDER/NAME[,KEY=VALUE...]`` -> ``(role, Model)``.
-
-    The name is split from the provider at the first ``/`` only: a provider's model name may hold
-    one. Settings not written take liulab-llms's ``Model`` defaults, not the kind's: the string is
-    the whole model value, because the settings are part of the gateway's cache key.
-    """
-    from labllm import Model
-
-    shape = f"--model {text!r}: write ROLE=PROVIDER/NAME[,KEY=VALUE...]"
-    role, eq, rest = text.partition("=")
-    head, *pairs = rest.split(",")
-    provider, slash, model_name = head.partition("/")
-    if not (eq and role.strip() and slash and provider.strip() and model_name.strip()):
-        raise SetupRefused(shape)
-    fields: dict[str, Any] = {}
-    for pair in pairs:
-        key, eq, value = (s.strip() for s in pair.partition("="))
-        if not eq or key not in _SETTINGS:
-            raise SetupRefused(f"{shape}, where KEY is one of {', '.join(_SETTINGS)}")
-        if _SETTINGS[key] in fields:
-            raise SetupRefused(f"--model {text!r} sets {key} twice")
-        try:
-            fields[_SETTINGS[key]] = _setting(key, value)
-        except ValueError as exc:
-            raise SetupRefused(f"--model {text!r}: {exc}") from None
-    return role.strip(), Model(provider.strip(), model_name.strip(), **fields)
-
-
-def _setting(key: str, value: str) -> bool | float | int | str:
-    if key == "thinking":
-        if value not in ("on", "off"):
-            raise ValueError(f"thinking is on or off, not {value!r}")
-        return value == "on"
-    if key == "temperature":
-        return float(value)
-    if key == "max-output-tokens":
-        tokens = int(value)
-        if tokens < 1:
-            raise ValueError(f"max-output-tokens is one or more, not {tokens}")
-        return tokens
-    if not value:
-        raise ValueError(f"{key} needs a value")
-    return value
 
 
 def _read_keys(path: Path) -> list[str]:
