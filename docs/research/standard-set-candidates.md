@@ -145,8 +145,8 @@ ssh <node> 'cd /tmp && <liulab-data checkout>/.pixi/envs/default/bin/python -B -
 | with at least one experiment | 8,965 | 4,447 | 2,095 |
 | SuperSeries / SubSeries | 399 / 2,259 | 186 / 952 | 157 / 414 |
 
-Overlap: 880 fit aging and neurodegeneration, 355 aging and *C. elegans*, 17 neurodegeneration and
-*C. elegans*, and 25 all three. Fewer than half of the text matches are in the title, so the two
+Overlap, each Series counted once: 880 fit exactly aging and neurodegeneration, 355 exactly aging
+and *C. elegans*, 17 exactly neurodegeneration and *C. elegans*, and 25 all three. Fewer than half of the text matches are in the title, so the two
 text pools are loose.
 
 **1,243 of the 3,338 *C. elegans* Series have no experiment, and 1,164 carry a re-analysis link.
