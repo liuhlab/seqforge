@@ -200,6 +200,7 @@ def _pass_status(*, name: str, task: Path | None, reviews: Path | None) -> _Stag
     from ..passes.status import read_only_kind, task_status
 
     def run(setup: KindTask) -> _StageOut:
+        setup.require_task()
         with setup.read() as opened:
             report = task_status(opened, read_only_kind(setup.kind.name))
         return _StageOut({"kind": setup.kind.name, "task": str(setup.folder), **report}, 0)

@@ -65,6 +65,7 @@ def _review_file(*, name: str, count: int, task: Path | None, reviews: Path | No
 
     def run(setup: KindTask) -> _StageOut:
         kind = setup.kind
+        setup.require_task()
         repo = github.make_github(setup.reviews.parent)
         store, _ = store_for(kind)
         unit_kind = kind.unit_kind(store)

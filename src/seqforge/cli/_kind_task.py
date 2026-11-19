@@ -38,14 +38,18 @@ class KindTask:
 
         return open_task(cls, self.folder, gateway=gateway, reviews=self.reviews)
 
-    def read(self) -> Task:
-        """Open the task to read it, with no gateway: a folder that holds no task is refused."""
-        from labllm import Task
-
-        from ..passes import gateway
+    def require_task(self) -> None:
+        """Refuse a folder that holds no task, for a command that only reads one."""
         from ..passes.task import require_task
 
         require_task(self.folder, self.kind.name)
+
+    def read(self) -> Task:
+        """Open the task to read it, with no gateway, so it reads the same with the gateway down."""
+        from labllm import Task
+
+        from ..passes import gateway
+
         return self.open(Task, gateway=gateway.offline_gateway())
 
 
