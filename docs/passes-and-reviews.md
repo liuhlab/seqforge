@@ -19,7 +19,10 @@ You need two things:
   shows how to open one.
 - **A local clone of the lab's review repo.** Give it as `--reviews DIR`, or set
   `SEQFORGE_REVIEWS` to it. A pass reads the reviews in its `reviews/` folder to learn which units
-  a person has already answered.
+  a person has already answered. Make the clone with `gh repo clone liuhlab/seqforge-review`.
+
+The review commands also need the GitHub CLI, `gh`, logged in with `gh auth login`. They act on
+GitHub as you, and need no more than the `repo` scope that login gives by default.
 
 ## Start a pass
 
@@ -100,3 +103,78 @@ seqforge pass start <kind> --ceiling-usd 5 --only unsettled,refused --model writ
 
 A unit a person has already reviewed is left out, as long as its inputs have not changed since the
 review.
+
+## File units for review
+
+A unit that ends unsettled or refused waits in its kind's **review queue** until a person answers
+it. People answer in the lab's private review repo, one GitHub issue for each unit:
+
+```bash
+seqforge review file <kind>
+```
+
+This files five units from the queue, in the kind's own review order. Each new issue asks a person
+for a few minutes, so keep the number small. `--count` sets a different number.
+
+A unit is never filed twice for the same inputs, whether its first issue is still open or closed.
+When a unit's inputs change, a pass answers it again, and it can then be filed again. A unit whose
+inputs changed after its latest pass waits: it is filed once a pass has answered the new inputs.
+
+Each issue shows:
+
+- the unit's records, with links
+- each pass's answer, with the models that gave it and its stamp
+- each check that the answer failed, with the check's message
+- the boxes to tick: one answer to start from, which is a pass's answer or one that the kind's
+  code offers; the kind's questions about single items; and the reasons to drop the unit
+
+To answer, tick the boxes, then close the issue. Close it as completed to keep your answer, or as
+not planned to drop the unit with the reasons you ticked. A hidden line at the top of the issue
+holds the kind, the unit's key, its inputs and the answers you can start from. Do not edit it.
+
+Each issue has the label `review:<kind>`, and a label `check:<name>` for each check that its
+answer failed. Filter the issue list by a label to see one kind or one check together. The command
+makes each label that the repo does not have yet.
+
+The options:
+
+| Option | What it does |
+| --- | --- |
+| `--count` | How many units to file. Default 5 |
+| `--task DIR` | The task folder. Default: `seqforge/passes/<kind>/` in the current folder |
+| `--reviews DIR` | The review repo's clone, if `SEQFORGE_REVIEWS` does not name it. The issues go to the GitHub repo that its `origin` names |
+
+stdout carries one JSON object: `kind`, `task`, `filed`, which lists each filed unit's `key` and
+the issue's `url`, and `unfiled`, the number of units in the queue that are still not filed.
+
+| Exit | When |
+| --- | --- |
+| 0 | It filed what it could, up to `--count` |
+| 2 | A setup it cannot use: an unknown kind, no review clone, no task in the folder, no `gh`, or a clone whose `origin` is not on GitHub. One line on stderr says which |
+| 3 | Another process holds the task, such as a running pass, and `message` names it. Or a GitHub call failed: `stopped` is `github_failed`, and `filed` lists what was filed before it. Run the command again to file the rest |
+
+## Set up the review repo
+
+The lab set up the review repo once, with `gh`. These are the steps, for the record or for a new
+copy:
+
+```bash
+gh repo create liuhlab/seqforge-review --private \
+  --description "Reviews of seqforge units: one issue per unit, answered by ticking boxes and closing"
+gh repo clone liuhlab/seqforge-review
+cd seqforge-review
+mkdir -p reviews
+printf '*.jsonl merge=union\n' > reviews/.gitattributes
+# Write a short README.md that says what the repo is for, then:
+git add README.md reviews/.gitattributes
+git commit -m "Set up the review repo"
+git branch -M main
+git push -u origin main
+gh label create hand-check --repo liuhlab/seqforge-review \
+  --description "The benchmark's hand-check of a settled unit"
+```
+
+The `reviews/` folder holds one review file for each kind, one line for each review. Each person's
+clone adds lines to the same files, so `merge=union` tells git to keep the lines from both sides of
+a merge, not to stop on a conflict. The `hand-check` label is for the benchmark's own check of
+settled units. The review commands make every other label when they first need it.
