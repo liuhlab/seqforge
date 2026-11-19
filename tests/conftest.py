@@ -44,6 +44,7 @@ reason. Every test still composes into its own ``tmp_path``.
 from __future__ import annotations
 
 import ast
+import dataclasses
 import gzip
 import hashlib
 import itertools
@@ -52,7 +53,7 @@ import os
 import re
 import sys
 import types
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from functools import cache
@@ -61,7 +62,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 import pytest
 import yaml
-from labllm import Held, Inputs, Model, Role, Unit, UnitKind
+from labllm import Held, Inputs, Model, QueueEntry, Role, Unit, UnitKind
 from labllm.testing import FakeGateway, Price
 
 from time_limits import pytest_addoption as pytest_addoption
@@ -83,6 +84,8 @@ from seqforge.models.dataset import DatasetManifest, FileInventoryItem, SampleGr
 from seqforge.models.evidenced import EvidencedTaxid
 from seqforge.models.processing import ProcessingManifest
 from seqforge.models.resolve import GateVerdict
+from seqforge.passes.github import GitHubError, Issue
+from seqforge.passes.review import Candidate, Item, ReviewForm
 from seqforge.pipeline import CONFIG_NAME
 from seqforge.probe import probe_file
 from seqforge.resolve import resolve_dataset
@@ -575,6 +578,49 @@ def echo_unit_kind(texts: dict[str, str], *, name: str = "echo") -> UnitKind:
     )
 
 
+def echo_records(inputs: Inputs) -> str:
+    """The echo unit's one record, its text, with a link."""
+    return f"- The text [{inputs.data}](https://en.wiktionary.org/wiki/{inputs.data})"
+
+
+def echo_show(answer: Any) -> str:
+    return f"The word `{answer['word']}`"
+
+
+def echo_candidates(entry: QueueEntry, inputs: Inputs) -> list[Candidate]:
+    """The one starting answer the echo kind's code offers: the text, capitalised."""
+    return [Candidate("The text, capitalised by the kind's code", {"word": inputs.data.upper()})]
+
+
+def echo_items(entry: QueueEntry, inputs: Inputs) -> list[Item]:
+    """The echo form's one per-item question: how the word is written."""
+    options = (("capitals", "Write it in capitals"), ("lower", "Write it in lower case"))
+    return [Item("case", "How is the word written?", options)]
+
+
+def echo_place(start: Any, choices: Mapping[str, str]) -> dict[str, str]:
+    """The starting answer, with the word written as the person ticked; unticked keeps it."""
+    word = start["word"]
+    written = {"capitals": word.upper(), "lower": word.lower()}
+    return {"word": written.get(choices.get("case", ""), word)}
+
+
+#: The echo kind's two-question review form: a starting answer, and how the word is written.
+ECHO_FORM = ReviewForm(
+    records=echo_records,
+    show=echo_show,
+    place=echo_place,
+    drop_reasons=("not a word", "other"),
+    candidates=echo_candidates,
+    items=echo_items,
+)
+
+
+def echo_priority(store: Any, entry: QueueEntry) -> tuple[bool, str]:
+    """The echo kind reviews refused units first, then the rest, each in key order."""
+    return (entry.ending != "refused", entry.key)
+
+
 @pytest.fixture
 def echo_kind(monkeypatch: pytest.MonkeyPatch) -> Any:
     """The echo kind, registered under ``echo`` for this test only."""
@@ -585,6 +631,8 @@ def echo_kind(monkeypatch: pytest.MonkeyPatch) -> Any:
         build=lambda store: echo_unit_kind(ECHO_TEXTS),
         default_models={"writer": ECHO_WEAK},
         default_keys=lambda store: list(ECHO_TEXTS),
+        review_form=ECHO_FORM,
+        review_priority=echo_priority,
     )
     monkeypatch.setitem(KINDS, kind.name, kind)
     return kind
@@ -611,6 +659,55 @@ def review_clone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     clone = tmp_path / "review-clone"
     (clone / "reviews").mkdir(parents=True)
     return clone
+
+
+@dataclass
+class FakeGitHub:
+    """The review repo in memory: what the review commands reach in place of GitHub.
+
+    It starts as the real repo was made, with the ``hand-check`` label only. Like GitHub, it refuses
+    a label it already has. It also refuses an issue naming a label it lacks, so a command that
+    forgot to create its labels goes red here. ``filed`` holds every issue, in the order filed.
+    """
+
+    repo: str = "lab/seqforge-review"
+    label_table: dict[str, tuple[str, str]] = field(
+        default_factory=lambda: {"hand-check": ("ededed", "The benchmark's hand-check")}
+    )
+    filed: list[Issue] = field(default_factory=list)
+
+    def labels(self) -> set[str]:
+        return set(self.label_table)
+
+    def create_label(self, name: str, *, color: str, description: str) -> None:
+        if name in self.label_table:
+            raise GitHubError(f"label {name!r} already exists")
+        self.label_table[name] = (color, description)
+
+    def issues(self, label: str) -> list[Issue]:
+        return [issue for issue in self.filed if label in issue.labels]
+
+    def create_issue(self, *, title: str, body: str, labels: Sequence[str]) -> Issue:
+        if missing := sorted(set(labels) - set(self.label_table)):
+            raise GitHubError(f"no label {', '.join(missing)} in {self.repo}")
+        number = len(self.filed) + 1
+        url = f"https://github.com/{self.repo}/issues/{number}"
+        issue = Issue(number, url, title, body, tuple(labels), "open", None)
+        self.filed.append(issue)
+        return issue
+
+    def close(self, number: int, reason: str) -> None:
+        """A person closes issue ``number``, as ``completed`` or ``not_planned``."""
+        closed = dataclasses.replace(self.filed[number - 1], state="closed", state_reason=reason)
+        self.filed[number - 1] = closed
+
+
+@pytest.fixture
+def github(monkeypatch: pytest.MonkeyPatch) -> FakeGitHub:
+    """The in-memory review repo, behind the review commands."""
+    fake = FakeGitHub()
+    monkeypatch.setattr("seqforge.passes.github.make_github", lambda clone: fake)
+    return fake
 
 
 @pytest.fixture

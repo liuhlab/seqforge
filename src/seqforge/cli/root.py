@@ -70,6 +70,11 @@ pass_app = typer.Typer(
 )
 app.add_typer(pass_app, name="pass")
 
+review_app = typer.Typer(
+    help="A kind's review queue as issues in the lab's private review repo, answered by ticking."
+)
+app.add_typer(review_app, name="review")
+
 
 @app.command()
 def version() -> None:

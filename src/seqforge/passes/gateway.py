@@ -20,3 +20,17 @@ def make_gateway() -> Gateway:
     ``http://host:port`` address. That is a setup the command cannot use, not a stop.
     """
     return Gateway(repo=REPO)
+
+
+class _NoGateway:
+    def send(self, path: str, body: bytes) -> tuple[int, bytes]:
+        raise ConnectionRefusedError("this command reaches no gateway")
+
+
+def offline_gateway() -> Gateway:
+    """A client that reaches no gateway, for a command that only reads a task.
+
+    Opening a task takes a gateway client, which a read never calls, so a command that reads one
+    works with the gateway down or ``$LABLLM_GATEWAY`` unset.
+    """
+    return Gateway(repo=REPO, transport=_NoGateway())

@@ -1,10 +1,11 @@
-"""`seqforge pass`, driven in-process through the CLI with liulab-llms's fake gateway behind it.
+"""`seqforge pass` and `seqforge review`, driven in-process through the CLI, with liulab-llms's fake
+gateway and an in-memory review repo behind them.
 
 A pass of a seqforge kind is the run engine's (liulab-llms's) work; what seqforge owns is the
 command around it: which kind, which models, which keys, which task, and what a caller gets back --
 one JSON object on stdout and an exit code it can act on. So every test here asserts only on that
-JSON, the exit code, and the fake gateway's record, which is part of liulab-llms's contract. None
-reads the task's state file.
+JSON, the exit code, the fake gateway's record, which is part of liulab-llms's contract, and the
+issues and labels in the review repo stand-in. None reads the task's state file.
 """
 
 from __future__ import annotations
@@ -21,10 +22,19 @@ from labllm import Reviews, Task
 from labllm.testing import FakeGateway
 from typer.testing import CliRunner
 
-from conftest import ECHO_STRONG, ECHO_TEXTS, ECHO_WEAK, StubStore, echo_unit_kind
+from conftest import (
+    ECHO_FORM,
+    ECHO_STRONG,
+    ECHO_TEXTS,
+    ECHO_WEAK,
+    FakeGitHub,
+    StubStore,
+    echo_unit_kind,
+)
 from seqforge.cli import app
 from seqforge.passes import gateway
 from seqforge.passes.kinds import KINDS, Kind
+from seqforge.passes.review import Marker, Start, read_answer, read_marker
 
 runner = CliRunner()
 
@@ -232,6 +242,7 @@ def test_a_kind_that_reads_the_store_reads_one_build_and_names_it(
         build=lambda store: echo_unit_kind(texts(store), name="stored-echo"),
         default_models={"writer": ECHO_WEAK},
         default_keys=lambda store: sorted(texts(store)),
+        review_form=ECHO_FORM,
         reads_store=True,
     )
     monkeypatch.setitem(KINDS, kind.name, kind)
@@ -242,3 +253,92 @@ def test_a_kind_that_reads_the_store_reads_one_build_and_names_it(
     assert out["store_build"] == "b1"
     asked = sorted(x.form["messages"][-1]["content"] for x in echo_gateway.record if x.form)
     assert asked == ["alpha", "beta"]
+
+
+def file_reviews(clone: Path, *argv: str) -> tuple[int, dict[str, Any]]:
+    """Run ``seqforge review file`` and return its exit code and its JSON."""
+    result = runner.invoke(app, ["review", "file", *argv, "--reviews", str(clone)])
+    assert result.stdout, result.stderr
+    return result.exit_code, json.loads(result.stdout)
+
+
+def tick(body: str, label: str) -> str:
+    """Tick the box a person sees as ``label``, as GitHub does: ``[ ]`` becomes ``[x]`` on its line."""
+    lines = body.splitlines()
+    (at,) = [n for n, line in enumerate(lines) if line.startswith("- [ ] ") and label in line]
+    lines[at] = "- [x] " + lines[at].removeprefix("- [ ] ")
+    return "\n".join(lines)
+
+
+def test_review_file_files_the_queue_in_the_kinds_priority_labelled_and_marked(
+    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path, github: FakeGitHub
+) -> None:
+    code, _ = start(review_clone, "echo", "--ceiling-usd", "1")
+    assert code == 0
+
+    code, out = file_reviews(review_clone, "echo", "--count", "2")
+
+    assert code == 0, out
+    # The echo kind reviews refused units first: gamma, then beta. Delta waits for the next filing.
+    assert out["filed"] == [
+        {"key": key, "url": issue.url}
+        for key, issue in zip(("u3", "u2"), github.filed, strict=True)
+    ]
+    assert out["unfiled"] == 1
+    assert [sorted(i.labels) for i in github.filed] == [
+        ["check:answered", "review:echo"],
+        ["check:in_capitals", "review:echo"],
+    ]
+    beta = github.filed[1].body
+    # What a reviewer reads: the records with links, each pass's answer with its models and stamp,
+    # and each failed check with its message.
+    for shown in (
+        "https://en.wiktionary.org/wiki/beta",
+        "The word `ateb`",
+        f"writer={ECHO_WEAK.provider}/{ECHO_WEAK.name}",
+        "`text=beta`",
+        "in_capitals: 'ateb' is not 'BETA'",
+    ):
+        assert shown in beta, shown
+    assert read_marker(beta) == Marker(
+        kind="echo",
+        key="u2",
+        inputs_tag="text=beta",
+        starts={"pass-1": Start(1, {"word": "ateb"}), "candidate-1": Start(None, {"word": "BETA"})},
+    )
+    # A person starts from pass 1's answer and ticks capitals. The ticks read back with no task;
+    # storing the answer is what runs the kind's checks on it.
+    ticked = tick(tick(beta, "Pass 1's answer"), "Write it in capitals")
+    assert read_answer(ECHO_FORM, ticked) == ({"word": "ATEB"}, 1)
+
+
+def test_review_file_never_files_a_unit_twice_for_the_same_inputs_tag(
+    echo_kind: Any,
+    echo_gateway: FakeGateway,
+    review_clone: Path,
+    github: FakeGitHub,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    start(review_clone, "echo", "--ceiling-usd", "1")
+    code, out = file_reviews(review_clone, "echo")
+    assert code == 0
+    assert (len(out["filed"]), out["unfiled"]) == (3, 0)
+    github.close(1, "completed")  # a closed issue counts as filed as much as an open one
+
+    code, out = file_reviews(review_clone, "echo")
+
+    assert code == 0
+    assert (out["filed"], out["unfiled"]) == ([], 0)
+    assert len(github.filed) == 3
+
+    # Beta's text changes, so the next pass answers it for new inputs: it is filed again.
+    monkeypatch.setitem(ECHO_TEXTS, "u2", "bravo")
+    start(review_clone, "echo", "--ceiling-usd", "1")
+
+    code, out = file_reviews(review_clone, "echo")
+
+    assert code == 0
+    assert [f["key"] for f in out["filed"]] == ["u2"]
+    marker = read_marker(github.filed[-1].body)
+    assert marker is not None
+    assert (marker.key, marker.inputs_tag) == ("u2", "text=bravo")
