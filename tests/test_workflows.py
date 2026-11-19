@@ -1497,8 +1497,8 @@ _MODULE_PLANS: dict[str, tuple[ProcessingManifest, str]] = {}
 def _module_plan(module: str, tmp_path: Path, dry_run: DryRun) -> tuple[ProcessingManifest, str]:
     """``module``'s :func:`~conftest.planning_route`, composed and planned ONCE: its processing and plan.
 
-    Three invariants below read the same plan of the same route, so a spawn each re-rendered the
-    one text three times. The first caller composes into its own ``tmp_path`` and spawns; the rest
+    Three invariants below read the same plan of the same route, so a plan each re-rendered the
+    one text three times. The first caller composes into its own ``tmp_path`` and plans; the rest
     read the text. :func:`_by_module` keeps every case of one module on one worker, which is what
     makes the cache shared under xdist.
     """
@@ -1824,7 +1824,7 @@ _WOULD_RECLAIM = re.compile(r"^Would remove temporary output (.+)$", re.M)
 #: How many cells a shard is planned over. Four, so a shard is a PROPER subset and the two lists an
 #: operator writes are genuinely disjoint rather than one list twice. Deliberately not
 #: :data:`~conftest.PLATE_CELL_COUNT`: 96 cells make a claim about wildcard expansion that the plate
-#: fixture already makes, and every cell past the fourth is plan text two spawns have to render.
+#: fixture already makes, and every cell past the fourth is plan text two plans have to render.
 _SHARDED_PLATE_CELLS = 4
 
 
@@ -1938,7 +1938,7 @@ def test_every_star_workflow_shares_one_genome_copy_and_declares_the_read_group_
 
     The read group is the second invariant and it rides here rather than in a neighbour of its own
     because the plan is the expensive part: this test already composes and dry-runs every STAR
-    workflow there is, and a second sweep would spawn `snakemake` four more times to read the same
+    workflow there is, and a second sweep would run `snakemake` four more times to read the same
     text. Both claims are about what a mapping job's command line SAYS, and neither can be made
     anywhere else — a `shell:` literal is source, and a source claim about a command is not a claim
     about a command.
@@ -2718,7 +2718,8 @@ def test_a_mate_the_module_will_not_stage_and_the_table_still_offers_is_refused_
     assert "must be the same answer" in refusal, refusal
 
 
-# Two spawns in series (the plan, then the `seqforge` CLI it renders): about 2.1s in CI.
+# A plan and then a spawn of the `seqforge` CLI it renders. About 2.1s in CI when the plan was a
+# spawn as well; not timed there since the plan moved into the worker.
 @pytest.mark.slow
 def test_the_plate_modules_own_rendered_extraction_runs_over_a_cell_that_spans_two_runs(
     tmp_path: Path, dry_run: DryRun
@@ -3389,6 +3390,36 @@ def test_a_snakemake_retry_re_expands_a_resource_and_never_a_param(tmp_path: Pat
         "trap #205 fell into; if snakemake has fixed it, `starsolo.smk` and ADR-0023 are arguing "
         "for a workaround that is no longer needed and should say so"
     )
+
+
+def test_a_plan_cannot_use_a_name_an_earlier_plan_defined(tmp_path: Path, dry_run: DryRun) -> None:
+    """A plan taken in the worker starts from what a fresh ``snakemake`` process would start from.
+
+    Snakemake executes a Snakefile in one module's own globals, and a worker outlives the plan. If
+    those names were left behind, a workflow module that lost an import would go on planning on any
+    worker where an earlier test's module had brought the name in: a red test turned green by the
+    order tests ran in. So the second Snakefile here uses a name only the first one defines, and it
+    has to be refused the way the command refuses it when started alone.
+
+    ``dry_run`` is taken for the marker only, because this needs snakemake; the planner under it is
+    called directly, since these two directories are not composed runs and have no reference to stage.
+    """
+    from conftest import _snakemake_in_this_worker
+
+    plans = {}
+    for name, defines in (("first", 'HELPER = "a.txt"\n'), ("second", "")):
+        directory = tmp_path / name
+        directory.mkdir()
+        (directory / "a.txt").touch()
+        snakefile = directory / "Snakefile"
+        snakefile.write_text(defines + "rule all:\n    input: HELPER\n")
+        plans[name] = _snakemake_in_this_worker(
+            ["-d", str(directory), "-s", str(snakefile), "-n", "-p", "--cores", "1"]
+        )
+    assert plans["first"].returncode == 0, plans["first"].stderr
+    refused = plans["second"]
+    assert refused.returncode != 0, "a name the first plan defined was still defined for the second"
+    assert "NameError" in refused.stdout + refused.stderr
 
 
 #: A memory budget handed to an aligner: `--limitBAMsortRAM <x>`, `--limitGenomeGenerateRAM <x>`, ...
