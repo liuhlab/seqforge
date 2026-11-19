@@ -56,6 +56,12 @@ app.add_typer(harvest_app, name="harvest")
 eval_app = typer.Typer(help="The evals harness: measure what unit tests cannot.")
 app.add_typer(eval_app, name="eval")
 
+# A rough first version: the format of the study files is provisional.
+standard_set_app = typer.Typer(
+    help="The standard set of studies under evals/: list them, and draw one. Provisional."
+)
+app.add_typer(standard_set_app, name="standard-set")
+
 hook_app = typer.Typer(help="Agent hooks: the rules as mechanism, not aspiration.")
 app.add_typer(hook_app, name="hook")
 

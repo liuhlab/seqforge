@@ -1,0 +1,14 @@
+id: GSE112068
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.2/pass-2
+when: '2026-11-19T23:38:27Z'
+summary: Time-course RNA-seq of IMR-90 fibroblasts after bleomycin DNA damage, comparing senescence and
+  transient cell-cycle arrest.
+bounds:
+  series:
+  - GSE112068
+  papers: []
+  reason: Single Series profiles IMR-90 cells across bleomycin doses and time points after DNA damage.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

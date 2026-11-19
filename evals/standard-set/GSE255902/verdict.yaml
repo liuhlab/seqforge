@@ -1,0 +1,12 @@
+id: GSE255902
+model: claude-fable-5-2
+when: '2026-11-19T23:39:14Z'
+agrees: true
+bounds: null
+reason: Both Series carry the same title and summary as the Cell paper (pmid:38582079), differing only
+  in the bulk vs single-cell suffix, and both link only that paper. They were submitted the same day and
+  neither is a SuperSeries. The records and abstract settle it; nothing needs leaving out or splitting.
+unsure: false
+read:
+- records
+- abstract

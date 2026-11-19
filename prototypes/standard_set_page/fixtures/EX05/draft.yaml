@@ -1,0 +1,8 @@
+model: deepseek/deepseek-v4-flash
+pass: bounds-draft/2026.11.1/EX05
+when: 2026-11-19T09:03:58Z
+bounds:
+  series: [GSE9990051]
+  papers: ["99900051", "99900052"]
+  reason: One Series cited by two papers; both papers describe it.
+  split_samples: null

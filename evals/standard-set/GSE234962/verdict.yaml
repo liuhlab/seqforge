@@ -1,0 +1,16 @@
+id: GSE234962
+model: claude-fable-5-2
+when: '2026-11-19T23:39:03Z'
+agrees: true
+bounds: null
+reason: The records and abstracts settle it. GSE234962 is the wild-type adult motor neuron scRNA-seq atlas,
+  and pmid:38421866 (Cell Reports 2024) carries the same title and is the paper that reports it. GSE314726
+  is a later dataset of unc-3 mutant samples whose record states it re-uses GSM7486859 and GSM7486860
+  from GSE234962, so it and its two papers (the bioRxiv preprint pmid:41509263 and the journal version
+  pmid:42711312) form a different UNC-3 study. pmid:41390837 is a PBAF chromatin-remodeling paper linked
+  only through re-use of the atlas data. All four GSE234962 samples belong to the atlas, so no sample
+  split is needed.
+unsure: false
+read:
+- records
+- abstract

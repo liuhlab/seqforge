@@ -1,0 +1,15 @@
+id: GSE275435
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.2/pass-2
+when: '2026-11-19T23:38:27Z'
+summary: KChIP3 drives neuroinflammation and synaptic dysfunction in Alzheimer's disease mice; deleting
+  it restores memory and reduces pathology.
+bounds:
+  series:
+  - GSE275435
+  papers:
+  - pmid:40537787
+  reason: Single RNA-seq Series and its one reporting paper on KChIP3 in 5XFAD mice.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

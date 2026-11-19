@@ -36,6 +36,7 @@ from . import (  # noqa: F401
     review,
     run,
     schema,
+    standard_set,
 )
 from .root import app
 

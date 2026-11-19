@@ -1,0 +1,12 @@
+id: GSE275435
+model: claude-fable-5-2
+when: '2026-11-19T23:38:48Z'
+agrees: true
+bounds: null
+reason: The group holds one Series and one paper. GSE275435 is a plain RNA-seq Series (not a SuperSeries)
+  of hippocampus from WT, Kcnip3 KO, 5xFAD and double-mutant mice, and its summary matches the abstract
+  of pmid:40537787, the only paper it links. All 12 samples fit that one design, so no split is needed.
+unsure: false
+read:
+- records
+- abstract

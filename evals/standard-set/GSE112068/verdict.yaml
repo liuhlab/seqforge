@@ -1,0 +1,11 @@
+id: GSE112068
+model: claude-fable-5-2
+when: '2026-11-19T23:39:19Z'
+agrees: true
+bounds: null
+reason: The linked group holds only GSE112068, a single non-SuperSeries with 23 IMR-90 bleomycin time-course
+  samples that all share one design, and the record links no paper. There is nothing to leave out or split,
+  so the draft's bounds are right.
+unsure: false
+read:
+- records

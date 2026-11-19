@@ -1,0 +1,35 @@
+id: GSE255902
+summary: Human iPSC 4R tau neurons with P301S mutation model tau seeding and identify genetic modifiers
+  of tau propagation.
+direction: neurodegeneration
+also_fits:
+- aging
+hard_shape: paper_over_several_series
+reason_picked: One paper, two Series with matching titles and no SuperSeries, one per assay, with different
+  designs in each.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE255902
+  - GSE255904
+  superseries: null
+  bioprojects:
+  - PRJNA1076936
+  - PRJNA1076934
+  pmids:
+  - '38582079'
+bounds:
+  series:
+  - GSE255902
+  - GSE255904
+  papers:
+  - pmid:38582079
+  reason: Both Series report the same Cell paper's bulk and single-cell RNA-seq of the 4R tauopathy iPSC
+    model.
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

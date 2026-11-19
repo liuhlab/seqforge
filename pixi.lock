@@ -341,7 +341,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/zarr-3.2.1-pyhc364b38_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
       - pypi: ./
-      - pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+      - pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/70/21/61dd2876bbaa69cf77d7b5c620e52e8b25faae7096f4d2e4a812b52095d7/duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl
@@ -638,7 +638,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zlib-ng-2.3.3-h8bce59a_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstd-1.5.7-h3eecb57_6.conda
       - pypi: ./
-      - pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+      - pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/0c/6d/5466a2b53ddd557644dfa47a763f68748efccdf282e6ae7c4f1bcfb3da69/duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
@@ -934,7 +934,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zlib-ng-2.3.3-hed4e4f5_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hbf9d68e_6.conda
       - pypi: ./
-      - pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+      - pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/cc/8d/8f271a7a034c834910ec925d56fa4b29733b1380f5289419f5aaa3b02777/pyarrow-25.0.1-cp313-cp313-macosx_12_0_arm64.whl
@@ -1441,7 +1441,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/zarr-3.2.1-pyhc364b38_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
       - pypi: ./
-      - pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+      - pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/70/21/61dd2876bbaa69cf77d7b5c620e52e8b25faae7096f4d2e4a812b52095d7/duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl
@@ -1712,7 +1712,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zlib-ng-2.3.3-h8bce59a_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstd-1.5.7-h3eecb57_6.conda
       - pypi: ./
-      - pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+      - pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/0c/6d/5466a2b53ddd557644dfa47a763f68748efccdf282e6ae7c4f1bcfb3da69/duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
@@ -1982,7 +1982,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zlib-ng-2.3.3-hed4e4f5_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hbf9d68e_6.conda
       - pypi: ./
-      - pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+      - pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/cc/8d/8f271a7a034c834910ec925d56fa4b29733b1380f5289419f5aaa3b02777/pyarrow-25.0.1-cp313-cp313-macosx_12_0_arm64.whl
@@ -2276,7 +2276,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/zarr-3.2.1-pyhc364b38_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
       - pypi: ./
-      - pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+      - pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/70/21/61dd2876bbaa69cf77d7b5c620e52e8b25faae7096f4d2e4a812b52095d7/duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl
@@ -2536,7 +2536,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zlib-ng-2.3.3-h8bce59a_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstd-1.5.7-h3eecb57_6.conda
       - pypi: ./
-      - pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+      - pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/0c/6d/5466a2b53ddd557644dfa47a763f68748efccdf282e6ae7c4f1bcfb3da69/duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
@@ -2795,7 +2795,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zlib-ng-2.3.3-hed4e4f5_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-hbf9d68e_6.conda
       - pypi: ./
-      - pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+      - pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/cc/8d/8f271a7a034c834910ec925d56fa4b29733b1380f5289419f5aaa3b02777/pyarrow-25.0.1-cp313-cp313-macosx_12_0_arm64.whl
@@ -14136,10 +14136,11 @@ packages:
   - tqdm>=4
   - typer>=0.12
   requires_python: '>=3.13'
-- pypi: git+https://github.com/liuhlab/liulab-data.git#3eeca2462d5a73ba63344c3c85ce365c4af17445
+- pypi: git+https://github.com/liuhlab/liulab-data.git#2652d394c7f47c7b2a8627442a373fbe976e4750
   name: liulab-data
-  version: 0.1.dev58+g3eeca2462
+  version: 0.1.dev226+g2652d394c
   requires_dist:
+  - backports-zstd>=1.6
   - biopython>=1.83
   - duckdb>=1.5.6,<2
   - pandas>=2.0
