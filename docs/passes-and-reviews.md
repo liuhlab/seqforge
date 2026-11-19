@@ -153,6 +153,9 @@ for a few minutes, so keep the number small. `--count` sets a different number.
 A unit is never filed twice for the same inputs, whether its first issue is still open or closed.
 When a unit's inputs change, a pass answers it again, and it can then be filed again. A unit whose
 inputs changed after its latest pass waits: it is filed once a pass has answered the new inputs.
+The command holds the task until it has filed everything, so a second `review file` on the same
+task folder exits 3. Two commands on different task folders, such as on two machines, are not kept
+apart and can file the same unit twice.
 
 Each issue shows:
 
@@ -185,7 +188,7 @@ the issue's `url`, and `unfiled`, the number of units in the queue that are stil
 | --- | --- |
 | 0 | It filed what it could, up to `--count` |
 | 2 | A setup it cannot use: an unknown kind, no review clone, no task in the folder, no `gh`, or a clone whose `origin` is not on GitHub. One line on stderr says which |
-| 3 | Another process holds the task, such as a running pass, and `message` names it. Or a GitHub call failed: `stopped` is `github_failed`, and `filed` lists what was filed before it. Run the command again to file the rest |
+| 3 | Another process holds the task, such as a running pass or another `review file`, and `message` names it. Or a GitHub call failed: `stopped` is `github_failed`, and `filed` lists what was filed before it. Run the command again to file the rest |
 
 ## Read reviews back
 

@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from labllm import Reviews, Task
+from labllm import Reviews, Task, TaskInUse
 from labllm.testing import FakeGateway
 from typer.testing import CliRunner
 
@@ -594,9 +594,24 @@ def test_review_file_never_files_a_unit_twice_for_the_same_inputs_tag(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     seqforge(review_clone, *PASS_START)
+    # A second filer on this task, arriving while each issue is created, finds the task held.
+    refused: list[str] = []
+    create = github.create_issue
+
+    def create_while_a_second_filer_tries(**issue: Any) -> Any:
+        try:
+            with Task(TASK, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
+                pass
+        except TaskInUse as exc:
+            refused.append(str(exc))
+        return create(**issue)
+
+    monkeypatch.setattr(github, "create_issue", create_while_a_second_filer_tries)
     code, out = seqforge(review_clone, "review", "file", "echo")
     assert code == 0
     assert (len(out["filed"]), out["unfiled"]) == (3, 0)
+    assert len(refused) == 3
+    assert all(f"process {os.getpid()}" in message for message in refused)
     github.close(1, "completed")  # a closed issue counts as filed as much as an open one
 
     code, out = seqforge(review_clone, "review", "file", "echo")

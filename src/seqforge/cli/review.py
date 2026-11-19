@@ -52,6 +52,9 @@ def review_file(
     the kind and each check the unit's answer failed; labels the repo lacks are made. Exit 0; 2 for
     a setup it cannot use, or a folder with no task; 3 when another process holds the task, or a
     GitHub call fails (rerun to file the rest).
+
+    The task stays held until filing ends, so a second filer on it exits 3. Filers on different task
+    folders, such as on two machines, are not kept apart and can file one unit twice.
     """
     _emit(_review_file(name=kind, count=count, task=task, reviews=reviews))
 
@@ -69,48 +72,49 @@ def _review_file(*, name: str, count: int, task: Path | None, reviews: Path | No
         repo = github.make_github(setup.reviews.parent)
         store, _ = store_for(kind)
         unit_kind = kind.unit_kind(store)
-        # Reading the queue takes the task's hold, so a running pass makes this exit 3.
+        # The task stays open, and so held, until filing ends: a running pass, or a second filer
+        # on this task, exits 3 rather than file a unit this one is filing.
         with setup.read() as opened:
             queue = opened.review_queue(unit_kind)
-
-        filed: list[dict[str, str]] = []
-        try:
-            issues = repo.issues(KIND_LABEL.format(kind.name))
-            markers = [m for issue in issues if (m := read_marker(issue.body)) is not None]
-            done = {(m.key, m.inputs_tag) for m in markers if m.kind == kind.name}
-            waiting = [entry for entry in queue if (entry.key, entry.inputs_tag) not in done]
-            priority = kind.review_priority
-            if priority is not None:
-                waiting.sort(key=lambda entry: priority(store, entry))
-            labels = repo.labels()
-            for entry in waiting:
-                if len(filed) == count:
-                    break
-                # A unit whose inputs changed since its latest pass is not filed: liulab-llms would
-                # refuse a review made for its old inputs, so it waits for a pass over the new ones.
-                inputs = inputs_now(unit_kind, entry.key)
-                if inputs is None or inputs.tag != entry.inputs_tag:
-                    continue
-                title, body = issue_for(kind.review_form, entry, inputs)
-                wanted = labels_for(entry)
-                for label, (color, description) in wanted.items():
-                    if label not in labels:
-                        repo.create_label(label, color=color, description=description)
-                        labels.add(label)
-                issue = repo.create_issue(title=title, body=body, labels=list(wanted))
-                filed.append({"key": entry.key, "url": issue.url})
-        except GitHubError as exc:
-            payload = {"kind": kind.name, "task": str(setup.folder), "filed": filed}
-            return _StageOut({**payload, "stopped": "github_failed", "message": str(exc)}, 3)
-        return _StageOut(
-            {
-                "kind": kind.name,
-                "task": str(setup.folder),
-                "filed": filed,
-                "unfiled": len(waiting) - len(filed),
-            },
-            0,
-        )
+            filed: list[dict[str, str]] = []
+            try:
+                issues = repo.issues(KIND_LABEL.format(kind.name))
+                markers = [m for issue in issues if (m := read_marker(issue.body)) is not None]
+                done = {(m.key, m.inputs_tag) for m in markers if m.kind == kind.name}
+                waiting = [entry for entry in queue if (entry.key, entry.inputs_tag) not in done]
+                priority = kind.review_priority
+                if priority is not None:
+                    waiting.sort(key=lambda entry: priority(store, entry))
+                labels = repo.labels()
+                for entry in waiting:
+                    if len(filed) == count:
+                        break
+                    # A unit whose inputs changed since its latest pass is not filed: liulab-llms
+                    # would refuse a review made for its old inputs, so it waits for a pass over the
+                    # new ones.
+                    inputs = inputs_now(unit_kind, entry.key)
+                    if inputs is None or inputs.tag != entry.inputs_tag:
+                        continue
+                    title, body = issue_for(kind.review_form, entry, inputs)
+                    wanted = labels_for(entry)
+                    for label, (color, description) in wanted.items():
+                        if label not in labels:
+                            repo.create_label(label, color=color, description=description)
+                            labels.add(label)
+                    issue = repo.create_issue(title=title, body=body, labels=list(wanted))
+                    filed.append({"key": entry.key, "url": issue.url})
+            except GitHubError as exc:
+                payload = {"kind": kind.name, "task": str(setup.folder), "filed": filed}
+                return _StageOut({**payload, "stopped": "github_failed", "message": str(exc)}, 3)
+            return _StageOut(
+                {
+                    "kind": kind.name,
+                    "task": str(setup.folder),
+                    "filed": filed,
+                    "unfiled": len(waiting) - len(filed),
+                },
+                0,
+            )
 
     return for_kind(name, task=task, reviews=reviews, body=run)
 
