@@ -1,0 +1,24 @@
+model: claude-fable-5-2
+when: 2026-11-19 10:02:26+00:00
+agrees: false
+bounds:
+  series:
+  - GSE9990051
+  papers:
+  - '99900051'
+  reason: Only the six time-course samples belong to this study. The other six are the mutant comparison
+    of PMID 99900052.
+  split_samples:
+    GSE9990051:
+    - GSM99900511
+    - GSM99900512
+    - GSM99900513
+    - GSM99900514
+    - GSM99900515
+    - GSM99900516
+reason: 'The two papers use different halves of the dataset: one reports the wild-type time course, the
+  other the young-adult mutants. The sample names separate them cleanly.'
+unsure: false
+read:
+- Full text of PMID 99900051 and PMID 99900052, methods
+- The twelve sample records of GSE9990051

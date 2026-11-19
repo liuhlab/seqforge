@@ -1,0 +1,19 @@
+model: claude-fable-5-2
+when: 2026-11-19 09:44:51+00:00
+agrees: false
+bounds:
+  series:
+  - GSE9990021
+  - GSE9990022
+  papers:
+  - '99900021'
+  reason: The paper generated GSE9990021 and GSE9990022. GSE9990023 is an older Series it only re-analysed.
+  split_samples: null
+reason: The paper's data availability statement names the open-chromatin dataset as the other half of
+  the same experiment. The human dataset was deposited three years earlier by another group and is only
+  re-analysed here.
+unsure: false
+read:
+- Full text of PMID 99900021, methods and data availability statement
+- GEO Series records GSE9990021, GSE9990022, GSE9990023
+- Abstract of PMID 99900023
