@@ -5,9 +5,9 @@ times and nothing could be tuned in one place. What lives here:
 
 * :func:`_no_wiring_gate` — the autouse stub that stops ``compose`` spawning ``snakemake -n -p``
   in every test that happens to compose. One test opts back in per workflow module.
-* :func:`dry_run` — the same subprocess, returning the PLAN TEXT rather than a four-character
-  verdict. It lives here because the ``external`` marker is derived from fixture names, so a
-  module-local spawner is a spawn the marker cannot see.
+* :func:`dry_run` — the same ``snakemake -n -p``, taken inside the test worker and returning the
+  PLAN TEXT rather than a four-character verdict. It lives here because the ``external`` marker is
+  derived from fixture names, so a module-local planner is a snakemake run the marker cannot see.
 * :func:`liulab_data` and :func:`stage_reference` — a throwaway genome **Data dir** for the session,
   and the prebuilt index a DAG build now looks up. Building a DAG resolves the genomeDir, which is
   what refuses a machine that has not built one before any job starts; the price is that planning a
@@ -28,7 +28,7 @@ times and nothing could be tuned in one place. What lives here:
 * :data:`composed_plate` — one ``smartseq3`` plate, composed under the real wiring gate and planned
   once, for the three-part plate gate; it carries both the gate's verdict and the plan text, because
   the gate discards the text. :data:`composed_plate_se` is the same thing for the mate-less
-  placement. Both spawn, so both NAMES are in :data:`_SPAWNS_SNAKEMAKE` beside ``dry_run``.
+  placement. Both run snakemake, so both NAMES are in :data:`_SPAWNS_SNAKEMAKE` beside ``dry_run``.
 * :func:`gate_that_must_not_run` — un-stub the gate for the one test that proves it is NOT reached.
   Not ``external``: it spawns nothing, and a counter makes that a mechanism rather than a promise.
 * :func:`pytest_cmdline_main` — a bare ``pytest`` runs the whole suite ACROSS CORES, because
@@ -46,9 +46,11 @@ from __future__ import annotations
 import ast
 import gzip
 import hashlib
+import importlib
 import itertools
 import os
 import re
+import subprocess
 import sys
 import types
 from collections.abc import Callable, Iterator, Sequence
@@ -363,12 +365,17 @@ def stage_reference(pipeline_dir: Path) -> None:
 #: Fixture names that mean "do not stub ``wiring_gate`` for this test".
 _UNSTUBS_THE_GATE = frozenset({"real_wiring_gate", "gate_that_must_not_run"})
 
-#: Fixture names that mean "this test spawns ``snakemake``" — which is what ``external`` is ABOUT.
+#: Fixture names that mean "this test runs ``snakemake``" — which is what ``external`` is ABOUT.
 #: The two sets are deliberately different; see :func:`pytest_collection_modifyitems`.
 #:
+#: The name says "spawns", and only ``real_wiring_gate`` still does: the product's gate starts the
+#: command, while a plan a test reads is taken inside the worker (:func:`snakemake_dry_run`). The
+#: marker is about NEEDING snakemake, and a machine without it can do neither, so the set is the
+#: same whichever way a fixture runs it.
+#:
 #: ``composed_plate`` and its single-end sibling are here for the same reason ``dry_run`` is: each is
-#: a *product* of a ``snakemake -n -p``, and a fixture that spawns has to be visible to the marker
-#: whether the test reading it thinks of itself as a subprocess test or not.
+#: a *product* of a ``snakemake -n -p``, and a fixture that takes one has to be visible to the marker
+#: whether the test reading it thinks of itself as a snakemake test or not.
 _SPAWNS_SNAKEMAKE = frozenset(
     {"real_wiring_gate", "dry_run", "composed_plate", "composed_plate_se"}
 )
@@ -589,11 +596,17 @@ def snakemake_dry_run(
 ) -> str:
     """``snakemake -n -p`` over a composed run directory, returning the PLAN TEXT.
 
-    The one spawner. It is a module-level function rather than only a fixture body because two
+    The one planner. It is a module-level function rather than only a fixture body because two
     fixtures want it — the per-test :func:`dry_run` and the session-scoped :func:`composed_plate` —
     and a second copy of the argv is the copy that comes to disagree about which flags a plan is
     taken under. Both fixture NAMES are in :data:`_SPAWNS_SNAKEMAKE`, so the marker still follows
     the fixture and never this function.
+
+    **The plan is taken inside the test worker**, by :func:`_snakemake_in_this_worker`, and not by
+    starting the ``snakemake`` command. Starting it cost every plan a fresh interpreter and
+    snakemake's import, which was about half of a test's time limit before any planning began; a
+    worker now imports snakemake once. The command itself stays covered by the product's own gate,
+    which still starts it, through the tests that take ``real_wiring_gate``.
 
     Pass ``plan`` to run against a throwaway ``_replica`` (source inputs stood in, tree removed
     afterwards) — the gate's own arrangement. Omit it to run against ``directory`` exactly as the
@@ -615,16 +628,14 @@ def snakemake_dry_run(
     so a test states a width only when the width is its subject.
     """
     import shutil
-    import subprocess
 
     from seqforge.compose.gates import _replica
 
     target = _replica(directory, plan) if plan is not None else directory
     stage_reference(target)
     try:
-        proc = subprocess.run(
+        proc = _snakemake_in_this_worker(
             [
-                "snakemake",
                 "-d",
                 str(target),
                 "-s",
@@ -634,10 +645,7 @@ def snakemake_dry_run(
                 "--cores",
                 str(cores),
                 *argv,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=300,
+            ]
         )
         if refused:
             assert proc.returncode != 0, f"this plan was supposed to be refused:\n{proc.stdout}"
@@ -648,7 +656,7 @@ def snakemake_dry_run(
         # `AttributeGuard`, which only raises when the job runs. So a plan is green, the argv reads
         # plausibly, and the aligner is handed `<snakemake.iocontainers.AttributeGuard object at ...>`
         # on a compute node. Asserted here rather than in a test, because it is a property of every
-        # plan this suite takes and the spawner is the one place they all pass through.
+        # plan this suite takes and the planner is the one place they all pass through.
         assert "AttributeGuard" not in proc.stdout, (
             "a rendered command names a `params:`/`input:` slot its rule never declared:\n"
             + "\n".join(ln for ln in proc.stdout.splitlines() if "AttributeGuard" in ln)
@@ -659,6 +667,134 @@ def snakemake_dry_run(
             shutil.rmtree(target, ignore_errors=True)
 
 
+def _snakemake_in_this_worker(args: Sequence[str]) -> subprocess.CompletedProcess[str]:
+    """``snakemake <args>`` run inside this process, handing back what a spawn of it would have.
+
+    ``snakemake.cli.main`` is what the ``snakemake`` command calls, and all it calls, so the
+    arguments are parsed, the DAG is built and the plan is printed by the command's own code. What
+    a worker no longer pays is the start: it imports snakemake once
+    (:func:`pytest_collection_finish`), where every spawn imported it again.
+
+    Three things stand in for the process a spawn had to itself. Snakemake prints a plan through a
+    log handler it binds to ``sys.stdout`` as the run begins, so both streams are redirected for the
+    run. ``main`` always ends in ``sys.exit``, so that exit is caught for its code — and a ``main``
+    that returned instead fails here, rather than reading as a plan that passed. And ``sys.argv`` is
+    the command's for the run, because snakemake prints it in the plan's header, where pytest's own
+    arguments (a ``-k`` expression, say) would sit inside a text that tests search.
+    :func:`_snakemake_state_put_back` is the fourth, and the one a later test depends on.
+    """
+    import contextlib
+    import io
+
+    from snakemake import cli  # type: ignore[import-untyped]
+
+    command = ["snakemake", *args]
+    out, err = io.StringIO(), io.StringIO()
+    with (
+        _snakemake_state_put_back(),
+        _a_hung_plan_fails(),
+        contextlib.redirect_stdout(out),
+        contextlib.redirect_stderr(err),
+    ):
+        sys.argv = command
+        with pytest.raises(SystemExit) as stopped:
+            cli.main(command[1:])
+    code = stopped.value.code
+    # The interpreter's own reading of an exit: nothing is success, a number is itself, and a
+    # message is a failure.
+    returncode = code if isinstance(code, int) else int(code is not None)
+    return subprocess.CompletedProcess(command, returncode, out.getvalue(), err.getvalue())
+
+
+#: The most seconds one plan may take where no test's own time limit is running.
+PLAN_DEADLINE = 300.0
+
+
+@contextmanager
+def _a_hung_plan_fails() -> Iterator[None]:
+    """Fail a plan that never returns, where nothing else would.
+
+    A spawned plan had a deadline of its own. Inside the worker, a test's time limit ends a hung
+    plan, but a ``slow`` test has no limit, and its plan would hang the run. So when no timer is
+    running, this sets one for the plan. When one is running, the test's limit is the nearer
+    deadline and this does nothing.
+
+    The handler is left in place afterwards and goes quiet: an alarm can arrive after its timer
+    was switched off, and with no handler that alarm would end the process.
+    """
+    import signal
+
+    if signal.getitimer(signal.ITIMER_REAL)[0]:
+        yield
+        return
+    planning = True
+
+    def overdue(signum: int, frame: types.FrameType | None) -> None:
+        if planning:
+            pytest.fail(f"a snakemake plan was still running after {PLAN_DEADLINE:g} s")
+
+    signal.signal(signal.SIGALRM, overdue)
+    signal.setitimer(signal.ITIMER_REAL, PLAN_DEADLINE)
+    try:
+        yield
+    finally:
+        planning = False
+        signal.setitimer(signal.ITIMER_REAL, 0)
+
+
+@contextmanager
+def _snakemake_state_put_back() -> Iterator[None]:
+    """Put back what one snakemake run inside this process changes about the process.
+
+    A spawned ``snakemake`` took its state with it when it exited. A run in the worker leaves it
+    for the next test, and every item here was measured as changed by planning a shipped module:
+
+    * **The namespace of** ``snakemake.workflow``. Snakemake executes a Snakefile in that module's
+      own globals, so each name one workflow defines is still defined when the next is read. This
+      is the one that turns a red test green: a module that lost an import would go on planning
+      on any worker where an earlier test's module had brought the name in.
+    * ``sys.path``, which gains each Snakefile's directory.
+    * The SIGTERM handler, which is left bound to the finished run's job scheduler.
+    * The snakemake logger's level. Its handlers snakemake removes itself. The logger is also
+      kept from propagating for the run, so a plan is the text handed back and not a second copy
+      in pytest's captured log.
+    * ``sys.argv`` and the working directory, which the caller and snakemake set for the run.
+    * The run's source-cache directory, which snakemake never removes itself: it leaves that to
+      the interpreter, and a spawn's interpreter exited. Here the workflow outlives its run, so
+      the directory would go whenever the collector reached it — in some later test, with a
+      ``ResourceWarning`` that this suite turns into that test's error.
+
+    Not put back, because nothing reads them across plans: the modules snakemake imports, which
+    are the point, and its value caches, which are keyed by a path or by the run's own objects.
+    """
+    import logging
+    import signal
+
+    # Read from `sys.modules` and not imported here. The caller's `snakemake.cli` has imported it,
+    # and it cannot be the first of snakemake's modules a process imports: it and `snakemake.api`
+    # import each other, and only the order the command's own entry point takes resolves.
+    namespace = vars(sys.modules["snakemake.workflow"])
+    logger = logging.getLogger("snakemake.logging")
+    defined, path, argv, cwd = dict(namespace), list(sys.path), sys.argv, Path.cwd()
+    sigterm, level, propagate = signal.getsignal(signal.SIGTERM), logger.level, logger.propagate
+    logger.propagate = False
+    try:
+        yield
+    finally:
+        workflow = namespace.get("workflow")
+        namespace.clear()
+        namespace.update(defined)
+        sys.path[:] = path
+        sys.argv = argv
+        os.chdir(cwd)
+        if signal.getsignal(signal.SIGTERM) is not sigterm:
+            signal.signal(signal.SIGTERM, sigterm)
+        logger.setLevel(level)
+        logger.propagate = propagate
+        if workflow is not None and workflow.sourcecache.runtime_cache is not None:
+            workflow.sourcecache.runtime_cache.cleanup()
+
+
 @pytest.fixture
 def dry_run() -> DryRun:
     """:func:`snakemake_dry_run`, as the fixture the ``external`` marker can see.
@@ -667,17 +803,18 @@ def dry_run() -> DryRun:
     four-character verdict while holding the plan text, so every test that wanted the plan re-spawned
     through a private ``_dry_run`` in the compose tests — invisible to
     :func:`pytest_collection_modifyitems`, which is how two tests that shell out to ``snakemake`` came
-    to be selected by ``test-fast``. Requesting this fixture IS the spawn, so the marker follows.
+    to be selected by ``test-fast``. Requesting this fixture IS the snakemake run, so the marker
+    follows — in the worker now, and a machine without snakemake can no more import it than start it.
     """
     return snakemake_dry_run
 
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
-    """A test is ``external`` iff it SPAWNS a binary — which is a fixture it took, not a claim.
+    """A test is ``external`` iff it RUNS a tool we do not own — a fixture it took, not a claim.
 
     Derived from fixture names rather than written down, for the same reason the KB collects its own
     test ids: a hand-maintained list of external tests goes stale silently, and the staleness shows up
-    as ``test-fast`` quietly spawning a subprocess nobody meant it to.
+    as ``test-fast`` quietly running snakemake where nobody meant it to.
 
     ``_SPAWNS_SNAKEMAKE`` is deliberately not ``_UNSTUBS_THE_GATE``. Keying on "asked for the real
     gate" was close enough to be wrong in both directions: ``_dry_run`` spawned ``snakemake`` with no
@@ -688,6 +825,24 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in items:
         if _SPAWNS_SNAKEMAKE & set(getattr(item, "fixturenames", ())):
             item.add_marker(pytest.mark.external)
+
+
+def pytest_collection_finish(session: pytest.Session) -> None:
+    """Import snakemake once the selection is known, where no test's time limit pays for it.
+
+    A plan is taken inside the worker (:func:`_snakemake_in_this_worker`), so a worker imports
+    snakemake once and not once per plan. Left to the first plan, that one import would be charged
+    to whichever test a worker happened to be handed first, and it is a large share of what one
+    test is allowed. Paid here it is what importing ``seqforge`` at the top of this file already
+    is: a cost of starting the process, which ``suite_budget`` counts and no single test owns.
+
+    Only when a selected test runs snakemake, so the lanes that drop the externals never import
+    it, and never for ``--collect-only``, which plans nothing.
+    """
+    if session.config.option.collectonly:
+        return
+    if any(_SPAWNS_SNAKEMAKE & set(getattr(item, "fixturenames", ())) for item in session.items):
+        importlib.import_module("snakemake.cli")
 
 
 def write_fastq_gz(
@@ -1227,13 +1382,13 @@ def composed_plate(
     spec would prove the composer's tolerance of a shape nothing ships.
 
     One ``snakemake -n -p`` serves every reader. A plan at this cell count is the most expensive
-    single spawn in the suite, and paying it per assertion is exactly the waste that once put ~41 of
+    single plan in the suite, and paying it per assertion is exactly the waste that once put ~41 of
     them in a compose test file.
 
-    **It composes under the REAL wiring gate, and that second spawn is deliberate** (measured at
-    2.2s for the whole compose, against 2.1s for the plan below). ``wiring_gate`` returns a
-    four-character verdict while discarding the plan text, so the two cannot be one spawn — and the
-    verdict is what ADR-0035's universal is stated in. Both shapes ``_role_placement`` can emit for a
+    **It composes under the REAL wiring gate, and that second plan is deliberate** (the gate spawns
+    the ``snakemake`` command, measured at 2.2s for the whole compose; the plan below is taken in
+    the worker). ``wiring_gate`` returns a four-character verdict while discarding the plan text,
+    so the two cannot be one run — and the verdict is what ADR-0035's universal is stated in. Both shapes ``_role_placement`` can emit for a
     ``umi_tagged`` layout have to reach ``"pass"``: this fixture is the ``{umi_cdna, cdna}`` half, and
     :data:`synth_plate_se` composed the same way is the ``{umi_cdna}`` half. Nothing stubs the gate
     here — a session fixture is built before the function-scoped autouse stub applies, and a verdict
@@ -1288,9 +1443,9 @@ def composed_plate_se(
 
     **It composes with the wiring gate OFF, and that is not the weaker claim it looks like.**
     :func:`snakemake_dry_run` asserts its own return code, so a mate-less DAG that cannot be built
-    fails this fixture rather than one of its readers: it is the same subprocess ``wiring_gate``
-    runs, over the same replica, differing only in whether the answer comes back as four characters
-    or as an exception. The verdict itself is already taken twice on this exact placement — by
+    fails this fixture rather than one of its readers: it is the same ``snakemake -n -p`` that
+    ``wiring_gate`` spawns, over the same replica, and what differs in the answer is only whether
+    it comes back as four characters or as an exception. The verdict itself is already taken twice on this exact placement — by
     ``test_a_single_end_plate_deposit_compiles_end_to_end`` and, in the red direction, by
     ``test_a_plate_the_dag_builder_cannot_plan_would_be_caught`` — and a third spawn for a field
     nobody reads is the waste that once put ~41 of them in one compose test file.

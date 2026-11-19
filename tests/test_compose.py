@@ -111,7 +111,7 @@ def test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe(
     ones — an independent cross-check on the element geometry — and the params gate must still PASS with
     `soloAdapterSequence` now an owned (derived) key.
 
-    This is the file's ONE complex-chemistry RENDERING check, and it spends its single spawn on the
+    This is the file's ONE complex-chemistry RENDERING check, and it spends its single plan on the
     plan text rather than on `wiring_gate`'s four-character verdict. That closes a real gap: the module
     reads the adapter with `SOLO.get(...)` (`workflows/map/starsolo.smk`), so a regression to
     `return ""` passes both the config assertion and a grep of the shipped source — only the argv
@@ -218,7 +218,7 @@ def test_splitseq_clips_its_own_tso_and_not_the_one_the_module_used_to_impose(
     `CellRanger4`'s hardcoded default rather than adding to it. So the mode stays `CellRanger4` — the
     only one where the override is legal at all — and the sequence changes.
 
-    A dry run, and it costs a spawn for the reason `soloAdapterSequence` costs one next door: the
+    A dry run, and it costs a plan for the reason `soloAdapterSequence` costs one next door: the
     module builds both flags in a single helper, so a regression that dropped the override, emptied
     it, or left the 10x default in place beside it passes the config assertions and a grep of the
     shipped source alike. Only what STAR is actually handed can tell them apart, which is also why
@@ -252,7 +252,7 @@ def test_a_simple_chemistrys_read_through_reaches_star_as_one_value(
     here is only the SUBJECT: this is the KB's one Simple entry that declares a clip, so it is the one
     dataset on which that refusal can fire, and bd-enhanced (Complex) stays green through it.
 
-    **The arity, and it needs the spawn.** `--readFilesIn` hands the module two files, but solo peels
+    **The arity, and it needs the plan.** `--readFilesIn` hands the module two files, but solo peels
     the barcode read off and only the cDNA read is a mate, so STAR takes exactly ONE value — a second,
     even `-`, its own per-mate no-clip sentinel, is a hard FATAL at parameter initialization. The
     bd-enhanced dry run cannot see that: it matches a substring and counts flag occurrences, and a
@@ -412,7 +412,7 @@ def test_a_sample_pooled_across_lanes_pairs_readfilesin_by_the_lane_column(
     green. Here the cDNA names sort in lane order and the barcode names sort against it, so a
     ``(run, path)`` sort hands STAR L001's cDNA with L002's barcodes.
 
-    Worth a spawn because that mispairing is SILENT, unlike the run-order one above: the two
+    Worth a plan because that mispairing is SILENT, unlike the run-order one above: the two
     comma-lists still hold equal read counts, so STAR neither desyncs nor FATALs -- it exits 0 having
     written a matrix that pairs one lane's barcodes with another lane's cDNA.
     """
@@ -1531,8 +1531,8 @@ def _units_by_read(pipeline_dir: Path) -> dict[tuple[str, str], str]:
         }
 
 
-# `composed_plate` is two 96-cell spawns, gate and plan, after building the plate deposit: over
-# 2 s for its first reader in CI, and the gate's spawn alone took 1.9 s on a CI-sized runner.
+# `composed_plate` is two 96-cell plans, the gate's spawned and its own taken in the worker, after
+# building the plate deposit: the gate's spawn alone took 1.9 s on a CI-sized runner.
 @pytest.mark.slow
 @pytest.mark.xdist_group("composed-plate")
 def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
@@ -1550,7 +1550,7 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
 
     It opens with compose's own `wiring` verdict, which is the same four characters
     `test_a_single_end_plate_deposit_compiles_end_to_end` asserts for the other placement shape. The
-    claims below read a plan text this test spawned for itself; the verdict reads the gate `compose`
+    claims below read a plan text this test took for itself; the verdict reads the gate `compose`
     RAN, and a verdict is what ADR-0035's universal — "no path exists where `compose` exits 0 and the
     module then raises" — is stated in. `_role_placement`'s `umi_tagged` branch emits exactly two
     shapes, so the two assertions together are the whole case analysis rather than two samples of it.
@@ -1624,8 +1624,8 @@ def test_a_composed_plate_plans_every_rule_and_resolves_every_cells_wildcard(
     assert "|| true" in helper, helper
 
 
-# `composed_plate` is two 96-cell spawns, gate and plan, after building the plate deposit: over
-# 2 s for its first reader in CI, and the gate's spawn alone took 1.9 s on a CI-sized runner.
+# `composed_plate` is two 96-cell plans, the gate's spawned and its own taken in the worker, after
+# building the plate deposit: the gate's spawn alone took 1.9 s on a CI-sized runner.
 @pytest.mark.slow
 @pytest.mark.xdist_group("composed-plate")
 def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_plain_one(
@@ -1675,8 +1675,8 @@ def test_the_composed_plate_hands_the_extractor_the_tagged_mate_and_never_the_pl
         assert re.search(rf"--summary \S*{re.escape(cell)}/{re.escape(cell)}\S+", command), command
 
 
-# `composed_plate` is two 96-cell spawns, gate and plan, after building the plate deposit: over
-# 2 s for its first reader in CI, and the gate's spawn alone took 1.9 s on a CI-sized runner.
+# `composed_plate` is two 96-cell plans, the gate's spawned and its own taken in the worker, after
+# building the plate deposit: the gate's spawn alone took 1.9 s on a CI-sized runner.
 @pytest.mark.slow
 @pytest.mark.xdist_group("composed-plate")
 def test_the_composed_plate_derives_the_offsets_the_protocol_published(
@@ -2970,11 +2970,11 @@ def test_soloBarcodeReadLength_is_emitted_for_10x_and_not_for_splitseq(  # noqa:
     """Whether compose EMITS the key, for a chemistry that declares it and one that does not.
 
     Whether it then reaches the rendered STAR command is the plan text's business, and that costs a
-    subprocess, so it is asserted where a dry run is already being paid for: the 10x half in
+    dry run, so it is asserted where one is already being paid for: the 10x half in
     `test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star_receives`, the
     absent half in `test_compose_bd_enhanced_derives_the_adapter_anchored_starsolo_recipe` (which
     asserts its own `solo` keys are a superset of SPLiT-seq's, so standing in for it is checked
-    rather than assumed). This half needs no subprocess at all.
+    rather than assumed). This half needs no dry run at all.
     """
     v3, v3_reg = built_v3
     v3_config = plan(v3, _processing(v3), registry=v3_reg).config["solo"]
@@ -3093,7 +3093,7 @@ def test_the_whitelist_is_a_rule_output_not_a_compile_time_write(
     other half — that a rule produces the file, under the sample that reads it, and that the plan
     reclaims it afterwards — is read off the rendered plan by
     `test_the_composed_pipeline_plans_the_h5ad_the_whitelist_and_the_command_star_receives`, where it
-    costs no second spawn. It used to be asserted here against the shipped module's SOURCE TEXT,
+    costs no second plan. It used to be asserted here against the shipped module's SOURCE TEXT,
     which a rename breaks falsely and an indirection passes falsely.
     """
     manifest, reg = built_v3
