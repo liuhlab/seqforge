@@ -15,8 +15,8 @@ from pathlib import Path
 import typer
 
 from ..passes import SetupRefused
-from ..workspace import passes_dir
 from ._common import _emit, _StageOut
+from ._kind_task import KindTask, for_kind
 from .root import pass_app
 
 # liulab-llms is imported where it is used: it costs a few tenths of a second, which every other
@@ -108,23 +108,21 @@ def _pass_start(
     reviews: Path | None,
 ) -> _StageOut:
     """The body of ``pass start``: every setup refusal first, then the hold, then the pass."""
-    from labllm import GatewayUnreachable, Rejected, TaskInUse
+    from labllm import GatewayUnreachable, Rejected
 
     from ..passes import gateway
-    from ..passes.kinds import kind_named
     from ..passes.model_text import parse_models
     from ..passes.progress import ProgressTask
     from ..passes.status import pass_json
-    from ..passes.task import open_task, reviews_folder, store_for
+    from ..passes.task import store_for
 
-    try:
-        kind = kind_named(name)
+    def run(setup: KindTask) -> _StageOut:
+        kind = setup.kind
         named = parse_models(model)
         if keys_file is not None and only is not None:
             raise SetupRefused("give --keys FILE or --only ENDINGS, not both")
         file_keys = None if keys_file is None else _read_keys(keys_file)
         endings = None if only is None else _parse_endings(only)
-        review_files = reviews_folder(reviews)
         if not math.isfinite(ceiling_usd) or ceiling_usd < 0:
             raise SetupRefused(f"--ceiling-usd must be a number of dollars, not {ceiling_usd}")
         try:
@@ -141,16 +139,8 @@ def _pass_start(
             )
         if unfilled := sorted(set(unit_kind.roles) - set(models)):
             raise SetupRefused(f"no model for role {', '.join(unfilled)}: name one with --model")
-        folder = task if task is not None else passes_dir(Path(), kind.name)
-        label = label or kind.name
-        opened = open_task(ProgressTask, folder, gateway=client, reviews=review_files)
-    except SetupRefused as exc:
-        return _StageOut(str(exc), 2, err=True)
-    except TaskInUse as exc:
-        return _held(kind.name, folder, exc)
 
-    try:
-        with opened:
+        with setup.open(ProgressTask, gateway=client) as opened:
             if file_keys is not None:
                 keys = file_keys
             elif endings is not None:
@@ -162,27 +152,26 @@ def _pass_start(
                 keys,
                 models=models,
                 ceiling_usd=ceiling_usd,
-                label=label,
+                label=label or kind.name,
                 off_peak_only=off_peak_only,
                 units_at_once=units_at_once,
                 note=build,
             )
             (record,) = [p for p in opened.passes(unit_kind) if p.pass_id == result.pass_id]
-    except TaskInUse as exc:
-        # Another process took the task over mid-pass, as it may once this one's hold goes stale.
-        return _held(kind.name, folder, exc)
-    if result.stopped == Rejected.reason:
-        # The gateway refused a request outright, such as one for a model it has no price for: the
-        # setup is wrong, and rerunning the same command would only meet it again.
-        return _StageOut(f"the gateway rejected a request: {result.stop_message}", 2, err=True)
-    payload = {
-        "kind": kind.name,
-        "task": str(folder),
-        "keys": len(keys),
-        **pass_json(record),
-        "message": result.stop_message,
-    }
-    return _StageOut(payload, 0 if result.stopped is None else 3)
+        if result.stopped == Rejected.reason:
+            # The gateway refused a request outright, such as one for a model it has no price for:
+            # the setup is wrong, and rerunning the same command would only meet it again.
+            return _StageOut(f"the gateway rejected a request: {result.stop_message}", 2, err=True)
+        payload = {
+            "kind": kind.name,
+            "task": str(setup.folder),
+            "keys": len(keys),
+            **pass_json(record),
+            "message": result.stop_message,
+        }
+        return _StageOut(payload, 0 if result.stopped is None else 3)
+
+    return for_kind(name, task=task, reviews=reviews, body=run)
 
 
 @pass_app.command("status")
@@ -208,33 +197,14 @@ def pass_status(
 
 
 def _pass_status(*, name: str, task: Path | None, reviews: Path | None) -> _StageOut:
-    from labllm import Task, TaskInUse
-
-    from ..passes import gateway
-    from ..passes.kinds import kind_named
     from ..passes.status import read_only_kind, task_status
-    from ..passes.task import open_task, require_task, reviews_folder
 
-    try:
-        kind = kind_named(name)
-        review_files = reviews_folder(reviews)
-        folder = task if task is not None else passes_dir(Path(), kind.name)
-        require_task(folder, kind.name)
-        opened = open_task(Task, folder, gateway=gateway.offline_gateway(), reviews=review_files)
-    except SetupRefused as exc:
-        return _StageOut(str(exc), 2, err=True)
-    except TaskInUse as exc:
-        return _held(kind.name, folder, exc)
-    with opened:
-        report = task_status(opened, read_only_kind(kind.name))
-    return _StageOut({"kind": kind.name, "task": str(folder), **report}, 0)
+    def run(setup: KindTask) -> _StageOut:
+        with setup.read() as opened:
+            report = task_status(opened, read_only_kind(setup.kind.name))
+        return _StageOut({"kind": setup.kind.name, "task": str(setup.folder), **report}, 0)
 
-
-def _held(kind: str, folder: Path, exc: Exception) -> _StageOut:
-    """Exit 3 for a task another process holds; liulab-llms's message names the holder."""
-    return _StageOut(
-        {"kind": kind, "task": str(folder), "stopped": "task_in_use", "message": str(exc)}, 3
-    )
+    return for_kind(name, task=task, reviews=reviews, body=run)
 
 
 def _read_keys(path: Path) -> list[str]:

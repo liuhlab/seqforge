@@ -18,16 +18,15 @@ from typing import TYPE_CHECKING, Any
 
 import typer
 
-from ..passes import SetupRefused
-from ..workspace import passes_dir
 from ._common import _emit, _StageOut
-from .passes import _held
+from ._kind_task import KindTask, for_kind, inputs_now
 from .root import review_app
 
 if TYPE_CHECKING:
-    from labllm import Inputs, QueueEntry, UnitKind
+    from labllm import UnitKind
 
     from ..passes.github import GitHub, Issue
+    from ..passes.kinds import Kind
 
 
 @review_app.command("file")
@@ -59,82 +58,60 @@ def review_file(
 
 def _review_file(*, name: str, count: int, task: Path | None, reviews: Path | None) -> _StageOut:
     """The body of ``review file``: every setup refusal, then the queue, then the filing."""
-    from labllm import Task, TaskInUse
-
-    from ..passes import gateway, github
+    from ..passes import github
     from ..passes.github import GitHubError
-    from ..passes.kinds import kind_named
     from ..passes.review import KIND_LABEL, issue_for, labels_for, read_marker
-    from ..passes.task import open_task, require_task, reviews_folder, store_for
+    from ..passes.task import store_for
 
-    try:
-        kind = kind_named(name)
-        review_files = reviews_folder(reviews)
-        folder = task if task is not None else passes_dir(Path(), kind.name)
-        require_task(folder, kind.name)
-        repo = github.make_github(review_files.parent)
+    def run(setup: KindTask) -> _StageOut:
+        kind = setup.kind
+        repo = github.make_github(setup.reviews.parent)
         store, _ = store_for(kind)
         unit_kind = kind.unit_kind(store)
         # Reading the queue takes the task's hold, so a running pass makes this exit 3.
-        opened = open_task(Task, folder, gateway=gateway.offline_gateway(), reviews=review_files)
-    except SetupRefused as exc:
-        return _StageOut(str(exc), 2, err=True)
-    except TaskInUse as exc:
-        return _held(kind.name, folder, exc)
-    with opened:
-        queue = opened.review_queue(unit_kind)
+        with setup.read() as opened:
+            queue = opened.review_queue(unit_kind)
 
-    filed: list[dict[str, str]] = []
-    try:
-        issues = repo.issues(KIND_LABEL.format(kind.name))
-        markers = [m for issue in issues if (m := read_marker(issue.body)) is not None]
-        done = {(m.key, m.inputs_tag) for m in markers if m.kind == kind.name}
-        waiting = [entry for entry in queue if (entry.key, entry.inputs_tag) not in done]
-        priority = kind.review_priority
-        if priority is not None:
-            waiting.sort(key=lambda entry: priority(store, entry))
-        labels = repo.labels()
-        for entry in waiting:
-            if len(filed) == count:
-                break
-            inputs = _current_inputs(unit_kind, entry)
-            if inputs is None:
-                continue
-            title, body = issue_for(kind.review_form, entry, inputs)
-            wanted = labels_for(entry)
-            for label, (color, description) in wanted.items():
-                if label not in labels:
-                    repo.create_label(label, color=color, description=description)
-                    labels.add(label)
-            issue = repo.create_issue(title=title, body=body, labels=list(wanted))
-            filed.append({"key": entry.key, "url": issue.url})
-    except GitHubError as exc:
-        payload = {"kind": kind.name, "task": str(folder), "filed": filed}
-        return _StageOut({**payload, "stopped": "github_failed", "message": str(exc)}, 3)
-    return _StageOut(
-        {
-            "kind": kind.name,
-            "task": str(folder),
-            "filed": filed,
-            "unfiled": len(waiting) - len(filed),
-        },
-        0,
-    )
+        filed: list[dict[str, str]] = []
+        try:
+            issues = repo.issues(KIND_LABEL.format(kind.name))
+            markers = [m for issue in issues if (m := read_marker(issue.body)) is not None]
+            done = {(m.key, m.inputs_tag) for m in markers if m.kind == kind.name}
+            waiting = [entry for entry in queue if (entry.key, entry.inputs_tag) not in done]
+            priority = kind.review_priority
+            if priority is not None:
+                waiting.sort(key=lambda entry: priority(store, entry))
+            labels = repo.labels()
+            for entry in waiting:
+                if len(filed) == count:
+                    break
+                # A unit whose inputs changed since its latest pass is not filed: liulab-llms would
+                # refuse a review made for its old inputs, so it waits for a pass over the new ones.
+                inputs = inputs_now(unit_kind, entry.key)
+                if inputs is None or inputs.tag != entry.inputs_tag:
+                    continue
+                title, body = issue_for(kind.review_form, entry, inputs)
+                wanted = labels_for(entry)
+                for label, (color, description) in wanted.items():
+                    if label not in labels:
+                        repo.create_label(label, color=color, description=description)
+                        labels.add(label)
+                issue = repo.create_issue(title=title, body=body, labels=list(wanted))
+                filed.append({"key": entry.key, "url": issue.url})
+        except GitHubError as exc:
+            payload = {"kind": kind.name, "task": str(setup.folder), "filed": filed}
+            return _StageOut({**payload, "stopped": "github_failed", "message": str(exc)}, 3)
+        return _StageOut(
+            {
+                "kind": kind.name,
+                "task": str(setup.folder),
+                "filed": filed,
+                "unfiled": len(waiting) - len(filed),
+            },
+            0,
+        )
 
-
-def _current_inputs(unit_kind: UnitKind, entry: QueueEntry) -> Inputs | None:
-    """The unit's inputs, if they are still the ones its current answer was made for.
-
-    A unit whose inputs changed since its latest pass is not filed: liulab-llms would refuse a
-    review made for its old inputs, so it waits for a pass over the new ones.
-    """
-    from labllm import Held
-
-    try:
-        inputs = unit_kind.load(entry.key)
-    except Held:
-        return None
-    return inputs if inputs.tag == entry.inputs_tag else None
+    return for_kind(name, task=task, reviews=reviews, body=run)
 
 
 @review_app.command("read")
@@ -161,11 +138,26 @@ def review_read(
 
 def _review_read(*, name: str, reviews: Path | None) -> _StageOut:
     """The body of ``review read``: every setup refusal, then each closed issue, then git."""
+    from ..passes import github
+    from ..passes.task import store_for
+
+    def run(setup: KindTask) -> _StageOut:
+        repo = github.make_github(setup.reviews.parent)
+        # Storing a review loads the unit's inputs, so a kind that reads the store needs it now.
+        store, _ = store_for(setup.kind)
+        unit_kind = setup.kind.unit_kind(store)
+        # No task is opened: liulab-llms's reviews need none, so a running pass never blocks this.
+        return _read_back(setup.kind, unit_kind, repo, setup.reviews)
+
+    return for_kind(name, task=None, reviews=reviews, body=run)
+
+
+def _read_back(kind: Kind, unit_kind: UnitKind, repo: GitHub, review_files: Path) -> _StageOut:
+    """Store what each closed issue of ``kind`` says, then commit and push its reviews file."""
     from labllm import ChecksFailed, Reviews
 
-    from ..passes import clone, github
+    from ..passes import clone
     from ..passes.github import GitHubError
-    from ..passes.kinds import kind_named
     from ..passes.review import (
         INPUTS_CHANGED_LABEL,
         KIND_LABEL,
@@ -175,19 +167,7 @@ def _review_read(*, name: str, reviews: Path | None) -> _StageOut:
         read_drop,
         read_marker,
     )
-    from ..passes.task import reviews_folder, store_for
 
-    try:
-        kind = kind_named(name)
-        review_files = reviews_folder(reviews)
-        repo = github.make_github(review_files.parent)
-        # Storing a review loads the unit's inputs, so a kind that reads the store needs it now.
-        store, _ = store_for(kind)
-        unit_kind = kind.unit_kind(store)
-    except SetupRefused as exc:
-        return _StageOut(str(exc), 2, err=True)
-
-    # No task is opened: liulab-llms's reviews need none, so a running pass never blocks this.
     saved = Reviews(review_files)
     stored = {(review.key, review.inputs_tag) for review in saved.read(unit_kind)}
     out: dict[str, Any] = {
@@ -212,7 +192,8 @@ def _review_read(*, name: str, reviews: Path | None) -> _StageOut:
                 continue
             if (marker.key, marker.inputs_tag) in stored:
                 continue
-            now = _inputs_tag(unit_kind, marker.key)
+            inputs = inputs_now(unit_kind, marker.key)
+            now = None if inputs is None else inputs.tag
             if now != marker.inputs_tag:
                 _set_inputs_changed(repo, issue, marker.inputs_tag, now)
                 out["inputs_changed"].append({"key": marker.key, "url": issue.url})
@@ -271,16 +252,6 @@ def _review_read(*, name: str, reviews: Path | None) -> _StageOut:
         out["stopped"], out["message"] = stop
         return _StageOut(out, 3)
     return _StageOut(out, 4 if out["reopened"] else 0)
-
-
-def _inputs_tag(unit_kind: UnitKind, key: str) -> str | None:
-    """The unit's inputs tag now, or None when its inputs are not there."""
-    from labllm import Held
-
-    try:
-        return unit_kind.load(key).tag
-    except Held:
-        return None
 
 
 def _other_kind(found: str, wanted: str) -> str:
