@@ -342,3 +342,44 @@ def test_review_file_never_files_a_unit_twice_for_the_same_inputs_tag(
     marker = read_marker(github.filed[-1].body)
     assert marker is not None
     assert (marker.key, marker.inputs_tag) == ("u2", "text=bravo")
+
+
+def test_review_file_makes_each_label_the_repo_lacks_and_leaves_the_others_as_they_are(
+    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path, github: FakeGitHub
+) -> None:
+    # A person made the kind's label by hand before anything was filed.
+    github.label_table["review:echo"] = ("000000", "made by hand")
+    before = dict(github.label_table)
+    start(review_clone, "echo", "--ceiling-usd", "1")
+
+    code, out = file_reviews(review_clone, "echo")
+
+    assert code == 0, out
+    made = {name: github.label_table[name] for name in github.label_table.keys() - before.keys()}
+    assert sorted(made) == ["check:answered", "check:in_capitals"]
+    assert all(description for _, description in made.values())
+    assert {name: github.label_table[name] for name in before} == before
+
+
+def test_review_file_on_a_task_another_process_holds_exits_3_naming_the_holder(
+    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path, github: FakeGitHub
+) -> None:
+    start(review_clone, "echo", "--ceiling-usd", "1")
+    folder = Path("seqforge", "passes", "echo")
+    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
+        code, out = file_reviews(review_clone, "echo")
+
+    assert code == 3
+    assert out["stopped"] == "task_in_use"
+    assert f"process {os.getpid()} on {socket.gethostname()}" in out["message"]
+    assert github.filed == []
+
+
+def test_review_file_on_a_folder_with_no_task_exits_2_and_makes_none(
+    echo_kind: Any, review_clone: Path, github: FakeGitHub
+) -> None:
+    result = runner.invoke(app, ["review", "file", "echo", "--reviews", str(review_clone)])
+
+    assert result.exit_code == 2, result.stdout + result.stderr
+    assert "no task in" in result.stderr
+    assert not Path("seqforge", "passes", "echo").exists()
