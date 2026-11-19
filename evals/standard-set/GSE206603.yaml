@@ -1,0 +1,36 @@
+# PROTOTYPE. One study of the standard set, written out to react to the shape. The format is
+# provisional. The fields are explained in README.md beside this file.
+
+id: GSE206603                # the Series the study was picked by
+direction: neurodegeneration # aging | neurodegeneration | c_elegans
+also_fits: []                # other directions the study could count under
+hard_shape: superseries      # null for the plain case
+reason_picked: >-
+  A SuperSeries whose two sub-Series are the two assays of one experiment: RNA-seq and ATAC-seq on
+  neurons grown from the same four patient cell lines, three familial Alzheimer's mutations and one
+  control. One paper covers both. The easy SuperSeries case: every sub-Series belongs.
+
+# The date of the liulab-data store build the identifiers below were read from. null here: no
+# store is reachable from this machine yet. These identifiers were read from the public GEO Series
+# records and PubMed on 2026-11-19.
+store_build: null
+
+# Every record in the linked group, by identifier only. No record text is copied here.
+records:
+  series: [GSE206603, GSE206602, GSE206588]
+  superseries: GSE206603     # which of the Series above is the SuperSeries; null when none is
+  bioprojects: [PRJNA851445, PRJNA851439, PRJNA851435]   # same order as series
+  pmids: ["39754192"]
+
+# What belongs to the study. A SuperSeries only repeats the samples of its sub-Series, so the
+# bounds name the sub-Series and leave the SuperSeries out.
+bounds:
+  series: [GSE206602, GSE206588]
+  papers: ["pmid:39754192"]
+  reason: >-
+    Both sub-Series cite the same paper and hold the same four cell lines, one assay each.
+  split_samples: {}          # Series -> samples of this study, only for a Series split between two studies
+
+bounds_from: draft           # draft | judge: whose bounds these are
+status: settled              # settled | unsure
+read_to_decide: [records, abstract]
