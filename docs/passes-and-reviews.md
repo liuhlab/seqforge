@@ -84,7 +84,7 @@ one build, even if the store is refreshed while it runs.
 | Exit | When |
 | --- | --- |
 | 0 | The pass reached the end of its units, whatever the counts |
-| 2 | A setup it cannot use: an unknown kind, models that do not fill the kind's roles, a model or keys file it cannot read, no review clone, no gateway address, or a task folder this liulab-llms cannot read. One line on stderr says which |
+| 2 | A setup it cannot use: an unknown kind, models that do not fill the kind's roles, a model or keys file it cannot read, no review clone, no gateway address, a model name the gateway rejects, or a task folder this liulab-llms cannot read. One line on stderr says which |
 | 3 | The pass stopped: at its ceiling, at a provider's balance or cap, or because a provider or the gateway was unavailable. Or another process holds the task, and `message` names it |
 
 ## Resume a pass
@@ -92,6 +92,39 @@ one build, even if the store is refreshed while it runs.
 Run the same command again. There is no resume option. Every unit answered before comes back from
 the gateway's cache at no cost, and `cache_hits` counts them. After a stop at the ceiling, raise
 `--ceiling-usd` and run it again.
+
+## See where a kind stands
+
+```bash
+seqforge pass status <kind>
+```
+
+This reads the kind's task and the review clone and prints one JSON object. It sends nothing to the
+gateway, so it works with the gateway down, and wherever the task folder is. It takes `--task DIR`
+and `--reviews DIR` as `pass start` does.
+
+| Field | Value |
+| --- | --- |
+| `kind`, `task` | The kind, and the task folder |
+| `units` | How many units any pass of the kind has recorded |
+| `counts` | Each unit's current ending: settled, unsettled, refused or dropped, a person's review included. Then the units whose latest outcome is unfinished or held. A unit settled once and unfinished in a later pass counts under both |
+| `passes` | Every pass of the kind, oldest first |
+
+Each pass gives its `pass_id`, `label`, `kind_version`, `models`, `store_build`, `ceiling_usd`,
+`stopped`, its `counts`, and what it spent: `spent_usd`, `first_cost_usd`, `requests` and
+`cache_hits`. `ended` is `false` for a pass that was killed before it ended.
+
+Each pass's `per_unit` gives its cost and time per unit, over the units that called a model in that
+pass. An answer from the cache counts, and a held unit or one the pass never started does not.
+`units` says how many there were. For each of `spent_usd` (dollars paid now), `first_cost_usd`
+(dollars when each answer was first paid), `requests` and `seconds`, it gives the `total`, the
+`median` and the 90th percentile (`p90`).
+
+| Exit | When |
+| --- | --- |
+| 0 | The report is on stdout |
+| 2 | An unknown kind, no review clone, or a folder that holds no task. One line on stderr says which |
+| 3 | A running pass holds the task, and `message` names it. That pass's stderr is the live view |
 
 ## Send the hard units to a stronger model
 

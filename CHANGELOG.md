@@ -16,7 +16,6 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   it stops, and 2 for a setup it cannot use. Rerunning the same command resumes it, and every unit
   answered before comes back from the gateway's cache at no cost. No kind is registered yet. The
   new "Passes and reviews" page of the docs describes it.
-- seqforge now depends on liulab-llms (2026.11.0 or later), from PyPI.
 - `seqforge review file <kind>` files a small sample of a kind's review queue, the units that
   ended unsettled or refused, as issues in the lab's private review repo: five by default, more
   with `--count`, in the kind's own review order. Each issue shows the unit's records, each pass's
@@ -31,6 +30,13 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   alone and pushes. Ticks that make no answer, or an answer that fails one of the kind's checks,
   store nothing: the issue gets a comment that says why and is reopened, and the command exits 4.
   It works while a pass is running.
+- `seqforge pass status <kind>` reports where a kind's task stands: how many units have each
+  ending, a person's review included, and, for each pass, its models, store build, ceiling and
+  spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
+  It reads the task folder only, so it works with the gateway down.
+- A pass that the gateway stops by rejecting a request, such as one for a misspelled model, now
+  exits 2, a setup to fix, with the gateway's message on stderr.
+- seqforge now depends on liulab-llms (2026.11.1 or later), from PyPI.
 
 ### Changed
 

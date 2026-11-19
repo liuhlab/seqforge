@@ -1,4 +1,4 @@
-"""`seqforge pass`: start a pass of a seqforge unit kind through the lab gateway.
+"""`seqforge pass`: start a pass of a seqforge unit kind through the lab gateway, and read its task.
 
 The pass itself is liulab-llms's. This module turns the options into what it takes -- a kind, models
 by role, keys in order, a dollar ceiling, a task -- and its result into one JSON object on stdout
@@ -25,6 +25,9 @@ if TYPE_CHECKING:
     # liulab-llms is imported where it is used: it costs a few tenths of a second, which every other
     # verb's start would otherwise pay.
     from labllm import Model
+
+#: The stop reason of a pass the gateway's rejection of a request ended: a setup refusal, not a stop.
+REJECTED = "rejected"
 
 #: The settings a ``--model`` value may carry after its name, and the ``Model`` field each sets.
 _SETTINGS = {
@@ -86,7 +89,7 @@ def pass_start(
     The units are the kind's default keys, or `--keys FILE`, or `--only ENDINGS`. Exit 0 when the
     pass reached the end of its keys, whatever its counts; 3 when it stopped -- at its ceiling, a
     provider's balance or cap, a provider or the gateway unavailable -- or another process holds the
-    task; 2 for a setup it cannot use. Rerun the same command to resume: units already answered
+    task; 2 for a setup it cannot use, a model name the gateway rejects included. Rerun the same command to resume: units already answered
     replay from the gateway's cache at no cost. Progress goes to stderr; stdout carries only JSON.
     """
     _emit(
@@ -174,11 +177,15 @@ def _pass_start(
                 label=label,
                 off_peak_only=off_peak_only,
                 units_at_once=units_at_once,
+                note=build,
             )
-            message = opened.stop_message(result)
     except TaskInUse as exc:
         # Another process took the task over mid-pass, as it may once this one's hold goes stale.
         return _held(kind.name, folder, exc)
+    if result.stopped == REJECTED:
+        # The gateway refused a request outright, such as one for a model it has no price for: the
+        # setup is wrong, and rerunning the same command would only meet it again.
+        return _StageOut(f"the gateway rejected a request: {result.stop_message}", 2, err=True)
     return _StageOut(
         {
             "kind": kind.name,
@@ -191,7 +198,7 @@ def _pass_start(
             "keys": len(keys),
             "counts": result.counts,
             "stopped": result.stopped,
-            "message": message,
+            "message": result.stop_message,
             "spent_usd": result.spent_usd,
             "first_cost_usd": result.first_cost_usd,
             "requests": result.requests,
@@ -199,6 +206,51 @@ def _pass_start(
         },
         0 if result.stopped is None else 3,
     )
+
+
+@pass_app.command("status")
+def pass_status(
+    kind: str = typer.Argument(..., help="The registered seqforge kind whose task to read."),
+    task: Path | None = typer.Option(
+        None, "--task", help="The task's folder. Default: seqforge/passes/<kind>/ here."
+    ),
+    reviews: Path | None = typer.Option(
+        None,
+        "--reviews",
+        envvar="SEQFORGE_REVIEWS",
+        help="A local clone of the review repo, whose reviews/ give a person's endings.",
+    ),
+) -> None:
+    """Report where a kind's task stands, and what each of its passes cost per unit, as JSON.
+
+    It reads the task's state and the reviews only, so it works with the gateway down. Exit 0 with
+    the report; 2 for an unknown kind, no review clone, or a folder that holds no task; 3 when a
+    running pass holds the task, whose stderr is then the live view.
+    """
+    _emit(_pass_status(name=kind, task=task, reviews=reviews))
+
+
+def _pass_status(*, name: str, task: Path | None, reviews: Path | None) -> _StageOut:
+    from labllm import Task, TaskInUse
+
+    from ..passes import gateway
+    from ..passes.kinds import kind_named
+    from ..passes.status import read_only_kind, task_status
+    from ..passes.task import open_task, require_task, reviews_folder
+
+    try:
+        kind = kind_named(name)
+        review_files = reviews_folder(reviews)
+        folder = task if task is not None else passes_dir(Path(), kind.name)
+        require_task(folder, kind.name)
+        opened = open_task(Task, folder, gateway=gateway.offline_gateway(), reviews=review_files)
+    except SetupRefused as exc:
+        return _StageOut(str(exc), 2, err=True)
+    except TaskInUse as exc:
+        return _held(kind.name, folder, exc)
+    with opened:
+        report = task_status(opened, read_only_kind(kind.name))
+    return _StageOut({"kind": kind.name, "task": str(folder), **report}, 0)
 
 
 def _held(kind: str, folder: Path, exc: Exception) -> _StageOut:
