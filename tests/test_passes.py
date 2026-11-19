@@ -25,14 +25,15 @@ from labllm import Reviews, Task
 from labllm.testing import FakeGateway
 from typer.testing import CliRunner
 
-from conftest import (
+from conftest import StubStore
+from passes_kit import (
     ECHO_FORM,
     ECHO_PRICES,
     ECHO_STRONG,
     ECHO_TEXTS,
     ECHO_WEAK,
     FakeGitHub,
-    StubStore,
+    echo_priority,
     echo_unit_kind,
     echo_writer,
 )
@@ -43,24 +44,82 @@ from seqforge.passes.review import Marker, Start, read_answer, read_marker
 
 runner = CliRunner()
 
+#: The echo kind's task folder, where a command run in the test's working directory makes it.
+TASK = Path("seqforge", "passes", "echo")
+#: A plain pass of the echo kind, with a ceiling it never reaches.
+PASS_START = ("pass", "start", "echo", "--ceiling-usd", "1")
 
-def start(clone: Path, *argv: str) -> tuple[int, dict[str, Any]]:
-    """Run ``seqforge pass start`` and return its exit code and its JSON."""
-    result = runner.invoke(app, ["pass", "start", *argv, "--reviews", str(clone)])
+
+def seqforge(clone: Path, *argv: str) -> tuple[int, dict[str, Any]]:
+    """Run ``seqforge <argv> --reviews <clone>`` and return its exit code and its JSON."""
+    result = runner.invoke(app, [*argv, "--reviews", str(clone)])
     assert result.stdout, result.stderr
     return result.exit_code, json.loads(result.stdout)
+
+
+@pytest.fixture
+def echo_kind(monkeypatch: pytest.MonkeyPatch) -> Kind:
+    """The echo kind, registered under ``echo`` for this test only."""
+    kind = Kind(
+        name="echo",
+        build=lambda store: echo_unit_kind(ECHO_TEXTS),
+        default_models={"writer": ECHO_WEAK},
+        default_keys=lambda store: list(ECHO_TEXTS),
+        review_form=ECHO_FORM,
+        review_priority=echo_priority,
+    )
+    monkeypatch.setitem(KINDS, kind.name, kind)
+    return kind
+
+
+def _serve(
+    monkeypatch: pytest.MonkeyPatch, provider: Callable[[dict[str, Any]], str]
+) -> FakeGateway:
+    """liulab-llms's fake gateway, with ``provider`` playing the provider, behind the commands."""
+    fake = FakeGateway(provider, prices=ECHO_PRICES)
+    monkeypatch.setattr(
+        "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
+    )
+    return fake
+
+
+@pytest.fixture
+def echo_gateway(monkeypatch: pytest.MonkeyPatch) -> FakeGateway:
+    """The fake gateway, with :func:`echo_writer` as the provider."""
+    return _serve(monkeypatch, echo_writer)
+
+
+@pytest.fixture
+def review_clone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """An empty clone of the review repo, and the working directory a pass's task defaults under.
+
+    ``SEQFORGE_REVIEWS`` is cleared, so a machine that sets it cannot hand a test its real clone.
+    """
+    monkeypatch.delenv("SEQFORGE_REVIEWS", raising=False)
+    monkeypatch.chdir(tmp_path)
+    clone = tmp_path / "review-clone"
+    (clone / "reviews").mkdir(parents=True)
+    return clone
+
+
+@pytest.fixture
+def github(monkeypatch: pytest.MonkeyPatch) -> FakeGitHub:
+    """The in-memory review repo, behind the review commands."""
+    fake = FakeGitHub()
+    monkeypatch.setattr("seqforge.passes.github.make_github", lambda clone: fake)
+    return fake
 
 
 def test_a_pass_that_reaches_the_end_of_its_keys_exits_0_and_counts_every_ending(
     echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
 ) -> None:
-    code, out = start(review_clone, "echo", "--ceiling-usd", "1")
+    code, out = seqforge(review_clone, *PASS_START)
 
     assert code == 0
     assert out == {
         "kind": "echo",
         "kind_version": "1",
-        "task": str(Path("seqforge", "passes", "echo")),
+        "task": str(TASK),
         "pass_id": 1,
         "label": "echo",
         "store_build": None,
@@ -90,7 +149,9 @@ def test_a_pass_stopped_at_its_ceiling_exits_3_and_its_rerun_replays_answers_at_
     echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
 ) -> None:
     # Each call holds back five cents, so six cents lets the first unit through and stops the next.
-    code, out = start(review_clone, "echo", "--ceiling-usd", "0.06", "--units-at-once", "1")
+    code, out = seqforge(
+        review_clone, "pass", "start", "echo", "--ceiling-usd", "0.06", "--units-at-once", "1"
+    )
 
     assert code == 3
     assert out["stopped"] == "ceiling_reached"
@@ -99,7 +160,9 @@ def test_a_pass_stopped_at_its_ceiling_exits_3_and_its_rerun_replays_answers_at_
     assert out["counts"] == {"settled": 1, "unsettled": 0, "refused": 0, "unfinished": 3, "held": 0}
 
     sent = len(echo_gateway.record)
-    code, out = start(review_clone, "echo", "--ceiling-usd", "1", "--units-at-once", "1")
+    code, out = seqforge(
+        review_clone, "pass", "start", "echo", "--ceiling-usd", "1", "--units-at-once", "1"
+    )
 
     assert code == 0, out
     assert (out["stopped"], out["message"]) == (None, None)
@@ -113,7 +176,7 @@ def test_a_pass_stopped_at_its_ceiling_exits_3_and_its_rerun_replays_answers_at_
 def test_only_unsettled_and_refused_runs_those_units_on_a_stronger_model_and_skips_reviewed_ones(
     echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
 ) -> None:
-    code, _ = start(review_clone, "echo", "--ceiling-usd", "1")
+    code, _ = seqforge(review_clone, *PASS_START)
     assert code == 0
     # A person settles delta, one of the weak model's two wrong answers, as review read will.
     Reviews(review_clone / "reviews").save(
@@ -126,8 +189,17 @@ def test_only_unsettled_and_refused_runs_those_units_on_a_stronger_model_and_ski
 
     strong = f"writer={ECHO_STRONG.provider}/{ECHO_STRONG.name},max-output-tokens=50"
     sent = len(echo_gateway.record)
-    code, out = start(
-        review_clone, "echo", "--ceiling-usd", "1", "--only", "unsettled,refused", "--model", strong
+    code, out = seqforge(
+        review_clone,
+        "pass",
+        "start",
+        "echo",
+        "--ceiling-usd",
+        "1",
+        "--only",
+        "unsettled,refused",
+        "--model",
+        strong,
     )
 
     assert code == 0
@@ -143,26 +215,22 @@ def test_keys_file_runs_exactly_its_keys_in_its_order(
     keys = tmp_path / "keys.txt"
     keys.write_text("u3\nu1\n")
 
-    code, out = start(
-        review_clone, "echo", "--ceiling-usd", "1", "--keys", str(keys), "--units-at-once", "1"
+    code, out = seqforge(
+        review_clone,
+        "pass",
+        "start",
+        "echo",
+        "--ceiling-usd",
+        "1",
+        "--keys",
+        str(keys),
+        "--units-at-once",
+        "1",
     )
 
     assert code == 0
     assert out["keys"] == 2
     assert [x.tag for x in echo_gateway.record] == ["u3", "u1"]
-
-
-def test_a_task_another_process_holds_exits_3_naming_the_holder(
-    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
-) -> None:
-    folder = Path("seqforge", "passes", "echo")
-    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
-        code, out = start(review_clone, "echo", "--ceiling-usd", "1")
-
-    assert code == 3
-    assert out["stopped"] == "task_in_use"
-    assert f"process {os.getpid()} on {socket.gethostname()}" in out["message"]
-    assert echo_gateway.record == []
 
 
 def _no_gateway_address(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -171,9 +239,8 @@ def _no_gateway_address(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _state_file_of_another_layout(monkeypatch: pytest.MonkeyPatch) -> None:
-    folder = Path("seqforge", "passes", "echo")
-    folder.mkdir(parents=True)
-    (folder / "state.sqlite").write_text("a file liulab-llms did not write")
+    TASK.mkdir(parents=True)
+    (TASK / "state.sqlite").write_text("a file liulab-llms did not write")
 
 
 #: The real gateway seam, before a test's fixture replaces it with the fake's client.
@@ -258,7 +325,7 @@ def test_a_kind_that_reads_the_store_reads_one_build_and_names_it(
     )
     monkeypatch.setitem(KINDS, kind.name, kind)
 
-    code, out = start(review_clone, "stored-echo", "--ceiling-usd", "1")
+    code, out = seqforge(review_clone, "pass", "start", "stored-echo", "--ceiling-usd", "1")
 
     assert code == 0
     assert out["store_build"] == "b1"
@@ -270,7 +337,7 @@ def test_a_kind_that_reads_the_store_reads_one_build_and_names_it(
         raise AssertionError("pass status opened the store")
 
     monkeypatch.setattr(labdata, "open_store", no_store)
-    code, out = status(review_clone, "stored-echo")
+    code, out = seqforge(review_clone, "pass", "status", "stored-echo")
     assert (code, out["passes"][0]["store_build"]) == (0, "b1")
 
 
@@ -288,25 +355,8 @@ def timed_gateway(monkeypatch: pytest.MonkeyPatch) -> FakeGateway:
         fake.clock.sleep(ECHO_SECONDS[form["messages"][-1]["content"]])
         return echo_writer(form)
 
-    fake = FakeGateway(writer, prices=ECHO_PRICES)
-    monkeypatch.setattr(
-        "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
-    )
+    fake = _serve(monkeypatch, writer)
     return fake
-
-
-def status(clone: Path, *argv: str) -> tuple[int, dict[str, Any]]:
-    """Run ``seqforge pass status`` and return its exit code and its JSON."""
-    result = runner.invoke(app, ["pass", "status", *argv, "--reviews", str(clone)])
-    assert result.stdout, result.stderr
-    return result.exit_code, json.loads(result.stdout)
-
-
-def file_reviews(clone: Path, *argv: str) -> tuple[int, dict[str, Any]]:
-    """Run ``seqforge review file`` and return its exit code and its JSON."""
-    result = runner.invoke(app, ["review", "file", *argv, "--reviews", str(clone)])
-    assert result.stdout, result.stderr
-    return result.exit_code, json.loads(result.stdout)
 
 
 def _spread(total: float, median: float, p90: float) -> dict[str, Any]:
@@ -324,7 +374,7 @@ def test_status_counts_each_units_ending_and_each_passs_cost_and_time_per_unit(
     # {"word": "ALPHA"} is 17 characters, $0.017. One unit at a time, so each unit's seconds are its
     # own call's.
     one = ("--units-at-once", "1")
-    assert start(review_clone, "echo", "--ceiling-usd", "1", *one)[0] == 0
+    assert seqforge(review_clone, "pass", "start", "echo", "--ceiling-usd", "1", *one)[0] == 0
     # A person drops delta, one of the weak model's two wrong answers.
     Reviews(review_clone / "reviews").save(
         echo_unit_kind(ECHO_TEXTS),
@@ -336,17 +386,30 @@ def test_status_counts_each_units_ending_and_each_passs_cost_and_time_per_unit(
     )
     strong = f"writer={ECHO_STRONG.provider}/{ECHO_STRONG.name},max-output-tokens=50"
     step_up = ("--only", "unsettled,refused", "--model", strong, "--label", "step up")
-    assert start(review_clone, "echo", "--ceiling-usd", "1", *step_up, *one)[0] == 0
+    assert (
+        seqforge(review_clone, "pass", "start", "echo", "--ceiling-usd", "1", *step_up, *one)[0]
+        == 0
+    )
     # u9 has no text, so it is held; u2 replays from the cache at no cost; u1 pays; u4 meets the
     # ceiling, since each call holds back five cents against it.
     keys = tmp_path / "keys.txt"
     keys.write_text("u9\nu2\nu1\nu4\n")
-    code, _ = start(
-        review_clone, "echo", "--ceiling-usd", "0.06", "--keys", str(keys), "--model", strong, *one
+    code, _ = seqforge(
+        review_clone,
+        "pass",
+        "start",
+        "echo",
+        "--ceiling-usd",
+        "0.06",
+        "--keys",
+        str(keys),
+        "--model",
+        strong,
+        *one,
     )
     assert code == 3
 
-    code, out = status(review_clone, "echo")
+    code, out = seqforge(review_clone, "pass", "status", "echo")
 
     assert code == 0, out
     assert out["units"] == 5
@@ -412,12 +475,12 @@ def test_status_reads_a_task_with_the_gateway_down(
     review_clone: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    code, ran = start(review_clone, "echo", "--ceiling-usd", "1")
+    code, ran = seqforge(review_clone, *PASS_START)
     assert code == 0
     gateway_down(monkeypatch, echo_gateway)
     sent = len(echo_gateway.record)
 
-    code, out = status(review_clone, "echo")
+    code, out = seqforge(review_clone, "pass", "status", "echo")
 
     assert code == 0, out
     assert out["counts"] == {
@@ -432,24 +495,43 @@ def test_status_reads_a_task_with_the_gateway_down(
     assert len(echo_gateway.record) == sent
 
 
-def test_status_of_a_folder_with_no_task_exits_2_and_of_a_held_task_exits_3_naming_the_holder(
-    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path
+#: Each command that reads the echo kind's task.
+_READS_TASK = [
+    pytest.param(["pass", "status", "echo"], id="pass-status"),
+    pytest.param(["review", "file", "echo"], id="review-file"),
+]
+
+
+@pytest.mark.parametrize("argv", [pytest.param(list(PASS_START), id="pass-start"), *_READS_TASK])
+def test_a_task_another_process_holds_exits_3_naming_the_holder(
+    argv: list[str],
+    echo_kind: Any,
+    echo_gateway: FakeGateway,
+    review_clone: Path,
+    github: FakeGitHub,
 ) -> None:
-    folder = Path("seqforge", "passes", "echo")
-    result = runner.invoke(app, ["pass", "status", "echo", "--reviews", str(review_clone)])
-
-    assert result.exit_code == 2, result.stdout
-    assert result.stdout == ""
-    assert f"no task in {folder}" in result.stderr
-    assert not folder.exists()
-
-    assert start(review_clone, "echo", "--ceiling-usd", "1")[0] == 0
-    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
-        code, out = status(review_clone, "echo")
+    assert seqforge(review_clone, *PASS_START)[0] == 0
+    sent = len(echo_gateway.record)
+    with Task(TASK, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
+        code, out = seqforge(review_clone, *argv)
 
     assert code == 3
     assert out["stopped"] == "task_in_use"
     assert f"process {os.getpid()} on {socket.gethostname()}" in out["message"]
+    assert len(echo_gateway.record) == sent
+    assert github.filed == []
+
+
+@pytest.mark.parametrize("argv", _READS_TASK)
+def test_a_command_that_reads_a_task_refuses_a_folder_with_none_and_makes_none(
+    argv: list[str], echo_kind: Any, review_clone: Path, github: FakeGitHub
+) -> None:
+    result = runner.invoke(app, [*argv, "--reviews", str(review_clone)])
+
+    assert result.exit_code == 2, result.stdout + result.stderr
+    assert result.stdout == ""
+    assert f"no task in {TASK}" in result.stderr
+    assert not TASK.exists()
 
 
 def tick(body: str, label: str) -> str:
@@ -463,10 +545,10 @@ def tick(body: str, label: str) -> str:
 def test_review_file_files_the_queue_in_the_kinds_priority_labelled_and_marked(
     echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path, github: FakeGitHub
 ) -> None:
-    code, _ = start(review_clone, "echo", "--ceiling-usd", "1")
+    code, _ = seqforge(review_clone, *PASS_START)
     assert code == 0
 
-    code, out = file_reviews(review_clone, "echo", "--count", "2")
+    code, out = seqforge(review_clone, "review", "file", "echo", "--count", "2")
 
     assert code == 0, out
     # The echo kind reviews refused units first: gamma, then beta. Delta waits for the next filing.
@@ -509,13 +591,13 @@ def test_review_file_never_files_a_unit_twice_for_the_same_inputs_tag(
     github: FakeGitHub,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    start(review_clone, "echo", "--ceiling-usd", "1")
-    code, out = file_reviews(review_clone, "echo")
+    seqforge(review_clone, *PASS_START)
+    code, out = seqforge(review_clone, "review", "file", "echo")
     assert code == 0
     assert (len(out["filed"]), out["unfiled"]) == (3, 0)
     github.close(1, "completed")  # a closed issue counts as filed as much as an open one
 
-    code, out = file_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "file", "echo")
 
     assert code == 0
     assert (out["filed"], out["unfiled"]) == ([], 0)
@@ -523,9 +605,9 @@ def test_review_file_never_files_a_unit_twice_for_the_same_inputs_tag(
 
     # Beta's text changes, so the next pass answers it for new inputs: it is filed again.
     monkeypatch.setitem(ECHO_TEXTS, "u2", "bravo")
-    start(review_clone, "echo", "--ceiling-usd", "1")
+    seqforge(review_clone, *PASS_START)
 
-    code, out = file_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "file", "echo")
 
     assert code == 0
     assert [f["key"] for f in out["filed"]] == ["u2"]
@@ -540,39 +622,15 @@ def test_review_file_makes_each_label_the_repo_lacks_and_leaves_the_others_as_th
     # A person made the kind's label by hand before anything was filed.
     github.label_table["review:echo"] = ("000000", "made by hand")
     before = dict(github.label_table)
-    start(review_clone, "echo", "--ceiling-usd", "1")
+    seqforge(review_clone, *PASS_START)
 
-    code, out = file_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "file", "echo")
 
     assert code == 0, out
     made = {name: github.label_table[name] for name in github.label_table.keys() - before.keys()}
     assert sorted(made) == ["check:answered", "check:in_capitals"]
     assert all(description for _, description in made.values())
     assert {name: github.label_table[name] for name in before} == before
-
-
-def test_review_file_on_a_task_another_process_holds_exits_3_naming_the_holder(
-    echo_kind: Any, echo_gateway: FakeGateway, review_clone: Path, github: FakeGitHub
-) -> None:
-    start(review_clone, "echo", "--ceiling-usd", "1")
-    folder = Path("seqforge", "passes", "echo")
-    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
-        code, out = file_reviews(review_clone, "echo")
-
-    assert code == 3
-    assert out["stopped"] == "task_in_use"
-    assert f"process {os.getpid()} on {socket.gethostname()}" in out["message"]
-    assert github.filed == []
-
-
-def test_review_file_on_a_folder_with_no_task_exits_2_and_makes_none(
-    echo_kind: Any, review_clone: Path, github: FakeGitHub
-) -> None:
-    result = runner.invoke(app, ["review", "file", "echo", "--reviews", str(review_clone)])
-
-    assert result.exit_code == 2, result.stdout + result.stderr
-    assert "no task in" in result.stderr
-    assert not Path("seqforge", "passes", "echo").exists()
 
 
 #: Git as the tests run it: no configuration of the machine's own, and the same person everywhere.
@@ -632,13 +690,6 @@ def review_remote(
     return Path(shutil.copytree(_review_repo / _REMOTE, tmp_path / _REMOTE))
 
 
-def read_reviews(clone: Path, *argv: str) -> tuple[int, dict[str, Any]]:
-    """Run ``seqforge review read`` and return its exit code and its JSON."""
-    result = runner.invoke(app, ["review", "read", *argv, "--reviews", str(clone)])
-    assert result.stdout, result.stderr
-    return result.exit_code, json.loads(result.stdout)
-
-
 def answer(github: FakeGitHub, key: str, *ticks: str, reason: str = "completed") -> int:
     """A person ticks the boxes labelled ``ticks`` on ``key``'s issue and closes it as ``reason``.
 
@@ -668,15 +719,14 @@ def test_review_read_stores_a_completed_issue_once_while_a_pass_holds_the_task(
 ) -> None:
     # Delta's text reads the same backwards, so the weak model's answer is right but for its case.
     monkeypatch.setitem(ECHO_TEXTS, "u4", "level")
-    start(review_clone, "echo", "--ceiling-usd", "1")
-    file_reviews(review_clone, "echo")
+    seqforge(review_clone, *PASS_START)
+    seqforge(review_clone, "review", "file", "echo")
     number = answer(github, "u4", "Pass 1's answer", "Write it in capitals")
     (review_clone / "notes.txt").write_text("the reviewer's own file, not the command's\n")
 
-    folder = Path("seqforge", "passes", "echo")
     kind = echo_unit_kind(ECHO_TEXTS)
-    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
-        code, out = read_reviews(review_clone, "echo")
+    with Task(TASK, gateway=echo_gateway.client(), reviews=review_clone / "reviews"):
+        code, out = seqforge(review_clone, "review", "read", "echo")
 
     assert code == 0, out
     url = github.filed[number - 1].url
@@ -688,14 +738,14 @@ def test_review_read_stores_a_completed_issue_once_while_a_pass_holds_the_task(
     (review,) = Reviews(review_clone / "reviews").read(kind)
     assert (review.key, review.who, review.accepted_pass) == ("u4", "octo-reviewer", 1)
     assert (review.inputs_tag, review.answer) == ("text=level", {"word": "LEVEL"})
-    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews") as task:
+    with Task(TASK, gateway=echo_gateway.client(), reviews=review_clone / "reviews") as task:
         assert task.keys(kind, endings=("settled",)) == ["u1", "u4"]
     # The reviews file alone is committed, and pushed to the review repo.
     pushed = git(review_remote, "show", "main:reviews/echo.jsonl")
     assert pushed == (review_clone / "reviews" / "echo.jsonl").read_text()
     assert git(review_clone, "status", "--porcelain") == "?? notes.txt\n"
 
-    code, out = read_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "read", "echo")
 
     assert code == 0, out
     assert (out["answered"], out["pushed"]) == ([], None)
@@ -709,11 +759,11 @@ def test_review_read_stores_an_issue_closed_as_not_planned_as_a_drop_with_its_ti
     review_clone: Path,
     github: FakeGitHub,
 ) -> None:
-    start(review_clone, "echo", "--ceiling-usd", "1")
-    file_reviews(review_clone, "echo")
+    seqforge(review_clone, *PASS_START)
+    seqforge(review_clone, "review", "file", "echo")
     number = answer(github, "u3", "not a word", "other", reason="not_planned")
 
-    code, out = read_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "read", "echo")
 
     assert code == 0, out
     url = github.filed[number - 1].url
@@ -725,8 +775,7 @@ def test_review_read_stores_an_issue_closed_as_not_planned_as_a_drop_with_its_ti
     (review,) = Reviews(review_clone / "reviews").read(kind)
     assert (review.key, review.ending, review.note) == ("u3", "dropped", "not a word; other")
     assert (review.who, review.inputs_tag) == ("octo-reviewer", "text=gamma")
-    folder = Path("seqforge", "passes", "echo")
-    with Task(folder, gateway=echo_gateway.client(), reviews=review_clone / "reviews") as task:
+    with Task(TASK, gateway=echo_gateway.client(), reviews=review_clone / "reviews") as task:
         assert task.keys(kind, endings=("dropped",)) == ["u3"]
 
 
@@ -738,14 +787,14 @@ def test_review_read_stores_nothing_it_cannot_and_reopens_only_what_a_person_can
     github: FakeGitHub,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    start(review_clone, "echo", "--ceiling-usd", "1")
-    file_reviews(review_clone, "echo")
+    seqforge(review_clone, *PASS_START)
+    seqforge(review_clone, "review", "file", "echo")
     beta = answer(github, "u2", "Pass 1's answer")  # the weak model's ateb: it fails in_capitals
     gamma = answer(github, "u3")  # closed with nothing ticked
     delta = answer(github, "u4", "The text, capitalised")
     monkeypatch.setitem(ECHO_TEXTS, "u4", "delta, revised")  # its inputs change after filing
 
-    code, out = read_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "read", "echo")
 
     assert code == 4, out
     reasons = {entry["key"]: entry["reason"] for entry in out["reopened"]}
@@ -767,7 +816,7 @@ def test_review_read_stores_nothing_it_cannot_and_reopens_only_what_a_person_can
     assert (out["answered"], out["dropped"], out["pushed"]) == ([], [], None)
     assert not (review_clone / "reviews" / "echo.jsonl").exists()
 
-    code, out = read_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "read", "echo")
 
     assert code == 0, out
     assert (out["reopened"], out["inputs_changed"]) == ([], [])
@@ -788,8 +837,8 @@ def test_review_read_whose_push_is_behind_pulls_and_keeps_both_clones_reviews(
     github: FakeGitHub,
     tmp_path: Path,
 ) -> None:
-    start(review_clone, "echo", "--ceiling-usd", "1")
-    file_reviews(review_clone, "echo")
+    seqforge(review_clone, *PASS_START)
+    seqforge(review_clone, "review", "file", "echo")
     # Another person's clone pushes a review of alpha first, so this clone's push is behind.
     other = Path(shutil.copytree(review_clone, tmp_path / "other-clone"))
     Reviews(other / "reviews").save(
@@ -804,7 +853,7 @@ def test_review_read_whose_push_is_behind_pulls_and_keeps_both_clones_reviews(
     git(other, "push", "--quiet")
     answer(github, "u2", "The text, capitalised")
 
-    code, out = read_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "read", "echo")
 
     assert code == 0, out
     assert ([a["key"] for a in out["answered"]], out["pushed"]) == (["u2"], True)
@@ -819,12 +868,12 @@ def test_review_read_whose_push_fails_exits_3_with_the_reviews_committed_for_its
     github: FakeGitHub,
     tmp_path: Path,
 ) -> None:
-    start(review_clone, "echo", "--ceiling-usd", "1")
-    file_reviews(review_clone, "echo")
+    seqforge(review_clone, *PASS_START)
+    seqforge(review_clone, "review", "file", "echo")
     answer(github, "u3", "not a word", reason="not_planned")
     review_remote.rename(tmp_path / "unreachable.git")  # the review repo cannot be reached
 
-    code, out = read_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "read", "echo")
 
     assert code == 3, out
     assert (out["stopped"], out["pushed"]) == ("git_failed", False)
@@ -832,7 +881,7 @@ def test_review_read_whose_push_fails_exits_3_with_the_reviews_committed_for_its
     assert git(review_clone, "status", "--porcelain") == ""  # committed, waiting in the clone
 
     (tmp_path / "unreachable.git").rename(review_remote)
-    code, out = read_reviews(review_clone, "echo")
+    code, out = seqforge(review_clone, "review", "read", "echo")
 
     assert code == 0, out
     assert (out["dropped"], out["pushed"]) == ([], True)
