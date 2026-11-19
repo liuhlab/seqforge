@@ -692,6 +692,7 @@ def _snakemake_in_this_worker(args: Sequence[str]) -> subprocess.CompletedProces
     out, err = io.StringIO(), io.StringIO()
     with (
         _snakemake_state_put_back(),
+        _a_hung_plan_fails(),
         contextlib.redirect_stdout(out),
         contextlib.redirect_stderr(err),
     ):
@@ -703,6 +704,42 @@ def _snakemake_in_this_worker(args: Sequence[str]) -> subprocess.CompletedProces
     # message is a failure.
     returncode = code if isinstance(code, int) else int(code is not None)
     return subprocess.CompletedProcess(command, returncode, out.getvalue(), err.getvalue())
+
+
+#: The most seconds one plan may take where no test's own time limit is running.
+PLAN_DEADLINE = 300.0
+
+
+@contextmanager
+def _a_hung_plan_fails() -> Iterator[None]:
+    """Fail a plan that never returns, where nothing else would.
+
+    A spawned plan had a deadline of its own. Inside the worker, a test's time limit ends a hung
+    plan, but a ``slow`` test has no limit, and its plan would hang the run. So when no timer is
+    running, this sets one for the plan. When one is running, the test's limit is the nearer
+    deadline and this does nothing.
+
+    The handler is left in place afterwards and goes quiet: an alarm can arrive after its timer
+    was switched off, and with no handler that alarm would end the process.
+    """
+    import signal
+
+    if signal.getitimer(signal.ITIMER_REAL)[0]:
+        yield
+        return
+    planning = True
+
+    def overdue(signum: int, frame: types.FrameType | None) -> None:
+        if planning:
+            pytest.fail(f"a snakemake plan was still running after {PLAN_DEADLINE:g} s")
+
+    signal.signal(signal.SIGALRM, overdue)
+    signal.setitimer(signal.ITIMER_REAL, PLAN_DEADLINE)
+    try:
+        yield
+    finally:
+        planning = False
+        signal.setitimer(signal.ITIMER_REAL, 0)
 
 
 @contextmanager
