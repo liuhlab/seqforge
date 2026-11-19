@@ -209,8 +209,9 @@ counts as settled or dropped, and a pass leaves it out while its inputs stay the
 does not open the task, so it works while a pass runs.
 
 If the ticks make no answer, or the answer fails one of the kind's checks, nothing is stored. The
-command adds a comment to the issue that says why, and reopens it. Fix the ticks, then close the
-issue again.
+same is true if a ticked box's hidden marker was edited and cannot be read. The command adds a
+comment to the issue that says why, reopens it, and goes on to the next issue. Fix the ticks, then
+close the issue again.
 
 If the unit's inputs changed after the issue was filed, its answer is for inputs that the unit no
 longer has, so nothing is stored. The command says so in a comment, adds the label

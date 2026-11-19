@@ -805,10 +805,16 @@ def test_review_read_stores_nothing_it_cannot_and_reopens_only_what_a_person_can
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setitem(ECHO_TEXTS, "u5", "epsilon")
+    monkeypatch.setitem(ECHO_TEXTS, "u6", "zeta")
     seqforge(review_clone, *PASS_START)
     seqforge(review_clone, "review", "file", "echo")
+    # Gamma's issue, the first read, has its ticked box's marker emptied by an edit.
+    gamma = answer(github, "u3", "The text, capitalised")
+    broken = github.filed[gamma - 1]
+    body = broken.body.replace("<!-- seqforge start candidate-1 -->", "<!-- seqforge  -->")
+    github.filed[gamma - 1] = dataclasses.replace(broken, body=body)
     beta = answer(github, "u2", "Pass 1's answer")  # the weak model's ateb: it fails in_capitals
-    gamma = answer(github, "u3")  # closed with nothing ticked
+    zeta = answer(github, "u6")  # closed with nothing ticked
     delta = answer(github, "u4", "The text, capitalised")
     monkeypatch.setitem(ECHO_TEXTS, "u4", "delta, revised")  # its inputs change after filing
     epsilon = answer(github, "u5", "The text, capitalised")
@@ -820,9 +826,11 @@ def test_review_read_stores_nothing_it_cannot_and_reopens_only_what_a_person_can
     reasons = {entry["key"]: entry["reason"] for entry in out["reopened"]}
     assert reasons == {
         "u2": "The answer fails the kind's checks: in_capitals: 'ateb' is not 'BETA'.",
-        "u3": "Tick a starting answer.",
+        "u3": 'The ticked box "The text, capitalised by the kind\'s code" has a broken seqforge '
+        "marker, so it cannot be read.",
+        "u6": "Tick a starting answer.",
     }
-    for number, key in ((beta, "u2"), (gamma, "u3")):
+    for number, key in ((beta, "u2"), (gamma, "u3"), (zeta, "u6")):
         assert github.filed[number - 1].state == "open"
         (comment,) = github.comments[number]
         assert reasons[key] in comment

@@ -238,28 +238,44 @@ def read_marker(body: str) -> Marker | None:
         return None
 
 
+#: How many ids follow each group in a tick box's marker.
+_IDS_AFTER = {"start": 1, "item": 2, "drop": 0}
+
+
 def _ticked(body: str) -> list[tuple[list[str], str]]:
-    """Each ticked box: its group and ids, and its label."""
-    return [
-        (found["ids"].split(), found["label"])
-        for found in _TICKED.finditer(body)
-        if found["mark"] in "xX"
-    ]
+    """Each ticked box: its group and ids, and its label.
+
+    Raises :class:`Unreadable` for a ticked box whose marker names no group it knows, or the wrong
+    number of ids for its group, so every tick read after this has the ids its group needs.
+    """
+    ticked = []
+    for found in _TICKED.finditer(body):
+        if found["mark"] not in "xX":
+            continue
+        ids = found["ids"].split()
+        if not ids or _IDS_AFTER.get(ids[0]) != len(ids) - 1:
+            label = found["label"]
+            raise Unreadable(
+                f'The ticked box "{label}" has a broken seqforge marker, so it cannot be read.'
+            )
+        ticked.append((ids, found["label"]))
+    return ticked
 
 
 def read_answer(form: ReviewForm, body: str) -> tuple[Any, int | None]:
     """The answer an issue's ticks make, and the pass whose answer the person started from.
 
     The pass is None when they started from an answer the kind's code offered. Raises
-    :class:`Unreadable` when the body has lost its marker, no starting answer or more than one is
-    ticked, an item has more than one option ticked, or the kind's ``place`` cannot make
-    an answer. The answer is not checked here: storing it runs the kind's answer checks.
+    :class:`Unreadable` when the body has lost its marker, a ticked box has a broken one, no starting
+    answer or more than one is ticked, an item has more than one option ticked, or the kind's
+    ``place`` cannot make an answer. The answer is not checked here: storing it runs the kind's
+    answer checks.
     """
     marker = read_marker(body)
     if marker is None:
         raise Unreadable(LOST_MARKER)
     ticked = _ticked(body)
-    starts = [ids[1] for ids, _ in ticked if ids[0] == "start" and len(ids) == 2]
+    starts = [ids[1] for ids, _ in ticked if ids[0] == "start"]
     if not starts:
         raise Unreadable("Tick a starting answer.")
     if len(starts) > 1:
@@ -269,7 +285,7 @@ def read_answer(form: ReviewForm, body: str) -> tuple[Any, int | None]:
         raise Unreadable(f"The starting answer {starts[0]} is not one this issue offered.")
     choices: dict[str, list[str]] = {}
     for ids, _ in ticked:
-        if ids[0] == "item" and len(ids) == 3:
+        if ids[0] == "item":
             choices.setdefault(ids[1], []).append(ids[2])
     if twice := sorted(item for item, options in choices.items() if len(options) > 1):
         raise Unreadable(f"Tick at most one option for {', '.join(twice)}.")
@@ -279,7 +295,7 @@ def read_answer(form: ReviewForm, body: str) -> tuple[Any, int | None]:
 def read_drop(body: str) -> str:
     """The note a drop is stored with: each ticked reason, as its box reads, joined by ``; ``.
 
-    Raises :class:`Unreadable` when no reason is ticked.
+    Raises :class:`Unreadable` when no reason is ticked, or a ticked box has a broken marker.
     """
     reasons = [label for ids, label in _ticked(body) if ids == ["drop"]]
     if not reasons:
