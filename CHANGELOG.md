@@ -24,6 +24,13 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   never filed twice for the same inputs. The command reaches GitHub through the GitHub CLI, `gh`,
   as the person running it. The "Passes and reviews" page of the docs describes it, and how the
   review repo was set up.
+- `seqforge review read <kind>` reads people's answers back from a kind's closed issues in the
+  review repo. An issue closed as completed stores the answer that its ticks make, and one closed
+  as not planned stores a drop with the reasons ticked, each with the GitHub login of the person
+  who closed it. The reviews go into the kind's file in the review clone, which the command commits
+  alone and pushes. Ticks that make no answer, or an answer that fails one of the kind's checks,
+  store nothing: the issue gets a comment that says why and is reopened, and the command exits 4.
+  It works while a pass is running.
 
 ### Changed
 

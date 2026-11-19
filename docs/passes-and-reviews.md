@@ -153,6 +153,63 @@ the issue's `url`, and `unfiled`, the number of units in the queue that are stil
 | 2 | A setup it cannot use: an unknown kind, no review clone, no task in the folder, no `gh`, or a clone whose `origin` is not on GitHub. One line on stderr says which |
 | 3 | Another process holds the task, such as a running pass, and `message` names it. Or a GitHub call failed: `stopped` is `github_failed`, and `filed` lists what was filed before it. Run the command again to file the rest |
 
+## Read reviews back
+
+Once people have closed issues, read their answers back:
+
+```bash
+seqforge review read <kind>
+```
+
+This reads each closed issue of the kind that has not been read back yet:
+
+- An issue closed as completed stores the answer that its ticks make. The review records the GitHub
+  login of the person who closed the issue, and the pass whose answer they started from.
+- An issue closed as not planned stores a drop, with the reasons ticked as its note.
+
+Each review goes into the kind's file in the `reviews/` folder of the clone. From then on the unit
+counts as settled or dropped, and a pass leaves it out while its inputs stay the same. The command
+does not open the task, so it works while a pass runs.
+
+If the ticks make no answer, or the answer fails one of the kind's checks, nothing is stored. The
+command adds a comment to the issue that says why, and reopens it. Fix the ticks, then close the
+issue again.
+
+If the unit's inputs changed after the issue was filed, its answer is for inputs that the unit no
+longer has, so nothing is stored. The command says so in a comment, adds the label
+`inputs-changed`, and leaves the issue closed. A pass answers the new inputs, and the unit is filed
+again if it still needs a person.
+
+Each issue is read back only once. After storing, the command commits the kind's review file, and
+nothing else in the clone, then pushes it. If another clone pushed first, the command pulls, and
+git's union merge keeps the lines from both. If the push still fails, the reviews stay committed in
+the clone, and the next run pushes them.
+
+The options:
+
+| Option | What it does |
+| --- | --- |
+| `--reviews DIR` | The review repo's clone, if `SEQFORGE_REVIEWS` does not name it. The reviews are stored, committed and pushed there. The issues are read from the GitHub repo that its `origin` names |
+
+stdout carries one JSON object:
+
+| Field | Value |
+| --- | --- |
+| `kind` | The kind |
+| `answered` | Each stored answer: the unit's `key`, the issue's `url`, `who` closed it, and `accepted_pass`, the pass whose answer they started from, or `null` for an answer the kind's code offered |
+| `dropped` | Each stored drop: `key`, `url`, `who` and `note` |
+| `reopened` | Each reopened issue: `key`, `url`, and the `reason` that its comment gives |
+| `inputs_changed` | Each issue left closed because its unit's inputs changed: `key` and `url` |
+| `pushed` | `true` if it pushed, `false` if the push failed, or `null` if there was nothing to push |
+| `stopped`, `message` | Only on exit 3: `github_failed` or `git_failed`, and the message from GitHub or git |
+
+| Exit | When |
+| --- | --- |
+| 0 | It read back each closed issue that it could, and reopened none |
+| 2 | A setup it cannot use: an unknown kind, no review clone, no `gh`, a clone whose `origin` is not on GitHub, or a kind that reads liulab-data's store when the store cannot be opened. One line on stderr says which |
+| 3 | A GitHub call or a git step failed. The reviews stored before it are committed in the clone. Run the command again to read the rest and push. Exit 3 wins over exit 4 |
+| 4 | It reopened at least one issue, so a person has to answer it again |
+
 ## Set up the review repo
 
 The lab set up the review repo once, with `gh`. These are the steps, for the record or for a new

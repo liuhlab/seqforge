@@ -12,6 +12,7 @@ nothing here knows what a study is.
 - :mod:`.task` -- opening a kind's task, and the review clone every pass and review command reads.
 - :mod:`.review` -- the review form: a queued unit as an issue body, and its ticks read back.
 - :mod:`.github` -- the one place a review command builds its client of the review repo.
+- :mod:`.clone` -- committing a reviews file in the review clone, and pushing it.
 """
 
 from __future__ import annotations
