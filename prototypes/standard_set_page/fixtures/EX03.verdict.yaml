@@ -1,0 +1,13 @@
+model: claude-fable-5-2
+when: 2026-11-19T09:51:17Z
+agrees: true
+bounds: null
+reason: >-
+  The Series stands alone in GEO. A preprint from the same group (10.1101/2099.01.01.999003) describes
+  worms on the same two diets and may be its paper, but it never names GSE9990031 and reports twelve
+  samples where the Series has eight. I could not tell whether it belongs.
+unsure: true
+read:
+  - GEO Series record GSE9990031 and its eight sample records
+  - A search for the Series title and the submitter's name
+  - Preprint 10.1101/2099.01.01.999003, methods

@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studies to read</title>
+<!--
+PROTOTYPE, throwaway. Question: what does "everything ready" look like for the person reading
+the drawn studies? Written by build_page.py from a folder of study files. One file, no network
+needed except to follow the links out to GEO and PubMed.
+-->
+<style>
+:root{
+  --bg:#f5f4ef; --surface:#ffffff; --sunk:#eceae3; --ink:#1c2220; --muted:#5c6662; --line:#d9d7cd;
+  --accent:#0f6b63; --accent-ink:#ffffff;
+  --differ:#a84510; --differ-bg:#fbeee3; --unsure:#6541b0; --unsure-bg:#f0eafb;
+  --agree:#2f6a4c; --agree-bg:#e8f1ec; --nocheck:#5c6662; --nocheck-bg:#eceae3;
+  --accept:#1f7446; --fix:#1f5f9e; --drop:#9a3232;
+  --warn-bg:#fff2cc; --warn-ink:#5e4300;
+  --f-ui:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --top-h:64px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131816; --surface:#1b211f; --sunk:#252d2a; --ink:#e4eae7; --muted:#9aa8a2; --line:#34403b;
+  --accent:#5fbab0; --accent-ink:#0c1413;
+  --differ:#f0935a; --differ-bg:#3a2618; --unsure:#b79cf2; --unsure-bg:#2b2440;
+  --agree:#7cc79d; --agree-bg:#1d2e25; --nocheck:#9aa8a2; --nocheck-bg:#252d2a;
+  --accept:#62c690; --fix:#74aee6; --drop:#f08585;
+  --warn-bg:#3a3115; --warn-ink:#f0d58a; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#131816; --surface:#1b211f; --sunk:#252d2a; --ink:#e4eae7; --muted:#9aa8a2; --line:#34403b;
+  --accent:#5fbab0; --accent-ink:#0c1413;
+  --differ:#f0935a; --differ-bg:#3a2618; --unsure:#b79cf2; --unsure-bg:#2b2440;
+  --agree:#7cc79d; --agree-bg:#1d2e25; --nocheck:#9aa8a2; --nocheck-bg:#252d2a;
+  --accept:#62c690; --fix:#74aee6; --drop:#f08585;
+  --warn-bg:#3a3115; --warn-ink:#f0d58a; color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-padding-top:calc(var(--top-h) + 12px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-ui)}
+h1,h2,h3,p{margin:0}
+a{color:var(--accent)}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono,code{font-family:var(--f-mono);font-size:.93em}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+kbd{font:500 11px var(--f-mono);border:1px solid currentColor;border-radius:4px;padding:0 4px;opacity:.7;margin-left:4px}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:10px 20px}
+.top h1{font-size:17px;font-weight:650}
+.top .sub{color:var(--muted);font-size:12.5px}
+.progress{flex:1 1 180px;min-width:150px;max-width:340px}
+.progress .txt{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.progress .bar{height:6px;background:var(--sunk);border-radius:3px;overflow:hidden;margin-top:3px}
+.progress .bar i{display:block;height:100%;background:var(--accent);width:0}
+.who{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);margin-left:auto}
+.who input{width:150px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.who input.need{border-color:var(--drop);outline:2px solid var(--drop)}
+.btn{border:1px solid var(--line);background:var(--surface);padding:6px 12px;border-radius:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary[disabled]{opacity:.5;cursor:default}
+.exportwrap{text-align:right}
+.exportwrap .hint{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+.strip{padding:8px 20px;border-bottom:1px solid var(--line);font-size:13px}
+.strip.notice{background:var(--warn-bg);color:var(--warn-ink);font-weight:600}
+.strip.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.strip.done{background:var(--agree-bg)}
+.strip.done pre{white-space:pre-wrap;word-break:break-all;background:var(--surface);border:1px solid var(--line);
+  border-radius:6px;padding:8px;font:12px/1.45 var(--f-mono);max-height:260px;overflow:auto;margin:6px 0 0}
+.strip.done code{display:block;width:fit-content;max-width:100%;margin:5px 0;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:3px 7px;user-select:all;overflow-wrap:anywhere}
+details.how{padding:8px 20px;border-bottom:1px solid var(--line);font-size:13px}
+details.how summary{cursor:pointer;color:var(--muted)}
+details.how .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:4px 28px;max-width:1300px}
+details.how p{margin-top:6px}
+
+/* two panes */
+main{display:grid;grid-template-columns:minmax(230px,300px) minmax(0,1fr);gap:0;align-items:start}
+#list{position:sticky;top:var(--top-h);height:calc(100vh - var(--top-h));overflow:auto;
+  border-right:1px solid var(--line);padding:10px 8px 40px}
+.filters{display:flex;gap:6px;padding:0 6px 8px}
+.filters button{border:1px solid var(--line);background:transparent;border-radius:99px;padding:2px 10px;font-size:12.5px;color:var(--muted)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.group{font-size:11.5px;font-weight:650;letter-spacing:.03em;text-transform:uppercase;padding:10px 8px 4px;display:flex;gap:6px;align-items:center}
+.group .n{font-weight:500;opacity:.75}
+.g-differ{color:var(--differ)} .g-unsure{color:var(--unsure)} .g-agree{color:var(--agree)} .g-nocheck{color:var(--nocheck)}
+.row{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:transparent;
+  padding:5px 8px 5px 10px;border-radius:6px;border-left:3px solid transparent;min-height:32px}
+.row:hover{background:var(--sunk)}
+.row[aria-current="true"]{background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.row.c-differ{border-left-color:var(--differ)} .row.c-unsure{border-left-color:var(--unsure)}
+.row.c-agree{border-left-color:var(--agree)} .row.c-nocheck{border-left-color:var(--nocheck)}
+.row .rid{font-family:var(--f-mono);font-size:13px;font-weight:600;white-space:nowrap}
+.row .rmeta{flex:1;min-width:0;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{font-size:11.5px;font-weight:650;border-radius:99px;padding:1px 8px;border:1px solid currentColor;white-space:nowrap}
+.pill.m-accept{color:var(--accept)} .pill.m-fix{color:var(--fix)} .pill.m-drop{color:var(--drop)}
+.pill.m-none{color:var(--muted);border-style:dashed;font-weight:500;opacity:.7}
+.pill.filed{border-style:double;border-width:3px;padding:0 7px}
+.empty{padding:14px 10px;color:var(--muted);font-size:13px}
+
+#detail{padding:18px 24px 0;min-width:0;max-width:1080px}
+.dh .crumbs{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;color:var(--muted);font-size:12.5px}
+.tag{border:1px solid var(--line);border-radius:4px;padding:0 6px;background:var(--surface);color:var(--ink);font-size:12px}
+.dh h2{font:650 22px/1.3 var(--f-mono);margin-top:4px}
+.dh .why{margin-top:4px;max-width:80ch}
+.banner{margin:12px 0;padding:9px 12px;border-radius:8px;border-left:4px solid}
+.b-differ{background:var(--differ-bg);border-color:var(--differ)}
+.b-unsure{background:var(--unsure-bg);border-color:var(--unsure)}
+.b-agree{background:var(--agree-bg);border-color:var(--agree)}
+.b-nocheck{background:var(--nocheck-bg);border-color:var(--nocheck)}
+.linked{font-size:13px;color:var(--muted);margin-bottom:10px}
+.linked a{font-family:var(--f-mono);font-size:12.5px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card h3{font-size:12px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+table.mem{width:100%;border-collapse:collapse}
+table.mem th{font-size:12px;font-weight:650;text-align:left;color:var(--muted);padding:4px 10px 6px;border-bottom:1px solid var(--line);vertical-align:bottom}
+table.mem th .used{display:block;font-weight:500;font-size:11px;color:var(--accent)}
+table.mem td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.mem tr:last-child td{border-bottom:0}
+table.mem tr.sep td{background:var(--sunk);font-size:11.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding:3px 10px}
+table.mem td.rec a{font-family:var(--f-mono);font-weight:600}
+table.mem td.rec .ext{font-size:11.5px;color:var(--muted);display:block}
+table.mem tr.diff td{background:var(--differ-bg)}
+table.mem tr.diff td.rec{box-shadow:inset 3px 0 0 var(--differ)}
+.flag{font-size:11px;font-weight:650;color:var(--differ);margin-left:8px;white-space:nowrap}
+td.c{white-space:nowrap;width:19%}
+td.c.in{font-weight:600}
+td.c.in::before{content:"\25CF";margin-right:6px;color:var(--accent)}
+td.c.out{color:var(--muted)}
+td.c.out::before{content:"\25CB";margin-right:6px}
+td.c small{font-weight:400;color:var(--muted);margin-left:4px}
+td.c.yours{width:17%}
+td.c.yours label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;color:var(--fix)}
+td.c.yours input{width:16px;height:16px;accent-color:var(--fix)}
+.split{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:13px}
+.split .cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;margin-top:6px}
+.split .lab{font-size:11.5px;font-weight:650;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.chip{display:inline-block;font:12px var(--f-mono);background:var(--sunk);border-radius:4px;padding:0 6px;margin:2px 4px 2px 0}
+.fixextra{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:grid;gap:8px}
+.fixextra label{font-size:12.5px;color:var(--fix);font-weight:600;display:grid;gap:3px}
+.fixextra input,.fixextra textarea{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--f-mono);font-size:12.5px}
+
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;align-items:start}
+.card .who-when{font-size:12px;color:var(--muted);margin-top:8px}
+.card ul{margin:4px 0 0;padding-left:18px}
+.card .subh{font-size:12px;font-weight:650;color:var(--muted);margin-top:10px}
+.unsure-note{display:inline-block;color:var(--unsure);font-weight:650;margin-bottom:4px}
+
+/* the mark bar stays in reach while the study scrolls */
+.markbar{position:sticky;bottom:0;margin:16px -24px 0;padding:10px 24px 12px;background:var(--surface);
+  border-top:1px solid var(--line);box-shadow:0 -6px 16px rgba(0,0,0,.06);display:grid;gap:8px}
+.markrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mk{border:1.5px solid currentColor;background:transparent;border-radius:8px;padding:6px 14px;font-weight:650}
+.mk.accept{color:var(--accept)} .mk.fix{color:var(--fix)} .mk.drop{color:var(--drop)}
+.mk[aria-pressed="true"]{color:var(--surface)}
+.mk.accept[aria-pressed="true"]{background:var(--accept);border-color:var(--accept)}
+.mk.fix[aria-pressed="true"]{background:var(--fix);border-color:var(--fix)}
+.mk.drop[aria-pressed="true"]{background:var(--drop);border-color:var(--drop)}
+.mk small{font-weight:400;opacity:.85;margin-left:4px}
+.spacer{flex:1}
+.btn.small{padding:3px 9px}
+.btn[disabled]{opacity:.4;cursor:default}
+.link{border:0;background:transparent;color:var(--muted);text-decoration:underline;padding:4px}
+.markbar textarea{width:100%;min-height:38px;max-height:160px;resize:vertical;padding:7px 9px;border:1px solid var(--line);
+  border-radius:6px;background:var(--bg)}
+.markstate{font-size:12.5px;color:var(--muted)}
+
+@media (max-width:860px){
+  main{grid-template-columns:1fr}
+  #list{position:static;height:auto;max-height:38vh;border-right:0;border-bottom:1px solid var(--line)}
+  .pair,.split .cols{grid-template-columns:1fr}
+  #detail{padding:14px 16px 0}
+  .markbar{margin-inline:-16px;padding-inline:16px}
+  .who{margin-left:0}
+}
+</style>
+</head>
+<body>
+<header class="top" id="top">
+  <div>
+    <h1 id="title">Studies to read</h1>
+    <div class="sub" id="sub"></div>
+  </div>
+  <div class="progress">
+    <div class="txt" id="prog-text"></div>
+    <div class="bar"><i id="prog-bar"></i></div>
+  </div>
+  <label class="who">Your name <input id="who" autocomplete="name" placeholder="written into each answer"></label>
+  <div class="exportwrap">
+    <button class="btn primary" id="export">Export answers (0)</button>
+    <div class="hint" id="export-hint"></div>
+  </div>
+</header>
+<div class="strip notice" id="notice" hidden></div>
+<div class="strip warn" id="storage-warn" hidden>This browser is not keeping your marks between visits. Export your answers before you close the page.</div>
+<div class="strip done" id="exported" hidden></div>
+<details class="how" id="how">
+  <summary>How to read this page</summary>
+  <div class="cols">
+  <p>Each study below is a group of public records that should be read as one piece of work. Its <b>bounds</b> say which GEO Series belong to it and which papers describe it.</p>
+  <p>A small model wrote a <b>draft</b> of the bounds from the GEO records and the paper abstract. A larger model, the <b>judge</b>, then checked each draft and could read anything, the full paper included. Where the judge disagreed, its version is the one in use. Those studies come first, then the ones the judge was not sure about.</p>
+  <p>You are the third reader. Follow the links, then mark the study: <b>Accept</b> if the bounds in use are right, <b>Fix</b> to tick which Series and papers really belong, <b>Drop</b> if the study should leave the set. A note helps whoever reads your answer later. Nothing waits for you, so read as many or as few as you like.</p>
+  <p>Your marks stay in this browser. When you stop, press <b>Export answers</b>: it saves one file, which one command then files beside the studies.</p>
+  </div>
+  <p class="muted">Keys: <kbd>J</kbd> next study, <kbd>K</kbd> previous, <kbd>A</kbd> accept, <kbd>F</kbd> fix, <kbd>D</kbd> drop, <kbd>N</kbd> write a note, <kbd>U</kbd> clear the mark, <kbd>Esc</kbd> leave a text box.</p>
+</details>
+<main>
+  <nav id="list" aria-label="Studies"></nav>
+  <article id="detail"></article>
+</main>
+
+<script type="application/json" id="data">{"title": "Studies to read", "notice": "Example data, not real studies. Every study, identifier and reason on this page is made up to show the layout, so the links open empty records.", "set": "fixtures", "built": "2026-11-19T16:00:00Z", "file_command": "python prototypes/standard_set_page/file_answers.py ANSWERS prototypes/standard_set_page/fixtures", "studies": [{"id": "EX01", "direction": "aging", "also_fits": [], "hard_shape": null, "reason_picked": "Plain case. One Series, one paper, single-nucleus RNA from young and old mouse hippocampus.", "store_build": "2026-11-12", "records": {"series": ["GSE9990011"], "superseries": null, "bioprojects": ["PRJNA9990011"], "pmids": [99900011]}, "bounds": {"series": ["GSE9990011"], "papers": ["99900011"], "reason": "One Series, cited by one paper, and the paper names no other accession.", "split_samples": null}, "bounds_from": "draft", "status": "settled", "read_to_decide": ["GEO Series record GSE9990011", "Abstract of PMID 99900011"], "draft": {"model": "deepseek/deepseek-v4-flash", "pass": "bounds-draft/2026.11.1/EX01", "when": "2026-11-19T09:02:11+00:00", "bounds": {"series": ["GSE9990011"], "papers": ["99900011"], "reason": "One Series, cited by one paper, and the paper names no other accession.", "split_samples": null}}, "verdict": {"model": "claude-fable-5-2", "when": "2026-11-19T09:40:03+00:00", "agrees": true, "bounds": null, "reason": "The data availability statement of the paper lists GSE9990011 and nothing else, and the Series lists only this paper.", "unsure": false, "read": ["GEO Series record GSE9990011", "Full text of PMID 99900011, data availability statement"]}, "answer": {"mark": "accept", "note": "Checked the paper. One Series, as drawn.", "who": "Example Reader", "when": "2026-11-19T15:20:00+00:00"}}, {"id": "EX02", "direction": "neurodegeneration", "also_fits": ["aging"], "hard_shape": "paper_over_several_series", "reason_picked": "One paper deposited its RNA and its chromatin data as separate Series, and also re-analysed an older Series from another group.", "store_build": "2026-11-12", "records": {"series": ["GSE9990021", "GSE9990022", "GSE9990023"], "superseries": null, "bioprojects": ["PRJNA9990021", "PRJNA9990022"], "pmids": [99900021, 99900023]}, "bounds": {"series": ["GSE9990021", "GSE9990022"], "papers": ["99900021"], "reason": "The paper generated GSE9990021 and GSE9990022. GSE9990023 is an older Series it only re-analysed.", "split_samples": null}, "bounds_from": "judge", "status": "settled", "read_to_decide": ["Full text of PMID 99900021, methods and data availability", "GEO Series records GSE9990021, GSE9990022, GSE9990023"], "draft": {"model": "deepseek/deepseek-v4-flash", "pass": "bounds-draft/2026.11.1/EX02", "when": "2026-11-19T09:02:40+00:00", "bounds": {"series": ["GSE9990021", "GSE9990023"], "papers": ["99900021", "99900023"], "reason": "The abstract names GSE9990021, and GSE9990023 is linked to the same paper in GEO.", "split_samples": null}}, "verdict": {"model": "claude-fable-5-2", "when": "2026-11-19T09:44:51+00:00", "agrees": false, "bounds": {"series": ["GSE9990021", "GSE9990022"], "papers": ["99900021"], "reason": "The paper generated GSE9990021 and GSE9990022. GSE9990023 is an older Series it only re-analysed.", "split_samples": null}, "reason": "The draft missed GSE9990022, the chromatin half of the same experiment, which the abstract does not name but the data availability statement does. It also took in GSE9990023, which was deposited three years earlier by another group (PMID 99900023) and is only re-analysed here.", "unsure": false, "read": ["Full text of PMID 99900021, methods and data availability statement", "GEO Series records GSE9990021, GSE9990022, GSE9990023", "Abstract of PMID 99900023"]}, "answer": null}, {"id": "EX03", "direction": "c_elegans", "also_fits": [], "hard_shape": "series_without_paper", "reason_picked": "A Series with no paper linked in GEO. Bulk RNA from worms on two diets, eight samples.", "store_build": "2026-11-12", "records": {"series": ["GSE9990031"], "superseries": null, "bioprojects": ["PRJNA9990031"], "pmids": []}, "bounds": {"series": ["GSE9990031"], "papers": [], "reason": "One Series with no linked paper; the Series is the whole study.", "split_samples": null}, "bounds_from": "draft", "status": "unsure", "read_to_decide": ["GEO Series record GSE9990031", "A search for the Series title and the submitter's name"], "draft": {"model": "deepseek/deepseek-v4-flash", "pass": "bounds-draft/2026.11.1/EX03", "when": "2026-11-19T09:03:02+00:00", "bounds": {"series": ["GSE9990031"], "papers": [], "reason": "One Series with no linked paper; the Series is the whole study.", "split_samples": null}}, "verdict": {"model": "claude-fable-5-2", "when": "2026-11-19T09:51:17+00:00", "agrees": true, "bounds": null, "reason": "The Series stands alone in GEO. A preprint from the same group (10.1101/2099.01.01.999003) describes worms on the same two diets and may be its paper, but it never names GSE9990031 and reports twelve samples where the Series has eight. I could not tell whether it belongs.", "unsure": true, "read": ["GEO Series record GSE9990031 and its eight sample records", "A search for the Series title and the submitter's name", "Preprint 10.1101/2099.01.01.999003, methods"]}, "answer": null}, {"id": "EX04", "direction": "aging", "also_fits": [], "hard_shape": "superseries", "reason_picked": "A SuperSeries over three sub-Series from one paper. RNA, chromatin and a small validation set from aged mouse liver.", "store_build": "2026-11-12", "records": {"series": ["GSE9990041", "GSE9990042", "GSE9990043"], "superseries": "GSE9990040", "bioprojects": ["PRJNA9990040"], "pmids": [99900041]}, "bounds": {"series": ["GSE9990041", "GSE9990042", "GSE9990043"], "papers": ["99900041"], "reason": "The SuperSeries GSE9990040 groups exactly these three sub-Series, and all three cite the same paper.", "split_samples": null}, "bounds_from": "draft", "status": "settled", "read_to_decide": ["GEO SuperSeries record GSE9990040 and its three sub-Series", "Abstract of PMID 99900041"], "draft": {"model": "deepseek/deepseek-v4-flash", "pass": "bounds-draft/2026.11.1/EX04", "when": "2026-11-19T09:03:30+00:00", "bounds": {"series": ["GSE9990041", "GSE9990042", "GSE9990043"], "papers": ["99900041"], "reason": "The SuperSeries GSE9990040 groups exactly these three sub-Series, and all three cite the same paper.", "split_samples": null}}, "verdict": {"model": "claude-fable-5-2", "when": "2026-11-19T09:55:40+00:00", "agrees": true, "bounds": null, "reason": "The three sub-Series are the paper's three experiments. No sub-Series belongs to a second SuperSeries.", "unsure": false, "read": ["GEO SuperSeries record GSE9990040 and its three sub-Series", "Full text of PMID 99900041, data availability statement"]}, "answer": null}, {"id": "EX05", "direction": "c_elegans", "also_fits": ["aging"], "hard_shape": "series_with_two_studies", "reason_picked": "One Series holds the samples of two papers from the same lab. Six samples are a lifespan time course, six are a separate mutant comparison.", "store_build": "2026-11-12", "records": {"series": ["GSE9990051"], "superseries": null, "bioprojects": ["PRJNA9990051"], "pmids": [99900051, 99900052]}, "bounds": {"series": ["GSE9990051"], "papers": ["99900051"], "reason": "Only the six time-course samples belong to this study. The other six are the mutant comparison of PMID 99900052.", "split_samples": {"GSE9990051": ["GSM99900511", "GSM99900512", "GSM99900513", "GSM99900514", "GSM99900515", "GSM99900516"]}}, "bounds_from": "judge", "status": "settled", "read_to_decide": ["Full text of PMID 99900051 and PMID 99900052, methods", "The twelve sample records of GSE9990051"], "draft": {"model": "deepseek/deepseek-v4-flash", "pass": "bounds-draft/2026.11.1/EX05", "when": "2026-11-19T09:03:58+00:00", "bounds": {"series": ["GSE9990051"], "papers": ["99900051", "99900052"], "reason": "One Series cited by two papers; both papers describe it.", "split_samples": null}}, "verdict": {"model": "claude-fable-5-2", "when": "2026-11-19T10:02:26+00:00", "agrees": false, "bounds": {"series": ["GSE9990051"], "papers": ["99900051"], "reason": "Only the six time-course samples belong to this study. The other six are the mutant comparison of PMID 99900052.", "split_samples": {"GSE9990051": ["GSM99900511", "GSM99900512", "GSM99900513", "GSM99900514", "GSM99900515", "GSM99900516"]}}, "reason": "The two papers use different halves of the Series. PMID 99900051 reports the wild-type time course (days 1, 5 and 10, in duplicate); PMID 99900052 reports the day-1 mutants. The sample titles separate them cleanly, so the Series is split and each half is its own study.", "unsure": false, "read": ["Full text of PMID 99900051 and PMID 99900052, methods", "The twelve sample records of GSE9990051"]}, "answer": null}]}</script>
+<script>
+(function(){
+'use strict';
+var DATA = JSON.parse(document.getElementById('data').textContent);
+var KEY = 'standard-set-page:' + DATA.set;
+var qs = new URLSearchParams(location.search);
+if (qs.get('theme')) document.documentElement.dataset.theme = qs.get('theme');
+
+// ---- what the browser keeps: marks made here, the reader's name, the last export time
+var storageOK = true;
+var store = {who: '', marks: {}, lastExport: null, howSeen: false};
+try {
+  var raw = localStorage.getItem(KEY);
+  if (raw) { var got = JSON.parse(raw); for (var k in got) store[k] = got[k]; }
+  localStorage.setItem(KEY + ':probe', '1'); localStorage.removeItem(KEY + ':probe');
+} catch (e) { storageOK = false; }
+function save(){
+  if (!storageOK) return;
+  try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { storageOK = false; showStorageWarn(); }
+}
+function showStorageWarn(){ document.getElementById('storage-warn').hidden = storageOK; }
+
+// ---- small helpers
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function arr(x){ return Array.isArray(x) ? x.map(String) : (x == null ? [] : [String(x)]); }
+function uniq(a){ return a.filter(function(v, i){ return a.indexOf(v) === i; }); }
+function pkey(p){ return String(p).replace(/^PMID:?\s*/i, ''); }
+function day(iso){ return iso ? String(iso).slice(0, 10) : ''; }
+function recUrl(id){
+  if (/^GS[EM]\d+$/.test(id)) return 'https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=' + id;
+  if (/^PRJ[NED][A-Z]\d+$/.test(id)) return 'https://www.ncbi.nlm.nih.gov/bioproject/' + id;
+  if (/^\d+$/.test(id)) return 'https://pubmed.ncbi.nlm.nih.gov/' + id + '/';
+  if (/^10\.\d{4,9}\//.test(id)) return 'https://doi.org/' + id;
+  return null;
+}
+function recLink(id, label){
+  id = String(id); var url = recUrl(pkey(id));
+  var text = esc(label || (/^\d+$/.test(pkey(id)) ? 'PMID ' + pkey(id) : id));
+  return url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + text + '</a>' : text;
+}
+function linkify(text){
+  return esc(text).replace(/\b(GS[EM]\d+|PRJ[NED][A-Z]\d+|PMID:?\s?\d+|10\.\d{4,9}\/[^\s,;)]*[^\s,;).])/g, function(m){
+    return recLink(m.replace(/^PMID:?\s?/, ''), m); });
+}
+
+var DIRECTION = {aging: 'Aging', neurodegeneration: 'Neurodegeneration', c_elegans: 'C. elegans'};
+var SHAPE = {
+  recites_older_series: 'Paper reuses an older Series',
+  paper_over_several_series: 'One paper, several Series',
+  superseries: 'SuperSeries',
+  series_with_two_studies: 'One Series holds two studies',
+  series_without_paper: 'Series with no paper'
+};
+var CATS = ['differ', 'unsure', 'nocheck', 'agree'];
+var CAT_HEAD = {differ: 'Judge disagreed with the draft', unsure: 'Judge agreed, but is not sure',
+  nocheck: 'Not checked by the judge yet', agree: 'Draft and judge agree'};
+var MARK_WORD = {accept: 'accept', fix: 'fix', drop: 'drop'};
+
+function cat(s){
+  var v = s.verdict;
+  if (!v) return 'nocheck';
+  if (v.agrees === false) return 'differ';
+  if (v.unsure || s.status === 'unsure') return 'unsure';
+  return 'agree';
+}
+var studies = DATA.studies.slice().sort(function(a, b){
+  return CATS.indexOf(cat(a)) - CATS.indexOf(cat(b)) || String(a.id).localeCompare(String(b.id), undefined, {numeric: true});
+});
+var byId = {}; studies.forEach(function(s){ byId[s.id] = s; });
+var current = null, onlyOpen = false;
+
+// ---- bounds on each side
+function draftB(s){ return (s.draft && s.draft.bounds) || null; }
+function judgeB(s){
+  var v = s.verdict; if (!v) return null;
+  if (v.agrees === false) return v.bounds || null;
+  return v.bounds || draftB(s) || s.bounds || null;
+}
+function usedB(s){ return s.bounds || judgeB(s) || draftB(s) || {}; }
+function splitOf(b, id){ return (b && b.split_samples && b.split_samples[id]) ? arr(b.split_samples[id]) : null; }
+
+// ---- the person's answer: a mark made here wins over one already filed with the study
+function effective(s){
+  var m = store.marks[s.id];
+  if (m && m.mark) return {mark: m.mark, note: m.note || '', when: m.when, src: 'here'};
+  var a = s.answer;
+  if (a && a.mark) return {mark: a.mark, note: a.note || '', when: a.when, who: a.who, src: 'filed'};
+  return null;
+}
+function heldHere(){ return studies.filter(function(s){ var m = store.marks[s.id]; return m && m.mark; }); }
+function notExported(){
+  return heldHere().filter(function(s){ return !store.lastExport || store.marks[s.id].when > store.lastExport; }).length;
+}
+
+// ---- list
+function renderList(){
+  var html = '<div class="filters"><button data-filter="all" aria-pressed="' + (!onlyOpen) + '">All</button>' +
+    '<button data-filter="open" aria-pressed="' + onlyOpen + '">Not marked yet</button></div>';
+  var shown = 0;
+  CATS.forEach(function(c){
+    var all = studies.filter(function(s){ return cat(s) === c; });
+    if (!all.length) return;
+    var rows = all.filter(function(s){ return !onlyOpen || !effective(s) || s.id === current; });
+    html += '<div class="group g-' + c + '">' + CAT_HEAD[c] + ' <span class="n">' + all.length + '</span></div>';
+    rows.forEach(function(s){
+      var e = effective(s); shown++;
+      var meta = (DIRECTION[s.direction] || s.direction || '') + (s.hard_shape ? ' · ' + (SHAPE[s.hard_shape] || s.hard_shape) : '');
+      html += '<button class="row c-' + c + '" data-id="' + esc(s.id) + '"' + (s.id === current ? ' aria-current="true"' : '') + '>' +
+        '<span class="rid">' + esc(s.id) + '</span><span class="rmeta">' + esc(meta) + '</span>' +
+        (e ? '<span class="pill m-' + e.mark + (e.src === 'filed' ? ' filed' : '') + '" title="' +
+              (e.src === 'filed' ? 'Filed with the study' : 'Marked in this browser') + '">' + MARK_WORD[e.mark] + '</span>'
+           : '<span class="pill m-none">to read</span>') + '</button>';
+    });
+  });
+  if (!shown) html += '<div class="empty">Every study has a mark. Press Export answers.</div>';
+  $('list').innerHTML = html;
+}
+
+// ---- the membership table: one row per record, one column per reader
+function memCell(b, list, id, kind){
+  if (!b) return '<td class="c out">no reading</td>';
+  var isIn = list.indexOf(id) >= 0, part = kind === 'series' ? splitOf(b, id) : null;
+  if (isIn && part) return '<td class="c in">part of it<small>' + part.length + ' samples</small></td>';
+  return isIn ? '<td class="c in">belongs</td>' : '<td class="c out">left out</td>';
+}
+function memRows(s, kind, m){
+  var rec = s.records || {}, d = draftB(s), j = judgeB(s), u = s.bounds || {};
+  var fixing = m && m.mark === 'fix';
+  var norm = kind === 'series' ? String : pkey;
+  var field = kind === 'series' ? 'series' : 'papers';
+  var known = arr(kind === 'series' ? rec.series : rec.pmids).map(norm);
+  var dl = arr(d && d[field]).map(norm), jl = arr(j && j[field]).map(norm);
+  var ids = uniq(known.concat(dl, jl, arr(u[field]).map(norm)));
+  if (!ids.length) return kind === 'papers'
+    ? '<tr><td class="rec muted" colspan="' + (fixing ? 4 : 3) + '">No paper is linked in the records.</td></tr>' : '';
+  return ids.map(function(id){
+    var differs = d && j && ((dl.indexOf(id) >= 0) !== (jl.indexOf(id) >= 0) ||
+      JSON.stringify(splitOf(d, id)) !== JSON.stringify(splitOf(j, id)));
+    var mine = fixing ? arr(m[field]) : [];
+    return '<tr' + (differs ? ' class="diff"' : '') + '><td class="rec">' + recLink(id) +
+      (differs ? '<span class="flag">draft and judge differ</span>' : '') +
+      (known.indexOf(id) < 0 ? '<span class="ext">not among the linked records</span>' : '') + '</td>' +
+      memCell(d, dl, id, kind) + memCell(j, jl, id, kind) +
+      (fixing ? '<td class="c yours"><label><input type="checkbox" data-pick="' + field + '" value="' + esc(id) + '"' +
+        (mine.indexOf(id) >= 0 ? ' checked' : '') + '> belongs</label></td>' : '') + '</tr>';
+  }).join('');
+}
+function splitBlock(s, m){
+  var d = draftB(s), j = judgeB(s), fixing = m && m.mark === 'fix';
+  var ids = uniq(Object.keys((d && d.split_samples) || {}).concat(Object.keys((j && j.split_samples) || {}),
+    Object.keys((s.bounds && s.bounds.split_samples) || {})));
+  if (!ids.length && !fixing) return '';
+  function side(b, id){
+    if (!b) return '<span class="muted">no reading</span>';
+    var p = splitOf(b, id);
+    if (!p) return arr(b.series).indexOf(id) >= 0 ? 'the whole Series' : '<span class="muted">left out</span>';
+    return p.map(function(g){ return '<span class="chip">' + recLink(g) + '</span>'; }).join('');
+  }
+  var html = ids.map(function(id){
+    return '<div class="split"><b>' + recLink(id) + ' is shared with another study.</b> Only some of its samples belong to this one.' +
+      '<div class="cols"><div><div class="lab">Draft</div>' + side(d, id) + '</div>' +
+      '<div><div class="lab">Judge</div>' + side(j, id) + '</div></div></div>';
+  }).join('');
+  return html;
+}
+function fixExtra(s, m){
+  if (!m || m.mark !== 'fix') return '';
+  var series = arr(m.series), html = '<div class="fixextra">';
+  html += '<label>Something else belongs that is not listed above? Type its GEO Series, PMID or DOI, separated by commas.' +
+    '<input data-fix="extra" value="' + esc(m.extra || '') + '" placeholder="GSE…, 12345678"></label>';
+  html += '<label>Only part of a Series belongs? List the samples that do, as Series: samples. Leave empty when whole Series belong.' +
+    '<textarea data-fix="split" rows="2" placeholder="' + esc((series[0] || 'GSE…') + ': GSM…, GSM…') + '">' + esc(m.split || '') + '</textarea></label>';
+  return html + '</div>';
+}
+
+// ---- one open study
+function renderDetail(){
+  var s = byId[current];
+  if (!s) { $('detail').innerHTML = '<p class="empty">No studies in this folder.</p>'; return; }
+  var c = cat(s), v = s.verdict, d = s.draft, rec = s.records || {}, m = store.marks[s.id], e = effective(s);
+  var pos = studies.indexOf(s) + 1, from = s.bounds_from, fixing = m && m.mark === 'fix';
+  var banner = {
+    differ: '<b>The judge disagreed with the draft.</b> The judge’s version is the one in use. The rows where the two differ are highlighted.' +
+            (v && v.unsure ? ' <b>The judge is also not sure.</b>' : ''),
+    unsure: '<b>The judge agreed with the draft, but is not sure.</b> Its doubt is in its reason below.',
+    nocheck: '<b>The judge has not read this study yet.</b> Only the draft is shown.',
+    agree: '<b>The draft and the judge agree.</b>'
+  }[c];
+  var html = '<header class="dh"><div class="crumbs">Study ' + pos + ' of ' + studies.length +
+    ' <span class="tag">' + esc(DIRECTION[s.direction] || s.direction || 'no direction') + '</span>' +
+    '<span class="tag">' + esc(s.hard_shape ? (SHAPE[s.hard_shape] || s.hard_shape) : 'Plain case') + '</span>' +
+    (arr(s.also_fits).length ? '<span>also fits ' + esc(arr(s.also_fits).map(function(x){ return DIRECTION[x] || x; }).join(', ')) + '</span>' : '') +
+    '<span class="spacer"></span><button class="btn small" data-move="-1"' + (pos === 1 ? ' disabled' : '') + '>← Previous<kbd>K</kbd></button>' +
+    '<button class="btn small" data-move="1"' + (pos === studies.length ? ' disabled' : '') + '>Next →<kbd>J</kbd></button>' +
+    '</div><h2>' + esc(s.id) + '</h2>' +
+    (s.reason_picked ? '<p class="why"><b>Why it is in the set.</b> ' + linkify(s.reason_picked) + '</p>' : '') + '</header>';
+  html += '<div class="banner b-' + c + '">' + banner + '</div>';
+
+  var linked = [];
+  if (rec.superseries) linked.push('SuperSeries ' + recLink(rec.superseries));
+  arr(rec.bioprojects).forEach(function(p){ linked.push('BioProject ' + recLink(p)); });
+  html += '<div class="linked">' + (linked.length ? 'Also linked: ' + linked.join(' · ') + '. ' : '') +
+    (s.store_build ? 'Records as they stood on ' + esc(day(s.store_build)) + '.' : '') + '</div>';
+
+  html += '<section class="card"><h3>What belongs to this study</h3><table class="mem"><thead><tr><th>Record (opens GEO or PubMed)</th>' +
+    '<th>Draft' + (from === 'draft' ? '<span class="used">in use</span>' : '') + '</th>' +
+    '<th>Judge' + (from === 'judge' ? '<span class="used">in use</span>' : '') + '</th>' +
+    (fixing ? '<th>Your fix</th>' : '') + '</tr></thead><tbody>' +
+    '<tr class="sep"><td colspan="' + (fixing ? 4 : 3) + '">GEO Series</td></tr>' + memRows(s, 'series', m) +
+    '<tr class="sep"><td colspan="' + (fixing ? 4 : 3) + '">Papers</td></tr>' + memRows(s, 'papers', m) +
+    '</tbody></table>' + splitBlock(s, m) + fixExtra(s, m) + '</section>';
+
+  var read = arr(v && v.read).length ? arr(v.read) : arr(s.read_to_decide);
+  html += '<div class="pair"><section class="card"><h3>The draft’s reason</h3>' +
+    (d ? '<p>' + linkify((d.bounds && d.bounds.reason) || 'No reason given.') + '</p>' +
+         '<div class="who-when">Drafted ' + esc(day(d.when)) + ' by ' + esc(d.model || 'a model') +
+         ', from the GEO records and the paper abstract only.</div>'
+       : '<p class="muted">No draft file for this study.</p>') + '</section>';
+  html += '<section class="card"><h3>The judge’s reason</h3>' +
+    (v ? (v.unsure ? '<span class="unsure-note">Not sure.</span> ' : '') + '<p>' + linkify(v.reason || 'No reason given.') + '</p>' +
+         (read.length ? '<div class="subh">What the judge had to read</div><ul>' +
+            read.map(function(r){ return '<li>' + linkify(r) + '</li>'; }).join('') + '</ul>' : '') +
+         '<div class="who-when">Checked ' + esc(day(v.when)) + ' by ' + esc(v.model || 'a model') + '.</div>'
+       : '<p class="muted">No judge file for this study.</p>') + '</section></div>';
+
+  var note = m ? (m.note || '') : '';
+  var state = !e ? 'Not marked yet.'
+    : e.src === 'filed' ? 'Already filed with this study: <b>' + MARK_WORD[e.mark] + '</b>' + (e.who ? ' by ' + esc(e.who) : '') +
+        ' on ' + esc(day(e.when)) + (e.note ? ', with the note “' + esc(e.note) + '”' : '') + '. Mark it again only if you changed your mind.'
+    : 'You marked this <b>' + MARK_WORD[e.mark] + '</b> on ' + esc(day(e.when)) + '. It is held in this browser until you export.';
+  function mk(mark, label, key, hint){
+    return '<button class="mk ' + mark + '" data-mark="' + mark + '" aria-pressed="' + !!(e && e.mark === mark) + '">' +
+      label + '<small>' + hint + '</small><kbd>' + key + '</kbd></button>';
+  }
+  html += '<div class="markbar"><div class="markrow">' +
+    mk('accept', 'Accept', 'A', 'the bounds in use are right') + mk('fix', 'Fix', 'F', 'tick what belongs') +
+    mk('drop', 'Drop', 'D', 'take it out of the set') +
+    (m ? '<button class="link" data-clear>Clear my mark</button>' : '') + '</div>' +
+    '<textarea id="note" rows="1" placeholder="Note. For Fix or Drop, say what is wrong.">' + esc(note) + '</textarea>' +
+    '<div class="markstate">' + state + '</div></div>';
+  $('detail').innerHTML = html;
+}
+
+function renderTop(){
+  var marked = studies.filter(effective).length, held = heldHere().length, pending = notExported();
+  $('prog-text').textContent = marked + ' of ' + studies.length + ' studies marked';
+  $('prog-bar').style.width = (studies.length ? 100 * marked / studies.length : 0) + '%';
+  $('export').textContent = 'Export answers (' + held + ')';
+  $('export').disabled = !held;
+  $('export-hint').textContent = !held ? 'nothing marked in this browser yet'
+    : pending ? pending + ' not exported yet' : 'all exported';
+  document.documentElement.style.setProperty('--top-h', $('top').offsetHeight + 'px');
+}
+function renderAll(){ renderTop(); renderList(); renderDetail(); }
+
+// ---- actions
+function open(id, keepScroll){
+  if (!byId[id]) return;
+  current = id;
+  try { history.replaceState(null, '', '#' + encodeURIComponent(id)); } catch (e) {}
+  renderAll();
+  if (!keepScroll) window.scrollTo(0, 0);
+  var row = document.querySelector('.row[aria-current="true"]');
+  if (row && row.scrollIntoView) row.scrollIntoView({block: 'nearest'});
+}
+function move(step){
+  var i = studies.indexOf(byId[current]) + step;
+  if (i >= 0 && i < studies.length) open(studies[i].id);
+}
+function entry(id){
+  if (!store.marks[id]) store.marks[id] = {mark: null, note: ''};
+  return store.marks[id];
+}
+function setMark(id, mark){
+  var s = byId[id], m = entry(id);
+  m.mark = mark; m.when = new Date().toISOString();
+  if (mark === 'fix' && !m.series) {
+    var u = usedB(s);
+    m.series = arr(u.series); m.papers = arr(u.papers).map(pkey); m.extra = '';
+    m.split = Object.keys(u.split_samples || {}).map(function(k){ return k + ': ' + arr(u.split_samples[k]).join(', '); }).join('\n');
+  }
+  save();
+  if (mark === 'accept') {
+    var i = studies.indexOf(s), next = null;
+    for (var n = 1; n <= studies.length && !next; n++) { var t = studies[(i + n) % studies.length]; if (!effective(t)) next = t; }
+    if (next) { open(next.id); return; }
+  }
+  renderAll();
+  if (mark !== 'accept') { var note = $('note'); if (note) note.focus(); }
+}
+function clearMark(id){ delete store.marks[id]; save(); renderAll(); }
+
+function fixBounds(m){
+  var extra = String(m.extra || '').split(/[,\s]+/).filter(Boolean).map(pkey);
+  var series = uniq(arr(m.series).concat(extra.filter(function(x){ return /^GSE\d+$/i.test(x); }).map(function(x){ return x.toUpperCase(); })));
+  var papers = uniq(arr(m.papers).concat(extra.filter(function(x){ return !/^GSE\d+$/i.test(x); })));
+  var split = {};
+  String(m.split || '').split('\n').forEach(function(line){
+    var mm = line.match(/^\s*(GSE\d+)\s*:\s*(.+)$/i); if (!mm) return;
+    var gsms = mm[2].split(/[,\s]+/).filter(Boolean);
+    if (gsms.length) split[mm[1].toUpperCase()] = gsms;
+  });
+  return {series: series, papers: papers, split_samples: Object.keys(split).length ? split : null};
+}
+function buildExport(){
+  var who = store.who.trim();
+  var answers = heldHere().map(function(s){
+    var m = store.marks[s.id];
+    var a = {id: s.id, mark: m.mark, note: String(m.note || '').trim(), who: who, when: m.when};
+    if (m.mark === 'fix') a.bounds = fixBounds(m);
+    a.read_against = {bounds_from: s.bounds_from || null, draft_when: (s.draft && s.draft.when) || null,
+                      verdict_when: (s.verdict && s.verdict.when) || null};
+    return a;
+  });
+  return {format: 'seqforge-standard-set-answers/1', set: DATA.set, page_built: DATA.built,
+          exported: new Date().toISOString(), who: who, answers: answers};
+}
+function doExport(){
+  if (!store.who.trim()) {
+    var w = $('who'); w.classList.add('need'); w.placeholder = 'type your name first'; w.focus(); return;
+  }
+  var out = buildExport(), text = JSON.stringify(out, null, 2) + '\n';
+  var slug = store.who.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'reader';
+  var name = 'answers-' + DATA.set + '-' + out.exported.slice(0, 16).replace(/[-:]/g, '').replace('T', '-') + '-' + slug + '.json';
+  try {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], {type: 'application/json'}));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) {}
+  store.lastExport = out.exported; save();
+  var box = $('exported');
+  box.hidden = false;
+  box.innerHTML = '<b>Saved ' + out.answers.length + ' answer' + (out.answers.length === 1 ? '' : 's') + ' as ' + esc(name) +
+    '</b> in your downloads folder. Send that file to whoever keeps the study set, or file it yourself: ' +
+    '<code>' + esc(DATA.file_command.replace('ANSWERS', name)) + '</code>' +
+    '<details><summary class="muted">The download did not appear? Copy the text instead</summary><pre>' + esc(text) + '</pre></details>';
+  renderTop();
+}
+
+// ---- wiring
+document.addEventListener('click', function(ev){
+  var t = ev.target.closest('button'); if (!t) return;
+  if (t.dataset.id) open(t.dataset.id);
+  else if (t.dataset.filter) { onlyOpen = t.dataset.filter === 'open'; renderList(); }
+  else if (t.dataset.mark) setMark(current, t.dataset.mark);
+  else if ('clear' in t.dataset) clearMark(current);
+  else if (t.dataset.move) move(+t.dataset.move);
+  else if (t.id === 'export') doExport();
+});
+document.addEventListener('input', function(ev){
+  var t = ev.target;
+  if (t.id === 'who') { store.who = t.value; t.classList.remove('need'); save(); return; }
+  if (t.id === 'note') { var m = entry(current); m.note = t.value; if (m.mark) m.when = new Date().toISOString(); save(); renderTop(); return; }
+  if (t.dataset.fix) { var f = entry(current); f[t.dataset.fix] = t.value; f.when = new Date().toISOString(); save(); renderTop(); }
+});
+document.addEventListener('change', function(ev){
+  var t = ev.target; if (!t.dataset.pick) return;
+  var m = entry(current), list = arr(m[t.dataset.pick]).filter(function(x){ return x !== t.value; });
+  if (t.checked) list.push(t.value);
+  m[t.dataset.pick] = list; m.when = new Date().toISOString(); save(); renderTop();
+});
+document.addEventListener('keydown', function(ev){
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  var t = ev.target;
+  if (t.matches && t.matches('input,textarea')) { if (ev.key === 'Escape') t.blur(); return; }
+  var k = ev.key.toLowerCase();
+  if (k === 'j' || ev.key === 'ArrowRight') move(1);
+  else if (k === 'k' || ev.key === 'ArrowLeft') move(-1);
+  else if (k === 'a') setMark(current, 'accept');
+  else if (k === 'f') setMark(current, 'fix');
+  else if (k === 'd') setMark(current, 'drop');
+  else if (k === 'u') clearMark(current);
+  else if (k === 'n') { var n = $('note'); if (n) n.focus(); }
+  else return;
+  ev.preventDefault();
+});
+window.addEventListener('beforeunload', function(ev){
+  if (!storageOK && notExported()) { ev.preventDefault(); ev.returnValue = ''; }
+});
+window.addEventListener('resize', renderTop);
+$('how').addEventListener('toggle', function(){ if (!store.howSeen) { store.howSeen = true; save(); } });
+
+// ---- start
+document.title = DATA.title;
+$('title').textContent = DATA.title;
+$('sub').textContent = studies.length + ' studies · page written ' + day(DATA.built);
+if (DATA.notice) { $('notice').hidden = false; $('notice').textContent = DATA.notice; }
+$('who').value = store.who || '';
+$('how').open = !store.howSeen;
+showStorageWarn();
+var want = decodeURIComponent(location.hash.slice(1));
+var first = studies.filter(function(s){ return !effective(s); })[0] || studies[0];
+current = byId[want] ? want : (first && first.id);
+if (current) open(current, true); else renderAll();
+})();
+</script>
+</body>
+</html>

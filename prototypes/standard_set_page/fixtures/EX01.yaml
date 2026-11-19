@@ -1,0 +1,22 @@
+# EXAMPLE DATA, made up for the reading-page prototype. Not a real study; the identifiers do not exist.
+id: EX01
+direction: aging
+also_fits: []
+hard_shape: null
+reason_picked: Plain case. One Series, one paper, single-nucleus RNA from young and old mouse hippocampus.
+store_build: 2026-11-12
+records:
+  series: [GSE9990011]
+  superseries: null
+  bioprojects: [PRJNA9990011]
+  pmids: [99900011]
+bounds:
+  series: [GSE9990011]
+  papers: ["99900011"]
+  reason: One Series, cited by one paper, and the paper names no other accession.
+  split_samples: null
+bounds_from: draft
+status: settled
+read_to_decide:
+  - GEO Series record GSE9990011
+  - Abstract of PMID 99900011

@@ -1,0 +1,22 @@
+# EXAMPLE DATA, made up for the reading-page prototype. Not a real study; the identifiers do not exist.
+id: EX02
+direction: neurodegeneration
+also_fits: [aging]
+hard_shape: paper_over_several_series
+reason_picked: One paper deposited its RNA and its chromatin data as separate Series, and also re-analysed an older Series from another group.
+store_build: 2026-11-12
+records:
+  series: [GSE9990021, GSE9990022, GSE9990023]
+  superseries: null
+  bioprojects: [PRJNA9990021, PRJNA9990022]
+  pmids: [99900021, 99900023]
+bounds:
+  series: [GSE9990021, GSE9990022]
+  papers: ["99900021"]
+  reason: The paper generated GSE9990021 and GSE9990022. GSE9990023 is an older Series it only re-analysed.
+  split_samples: null
+bounds_from: judge
+status: settled
+read_to_decide:
+  - Full text of PMID 99900021, methods and data availability
+  - GEO Series records GSE9990021, GSE9990022, GSE9990023
