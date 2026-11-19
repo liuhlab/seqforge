@@ -13,6 +13,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -293,7 +294,8 @@ def test_a_setup_the_pass_cannot_use_exits_2_with_a_one_line_reason(
     assert result.stdout == ""
     assert echo_gateway.record == []
     if reason is None:  # the ceiling has no default: leaving it out is the CLI's usage error
-        assert "--ceiling-usd" in result.stderr
+        # Typer colours its usage errors under CI, which splits the option name with styles.
+        assert "--ceiling-usd" in re.sub(r"\x1b\[[0-9;]*m", "", result.stderr)
     else:
         # One line says why; a pass that started first writes only its own progress lines before it.
         *progress, last = result.stderr.strip().splitlines()
