@@ -15,15 +15,6 @@ records:
   - PRJNA533218
   pmids:
   - '31815663'
-bounds:
-  series:
-  - GSE129928
-  papers:
-  - pmid:31815663
-  reason: One ChIP-seq Series profiling H3K9me2 across generations in wild-type and chromatin modifier
-    mutants, reported by one paper
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

@@ -1,0 +1,16 @@
+format: 1
+study: GSE129928
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE129928
+  inferred: One ChIP-seq Series profiling H3K9me2 across generations in wild-type and chromatin modifier
+    mutants, reported by one paper
+  p: null
+papers:
+- pmid:31815663
+left_out: []
+reason: One ChIP-seq Series profiling H3K9me2 across generations in wild-type and chromatin modifier mutants,
+  reported by one paper
+passages: {}

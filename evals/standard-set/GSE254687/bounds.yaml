@@ -1,0 +1,26 @@
+format: 1
+study: GSE254687
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE254687
+  inferred: Both Series report the PARK7/DJ-1 microglia LPS study by the same paper; GSE256105 adds the
+    24h single-cell comparison
+  p: null
+- id: GSE256105
+  inferred: Both Series report the PARK7/DJ-1 microglia LPS study by the same paper; GSE256105 adds the
+    24h single-cell comparison
+  p: null
+papers:
+- pmid:39014482
+left_out:
+- id: GSE115571
+  inferred: Prior LPS microglia dataset re-used for comparison
+  p: null
+- id: pmid:30206190
+  inferred: Earlier paper reporting the re-used dataset
+  p: null
+reason: Both Series report the PARK7/DJ-1 microglia LPS study by the same paper; GSE256105 adds the 24h
+  single-cell comparison
+passages: {}

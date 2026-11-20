@@ -1,0 +1,16 @@
+format: 1
+study: GSE182981
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE182981
+  inferred: One Series reports RNA-seq of C. elegans on normal versus high-glucose diets and the single
+    linked paper describes it
+  p: null
+papers:
+- pmid:36261415
+left_out: []
+reason: One Series reports RNA-seq of C. elegans on normal versus high-glucose diets and the single linked
+  paper describes it
+passages: {}

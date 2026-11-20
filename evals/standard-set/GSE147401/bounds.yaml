@@ -1,0 +1,20 @@
+format: 1
+study: GSE147401
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE147401
+  inferred: ChIP-seq and RNA-seq of C. elegans germline characterizing OEF-1 in wild type and oef-1 mutants
+  p: null
+papers:
+- pmid:34519784
+left_out:
+- id: GSE107190
+  inferred: Older ChIP-seq dataset from prior OEF-1 study
+  p: null
+- id: pmid:29167199
+  inferred: Earlier paper reporting the older dataset
+  p: null
+reason: ChIP-seq and RNA-seq of C. elegans germline characterizing OEF-1 in wild type and oef-1 mutants
+passages: {}

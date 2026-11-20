@@ -1,0 +1,14 @@
+format: 1
+study: GSE275435
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE275435
+  inferred: Single RNA-seq Series and its one reporting paper on KChIP3 in 5XFAD mice.
+  p: null
+papers:
+- pmid:40537787
+left_out: []
+reason: Single RNA-seq Series and its one reporting paper on KChIP3 in 5XFAD mice.
+passages: {}

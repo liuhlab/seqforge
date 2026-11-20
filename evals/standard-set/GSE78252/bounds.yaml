@@ -1,0 +1,16 @@
+format: 1
+study: GSE78252
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE78252
+  inferred: One RNA-seq Series profiling cco-1 RNAi mitochondrial stress response in wild-type and chromatin
+    mutant C. elegans, reported by one paper
+  p: null
+papers:
+- pmid:27133166
+left_out: []
+reason: One RNA-seq Series profiling cco-1 RNAi mitochondrial stress response in wild-type and chromatin
+  mutant C. elegans, reported by one paper
+passages: {}

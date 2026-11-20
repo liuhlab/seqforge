@@ -1,0 +1,17 @@
+format: 1
+study: GSE132886
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE132886
+  inferred: Same Series and matching abstract describe RNA-seq of mouse uteri across ages
+  p: null
+papers:
+- pmid:33258951
+left_out:
+- id: pmid:39010112
+  inferred: Re-uses GSE132886 data for functional follow-up on IL17RB
+  p: null
+reason: Same Series and matching abstract describe RNA-seq of mouse uteri across ages
+passages: {}

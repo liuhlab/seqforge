@@ -1,0 +1,16 @@
+format: 1
+study: GSE235532
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE235532
+  inferred: One ChIP-seq dataset profiling two histone marks in wild-type and LKRSDH mutant fly heads
+    at two ages
+  p: null
+papers:
+- pmid:38637528
+left_out: []
+reason: One ChIP-seq dataset profiling two histone marks in wild-type and LKRSDH mutant fly heads at two
+  ages
+passages: {}

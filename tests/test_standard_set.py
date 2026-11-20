@@ -1,4 +1,4 @@
-"""Drawing a study of the standard set: the drafting pass, the draft file, and the judged study file.
+"""Drawing a study of the standard set: the drafting pass, the draft file, and the judged study's files.
 
 Both models are faked. The drafting model is liulab-llms's fake gateway behind ``seqforge pass``;
 the judging model is a function in place of the headless command. No test reads a store: the linked
@@ -22,6 +22,7 @@ from typer.testing import CliRunner
 from seqforge.cli import app
 from seqforge.passes.kinds import KINDS, Kind
 from seqforge.standard_set import draft, judge
+from seqforge.study.bounds import check_bounds
 
 runner = CliRunner()
 WHEN = dt.datetime(2026, 11, 19, 12, 0, tzinfo=dt.UTC)
@@ -88,7 +89,6 @@ def _bounds(left_out: dict[str, str]) -> dict[str, Any]:
         "papers": ["pmid:11"],
         "reason": "The older Series and its own paper.",
         "left_out": [{"id": k, "reason": v} for k, v in left_out.items()],
-        "split_samples": [],
     }
 
 
@@ -152,18 +152,13 @@ def test_a_draft_that_leaves_a_linked_record_unplaced_is_kept_and_says_so(drafte
             {"series": ["pmid:11"], "papers": ["GSE1"]}, "wrong list", id="a paper as a Series"
         ),
         pytest.param({"series": ["GSE1", "GSE1"]}, "more than once in series", id="a Series twice"),
-        pytest.param(
-            {"split_samples": [{"series": "GSE1", "samples": ["GSM1"]}] * 2},
-            "more than once in split_samples",
-            id="a Series split twice",
-        ),
     ],
 )
 def test_bounds_name_each_record_once_and_in_the_list_of_its_own_kind(
     change: dict[str, Any], problem: str
 ) -> None:
-    """The study files key their lists by identifier, so a repeat or a paper among the Series
-    would be lost or misread there: it is refused while it is still what the model wrote."""
+    """The draft and the verdict key their lists by identifier, so a repeat or a paper among the
+    Series would be lost or misread there: it is refused while it is still what the model wrote."""
     assert draft.bounds_problems(_bounds(COMPLETE), _group("S1")) == []
 
     problems = draft.bounds_problems({**_bounds(COMPLETE), **change}, _group("S1"))
@@ -218,8 +213,9 @@ def _run_judge(set_dir: Path, tmp_path: Path) -> dict[str, Any]:
 def test_where_the_judge_disagrees_its_bounds_become_the_study_and_the_draft_stays(
     drafted: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """One round: the judge's version wins, an unsure study stays, flagged, and no file of the
-    study is overwritten -- not the draft now, and not the verdict by a second call."""
+    """One round: the judge's version wins and is written as the study's bounds file, an unsure
+    study stays, flagged, and no file of the study is overwritten -- not the draft now, and not the
+    verdict by a second call."""
     before = (drafted / "S2" / "draft.yaml").read_text()
     verdict = {
         "agrees": False,
@@ -234,8 +230,13 @@ def test_where_the_judge_disagrees_its_bounds_become_the_study_and_the_draft_sta
 
     study = yaml.safe_load((drafted / "S2" / "study.yaml").read_text())
     saved = yaml.safe_load((drafted / "S2" / "verdict.yaml").read_text())
+    bounds = yaml.safe_load((drafted / "S2" / "bounds.yaml").read_text())
     assert (account["bounds_from"], account["status"]) == ("judge", "unsure")
-    assert study["bounds"]["left_out"] == COMPLETE
+    assert "bounds" not in study
+    assert check_bounds(bounds) == []
+    assert (bounds["study"], [claim["id"] for claim in bounds["series"]]) == ("S2", ["GSE1"])
+    assert {claim["id"]: claim["inferred"] for claim in bounds["left_out"]} == COMPLETE
+    assert bounds["models"] == {"bounds": judge.JUDGE_MODEL, "probabilities": None}
     assert (study["bounds_from"], study["status"]) == ("judge", "unsure")
     assert study["read_to_decide"] == ["records", "full_paper"]
     assert study["records"]["series"] == ["GSE1", "GSE2"]
@@ -244,13 +245,14 @@ def test_where_the_judge_disagrees_its_bounds_become_the_study_and_the_draft_sta
     with pytest.raises(judge.JudgeStopped, match="already judged"):
         _run_judge(drafted, tmp_path)
 
-    # A call cut off after the verdict left no study file. The next call finishes the pair from
-    # the draft and the verdict, and must not ask the judge again.
-    whole = (drafted / "S2" / "study.yaml").read_text()
-    (drafted / "S2" / "study.yaml").unlink()
+    # A call cut off after the verdict left no bounds file and no study file. The next call
+    # finishes both from the draft and the verdict, and must not ask the judge again.
+    whole = {name: (drafted / "S2" / name).read_text() for name in ("bounds.yaml", "study.yaml")}
+    for name in whole:
+        (drafted / "S2" / name).unlink()
     monkeypatch.setattr(judge, "ask_claude", lambda prompt, folder: pytest.fail("asked again"))
     assert _run_judge(drafted, tmp_path)["finished_from_verdict"] is True
-    assert (drafted / "S2" / "study.yaml").read_text() == whole
+    assert {name: (drafted / "S2" / name).read_text() for name in whole} == whole
 
 
 @pytest.mark.parametrize(
@@ -286,8 +288,9 @@ def test_a_judge_that_leaves_no_usable_bounds_stops_the_study_and_writes_nothing
 @pytest.mark.repo
 def test_the_standard_set_lists_fifty_studies_each_with_identifiers_reason_and_bounds() -> None:
     """The repo's own set, through the listing command: every study still in the pick is drawn, and
-    nothing else is. A study added or dropped without the pick, a direction split that drifted, or
-    a study file missing what later stages read goes red here."""
+    nothing else is. A study added or dropped without the pick, a direction split that drifted, a
+    study file missing what later stages read, or a bounds file that is not in the current format
+    goes red here."""
     from seqforge.standard_set import default_set_dir
     from seqforge.standard_set.material import pick_entries
 
@@ -304,6 +307,7 @@ def test_the_standard_set_lists_fifty_studies_each_with_identifiers_reason_and_b
     for key, study in listed.items():
         assert study["reason_picked"], key
         assert study["records"]["series"], key
-        assert study["bounds"]["series"], key
-        assert study["bounds"]["reason"], key
-        assert set(study["bounds"]["series"]) <= set(study["records"]["series"]), key
+        bounds = study["bounds"]
+        assert check_bounds(bounds) == [], key
+        assert bounds["study"] == key
+        assert {claim["id"] for claim in bounds["series"]} <= set(study["records"]["series"]), key

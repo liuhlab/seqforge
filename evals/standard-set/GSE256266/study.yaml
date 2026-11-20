@@ -15,14 +15,6 @@ records:
   - PRJNA1078821
   pmids:
   - '40527319'
-bounds:
-  series:
-  - GSE256266
-  papers:
-  - pmid:40527319
-  reason: One Series of snRNA-seq glia from hermaphrodite and male worms, reported by one paper.
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

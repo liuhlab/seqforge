@@ -1,0 +1,15 @@
+format: 1
+study: GSE335500
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE335500
+  inferred: One Series and its paper reporting bulk RNA-seq of APOE3 vs APOE4 astrocyte-grafted AD mouse
+    cortex
+  p: null
+papers:
+- pmid:42570239
+left_out: []
+reason: One Series and its paper reporting bulk RNA-seq of APOE3 vs APOE4 astrocyte-grafted AD mouse cortex
+passages: {}

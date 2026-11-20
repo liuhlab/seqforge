@@ -1,0 +1,14 @@
+format: 1
+study: GSE310667
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE310667
+  inferred: One Series of scRNA-seq profiles of L1 C. elegans neurons, reported by one preprint
+  p: null
+papers:
+- pmid:41332732
+left_out: []
+reason: One Series of scRNA-seq profiles of L1 C. elegans neurons, reported by one preprint
+passages: {}

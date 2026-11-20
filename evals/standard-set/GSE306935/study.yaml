@@ -17,16 +17,6 @@ records:
   pmids:
   - '32198156'
   - '41256688'
-bounds:
-  series:
-  - GSE306935
-  papers:
-  - pmid:41256688
-  reason: scRNA-seq of adult, aged, and ISR-treated aged MuSCs after 18h activation.
-  left_out:
-    GSE143476: Separate study on activation kinetics, samples not reused here
-    pmid:32198156: Reports the separate GSE143476 activation kinetics study
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

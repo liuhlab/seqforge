@@ -1,0 +1,22 @@
+format: 1
+study: GSE101112
+models:
+  bounds: claude-fable-5-2
+  probabilities: null
+series:
+- id: GSE101112
+  inferred: The 2019 eLife paper is the one that generated and reports the SAMP8 hippocampus and rat neuron
+    RNA-seq held in this Series.
+  p: null
+papers:
+- pmid:31742554
+left_out:
+- id: pmid:32884834
+  inferred: Re-analyses the earlier counts; new work is cell assays
+  p: null
+- id: pmid:33294943
+  inferred: Software paper using the dataset as an example
+  p: null
+reason: The 2019 eLife paper is the one that generated and reports the SAMP8 hippocampus and rat neuron
+  RNA-seq held in this Series.
+passages: {}

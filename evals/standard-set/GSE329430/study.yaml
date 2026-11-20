@@ -15,15 +15,6 @@ records:
   - PRJNA1459226
   pmids:
   - '42711429'
-bounds:
-  series:
-  - GSE329430
-  papers:
-  - pmid:42711429
-  reason: One study profiling bone marrow and brain myeloid cells in 5xFAD versus WT mice by single-cell
-    and bulk RNA-seq.
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

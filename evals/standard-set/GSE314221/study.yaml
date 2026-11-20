@@ -15,14 +15,6 @@ records:
   - PRJNA1390280
   pmids:
   - '42547584'
-bounds:
-  series:
-  - GSE314221
-  papers:
-  - pmid:42547584
-  reason: One RNA-seq dataset and its reporting paper on CETP inhibition in AD mice
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

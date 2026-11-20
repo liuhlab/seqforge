@@ -1,0 +1,14 @@
+format: 1
+study: GSE288106
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE288106
+  inferred: One Series and its paper report snRNA-seq of FTLD-TDP subtypes versus control frontal cortex
+  p: null
+papers:
+- pmid:42327368
+left_out: []
+reason: One Series and its paper report snRNA-seq of FTLD-TDP subtypes versus control frontal cortex
+passages: {}

@@ -15,15 +15,6 @@ records:
   - PRJNA517703
   pmids:
   - '30668640'
-bounds:
-  series:
-  - GSE125850
-  papers:
-  - pmid:30668640
-  reason: One ChIP-seq study of H3K9me2 in FAD vs wild-type vs BIX01294-treated mouse prefrontal cortex,
-    reported by one paper.
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

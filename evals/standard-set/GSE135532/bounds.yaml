@@ -1,0 +1,14 @@
+format: 1
+study: GSE135532
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE135532
+  inferred: One RNA-seq Series of mouse ventricles across four diets, reported by one paper.
+  p: null
+papers:
+- pmid:31415241
+left_out: []
+reason: One RNA-seq Series of mouse ventricles across four diets, reported by one paper.
+passages: {}

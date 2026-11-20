@@ -26,10 +26,13 @@ pixi run python prototypes/standard_set_page/build_page.py \
 
 It needs PyYAML, which the default pixi environment has.
 
-- **The folder** holds one subfolder per study: `<ID>/study.yaml`, `draft.yaml`, `verdict.yaml`.
+- **The folder** holds one subfolder per study: `<ID>/study.yaml`, `bounds.yaml`, `draft.yaml`,
+  `verdict.yaml`. The made-up examples still keep their bounds inside `study.yaml`, in the older
+  shape, and the page reads either.
 - **`--lookup`** names a YAML file of dataset titles, assays, sample counts and paper titles, which
   papers GEO lists on each dataset, and which datasets each SuperSeries holds. Without it the page
   reads them from the stores. A record the store does not hold shows its identifier only.
-- **Two fields the study file needs** for this picture: `summary`, one plain line saying what the
-  study is, and `bounds.left_out`, a reason of about eight words for each linked record left out.
+- **Two fields the picture needs:** `summary` in the study file, one plain line saying what the
+  study is, and `left_out` in the bounds file, a reason of about eight words for each linked record
+  left out.
 - **A link to one study** is the page address followed by `#<ID>`; `#all` opens the gallery.

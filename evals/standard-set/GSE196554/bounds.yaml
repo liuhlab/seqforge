@@ -1,0 +1,14 @@
+format: 1
+study: GSE196554
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE196554
+  inferred: One Series of scRNA-seq on human satellite cells across donor ages, reported by one paper.
+  p: null
+papers:
+- pmid:37192223
+left_out: []
+reason: One Series of scRNA-seq on human satellite cells across donor ages, reported by one paper.
+passages: {}

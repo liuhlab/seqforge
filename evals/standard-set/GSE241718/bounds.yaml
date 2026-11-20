@@ -1,0 +1,20 @@
+format: 1
+study: GSE241718
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE241718
+  inferred: Same snRNA-seq aging adipose atlas; SAT and VAT samples split across two linked Series reported
+    by one paper
+  p: null
+- id: GSE241275
+  inferred: Same snRNA-seq aging adipose atlas; SAT and VAT samples split across two linked Series reported
+    by one paper
+  p: null
+papers:
+- pmid:38997312
+left_out: []
+reason: Same snRNA-seq aging adipose atlas; SAT and VAT samples split across two linked Series reported
+  by one paper
+passages: {}

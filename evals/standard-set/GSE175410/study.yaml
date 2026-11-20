@@ -14,15 +14,6 @@ records:
   - PRJNA732356
   pmids:
   - '34932867'
-bounds:
-  series:
-  - GSE175410
-  papers:
-  - pmid:34932867
-  reason: One Series with young, aged, and exercise-trained mouse muscle methylation profiles reported
-    by one paper
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

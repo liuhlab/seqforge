@@ -1,0 +1,16 @@
+format: 1
+study: GSE175410
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE175410
+  inferred: One Series with young, aged, and exercise-trained mouse muscle methylation profiles reported
+    by one paper
+  p: null
+papers:
+- pmid:34932867
+left_out: []
+reason: One Series with young, aged, and exercise-trained mouse muscle methylation profiles reported by
+  one paper
+passages: {}

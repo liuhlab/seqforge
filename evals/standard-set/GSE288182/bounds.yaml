@@ -1,0 +1,14 @@
+format: 1
+study: GSE288182
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE288182
+  inferred: One RRBS study comparing brain methylation across WT, AD, and OSK-treated AD mice.
+  p: null
+papers:
+- pmid:42210397
+left_out: []
+reason: One RRBS study comparing brain methylation across WT, AD, and OSK-treated AD mice.
+passages: {}

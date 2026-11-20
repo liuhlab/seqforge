@@ -1,0 +1,16 @@
+format: 1
+study: GSE125850
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE125850
+  inferred: One ChIP-seq study of H3K9me2 in FAD vs wild-type vs BIX01294-treated mouse prefrontal cortex,
+    reported by one paper.
+  p: null
+papers:
+- pmid:30668640
+left_out: []
+reason: One ChIP-seq study of H3K9me2 in FAD vs wild-type vs BIX01294-treated mouse prefrontal cortex,
+  reported by one paper.
+passages: {}

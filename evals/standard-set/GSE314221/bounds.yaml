@@ -1,0 +1,14 @@
+format: 1
+study: GSE314221
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE314221
+  inferred: One RNA-seq dataset and its reporting paper on CETP inhibition in AD mice
+  p: null
+papers:
+- pmid:42547584
+left_out: []
+reason: One RNA-seq dataset and its reporting paper on CETP inhibition in AD mice
+passages: {}

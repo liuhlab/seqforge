@@ -16,14 +16,6 @@ records:
   - PRJNA1216536
   pmids:
   - '42210397'
-bounds:
-  series:
-  - GSE288182
-  papers:
-  - pmid:42210397
-  reason: One RRBS study comparing brain methylation across WT, AD, and OSK-treated AD mice.
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

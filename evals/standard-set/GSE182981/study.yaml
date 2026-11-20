@@ -14,15 +14,6 @@ records:
   - PRJNA758580
   pmids:
   - '36261415'
-bounds:
-  series:
-  - GSE182981
-  papers:
-  - pmid:36261415
-  reason: One Series reports RNA-seq of C. elegans on normal versus high-glucose diets and the single
-    linked paper describes it
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

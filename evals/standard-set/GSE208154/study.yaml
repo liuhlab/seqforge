@@ -15,13 +15,6 @@ records:
   bioprojects:
   - PRJNA858484
   pmids: []
-bounds:
-  series:
-  - GSE208154
-  papers: []
-  reason: One time-series scRNA-seq atlas of C. elegans aging across six adult time points
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

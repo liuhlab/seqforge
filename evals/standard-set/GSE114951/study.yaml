@@ -14,14 +14,6 @@ records:
   - PRJNA473173
   pmids:
   - '33473112'
-bounds:
-  series:
-  - GSE114951
-  papers:
-  - pmid:33473112
-  reason: Single Series comparing WT to atfs-1(null) and atfs-1(et18) mutants, reported by one paper
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

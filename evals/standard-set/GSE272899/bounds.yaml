@@ -1,0 +1,14 @@
+format: 1
+study: GSE272899
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE272899
+  inferred: Single ATAC-seq Series profiling ATMs across age and GDF3 genotype, reported by one preprint.
+  p: null
+papers:
+- pmid:39386655
+left_out: []
+reason: Single ATAC-seq Series profiling ATMs across age and GDF3 genotype, reported by one preprint.
+passages: {}
