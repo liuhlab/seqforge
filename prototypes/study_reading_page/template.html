@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+<!-- PROTOTYPE, throwaway. View-only, written by build_page.py: one study's reading per screen.
+     Nothing is collected or stored, and nothing is loaded from the network. -->
+<style>
+:root{
+  --bg:#f5f4ef; --surface:#ffffff; --ink:#1c2220; --muted:#5c6662; --line:#d9d7cd;
+  --in:#0f6b63; --in-bg:#dcefeb; --worked:#6d47b8; --gap:#8d9692; --gap-bg:#eeede7;
+  --differ:#b5541a; --differ-bg:#fbe7d9; --low:#b3261e; --low-bg:#fde8e5;
+  --warn-bg:#fff2cc; --warn-ink:#5e4300;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131816; --surface:#1b211f; --ink:#e4eae7; --muted:#9aa8a2; --line:#34403b;
+  --in:#5fbab0; --in-bg:#173430; --worked:#b79cf2; --gap:#75827c; --gap-bg:#222a27;
+  --differ:#f0935a; --differ-bg:#3b2617; --low:#ff8a80; --low-bg:#3d1f1c;
+  --warn-bg:#3a3115; --warn-ink:#f0d58a; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#131816; --surface:#1b211f; --ink:#e4eae7; --muted:#9aa8a2; --line:#34403b;
+  --in:#5fbab0; --in-bg:#173430; --worked:#b79cf2; --gap:#75827c; --gap-bg:#222a27;
+  --differ:#f0935a; --differ-bg:#3b2617; --low:#ff8a80; --low-bg:#3d1f1c;
+  --warn-bg:#3a3115; --warn-ink:#f0d58a; color-scheme:dark }
+
+*{box-sizing:border-box}
+html{scroll-padding-top:60px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  overflow-wrap:anywhere}
+h1,h2,h3,h4,h5,h6,p,ul,ol,dl,dd,figure{margin:0}
+ul,ol{padding-left:1.3em}
+code,.term,.ids,.sid{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em}
+:focus-visible{outline:2px solid var(--in);outline-offset:2px}
+.hint,.n,.src,.detail,.none{color:var(--muted);font-size:13px}
+.n{font-weight:400}
+.tag{display:inline-block;margin-left:6px;border:1px solid var(--line);border-radius:99px;padding:0 7px;
+  font-size:11px;font-weight:400;color:var(--muted);white-space:nowrap}
+.scroll{overflow-x:auto;max-width:100%}
+
+/* the bar at the top: which study, and the way to the others */
+.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .in{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;max-width:1180px;margin:0 auto;padding:8px 16px}
+.top h1{font-size:15px;margin-right:auto}
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tab,.step-to{border:1px solid var(--line);border-radius:99px;padding:2px 11px;font-size:13px;color:var(--muted);
+  text-decoration:none;background:var(--surface);font-variant-numeric:tabular-nums}
+.tab.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.step-to.off{opacity:.35;pointer-events:none}
+#count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+
+main{max-width:1180px;margin:0 auto;padding:22px 16px 80px}
+.js .study{display:none}
+.js .study.current{display:block}
+.study + .study{margin-top:60px}
+.study h2{font-size:26px;line-height:1.2}
+.summary{font-size:18px;margin-top:4px;text-wrap:balance}
+.banner{margin-top:14px;background:var(--warn-bg);color:var(--warn-ink);border-radius:8px;padding:8px 14px;font-weight:600}
+.meta{margin-top:14px;display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;font-size:14px}
+.meta dt{color:var(--muted)}
+.study > section{margin-top:38px}
+h3{font-size:19px;padding-bottom:6px;border-bottom:1px solid var(--line);margin-bottom:12px}
+h4{font-size:15px;margin:18px 0 8px}
+
+/* one claim: a cell of the table, a shared label, or a factor */
+.claim{position:relative;display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  background:var(--surface);border:0;border-left:4px solid var(--mark);padding:6px 9px 6px 26px}
+.claim > span{display:block}
+.claim .mk{position:absolute;left:6px;top:5px;font-weight:700}
+.mk{color:var(--mark)}
+.m-quoted{--mark:var(--in)} .m-inferred{--mark:var(--worked)} .m-unknown,.m-na{--mark:var(--gap)}
+.claim.m-unknown,.claim.m-na{background:var(--gap-bg)}
+.claim.m-unknown .val,.claim.m-na .val{color:var(--muted);font-style:italic}
+.claim.m-inferred{border-left-style:double}
+.claim.m-unknown{border-left-style:dashed} .claim.m-na{border-left-style:dotted}
+.val{font-weight:500}
+.lv,.sub,.term{font-size:12px;color:var(--muted)}
+.p{display:flex !important;align-items:center;gap:6px;margin-top:3px;font-size:12px;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.bar{display:inline-block;flex:none;width:38px;height:5px;border-radius:3px;background:var(--line);overflow:hidden;vertical-align:middle}
+.bar i{display:block;height:100%;background:var(--muted)}
+.lowtag{background:var(--low);color:var(--bg);border-radius:4px;padding:0 5px;font-size:11px;font-weight:700}
+.claim.low{background:var(--low-bg)}
+.claim.low .p{color:var(--low);font-weight:700}
+.claim.low .bar i{background:var(--low)}
+.flag{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--differ);
+  color:#fff;font-size:12px;font-weight:700;line-height:1}
+.claim .flag{position:absolute;right:4px;top:4px;display:grid}
+.claim.flagged{box-shadow:inset 0 0 0 2px var(--differ)}
+.claim:hover{filter:brightness(.97)}
+.claim.sel{outline:3px solid var(--ink);outline-offset:-3px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:13px;color:var(--muted);margin-bottom:6px}
+.legend .bar i{background:var(--muted)}
+
+/* the design */
+.factors{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.factor{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.factor h4{margin:0 0 8px;font-size:17px}
+.factor .claim{padding-top:2px;padding-bottom:2px}
+.levels{list-style:none;padding:0;margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.levels li{border:1px solid var(--line);border-radius:8px;padding:3px 9px;font-size:13px;max-width:100%}
+.levels.ordered li + li{position:relative;margin-left:12px}
+.levels.ordered li + li::before{content:"→";position:absolute;left:-16px;top:3px;color:var(--muted)}
+.levels .src{display:block;font-size:12px}
+.grid{margin-top:14px}
+.grid figcaption{font-weight:600;margin-bottom:4px}
+.grid table{border-collapse:collapse;font-size:13px}
+.grid th,.grid td{border:1px solid var(--line);padding:4px 10px;text-align:center;white-space:nowrap;font-weight:500}
+.grid th{background:var(--surface);color:var(--muted)}
+.grid th[scope=row]{text-align:left}
+.grid .corner{text-align:left;font-style:italic}
+.grid td.some{background:var(--in-bg);color:var(--ink);font-weight:700;font-size:15px}
+.grid td.none{color:var(--line)}
+.outside{margin-top:12px}
+
+/* the samples */
+.shared{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.chip{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);min-width:0}
+.chip .label{padding:3px 9px 0;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.chip .claim{flex:1}
+.tablebox{border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.samples{border-collapse:separate;border-spacing:0;font-size:13.5px;height:1px}
+.samples th,.samples td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);vertical-align:top;padding:0;height:100%}
+.samples thead th{padding:6px 9px;text-align:left;background:var(--bg);white-space:nowrap;font-size:13px}
+.samples tbody tr:last-child > *{border-bottom:0}
+.samples .sid{position:sticky;left:0;z-index:1;background:var(--bg);padding:6px 9px;text-align:left;white-space:nowrap;font-weight:600}
+.samples td{min-width:150px;max-width:280px}
+.samples .claim{height:100%}
+.samples td.absent{padding:6px 9px;color:var(--muted);font-style:italic}
+
+/* what follows, the verdict, the notes */
+.relation ul{list-style:none;padding:0}
+.relation li{padding:5px 0;border-top:1px solid var(--line);font-size:14px}
+.ids{color:var(--muted)}
+.steps{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:3px;align-items:baseline}
+.step{white-space:normal}
+.state{font-size:17px;font-weight:700;padding:8px 14px;border-radius:8px;margin-bottom:6px}
+.state.yes{background:var(--in-bg)} .state.no{background:var(--differ-bg)}
+.dis{border:1px solid var(--line);border-left:5px solid var(--differ);border-radius:8px;background:var(--surface);
+  padding:10px 14px;margin-top:10px}
+.dis .where{font-weight:700}
+.dis .where code{font-weight:400;color:var(--muted);margin-left:6px}
+.dis dl,#ev-body dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin-top:6px}
+.dis dt,#ev-body dt{color:var(--muted);font-size:13px}
+.backs{margin-top:8px;font-size:13.5px}
+q,blockquote{font-family:Georgia,"Times New Roman",serif}
+ul.plain li,.notes li{margin-top:6px}
+.notes h4,.notes h5,.notes h6{font-size:15px;margin:16px 0 6px}
+.notes p,.verdict p{max-width:78ch}
+.notes li,.verdict li{max-width:76ch}
+.notes p + p{margin-top:8px}
+
+/* the evidence panel: along the bottom, or down the right side on a wide screen */
+#evidence{display:none;position:fixed;left:0;right:0;bottom:0;height:44vh;z-index:10;background:var(--surface);
+  border-top:2px solid var(--ink);box-shadow:0 -6px 24px rgba(0,0,0,.18);overflow-y:auto;padding:12px 16px 20px}
+.ev-open #evidence{display:block}
+body.ev-open{padding-bottom:44vh}
+html.ev-open{scroll-padding-bottom:46vh}
+#ev-close{float:right;font:inherit;font-size:13px;color:var(--muted);background:none;border:1px solid var(--line);
+  border-radius:99px;padding:2px 12px;cursor:pointer;margin-left:10px}
+#ev-body{max-width:900px;margin:0 auto}
+#ev-body h3{border:0;margin:0;padding:0;font-size:17px}
+#ev-body .who{color:var(--muted);font-size:13px}
+#ev-body p + p,#ev-body dl + p,#ev-body blockquote + p{margin-top:8px}
+#ev-body .how{margin-top:10px;padding-left:10px;border-left:4px solid var(--mark)}
+#ev-body .how b{color:var(--mark)}
+#ev-body blockquote{margin:8px 0 0;padding:6px 12px;border-left:4px solid var(--in);background:var(--bg);border-radius:0 6px 6px 0}
+#ev-body blockquote.see{border-left-color:var(--worked)}
+#ev-body cite{display:block;font:normal 12.5px system-ui,sans-serif;color:var(--muted);margin-top:3px}
+#ev-body .lowline{color:var(--low);font-weight:700}
+#ev-body .dis{background:var(--differ-bg)}
+@media (min-width:1500px){
+  #evidence{left:auto;top:0;width:420px;height:auto;border-top:0;border-left:2px solid var(--ink)}
+  body.ev-open{padding-bottom:0;padding-right:420px}
+  html.ev-open{scroll-padding-bottom:0}
+}
+@media (max-width:640px){
+  .study h2{font-size:22px} .summary{font-size:16px}
+  .meta{grid-template-columns:1fr} .top h1{flex-basis:100%}
+}
+@media print{.js .study{display:block} .top,#evidence{display:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="in">
+  <h1>{{TITLE}}</h1>
+  <a class="step-to" id="prev" href="#" aria-label="Previous study">‹ previous</a>
+  <nav class="tabs" aria-label="Studies">{{TABS}}</nav>
+  <a class="step-to" id="next" href="#" aria-label="Next study">next ›</a>
+  <span id="count"></span>
+</div></header>
+<main>
+{{STUDIES}}
+</main>
+<aside id="evidence" aria-label="The words behind the chosen cell" aria-live="polite">
+  <button type="button" id="ev-close">Close (Esc)</button>
+  <div id="ev-body"></div>
+</aside>
+<script type="application/json" id="data">{{DATA}}</script>
+<script>
+/* View state only: which study is shown, and which cell's evidence is open. Nothing is stored. */
+(function(){
+  var root = document.documentElement, theme = new URLSearchParams(location.search).get('theme');
+  if (theme) root.dataset.theme = theme;
+  var DATA = JSON.parse(document.getElementById('data').textContent);
+  var studies = [].slice.call(document.querySelectorAll('.study'));
+  if (!studies.length) return;
+  root.classList.add('js');
+  var ids = studies.map(function(s){ return s.id; }), at = 0, chosen = null, quiet = false;
+  var tabs = [].slice.call(document.querySelectorAll('.tab'));
+  function $(id){ return document.getElementById(id); }
+  function href(i){ return '#' + encodeURIComponent(ids[i]); }
+  function el(tag, cls, text){
+    var node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+  tabs.forEach(function(t, i){ t.title = studies[i].dataset.title || ''; });
+
+  function close(){
+    if (chosen) chosen.classList.remove('sel');
+    chosen = null;
+    root.classList.remove('ev-open'); document.body.classList.remove('ev-open');
+  }
+  function show(){
+    var i = ids.indexOf(decodeURIComponent(location.hash.slice(1)));
+    if (i >= 0 && i !== at) close();
+    if (i >= 0) at = i;
+    studies.forEach(function(s, k){ s.classList.toggle('current', k === at); });
+    tabs.forEach(function(t, k){
+      t.classList.toggle('on', k === at);
+      if (k === at) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    });
+    $('count').textContent = (at + 1) + ' of ' + ids.length;
+    $('prev').href = href(Math.max(at - 1, 0)); $('prev').classList.toggle('off', at === 0);
+    $('next').href = href(Math.min(at + 1, ids.length - 1)); $('next').classList.toggle('off', at === ids.length - 1);
+    window.scrollTo(0, 0);
+  }
+
+  var HOW = {
+    quoted: ['Quoted.', 'A source says it, in the words below.'],
+    inferred: ['Worked out.', 'No passage says it outright. How the model worked it out:'],
+    unknown: ['Not stated.', 'What was read does not say. The model’s note:'],
+    na: ['Does not apply.', 'The label has no value for this sample. Why:']
+  };
+  function quotes(body, study, numbers, cls){
+    numbers.forEach(function(n){
+      var passage = study.passages[n], quote = el('blockquote', cls);
+      quote.appendChild(document.createTextNode(passage ? passage.quote : '(passage ' + n + ' is not in the file)'));
+      quote.appendChild(el('cite', '', 'Passage ' + n + (passage ? '. ' + passage.source : '')));
+      body.appendChild(quote);
+    });
+  }
+  function open(button){
+    var study = DATA[ids[at]], claim = study && study.claims[+button.dataset.c];
+    if (!claim || button === chosen) return;
+    if (chosen) chosen.classList.remove('sel');
+    chosen = button; button.classList.add('sel');
+    var body = $('ev-body'); body.textContent = '';
+    body.appendChild(el('h3', '', claim.title));
+    body.appendChild(el('p', 'who', claim.who));
+    if (claim.facts.length){
+      var facts = el('dl');
+      claim.facts.forEach(function(f){ facts.appendChild(el('dt', '', f[0])); facts.appendChild(el('dd', '', f[1])); });
+      body.appendChild(facts);
+    }
+    var how = el('p', 'how m-' + claim.mark);
+    how.appendChild(el('b', '', HOW[claim.mark][0]));
+    how.appendChild(document.createTextNode(' ' + HOW[claim.mark][1] + (claim.note ? ' ' + claim.note : '')));
+    body.appendChild(how);
+    var sure = claim.p == null ? 'No model has given a probability yet.'
+      : 'The model’s own probability that this is right: ' + claim.p + (claim.p < 0.8 ? ' (low).' : '.');
+    body.appendChild(el('p', claim.p != null && claim.p < 0.8 ? 'lowline' : 'who', sure));
+    quotes(body, study, claim.quoted, '');
+    if (claim.see.length){
+      body.appendChild(el('p', 'who', 'It rests on:'));
+      quotes(body, study, claim.see, 'see');
+    }
+    claim.dis.forEach(function(n){
+      var d = study.dis[n], box = el('div', 'dis'), list = el('dl');
+      box.appendChild(el('p', 'where', 'The second model disagrees'));
+      [['The reading says', d.says], ['It should be', d.should_be], ['Why', d.why]].forEach(function(row){
+        list.appendChild(el('dt', '', row[0])); list.appendChild(el('dd', '', row[1]));
+      });
+      box.appendChild(list); body.appendChild(box);
+    });
+    root.classList.add('ev-open'); document.body.classList.add('ev-open');
+    $('evidence').scrollTop = 0;
+  }
+
+  window.addEventListener('hashchange', show);
+  document.addEventListener('click', function(e){
+    var button = e.target.closest && e.target.closest('.claim');
+    if (button) open(button);
+  });
+  document.addEventListener('focusin', function(e){
+    if (!quiet && e.target.classList && e.target.classList.contains('claim')) open(e.target);
+  });
+  $('ev-close').addEventListener('click', function(){
+    var was = chosen; close();
+    if (was){ quiet = true; was.focus({preventScroll: true}); quiet = false; }
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'Escape') return close();
+    var inside = e.target.closest && e.target.closest('.claim, .scroll, #evidence');
+    if (inside) return;
+    var k = at + (e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0);
+    if (k !== at && k >= 0 && k < ids.length) location.hash = href(k);
+  });
+  show();
+})();
+</script>
+</body>
+</html>
