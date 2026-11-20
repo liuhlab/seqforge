@@ -152,13 +152,20 @@ def test_a_draft_that_leaves_a_linked_record_unplaced_is_kept_and_says_so(drafte
             {"series": ["pmid:11"], "papers": ["GSE1"]}, "wrong list", id="a paper as a Series"
         ),
         pytest.param({"series": ["GSE1", "GSE1"]}, "more than once in series", id="a Series twice"),
+        pytest.param({"reason": " "}, "no reason says why", id="a blank reason"),
+        pytest.param(
+            {"left_out": [{"id": record, "reason": ""} for record in COMPLETE]},
+            "left out with no reason: GSE2, pmid:22",
+            id="records left out with no reason",
+        ),
     ],
 )
 def test_bounds_name_each_record_once_and_in_the_list_of_its_own_kind(
     change: dict[str, Any], problem: str
 ) -> None:
     """The draft and the verdict key their lists by identifier, so a repeat or a paper among the
-    Series would be lost or misread there: it is refused while it is still what the model wrote."""
+    Series would be lost or misread there: it is refused while it is still what the model wrote.
+    So is a blank reason, which the bounds file cannot hold as the backing of a claim."""
     assert draft.bounds_problems(_bounds(COMPLETE), _group("S1")) == []
 
     problems = draft.bounds_problems({**_bounds(COMPLETE), **change}, _group("S1"))

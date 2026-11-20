@@ -9,7 +9,9 @@ file's own order.
 Two samples have the same assay, target or control type when their claims carry the same ``text``,
 or the same gap (both ``na``, or both ``unknown``). A sample's level on a factor is the ``level``
 of its claim on that label, and ``None`` when the factor does not cover the sample. A **control
-library** is a sample whose ``control_type`` is not ``na``.
+library** is a sample whose ``control_type`` claim says a kind: it is ``quoted`` or ``inferred``. A
+control type that is ``unknown`` makes no control. A **signal** is a sample whose ``target`` claim
+says a target the same way, and that is not a control library.
 """
 
 from __future__ import annotations
@@ -75,11 +77,11 @@ def relations(reading: Reading) -> dict[str, list[dict[str, Any]]]:
     series: list[dict[str, Any]] = []
     for at, (label, factor) in enumerate(reading.factors.items()):
         covered = [s for s in rows if levels[s][at] is not None]
-        # Two groups that a contrast compares differ in this factor alone, and neither is a control.
-        sides = _grouped(
-            [((assay[s], target[s], but(s, at)), s) for s in covered if control[s][0] == "na"]
-        )
-        for (a, t, rest), members in sides.items():
+        # Samples that differ in this factor alone: equal on all else that makes a group.
+        runs = _grouped([((assay[s], target[s], control[s], but(s, at)), s) for s in covered])
+        for (a, t, c, rest), members in runs.items():
+            if c[0] == "says":  # neither group that a contrast compares is a control library
+                continue
             by_level = _grouped([(levels[s][at], s) for s in members])
             present = [level for level in factor.levels if level in by_level]
             if factor.baseline is None:
@@ -101,8 +103,7 @@ def relations(reading: Reading) -> dict[str, list[dict[str, Any]]]:
             ]
         if not factor.ordered:
             continue
-        runs = _grouped([((assay[s], target[s], but(s, at)), s) for s in covered])
-        for (a, t, rest), members in runs.items():
+        for (a, t, c, rest), members in runs.items():
             by_level = _grouped([(levels[s][at], s) for s in members])
             if len(by_level) > 1:
                 series.append(
@@ -110,6 +111,7 @@ def relations(reading: Reading) -> dict[str, list[dict[str, Any]]]:
                         "factor": label,
                         "assay": a[1],
                         "target": t[1],
+                        "control_type": c[1],
                         "fixed": fixed(rest, at),
                         "steps": [
                             {"level": level, "samples": by_level[level]}
@@ -130,8 +132,8 @@ def relations(reading: Reading) -> dict[str, list[dict[str, Any]]]:
             {"biosample": b, "signal": signal, "control": library}
             for b, members in shared.items()
             for signal in members
-            if target[signal][0] != "na" and control[signal][0] == "na"
+            if target[signal][0] == "says" and control[signal][0] != "says"
             for library in members
-            if control[library][0] != "na"
+            if control[library][0] == "says"
         ],
     }

@@ -58,10 +58,10 @@ Every field below is required. A file with any other field is rejected.
 | `format` | The whole number `1`. See [When the format changes](#when-the-format-changes). |
 | `study` | The study's name: the GEO Series it was picked by, such as `GSE101112`. |
 | `models` | Who wrote the file. `bounds` is the model that drew the bounds. `probabilities` is the model that gave the `p` values. Either may be `null`. |
-| `series` | The Series that belong to the study. At least one. Each is a claim. |
+| `series` | The Series that belong to the study. At least one. Each is a claim, and its `id` is written `GSE<number>`. |
 | `papers` | The papers that report the study, each written `pmid:<number>`. May be empty. |
 | `left_out` | Each linked Series or paper that does not belong. Each is a claim. |
-| `reason` | One line saying why these Series and papers are one study. |
+| `reason` | One line saying why these Series and papers are one study. Cannot be blank. |
 | `passages` | The quotes that back the claims, each under its number. May be empty: `{}`. |
 
 **A study is whole Series.** A Series is in the study or it is left out. No field names some of
@@ -82,7 +82,7 @@ mark, and `p`.
 
 | Field | Holds |
 | --- | --- |
-| `id` | The record: a Series such as `GSE101112`, or a paper such as `pmid:33294943`. |
+| `id` | The record: a Series such as `GSE101112`, or a paper such as `pmid:33294943`. Cannot be blank. |
 | `quoted` | Backing mark. A source says it: the numbers of the passages that say so. |
 | `inferred` | Backing mark. No passage says it outright: a short text saying how it was worked out. |
 | `unknown` | Backing mark. What was read does not say: a short note. |
@@ -94,7 +94,7 @@ The rules for a claim:
 - It has exactly one of `quoted`, `inferred` and `unknown`. None is rejected, and so are two.
 - `quoted` lists at least one passage.
 - Every number in `quoted` and in `see` must be a passage in the file.
-- `inferred` must say how. It cannot be blank.
+- The text after `inferred` or `unknown` cannot be blank.
 
 In `left_out`, the backing is also the reason the record does not belong. For an `inferred` claim
 that is its text. For a `quoted` claim it is what the passages say. There is no separate reason
@@ -145,8 +145,15 @@ were converted, so in each of them:
 }
 ```
 
-It exits 0 for a valid file, 3 for a rejected one, and 2 for a file it cannot read. Each problem
-names the field and the reason. `series[0]` is the first entry of `series`.
+It exits 0 for a valid file, 3 for a rejected one, and 2 for a file it cannot read. A file that is
+not UTF-8 text cannot be read. Each problem names the field and the reason. `series[0]` is the
+first entry of `series`.
+
+A key that one mapping writes twice is rejected, and the problem names the key. Plain YAML keeps
+the last of the two and reports nothing, so a repeated field would go unseen.
+
+A value has the type that this page writes for it. A number in quotes, such as `p: "0.5"`, is
+rejected, and so is `true` where a number belongs.
 
 The check asks only whether the file is well formed. It does not open GEO, and it does not judge
 whether the bounds are right.

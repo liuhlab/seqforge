@@ -16,16 +16,26 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from typing import Any
 
+import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 #: The backing marks every file kind allows. A kind may allow more of its own.
 MARKS = ("quoted", "inferred", "unknown")
 
+#: Why a backing mark's text cannot be blank, for the marks every file kind allows.
+_BLANK = {
+    "inferred": "blank: an inferred claim says how it was worked out",
+    "unknown": "blank: an unknown claim has a short note",
+}
+
 
 class Strict(BaseModel):
-    """A part of a study file: a field the format does not name is rejected."""
+    """A part of a study file: a field the format does not name is rejected.
 
-    model_config = ConfigDict(extra="forbid")
+    So is a value of another type than the format writes, such as a number in quotes.
+    """
+
+    model_config = ConfigDict(extra="forbid", strict=True)
 
 
 class Passage(Strict):
@@ -55,6 +65,46 @@ def field_path(loc: tuple[int | str, ...]) -> str:
     for part in loc:
         out += f"[{part}]" if isinstance(part, int) else f".{part}" if out else str(part)
     return out
+
+
+def _keys_written_twice(
+    loader: yaml.SafeLoader, node: yaml.Node, path: tuple[int | str, ...]
+) -> Iterator[dict[str, str]]:
+    """Each key that one mapping of the file writes a second time, by where it is."""
+    if isinstance(node, yaml.SequenceNode):
+        for at, item in enumerate(node.value):
+            yield from _keys_written_twice(loader, item, (*path, at))
+    if not isinstance(node, yaml.MappingNode):
+        return
+    seen: list[object] = []
+    for key_node, value in node.value:
+        key = loader.construct_object(key_node, deep=True)
+        here = (*path, key if isinstance(key, int | str) else str(key))
+        if key in seen:
+            line = key_node.start_mark.line + 1
+            yield {"field": field_path(here), "reason": f"written twice: again on line {line}"}
+        seen.append(key)
+        yield from _keys_written_twice(loader, value, here)
+
+
+def load(text: str) -> tuple[object, list[dict[str, str]]]:
+    """A study file's text as content, and why it cannot be taken as content at all.
+
+    YAML keeps the last of two equal keys and says nothing, which would drop a sample's row or a
+    passage unseen. So a key written twice in one mapping is a problem here, named by its field.
+    """
+    loader = yaml.SafeLoader(text)
+    try:
+        node = loader.get_single_node()
+        if node is None:
+            return None, []
+        if twice := list(_keys_written_twice(loader, node, ())):
+            return None, twice
+        return loader.construct_document(node), []  # type: ignore[no-untyped-call]
+    except yaml.YAMLError as exc:
+        return None, [{"field": "(file)", "reason": f"not YAML: {' '.join(str(exc).split())}"}]
+    finally:
+        loader.dispose()  # type: ignore[no-untyped-call]
 
 
 def format_problems(data: object, expected: int) -> list[dict[str, str]]:
@@ -117,8 +167,10 @@ def claim_problems(
         yield where, f"a claim has exactly one of {', '.join(marks)}; this one has {said}"
     if claim.quoted is not None and not claim.quoted:
         yield f"{where}.quoted", "a quoted claim points to at least one passage"
-    if claim.inferred is not None and not claim.inferred.strip():
-        yield f"{where}.inferred", "an inferred claim says how it was worked out"
+    for mark in given:
+        said = getattr(claim, mark)
+        if isinstance(said, str) and not said.strip():
+            yield f"{where}.{mark}", _BLANK.get(mark, "blank: a short text says why")
     if claim.see is not None and claim.quoted is not None:
         yield (
             f"{where}.see",
