@@ -1,0 +1,13 @@
+# PROTOTYPE, throwaway. Written by derive.py from reading.yaml. Never edit by hand.
+contrasts:
+- factor: treatment
+  test_level: adenovector expressing rat IGF-I
+  test: [GSM2668015, GSM2668016, GSM2668017, GSM2668018]
+  baseline: [GSM2668019, GSM2668020, GSM2668021, GSM2668022]
+  fixed: {}
+replicates:
+- [GSM2668015, GSM2668016, GSM2668017, GSM2668018]
+- [GSM2668019, GSM2668020, GSM2668021, GSM2668022]
+series: []
+shared_biosample: []
+signal_to_control: []
