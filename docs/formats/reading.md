@@ -133,7 +133,7 @@ sure the model is. In the example, `tissue: {text: liver, ...}` is one claim.
 | --- | --- |
 | `text` | The value, in the source's own words. |
 | `term` | An ontology id for the value, such as `UBERON:0002107`. Written only when the match is clear. |
-| `value` | For an age, a dose or a duration: the number, or a range as `[low, high]`. |
+| `value` | For an age, a dose or a duration: the number, or a range as `[low, high]`. YAML reads `1.7e12` as text, so write `1.7e+12`. |
 | `unit` | The unit of `value`, as one word: `month`, `day`, `hour`. |
 | `level` | On a label that is a factor: the name of the sample's level. See [Factors](#factors). |
 | `id` | On `biosample` and `donor`: a short name made up in the file, such as `B1`. |
@@ -151,8 +151,11 @@ The rules for a claim:
 - It has exactly one of `quoted`, `inferred`, `unknown` and `na`. None is rejected, and so are two.
 - `quoted` lists at least one passage.
 - Every number in `quoted` and in `see` must be a passage in the file.
-- `inferred` must say how. It cannot be blank.
-- An `unknown` claim and an `na` claim have no `text`: neither one gives a value.
+- The text after `inferred`, `unknown` or `na` cannot be blank.
+- A `quoted` claim and an `inferred` claim say something: each has `text` or `value`. A `biosample`
+  claim and a `donor` claim may have an `id` and neither of the two.
+- An `unknown` claim and an `na` claim give no value. So neither has `text`, `term`, `value`,
+  `unit` or `level`.
 
 `unknown` and `na` are different gaps. `unknown` means that the label has a value and nothing that
 was read gives it. `na` means that the label has no value for this sample, such as the cell line of
@@ -162,6 +165,9 @@ a tissue sample.
 it. On an `unknown` claim, `p` is the chance that what was read really does not say. `null` means
 that no model has given a probability yet. It does not mean the claim is in doubt. When any claim
 has a number, `models.probabilities` must name the model that gave it.
+
+A value has the type that this page writes for it. A number in quotes, such as `p: "0.5"`, is
+rejected, and so is `true` where a number belongs.
 
 A [bounds file](bounds.md) writes its claims and its passages the same way.
 
@@ -209,7 +215,9 @@ Three points of meaning matter when you write or read these labels. The check ca
 - **`duration` is the length of the treatment itself.** Any other time is an attribute of the
   study's own. The time from the end of a treatment to the harvest is one example.
 - **A pull-down library and its control are tied by the `biosample` id.** No other field ties them.
-  In the example, each input has the `id` of the pull-down made from the same chromatin.
+  In the example, each input has the `id` of the pull-down made from the same chromatin. This tie
+  has a known limit. One control library that serves pull-downs made from different material
+  cannot be tied to all of them, because the control has one `biosample` id.
 
 A row or `shared` may hold more labels than the 18. Such a label is an attribute of the study's
 own, such as `time_of_day` in the example or a harvest time. Its claim has the same form.
@@ -234,10 +242,13 @@ The rules for a factor:
 - `baseline` is one of `levels`, or `null`.
 - No level is named twice. A level name is text: quote a name that YAML reads as a number, as
   `"0"`.
+- At least one sample is at each level in `levels`.
 - A sample's claim on the factor's label names its level in `level`, with one of the names in
   `levels`. Two samples with different `text` and the same `level` are at the same level.
 - A claim with no `level` on a factor's label means that the factor does not cover that sample.
   An example is a study that varied the genotype among its RNA-Seq samples only.
+- When the claim under `shared` names a level, a row's claim that replaces it names a level too.
+  A row's claim that is `unknown` or `na` is the exception, because it names none.
 - `level` on a label that is not a factor is rejected.
 
 ## The check
@@ -256,8 +267,12 @@ The rules for a factor:
 }
 ```
 
-It exits 0 for a valid file, 3 for a rejected one, and 2 for a file it cannot read. Each problem
-names the field and the reason. `samples.GSM9000003.strain` is the `strain` claim of that sample.
+It exits 0 for a valid file, 3 for a rejected one, and 2 for a file it cannot read. A file that is
+not UTF-8 text cannot be read. Each problem names the field and the reason.
+`samples.GSM9000003.strain` is the `strain` claim of that sample.
+
+A key that one mapping writes twice is rejected, and the problem names the key. Plain YAML keeps
+the last of the two and reports nothing, so a second row for one sample would replace the first unseen.
 
 The check asks only whether the file is well formed. It reads the file alone and opens no record,
 so it does not look for a quote in its source, and it does not judge whether a claim is right.
@@ -275,15 +290,18 @@ Three terms define the relations:
   have the same `text`, or are both `na`, or are both `unknown`.
 - A **group** is the set of samples that have the same assay, target, control type and level on
   every factor. A group can be one sample.
-- A **control library** is a sample whose `control_type` is not `na`.
+- A **control library** is a sample whose `control_type` claim is `quoted` or `inferred`. A sample
+  whose control type is `unknown` is not a control library.
+- A **signal** is a sample whose `target` claim is `quoted` or `inferred` and that is not a control
+  library.
 
 | Relation | Holds |
 | --- | --- |
-| `replicates` | Each group of two or more samples. |
+| `replicates` | Each group of two or more samples: the same assay, target, control type and level on every factor. |
 | `contrasts` | Each pair of groups that have the same assay and target and differ in the level of exactly one factor. Neither group is a control library. One of the two is at the factor's `baseline`. For a factor with a `null` baseline, each pair of levels is one contrast. |
-| `series` | For each ordered factor: the samples in level order, among the samples that have the same assay, target and level on every other factor. A series has at least two levels. |
+| `series` | For each ordered factor: the samples in level order, among the samples that have the same assay, target, control type and level on every other factor. So input libraries and IgG libraries never share a series. A series has at least two levels. |
 | `shared_biosample` | Each set of two or more samples with one `biosample` id. |
-| `signal_to_control` | Within one such set: each sample that has a target and is not a control library, paired with each control library. |
+| `signal_to_control` | Within one such set: each signal, paired with each control library. |
 
 For the example above, the command prints these relations. Samples, factors and levels are listed
 in the file's order.
@@ -307,6 +325,7 @@ in the file's order.
       "factor": "age",
       "assay": "ChIP-seq",
       "target": "H3K27me3",
+      "control_type": null,
       "fixed": {},
       "steps": [
         {"level": "young", "samples": ["GSM9000001"]},
@@ -317,6 +336,7 @@ in the file's order.
       "factor": "age",
       "assay": "ChIP-seq",
       "target": null,
+      "control_type": "input",
       "fixed": {},
       "steps": [
         {"level": "young", "samples": ["GSM9000002"]},

@@ -16,7 +16,7 @@ valid one.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field, PositiveInt, StrictBool, ValidationError
 
@@ -59,6 +59,12 @@ LABELS = (
 #: A sample's claim has one more backing mark than a bounds claim: the label does not apply.
 SAMPLE_MARKS = (*MARKS, "na")
 
+#: The labels whose claim may say only which one it is, by a name made up in the file.
+_NAMED = ("biosample", "donor")
+
+#: What says a value. A claim that marks a gap carries none of them.
+_VALUE_FIELDS = ("text", "term", "value", "unit", "level")
+
 
 class SampleClaim(Claim):
     """One label of one sample: what the source says, and how that is backed."""
@@ -66,8 +72,9 @@ class SampleClaim(Claim):
     na: str | None = None
     text: str | None = None
     term: str | None = None
-    #: One number, or the two ends of a range.
-    value: float | tuple[float, float] | None = None
+    #: One number, or the two ends of a range. Typed loosely so that the check says which in the
+    #: format's own words: see :func:`_number_or_range`.
+    value: Any = None
     unit: str | None = None
     level: str | None = None
     id: str | None = None
@@ -112,12 +119,30 @@ class Reading(Strict):
         return {sample: {**self.shared, **own} for sample, own in self.samples.items()}
 
 
+def _number_or_range(value: object) -> bool:
+    def number(one: object) -> bool:
+        return isinstance(one, int | float) and not isinstance(one, bool)
+
+    return number(value) or (
+        isinstance(value, list) and len(value) == 2 and all(number(end) for end in value)
+    )
+
+
 def _label_problems(
     where: str, label: str, claim: SampleClaim, factors: dict[str, Factor]
 ) -> Iterator[tuple[str, str]]:
     """What is wrong with one written claim that depends on the label it is written under."""
-    if claim.text is not None and not claim.says:
-        yield f"{where}.text", "an unknown or na claim carries no text"
+    if claim.value is not None and not _number_or_range(claim.value):
+        yield f"{where}.value", "a value is a number, or a range as [low, high]"
+    if not claim.says:
+        for name in _VALUE_FIELDS:
+            if getattr(claim, name) is not None:
+                yield f"{where}.{name}", f"an unknown or na claim gives no value, so no {name}"
+    elif not (
+        (claim.text or "").strip() or claim.value is not None or (label in _NAMED and claim.id)
+    ):
+        what = "text, value or id" if label in _NAMED else "text or value"
+        yield where, f"a quoted or inferred claim says something: {what}"
     if label == "species" and not claim.says:
         yield where, "species is quoted or inferred, never unknown or na"
     if label == "biosample" and not claim.id:
@@ -143,6 +168,11 @@ def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
             yield f"{where}.baseline", f"{factor.baseline} is not one of the factor's levels"
         if not any(label in row for row in rows.values()):
             yield where, "no sample has this label"
+            continue
+        carried = {row[label].level for row in rows.values() if label in row}
+        for level in dict.fromkeys(factor.levels):
+            if level not in carried:
+                yield f"{where}.levels", f"no sample is at the level {level}"
     written = [(f"shared.{label}", label, claim) for label, claim in reading.shared.items()]
     written += [
         (f"samples.{sample}.{label}", label, claim)
@@ -154,6 +184,17 @@ def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
             where, claim, reading.passages, marks=SAMPLE_MARKS, probabilities_by=by
         )
         yield from _label_problems(where, label, claim, reading.factors)
+    # A row's claim replaces the shared one whole, its level too: a row that forgets the level
+    # would leave its sample outside the factor without saying so.
+    for sample, own in reading.samples.items():
+        for label, claim in own.items():
+            default = reading.shared.get(label)
+            names_level = label in reading.factors and default is not None and default.level
+            if names_level and claim.says and claim.level is None:
+                yield (
+                    f"samples.{sample}.{label}.level",
+                    "missing: the shared claim this one replaces names a level",
+                )
     # A gap is written as unknown or na, so a label that is absent was forgotten.
     varied = [label for label in reading.factors if any(label in row for row in rows.values())]
     for sample, row in rows.items():

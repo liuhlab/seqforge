@@ -38,13 +38,24 @@ VALID: dict[str, Any] = {
 }
 
 
+#: A rejection whose reason is the type checker's own wording is held by its field alone.
+ITS_TYPE = ""
+
+
 def _check(
-    tmp_path: Path, content: dict[str, Any], verb: str = "check-bounds"
+    tmp_path: Path, content: dict[str, Any] | str, verb: str = "check-bounds"
 ) -> tuple[int, dict[str, Any]]:
+    """What ``verb`` says of one file, whose content is given, or its text as it is written."""
     path = tmp_path / "study-file.yaml"
-    path.write_text(yaml.safe_dump(content, sort_keys=False))
+    text = content if isinstance(content, str) else yaml.safe_dump(content, sort_keys=False)
+    path.write_text(text)
     result = runner.invoke(app, ["study", verb, str(path)])
     return result.exit_code, json.loads(result.stdout)
+
+
+def _a_key_twice(content: dict[str, Any]) -> str:
+    """The file's text with its ``study`` line written a second time, which a dict cannot hold."""
+    return yaml.safe_dump(content, sort_keys=False) + "study: GSE1\n"
 
 
 def _without(*path: str | int) -> Any:
@@ -126,9 +137,41 @@ def test_a_bounds_file_in_the_current_format_is_accepted(tmp_path: Path) -> None
         pytest.param(
             _with(1.5, "left_out", 0, "p"),
             "left_out[0].p",
-            "less than or equal to 1",
+            ITS_TYPE,
             id="a probability above one",
         ),
+        pytest.param(
+            _with("0.5", "series", 0, "p"), "series[0].p", ITS_TYPE, id="a probability in quotes"
+        ),
+        pytest.param(
+            _with(True, "series", 0, "p"), "series[0].p", ITS_TYPE, id="a probability of true"
+        ),
+        pytest.param(
+            _with(["1"], "series", 0, "quoted"),
+            "series[0].quoted[0]",
+            ITS_TYPE,
+            id="a passage number in quotes",
+        ),
+        pytest.param(
+            _with("GSM3618670", "series", 0, "id"),
+            "series[0].id",
+            "GSE<number>",
+            id="a sample kept as a Series",
+        ),
+        pytest.param(
+            _with(["GSE5"], "papers"), "papers[0]", "pmid:<number>", id="a Series among the papers"
+        ),
+        pytest.param(_with(" ", "reason"), "reason", "blank", id="a blank reason"),
+        pytest.param(
+            _with(" ", "left_out", 0, "id"), "left_out[0].id", "blank", id="a left-out blank id"
+        ),
+        pytest.param(
+            _with(" ", "left_out", 0, "unknown"),
+            "left_out[0].unknown",
+            "blank",
+            id="a left-out record with a blank note",
+        ),
+        pytest.param(_a_key_twice, "study", "written twice", id="a key written twice"),
         pytest.param(
             _with(None, "models", "probabilities"),
             "series[0].p",
@@ -155,9 +198,8 @@ def test_a_broken_bounds_file_is_rejected_with_the_field_and_the_reason(
     """One format at a time, no sample split, and no claim without its backing: a file that breaks
     the written format exits as a refusal, and each problem names where it is and why."""
     bounds = copy.deepcopy(VALID)
-    change(bounds)
 
-    code, said = _check(tmp_path, bounds)
+    code, said = _check(tmp_path, change(bounds) or bounds)
 
     assert (code, said["valid"]) == (3, False)
     assert any(p["field"] == field and reason in p["reason"] for p in said["problems"]), said
@@ -175,8 +217,10 @@ def _material(biosample: str, **own: Any) -> dict[str, Any]:
     return {"biosample": {"id": biosample, "inferred": "One prep per library.", "p": 0.7}, **own}
 
 
-#: Six libraries of one pull-down study: two young wild-type replicates, one middle and one old
-#: wild-type library, the input made from the first replicate's material, and one young knockout.
+#: Nine libraries of one pull-down study: two young wild-type replicates, one middle and one old
+#: wild-type library, and one young knockout. An input was made from the material of the first
+#: replicate and of the middle library, and an IgG library from the old one's. One more pull-down
+#: from the first replicate's material has a control type that nothing read gives.
 READING: dict[str, Any] = {
     "format": 1,
     "study": "GSE1",
@@ -235,6 +279,19 @@ READING: dict[str, Any] = {
             "B1", target=_gap("na"), control_type={"text": "input", "quoted": [3], "p": 0.9}
         ),
         "GSM6": _material("B5", genotype=_said("knockout", level="ko")),
+        "GSM7": _material("B1", control_type=_gap("unknown")),
+        "GSM8": _material(
+            "B3",
+            target=_gap("na"),
+            control_type=_said("input"),
+            age=_said("12 months", value=12, unit="month", level="middle"),
+        ),
+        "GSM9": _material(
+            "B4",
+            target=_gap("na"),
+            control_type=_said("IgG"),
+            age=_said("20 to 24 months", value=[20, 24], level="old"),
+        ),
     },
 }
 
@@ -260,7 +317,7 @@ def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
         pytest.param(
             _with(["records", "full text"], "read"),
             "read[1]",
-            "'full_text'",
+            ITS_TYPE,
             id="something read that the format does not name",
         ),
         pytest.param(_with([], "factors"), "factors", "not a mapping", id="factors as a list"),
@@ -303,9 +360,43 @@ def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
         pytest.param(
             _with("Perhaps an inbred line.", "shared", "strain", "text"),
             "shared.strain.text",
-            "carries no text",
+            "gives no value",
             id="a gap that still says something",
         ),
+        pytest.param(
+            _with({"na": "Not aged.", "level": "old", "p": 0.5}, "samples", "GSM4", "age"),
+            "samples.GSM4.age.level",
+            "gives no value",
+            id="a gap that still names a level",
+        ),
+        pytest.param(
+            _with(" ", "shared", "donor", "na"), "shared.donor.na", "blank", id="a blank reason"
+        ),
+        pytest.param(
+            _with({"quoted": [1], "p": 0.9}, "shared", "assay"),
+            "shared.assay",
+            "says something",
+            id="a quoted claim that says nothing",
+        ),
+        pytest.param(
+            _with("2", "shared", "age", "value"),
+            "shared.age.value",
+            "a number, or a range",
+            id="a value in quotes",
+        ),
+        pytest.param(
+            _with(["young", "middle", "old", "ancient"], "factors", "age", "levels"),
+            "factors.age.levels",
+            "no sample is at the level ancient",
+            id="a level no sample is at",
+        ),
+        pytest.param(
+            _without("samples", "GSM3", "age", "level"),
+            "samples.GSM3.age.level",
+            "the shared claim this one replaces names a level",
+            id="a row that replaces a shared level and names none",
+        ),
+        pytest.param(_a_key_twice, "study", "written twice", id="a key written twice"),
         pytest.param(
             _with("ancient", "samples", "GSM4", "age", "level"),
             "samples.GSM4.age.level",
@@ -333,7 +424,7 @@ def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
         pytest.param(
             _with([2, 12, 22], "factors", "age", "levels"),
             "factors.age.levels[0]",
-            "valid string",
+            ITS_TYPE,
             id="a level name that is a number",
         ),
         pytest.param(
@@ -360,19 +451,24 @@ def test_a_broken_reading_is_rejected_with_the_field_and_the_reason(
     """A reading that breaks the written format exits as a refusal, and each problem names where it
     is and why. The relations are refused for the same problems, and none is printed."""
     reading = copy.deepcopy(READING)
-    change(reading)
+    broken = change(reading) or reading
 
-    code, said = _check(tmp_path, reading, "check-reading")
+    code, said = _check(tmp_path, broken, "check-reading")
 
     assert (code, said["valid"]) == (3, False)
     assert any(p["field"] == field and reason in p["reason"] for p in said["problems"]), said
-    assert _check(tmp_path, reading, "relations") == (3, said)
+    assert _check(tmp_path, broken, "relations") == (3, said)
 
 
 def test_the_relations_of_a_reading_are_worked_out_from_its_claims(tmp_path: Path) -> None:
     """All five kinds from one reading, in the file's order: the replicate pair, each contrast
-    against a baseline with the other factor held, the run along the ordered factor, the input
-    that shares its material with a pull-down, and that pull-down's control."""
+    against a baseline with the other factor held, the runs along the ordered factor, the
+    libraries that share material, and each pull-down's control.
+
+    A control library is one whose control type is said. So the pull-down whose control type is
+    unknown is a signal and no control, and it is no replicate of the two whose control type is
+    na. The input run and the IgG library never share a series.
+    """
     code, said = _check(tmp_path, READING, "relations")
 
     chip = {"assay": "ChIP-Seq", "target": "H3K4me3"}
@@ -416,16 +512,37 @@ def test_the_relations_of_a_reading_are_worked_out_from_its_claims(tmp_path: Pat
             {
                 "factor": "age",
                 **chip,
+                "control_type": None,
                 "fixed": {"genotype": "wt"},
                 "steps": [
                     {"level": "young", "samples": ["GSM1", "GSM2"]},
                     {"level": "middle", "samples": ["GSM3"]},
                     {"level": "old", "samples": ["GSM4"]},
                 ],
-            }
+            },
+            {
+                "factor": "age",
+                "assay": "ChIP-Seq",
+                "target": None,
+                "control_type": "input",
+                "fixed": {"genotype": "wt"},
+                "steps": [
+                    {"level": "young", "samples": ["GSM5"]},
+                    {"level": "middle", "samples": ["GSM8"]},
+                ],
+            },
         ],
-        "shared_biosample": [{"biosample": "B1", "samples": ["GSM1", "GSM5"]}],
-        "signal_to_control": [{"biosample": "B1", "signal": "GSM1", "control": "GSM5"}],
+        "shared_biosample": [
+            {"biosample": "B1", "samples": ["GSM1", "GSM5", "GSM7"]},
+            {"biosample": "B3", "samples": ["GSM3", "GSM8"]},
+            {"biosample": "B4", "samples": ["GSM4", "GSM9"]},
+        ],
+        "signal_to_control": [
+            {"biosample": "B1", "signal": "GSM1", "control": "GSM5"},
+            {"biosample": "B1", "signal": "GSM7", "control": "GSM5"},
+            {"biosample": "B3", "signal": "GSM3", "control": "GSM8"},
+            {"biosample": "B4", "signal": "GSM4", "control": "GSM9"},
+        ],
     }
 
 
@@ -443,3 +560,15 @@ def test_a_factor_with_no_baseline_contrasts_each_pair_of_its_levels_once(tmp_pa
         (None, ["young", "old"]),
         (None, ["middle", "old"]),
     ]
+
+
+def test_a_file_that_is_not_text_cannot_be_read(tmp_path: Path) -> None:
+    """Bytes that are not UTF-8 are no study file in any format: the command says it cannot read
+    the file and exits as it does for a missing one, where a rejection would name a field."""
+    path = tmp_path / "reading.yaml"
+    path.write_bytes(b"format: 1\nstudy: \xff\xfe\n")
+
+    result = runner.invoke(app, ["study", "check-reading", str(path)])
+
+    assert result.exit_code == 2
+    assert "cannot read" in result.output

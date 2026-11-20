@@ -9,28 +9,27 @@ model. None writes a file.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import typer
-import yaml
 
 from ..study import bounds, reading
+from ..study.claims import load
 from ..study.relations import relations
 from ._common import _emit, _StageOut
 from .root import study_app
 
 
-def _content(file: Path) -> tuple[Any, list[dict[str, str]]]:
-    """One file's content as loaded, or the problem that it is not YAML. Exits 2 if unreadable."""
+def _content(file: Path) -> tuple[object, list[dict[str, str]]]:
+    """One file's content, or why it is not content: not YAML, or a key written twice.
+
+    Exits 2 for a file that cannot be read, which a file that is not UTF-8 text is.
+    """
     try:
-        text = file.read_text()
-    except OSError as exc:
+        text = file.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
         typer.echo(f"cannot read {file}: {exc}", err=True)
         raise typer.Exit(2) from exc
-    try:
-        return yaml.safe_load(text), []
-    except yaml.YAMLError as exc:
-        return None, [{"field": "(file)", "reason": f"not YAML: {' '.join(str(exc).split())}"}]
+    return load(text)
 
 
 def _verdict(file: Path, accepted: int, problems: list[dict[str, str]], **more: object) -> None:

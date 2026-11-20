@@ -135,7 +135,7 @@ The command prints five kinds of relation:
 | Relation | Meaning |
 | --- | --- |
 | Contrasts | Two groups of samples that differ in one factor, with the other factors equal. One group is at the baseline, such as untreated |
-| Replicates | Samples that have the same assay and the same level of every factor |
+| Replicates | Samples that have the same assay, the same target, the same control type and the same level of every factor |
 | Series | Samples in order along a factor whose levels have an order, such as time points or doses. This kind of series is not a GEO Series |
 | Shared biosamples | Samples that were made from the same biosample, such as two assays on one piece of tissue |
 | Signal-to-control pairs | A library that has a target, paired with its background control library, such as an input library, made from the same material |

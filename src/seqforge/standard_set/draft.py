@@ -106,6 +106,11 @@ def bounds_problems(bounds: Mapping[str, Any], group: Mapping[str, Any]) -> list
     problems = []
     if not bounds["series"]:
         problems.append("no Series is in the study")
+    # A reason becomes the backing of a claim in the bounds file, which cannot be blank there.
+    if not bounds["reason"].strip():
+        problems.append("no reason says why these are one study")
+    if unexplained := sorted(e["id"] for e in bounds["left_out"] if not e["reason"].strip()):
+        problems.append(f"left out with no reason: {', '.join(unexplained)}")
     # Each list is held against its own record type: a paper is no Series, and a Series no paper.
     if strangers := sorted(
         (set(bounds["series"]) - set(series))
