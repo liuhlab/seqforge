@@ -1,0 +1,15 @@
+id: GSE132886
+model: claude-fable-5-2
+when: '2026-11-20T00:05:07Z'
+agrees: true
+bounds: null
+reason: The single Series holds two sequencing rounds of mouse uterus at young and old ages, and the 2021
+  paper's abstract describes exactly those two rounds, so it is the reporting paper. The 2024 paper's
+  abstract, in its methods section, says the sequencing data came from the group's earlier work and were
+  only re-analysed for pathway hints; its own experiments are human cell line and organoid work. That
+  makes it a later re-use, correctly left out. There is no SuperSeries and no sign of a second study's
+  samples in the Series, so no split is needed.
+unsure: false
+read:
+- records
+- abstract

@@ -1,0 +1,15 @@
+id: GSE306935
+model: claude-fable-5-2
+when: '2026-11-20T00:02:58Z'
+agrees: true
+bounds: null
+reason: The draft is right. GSE306935 (2025, adult/aged/ISR-activator MuSCs) shares its title with the
+  bioRxiv preprint pmid:41256688 and is the study's own dataset. GSE143476 was deposited in 2020 under
+  the title of the Development paper pmid:32198156 and is that earlier study's label-retaining young/aged
+  dataset. The preprint's data availability line lists both accessions, but that only shows the older
+  data was re-analysed, so GSE143476 and its paper stay left out. No Series mixes samples of the two studies.
+unsure: false
+read:
+- records
+- abstract
+- full_paper

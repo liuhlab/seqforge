@@ -1,0 +1,16 @@
+id: GSE132886
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-3
+when: '2026-11-20T00:01:39Z'
+summary: Bulk RNA-seq of whole mouse uterus at young and aged timepoints, comparing age-related endometrial
+  gene expression changes
+bounds:
+  series:
+  - GSE132886
+  papers:
+  - pmid:33258951
+  reason: Same Series and matching abstract describe RNA-seq of mouse uteri across ages
+  left_out:
+    pmid:39010112: Re-uses GSE132886 data for functional follow-up on IL17RB
+  split_samples: {}
+checks_failed: []

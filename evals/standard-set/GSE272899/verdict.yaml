@@ -1,0 +1,13 @@
+id: GSE272899
+model: claude-fable-5-2
+when: '2026-11-20T00:07:17Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single preprint, and they share the same title. The Series
+  record describes chromatin profiling of sorted fat-tissue macrophages from young, aged and aged myeloid-knockout
+  mice, and the preprint abstract describes exactly that comparison as its mechanistic experiment. Nothing
+  else is linked, there is no SuperSeries, and all nine samples fit the one design, so no split is needed.
+unsure: false
+read:
+- records
+- abstract

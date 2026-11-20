@@ -1,0 +1,16 @@
+id: GSE235532
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: ChIP-seq of Drosophila heads comparing H3K27me3 and H3R17me2 marks in young and aged wild-type
+  and LKRSDH mutants
+bounds:
+  series:
+  - GSE235532
+  papers:
+  - pmid:38637528
+  reason: One ChIP-seq dataset profiling two histone marks in wild-type and LKRSDH mutant fly heads at
+    two ages
+  left_out: {}
+  split_samples: {}
+checks_failed: []

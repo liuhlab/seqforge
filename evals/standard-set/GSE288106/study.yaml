@@ -1,0 +1,30 @@
+id: GSE288106
+summary: Single-nucleus RNA-seq of frontal cortex from FTLD-TDP subtypes A, C9orf72 and C, compared with
+  healthy controls
+direction: neurodegeneration
+also_fits: []
+hard_shape: null
+reason_picked: Post-mortem donors in three disease subtypes and controls, where the subtype is only in
+  the title and the overall design.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE288106
+  superseries: null
+  bioprojects:
+  - PRJNA1216202
+  pmids:
+  - '42327368'
+bounds:
+  series:
+  - GSE288106
+  papers:
+  - pmid:42327368
+  reason: One Series and its paper report snRNA-seq of FTLD-TDP subtypes versus control frontal cortex
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

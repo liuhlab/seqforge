@@ -1,0 +1,14 @@
+id: GSE151164
+model: claude-fable-5-2
+when: '2026-11-20T00:10:06Z'
+agrees: true
+bounds: null
+reason: 'The group holds a single Series and a single paper, and they match each other: the GEO record
+  and the Genetics 2020 abstract carry the same title and nearly the same text, both describing RNA-seq
+  showing that affl-2 mutants fail to mount the heat-shock transcriptional response. The twelve samples
+  (wild type and affl-2 mutant, with and without heat shock, in triplicate) are all one experiment, so
+  there is nothing to split and nothing to leave out.'
+unsure: false
+read:
+- records
+- abstract

@@ -1,0 +1,29 @@
+id: GSE135532
+summary: Bulk RNA-seq of mouse heart ventricles comparing four diets (chow, NIA, UW, modified NIA) for
+  cardiac fibrosis and gene expression.
+direction: aging
+also_fits: []
+hard_shape: null
+reason_picked: 'The simplest aging design in the set: one factor with four levels and even replicates.'
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE135532
+  superseries: null
+  bioprojects:
+  - PRJNA559176
+  pmids:
+  - '31415241'
+bounds:
+  series:
+  - GSE135532
+  papers:
+  - pmid:31415241
+  reason: One RNA-seq Series of mouse ventricles across four diets, reported by one paper.
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

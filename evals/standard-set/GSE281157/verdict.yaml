@@ -1,0 +1,14 @@
+id: GSE281157
+model: claude-fable-5-2
+when: '2026-11-20T00:09:41Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single paper, and they match. The Series profiles starved
+  L1 worms of four genotypes (wild type, daf-16, daf-18 and the double mutant), which is the genomic arm
+  of the 2025 paper on DAF-18/PTEN and LIN-35/Rb in starvation resistance. The paper's data availability
+  statement names this accession as its RNA-seq deposit, so nothing needs to be left out or split.
+unsure: false
+read:
+- records
+- abstract
+- full_paper

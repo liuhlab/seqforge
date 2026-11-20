@@ -1,0 +1,18 @@
+id: GSE140511
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-3
+when: '2026-11-20T00:01:39Z'
+summary: Single-nucleus RNA-seq of mouse and human brain comparing Alzheimer's pathology and TREM2 genotypes
+  in microglia and other glia
+bounds:
+  series:
+  - GSE140399
+  - GSE140510
+  papers:
+  - pmid:31932797
+  reason: Two mouse snRNA-seq SubSeries at 7 and 15 months from one TREM2/5XFAD study, reported by one
+    paper
+  left_out:
+    GSE140511: SuperSeries repeating sub-Series samples
+  split_samples: {}
+checks_failed: []

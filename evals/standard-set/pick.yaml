@@ -24,7 +24,9 @@ limits:
 
 # status: settled = the Series record(s) were read and the direction, shape and design confirmed
 #   (for a hard shape the paper abstract was read too); shape_to_confirm = picked on a real
-#   signal, but only the full paper can say which samples each paper uses.
+#   signal, but only the full paper can say which samples each paper uses; shape_not_found = that
+#   signal was followed when the study was drawn and the Series holds one study: its second paper
+#   re-uses the data or is linked by mistake. The study's verdict.yaml says which.
 # compiles_fully: true when every sequenced library of the study is in a chemistry named in
 #   compiles_today; false when only part is, or none.
 
@@ -238,7 +240,7 @@ studies:
     n_experiments: 21
     design: "Uterus at four ages, sequenced as two separate experiments"
     reason_picked: "One Series with two papers and two sequencing experiments inside it; the second paper says it re-analyses the first, so whether this is two studies is for the drawing to settle."
-    status: shape_to_confirm
+    status: shape_not_found
   - id: GSE112068
     direction: aging
     also_fits: []
@@ -508,7 +510,7 @@ studies:
     n_experiments: 32
     design: "Aging mice on two drugs, plus drug-treated rat neurons"
     reason_picked: "One Series with a mouse experiment and a rat cell experiment, and two linked papers on different questions."
-    status: shape_to_confirm
+    status: shape_not_found
   - id: GSE142633
     direction: neurodegeneration
     also_fits: []
@@ -733,7 +735,7 @@ studies:
     n_experiments: 24
     design: "Strain by temperature, each sample in two assays"
     reason_picked: "The Series carries the title of one paper, its worm samples match a second paper, and both are linked."
-    status: shape_to_confirm
+    status: shape_not_found
   - id: GSE208154
     direction: c_elegans
     also_fits: [aging]
@@ -779,6 +781,11 @@ studies:
     design: "Two histone marks on four genotypes with inputs; cites 2017 Series"
     reason_picked: "A 2021 paper linked to its own large Series and to a three-sample 2017 Series that has its own earlier paper."
     status: settled
+
+# Studies taken out of the set after picking, each with the spare that took its place and why it
+# failed. A study fails when drawing shows it is not of its direction, has no sequenced run, breaks
+# the limits once bounded, or cannot be bounded at all. None has failed.
+replaced: []
 
 spares:
   - id: GSE267091

@@ -1,0 +1,33 @@
+id: GSE131269
+summary: Transcriptome and ribosome profiling of adult C. elegans wild-type and METL-5 mutants at normal
+  and heat-shock temperatures
+direction: c_elegans
+also_fits: []
+hard_shape: series_with_two_studies
+reason_picked: The Series carries the title of one paper, its worm samples match a second paper, and both
+  are linked.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE131269
+  superseries: null
+  bioprojects:
+  - PRJNA543094
+  pmids:
+  - '31279658'
+  - '32494643'
+bounds:
+  series:
+  - GSE131269
+  papers:
+  - pmid:32494643
+  reason: GSE131269's design and samples match the METL-5 C. elegans stress study reported by pmid:32494643
+  left_out:
+    pmid:31279658: Different study on PCIF1 m6Am in mammalian cells
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract
+- full_paper

@@ -1,0 +1,16 @@
+id: GSE302826
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Bulk RNA-seq of iPSC-derived astrocytes comparing ApoE3/3 and ApoE4/4 genotypes, with and without
+  FBS.
+bounds:
+  series:
+  - GSE302826
+  papers:
+  - pmid:40983680
+  reason: One Series of bulk RNA-seq on isogenic ApoE3/3 vs ApoE4/4 iPSC-derived astrocytes, reported
+    by one paper.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

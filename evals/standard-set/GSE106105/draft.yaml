@@ -1,0 +1,15 @@
+id: GSE106105
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: RNA-seq of Drosophila thorax and fat body comparing mitochondrial stress genotypes and PGAM5
+  mutants with RU486 induction
+bounds:
+  series:
+  - GSE106105
+  papers:
+  - pmid:28891792
+  reason: One Drosophila RNA-seq study of mitochondrial stress and PGAM5, reported by one paper
+  left_out: {}
+  split_samples: {}
+checks_failed: []

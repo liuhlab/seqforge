@@ -1,0 +1,17 @@
+id: GSE147401
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-3
+when: '2026-11-20T00:01:39Z'
+summary: ChIP-seq and RNA-seq of C. elegans germline comparing wild type and oef-1 mutants, plus histone
+  marks and MES-4 genotypes
+bounds:
+  series:
+  - GSE147401
+  papers:
+  - pmid:34519784
+  reason: ChIP-seq and RNA-seq of C. elegans germline characterizing OEF-1 in wild type and oef-1 mutants
+  left_out:
+    GSE107190: Older ChIP-seq dataset from prior OEF-1 study
+    pmid:29167199: Earlier paper reporting the older dataset
+  split_samples: {}
+checks_failed: []

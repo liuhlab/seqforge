@@ -1,0 +1,16 @@
+id: GSE253651
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: SMART-seq of FACS-sorted cardiac resident macrophages (CCR2+ and CCR2-) from control, high-fat-diet-fed
+  and aged mice
+bounds:
+  series:
+  - GSE253651
+  papers:
+  - pmid:38763956
+  reason: One Series of SMART-seq profiles of sorted cardiac macrophages comparing control, high-fat diet
+    and aged mice, reported by one paper
+  left_out: {}
+  split_samples: {}
+checks_failed: []

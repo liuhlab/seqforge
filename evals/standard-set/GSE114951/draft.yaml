@@ -1,0 +1,14 @@
+id: GSE114951
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Bulk RNA-seq of whole L4 C. elegans comparing wild type with atfs-1 null and atfs-1(et18) mutants
+bounds:
+  series:
+  - GSE114951
+  papers:
+  - pmid:33473112
+  reason: Single Series comparing WT to atfs-1(null) and atfs-1(et18) mutants, reported by one paper
+  left_out: {}
+  split_samples: {}
+checks_failed: []

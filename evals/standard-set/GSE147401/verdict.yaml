@@ -1,0 +1,13 @@
+id: GSE147401
+model: claude-fable-5-2
+when: '2026-11-20T00:03:12Z'
+agrees: true
+bounds: null
+reason: GSE147401 (histone-mark ChIP-seq and gonad RNA-seq, wild type vs oef-1) links only to the 2021
+  G3 paper pmid:34519784, whose abstract matches it. GSE107190 is the 2017 OEF-1:GFP ChIP-seq, released
+  with the Genetics paper pmid:29167199 under the same title; the G3 paper only re-uses that binding data,
+  so both belong to the earlier study and are correctly left out. Records and abstracts settled this.
+unsure: false
+read:
+- records
+- abstract

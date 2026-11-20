@@ -1,0 +1,14 @@
+id: GSE208154
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Single-cell RNA-seq of whole C. elegans across six adult ages, profiling all cell types during
+  aging
+bounds:
+  series:
+  - GSE208154
+  papers: []
+  reason: One time-series scRNA-seq atlas of C. elegans aging across six adult time points
+  left_out: {}
+  split_samples: {}
+checks_failed: []

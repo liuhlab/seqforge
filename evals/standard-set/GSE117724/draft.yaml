@@ -1,0 +1,17 @@
+id: GSE117724
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: RNA-seq and ChIP-seq of whole C. elegans treated with immunostimulator R24, comparing wild-type
+  and nhr-86 mutants
+bounds:
+  series:
+  - GSE117700
+  - GSE117719
+  papers:
+  - pmid:30668573
+  reason: RNA-seq and ChIP-seq subseries from one NHR-86 immune activation study
+  left_out:
+    GSE117724: SuperSeries repeating subseries samples
+  split_samples: {}
+checks_failed: []

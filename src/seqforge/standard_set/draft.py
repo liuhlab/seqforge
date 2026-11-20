@@ -13,6 +13,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import threading
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -27,7 +28,7 @@ from .material import drafter_text, open_sources, pick_entries, read_group
 
 KIND_NAME = "standard-set-bounds"
 #: Raise it when the prompt, the answer's shape or a check changes.
-KIND_VERSION = "2026.11.2"
+KIND_VERSION = "2026.11.3"
 
 _LIST = {"type": "array", "items": {"type": "string"}}
 #: The bounds as a model writes them. ``left_out`` and ``split_samples`` are lists here, since a
@@ -93,7 +94,10 @@ _SYSTEM = (
     "You draw the bounds of one study from GEO records and paper abstracts.\n\n"
     + RULES
     + '\nAlso write "summary": one plain line of at most 20 words saying what the study is, for a '
-    "biologist who has not seen it, with no accession numbers.\n\nAnswer with one JSON object of this shape:\n"
+    "biologist who has not seen it: what was sampled, what is compared, and by which assay, such as "
+    '"Bulk RNA-seq of hippocampus from young and aged mice, with and without exercise". Describe '
+    "the data, not the paper's finding. No accession numbers.\n\n"
+    "Answer with one JSON object of this shape:\n"
     '{"summary": "...", "bounds": {"series": ["GSE..."], "papers": ["pmid:..."], "reason": "...", '
     '"left_out": [{"id": "GSE... or pmid:...", "reason": "..."}], '
     '"split_samples": [{"series": "GSE...", "samples": ["GSM..."]}]}}'
@@ -159,16 +163,21 @@ def summary_is_one_line(inputs: Inputs, answer: Any) -> str | None:
     return None if summary and "\n" not in summary and len(summary) <= 200 else "not one short line"
 
 
+class NotPicked(Exception):
+    """The id names no study of the pick."""
+
+
 def bounds_kind(read: Callable[[str], Mapping[str, Any]]) -> UnitKind:
     """The liulab-llms kind, over ``read``: a study's id to its linked group.
 
-    ``read`` raises ``KeyError`` for an id that is not a picked study, which holds the unit.
+    ``read`` raises :class:`NotPicked` for an id that is not a picked study, which holds the unit.
+    Any other error it raises is a failure of the read, and is left to end the unit unfinished.
     """
 
     def load(key: str) -> Inputs:
         try:
             group = read(key)
-        except KeyError:
+        except NotPicked:
             raise Held(f"{key} is not a picked study") from None
         text = drafter_text(group)
         return Inputs(group, tag=hashlib.sha256(text.encode()).hexdigest()[:16])
@@ -195,9 +204,14 @@ def _build(store: Any) -> UnitKind:
     entries = pick_entries(default_set_dir())
     _, papers = open_sources()
 
+    # A pass loads several units at once, and the stores' readers are not made for two threads.
+    one_at_a_time = threading.Lock()
+
     def read(key: str) -> Mapping[str, Any]:
-        entry = entries[key]
-        group = read_group(store, papers, entry)
+        if key not in entries:
+            raise NotPicked(key)
+        with one_at_a_time:
+            group = read_group(store, papers, entries[key])
         if papers is None and group["papers"]:
             raise Held("no paper store is configured, so the abstracts cannot be read")
         return group

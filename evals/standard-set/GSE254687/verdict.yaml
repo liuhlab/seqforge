@@ -1,0 +1,14 @@
+id: GSE254687
+model: claude-fable-5-2
+when: '2026-11-20T00:03:25Z'
+agrees: true
+bounds: null
+reason: GSE254687 (bulk RNA-seq, 6h LPS, KO vs WT) and GSE256105 (single-cell, 24h LPS, KO vs WT) carry
+  the same title/abstract as the 2024 J Neuroinflammation paper pmid:39014482, so they are one study.
+  GSE115571 was submitted in 2018 and is the dataset of the EMBO reports paper pmid:30206190; the 2024
+  paper only re-uses it for comparison, so it and its paper are correctly left out. No Series mixes samples
+  of two studies.
+unsure: false
+read:
+- records
+- abstract

@@ -1,0 +1,13 @@
+id: GSE235532
+model: claude-fable-5-2
+when: '2026-11-20T00:07:09Z'
+agrees: true
+bounds: null
+reason: The linked group holds a single Series and a single paper, and they match. The Series record describes
+  head ChIP-seq for two histone marks in control and LKRSDH mutant flies at 3 and 40 days, and the abstract
+  of the 2024 paper describes that same experiment. The record and the paper also share a title. It is
+  not a SuperSeries, and all 24 samples fit the one design, so nothing needs leaving out or splitting.
+unsure: false
+read:
+- records
+- abstract

@@ -1,0 +1,16 @@
+id: GSE175410
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: RRBS DNA methylation profiling of tibialis anterior muscle from young, aged sedentary, and aged
+  exercise-trained mice
+bounds:
+  series:
+  - GSE175410
+  papers:
+  - pmid:34932867
+  reason: One Series with young, aged, and exercise-trained mouse muscle methylation profiles reported
+    by one paper
+  left_out: {}
+  split_samples: {}
+checks_failed: []

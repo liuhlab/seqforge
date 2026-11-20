@@ -1,0 +1,12 @@
+id: GSE208154
+model: claude-fable-5-2
+when: '2026-11-20T00:10:34Z'
+agrees: true
+bounds: null
+reason: The linked group holds a single Series and no linked paper, so there is nothing else to include
+  or exclude. The record's design section describes one worm population sampled at six adult ages, all
+  eleven samples sharing one strain, which is one experiment. The bioRxiv preprint it cites for the protocol
+  has no PubMed id in the group, so the paper list stays empty.
+unsure: false
+read:
+- records

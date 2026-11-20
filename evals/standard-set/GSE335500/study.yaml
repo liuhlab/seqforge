@@ -1,0 +1,30 @@
+id: GSE335500
+summary: Bulk RNA-seq of cortex from AD mice engrafted with APOE3 or APOE4 human astrocytes
+direction: neurodegeneration
+also_fits: []
+hard_shape: null
+reason_picked: Each sample is mouse tissue carrying human cells, with donor line, variant and age as separate
+  facts.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE335500
+  superseries: null
+  bioprojects:
+  - PRJNA1478654
+  pmids:
+  - '42570239'
+bounds:
+  series:
+  - GSE335500
+  papers:
+  - pmid:42570239
+  reason: One Series and its paper reporting bulk RNA-seq of APOE3 vs APOE4 astrocyte-grafted AD mouse
+    cortex
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

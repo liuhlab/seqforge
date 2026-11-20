@@ -1,0 +1,15 @@
+id: GSE131269
+model: claude-fable-5-2
+when: '2026-11-20T00:02:42Z'
+agrees: true
+bounds: null
+reason: "The draft is right. GSE131269's summary, design and all 24 samples (C. elegans WT vs metl-5 mutant,\
+  \ 20 vs 37 \xB0C, mRNA-seq and Ribo-seq) match the Science Advances METL-5 paper (pmid:32494643), whose\
+  \ full text cites GSE131269. The Series title is copied from the PCIF1 m6Am paper (pmid:31279658), but\
+  \ that paper is on mammalian cells and its full text cites a different accession, GSE122948, so its\
+  \ link here is a mistake."
+unsure: false
+read:
+- records
+- abstract
+- full_paper

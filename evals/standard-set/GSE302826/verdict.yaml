@@ -1,0 +1,14 @@
+id: GSE302826
+model: claude-fable-5-2
+when: '2026-11-20T00:07:59Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single paper, and they share the same title and nearly identical
+  summary text. The Series record describes astrocyte RNA-seq from isogenic ApoE3/3 and ApoE4/4 iPSC lines,
+  which is the transcriptomic arm of the multi-omics astrocyte work the paper's abstract describes. Nothing
+  else is linked, no SuperSeries is involved, and all 18 samples fit the one design, so there is nothing
+  to leave out or split.
+unsure: false
+read:
+- records
+- abstract

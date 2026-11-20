@@ -1,0 +1,37 @@
+id: GSE101112
+summary: Hippocampal transcriptome of aged SAMP8 mice treated with AD drug candidates CMS121 and J147,
+  plus treated rat neurons.
+direction: neurodegeneration
+also_fits:
+- aging
+hard_shape: series_with_two_studies
+reason_picked: One Series with a mouse experiment and a rat cell experiment, and two linked papers on
+  different questions.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE101112
+  superseries: null
+  bioprojects:
+  - PRJNA393728
+  pmids:
+  - '31742554'
+  - '32884834'
+  - '33294943'
+bounds:
+  series:
+  - GSE101112
+  papers:
+  - pmid:31742554
+  reason: The 2019 eLife paper is the one that generated and reports the SAMP8 hippocampus and rat neuron
+    RNA-seq held in this Series.
+  left_out:
+    pmid:32884834: Re-analyses the earlier counts; new work is cell assays
+    pmid:33294943: Software paper using the dataset as an example
+  split_samples: {}
+bounds_from: judge
+status: settled
+read_to_decide:
+- records
+- abstract
+- full_paper

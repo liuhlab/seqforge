@@ -1,0 +1,30 @@
+id: GSE153881
+summary: Plasma extracellular vesicle RNA-seq comparing healthy controls with mild cognitive impairment
+  and Alzheimer's disease patients
+direction: neurodegeneration
+also_fits: []
+hard_shape: null
+reason_picked: A human cohort where each sample carries age, sex and clinical scores, and diagnosis is
+  written in two overlapping fields.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE153881
+  superseries: null
+  bioprojects:
+  - PRJNA644390
+  pmids:
+  - '33304899'
+bounds:
+  series:
+  - GSE153881
+  papers:
+  - pmid:33304899
+  reason: One RNA-seq dataset of plasma EV RNA in healthy, MCI and AD donors reported by one paper
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

@@ -1,0 +1,13 @@
+id: GSE335500
+model: claude-fable-5-2
+when: '2026-11-20T00:08:13Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single paper, and they share the same title and summary
+  text. The Series design describes cortex RNA-seq from twelve chimeric AD mice given APOE3 or APOE4 human
+  astrocyte grafts, which is exactly the experiment the paper's abstract reports. The Series is not a
+  SuperSeries and all twelve samples fit the one design, so nothing needs to be left out or split.
+unsure: false
+read:
+- records
+- abstract

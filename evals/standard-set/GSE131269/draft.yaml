@@ -1,0 +1,16 @@
+id: GSE131269
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-3
+when: '2026-11-20T00:01:39Z'
+summary: Transcriptome and ribosome profiling of adult C. elegans wild-type and METL-5 mutants at normal
+  and heat-shock temperatures
+bounds:
+  series:
+  - GSE131269
+  papers:
+  - pmid:32494643
+  reason: GSE131269's design and samples match the METL-5 C. elegans stress study reported by pmid:32494643
+  left_out:
+    pmid:31279658: Different study on PCIF1 m6Am in mammalian cells
+  split_samples: {}
+checks_failed: []

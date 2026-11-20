@@ -1,0 +1,15 @@
+id: GSE272899
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: ATAC-seq of sorted visceral adipose tissue macrophages from young, old, and old GDF3 myeloid-knockout
+  mice, comparing chromatin accessibility with aging.
+bounds:
+  series:
+  - GSE272899
+  papers:
+  - pmid:39386655
+  reason: Single ATAC-seq Series profiling ATMs across age and GDF3 genotype, reported by one preprint.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

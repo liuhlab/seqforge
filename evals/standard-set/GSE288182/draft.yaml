@@ -1,0 +1,15 @@
+id: GSE288182
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: RRBS DNA methylation of brain from wild-type, APP/PS1 Alzheimer's mice, and OSK-reprogrammed
+  APP/PS1 mice.
+bounds:
+  series:
+  - GSE288182
+  papers:
+  - pmid:42210397
+  reason: One RRBS study comparing brain methylation across WT, AD, and OSK-treated AD mice.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

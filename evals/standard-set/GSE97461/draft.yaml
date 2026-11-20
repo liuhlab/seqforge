@@ -1,0 +1,15 @@
+id: GSE97461
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: TRAP-seq of striatal D1 and D2 spiny projection neurons from young and aged mice, plus ribosome
+  profiling of treated NIH-3T3 cells
+bounds:
+  series:
+  - GSE97461
+  papers:
+  - pmid:30485811
+  reason: Single GEO Series and its linked paper report TRAP-seq of young versus aged striatal neurons
+  left_out: {}
+  split_samples: {}
+checks_failed: []

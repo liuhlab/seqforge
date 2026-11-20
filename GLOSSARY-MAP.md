@@ -36,6 +36,21 @@ its words: Unit, Unit kind, Pass, Task, Settled, Unsettled, Refused, Dropped, Un
 Inputs tag, Stamp, Review, Review queue, Gateway, Meter and Waiting call. Nothing here redefines
 them. A pass is never a *run*, *batch*, *job* or *round*.
 
+## The standard set's words
+
+`standard_set/` is not a sixth context either. Its two words are used wherever studies are
+discussed:
+
+**Standard set**:
+The fixed list of 50 small GEO studies that work on reading studies is built and checked on. One
+list, shared by every later stage.
+_Avoid_: benchmark, test set, gold set, corpus
+
+**Bounds**:
+What belongs to one study: its GEO Series, its papers, and its samples where a Series is shared.
+A linked record that does not belong is left out with a reason.
+_Avoid_: scope, extent, membership, boundary
+
 ## Relationships
 
 - **Probe → Resolve**: probe reads bytes under a budget and reports what it saw, naming no roles;

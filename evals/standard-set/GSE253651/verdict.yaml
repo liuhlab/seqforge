@@ -1,0 +1,15 @@
+id: GSE253651
+model: claude-fable-5-2
+when: '2026-11-20T00:06:26Z'
+agrees: true
+bounds: null
+reason: The group has only one Series and one paper, and the paper's data availability statement names
+  this accession as its newly generated sequencing, so they belong together. The full text never mentions
+  the diet-fed arm, which the paper leaves unreported. Those six samples share the same controls, protocol
+  and deposit as the aged ones, and nothing points to a separate study owning them, so I do not split
+  the Series.
+unsure: false
+read:
+- records
+- abstract
+- full_paper

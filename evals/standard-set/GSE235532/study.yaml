@@ -1,0 +1,31 @@
+id: GSE235532
+summary: ChIP-seq of Drosophila heads comparing H3K27me3 and H3R17me2 marks in young and aged wild-type
+  and LKRSDH mutants
+direction: aging
+also_fits: []
+hard_shape: null
+reason_picked: A fly ChIP design where every pull-down has a matching input, so samples must be paired
+  as well as grouped.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE235532
+  superseries: null
+  bioprojects:
+  - PRJNA965925
+  pmids:
+  - '38637528'
+bounds:
+  series:
+  - GSE235532
+  papers:
+  - pmid:38637528
+  reason: One ChIP-seq dataset profiling two histone marks in wild-type and LKRSDH mutant fly heads at
+    two ages
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

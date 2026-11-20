@@ -1,0 +1,31 @@
+id: GSE78252
+summary: RNA-seq of whole C. elegans L4 worms comparing cco-1 RNAi mitochondrial stress versus empty vector
+  in wild-type, lin-65 and met-2 mutants
+direction: c_elegans
+also_fits:
+- aging
+hard_shape: null
+reason_picked: A clean genotype by knockdown cross in worms, the standard shape for the direction.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE78252
+  superseries: null
+  bioprojects:
+  - PRJNA313027
+  pmids:
+  - '27133166'
+bounds:
+  series:
+  - GSE78252
+  papers:
+  - pmid:27133166
+  reason: One RNA-seq Series profiling cco-1 RNAi mitochondrial stress response in wild-type and chromatin
+    mutant C. elegans, reported by one paper
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

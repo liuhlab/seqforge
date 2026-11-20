@@ -1,0 +1,16 @@
+id: GSE274290
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-3
+when: '2026-11-20T00:01:39Z'
+summary: Single-cell RNA-seq of C. elegans L4 germ cells plus small RNA-seq of whole worms with control
+  versus elt-1 RNAi
+bounds:
+  series:
+  - GSE274290
+  - GSE274291
+  papers:
+  - pmid:40097379
+  reason: Both Series and the one paper report the same C. elegans germ cell gene expression study
+  left_out: {}
+  split_samples: {}
+checks_failed: []

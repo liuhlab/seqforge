@@ -281,3 +281,29 @@ def test_a_judge_that_leaves_no_usable_bounds_stops_the_study_and_writes_nothing
         _run_judge(drafted, tmp_path)
 
     assert sorted(p.name for p in (drafted / "S2").iterdir()) == ["draft.yaml"]
+
+
+@pytest.mark.repo
+def test_the_standard_set_lists_fifty_studies_each_with_identifiers_reason_and_bounds() -> None:
+    """The repo's own set, through the listing command: every study still in the pick is drawn, and
+    nothing else is. A study added or dropped without the pick, a direction split that drifted, or
+    a study file missing what later stages read goes red here."""
+    from seqforge.standard_set import default_set_dir
+    from seqforge.standard_set.material import pick_entries
+
+    listed = {s["id"]: s for s in json.loads(runner.invoke(app, ["standard-set", "list"]).stdout)}
+    picked = pick_entries(default_set_dir())
+
+    assert sorted(listed) == sorted(picked)
+    by_direction = [s["direction"] for s in listed.values()]
+    assert {d: by_direction.count(d) for d in set(by_direction)} == {
+        "aging": 17,
+        "neurodegeneration": 17,
+        "c_elegans": 16,
+    }
+    for key, study in listed.items():
+        assert study["reason_picked"], key
+        assert study["records"]["series"], key
+        assert study["bounds"]["series"], key
+        assert study["bounds"]["reason"], key
+        assert set(study["bounds"]["series"]) <= set(study["records"]["series"]), key

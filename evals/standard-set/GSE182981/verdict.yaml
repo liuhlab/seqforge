@@ -1,0 +1,14 @@
+id: GSE182981
+model: claude-fable-5-2
+when: '2026-11-20T00:10:41Z'
+agrees: true
+bounds: null
+reason: 'The group holds a single Series and a single paper, and they describe the same experiment: the
+  Series summary and the 2022 paper''s abstract both cover worms given glucose starting at adult day 1
+  versus day 5 and the role of the three ER stress sensors in lifespan. The Series is not a SuperSeries,
+  all 18 samples share one design (three diet groups, six replicates each), so nothing needs leaving out
+  or splitting.'
+unsure: false
+read:
+- records
+- abstract

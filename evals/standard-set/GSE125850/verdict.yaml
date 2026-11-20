@@ -1,0 +1,14 @@
+id: GSE125850
+model: claude-fable-5-2
+when: '2026-11-20T00:08:33Z'
+agrees: true
+bounds: null
+reason: 'The group holds only one Series and one paper, and they match each other: the record''s title
+  and summary are the same as the 2019 Brain article''s title and abstract, and the twelve samples (input
+  and pulldown pairs for wild-type, disease-model and inhibitor-treated mice) are exactly the histone-mark
+  sequencing experiment that abstract describes. The Series is not a SuperSeries and there is nothing
+  else linked that could belong elsewhere, so the draft''s bounds stand.'
+unsure: false
+read:
+- records
+- abstract

@@ -1,0 +1,15 @@
+id: GSE335500
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Bulk RNA-seq of cortex from AD mice engrafted with APOE3 or APOE4 human astrocytes
+bounds:
+  series:
+  - GSE335500
+  papers:
+  - pmid:42570239
+  reason: One Series and its paper reporting bulk RNA-seq of APOE3 vs APOE4 astrocyte-grafted AD mouse
+    cortex
+  left_out: {}
+  split_samples: {}
+checks_failed: []

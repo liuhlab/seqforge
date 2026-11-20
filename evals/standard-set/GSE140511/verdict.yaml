@@ -1,0 +1,13 @@
+id: GSE140511
+model: claude-fable-5-2
+when: '2026-11-20T00:03:32Z'
+agrees: true
+bounds: null
+reason: 'The records settle it: GSE140511 is a SuperSeries whose 20 samples are exactly those of its two
+  sub-Series GSE140399 (15-month mice) and GSE140510 (7-month mice). All three share the same title and
+  summary and link the one Nature Medicine paper, pmid:31932797, whose abstract matches. No Series mixes
+  samples from another study, so no split is needed.'
+unsure: false
+read:
+- records
+- abstract

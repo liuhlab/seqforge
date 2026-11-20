@@ -1,0 +1,12 @@
+id: GSE135532
+model: claude-fable-5-2
+when: '2026-11-20T00:06:39Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single paper, and the Series summary matches the paper's
+  abstract almost word for word, describing the same mouse diet comparison with ventricle transcriptomics.
+  There is no SuperSeries, no second dataset and no sign of mixed samples, so the draft's bounds stand.
+unsure: false
+read:
+- records
+- abstract

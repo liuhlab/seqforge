@@ -1,0 +1,15 @@
+id: GSE281157
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Bulk RNA-seq of whole starved L1 larvae comparing wild type, daf-16, daf-18, and daf-16;daf-18
+  mutants.
+bounds:
+  series:
+  - GSE281157
+  papers:
+  - pmid:40199585
+  reason: GSE281157 is the only Series; pmid:40199585 is the paper linked to this Series.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

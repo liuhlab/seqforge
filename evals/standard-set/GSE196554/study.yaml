@@ -1,0 +1,30 @@
+id: GSE196554
+summary: Single-cell RNA-seq of purified human muscle stem cells from donors aged 20 to 87, comparing
+  young and aged transcriptomes.
+direction: aging
+also_fits: []
+hard_shape: null
+reason_picked: Every sample is one donor with its own age, sex and muscle, the donor-as-sample case with
+  a continuous age.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE196554
+  superseries: null
+  bioprojects:
+  - PRJNA805502
+  pmids:
+  - '37192223'
+bounds:
+  series:
+  - GSE196554
+  papers:
+  - pmid:37192223
+  reason: One Series of scRNA-seq on human satellite cells across donor ages, reported by one paper.
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

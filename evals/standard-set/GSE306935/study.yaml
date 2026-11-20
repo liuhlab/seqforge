@@ -1,0 +1,35 @@
+id: GSE306935
+summary: Single-cell RNA-seq of mouse muscle stem cells comparing adult, aged, and ISR-activator-treated
+  aged cells after activation.
+direction: aging
+also_fits: []
+hard_shape: recites_older_series
+reason_picked: A 2025 Series whose paper is also linked to a 2020 Series that has its own earlier paper.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE143476
+  - GSE306935
+  superseries: null
+  bioprojects:
+  - PRJNA600730
+  - PRJNA1314012
+  pmids:
+  - '32198156'
+  - '41256688'
+bounds:
+  series:
+  - GSE306935
+  papers:
+  - pmid:41256688
+  reason: scRNA-seq of adult, aged, and ISR-treated aged MuSCs after 18h activation.
+  left_out:
+    GSE143476: Separate study on activation kinetics, samples not reused here
+    pmid:32198156: Reports the separate GSE143476 activation kinetics study
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract
+- full_paper

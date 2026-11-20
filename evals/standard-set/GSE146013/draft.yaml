@@ -1,0 +1,16 @@
+id: GSE146013
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Small RNA-seq of cervical spinal cord from prion-inoculated and control Tg501 mice at preclinical
+  and clinical stages
+bounds:
+  series:
+  - GSE146013
+  papers:
+  - pmid:32549330
+  reason: One Series and one paper report miRNA profiling of prion-inoculated versus control Tg501 mouse
+    spinal cord
+  left_out: {}
+  split_samples: {}
+checks_failed: []

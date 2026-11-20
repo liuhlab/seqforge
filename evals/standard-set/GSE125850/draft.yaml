@@ -1,0 +1,16 @@
+id: GSE125850
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: ChIP-seq of H3K9me2 in prefrontal cortex from wild-type, familial Alzheimer's model, and inhibitor-treated
+  FAD mice
+bounds:
+  series:
+  - GSE125850
+  papers:
+  - pmid:30668640
+  reason: One ChIP-seq study of H3K9me2 in FAD vs wild-type vs BIX01294-treated mouse prefrontal cortex,
+    reported by one paper.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

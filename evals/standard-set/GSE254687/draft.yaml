@@ -1,0 +1,19 @@
+id: GSE254687
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-3
+when: '2026-11-20T00:01:39Z'
+summary: Single-cell and bulk RNA-seq of microglia from PARK7/DJ-1 knockout and wildtype mice after LPS-induced
+  inflammation
+bounds:
+  series:
+  - GSE254687
+  - GSE256105
+  papers:
+  - pmid:39014482
+  reason: Both Series report the PARK7/DJ-1 microglia LPS study by the same paper; GSE256105 adds the
+    24h single-cell comparison
+  left_out:
+    GSE115571: Prior LPS microglia dataset re-used for comparison
+    pmid:30206190: Earlier paper reporting the re-used dataset
+  split_samples: {}
+checks_failed: []

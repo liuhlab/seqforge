@@ -1,0 +1,13 @@
+id: GSE243994
+model: claude-fable-5-2
+when: '2026-11-20T00:09:35Z'
+agrees: true
+bounds: null
+reason: The linked group has only one Series and one paper. The Series record and the paper's abstract
+  carry the same title and the same text, and the record's design (somatic gonad RNA-seq in two genotypes
+  at two ages) is the tissue-specific transcriptome the abstract describes. The Series is not a SuperSeries
+  and its twelve samples form a single design, so nothing needs to be left out or split.
+unsure: false
+read:
+- records
+- abstract

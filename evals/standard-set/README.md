@@ -1,16 +1,38 @@
-# The standard set (first version)
+# The standard set
 
 **Provisional.** The standard set is the 50 small GEO studies that later work is built and checked
-on. A study's **bounds** say which GEO Series and which papers belong to it. This folder holds the
-list the studies were picked into, [`pick.yaml`](pick.yaml), and one subfolder for each study drawn
-so far. The file format can still change.
+on: 17 on aging, 17 on neurodegeneration and 16 on *C. elegans*. A study's **bounds** say which GEO
+Series and which papers belong to it. The file format can still change.
 
-Five studies have been drawn by the two models. GSE206603 is older: its draft and verdict were
-written by hand as stand-ins, and each says so in its first line.
+This folder holds:
+
+- [`pick.yaml`](pick.yaml): the 50 picked studies and 14 spares, each with the reason it was picked,
+  and `replaced`, the studies taken out after picking with the reason each failed.
+- one subfolder for each study, named after the Series it was picked by.
 
 ```bash
 seqforge standard-set list     # one JSON object per study
 ```
+
+Each object gives the study's summary, direction, record identifiers, the reason it was picked and
+its bounds.
+
+## How the 50 came out
+
+All 50 were drawn on 2026-11-19 and 2026-11-20 (UTC) by the two models below, on store build
+`20261107T163933Z`. The checking model agreed with 48 drafts and replaced two. It was unsure about
+none, and no study had to be replaced by a spare.
+
+- **GSE101112:** the draft kept a later paper that only re-analyses the data. The full text of that
+  paper settled it.
+- **GSE126954:** one of its eight samples is a re-deposited sample of an older study, so the study
+  is seven samples of the Series. This is the one study with a sample split.
+- **Three studies were picked as possibly two studies in one Series** (GSE101112, GSE131269,
+  GSE132886). Each turned out to be one study whose second paper re-uses the data or is linked by
+  mistake. `pick.yaml` marks them `shape_not_found`.
+
+What the links between records showed is written up in
+[`docs/research/standard-set-record-links-2026-11-19.md`](../../docs/research/standard-set-record-links-2026-11-19.md).
 
 ## Draw a study
 
@@ -61,7 +83,7 @@ correction file is written only when a person actually corrects a study.
 | `summary` | One short plain line saying what the study is. From the draft. |
 | `direction` | `aging`, `neurodegeneration` or `c_elegans`. A study counts under one. |
 | `also_fits` | Other directions it could count under. May be empty. |
-| `hard_shape` | `recites_older_series`, `paper_over_several_series`, `superseries`, `series_with_two_studies`, `series_without_paper`, or `null` for the plain case. |
+| `hard_shape` | `recites_older_series`, `paper_over_several_series`, `superseries`, `series_with_two_studies`, `series_without_paper`, or `null` for the plain case. The shape the study was picked for; the bounds say what it turned out to be. |
 | `reason_picked` | One or two sentences. |
 | `store_build` | The liulab-data store build the identifiers were read from. |
 | `records` | Every linked record, by identifier only: `series`, `superseries` (which of those Series is the SuperSeries, or `null`), `bioprojects`, `pmids`. No record text. |
