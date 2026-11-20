@@ -76,6 +76,18 @@ To look at the drawn studies, build the reading page:
 | `<id>/bounds.yaml` | the pipeline | the study's bounds |
 | `<id>/draft.yaml` | the small model | the drafted summary and bounds |
 | `<id>/verdict.yaml` | the large model | whether it agrees with the draft, and why |
+| `<id>/reading.yaml` | a large model | the study reading, for five worked examples only |
+| `<id>/reading.verdict.yaml` | a second pass of a large model | whether it agrees with the reading, each disagreement, and what it could not settle |
+| `<id>/reading.notes.md` | the model that wrote the reading | what the format could not hold for this study |
+
+Five studies have a worked reading, one per kind of design: GSE100021 (two groups), GSE112068 (a
+dose and time series), GSE235532 (pull-down libraries with their input controls), GSE117724 (two
+assays) and GSE241718 (one paper over two Series). A model wrote each and a second model pass
+checked it against the records. No person has checked them. Where the second pass disagrees, the
+reading is left as written and the disagreement is in the verdict. The format is on the
+[study reading](../../docs/formats/reading.md) page, and
+[`prototypes/study_reading_page/`](../../prototypes/study_reading_page/) builds a page to look at
+them.
 
 No file is overwritten after it is written, with one exception. Each of the 50 `study.yaml` files
 was rewritten once to move its bounds out into `bounds.yaml`, so that the bounds

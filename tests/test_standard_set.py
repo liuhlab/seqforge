@@ -23,6 +23,8 @@ from seqforge.cli import app
 from seqforge.passes.kinds import KINDS, Kind
 from seqforge.standard_set import draft, judge
 from seqforge.study.bounds import check_bounds
+from seqforge.study.claims import load
+from seqforge.study.reading import check_reading
 
 runner = CliRunner()
 WHEN = dt.datetime(2026, 11, 19, 12, 0, tzinfo=dt.UTC)
@@ -296,8 +298,8 @@ def test_a_judge_that_leaves_no_usable_bounds_stops_the_study_and_writes_nothing
 def test_the_standard_set_lists_fifty_studies_each_with_identifiers_reason_and_bounds() -> None:
     """The repo's own set, through the listing command: every study still in the pick is drawn, and
     nothing else is. A study added or dropped without the pick, a direction split that drifted, a
-    study file missing what later stages read, or a bounds file that is not in the current format
-    goes red here."""
+    study file missing what later stages read, or a bounds file or a worked reading that is not in
+    the current format goes red here."""
     from seqforge.standard_set import default_set_dir
     from seqforge.standard_set.material import pick_entries
 
@@ -318,3 +320,12 @@ def test_the_standard_set_lists_fifty_studies_each_with_identifiers_reason_and_b
         assert check_bounds(bounds) == [], key
         assert bounds["study"] == key
         assert {claim["id"] for claim in bounds["series"]} <= set(study["records"]["series"]), key
+
+    readings = sorted(default_set_dir().glob("*/reading.yaml"))
+    assert readings, "the worked readings are gone"
+    for path in readings:
+        reading, problems = load(path.read_text())
+        assert problems == [], path.parent.name
+        assert check_reading(reading) == [], path.parent.name
+        assert reading["study"] == path.parent.name  # type: ignore[index]
+        assert path.parent.name in listed

@@ -1,0 +1,36 @@
+id: GSE100021
+model: claude-fable-5-2
+when: 2026-11-20T02:05:00Z
+read: [records, abstract, full_text]
+format_fixes:
+  - "shared.duration held the time from injection to euthanasia (80 days), which is not the length of a treatment: moved that claim word for word to a new study attribute time_since_treatment, and wrote duration as unknown (one injection, expression running on to the day of death; no source gives a length of application)."
+quotes: {checked: 29, found: 29, not_found: []}
+samples_match_bounds: true
+agrees: false
+disagreements:
+  - where: "shared.dose"
+    says: "value 1.7e12 with unit viral_particles_per_side, from \"8 μl per side of a suspension containing 1.7 x1012 viral particles\""
+    should_be: "keep the text, and drop value and unit (or write the amount per animal as unknown)"
+    why: "The sentence does not say that each side received 1.7 x 10^12 particles; it says each side received 8 μl of a suspension that contains that many, which reads most naturally as the suspension's particle content, not the amount delivered. The written form turns an ambiguous sentence into a per-side number. It is also hard to credit: 1.7 x 10^12 particles in 8 μl is about 2 x 10^14 particles per mL, one to two orders of magnitude above what a CsCl-purified helper-dependent adenovector preparation reaches, so the per-side reading is probably the wrong one of the two. Only value and unit are affected; the quote and the text are right."
+    passages: [27]
+unsure:
+  - "development_stage is written as text: old, quoted from \"old female rats\" in the Series summary. The label asks for a stage of life (the format's own examples are fetal, larval, adult) and there is no stage ontology for rat, so I could not settle whether old belongs here or whether the stage is adult with the 28-month age carrying the aging signal. The word is genuinely in the source, so I did not call it an error."
+  - "The control arm's treatment text, \"adenovector with empty vector DsRed\", is the GEO record's own wording, and the format asks for the source's words. The paper's methods (passage 24) show the control vector carries a DsRed expression cassette under the mCMV promoter, so it is a placebo vector, not an empty one. The claim cites passage 24 beside the GEO description, so a reader can see both; whether the misleading wording should have been replaced is a question about the format, not about this reading."
+  - "donor.text takes each sample's second description line (IGF1_16, DsRed_7) as the animal's name, while the GEO title is IGF1_1 to DsRed_4. Nothing in the records or the paper says which of the two numbers names the rat, so the eight donor ids are right as a count of eight distinct animals but their names rest on a guess the sources do not confirm."
+  - "genotype is unknown rather than an inferred wild type. Sprague-Dawley is an outbred stock and no source gives a genotype, so either backing is arguable."
+reason: >-
+  I read the Series and all eight Samples in the toy store, the BioSamples, SRA experiments, SRA
+  study and BioProject they link, the stored abstract of PMID 28645186 and the full text of the
+  stored PDF, and I checked every passage with my own script: all 29 quotes occur in the named
+  field of every record they name, every paper quote occurs in the PDF text after white space is
+  collapsed, the abstract quote occurs in the stored abstract, and every number cited in quoted
+  and see exists. The eight samples are exactly the eight the Series lists, and the relations
+  command derives the paper's design: two groups of four, one contrast with the DsRed arm as the
+  baseline. The design claims are right, and the hardest of them are right for the right reason:
+  the DsRed arm is a comparison baseline, so control_type is na on every sample and the factor's
+  baseline names it; each library is one rat's right hippocampus, so the eight biosample and donor
+  ids are distinct; species, strain, sex, age, tissue and assay all match the records word for
+  word. My one disagreement is the dose, where the file turns an ambiguous sentence into a
+  per-side particle count that the sentence does not support and that is hard to credit. That
+  touches value and unit on one shared claim and nothing else; the rest of the reading I would
+  sign.

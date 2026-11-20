@@ -580,7 +580,11 @@ _PROSE_SUFFIXES = frozenset({".py", ".md", ".yaml", ".yml", ".smk", ".toml"})
 #: one file where a real pointer would go unseen. Kept as an empty set rather than deleted, because the
 #: shape is the thing worth having: the day a file legitimately holds a rule id as data, it goes here
 #: with its reason beside it.
-_EXEMPT: frozenset[str] = frozenset()
+#:
+#: A study reading and its verdict hold quotes copied word for word from archive records and papers.
+#: A quote that names arginine 17 of a histone reads like a numbered rule and is not one, and a quote
+#: may not be reworded to pass.
+_EXEMPT: frozenset[str] = frozenset({"reading.yaml", "reading.verdict.yaml"})
 
 
 def _points_by_number(text: str) -> bool:

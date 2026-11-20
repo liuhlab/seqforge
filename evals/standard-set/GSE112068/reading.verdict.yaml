@@ -1,0 +1,33 @@
+id: GSE112068
+model: claude-fable-5-2
+when: "2026-11-20T01:39:10Z"
+read: [records]   # the Series, its 23 sample records, the BioProject and the 23 BioSample records; no paper is linked
+format_fixes:
+  - "factors: rewritten from a list of two items with a `label` key into a mapping keyed by the label (dose, time_point); no level, baseline, order, passage or p changed"
+quotes: {checked: 45, found: 45, not_found: []}
+samples_match_bounds: true
+agrees: false
+disagreements:
+  - where: shared.sex
+    says: "na: a cell line; no record gives the donor's sex (p 0.85)"
+    should_be: "unknown: no record gives the sex of the fetus the line came from"
+    why: "The format page keeps `na` for a label that has no value for the sample and `unknown` for a value that exists and was not read. The same reading gives these cells one donor (D1), a donor age and a fetal stage, so the donor's sex applies in the same way; no record field names it (my search of all 24 records for sex, gender, male and female found nothing). A real error, and a small one: the gap mark is wrong on all 23 samples, and no relation changes."
+    passages: [6, 8]
+  - where: "samples.GSM3056966.treatment, samples.GSM3056967.treatment, samples.GSM3056968.treatment"
+    says: "text: control, quoted [15] plus the sample's own description passage (p 0.93)"
+    should_be: "na: the record says no exposure to bleomycin (see 15 and 43, 44 or 45); the dose claim of 0 ug/ml stays as the factor level"
+    why: "`treatment` holds what was applied to the sample. `control` is the role of the group, not a thing applied, and the three descriptions say `no exposure`. The same three rows already write `duration` as `na` for that reason, so the two claims disagree with each other. A question of form that the format page does not settle, not a wrong fact: the quote is real and the dose factor carries the comparison."
+    passages: [15, 43, 44, 45]
+  - where: factors.time_point
+    says: "quoted: [2, 13, 14]"
+    should_be: "the same levels, baseline and order, backed by the per-sample time passages as well (20 to 30), or marked inferred with see"
+    why: "Passage 13 lists `0 h` and `32 h` and no `36 h`, so the passages cited do not say the level list as written. The levels come from the `time:` line of each sample record, and those are right. A backing detail, not a wrong value."
+    passages: [13, 26, 38]
+unsure:
+  - "Whether the 0 ug/ml cultures got a 2 h mock exposure. The protocol on every record says bleomycin `at 0 ug/ml, 2 ug/ml and 40 ug/ml for 2 h`; the three control descriptions say `no exposure`. `duration: na` at p 0.7 is a fair guess, and no record names a vehicle."
+  - "36 h or 32 h. The shared protocol text says 32 h; the characteristics line, the description and the title of GSM3056978 and GSM3056988 all say 36 h. 36 h is the better reading, and the records cannot settle it."
+  - "Whether a time such as `2 h` counts from the start or the end of the 2 h exposure. The records say only `after exposure`."
+  - "Whether `0d` is the right baseline for time_point. Time zero exists only in the untreated series, so the relations command gives time contrasts among the three untreated samples only and none inside the 2 ug/ml or 40 ug/ml series. The format has one baseline per factor and cannot say that GSM3056966 is time zero for all three series."
+  - "One culture per library. Each sample has its own BioSample accession, but GEO gives one to every sample, so that is not evidence. No record mentions replicates or pooling."
+  - "The ontology ids were not looked up again. From memory they match (IMR-90 is CVCL_0347, bleomycin is CHEBI:22907)."
+reason: "All 45 quotes occur word for word in the named field of every record each passage names, and no sample outside a passage's list holds its quote. The 23 samples are exactly the samples of GSE112068, the only Series in the bounds, and no paper is linked. The design is read correctly: every sample's dose and time match its own record, the two factors, their levels, their order and the 0 ug/ml baseline are right, each library has its own biosample id and all share one donor, and no library is a background control. I disagree on one claim of fact, the sex written as not applicable where it should be unknown, and on two points of form: `control` written as a treatment, and the passages cited for the time factor. None of the three changes a replicate, a contrast or a series."
