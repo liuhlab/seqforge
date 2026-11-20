@@ -1,0 +1,2330 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.">
+      
+      
+      
+        <link rel="canonical" href="https://liuhlab.github.io/seqforge/hand-work-files/">
+      
+      
+        <link rel="prev" href="../study-workflow/">
+      
+      
+        <link rel="next" href="../passes-and-reviews/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Files from the hand work - seqforge</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-6M1CJF9WXY"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-6M1CJF9WXY",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-6M1CJF9WXY",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#files-from-the-hand-work" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="seqforge" class="md-header__button md-logo" aria-label="seqforge" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            seqforge
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Files from the hand work
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/liuhlab/seqforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    liuhlab/seqforge
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="seqforge" class="md-nav__button md-logo" aria-label="seqforge" data-md-component="logo">
+      
+  <img src="../assets/logo.png" alt="logo">
+
+    </a>
+    seqforge
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/liuhlab/seqforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    liuhlab/seqforge
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/with-claude/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiling with Claude
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/step-by-step/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiling Step-by-step
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/adding-a-technology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding a technology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../study-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The study workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Files from the hand work
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Files from the hand work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#every-file-in-one-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Every file in one table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-standard-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The standard set
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The standard set">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pickyaml-the-50-picked-the-spares-and-the-replaced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pick.yaml: the 50 picked, the spares and the replaced
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#studyyaml-the-facts-about-one-pick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        study.yaml: the facts about one pick
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#boundsyaml-the-studys-bounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bounds.yaml: the study's bounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#draftyaml-what-the-small-model-answered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        draft.yaml: what the small model answered
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verdictyaml-what-the-judge-answered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        verdict.yaml: what the judge answered
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-five-worked-readings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The five worked readings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The five worked readings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#readingyaml-the-study-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reading.yaml: the study reading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#readingverdictyaml-what-the-second-pass-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reading.verdict.yaml: what the second pass found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#readingnotesmd-what-the-format-could-not-hold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reading.notes.md: what the format could not hold
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#answers-a-person-gave-while-checking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Answers a person gave while checking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-page-promises" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this page promises
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-wrong-or-stale-facts-in-the-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known wrong or stale facts in the files
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../passes-and-reviews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Passes and reviews
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File formats
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    File formats
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formats/bounds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The bounds file
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../formats/reading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The reading file
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The two artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/identifying/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How a dataset is identified
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/refusal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    When it refuses
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Knowledge base
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Knowledge base
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_2" id="__nav_9_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supported assays
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Supported assays
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kb/10x-3p-gex-v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10x Chromium 3' v3 & v3.1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kb/10x-3p-gex-v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10x Chromium 3' v2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kb/bd-rhapsody-wta/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BD Rhapsody WTA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kb/splitseq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SPLiT-seq
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kb/bulk-rnaseq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bulk RNA-seq
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#every-file-in-one-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Every file in one table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-standard-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The standard set
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The standard set">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pickyaml-the-50-picked-the-spares-and-the-replaced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pick.yaml: the 50 picked, the spares and the replaced
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#studyyaml-the-facts-about-one-pick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        study.yaml: the facts about one pick
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#boundsyaml-the-studys-bounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bounds.yaml: the study's bounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#draftyaml-what-the-small-model-answered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        draft.yaml: what the small model answered
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verdictyaml-what-the-judge-answered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        verdict.yaml: what the judge answered
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-five-worked-readings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The five worked readings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The five worked readings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#readingyaml-the-study-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reading.yaml: the study reading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#readingverdictyaml-what-the-second-pass-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reading.verdict.yaml: what the second pass found
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#readingnotesmd-what-the-format-could-not-hold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        reading.notes.md: what the format could not hold
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#answers-a-person-gave-while-checking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Answers a person gave while checking
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-page-promises" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this page promises
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-wrong-or-stale-facts-in-the-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known wrong or stale facts in the files
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/hand-work-files.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="files-from-the-hand-work">Files from the hand work<a class="headerlink" href="#files-from-the-hand-work" title="Permanent link">&para;</a></h1>
+<p>This page lists every file that the hand work on the standard set produced. It is written for
+someone outside the project who builds an evaluation on these files. For each kind of file it
+gives the path, the count, the format, who or which model made the file and how, and a few lines
+of Python that load it.</p>
+<p>This page uses five words:</p>
+<ul>
+<li>A <strong>study</strong> is one piece of research: the experiments one paper reports, or one project that has
+  no paper yet.</li>
+<li>A <strong>Series</strong> is one deposit in GEO, the Gene Expression Omnibus, a public archive of sequencing
+  data. A Series has an id such as <code>GSE241718</code>. One study can span several Series.</li>
+<li>A study's <strong>bounds</strong> say which Series and which papers belong to the study.</li>
+<li>The <strong>standard set</strong> is a fixed list of 50 small GEO studies.</li>
+<li>A study's <strong>reading</strong> says what each sequenced sample is and which labels the study varied.</li>
+</ul>
+<p><strong>Hand work</strong> means work done one study at a time, outside the unattended chain that
+<a href="../study-workflow/">the study workflow</a> describes. The name does not mean that a person did it.
+A model made every file on this page, or code wrote the file from a model's answer. No person has
+checked any of them.</p>
+<h2 id="every-file-in-one-table">Every file in one table<a class="headerlink" href="#every-file-in-one-table" title="Permanent link">&para;</a></h2>
+<p>All files are under <code>evals/standard-set/</code> in the
+<a href="https://github.com/liuhlab/seqforge/tree/main/evals/standard-set">seqforge repository</a>. <code>&lt;ID&gt;</code> is
+the Series that a study was picked by, and it is also the name of the study's folder. The counts
+were measured on 2026-11-19.</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Path</th>
+<th>Count</th>
+<th>Made by</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The pick</td>
+<td><code>pick.yaml</code></td>
+<td>1</td>
+<td>A model session, 2026-11-19</td>
+<td><a href="#pickyaml-the-50-picked-the-spares-and-the-replaced">On this page</a></td>
+</tr>
+<tr>
+<td>The study file</td>
+<td><code>&lt;ID&gt;/study.yaml</code></td>
+<td>50</td>
+<td>The <code>judge</code> command</td>
+<td><a href="#studyyaml-the-facts-about-one-pick">On this page</a></td>
+</tr>
+<tr>
+<td>The bounds</td>
+<td><code>&lt;ID&gt;/bounds.yaml</code></td>
+<td>50</td>
+<td>Code, from the two models' answers</td>
+<td><a href="../formats/bounds/">The bounds file</a></td>
+</tr>
+<tr>
+<td>The draft</td>
+<td><code>&lt;ID&gt;/draft.yaml</code></td>
+<td>50</td>
+<td><code>deepseek/deepseek-v4-flash</code></td>
+<td><a href="#draftyaml-what-the-small-model-answered">On this page</a></td>
+</tr>
+<tr>
+<td>The verdict</td>
+<td><code>&lt;ID&gt;/verdict.yaml</code></td>
+<td>50</td>
+<td><code>claude-fable-5-2</code></td>
+<td><a href="#verdictyaml-what-the-judge-answered">On this page</a></td>
+</tr>
+<tr>
+<td>The reading</td>
+<td><code>&lt;ID&gt;/reading.yaml</code></td>
+<td>5</td>
+<td><code>claude-fable-5-2</code></td>
+<td><a href="../formats/reading/">The reading file</a></td>
+</tr>
+<tr>
+<td>The reading's verdict</td>
+<td><code>&lt;ID&gt;/reading.verdict.yaml</code></td>
+<td>5</td>
+<td><code>claude-fable-5-2</code>, in a second pass</td>
+<td><a href="#readingverdictyaml-what-the-second-pass-found">On this page</a></td>
+</tr>
+<tr>
+<td>The reading's notes</td>
+<td><code>&lt;ID&gt;/reading.notes.md</code></td>
+<td>5</td>
+<td>The model that wrote the reading</td>
+<td>Markdown text</td>
+</tr>
+<tr>
+<td>A person's answers</td>
+<td>none yet</td>
+<td>0</td>
+<td>Nobody yet</td>
+<td><a href="#answers-a-person-gave-while-checking">The rule</a></td>
+</tr>
+</tbody>
+</table>
+<p>That is 216 files: the pick, four files for each of the 50 studies, and three more for each of the
+five studies that have a reading. The folder also holds a <code>README.md</code>, which describes the
+commands.</p>
+<p>This snippet counts the files again. Run it, and every other snippet on this page, from the root
+of the repository. Each snippet needs Python 3 and PyYAML and nothing else.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">collections</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;evals/standard-set&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">([</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()]))</span>  <span class="c1"># 50</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nb">print</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*/*&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+</code></pre></div>
+<p>The files hold identifiers and the models' own words. The only text of a record or of a paper in
+them is short quotes, most of them under <code>passages</code> in a reading. The records are public at GEO,
+and PubMed lists each paper by its number.</p>
+<h2 id="the-standard-set">The standard set<a class="headerlink" href="#the-standard-set" title="Permanent link">&para;</a></h2>
+<p>The 50 studies were picked on 2026-11-19. A small model then drafted each study's bounds, and a
+large model judged each draft once. Three commands did that work for each study, in this order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>standard-set-bounds<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">0</span>.5<span class="w"> </span>--keys<span class="w"> </span>KEYS.txt
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>seqforge<span class="w"> </span>standard-set<span class="w"> </span>draft
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>seqforge<span class="w"> </span>standard-set<span class="w"> </span>judge<span class="w"> </span>&lt;ID&gt;
+</code></pre></div>
+<p>The first command asks the small model about each study on a list. The second command writes
+<code>draft.yaml</code> from the answers. The third command asks the large model about one study and writes
+<code>verdict.yaml</code>, <code>bounds.yaml</code> and <code>study.yaml</code>. The
+<a href="https://github.com/liuhlab/seqforge/blob/main/evals/standard-set/README.md">standard set's own page</a>
+describes each command. The commands read GEO records and papers from liulab-data, the lab's
+package that stores them. You can load every file without that store, but you cannot run the
+commands again without it.</p>
+<p>The judge agreed with 48 drafts and replaced 2, those of GSE101112 and GSE126954. It was unsure
+about none.</p>
+<h3 id="pickyaml-the-50-picked-the-spares-and-the-replaced"><code>pick.yaml</code>: the 50 picked, the spares and the replaced<a class="headerlink" href="#pickyaml-the-50-picked-the-spares-and-the-replaced" title="Permanent link">&para;</a></h3>
+<p><strong>Path:</strong> <code>evals/standard-set/pick.yaml</code>. One file.</p>
+<p><strong>Made by:</strong> a model session on 2026-11-19. The file names no model. Its header says that the
+picker judged each study's direction, shape and design from the Series' public GEO record and the
+PubMed abstract of its paper. The picker read 302 Series records and 263 abstracts, a count taken
+from the
+<a href="https://github.com/liuhlab/seqforge/blob/main/docs/research/standard-set-record-links-2026-11-19.md">note on record links</a>.</p>
+<p>The file has six top-level fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>store_build</code></td>
+<td>The build of liulab-data's store that the counts and the links were read from: <code>20261107T163933Z</code>.</td>
+</tr>
+<tr>
+<td><code>picked_on</code></td>
+<td>The date of the pick: <code>2026-11-19</code>.</td>
+</tr>
+<tr>
+<td><code>limits</code></td>
+<td>The size limits a study had to fit: the most samples, experiments and linked Series. The <code>hard_shape_</code> limits are wider and apply to a study picked for a hard shape.</td>
+</tr>
+<tr>
+<td><code>studies</code></td>
+<td>The 50 picked studies: 17 on aging, 17 on neurodegeneration and 16 on <em>C. elegans</em>.</td>
+</tr>
+<tr>
+<td><code>spares</code></td>
+<td>14 studies held back to take the place of a picked study that fails.</td>
+</tr>
+<tr>
+<td><code>replaced</code></td>
+<td>The studies taken out after the pick, each with the spare that took its place and the reason it failed. The list is empty: no study has been replaced.</td>
+</tr>
+</tbody>
+</table>
+<p>Each entry of <code>studies</code> and of <code>spares</code> has these fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>The Series the study was picked by.</td>
+</tr>
+<tr>
+<td><code>direction</code></td>
+<td><code>aging</code>, <code>neurodegeneration</code> or <code>c_elegans</code>. A study counts under one.</td>
+</tr>
+<tr>
+<td><code>also_fits</code></td>
+<td>The other directions the study could count under. May be empty.</td>
+</tr>
+<tr>
+<td><code>hard_shape</code></td>
+<td>The hard case the study was picked for: <code>recites_older_series</code>, <code>paper_over_several_series</code>, <code>superseries</code>, <code>series_with_two_studies</code> or <code>series_without_paper</code>. <code>null</code> for a plain study. 34 of the 50 are <code>null</code>.</td>
+</tr>
+<tr>
+<td><code>linked_series</code></td>
+<td>Every Series linked to the picked one, the picked one included.</td>
+</tr>
+<tr>
+<td><code>pmids</code></td>
+<td>Every paper linked to any of those Series, each a PubMed number written as text.</td>
+</tr>
+<tr>
+<td><code>assay</code></td>
+<td>The kind of sequencing, in the picker's short words.</td>
+</tr>
+<tr>
+<td><code>compiles_today</code></td>
+<td>The library chemistry that the record's protocol text points to, by the name seqforge gives it. A list when the study has two, and <code>null</code> when seqforge supports none. No sequencing read was looked at.</td>
+</tr>
+<tr>
+<td><code>compiles_fully</code></td>
+<td><code>true</code> when every library of the study is in a chemistry that <code>compiles_today</code> names.</td>
+</tr>
+<tr>
+<td><code>known_dataset</code></td>
+<td><code>true</code> for a study that seqforge had already worked on before the pick. 5 of the 50.</td>
+</tr>
+<tr>
+<td><code>n_samples</code>, <code>n_experiments</code></td>
+<td>The GEO samples and the SRA experiments of all the linked Series together.</td>
+</tr>
+<tr>
+<td><code>design</code></td>
+<td>The design, in the picker's short words.</td>
+</tr>
+<tr>
+<td><code>reason_picked</code></td>
+<td>One or two sentences.</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>settled</code>, <code>shape_to_confirm</code> or <code>shape_not_found</code>. The last one marks a study picked as possibly two studies in one Series that turned out to be one study. 3 of the 50.</td>
+</tr>
+<tr>
+<td><code>spare_for</code></td>
+<td>Spares only. The direction or the hard shape that the spare stands in for.</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;evals/standard-set/pick.yaml&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">pick</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pick</span><span class="p">[</span><span class="s2">&quot;studies&quot;</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">pick</span><span class="p">[</span><span class="s2">&quot;spares&quot;</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">pick</span><span class="p">[</span><span class="s2">&quot;replaced&quot;</span><span class="p">]))</span>  <span class="c1"># 50 14 0</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">pick</span><span class="p">[</span><span class="s2">&quot;studies&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">pick</span><span class="p">[</span><span class="s2">&quot;studies&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;reason_picked&quot;</span><span class="p">])</span>
+</code></pre></div>
+<h3 id="studyyaml-the-facts-about-one-pick"><code>study.yaml</code>: the facts about one pick<a class="headerlink" href="#studyyaml-the-facts-about-one-pick" title="Permanent link">&para;</a></h3>
+<p><strong>Path:</strong> <code>evals/standard-set/&lt;ID&gt;/study.yaml</code>. 50 files.</p>
+<p><strong>Made by:</strong> the <code>seqforge standard-set judge</code> command, when it wrote the verdict. It copies the
+pick's facts, takes <code>summary</code> from the draft, and adds three fields from the verdict. Each file
+was rewritten once, on 2026-11-20 (UTC), to move the bounds out into <code>bounds.yaml</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>The folder name: the Series the study was picked by.</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td>One short line that says what the study is. From the draft.</td>
+</tr>
+<tr>
+<td><code>direction</code>, <code>also_fits</code>, <code>hard_shape</code>, <code>reason_picked</code></td>
+<td>As in <code>pick.yaml</code>.</td>
+</tr>
+<tr>
+<td><code>store_build</code></td>
+<td>The store build the identifiers were read from. All 50 files say <code>20261107T163933Z-subset</code>. The subset is a small copy of the build that <code>pick.yaml</code> names, cut down to the records of these studies.</td>
+</tr>
+<tr>
+<td><code>records</code></td>
+<td>Every linked record, by identifier only: <code>series</code>, <code>superseries</code> (which of those Series is a SuperSeries, or <code>null</code>), <code>bioprojects</code> and <code>pmids</code>.</td>
+</tr>
+<tr>
+<td><code>bounds_from</code></td>
+<td><code>draft</code> when the judge agreed with the draft (48 files), <code>judge</code> when the judge's bounds replaced it (2 files).</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>settled</code>, or <code>unsure</code> when the judge was unsure. All 50 say <code>settled</code>.</td>
+</tr>
+<tr>
+<td><code>read_to_decide</code></td>
+<td>What the judge had to read: <code>records</code>, <code>abstract</code>, <code>full_paper</code>.</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;evals/standard-set/GSE241718/study.yaml&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">study</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">study</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">study</span><span class="p">[</span><span class="s2">&quot;direction&quot;</span><span class="p">],</span> <span class="n">study</span><span class="p">[</span><span class="s2">&quot;records&quot;</span><span class="p">][</span><span class="s2">&quot;series&quot;</span><span class="p">],</span> <span class="n">study</span><span class="p">[</span><span class="s2">&quot;bounds_from&quot;</span><span class="p">])</span>
+</code></pre></div>
+<h3 id="boundsyaml-the-studys-bounds"><code>bounds.yaml</code>: the study's bounds<a class="headerlink" href="#boundsyaml-the-studys-bounds" title="Permanent link">&para;</a></h3>
+<p><strong>Path:</strong> <code>evals/standard-set/&lt;ID&gt;/bounds.yaml</code>. 50 files.</p>
+<p><strong>Format:</strong> <a href="../formats/bounds/">The bounds file</a> describes every field. All 50 files say
+<code>format: 1</code>.</p>
+<p><strong>Made by:</strong> code, which converted the bounds that the two models drew. <code>models.bounds</code> names the
+model whose bounds became the study's: <code>deepseek/deepseek-v4-flash</code> in 48 files and
+<code>claude-fable-5-2</code> in 2. The files hold no date. Git history dates the conversion to 2026-11-20
+(UTC).</p>
+<p>The 50 files hold 74 claims: 57 Series kept and 17 records left out, in 10 studies. Seven studies
+have two Series. Four studies have no paper. In three studies the folder's Series is a SuperSeries,
+so it is in <code>left_out</code> and not in <code>series</code>: GSE117724, GSE140511 and GSE240375.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;evals/standard-set&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*/bounds.yaml&quot;</span><span class="p">)):</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">bounds</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">kept</span> <span class="o">=</span> <span class="p">[</span><span class="n">claim</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">claim</span> <span class="ow">in</span> <span class="n">bounds</span><span class="p">[</span><span class="s2">&quot;series&quot;</span><span class="p">]]</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">left_out</span> <span class="o">=</span> <span class="p">[</span><span class="n">claim</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">claim</span> <span class="ow">in</span> <span class="n">bounds</span><span class="p">[</span><span class="s2">&quot;left_out&quot;</span><span class="p">]]</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">bounds</span><span class="p">[</span><span class="s2">&quot;study&quot;</span><span class="p">],</span> <span class="n">kept</span><span class="p">,</span> <span class="n">bounds</span><span class="p">[</span><span class="s2">&quot;papers&quot;</span><span class="p">],</span> <span class="n">left_out</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="draftyaml-what-the-small-model-answered"><code>draft.yaml</code>: what the small model answered<a class="headerlink" href="#draftyaml-what-the-small-model-answered" title="Permanent link">&para;</a></h3>
+<p><strong>Path:</strong> <code>evals/standard-set/&lt;ID&gt;/draft.yaml</code>. 50 files.</p>
+<p><strong>Made by:</strong> <code>deepseek/deepseek-v4-flash</code>, through the drafting pass and the <code>draft</code> command. The
+model read the records of the linked Series and the abstract of each paper, and nothing else. The
+drafts are dated from 2026-11-19 23:38 to 2026-11-20 00:05 (UTC).</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>The study.</td>
+</tr>
+<tr>
+<td><code>model</code></td>
+<td>The model that answered.</td>
+</tr>
+<tr>
+<td><code>pass</code></td>
+<td>The pass that asked: its kind, its version and its number, such as <code>standard-set-bounds/2026.11.3/pass-5</code>. The 50 drafts come from four passes.</td>
+</tr>
+<tr>
+<td><code>when</code></td>
+<td>The time of the answer, as text: <code>2026-11-20T00:02:16Z</code>.</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td>One line that says what the study is.</td>
+</tr>
+<tr>
+<td><code>bounds</code></td>
+<td>The model's answer. See below.</td>
+</tr>
+<tr>
+<td><code>checks_failed</code></td>
+<td>What the code found malformed in the answer. Empty in 49 drafts. The draft of GSE126954 put a sample id among the left-out records.</td>
+</tr>
+</tbody>
+</table>
+<p><code>bounds</code> in a draft is the model's answer. It is not in the bounds format:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>series</code></td>
+<td>The Series the model kept.</td>
+</tr>
+<tr>
+<td><code>papers</code></td>
+<td>The papers the model kept, each written <code>pmid:&lt;number&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>One line.</td>
+</tr>
+<tr>
+<td><code>left_out</code></td>
+<td>A mapping from each record left out to the reason. In <code>bounds.yaml</code> the same thing is a list of claims.</td>
+</tr>
+<tr>
+<td><code>split_samples</code></td>
+<td>An older field. See <a href="#what-this-page-promises">What this page promises</a>.</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;evals/standard-set/GSE241718/draft.yaml&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">draft</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">draft</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">],</span> <span class="n">draft</span><span class="p">[</span><span class="s2">&quot;pass&quot;</span><span class="p">],</span> <span class="n">draft</span><span class="p">[</span><span class="s2">&quot;when&quot;</span><span class="p">])</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">draft</span><span class="p">[</span><span class="s2">&quot;bounds&quot;</span><span class="p">][</span><span class="s2">&quot;series&quot;</span><span class="p">],</span> <span class="n">draft</span><span class="p">[</span><span class="s2">&quot;bounds&quot;</span><span class="p">][</span><span class="s2">&quot;papers&quot;</span><span class="p">],</span> <span class="n">draft</span><span class="p">[</span><span class="s2">&quot;bounds&quot;</span><span class="p">][</span><span class="s2">&quot;left_out&quot;</span><span class="p">])</span>
+</code></pre></div>
+<h3 id="verdictyaml-what-the-judge-answered"><code>verdict.yaml</code>: what the judge answered<a class="headerlink" href="#verdictyaml-what-the-judge-answered" title="Permanent link">&para;</a></h3>
+<p><strong>Path:</strong> <code>evals/standard-set/&lt;ID&gt;/verdict.yaml</code>. 50 files.</p>
+<p><strong>Made by:</strong> <code>claude-fable-5-2</code>, through the <code>judge</code> command, once for each study. The judge got
+the draft and what the drafting model saw, and it could open the full records and the full text of
+the papers. The verdicts are dated from 2026-11-19 23:38 to 2026-11-20 00:10 (UTC).</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>The study.</td>
+</tr>
+<tr>
+<td><code>model</code></td>
+<td>The model that judged.</td>
+</tr>
+<tr>
+<td><code>when</code></td>
+<td>The time of the verdict, as text.</td>
+</tr>
+<tr>
+<td><code>agrees</code></td>
+<td><code>true</code> when the judge agrees with the draft's bounds. 48 are <code>true</code> and 2 are <code>false</code>.</td>
+</tr>
+<tr>
+<td><code>bounds</code></td>
+<td><code>null</code> when the judge agrees. Otherwise the judge's own bounds, with the same five fields as the bounds in a draft.</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>Why the judge agrees or disagrees.</td>
+</tr>
+<tr>
+<td><code>unsure</code></td>
+<td><code>true</code> when the judge could not decide. All 50 are <code>false</code>.</td>
+</tr>
+<tr>
+<td><code>read</code></td>
+<td>What the judge read: <code>records</code>, <code>abstract</code>, <code>full_paper</code>. The judge opened a full paper for 7 studies.</td>
+</tr>
+</tbody>
+</table>
+<p>The bounds that the two models settled on are the draft's when the judge agrees, and the judge's
+when it does not:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">for</span> <span class="n">folder</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;evals/standard-set&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;GSE*&quot;</span><span class="p">)):</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">draft</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">((</span><span class="n">folder</span> <span class="o">/</span> <span class="s2">&quot;draft.yaml&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">verdict</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">((</span><span class="n">folder</span> <span class="o">/</span> <span class="s2">&quot;verdict.yaml&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">answer</span> <span class="o">=</span> <span class="n">draft</span><span class="p">[</span><span class="s2">&quot;bounds&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">verdict</span><span class="p">[</span><span class="s2">&quot;agrees&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="n">verdict</span><span class="p">[</span><span class="s2">&quot;bounds&quot;</span><span class="p">]</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">verdict</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">verdict</span><span class="p">[</span><span class="s2">&quot;agrees&quot;</span><span class="p">],</span> <span class="n">answer</span><span class="p">[</span><span class="s2">&quot;series&quot;</span><span class="p">],</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">answer</span><span class="p">[</span><span class="s2">&quot;left_out&quot;</span><span class="p">]))</span>
+</code></pre></div>
+<h2 id="the-five-worked-readings">The five worked readings<a class="headerlink" href="#the-five-worked-readings" title="Permanent link">&para;</a></h2>
+<p>Five of the 50 studies have a reading, one for each kind of design. <strong>A model wrote each reading.
+A second model pass checked each reading against the records and the paper. No person has checked
+any of them.</strong> Where the second pass disagrees with a reading, the reading is left as written, and
+the disagreement is in the verdict.</p>
+<table>
+<thead>
+<tr>
+<th>Study</th>
+<th>Kind of design</th>
+<th>Samples</th>
+<th>Passages</th>
+<th>Second pass agrees</th>
+<th>Disagreements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GSE100021</td>
+<td>Two groups: a treatment against a control</td>
+<td>8</td>
+<td>29</td>
+<td>No</td>
+<td>1</td>
+</tr>
+<tr>
+<td>GSE112068</td>
+<td>A dose series and a time series</td>
+<td>23</td>
+<td>45</td>
+<td>No</td>
+<td>3</td>
+</tr>
+<tr>
+<td>GSE235532</td>
+<td>Pull-down libraries with their input controls</td>
+<td>24</td>
+<td>30</td>
+<td>Yes</td>
+<td>1</td>
+</tr>
+<tr>
+<td>GSE117724</td>
+<td>Two assays: 18 RNA-Seq libraries and 2 ChIP-Seq libraries</td>
+<td>20</td>
+<td>54</td>
+<td>Yes</td>
+<td>0</td>
+</tr>
+<tr>
+<td>GSE241718</td>
+<td>One paper over two Series</td>
+<td>8</td>
+<td>28</td>
+<td>Yes</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p>No command made these files. The process was:</p>
+<ol>
+<li>A large model read the records of the study's Series and its paper, and wrote <code>reading.yaml</code>
+   and <code>reading.notes.md</code>. For four studies it read the records, the abstract and the full text.
+   GSE112068 has no paper, so the model read the records only.</li>
+<li>A second pass read the same sources again and checked the reading. It looked for every
+   quote in the field or the paper section that the reading names, and it compared the samples
+   with the study's bounds. It wrote <code>reading.verdict.yaml</code>.</li>
+<li>The second pass changed a reading only to make it pass the format check. Each such change is
+   listed under <code>format_fixes</code> in the verdict: 7 changes over the five readings.</li>
+</ol>
+<p>Each file records the model as <code>claude-fable-5-2</code>, for the reading, for its probabilities and for
+the second pass.</p>
+<h3 id="readingyaml-the-study-reading"><code>reading.yaml</code>: the study reading<a class="headerlink" href="#readingyaml-the-study-reading" title="Permanent link">&para;</a></h3>
+<p><strong>Path:</strong> <code>evals/standard-set/&lt;ID&gt;/reading.yaml</code>. 5 files.</p>
+<p><strong>Format:</strong> <a href="../formats/reading/">The reading file</a> describes every field. All five files say
+<code>format: 1</code>.</p>
+<p><strong>Made by:</strong> <code>claude-fable-5-2</code>, named in <code>models.reading</code> and in <code>models.probabilities</code>. The
+files hold no date. They were added to the repository on 2026-11-20 (UTC).</p>
+<p>A sample has every claim under <code>shared</code>, except a label that its own row writes. The snippet
+applies that rule:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;evals/standard-set/GSE241718/reading.yaml&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">reading</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">for</span> <span class="n">sample</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reading</span><span class="p">[</span><span class="s2">&quot;samples&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">claims</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">reading</span><span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">row</span><span class="p">}</span>  <span class="c1"># a row&#39;s claim replaces the shared claim whole</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;tissue&quot;</span><span class="p">][</span><span class="s2">&quot;text&quot;</span><span class="p">],</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;age&quot;</span><span class="p">][</span><span class="s2">&quot;level&quot;</span><span class="p">],</span> <span class="n">claims</span><span class="p">[</span><span class="s2">&quot;assay&quot;</span><span class="p">][</span><span class="s2">&quot;p&quot;</span><span class="p">])</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">reading</span><span class="p">[</span><span class="s2">&quot;passages&quot;</span><span class="p">][</span><span class="mi">14</span><span class="p">][</span><span class="s2">&quot;quote&quot;</span><span class="p">])</span>  <span class="c1"># a passage number loads as a whole number</span>
+</code></pre></div>
+<p>The relations between the samples are not stored. <code>seqforge study relations &lt;file&gt;</code> derives them,
+and <a href="../formats/reading/#the-relations">the reading file</a> describes its output.</p>
+<h3 id="readingverdictyaml-what-the-second-pass-found"><code>reading.verdict.yaml</code>: what the second pass found<a class="headerlink" href="#readingverdictyaml-what-the-second-pass-found" title="Permanent link">&para;</a></h3>
+<p><strong>Path:</strong> <code>evals/standard-set/&lt;ID&gt;/reading.verdict.yaml</code>. 5 files.</p>
+<p><strong>Made by:</strong> <code>claude-fable-5-2</code>, in a second pass. The verdicts are dated from 2026-11-20 01:39 to
+02:05 (UTC).</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>The study.</td>
+</tr>
+<tr>
+<td><code>model</code></td>
+<td>The model of the second pass.</td>
+</tr>
+<tr>
+<td><code>when</code></td>
+<td>The time of the verdict. Four files write it as text. <code>GSE100021/reading.verdict.yaml</code> writes it without quotes, so PyYAML returns a <code>datetime</code> for that one file.</td>
+</tr>
+<tr>
+<td><code>read</code></td>
+<td>What the second pass read: <code>records</code>, <code>abstract</code>, <code>full_text</code>.</td>
+</tr>
+<tr>
+<td><code>format_fixes</code></td>
+<td>A list of text. Each item is one change that the second pass made to <code>reading.yaml</code> so that the file passes the format check.</td>
+</tr>
+<tr>
+<td><code>quotes</code></td>
+<td>Three counts of the quotes in the reading: <code>checked</code>, <code>found</code>, and <code>not_found</code>, a list. In all five, every quote was found: 186 quotes together.</td>
+</tr>
+<tr>
+<td><code>samples_match_bounds</code></td>
+<td><code>true</code> when the samples of the reading are exactly the samples of the Series in the study's bounds. <code>true</code> in all five.</td>
+</tr>
+<tr>
+<td><code>agrees</code></td>
+<td>The second pass's overall judgement of the reading. <code>true</code> in 3 and <code>false</code> in 2. A verdict can agree and still list disagreements.</td>
+</tr>
+<tr>
+<td><code>disagreements</code></td>
+<td>A list, one item for each point where the second pass would write the reading differently. May be empty.</td>
+</tr>
+<tr>
+<td><code>unsure</code></td>
+<td>A list of text: what the second pass could not settle from the sources. Each verdict has 3 to 6.</td>
+</tr>
+<tr>
+<td><code>reason</code></td>
+<td>The second pass's account of what it checked and found.</td>
+</tr>
+</tbody>
+</table>
+<p>Each item of <code>disagreements</code> has five fields:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>where</code></td>
+<td>The place in <code>reading.yaml</code>, such as <code>shared.dose</code> or <code>samples.GSM7720368.donor</code>. One item can name several places.</td>
+</tr>
+<tr>
+<td><code>says</code></td>
+<td>What the reading says there.</td>
+</tr>
+<tr>
+<td><code>should_be</code></td>
+<td>What the second pass would write.</td>
+</tr>
+<tr>
+<td><code>why</code></td>
+<td>The reason.</td>
+</tr>
+<tr>
+<td><code>passages</code></td>
+<td>The passages that the point rests on, by number. One item in the verdict of GSE241718 also quotes a record line as text.</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;evals/standard-set&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*/reading.verdict.yaml&quot;</span><span class="p">)):</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">verdict</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">verdict</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">verdict</span><span class="p">[</span><span class="s2">&quot;agrees&quot;</span><span class="p">],</span> <span class="n">verdict</span><span class="p">[</span><span class="s2">&quot;quotes&quot;</span><span class="p">][</span><span class="s2">&quot;found&quot;</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">verdict</span><span class="p">[</span><span class="s2">&quot;unsure&quot;</span><span class="p">]))</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">verdict</span><span class="p">[</span><span class="s2">&quot;disagreements&quot;</span><span class="p">]:</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  &quot;</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;where&quot;</span><span class="p">],</span> <span class="s2">&quot;-&gt;&quot;</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;should_be&quot;</span><span class="p">])</span>
+</code></pre></div>
+<h3 id="readingnotesmd-what-the-format-could-not-hold"><code>reading.notes.md</code>: what the format could not hold<a class="headerlink" href="#readingnotesmd-what-the-format-could-not-hold" title="Permanent link">&para;</a></h3>
+<p><strong>Path:</strong> <code>evals/standard-set/&lt;ID&gt;/reading.notes.md</code>. 5 files.</p>
+<p><strong>Made by:</strong> the model that wrote the reading, at the same time. Each file is free Markdown text
+with no fixed fields. It says what the model read and what the reading format could not hold for
+this study, or held badly.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;evals/standard-set&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*/reading.notes.md&quot;</span><span class="p">)):</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">notes</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">notes</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+</code></pre></div>
+<h2 id="answers-a-person-gave-while-checking">Answers a person gave while checking<a class="headerlink" href="#answers-a-person-gave-while-checking" title="Permanent link">&para;</a></h2>
+<p>There are none yet. No person has answered a question about any of the 50 studies, and no person
+has corrected a file. Every study folder holds only the files in the table at the top.</p>
+<p>The rule for the first one is fixed. An answer that a person gives while checking is saved as a
+small plain file. The file holds the question, the study, the answer, who gave it and when. No
+folder and no command exist for such files yet. When the first answer is saved, this page lists
+its path.</p>
+<h2 id="what-this-page-promises">What this page promises<a class="headerlink" href="#what-this-page-promises" title="Permanent link">&para;</a></h2>
+<p><strong>Every file listed here is at the listed path, in the current format.</strong> There is one format at a
+time. A change to a format rewrites every existing file in the same change, and this page changes
+with it. The page does not promise that the content of a file stays the same.</p>
+<p>Two kinds of file have a written format and a check:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-bounds<span class="w"> </span>evals/standard-set/&lt;ID&gt;/bounds.yaml
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-reading<span class="w"> </span>evals/standard-set/&lt;ID&gt;/reading.yaml
+</code></pre></div>
+<p>All 50 bounds files and all five readings pass their check (measured on 2026-11-19).</p>
+<p>The other files have no format number, and their fields are the ones this page lists. The drafts
+and the verdicts are kept as the models wrote them, so they hold fields from before the bounds
+format:</p>
+<ul>
+<li><strong><code>split_samples</code></strong> is in the <code>bounds</code> of all 50 drafts, and in the <code>bounds</code> of the 2 verdicts
+  that have bounds of their own. It comes from when one Series could be split between two studies.
+  A study is now whole Series, and the bounds format rejects the field. It is empty in all 50
+  drafts and in the verdict of GSE101112. In the verdict of GSE126954 it lists seven sample ids.</li>
+<li><strong><code>left_out</code></strong> in a draft or a verdict is a mapping from a record to a reason. In <code>bounds.yaml</code>
+  it is a list of claims.</li>
+<li><strong>A paper</strong> is written <code>pmid:&lt;number&gt;</code> in the bounds, the drafts, the verdicts and the readings.
+  In <code>pick.yaml</code> and in <code>study.yaml</code> it is the bare number, as text.</li>
+<li><strong>A full paper</strong> is <code>full_paper</code> in <code>study.yaml</code> and <code>verdict.yaml</code>, and <code>full_text</code> in the two
+  reading files.</li>
+</ul>
+<h2 id="known-wrong-or-stale-facts-in-the-files">Known wrong or stale facts in the files<a class="headerlink" href="#known-wrong-or-stale-facts-in-the-files" title="Permanent link">&para;</a></h2>
+<p>Do not build on these lines without reading this list.</p>
+<ol>
+<li><strong><code>GSE241718/study.yaml</code> describes the two Series wrongly.</strong> Its <code>reason_picked</code> says that one
+   Series holds whole cells and one holds nuclei. The protocol on every sample record, the summary
+   of both Series and the paper say that all eight libraries are single-nucleus. The paper says
+   that the data were uploaded in two stages. The entry in <code>pick.yaml</code> has the same sentence, and
+   its <code>assay</code> and <code>design</code> say the same. That entry also names the chemistry as <code>10x-3p-gex</code>,
+   while the protocol on every sample record names a Singleron kit.</li>
+<li><strong><code>GSE126954/bounds.yaml</code> still speaks of seven samples.</strong> Its claim and its <code>reason</code> say that
+   "the seven embryo samples are its own data". The judge had drawn the study as seven of the
+   eight samples. A study is whole Series, so the bounds are now the whole Series of eight. The
+   eighth sample is a re-deposited sample of an older study. Telling it apart is left to the
+   study's reading, and this study has none yet.</li>
+<li><strong>The bounds carry no probability and no quote.</strong> All 74 claims in the 50 bounds files are
+   marked <code>inferred</code>, with the model's reason as the text. Every <code>p</code> is <code>null</code>,
+   <code>models.probabilities</code> is <code>null</code>, and <code>passages</code> is empty. <code>null</code> means that no model has given
+   a probability, not that the claim is in doubt.</li>
+<li><strong>One <code>when</code> is later than its file.</strong> <code>GSE100021/reading.verdict.yaml</code> says
+   <code>2026-11-20T02:05:00Z</code>. The commit that added the file is dated 23 minutes earlier. The model
+   wrote the time itself.</li>
+<li><strong>The readings keep what the second pass disagrees with.</strong> The table below has one line for
+   each reading.</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Reading</th>
+<th>What the second pass disagrees with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GSE100021</td>
+<td><code>shared.dose</code> writes the value <code>1.7e+12</code> with the unit <code>viral_particles_per_side</code>. The source sentence gives the content of the suspension, not the amount each side received.</td>
+</tr>
+<tr>
+<td>GSE112068</td>
+<td><code>shared.sex</code> is <code>na</code> and should be <code>unknown</code>, on all 23 samples. The three untreated samples have <code>control</code> as their treatment, where <code>na</code> fits. The time factor cites passages that do not list its levels.</td>
+</tr>
+<tr>
+<td>GSE117724</td>
+<td>Nothing. The second pass lists four points it could not settle, such as the stage of the worms at harvest.</td>
+</tr>
+<tr>
+<td>GSE235532</td>
+<td>The reading leaves out the time of collection, and its notes say wrongly that the format has no place for it.</td>
+</tr>
+<tr>
+<td>GSE241718</td>
+<td>The donor ids of the four young libraries are a guess, and their <code>p</code> of 0.5 is too high. Passage 19 names two sample records, and all eight hold the quote.</td>
+</tr>
+</tbody>
+</table>
+<p>The second pass also could not settle the age of the four aged libraries of GSE241718. The sample
+records say 24 months, and the Series designs and the paper say 26. The reading writes 26 with a
+<code>p</code> of 0.55.</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
