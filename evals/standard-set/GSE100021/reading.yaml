@@ -74,7 +74,7 @@ shared:
   disease:           {text: healthy, term: "PATO:0000461", inferred: "the rats model normal brain aging; neither the records nor the paper names a disease or a disease model", see: [23, 22], p: 0.92}
   genotype:          {unknown: "no record field and no sentence of the paper gives a genotype; the rats are an outbred stock and the vector is not a germline change", p: 0.93}
   strain:            {text: Sprague-Dawley, quoted: [4, 22], p: 0.99}
-  dose:              {text: "8 μl per side of a suspension containing 1.7 x1012 viral particles", value: 1.7e12, unit: viral_particles_per_side, quoted: [27], p: 0.9}
+  dose:              {text: "8 μl per side of a suspension containing 1.7 x1012 viral particles", value: 1.7e+12, unit: viral_particles_per_side, quoted: [27], p: 0.9}
   duration:          {unknown: "the vector was given once and expressed on to the day of death; no source gives a length of application", p: 0.85}
   time_since_treatment: {text: "80 days from injection to euthanasia", value: 80, unit: day, inferred: "the vector went in on experimental day 0 and the hippocampi came out on experimental day 80", see: [25, 26], p: 0.95}
 
