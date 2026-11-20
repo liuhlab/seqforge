@@ -4,7 +4,7 @@
 model wrote. It collects nothing and loads nothing from the network.
 
 ```bash
-pixi run python prototypes/study_reading_page/build_page.py \
+pixi run python prototypes/study_reading_page/build_reading_page.py \
     evals/standard-set seqforge/standard-set/readings.html
 ```
 
