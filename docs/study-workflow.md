@@ -152,3 +152,8 @@ For each study the run writes a `bounds.yaml` and a `reading.yaml`, or it lists 
 reason it stopped. Every study ends as settled, unsettled or refused, as
 [Passes and reviews](passes-and-reviews.md#start-a-pass) defines those endings. No study is sent
 to a person.
+
+## Files that exist today
+
+[Files from the hand work](hand-work-files.md) lists every bounds file, worked reading and
+verdict made so far, with where each is, its format and who made it.
