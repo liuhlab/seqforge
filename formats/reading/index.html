@@ -690,6 +690,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#the-file-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The file at a glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#an-example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1258,6 +1269,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#the-file-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The file at a glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#an-example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1393,6 +1415,30 @@ YAML. This page is all you need to read one.</p>
 </code></pre></div>
 <p>The first command checks a file against this page. The second command prints what the reading
 implies between its samples, such as replicates and contrasts.</p>
+<h2 id="the-file-at-a-glance">The file at a glance<a class="headerlink" href="#the-file-at-a-glance" title="Permanent link">&para;</a></h2>
+<p>A reading file has five parts. The arrows show how one part points at another.</p>
+<pre class="mermaid"><code>flowchart TD
+    HEAD["&lt;b&gt;header&lt;/b&gt;&lt;br/&gt;&lt;code&gt;format&lt;/code&gt; · &lt;code&gt;study&lt;/code&gt;&lt;br/&gt;&lt;code&gt;models&lt;/code&gt; · &lt;code&gt;read&lt;/code&gt;&lt;br/&gt;&lt;i&gt;which study, who wrote it,&lt;br/&gt;what was read&lt;/i&gt;"]
+    SHARED["&lt;b&gt;shared&lt;/b&gt;&lt;br/&gt;the claims every sample has"]
+    SAMPLES["&lt;span style='color:#fff'&gt;&lt;b&gt;samples&lt;/b&gt;&lt;br/&gt;one row per sequenced sample:&lt;br/&gt;the claims of its own&lt;/span&gt;"]
+    FACTORS["&lt;b&gt;factors&lt;/b&gt;&lt;br/&gt;the labels the study varied:&lt;br/&gt;levels, baseline, ordered or not"]
+    PASSAGES["&lt;b&gt;passages&lt;/b&gt;&lt;br/&gt;the numbered quotes,&lt;br/&gt;each with where it was read"]
+    SRC[("GEO records&lt;br/&gt;and papers")]
+
+    HEAD ~~~ SHARED
+    SHARED --&gt;|"a row's claim replaces&lt;br/&gt;the shared claim"| SAMPLES
+    SAMPLES --&gt;|"&lt;code&gt;level&lt;/code&gt; names one&lt;br/&gt;of the factor's levels"| FACTORS
+    SHARED --&gt;|"&lt;code&gt;quoted&lt;/code&gt; and &lt;code&gt;see&lt;/code&gt;&lt;br/&gt;list passage numbers"| PASSAGES
+    SAMPLES --&gt; PASSAGES
+    FACTORS --&gt; PASSAGES
+    PASSAGES --&gt;|"&lt;code&gt;record&lt;/code&gt; or &lt;code&gt;paper&lt;/code&gt;"| SRC
+
+    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class SAMPLES artifact</code></pre>
+<p>Read it from the samples outward. A sample's claims are its own row plus whatever <code>shared</code> adds. A
+claim that is backed by a source gives passage numbers, and each passage names the record or the
+paper that holds the quote. A claim on a label that the study varied also names its level.</p>
 <h2 id="an-example">An example<a class="headerlink" href="#an-example" title="Permanent link">&para;</a></h2>
 <p>A liver study of two ages. Each age has one pull-down library and the input library made from the
 same chromatin.</p>
@@ -1615,6 +1661,26 @@ sure the model is. In the example, <code>tissue: {text: liver, ...}</code> is on
 <li>An <code>unknown</code> claim and an <code>na</code> claim give no value. So neither has <code>text</code>, <code>term</code>, <code>value</code>,
   <code>unit</code> or <code>level</code>.</li>
 </ul>
+<p>The four backing marks answer three questions in turn:</p>
+<pre class="mermaid"><code>flowchart LR
+    A(["Does the label apply&lt;br/&gt;to this sample?"])
+    B(["Can its value be told&lt;br/&gt;from what was read?"])
+    C(["Does a passage&lt;br/&gt;say it outright?"])
+    NA["&lt;b&gt;&lt;code&gt;na&lt;/code&gt;&lt;/b&gt;&lt;br/&gt;why it does not apply&lt;br/&gt;&lt;i&gt;no value&lt;/i&gt;"]
+    UNK["&lt;b&gt;&lt;code&gt;unknown&lt;/code&gt;&lt;/b&gt;&lt;br/&gt;a short note&lt;br/&gt;&lt;i&gt;no value&lt;/i&gt;"]
+    Q["&lt;span style='color:#fff'&gt;&lt;b&gt;&lt;code&gt;quoted&lt;/code&gt;&lt;/b&gt;&lt;br/&gt;the passage numbers&lt;br/&gt;&lt;i&gt;has a value&lt;/i&gt;&lt;/span&gt;"]
+    I["&lt;span style='color:#fff'&gt;&lt;b&gt;&lt;code&gt;inferred&lt;/code&gt;&lt;/b&gt;&lt;br/&gt;how it was worked out&lt;br/&gt;&lt;i&gt;has a value&lt;/i&gt;&lt;/span&gt;"]
+
+    A --&gt;|yes| B
+    A --&gt;|no| NA
+    B --&gt;|yes| C
+    B --&gt;|no| UNK
+    C --&gt;|yes| Q
+    C --&gt;|no| I
+
+    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class Q,I artifact</code></pre>
 <p><code>unknown</code> and <code>na</code> are different gaps. <code>unknown</code> means that the label has a value and nothing that
 was read gives it. <code>na</code> means that the label has no value for this sample, such as the cell line of
 a tissue sample.</p>
@@ -1843,7 +1909,27 @@ writes no file. The command checks the file first and rejects a broken file exac
 </tbody>
 </table>
 <p>For the example above, the command prints these relations. Samples, factors and levels are listed
-in the file's order.</p>
+in the file's order. The picture shows the same relations, and the JSON follows it.</p>
+<pre class="mermaid"><code>flowchart LR
+    subgraph B1["biosample B1 · age: young"]
+        S1["&lt;span style='color:#fff'&gt;&lt;b&gt;GSM9000001&lt;/b&gt;&lt;br/&gt;H3K27me3 pull-down&lt;br/&gt;&lt;i&gt;signal&lt;/i&gt;&lt;/span&gt;"]
+        S2["&lt;b&gt;GSM9000002&lt;/b&gt;&lt;br/&gt;input&lt;br/&gt;&lt;i&gt;its control&lt;/i&gt;"]
+    end
+    subgraph B2["biosample B2 · age: old"]
+        S3["&lt;span style='color:#fff'&gt;&lt;b&gt;GSM9000003&lt;/b&gt;&lt;br/&gt;H3K27me3 pull-down&lt;br/&gt;&lt;i&gt;signal&lt;/i&gt;&lt;/span&gt;"]
+        S4["&lt;b&gt;GSM9000004&lt;/b&gt;&lt;br/&gt;input&lt;br/&gt;&lt;i&gt;its control&lt;/i&gt;"]
+    end
+
+    S1 ==&gt;|"contrast and series&lt;br/&gt;young to old"| S3
+    S2 -.-&gt;|"series only&lt;br/&gt;young to old"| S4
+
+    %% The inline white &lt;span&gt; is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class S1,S3 artifact</code></pre>
+<p>Each box is one <code>shared_biosample</code> set. Inside a box, the pull-down library and the input library
+make one <code>signal_to_control</code> pair. The two pull-down libraries make the one contrast. The two
+input libraries make a series and no contrast, because a control library is never in a contrast.
+No group has two samples, so there are no replicates.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;replicates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;contrasts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
