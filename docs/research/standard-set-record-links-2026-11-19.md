@@ -4,7 +4,7 @@ Dated 2026-11-19, for [#590](https://github.com/liuhlab/seqforge/issues/590), on
 `20261107T163933Z` of liulab-data's store. **A link between records is a reason to look, not a
 bound. Across the 50 studies of the standard set, 7 carried a linked paper that does not report
 them and 4 a linked Series that belongs to another study. The records and the abstracts settled 43
-of the 50; the full paper was needed for 7, and for all three Series picked as possibly holding two
+of the 50; the full paper was needed for 7, and for two of the three Series picked as possibly holding two
 studies.**
 
 The question: when a GEO Series is linked to other Series and to papers, which of those links mean
