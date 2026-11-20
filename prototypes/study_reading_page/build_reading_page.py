@@ -6,7 +6,7 @@ Writes one self-contained, view-only HTML page that shows one study at a time: t
 sample table with the words behind each cell, what the reading implies between its samples, the
 second model's verdict, and the notes on what the format could not hold.
 
-    python prototypes/study_reading_page/build_page.py FOLDER OUT.html [--title TEXT]
+    python prototypes/study_reading_page/build_reading_page.py FOLDER OUT.html [--title TEXT]
 
 The page carries record and paper text: write it outside the repo, or to a folder git ignores.
 """
@@ -276,7 +276,7 @@ def design(reading: Reading, marked: dict[tuple[str, str], list[int]], add: Add)
             + f'<ol class="levels{" ordered" if factor.ordered else ""}">{"".join(items)}</ol></div>'
         )
 
-    def level(sample: str, factor: str) -> str | None:
+    def level_of(sample: str, factor: str) -> str | None:
         return rows[sample][factor].level if factor in rows[sample] else None
 
     def at(factor: str, value: str | None) -> int:
@@ -296,7 +296,7 @@ def design(reading: Reading, marked: dict[tuple[str, str], list[int]], add: Add)
         caption = f'{e(kind_words(*kind))} <span class="n">{len(members)} samples</span>'
         counts: dict[tuple[tuple[str | None, ...], str | None], int] = {}
         for sample in members:
-            key = (tuple(level(sample, f) for f in down), level(sample, across))
+            key = (tuple(level_of(sample, f) for f in down), level_of(sample, across))
             counts[key] = counts.get(key, 0) + 1
         if all(c is None and not any(r) for r, c in counts):
             grids.append(f'<p class="outside">{caption}: not placed on any factor.</p>')
