@@ -86,7 +86,7 @@ mark, and `p`.
 | `quoted` | Backing mark. A source says it: the numbers of the passages that say so. |
 | `inferred` | Backing mark. No passage says it outright: a short text saying how it was worked out. |
 | `unknown` | Backing mark. What was read does not say: a short note. |
-| `see` | Optional, and only beside `inferred`: the numbers of the passages it rests on. |
+| `see` | Optional, and not beside `quoted`: the numbers of the passages the claim rests on. |
 | `p` | A number from 0 to 1, or `null`. Required. |
 
 The rules for a claim:
@@ -104,8 +104,9 @@ field.
 no model has given one yet. It does not mean the claim is in doubt. When any claim has a number,
 `models.probabilities` must name the model that gave it.
 
-A study reading writes its claims the same way, so the two kinds of file read alike. A reading
-has one more backing mark, `na`, which the bounds do not use.
+A [reading file](reading.md) writes its claims and its passages the same way, so the two kinds
+of file read alike. A claim in a reading has one more backing mark, `na`, which the bounds do not
+use, and more fields for what the claim says.
 
 ## Passages
 

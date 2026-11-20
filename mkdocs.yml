@@ -54,6 +54,7 @@ nav:
   - Passes and reviews: passes-and-reviews.md
   - File formats:
       - The bounds file: formats/bounds.md
+      - The reading file: formats/reading.md
   - Concepts:
       - The two artifacts: concepts/artifacts.md
       - How a dataset is identified: concepts/identifying.md

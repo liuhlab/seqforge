@@ -2,9 +2,9 @@
 
 A **claim** is one mapping that says one thing and how it is backed. It holds exactly one backing
 mark, ``quoted: [passage numbers]``, ``inferred: "how"`` or ``unknown: "note"``, and ``p``, the
-chance it is right, which is ``None`` until a model has given one. An inferred claim may add
-``see: [passage numbers]`` for the passages it rests on. A **passage** is one quote with where it
-was read, written once per file under its number.
+chance it is right, which is ``None`` until a model has given one. A claim that is not quoted may
+add ``see: [passage numbers]`` for the passages it rests on. A **passage** is one quote with where
+it was read, written once per file under its number.
 
 A file kind builds on these: it subclasses :class:`Claim` with what its own claims say, and asks
 :func:`claim_problems` about each one, naming the marks it allows. Every check here returns
@@ -79,6 +79,8 @@ def validation_problems(exc: ValidationError) -> list[dict[str, str]]:
             return "missing"
         if error["type"] == "extra_forbidden":
             return "not a field of the format"
+        if error["type"] == "dict_type":
+            return "not a mapping"
         return str(error["msg"])
 
     return [{"field": field_path(e["loc"]), "reason": reason(e)} for e in exc.errors()]
@@ -117,8 +119,11 @@ def claim_problems(
         yield f"{where}.quoted", "a quoted claim points to at least one passage"
     if claim.inferred is not None and not claim.inferred.strip():
         yield f"{where}.inferred", "an inferred claim says how it was worked out"
-    if claim.see is not None and claim.inferred is None:
-        yield f"{where}.see", "only an inferred claim adds the passages it rests on"
+    if claim.see is not None and claim.quoted is not None:
+        yield (
+            f"{where}.see",
+            "a quoted claim lists its passages under quoted, with no see beside it",
+        )
     for name, numbers in (("quoted", claim.quoted), ("see", claim.see)):
         for number in numbers or []:
             if number not in passages:
