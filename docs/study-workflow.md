@@ -7,10 +7,10 @@ Series links to papers and to other Series that do not all belong to the same st
 
 This page gives the chain of steps that takes one study from its database records to two files:
 
-- `bounds.yaml` holds the study's **bounds**: its name, the Series that belong to it, its papers,
+- [`bounds.yaml`](formats/bounds.md) holds the study's **bounds**: its name, the Series that belong to it, its papers,
   and each linked record that was left out, with the reason. A study is whole Series. No step
   splits a Series by sample.
-- `reading.yaml` holds the **study reading**: what was done to each sample, and how the samples
+- [`reading.yaml`](formats/reading.md) holds the **study reading**: what was done to each sample, and how the samples
   relate. There is one reading per study.
 
 The chain is built and checked on the **standard set**, a fixed list of 50 small GEO studies. For
