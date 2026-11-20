@@ -15,6 +15,36 @@ seqforge study relations reading.yaml
 The first command checks a file against this page. The second command prints what the reading
 implies between its samples, such as replicates and contrasts.
 
+## The file at a glance
+
+A reading file has five parts. The arrows show how one part points at another.
+
+```mermaid
+flowchart TD
+    HEAD["<b>header</b><br/><code>format</code> · <code>study</code><br/><code>models</code> · <code>read</code><br/><i>which study, who wrote it,<br/>what was read</i>"]
+    SHARED["<b>shared</b><br/>the claims every sample has"]
+    SAMPLES["<span style='color:#fff'><b>samples</b><br/>one row per sequenced sample:<br/>the claims of its own</span>"]
+    FACTORS["<b>factors</b><br/>the labels the study varied:<br/>levels, baseline, ordered or not"]
+    PASSAGES["<b>passages</b><br/>the numbered quotes,<br/>each with where it was read"]
+    SRC[("GEO records<br/>and papers")]
+
+    HEAD ~~~ SHARED
+    SHARED -->|"a row's claim replaces<br/>the shared claim"| SAMPLES
+    SAMPLES -->|"<code>level</code> names one<br/>of the factor's levels"| FACTORS
+    SHARED -->|"<code>quoted</code> and <code>see</code><br/>list passage numbers"| PASSAGES
+    SAMPLES --> PASSAGES
+    FACTORS --> PASSAGES
+    PASSAGES -->|"<code>record</code> or <code>paper</code>"| SRC
+
+    %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class SAMPLES artifact
+```
+
+Read it from the samples outward. A sample's claims are its own row plus whatever `shared` adds. A
+claim that is backed by a source gives passage numbers, and each passage names the record or the
+paper that holds the quote. A claim on a label that the study varied also names its level.
+
 ## An example
 
 A liver study of two ages. Each age has one pull-down library and the input library made from the
@@ -156,6 +186,30 @@ The rules for a claim:
   claim and a `donor` claim may have an `id` and neither of the two.
 - An `unknown` claim and an `na` claim give no value. So neither has `text`, `term`, `value`,
   `unit` or `level`.
+
+The four backing marks answer three questions in turn:
+
+```mermaid
+flowchart LR
+    A(["Does the label apply<br/>to this sample?"])
+    B(["Can its value be told<br/>from what was read?"])
+    C(["Does a passage<br/>say it outright?"])
+    NA["<b><code>na</code></b><br/>why it does not apply<br/><i>no value</i>"]
+    UNK["<b><code>unknown</code></b><br/>a short note<br/><i>no value</i>"]
+    Q["<span style='color:#fff'><b><code>quoted</code></b><br/>the passage numbers<br/><i>has a value</i></span>"]
+    I["<span style='color:#fff'><b><code>inferred</code></b><br/>how it was worked out<br/><i>has a value</i></span>"]
+
+    A -->|yes| B
+    A -->|no| NA
+    B -->|yes| C
+    B -->|no| UNK
+    C -->|yes| Q
+    C -->|no| I
+
+    %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class Q,I artifact
+```
 
 `unknown` and `na` are different gaps. `unknown` means that the label has a value and nothing that
 was read gives it. `na` means that the label has no value for this sample, such as the cell line of
@@ -304,7 +358,31 @@ Three terms define the relations:
 | `signal_to_control` | Within one such set: each signal, paired with each control library. |
 
 For the example above, the command prints these relations. Samples, factors and levels are listed
-in the file's order.
+in the file's order. The picture shows the same relations, and the JSON follows it.
+
+```mermaid
+flowchart LR
+    subgraph B1["biosample B1 · age: young"]
+        S1["<span style='color:#fff'><b>GSM9000001</b><br/>H3K27me3 pull-down<br/><i>signal</i></span>"]
+        S2["<b>GSM9000002</b><br/>input<br/><i>its control</i>"]
+    end
+    subgraph B2["biosample B2 · age: old"]
+        S3["<span style='color:#fff'><b>GSM9000003</b><br/>H3K27me3 pull-down<br/><i>signal</i></span>"]
+        S4["<b>GSM9000004</b><br/>input<br/><i>its control</i>"]
+    end
+
+    S1 ==>|"contrast and series<br/>young to old"| S3
+    S2 -.->|"series only<br/>young to old"| S4
+
+    %% The inline white <span> is required on dark fills — see the comment in docs/index.md.
+    classDef artifact fill:#00695c,stroke:#004d40
+    class S1,S3 artifact
+```
+
+Each box is one `shared_biosample` set. Inside a box, the pull-down library and the input library
+make one `signal_to_control` pair. The two pull-down libraries make the one contrast. The two
+input libraries make a series and no contrast, because a control library is never in a contrast.
+No group has two samples, so there are no replicates.
 
 ```json
 {
