@@ -1,0 +1,31 @@
+id: GSE288182
+summary: RRBS DNA methylation of brain from wild-type, APP/PS1 Alzheimer's mice, and OSK-reprogrammed
+  APP/PS1 mice.
+direction: neurodegeneration
+also_fits:
+- aging
+hard_shape: null
+reason_picked: Genotype and treatment are two fields but form a three-group design, the incomplete cross
+  again in another assay.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE288182
+  superseries: null
+  bioprojects:
+  - PRJNA1216536
+  pmids:
+  - '42210397'
+bounds:
+  series:
+  - GSE288182
+  papers:
+  - pmid:42210397
+  reason: One RRBS study comparing brain methylation across WT, AD, and OSK-treated AD mice.
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

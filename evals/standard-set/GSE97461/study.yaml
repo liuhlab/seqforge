@@ -1,0 +1,31 @@
+id: GSE97461
+summary: TRAP-seq of striatal D1 and D2 spiny projection neurons from young and aged mice, plus ribosome
+  profiling of treated NIH-3T3 cells
+direction: aging
+also_fits:
+- neurodegeneration
+hard_shape: null
+reason_picked: One Series and one paper, yet it holds a mouse cell-type by age experiment and a separate
+  small cell-line experiment in another assay.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE97461
+  superseries: null
+  bioprojects:
+  - PRJNA381914
+  pmids:
+  - '30485811'
+bounds:
+  series:
+  - GSE97461
+  papers:
+  - pmid:30485811
+  reason: Single GEO Series and its linked paper report TRAP-seq of young versus aged striatal neurons
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

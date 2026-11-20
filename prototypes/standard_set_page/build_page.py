@@ -198,6 +198,12 @@ def diagram(study: dict, lookup: dict, disputed: list[str]) -> str:
             + link(paper["id"] if doi else f"PMID {paper['id']}", url, x + 12, y + h - 10, "start")
             + "</g>"
         )
+        if paper["id"] in disputed:
+            out.append(
+                f'<g class="mark"><title>The two models disagreed about this paper</title>'
+                f'<circle cx="{x + 2}" cy="{y + 2:g}" r="9"/>'
+                f'<text x="{x + 2}" y="{y + 6:g}" text-anchor="middle">?</text></g>'
+            )
 
     for n, box in enumerate(series):
         x, y, h, w = SERIES_X, box["y"], box["h"], SERIES_W
@@ -257,18 +263,23 @@ def flag(study: dict) -> tuple[str, str, list[str]]:
                 )
             else:
                 said[gse] = f"the two took different samples of the dataset marked {MARK}"
-        if len(said) == 1:
+        papers = sorted(set(strs(first.get("papers"))) ^ set(strs(second.get("papers"))))
+        if len(said) == 1 and not papers:
             what = f": {next(iter(said.values()))}"
         elif said:
-            what = f" about the {len(said)} datasets marked {MARK}"
+            what = f" about the {len(said) + len(papers)} records marked {MARK}"
+        elif len(papers) == 1:
+            what = f" about whether the paper marked {MARK} belongs"
+        elif papers:
+            what = f" about whether the {len(papers)} papers marked {MARK} belong"
         else:
-            what = " about which paper belongs"
+            what = ", though they named the same datasets and papers"
         text = (
             f"<b>The two models disagreed</b>{what}; the picture shows the checking model's choice."
         )
         if verdict.get("unsure") or study.get("status") == "unsure":
             text += " <b>The checking model was not sure</b> of its own choice either."
-        return "differ", text, list(said)
+        return "differ", text, [*said, *papers]
     if verdict.get("unsure") or study.get("status") == "unsure":
         return "unsure", "<b>The checking model was not sure</b> about this study.", []
     return "", "", []
@@ -279,8 +290,12 @@ def card(study: dict, lookup: dict) -> tuple[int, str]:
     kind, sentence, disputed = flag(study)
     sid = escape(str(study["id"]))
     tags = [DIRECTION.get(study.get("direction"), study.get("direction"))]
-    if study.get("hard_shape"):
-        tags.append(SHAPE.get(study["hard_shape"], study["hard_shape"]))
+    shape = study.get("hard_shape")
+    if shape == "series_with_two_studies" and not (study.get("bounds") or {}).get("split_samples"):
+        # Picked on the sign of two studies in one dataset; drawn, it turned out to be one.
+        tags.append("one dataset, several papers")
+    elif shape:
+        tags.append(SHAPE.get(shape, shape))
     if "stand-in" in str((study.get("verdict") or {}).get("model")):
         tags.append("written by hand, not by the models")
     note = ""

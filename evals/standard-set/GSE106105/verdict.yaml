@@ -1,0 +1,13 @@
+id: GSE106105
+model: claude-fable-5-2
+when: '2026-11-20T00:06:20Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single paper, and they share the same title and summary
+  text, so the eLife 2017 article is plainly the report of this dataset. The record's design covers thorax
+  and fat body samples that all serve the one question about developmental mitochondrial stress and PGAM5,
+  so there is nothing to split and nothing to leave out.
+unsure: false
+read:
+- records
+- abstract

@@ -1,0 +1,13 @@
+id: GSE222631
+model: claude-fable-5-2
+when: '2026-11-20T00:06:13Z'
+agrees: true
+bounds: null
+reason: The group has only one Series and one paper. The GEO record and the Aging Cell article share the
+  same title and near-identical summary, and the record's design (sorted synaptic and non-synaptic Schwann
+  cells from young and old reporter mice) matches the transcriptome part of the abstract. It is not a
+  SuperSeries and all 24 samples fit that one design, so there is nothing to leave out or split.
+unsure: false
+read:
+- records
+- abstract

@@ -1,0 +1,13 @@
+id: GSE241718
+model: claude-fable-5-2
+when: '2026-11-20T00:03:19Z'
+agrees: true
+bounds: null
+reason: Both Series carry the same title, summary and design and link only the one Scientific Reports
+  paper. GSE241275 holds the young VAT samples and GSE241718 the young/aged SAT and aged VAT samples,
+  so together they form the paper's SAT/VAT young-versus-aged snRNA-seq dataset. Neither is a SuperSeries
+  and no other paper is linked, so nothing is left out.
+unsure: false
+read:
+- records
+- abstract

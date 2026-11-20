@@ -1,0 +1,13 @@
+id: GSE129928
+model: claude-fable-5-2
+when: '2026-11-20T00:10:20Z'
+agrees: true
+bounds: null
+reason: The linked group holds a single Series and a single paper, and they point only at each other.
+  The Series record describes histone-mark profiling across generations in wild-type worms and two chromatin-modifier
+  mutants, and the eLife abstract reports exactly those strains and that generational comparison. No SuperSeries,
+  no re-used dataset and no second paper is present, so nothing needs to be left out or split.
+unsure: false
+read:
+- records
+- abstract

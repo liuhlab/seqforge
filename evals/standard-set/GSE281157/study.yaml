@@ -1,0 +1,30 @@
+id: GSE281157
+summary: Bulk RNA-seq of whole starved L1 larvae comparing wild type, daf-16, daf-18, and daf-16;daf-18
+  mutants.
+direction: c_elegans
+also_fits: []
+hard_shape: null
+reason_picked: The four-genotype design used to ask whether two genes act in one pathway.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE281157
+  superseries: null
+  bioprojects:
+  - PRJNA1182399
+  pmids:
+  - '40199585'
+bounds:
+  series:
+  - GSE281157
+  papers:
+  - pmid:40199585
+  reason: GSE281157 is the only Series; pmid:40199585 is the paper linked to this Series.
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract
+- full_paper

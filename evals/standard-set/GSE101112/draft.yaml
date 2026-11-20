@@ -1,0 +1,17 @@
+id: GSE101112
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-3
+when: '2026-11-20T00:01:39Z'
+summary: Hippocampal transcriptome of aged SAMP8 mice treated with AD drug candidates CMS121 and J147,
+  plus treated rat neurons.
+bounds:
+  series:
+  - GSE101112
+  papers:
+  - pmid:31742554
+  - pmid:32884834
+  reason: Same project's hippocampal RNA-seq of SAMP8 mice and treated neurons reported by two papers.
+  left_out:
+    pmid:33294943: Tool paper; re-uses data for method demonstration
+  split_samples: {}
+checks_failed: []

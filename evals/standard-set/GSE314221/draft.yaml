@@ -1,0 +1,15 @@
+id: GSE314221
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Bulk RNA-seq of whole brain from CETP and APP/CETP transgenic mice treated with evacetrapib or
+  vehicle
+bounds:
+  series:
+  - GSE314221
+  papers:
+  - pmid:42547584
+  reason: One RNA-seq dataset and its reporting paper on CETP inhibition in AD mice
+  left_out: {}
+  split_samples: {}
+checks_failed: []

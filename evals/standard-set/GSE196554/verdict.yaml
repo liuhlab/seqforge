@@ -1,0 +1,14 @@
+id: GSE196554
+model: claude-fable-5-2
+when: '2026-11-20T00:07:02Z'
+agrees: true
+bounds: null
+reason: 'The group holds a single Series and a single paper, and they point to each other. The Series
+  record describes twelve healthy donors'' satellite cells profiled at single-cell level across ages,
+  and the paper''s abstract describes exactly that: newly sequenced donors analysed for age effects. The
+  earlier baseline dataset the abstract mentions is not part of this linked group, so nothing needs leaving
+  out and no sample split applies.'
+unsure: false
+read:
+- records
+- abstract

@@ -60,7 +60,9 @@ whether the draft is right.
   matter. When it is false, give your own complete bounds in "bounds", in the same shape and under
   the same rules, with a short reason for each record you leave out. When it is true, "bounds" is
   null.
-- "reason" says in a few plain sentences why, naming what settled it.
+- "reason" says in a few plain sentences why, naming what settled it. Write it in your own words:
+  never copy a phrase from a record or a paper, in "reason" or in any left-out reason. Say where
+  the deciding statement is (such as "the methods of the 2020 paper") and what it amounts to.
 - "unsure" is true when what you could read does not settle the bounds. Give your best bounds
   anyway and say in "reason" what is missing.
 - "read" lists what you had to read to decide: "records", "abstract", "full_paper". List

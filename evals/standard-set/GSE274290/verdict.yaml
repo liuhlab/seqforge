@@ -1,0 +1,13 @@
+id: GSE274290
+model: claude-fable-5-2
+when: '2026-11-20T00:03:45Z'
+agrees: true
+bounds: null
+reason: Both Series share the same title (differing only in the [scRNA-seq] and [smRNA-seq] tags), the
+  same summary, the same submission date, and link the same single paper, whose abstract describes both
+  the single-cell germ cell atlas and the ELT-1 small RNA experiment. There is no SuperSeries and no other
+  paper in the group, so nothing needs leaving out.
+unsure: false
+read:
+- records
+- abstract

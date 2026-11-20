@@ -1,0 +1,14 @@
+id: GSE114951
+model: claude-fable-5-2
+when: '2026-11-20T00:09:52Z'
+agrees: true
+bounds: null
+reason: The group holds only one Series and one paper. The paper's methods and its data availability statement
+  both name this accession as the deposit for its own RNA-seq, covering both mutant-versus-wild-type comparisons,
+  so the two batches are one study. The only outside data the paper uses is a ribosome profiling set from
+  SRA, which is not part of this group. Nothing needs to be left out or split.
+unsure: false
+read:
+- records
+- abstract
+- full_paper

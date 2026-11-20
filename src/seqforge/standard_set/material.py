@@ -10,6 +10,7 @@ and paper text is only ever passed on or written there: the repo keeps identifie
 from __future__ import annotations
 
 import re
+import textwrap
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
@@ -200,14 +201,18 @@ def _record_text(record: Any) -> str:
 
 
 def _article_text(xml: bytes) -> str:
-    """A paper's XML as plain text: tags dropped, a blank line between blocks."""
+    """A paper's XML as plain text: tags dropped, one block after another, in short lines.
+
+    The lines are short so that a search of the file shows the sentence it found: a paragraph on
+    one line is cut off in a search result, and the judging model then learns nothing from the hit.
+    """
     text = xml.decode("utf-8", errors="replace")
     text = re.sub(r"</(p|title|sec|caption|td|th|tr|abstract|ref)>", "\n", text)
     text = re.sub(r"<[^>]+>", " ", text)
     for entity, char in (("&lt;", "<"), ("&gt;", ">"), ("&amp;", "&"), ("&#x2013;", "-")):
         text = text.replace(entity, char)
-    lines = (re.sub(r"[ \t]+", " ", line).strip() for line in text.splitlines())
-    return "\n".join(line for line in lines if line) + "\n"
+    blocks = (re.sub(r"[ \t]+", " ", line).strip() for line in text.splitlines())
+    return "\n".join(textwrap.fill(block, 110) for block in blocks if block) + "\n"
 
 
 def stage(group: Mapping[str, Any], folder: Path) -> list[str]:

@@ -1,0 +1,17 @@
+id: GSE241718
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-4
+when: '2026-11-20T00:02:16Z'
+summary: Single-nucleus RNA-seq of mouse subcutaneous and visceral adipose tissue comparing young and
+  aged mice
+bounds:
+  series:
+  - GSE241718
+  - GSE241275
+  papers:
+  - pmid:38997312
+  reason: Same snRNA-seq aging adipose atlas; SAT and VAT samples split across two linked Series reported
+    by one paper
+  left_out: {}
+  split_samples: {}
+checks_failed: []

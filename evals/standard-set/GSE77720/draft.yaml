@@ -1,0 +1,15 @@
+id: GSE77720
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Bulk RNA-seq of cortex and lumbar spinal cord from C9orf72 BAC transgenic mice with normal or
+  expanded repeats and nontransgenic controls.
+bounds:
+  series:
+  - GSE77720
+  papers:
+  - pmid:26637796
+  reason: One RNA-seq study comparing cortex and spinal cord of C9orf72 BAC transgenic and control mice.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

@@ -1,0 +1,28 @@
+id: GSE208154
+summary: Single-cell RNA-seq of whole C. elegans across six adult ages, profiling all cell types during
+  aging
+direction: c_elegans
+also_fits:
+- aging
+hard_shape: series_without_paper
+reason_picked: Already in the benchmark, where seqforge refuses it because the barcode read was not deposited;
+  no paper is linked to the record.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE208154
+  superseries: null
+  bioprojects:
+  - PRJNA858484
+  pmids: []
+bounds:
+  series:
+  - GSE208154
+  papers: []
+  reason: One time-series scRNA-seq atlas of C. elegans aging across six adult time points
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records

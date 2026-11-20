@@ -1,0 +1,13 @@
+id: GSE175410
+model: claude-fable-5-2
+when: '2026-11-20T00:07:24Z'
+agrees: true
+bounds: null
+reason: The linked group holds only one Series and one paper. The Series record describes muscle methylation
+  in young, old sedentary and old trained mice, and the paper's abstract describes that same design with
+  the same sequencing method and training window. Nothing else is linked, so there is nothing to leave
+  out or split.
+unsure: false
+read:
+- records
+- abstract

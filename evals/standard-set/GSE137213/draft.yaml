@@ -1,0 +1,16 @@
+id: GSE137213
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Colon RNA-seq from wild-type and SNCA transgenic mice housed in standard versus enriched environments,
+  comparing genotype and housing
+bounds:
+  series:
+  - GSE137213
+  papers:
+  - pmid:31749671
+  reason: Single Series and its one paper compare colon transcriptomes of SNCA transgenic and wild-type
+    mice under standard versus enriched housing
+  left_out: {}
+  split_samples: {}
+checks_failed: []

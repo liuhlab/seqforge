@@ -1,0 +1,30 @@
+id: GSE77720
+summary: Bulk RNA-seq of cortex and lumbar spinal cord from C9orf72 BAC transgenic mice with normal or
+  expanded repeats and nontransgenic controls.
+direction: neurodegeneration
+also_fits: []
+hard_shape: null
+reason_picked: Two tissues taken from each animal across three genotypes, with animal numbers in the sample
+  titles.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE77720
+  superseries: null
+  bioprojects:
+  - PRJNA311306
+  pmids:
+  - '26637796'
+bounds:
+  series:
+  - GSE77720
+  papers:
+  - pmid:26637796
+  reason: One RNA-seq study comparing cortex and spinal cord of C9orf72 BAC transgenic and control mice.
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

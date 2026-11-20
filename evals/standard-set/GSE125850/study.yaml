@@ -1,0 +1,31 @@
+id: GSE125850
+summary: ChIP-seq of H3K9me2 in prefrontal cortex from wild-type, familial Alzheimer's model, and inhibitor-treated
+  FAD mice
+direction: neurodegeneration
+also_fits:
+- aging
+hard_shape: null
+reason_picked: Every animal gives one pull-down and one input, and the sample titles name each pair.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE125850
+  superseries: null
+  bioprojects:
+  - PRJNA517703
+  pmids:
+  - '30668640'
+bounds:
+  series:
+  - GSE125850
+  papers:
+  - pmid:30668640
+  reason: One ChIP-seq study of H3K9me2 in FAD vs wild-type vs BIX01294-treated mouse prefrontal cortex,
+    reported by one paper.
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

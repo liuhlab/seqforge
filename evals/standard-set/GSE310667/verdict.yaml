@@ -1,0 +1,14 @@
+id: GSE310667
+model: claude-fable-5-2
+when: '2026-11-20T00:10:13Z'
+agrees: true
+bounds: null
+reason: The linked group holds only one Series and one preprint, and they carry the same title and nearly
+  the same summary text. The Series record describes sorted first-larval-stage worm neurons and progenitors
+  profiled by single-cell sequencing, which is exactly what the preprint abstract says it produced. All
+  16 samples fit that design, so nothing needs splitting or leaving out. The embryo and later-larval data
+  used for comparison are not part of this group.
+unsure: false
+read:
+- records
+- abstract

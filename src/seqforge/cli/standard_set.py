@@ -24,7 +24,10 @@ _DIR = typer.Option(None, "--dir", help="Folder of study folders (default: evals
 
 @standard_set_app.command("list")
 def standard_set_list(set_dir: Path | None = _DIR) -> None:
-    """List the standard set: one object per study, from its ``<id>/study.yaml``."""
+    """List the standard set: one object per study, from its ``<id>/study.yaml``.
+
+    Each object gives the study's record identifiers, the reason it was picked and its bounds.
+    """
     root = set_dir or default_set_dir()
     payload = []
     for path in sorted(root.glob(f"*/{STUDY}")):
@@ -38,7 +41,8 @@ def standard_set_list(set_dir: Path | None = _DIR) -> None:
                 "status": study["status"],
                 "bounds_from": study["bounds_from"],
                 "reason_picked": " ".join(study["reason_picked"].split()),
-                "bounds": {"series": study["bounds"]["series"]},
+                "records": study["records"],
+                "bounds": study["bounds"],
             }
         )
     typer.echo(json.dumps(payload, indent=2))

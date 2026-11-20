@@ -1,0 +1,13 @@
+id: GSE314221
+model: claude-fable-5-2
+when: '2026-11-20T00:08:06Z'
+agrees: true
+bounds: null
+reason: 'The group holds a single Series and a single paper, and they match: the GEO record and the journal
+  article carry the same title and describe the same experiment, brain RNA-seq from CETP and APP/CETP
+  mice given the inhibitor or vehicle. The record itself links only this paper, and there is no SuperSeries,
+  reused dataset or second study among the 16 samples, so nothing needs leaving out or splitting.'
+unsure: false
+read:
+- records
+- abstract

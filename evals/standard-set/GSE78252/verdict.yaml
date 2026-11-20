@@ -1,0 +1,13 @@
+id: GSE78252
+model: claude-fable-5-2
+when: '2026-11-20T00:09:28Z'
+agrees: true
+bounds: null
+reason: The linked group has only one Series and one paper. The Series record and the 2016 Cell paper
+  share the same title and summary text, and the record's design (cco-1 knockdown versus control in wild-type,
+  lin-65 and met-2 worms) matches what the abstract describes. The Series is not a SuperSeries and all
+  18 samples fit that single design, so nothing needs leaving out or splitting.
+unsure: false
+read:
+- records
+- abstract

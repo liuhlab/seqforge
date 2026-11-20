@@ -1,0 +1,13 @@
+id: GSE256266
+model: claude-fable-5-2
+when: '2026-11-20T00:09:21Z'
+agrees: true
+bounds: null
+reason: 'The linked group holds a single Series and a single paper, with no SuperSeries and no other linked
+  records. The Series summary and the paper abstract describe the same work: a single-nucleus glia census
+  of adult worms of both sexes, and the Series record itself cites that paper. All four samples (two hermaphrodite,
+  two male replicates) fit that one design, so nothing needs splitting or leaving out.'
+unsure: false
+read:
+- records
+- abstract

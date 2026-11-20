@@ -1,0 +1,14 @@
+id: GSE77720
+model: claude-fable-5-2
+when: '2026-11-20T00:07:46Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single paper, and they share the same title and summary
+  text. The Series record's design describes cortex and spinal cord RNA-seq from the same normal-repeat,
+  expanded-repeat and nontransgenic mouse lines the Neuron 2015 paper reports, and the record itself cites
+  that paper. There is no SuperSeries, no second dataset and no mixed sample set, so nothing needs leaving
+  out or splitting.
+unsure: false
+read:
+- records
+- abstract

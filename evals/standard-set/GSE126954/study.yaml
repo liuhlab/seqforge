@@ -1,0 +1,39 @@
+id: GSE126954
+summary: Single-cell RNA-seq of C. elegans embryos across developmental stages, mapping cell lineage and
+  fate
+direction: c_elegans
+also_fits: []
+hard_shape: null
+reason_picked: Already compiled; samples differ by lab, strain and time window, and the record says one
+  sample re-uses data from an older Series.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE126954
+  superseries: null
+  bioprojects:
+  - PRJNA523834
+  pmids:
+  - '31488706'
+bounds:
+  series:
+  - GSE126954
+  papers:
+  - pmid:31488706
+  reason: The 2019 Science embryo atlas and its single GEO Series are one study; the seven embryo samples
+    are its own data.
+  left_out: {}
+  split_samples:
+    GSE126954:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+bounds_from: judge
+status: settled
+read_to_decide:
+- records
+- abstract

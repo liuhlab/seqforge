@@ -1,0 +1,28 @@
+id: GSE101112
+model: claude-fable-5-2
+when: '2026-11-20T00:04:39Z'
+agrees: false
+bounds:
+  series:
+  - GSE101112
+  papers:
+  - pmid:31742554
+  reason: The 2019 eLife paper is the one that generated and reports the SAMP8 hippocampus and rat neuron
+    RNA-seq held in this Series.
+  left_out:
+    pmid:32884834: Re-analyses the earlier counts; new work is cell assays
+    pmid:33294943: Software paper using the dataset as an example
+  split_samples: {}
+reason: 'The single Series and the 2019 eLife paper are right, and leaving out the software paper is right:
+  its data statement says it re-analysed the 2019 paper''s dataset. The draft goes wrong on the 2020 calcium
+  paper. Its methods section on the mice and sequencing says the sequencing was done as in the 2019 paper
+  and that the existing count data was run again through a new differential expression and pathway analysis
+  for the J147 arm; the paper''s own new experiments are cell culture calcium and toxicity assays. That
+  makes it a later re-use by the same lab, not a second report of the study. Its data statement does cite
+  the accession as the place the data sits, which is the one point pulling the other way, but the methods
+  wording outweighs it.'
+unsure: false
+read:
+- records
+- abstract
+- full_paper

@@ -1,0 +1,14 @@
+id: GSE288182
+model: claude-fable-5-2
+when: '2026-11-20T00:08:40Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single paper, and they match. The Series record describes
+  bisulfite profiling of brain from healthy, Alzheimer-model and factor-treated Alzheimer-model mice,
+  and the journal article's abstract reports that same methylation experiment within the same reprogramming
+  work. The record itself links that article. There is no SuperSeries, no second dataset and no sign of
+  mixed samples, so nothing needs to be excluded or split.
+unsure: false
+read:
+- records
+- abstract

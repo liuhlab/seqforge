@@ -1,0 +1,15 @@
+id: GSE310667
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Single-cell RNA-seq of FACS-sorted C. elegans L1 larval neurons and progenitors, profiling neuron
+  types during post-embryonic development
+bounds:
+  series:
+  - GSE310667
+  papers:
+  - pmid:41332732
+  reason: One Series of scRNA-seq profiles of L1 C. elegans neurons, reported by one preprint
+  left_out: {}
+  split_samples: {}
+checks_failed: []

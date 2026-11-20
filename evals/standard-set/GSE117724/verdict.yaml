@@ -1,0 +1,15 @@
+id: GSE117724
+model: claude-fable-5-2
+when: '2026-11-20T00:10:27Z'
+agrees: true
+bounds: null
+reason: The records settle it. The umbrella record lists exactly two children, one holding the 18 expression
+  samples and one the 2 binding samples, and all 20 of its samples are just those repeated. Both children
+  share the same title stem, the same worm compound treatment and the same single linked paper, whose
+  abstract describes both the expression profiling and the binding assay for this receptor. No other Series
+  or paper is in the group, and no Series mixes samples from another project, so the draft's choice of
+  the two children plus the one paper, with the umbrella left out, is correct.
+unsure: false
+read:
+- records
+- abstract

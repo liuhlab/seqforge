@@ -1,0 +1,15 @@
+id: GSE135532
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Bulk RNA-seq of mouse heart ventricles comparing four diets (chow, NIA, UW, modified NIA) for
+  cardiac fibrosis and gene expression.
+bounds:
+  series:
+  - GSE135532
+  papers:
+  - pmid:31415241
+  reason: One RNA-seq Series of mouse ventricles across four diets, reported by one paper.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

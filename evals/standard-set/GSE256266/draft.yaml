@@ -1,0 +1,15 @@
+id: GSE256266
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Single-nucleus RNA-seq of C. elegans glia from whole adult hermaphrodites and males, comparing
+  sexes.
+bounds:
+  series:
+  - GSE256266
+  papers:
+  - pmid:40527319
+  reason: One Series of snRNA-seq glia from hermaphrodite and male worms, reported by one paper.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

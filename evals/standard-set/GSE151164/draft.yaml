@@ -1,0 +1,15 @@
+id: GSE151164
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: RNA-seq of whole C. elegans comparing wild-type and affl-2 mutant L4 worms with and without heat
+  shock
+bounds:
+  series:
+  - GSE151164
+  papers:
+  - pmid:32518061
+  reason: One Series and its paper profile heat-shock response in affl-2 mutant versus wild-type worms
+  left_out: {}
+  split_samples: {}
+checks_failed: []

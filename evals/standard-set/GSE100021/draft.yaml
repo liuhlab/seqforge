@@ -1,0 +1,16 @@
+id: GSE100021
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Hippocampal RNA-seq of 28-month-old female rats comparing IGF-I gene therapy with placebo adenovector
+  injection
+bounds:
+  series:
+  - GSE100021
+  papers:
+  - pmid:28645186
+  reason: One Series and one paper report hippocampal transcriptomes of aged rats given IGF-I versus control
+    adenovector
+  left_out: {}
+  split_samples: {}
+checks_failed: []

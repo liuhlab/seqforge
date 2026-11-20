@@ -1,0 +1,30 @@
+id: GSE60340
+summary: RNA-seq of MDAH041 skin fibroblasts across young, aging, replicatively senescent, and induced
+  senescence or quiescence states
+direction: aging
+also_fits: []
+hard_shape: null
+reason_picked: Twenty-four libraries where passage number and inducing drug are separate fields that must
+  be combined to name a group.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE60340
+  superseries: null
+  bioprojects:
+  - PRJNA258058
+  pmids:
+  - '25483067'
+bounds:
+  series:
+  - GSE60340
+  papers:
+  - pmid:25483067
+  reason: Single RNA-seq series profiling passage and stress-induced senescence states in MDAH041 fibroblasts
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

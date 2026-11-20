@@ -1,0 +1,15 @@
+id: GSE222631
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: RNA-seq of perisynaptic and other Schwann cells from hindlimb muscle of young and aged mice
+bounds:
+  series:
+  - GSE222631
+  papers:
+  - pmid:37771191
+  reason: Single RNA-seq Series profiling perisynaptic versus other Schwann cells in young and aged muscle,
+    reported in one paper.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

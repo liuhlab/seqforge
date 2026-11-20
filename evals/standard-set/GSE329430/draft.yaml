@@ -1,0 +1,16 @@
+id: GSE329430
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Single-cell and bulk RNA-seq of bone marrow HSPCs/myeloid cells and brain myeloid cells from
+  5xFAD and WT mice, including IFNAR1-KO chimeras and poly-IC treatment.
+bounds:
+  series:
+  - GSE329430
+  papers:
+  - pmid:42711429
+  reason: One study profiling bone marrow and brain myeloid cells in 5xFAD versus WT mice by single-cell
+    and bulk RNA-seq.
+  left_out: {}
+  split_samples: {}
+checks_failed: []

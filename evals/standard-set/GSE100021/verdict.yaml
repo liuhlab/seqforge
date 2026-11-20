@@ -1,0 +1,14 @@
+id: GSE100021
+model: claude-fable-5-2
+when: '2026-11-20T00:07:30Z'
+agrees: true
+bounds: null
+reason: 'The group holds a single Series and a single paper, and they match each other: the Series record
+  and the paper''s abstract both describe hippocampal sequencing of 28-month-old female rats given an
+  IGF-I adenovector versus a placebo vector, and the record''s eight samples (four per arm) fit that design.
+  The title of the Series and the paper are the same work. There is no SuperSeries, no second dataset
+  and no reuse paper to exclude, so nothing needs to be left out or split.'
+unsure: false
+read:
+- records
+- abstract

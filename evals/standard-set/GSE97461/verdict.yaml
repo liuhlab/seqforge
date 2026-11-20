@@ -1,0 +1,14 @@
+id: GSE97461
+model: claude-fable-5-2
+when: '2026-11-20T00:06:45Z'
+agrees: true
+bounds: null
+reason: The group holds only one Series and one paper, and they match each other. The Series summary is
+  the same text as the abstract of the 2018 Cell Reports paper, and the record's design covers both the
+  young-versus-aged striatal neuron TRAP samples and the three fibroblast ribosome profiling samples that
+  test the ABCE1 depletion and oxidative stress model described in that abstract. Nothing points to a
+  second study inside the Series, so no sample split is needed.
+unsure: false
+read:
+- records
+- abstract

@@ -1,0 +1,14 @@
+id: GSE288106
+model: claude-fable-5-2
+when: '2026-11-20T00:08:27Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single paper, and the Series record links that paper directly.
+  The record's summary and the paper's abstract describe the same aim, the same disease subtypes and the
+  same single-nucleus approach on frontal cortex, so the paper is the primary report of this dataset.
+  The Series is not a SuperSeries and its 16 samples all fit the one design (controls plus three disease
+  groups), so nothing needs splitting or leaving out.
+unsure: false
+read:
+- records
+- abstract

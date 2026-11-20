@@ -1,0 +1,13 @@
+id: GSE153881
+model: claude-fable-5-2
+when: '2026-11-20T00:07:53Z'
+agrees: true
+bounds: null
+reason: 'The group holds a single Series and a single paper, and they match each other: the Series record
+  and the paper''s abstract share the same title and describe the same plasma vesicle RNA sequencing across
+  healthy, mildly impaired and Alzheimer''s donors. The record''s fifteen samples are all from that one
+  donor cohort, so nothing needs leaving out or splitting.'
+unsure: false
+read:
+- records
+- abstract

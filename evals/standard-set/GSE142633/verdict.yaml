@@ -1,0 +1,11 @@
+id: GSE142633
+model: claude-fable-5-2
+when: '2026-11-20T00:03:38Z'
+agrees: true
+bounds: null
+reason: The linked group holds a single Series, GSE142633, with no linked Series and no linked paper.
+  All 13 samples are frontal cortex RNA-seq from WT and 5XFAD mice at 6 and 11 months, one design, so
+  there is nothing to leave out or split. The draft's bounds match this.
+unsure: false
+read:
+- records

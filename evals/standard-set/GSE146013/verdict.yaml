@@ -1,0 +1,13 @@
+id: GSE146013
+model: claude-fable-5-2
+when: '2026-11-20T00:08:47Z'
+agrees: true
+bounds: null
+reason: The group holds a single Series and a single paper that point only at each other. The Series record
+  describes small RNA sequencing of spinal cord from scrapie-inoculated and uninoculated Tg501 mice at
+  two disease stages, and the paper's abstract describes that same experiment in the same model and tissue.
+  No SuperSeries, no second dataset and no reuse paper are present, so nothing needs leaving out or splitting.
+unsure: false
+read:
+- records
+- abstract

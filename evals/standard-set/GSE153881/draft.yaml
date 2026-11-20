@@ -1,0 +1,15 @@
+id: GSE153881
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Plasma extracellular vesicle RNA-seq comparing healthy controls with mild cognitive impairment
+  and Alzheimer's disease patients
+bounds:
+  series:
+  - GSE153881
+  papers:
+  - pmid:33304899
+  reason: One RNA-seq dataset of plasma EV RNA in healthy, MCI and AD donors reported by one paper
+  left_out: {}
+  split_samples: {}
+checks_failed: []

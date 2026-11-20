@@ -1,0 +1,31 @@
+id: GSE146013
+summary: Small RNA-seq of cervical spinal cord from prion-inoculated and control Tg501 mice at preclinical
+  and clinical stages
+direction: neurodegeneration
+also_fits: []
+hard_shape: null
+reason_picked: Infected and control mice at two stages, where stage and age say the same thing in two
+  fields.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE146013
+  superseries: null
+  bioprojects:
+  - PRJNA608972
+  pmids:
+  - '32549330'
+bounds:
+  series:
+  - GSE146013
+  papers:
+  - pmid:32549330
+  reason: One Series and one paper report miRNA profiling of prion-inoculated versus control Tg501 mouse
+    spinal cord
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
+- abstract

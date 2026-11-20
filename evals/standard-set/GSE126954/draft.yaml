@@ -1,0 +1,18 @@
+id: GSE126954
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Single-cell RNA-seq of C. elegans embryos across developmental stages, mapping cell lineage and
+  fate
+bounds:
+  series:
+  - GSE126954
+  papers:
+  - pmid:31488706
+  reason: One paper reports single-cell transcriptomes of C. elegans embryos from gastrulation to cuticle
+    synthesis
+  left_out:
+    GSM4318946: Re-used L2 larval re-analysis, not embryonic single-cell study
+  split_samples: {}
+checks_failed:
+- 'well_formed: not in the linked group, or in the wrong list: GSM4318946'

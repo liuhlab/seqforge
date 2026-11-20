@@ -1,0 +1,15 @@
+id: GSE243994
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Bulk RNA-seq of C. elegans proximal somatic gonad comparing daf-2 and daf-16;daf-2 mutants at
+  day 1 and day 7 of adulthood
+bounds:
+  series:
+  - GSE243994
+  papers:
+  - pmid:38851828
+  reason: One RNA-seq Series and its single reporting paper profile PSG cells across genotypes and ages
+  left_out: {}
+  split_samples: {}
+checks_failed: []

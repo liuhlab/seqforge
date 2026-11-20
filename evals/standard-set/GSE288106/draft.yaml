@@ -1,0 +1,15 @@
+id: GSE288106
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Single-nucleus RNA-seq of frontal cortex from FTLD-TDP subtypes A, C9orf72 and C, compared with
+  healthy controls
+bounds:
+  series:
+  - GSE288106
+  papers:
+  - pmid:42327368
+  reason: One Series and its paper report snRNA-seq of FTLD-TDP subtypes versus control frontal cortex
+  left_out: {}
+  split_samples: {}
+checks_failed: []

@@ -1,0 +1,14 @@
+id: GSE165978
+model: claude-fable-5-2
+when: '2026-11-20T00:06:51Z'
+agrees: true
+bounds: null
+reason: The group holds one Series and one paper, and they match in title, mouse models and single-cell
+  design. The data availability section of the eLife paper names GSE165978 as the dataset it generated;
+  the only other dataset it mentions is an outside one that it re-used, which is not part of this group.
+  Nothing suggests the nine samples belong to two studies, so no split is needed.
+unsure: false
+read:
+- records
+- abstract
+- full_paper

@@ -1,0 +1,13 @@
+id: GSE142633
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-3
+when: '2026-11-20T00:01:39Z'
+summary: Bulk RNA-seq of frontal cortex from 6- and 11-month-old wild-type and 5XFAD Alzheimer's mice
+bounds:
+  series:
+  - GSE142633
+  papers: []
+  reason: Single Series profiles frontal cortex mRNA from young and aged WT and 5XFAD mice
+  left_out: {}
+  split_samples: {}
+checks_failed: []

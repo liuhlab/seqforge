@@ -1,0 +1,15 @@
+id: GSE182981
+model: deepseek/deepseek-v4-flash
+pass: standard-set-bounds/2026.11.3/pass-5
+when: '2026-11-20T00:05:57Z'
+summary: Bulk RNA-seq of day-8 adult C. elegans fed normal diet or 2% glucose from day 1 or day 5 of adulthood
+bounds:
+  series:
+  - GSE182981
+  papers:
+  - pmid:36261415
+  reason: One Series reports RNA-seq of C. elegans on normal versus high-glucose diets and the single
+    linked paper describes it
+  left_out: {}
+  split_samples: {}
+checks_failed: []

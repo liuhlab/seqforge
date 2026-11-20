@@ -1,0 +1,14 @@
+id: GSE60340
+model: claude-fable-5-2
+when: '2026-11-20T00:06:06Z'
+agrees: true
+bounds: null
+reason: The group holds only one Series and one paper, and they match. The Series record describes sequencing
+  of one fibroblast line in young, aging, replicatively arrested, immortal, drug- or peroxide-arrested
+  and serum-starved states, and the paper's abstract reports exactly that comparison of four kinds of
+  arrest plus a quiescence control. The Series is not a SuperSeries and all 24 samples fit the one design,
+  so nothing needs leaving out or splitting.
+unsure: false
+read:
+- records
+- abstract

@@ -1,0 +1,25 @@
+id: GSE142633
+summary: Bulk RNA-seq of frontal cortex from 6- and 11-month-old wild-type and 5XFAD Alzheimer's mice
+direction: neurodegeneration
+also_fits: []
+hard_shape: series_without_paper
+reason_picked: A plain genotype by age design with no paper linked after seven years.
+store_build: 20261107T163933Z-subset
+records:
+  series:
+  - GSE142633
+  superseries: null
+  bioprojects:
+  - PRJNA597779
+  pmids: []
+bounds:
+  series:
+  - GSE142633
+  papers: []
+  reason: Single Series profiles frontal cortex mRNA from young and aged WT and 5XFAD mice
+  left_out: {}
+  split_samples: {}
+bounds_from: draft
+status: settled
+read_to_decide:
+- records
