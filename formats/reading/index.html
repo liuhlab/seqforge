@@ -1,0 +1,1936 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A compiler from FASTQ + unstructured metadata to a validated manifest and a runnable pipeline.">
+      
+      
+      
+        <link rel="canonical" href="https://liuhlab.github.io/seqforge/formats/reading/">
+      
+      
+        <link rel="prev" href="../bounds/">
+      
+      
+        <link rel="next" href="../../concepts/artifacts/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>The reading file - seqforge</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-6M1CJF9WXY"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-6M1CJF9WXY",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-6M1CJF9WXY",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#the-reading-file" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="seqforge" class="md-header__button md-logo" aria-label="seqforge" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            seqforge
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              The reading file
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/liuhlab/seqforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    liuhlab/seqforge
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="seqforge" class="md-nav__button md-logo" aria-label="seqforge" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    seqforge
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/liuhlab/seqforge" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    liuhlab/seqforge
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/with-claude/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiling with Claude
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/step-by-step/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compiling Step-by-step
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/adding-a-technology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adding a technology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../study-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The study workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../passes-and-reviews/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Passes and reviews
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File formats
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    File formats
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bounds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The bounds file
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The reading file
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The reading file
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#an-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        An example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#passages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Passages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#claims" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claims
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#samples-and-shared-claims" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Samples and shared claims
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#factors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Factors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-relations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The relations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-the-format-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When the format changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/artifacts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The two artifacts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/identifying/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How a dataset is identified
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/refusal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    When it refuses
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Knowledge base
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Knowledge base
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supported assays
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Supported assays
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/10x-3p-gex-v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10x Chromium 3' v3 & v3.1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/10x-3p-gex-v2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    10x Chromium 3' v2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/bd-rhapsody-wta/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BD Rhapsody WTA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/splitseq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SPLiT-seq
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../kb/bulk-rnaseq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bulk RNA-seq
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#an-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        An example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#passages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Passages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#claims" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claims
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#samples-and-shared-claims" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Samples and shared claims
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#factors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Factors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-relations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The relations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-the-format-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When the format changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/formats/reading.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="the-reading-file">The reading file<a class="headerlink" href="#the-reading-file" title="Permanent link">&para;</a></h1>
+<p>A <strong>study</strong> is one piece of research: the experiments one paper reports, or one project that has
+no paper yet. The <a href="../bounds/">bounds file</a> says which GEO Series and papers belong to a study. The
+study's <strong>reading</strong> says what each sequenced sample is: the species, the tissue, the treatment, the
+assay, and which label the study varied between its samples. Each statement comes with the words
+that back it and with a probability. The reading file writes that down, one file per study, as
+YAML. This page is all you need to read one.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-reading<span class="w"> </span>reading.yaml
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>relations<span class="w"> </span>reading.yaml
+</code></pre></div>
+<p>The first command checks a file against this page. The second command prints what the reading
+implies between its samples, such as replicates and contrasts.</p>
+<h2 id="an-example">An example<a class="headerlink" href="#an-example" title="Permanent link">&para;</a></h2>
+<p>A liver study of two ages. Each age has one pull-down library and the input library made from the
+same chromatin.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">study</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GSE900001</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">models</span><span class="p">:</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">reading</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example/model-a</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">probabilities</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example/model-b</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nt">read</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">records</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">abstract</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nt">read_detail</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">The Series, its four samples, and the abstract of the one paper.</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nt">passages</span><span class="p">:</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">1</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">record</span><span class="p">:</span><span class="w"> </span><span class="nv">GSE900001</span><span class="p p-Indicator">,</span><span class="nt"> field</span><span class="p">:</span><span class="w"> </span><span class="nv">Series_overall_design</span><span class="p p-Indicator">,</span><span class="nt"> quote</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;H3K27me3</span><span class="nv"> </span><span class="s">ChIP-seq</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">input</span><span class="nv"> </span><span class="s">from</span><span class="nv"> </span><span class="s">liver</span><span class="nv"> </span><span class="s">of</span><span class="nv"> </span><span class="s">young</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">old</span><span class="nv"> </span><span class="s">male</span><span class="nv"> </span><span class="s">mice&quot;</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">2</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">record</span><span class="p">:</span><span class="w"> </span><span class="nv">each_sample</span><span class="p p-Indicator">,</span><span class="nt"> field</span><span class="p">:</span><span class="w"> </span><span class="nv">Sample_organism_ch1</span><span class="p p-Indicator">,</span><span class="nt"> quote</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Mus</span><span class="nv"> </span><span class="s">musculus&quot;</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="nt">3</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">record</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">GSM9000001</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">GSM9000002</span><span class="p p-Indicator">],</span><span class="nt"> field</span><span class="p">:</span><span class="w"> </span><span class="nv">Sample_characteristics_ch1</span><span class="p p-Indicator">,</span><span class="nt"> quote</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;age:</span><span class="nv"> </span><span class="s">2</span><span class="nv"> </span><span class="s">months&quot;</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="nt">4</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">record</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">GSM9000003</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">GSM9000004</span><span class="p p-Indicator">],</span><span class="nt"> field</span><span class="p">:</span><span class="w"> </span><span class="nv">Sample_characteristics_ch1</span><span class="p p-Indicator">,</span><span class="nt"> quote</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;age:</span><span class="nv"> </span><span class="s">24</span><span class="nv"> </span><span class="s">months&quot;</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="nt">5</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">record</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">GSM9000002</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">GSM9000004</span><span class="p p-Indicator">],</span><span class="nt"> field</span><span class="p">:</span><span class="w"> </span><span class="nv">Sample_characteristics_ch1</span><span class="p p-Indicator">,</span><span class="nt"> quote</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;antibody:</span><span class="nv"> </span><span class="s">none</span><span class="nv"> </span><span class="s">(input)&quot;</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="nt">6</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">paper</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;pmid:99000001&quot;</span><span class="p p-Indicator">,</span><span class="nt"> section</span><span class="p">:</span><span class="w"> </span><span class="nv">abstract</span><span class="p p-Indicator">,</span><span class="nt"> quote</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;livers</span><span class="nv"> </span><span class="s">were</span><span class="nv"> </span><span class="s">collected</span><span class="nv"> </span><span class="s">at</span><span class="nv"> </span><span class="s">noon</span><span class="nv"> </span><span class="s">from</span><span class="nv"> </span><span class="s">C57BL/6J</span><span class="nv"> </span><span class="s">mice&quot;</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nt">factors</span><span class="p">:</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="nt">age</span><span class="p">:</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="nt">levels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">young</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">old</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">    </span><span class="nt">baseline</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">young</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">    </span><span class="nt">ordered</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span><span class="nt">quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">    </span><span class="nt">p</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.97</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="nt">shared</span><span class="p">:</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">  </span><span class="nt">donor</span><span class="p">:</span><span class="w">             </span><span class="p p-Indicator">{</span><span class="nt">unknown</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;No</span><span class="nv"> </span><span class="s">record</span><span class="nv"> </span><span class="s">says</span><span class="nv"> </span><span class="s">which</span><span class="nv"> </span><span class="s">animal</span><span class="nv"> </span><span class="s">a</span><span class="nv"> </span><span class="s">library</span><span class="nv"> </span><span class="s">came</span><span class="nv"> </span><span class="s">from&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.8</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">  </span><span class="nt">assay</span><span class="p">:</span><span class="w">             </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">ChIP-seq</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.99</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w">            </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">H3K27me3</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.98</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">  </span><span class="nt">control_type</span><span class="p">:</span><span class="w">      </span><span class="p p-Indicator">{</span><span class="nt">na</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;A</span><span class="nv"> </span><span class="s">pull-down</span><span class="nv"> </span><span class="s">library,</span><span class="nv"> </span><span class="s">not</span><span class="nv"> </span><span class="s">a</span><span class="nv"> </span><span class="s">background</span><span class="nv"> </span><span class="s">control&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.97</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">  </span><span class="nt">species</span><span class="p">:</span><span class="w">           </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">Mus musculus</span><span class="p p-Indicator">,</span><span class="nt"> term</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;NCBITaxon:10090&quot;</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">2</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.99</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="w">  </span><span class="nt">sex</span><span class="p">:</span><span class="w">               </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">male</span><span class="p p-Indicator">,</span><span class="nt"> term</span><span class="p">:</span><span class="w"> </span><span class="nv">male</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.97</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">  </span><span class="nt">development_stage</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">adult</span><span class="p p-Indicator">,</span><span class="nt"> inferred</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;A</span><span class="nv"> </span><span class="s">mouse</span><span class="nv"> </span><span class="s">of</span><span class="nv"> </span><span class="s">2</span><span class="nv"> </span><span class="s">months</span><span class="nv"> </span><span class="s">or</span><span class="nv"> </span><span class="s">more</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">an</span><span class="nv"> </span><span class="s">adult&quot;</span><span class="p p-Indicator">,</span><span class="nt"> see</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">3</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">4</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.9</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">  </span><span class="nt">tissue</span><span class="p">:</span><span class="w">            </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">liver</span><span class="p p-Indicator">,</span><span class="nt"> term</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;UBERON:0002107&quot;</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.98</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="w">  </span><span class="nt">cell_type</span><span class="p">:</span><span class="w">         </span><span class="p p-Indicator">{</span><span class="nt">na</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Whole</span><span class="nv"> </span><span class="s">tissue,</span><span class="nv"> </span><span class="s">no</span><span class="nv"> </span><span class="s">cell</span><span class="nv"> </span><span class="s">type</span><span class="nv"> </span><span class="s">was</span><span class="nv"> </span><span class="s">isolated&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.9</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="w">  </span><span class="nt">cell_line</span><span class="p">:</span><span class="w">         </span><span class="p p-Indicator">{</span><span class="nt">na</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Tissue</span><span class="nv"> </span><span class="s">taken</span><span class="nv"> </span><span class="s">from</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">animal&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.99</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="w">  </span><span class="nt">disease</span><span class="p">:</span><span class="w">           </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">healthy</span><span class="p p-Indicator">,</span><span class="nt"> term</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;PATO:0000461&quot;</span><span class="p p-Indicator">,</span><span class="nt"> inferred</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;No</span><span class="nv"> </span><span class="s">disease</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">named&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.85</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="w">  </span><span class="nt">genotype</span><span class="p">:</span><span class="w">          </span><span class="p p-Indicator">{</span><span class="nt">unknown</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;No</span><span class="nv"> </span><span class="s">record</span><span class="nv"> </span><span class="s">gives</span><span class="nv"> </span><span class="s">a</span><span class="nv"> </span><span class="s">genotype&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.9</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="w">  </span><span class="nt">strain</span><span class="p">:</span><span class="w">            </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">C57BL/6J</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">6</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.95</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="w">  </span><span class="nt">treatment</span><span class="p">:</span><span class="w">         </span><span class="p p-Indicator">{</span><span class="nt">na</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;No</span><span class="nv"> </span><span class="s">treatment</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">described&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.9</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="w">  </span><span class="nt">dose</span><span class="p">:</span><span class="w">              </span><span class="p p-Indicator">{</span><span class="nt">na</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;No</span><span class="nv"> </span><span class="s">treatment&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.9</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">  </span><span class="nt">duration</span><span class="p">:</span><span class="w">          </span><span class="p p-Indicator">{</span><span class="nt">na</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;No</span><span class="nv"> </span><span class="s">treatment&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.9</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="w">  </span><span class="nt">time_of_day</span><span class="p">:</span><span class="w">       </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">noon</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">6</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.9</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>
+<a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="nt">samples</span><span class="p">:</span>
+<a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a><span class="w">  </span><span class="nt">GSM9000001</span><span class="p">:</span>
+<a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="w">    </span><span class="nt">biosample</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">{</span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="nv">B1</span><span class="p p-Indicator">,</span><span class="nt"> inferred</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;One</span><span class="nv"> </span><span class="s">chromatin</span><span class="nv"> </span><span class="s">prep</span><span class="nv"> </span><span class="s">per</span><span class="nv"> </span><span class="s">age</span><span class="nv"> </span><span class="s">gave</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">pull-down</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">input&quot;</span><span class="p p-Indicator">,</span><span class="nt"> see</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.7</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a><span class="w">    </span><span class="nt">age</span><span class="p">:</span><span class="w">          </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">2 months</span><span class="p p-Indicator">,</span><span class="nt"> value</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">,</span><span class="nt"> unit</span><span class="p">:</span><span class="w"> </span><span class="nv">month</span><span class="p p-Indicator">,</span><span class="nt"> level</span><span class="p">:</span><span class="w"> </span><span class="nv">young</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">3</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.97</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="w">  </span><span class="nt">GSM9000002</span><span class="p">:</span>
+<a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="w">    </span><span class="nt">biosample</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">{</span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="nv">B1</span><span class="p p-Indicator">,</span><span class="nt"> inferred</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;One</span><span class="nv"> </span><span class="s">chromatin</span><span class="nv"> </span><span class="s">prep</span><span class="nv"> </span><span class="s">per</span><span class="nv"> </span><span class="s">age</span><span class="nv"> </span><span class="s">gave</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">pull-down</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">input&quot;</span><span class="p p-Indicator">,</span><span class="nt"> see</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.7</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a><span class="w">    </span><span class="nt">age</span><span class="p">:</span><span class="w">          </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">2 months</span><span class="p p-Indicator">,</span><span class="nt"> value</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">,</span><span class="nt"> unit</span><span class="p">:</span><span class="w"> </span><span class="nv">month</span><span class="p p-Indicator">,</span><span class="nt"> level</span><span class="p">:</span><span class="w"> </span><span class="nv">young</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">3</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.97</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w">       </span><span class="p p-Indicator">{</span><span class="nt">na</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Input</span><span class="nv"> </span><span class="s">chromatin,</span><span class="nv"> </span><span class="s">no</span><span class="nv"> </span><span class="s">pull-down&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.98</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a><span class="w">    </span><span class="nt">control_type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">input</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">5</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.98</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="w">  </span><span class="nt">GSM9000003</span><span class="p">:</span>
+<a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="w">    </span><span class="nt">biosample</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">{</span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="nv">B2</span><span class="p p-Indicator">,</span><span class="nt"> inferred</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;One</span><span class="nv"> </span><span class="s">chromatin</span><span class="nv"> </span><span class="s">prep</span><span class="nv"> </span><span class="s">per</span><span class="nv"> </span><span class="s">age</span><span class="nv"> </span><span class="s">gave</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">pull-down</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">input&quot;</span><span class="p p-Indicator">,</span><span class="nt"> see</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.7</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="w">    </span><span class="nt">age</span><span class="p">:</span><span class="w">          </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">24 months</span><span class="p p-Indicator">,</span><span class="nt"> value</span><span class="p">:</span><span class="w"> </span><span class="nv">24</span><span class="p p-Indicator">,</span><span class="nt"> unit</span><span class="p">:</span><span class="w"> </span><span class="nv">month</span><span class="p p-Indicator">,</span><span class="nt"> level</span><span class="p">:</span><span class="w"> </span><span class="nv">old</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">4</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.97</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a><span class="w">  </span><span class="nt">GSM9000004</span><span class="p">:</span>
+<a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a><span class="w">    </span><span class="nt">biosample</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">{</span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="nv">B2</span><span class="p p-Indicator">,</span><span class="nt"> inferred</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;One</span><span class="nv"> </span><span class="s">chromatin</span><span class="nv"> </span><span class="s">prep</span><span class="nv"> </span><span class="s">per</span><span class="nv"> </span><span class="s">age</span><span class="nv"> </span><span class="s">gave</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">pull-down</span><span class="nv"> </span><span class="s">and</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">input&quot;</span><span class="p p-Indicator">,</span><span class="nt"> see</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.7</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a><span class="w">    </span><span class="nt">age</span><span class="p">:</span><span class="w">          </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">24 months</span><span class="p p-Indicator">,</span><span class="nt"> value</span><span class="p">:</span><span class="w"> </span><span class="nv">24</span><span class="p p-Indicator">,</span><span class="nt"> unit</span><span class="p">:</span><span class="w"> </span><span class="nv">month</span><span class="p p-Indicator">,</span><span class="nt"> level</span><span class="p">:</span><span class="w"> </span><span class="nv">old</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">4</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.97</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a><span class="w">    </span><span class="nt">target</span><span class="p">:</span><span class="w">       </span><span class="p p-Indicator">{</span><span class="nt">na</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Input</span><span class="nv"> </span><span class="s">chromatin,</span><span class="nv"> </span><span class="s">no</span><span class="nv"> </span><span class="s">pull-down&quot;</span><span class="p p-Indicator">,</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.98</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a><span class="w">    </span><span class="nt">control_type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="nv">input</span><span class="p p-Indicator">,</span><span class="nt"> quoted</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">5</span><span class="p p-Indicator">],</span><span class="nt"> p</span><span class="p">:</span><span class="w"> </span><span class="nv">0.98</span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<p>This example is made up to show every part. Its records, quotes, numbers and model names are not
+real. It passes the check.</p>
+<h2 id="the-fields">The fields<a class="headerlink" href="#the-fields" title="Permanent link">&para;</a></h2>
+<p>Every field below is required unless the table says otherwise. A file with any other top-level
+field is rejected.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>format</code></td>
+<td>The whole number <code>1</code>. See <a href="#when-the-format-changes">When the format changes</a>.</td>
+</tr>
+<tr>
+<td><code>study</code></td>
+<td>The study's name: the GEO Series it was picked by, such as <code>GSE100021</code>.</td>
+</tr>
+<tr>
+<td><code>models</code></td>
+<td>Who wrote the file. <code>reading</code> is the model that read the study. <code>probabilities</code> is the model that gave the <code>p</code> values. Either may be <code>null</code>.</td>
+</tr>
+<tr>
+<td><code>read</code></td>
+<td>What the model read: one or more of <code>records</code>, <code>abstract</code> and <code>full_text</code>. No other word is accepted.</td>
+</tr>
+<tr>
+<td><code>read_detail</code></td>
+<td>Optional. One sentence that says which records and which paper.</td>
+</tr>
+<tr>
+<td><code>passages</code></td>
+<td>The quotes that back the claims, each under its number. May be empty: <code>{}</code>.</td>
+</tr>
+<tr>
+<td><code>factors</code></td>
+<td>The labels the study varied on purpose, each under its label. May be empty: <code>{}</code>.</td>
+</tr>
+<tr>
+<td><code>shared</code></td>
+<td>The claims that every sample has unless its own row says otherwise. May be empty: <code>{}</code>.</td>
+</tr>
+<tr>
+<td><code>samples</code></td>
+<td>One row per sequenced sample, each under the sample's id, such as <code>GSM2668015</code>. At least one.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="passages">Passages<a class="headerlink" href="#passages" title="Permanent link">&para;</a></h2>
+<p>A quote is written once in the file, however many claims it backs. <code>passages</code> is keyed by number:
+a whole number, 1 or more. Each passage holds the quote and where it was read, in one of two ways.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>quote</code></td>
+<td>The words, copied from the source as one unbroken span.</td>
+</tr>
+<tr>
+<td><code>record</code> and <code>field</code></td>
+<td>For a quote from a GEO record: the record, and the field of it.</td>
+</tr>
+<tr>
+<td><code>paper</code> and <code>section</code></td>
+<td>For a quote from a paper: the paper, written <code>pmid:&lt;number&gt;</code>, and the section of it.</td>
+</tr>
+</tbody>
+</table>
+<p><code>record</code> takes one of three forms:</p>
+<ul>
+<li>one record id, such as <code>GSE100021</code> or <code>GSM2668015</code>;</li>
+<li>a list of record ids, when each of those records holds the quote in that field;</li>
+<li>the word <code>each_sample</code>, when every sample record of the study holds the quote in that field.</li>
+</ul>
+<p>A record quote is exact: the field holds it character for character. A paper's text comes with
+markup and broken lines, so a paper quote is exact after the markup is removed and each run of
+white space is collapsed to one space.</p>
+<h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
+<p>A <strong>claim</strong> is one label of one sample: what the label's value is, how that is backed, and how
+sure the model is. In the example, <code>tissue: {text: liver, ...}</code> is one claim.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>text</code></td>
+<td>The value, in the source's own words.</td>
+</tr>
+<tr>
+<td><code>term</code></td>
+<td>An ontology id for the value, such as <code>UBERON:0002107</code>. Written only when the match is clear.</td>
+</tr>
+<tr>
+<td><code>value</code></td>
+<td>For an age, a dose or a duration: the number, or a range as <code>[low, high]</code>. YAML reads <code>1.7e12</code> as text, so write <code>1.7e+12</code>.</td>
+</tr>
+<tr>
+<td><code>unit</code></td>
+<td>The unit of <code>value</code>, as one word: <code>month</code>, <code>day</code>, <code>hour</code>.</td>
+</tr>
+<tr>
+<td><code>level</code></td>
+<td>On a label that is a factor: the name of the sample's level. See <a href="#factors">Factors</a>.</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>On <code>biosample</code> and <code>donor</code>: a short name made up in the file, such as <code>B1</code>.</td>
+</tr>
+<tr>
+<td><code>quoted</code></td>
+<td>Backing mark. A source says it: the numbers of the passages that say so.</td>
+</tr>
+<tr>
+<td><code>inferred</code></td>
+<td>Backing mark. No passage says it outright: a short text saying how it was worked out.</td>
+</tr>
+<tr>
+<td><code>unknown</code></td>
+<td>Backing mark. What was read does not say: a short note.</td>
+</tr>
+<tr>
+<td><code>na</code></td>
+<td>Backing mark. The label does not apply to this sample: a short text saying why.</td>
+</tr>
+<tr>
+<td><code>see</code></td>
+<td>Optional, and not beside <code>quoted</code>: the numbers of the passages the claim rests on.</td>
+</tr>
+<tr>
+<td><code>p</code></td>
+<td>A number from 0 to 1, or <code>null</code>. Required.</td>
+</tr>
+</tbody>
+</table>
+<p>Only <code>p</code> and one backing mark are required. A claim with any other field is rejected.</p>
+<p>The rules for a claim:</p>
+<ul>
+<li>It has exactly one of <code>quoted</code>, <code>inferred</code>, <code>unknown</code> and <code>na</code>. None is rejected, and so are two.</li>
+<li><code>quoted</code> lists at least one passage.</li>
+<li>Every number in <code>quoted</code> and in <code>see</code> must be a passage in the file.</li>
+<li>The text after <code>inferred</code>, <code>unknown</code> or <code>na</code> cannot be blank.</li>
+<li>A <code>quoted</code> claim and an <code>inferred</code> claim say something: each has <code>text</code> or <code>value</code>. A <code>biosample</code>
+  claim and a <code>donor</code> claim may have an <code>id</code> and neither of the two.</li>
+<li>An <code>unknown</code> claim and an <code>na</code> claim give no value. So neither has <code>text</code>, <code>term</code>, <code>value</code>,
+  <code>unit</code> or <code>level</code>.</li>
+</ul>
+<p><code>unknown</code> and <code>na</code> are different gaps. <code>unknown</code> means that the label has a value and nothing that
+was read gives it. <code>na</code> means that the label has no value for this sample, such as the cell line of
+a tissue sample.</p>
+<p><strong><code>p</code></strong> is the chance that the claim as written is right, given what <code>read</code> lists. A model judged
+it. On an <code>unknown</code> claim, <code>p</code> is the chance that what was read really does not say. <code>null</code> means
+that no model has given a probability yet. It does not mean the claim is in doubt. When any claim
+has a number, <code>models.probabilities</code> must name the model that gave it.</p>
+<p>A value has the type that this page writes for it. A number in quotes, such as <code>p: "0.5"</code>, is
+rejected, and so is <code>true</code> where a number belongs.</p>
+<p>A <a href="../bounds/">bounds file</a> writes its claims and its passages the same way.</p>
+<h2 id="samples-and-shared-claims">Samples and shared claims<a class="headerlink" href="#samples-and-shared-claims" title="Permanent link">&para;</a></h2>
+<p>Each row under <code>samples</code> holds the claims of one sample, each under its label. <code>shared</code> holds
+claims in the same form.</p>
+<p>A sample has every claim under <code>shared</code>, except for a label that its own row writes. The row's
+claim replaces the shared claim whole: no field of the shared claim carries over. In the example,
+the two input rows replace the shared <code>target</code> and the shared <code>control_type</code>.</p>
+<p>After that rule is applied, every sample must have all 18 labels below. A gap is written as
+<code>unknown</code> or <code>na</code>, so a label that is absent was forgotten, and the check rejects it.</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>biosample</code></td>
+<td>The piece of material the library was made from. Its <code>id</code> is required. Two samples with one <code>id</code> were made from the same material.</td>
+</tr>
+<tr>
+<td><code>donor</code></td>
+<td>The person or animal the material came from. Its <code>id</code> names the individual. <code>na</code> when the material is a pool or has no single individual.</td>
+</tr>
+<tr>
+<td><code>assay</code></td>
+<td>The kind of sequencing experiment, such as RNA-Seq or ChIP-Seq.</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td>What a pull-down enriches: a histone mark or a protein. <code>na</code> for an assay with no pull-down, and for a control library.</td>
+</tr>
+<tr>
+<td><code>control_type</code></td>
+<td>The kind of background-control library, such as input or IgG. <code>na</code> for every other library.</td>
+</tr>
+<tr>
+<td><code>species</code></td>
+<td>The species. Term: NCBI Taxonomy, written <code>NCBITaxon:9606</code>. Must be <code>quoted</code> or <code>inferred</code>.</td>
+</tr>
+<tr>
+<td><code>sex</code></td>
+<td>The sex. Term: one of <code>female</code>, <code>male</code>, <code>hermaphrodite</code>, <code>mixed</code>.</td>
+</tr>
+<tr>
+<td><code>age</code></td>
+<td>The age, with <code>value</code> and <code>unit</code>.</td>
+</tr>
+<tr>
+<td><code>development_stage</code></td>
+<td>The stage of life, such as fetal, larval or adult. Term: the stage list of the species (HsapDv, MmusDv, WBls).</td>
+</tr>
+<tr>
+<td><code>tissue</code></td>
+<td>The tissue or organ. Term: UBERON, or WBbt for <em>C. elegans</em>.</td>
+</tr>
+<tr>
+<td><code>cell_type</code></td>
+<td>The cell type. Term: Cell Ontology (CL).</td>
+</tr>
+<tr>
+<td><code>cell_line</code></td>
+<td>The cell line. Term: Cellosaurus.</td>
+</tr>
+<tr>
+<td><code>disease</code></td>
+<td>The disease or disease model. Term: MONDO, or <code>PATO:0000461</code> for healthy.</td>
+</tr>
+<tr>
+<td><code>genotype</code></td>
+<td>The genotype, as text.</td>
+</tr>
+<tr>
+<td><code>strain</code></td>
+<td>The strain, as text.</td>
+</tr>
+<tr>
+<td><code>treatment</code></td>
+<td>What was applied to the sample. Term: ChEBI for a chemical, UniProt for a protein.</td>
+</tr>
+<tr>
+<td><code>dose</code></td>
+<td>How much of the treatment, with <code>value</code> and <code>unit</code>.</td>
+</tr>
+<tr>
+<td><code>duration</code></td>
+<td>How long the treatment was applied, with <code>value</code> and <code>unit</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Tissue, cell type and cell line are three labels, and a sample can have a value in each.</p>
+<p>Three points of meaning matter when you write or read these labels. The check cannot test them.</p>
+<ul>
+<li><strong><code>control_type</code> is about background-control libraries only.</strong> An input library or an IgG library
+  measures the background of a pull-down. An untreated or wild-type group that the study compares
+  the others with is a comparison baseline, not a control. Its <code>control_type</code> is <code>na</code>, and the
+  factor's <code>baseline</code> names it.</li>
+<li><strong><code>duration</code> is the length of the treatment itself.</strong> Any other time is an attribute of the
+  study's own. The time from the end of a treatment to the harvest is one example.</li>
+<li><strong>A pull-down library and its control are tied by the <code>biosample</code> id.</strong> No other field ties them.
+  In the example, each input has the <code>id</code> of the pull-down made from the same chromatin. This tie
+  has a known limit. One control library that serves pull-downs made from different material
+  cannot be tied to all of them, because the control has one <code>biosample</code> id.</li>
+</ul>
+<p>A row or <code>shared</code> may hold more labels than the 18. Such a label is an attribute of the study's
+own, such as <code>time_of_day</code> in the example or a harvest time. Its claim has the same form.</p>
+<h2 id="factors">Factors<a class="headerlink" href="#factors" title="Permanent link">&para;</a></h2>
+<p>A <strong>factor</strong> is a label that the study varied on purpose, such as the treatment in a drug study or
+the age in an aging study. <code>factors</code> is keyed by that label. A sample's value is written once, in
+the sample's claim on the label. The factor adds the list of levels and how they compare.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>levels</code></td>
+<td>The names of the levels, each a short text. For an ordered factor, the order of this list is the order of the levels.</td>
+</tr>
+<tr>
+<td><code>baseline</code></td>
+<td>The level the study compares the others with. <code>null</code> when the study compares the levels with each other and none is a reference, such as two tissues. Required.</td>
+</tr>
+<tr>
+<td><code>ordered</code></td>
+<td><code>true</code> when the levels run along a scale, such as a time course or a dose series. Otherwise <code>false</code>.</td>
+</tr>
+<tr>
+<td>a backing mark, <code>see</code>, <code>p</code></td>
+<td>A factor is a claim too. It is backed by <code>quoted</code>, <code>inferred</code> or <code>unknown</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The rules for a factor:</p>
+<ul>
+<li>Its label must be a label of every sample. Where the label does not apply to a sample, the
+  sample's claim on it is <code>na</code>.</li>
+<li><code>baseline</code> is one of <code>levels</code>, or <code>null</code>.</li>
+<li>No level is named twice. A level name is text: quote a name that YAML reads as a number, as
+  <code>"0"</code>.</li>
+<li>At least one sample is at each level in <code>levels</code>.</li>
+<li>A sample's claim on the factor's label names its level in <code>level</code>, with one of the names in
+  <code>levels</code>. Two samples with different <code>text</code> and the same <code>level</code> are at the same level.</li>
+<li>A claim with no <code>level</code> on a factor's label means that the factor does not cover that sample.
+  An example is a study that varied the genotype among its RNA-Seq samples only.</li>
+<li>When the claim under <code>shared</code> names a level, a row's claim that replaces it names a level too.
+  A row's claim that is <code>unknown</code> or <code>na</code> is the exception, because it names none.</li>
+<li><code>level</code> on a label that is not a factor is rejected.</li>
+</ul>
+<h2 id="the-check">The check<a class="headerlink" href="#the-check" title="Permanent link">&para;</a></h2>
+<p><code>seqforge study check-reading &lt;file&gt;</code> reads one file and prints one JSON object:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;file&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;reading.yaml&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;format&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;valid&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">&quot;problems&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;field&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;samples.GSM9000003.strain&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;reason&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;missing: every sample has this label, in its own row or under shared&quot;</span><span class="p">},</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;field&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;shared.assay.quoted&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;reason&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;passage 7 does not exist&quot;</span><span class="p">}</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">}</span>
+</code></pre></div>
+<p>It exits 0 for a valid file, 3 for a rejected one, and 2 for a file it cannot read. A file that is
+not UTF-8 text cannot be read. Each problem names the field and the reason.
+<code>samples.GSM9000003.strain</code> is the <code>strain</code> claim of that sample.</p>
+<p>A key that one mapping writes twice is rejected, and the problem names the key. Plain YAML keeps
+the last of the two and reports nothing, so a second row for one sample would replace the first unseen.</p>
+<p>The check asks only whether the file is well formed. It reads the file alone and opens no record,
+so it does not look for a quote in its source, and it does not judge whether a claim is right.</p>
+<h2 id="the-relations">The relations<a class="headerlink" href="#the-relations" title="Permanent link">&para;</a></h2>
+<p>A reading does not store which samples are replicates or which groups the study contrasts. Those
+follow from the claims, so <code>seqforge study relations &lt;file&gt;</code> works them out on every run and
+writes no file. The command checks the file first and rejects a broken file exactly as
+<code>check-reading</code> does. For a valid file, the JSON object has one more field, <code>relations</code>.</p>
+<p>Three terms define the relations:</p>
+<ul>
+<li>Two samples have the same assay, the same target or the same control type when the two claims
+  have the same <code>text</code>, or are both <code>na</code>, or are both <code>unknown</code>.</li>
+<li>A <strong>group</strong> is the set of samples that have the same assay, target, control type and level on
+  every factor. A group can be one sample.</li>
+<li>A <strong>control library</strong> is a sample whose <code>control_type</code> claim is <code>quoted</code> or <code>inferred</code>. A sample
+  whose control type is <code>unknown</code> is not a control library.</li>
+<li>A <strong>signal</strong> is a sample whose <code>target</code> claim is <code>quoted</code> or <code>inferred</code> and that is not a control
+  library.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Relation</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>replicates</code></td>
+<td>Each group of two or more samples: the same assay, target, control type and level on every factor.</td>
+</tr>
+<tr>
+<td><code>contrasts</code></td>
+<td>Each pair of groups that have the same assay and target and differ in the level of exactly one factor. Neither group is a control library. One of the two is at the factor's <code>baseline</code>. For a factor with a <code>null</code> baseline, each pair of levels is one contrast.</td>
+</tr>
+<tr>
+<td><code>series</code></td>
+<td>For each ordered factor: the samples in level order, among the samples that have the same assay, target, control type and level on every other factor. So input libraries and IgG libraries never share a series. A series has at least two levels.</td>
+</tr>
+<tr>
+<td><code>shared_biosample</code></td>
+<td>Each set of two or more samples with one <code>biosample</code> id.</td>
+</tr>
+<tr>
+<td><code>signal_to_control</code></td>
+<td>Within one such set: each signal, paired with each control library.</td>
+</tr>
+</tbody>
+</table>
+<p>For the example above, the command prints these relations. Samples, factors and levels are listed
+in the file's order.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;replicates&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[],</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;contrasts&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="nt">&quot;factor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;age&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="nt">&quot;baseline&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;young&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="nt">&quot;levels&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;young&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;old&quot;</span><span class="p">],</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="nt">&quot;samples&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;young&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;GSM9000001&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;old&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;GSM9000003&quot;</span><span class="p">]},</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="nt">&quot;assay&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ChIP-seq&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">      </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;H3K27me3&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">      </span><span class="nt">&quot;fixed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">  </span><span class="nt">&quot;series&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">      </span><span class="nt">&quot;factor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;age&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">      </span><span class="nt">&quot;assay&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ChIP-seq&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">      </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;H3K27me3&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">      </span><span class="nt">&quot;control_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">      </span><span class="nt">&quot;fixed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">      </span><span class="nt">&quot;steps&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">        </span><span class="p">{</span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;young&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;samples&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;GSM9000001&quot;</span><span class="p">]},</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">        </span><span class="p">{</span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;old&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;samples&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;GSM9000003&quot;</span><span class="p">]}</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">      </span><span class="p">]</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">    </span><span class="p">},</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">      </span><span class="nt">&quot;factor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;age&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">      </span><span class="nt">&quot;assay&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ChIP-seq&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">      </span><span class="nt">&quot;target&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">      </span><span class="nt">&quot;control_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;input&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">      </span><span class="nt">&quot;fixed&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">      </span><span class="nt">&quot;steps&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="w">        </span><span class="p">{</span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;young&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;samples&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;GSM9000002&quot;</span><span class="p">]},</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="w">        </span><span class="p">{</span><span class="nt">&quot;level&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;old&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;samples&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;GSM9000004&quot;</span><span class="p">]}</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="w">      </span><span class="p">]</span>
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a><span class="w">  </span><span class="nt">&quot;shared_biosample&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;biosample&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;B1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;samples&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;GSM9000001&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;GSM9000002&quot;</span><span class="p">]},</span>
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;biosample&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;B2&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;samples&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;GSM9000003&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;GSM9000004&quot;</span><span class="p">]}</span>
+<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a><span class="w">  </span><span class="nt">&quot;signal_to_control&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;biosample&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;B1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;signal&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GSM9000001&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;control&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GSM9000002&quot;</span><span class="p">},</span>
+<a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;biosample&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;B2&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;signal&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GSM9000003&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;control&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GSM9000004&quot;</span><span class="p">}</span>
+<a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a><span class="p">}</span>
+</code></pre></div>
+<p>In a contrast, <code>levels</code> holds the two levels, with the baseline first when the factor has one.
+<code>fixed</code> holds the level of every other factor, which the two groups share. A <code>null</code> assay, target
+or control type means that the claim is <code>na</code> or <code>unknown</code>. A <code>null</code> level means that the factor
+does not cover those samples.</p>
+<h2 id="when-the-format-changes">When the format changes<a class="headerlink" href="#when-the-format-changes" title="Permanent link">&para;</a></h2>
+<p>There is one format at a time. <code>format</code> is a whole number, and the check accepts only the current
+one. A file with another number is rejected, and the message names the number the check expected.</p>
+<p>A change to the format raises the number and rewrites every existing file in the same change. No
+file stays behind in an older format, and git history is the only record of the old form.</p>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "content.code.copy", "content.code.annotate", "content.action.edit", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
