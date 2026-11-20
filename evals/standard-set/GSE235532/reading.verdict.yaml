@@ -1,0 +1,25 @@
+# Second pass over the study reading of GSE235532. Checked against the toy store's records and the
+# paper's article XML, read directly, not through the writer's scratch files.
+id: GSE235532
+model: claude-fable-5-2
+when: "2026-11-20T01:40:00Z"
+# Read: the Series record, all 24 sample records, the 24 BioSample records, the SRA experiment and
+# run records, the BioProject record, the abstract and the main text of pmid:38637528, and the peer
+# review file among the paper's supplementary files (the writer did not read that one).
+read: [records, abstract, full_text]
+format_fixes:
+  - "factors: rewrote the list of two items with a `label` key as a mapping keyed by the label (genotype, age); every level, baseline, ordered, quoted and p value unchanged"
+quotes: {checked: 30, found: 30, not_found: []}
+samples_match_bounds: true
+agrees: true
+disagreements:
+  - where: "shared.time_of_day"
+    says: "absent; reading.notes.md point 8 says a condition held constant has no slot"
+    should_be: "an attribute of the study's own, for example time_of_day: {text: ZT8, quoted: [28]}; the format page allows such a label and its example has this very one"
+    why: "Optional label, so not an error in the reading. The note about the format is wrong, not a claim."
+    passages: [28]
+unsure:
+  - "biosample (p 0.7, all 24 rows): no record and no sentence of the paper says that one chromatin prep gave the input and both pull-downs. For: 8 inputs and 16 pull-downs; the input titles carry a condition and a replicate number and no mark; the paper counts two biological replicates over four conditions, which is 8 preps. Against: the ChIP method describes one lysate of 25 heads and one pull-down with one antibody, and never says the lysate was split; each of the 24 libraries has its own BioSample accession, numbered 'biological replicate' 1 to 24 (a filler, I think). If each mark had its own prep, the two pull-downs of one id do not share chromatin and the input shares it with at most one of them. Which input is the control of which pull-down is far surer (about 0.95) than the shared chromatin; 0.7 for the claim as written is fair, perhaps a little high."
+  - "genotype of the mutant samples: is it homozygous or heterozygous? The record and the ChIP-seq method say only 'LKRSDHMB01942 mutant' or 'LKRSDHMB01942'. In the peer review file the authors say that they call the homozygous flies 'LKRSDHMB01942 homozygous allele' and the heterozygous flies 'LKRSDHMB01942 mutant', which would make the ChIP-seq flies heterozygous. The sample titles use the stock number 23382, which points to the stock itself. The reading states no zygosity, so the claim as written holds either way."
+  - "strain w1118 (p 0.8) for the mutant samples rests on one general sentence about backcrossing; nothing says it for the ChIP-seq flies in particular. I would keep it."
+reason: "All 30 quotes are in the field or paper section named, and each list of records is exactly the set of samples that hold the quote. The 24 samples are the 24 of the one Series in the bounds. For every sample, the age, genotype, mark or input status and factor level match its record, and the two factors, their baselines and the shared claims (male, adult, head, pooled heads so no donor, no treatment) are right. The one weak claim is the shared chromatin: I could find nothing in the records, the paper or the peer review file that confirms or refutes it, and the writer's 0.7 states that doubt fairly. The reading leaves out the collection time (ZT8), which the format could hold, and does not say whether the mutant flies were homozygous, which the sources do not settle."

@@ -1,0 +1,197 @@
+# The study reading of GSE112068: IMR-90 fibroblasts after a 2 h bleomycin exposure, three doses
+# crossed with eleven harvest times. No paper is linked, so every quote is from a GEO record.
+#
+# A claim is one label of one sample, on one line: what it says, how it is backed, how sure.
+#   what:   text (the source's own words), plus term (an ontology id) only on a clear match;
+#           age, dose, duration and time_point add value and unit; a claim on a factor's label
+#           adds level, one of that factor's level names; biosample and donor carry an id minted here.
+#   backed: exactly one of
+#             quoted: [passage numbers]     the passages below say it
+#             inferred: "how"               no passage says it outright; see: [numbers] it rests on
+#             unknown: "note"               the study does not say
+#             na: "why"                     the label does not apply to this sample
+#   p:      the writing model's own estimate that the claim as written is right, given what `read`
+#           lists. On unknown it is the chance that the material read really does not say.
+format: 1
+study: GSE112068
+models: {reading: claude-fable-5-2, probabilities: claude-fable-5-2}
+read: [records]
+
+# Each quote is one unbroken span copied from one field, always on one line.
+# record: each_sample means every sample record of the study holds this quote in that field.
+passages:
+  1: {record: GSE112068, field: Series_summary, quote: "samples were treated with the DNA-damaging agent bleomycin at 0 ug/ml, 2 ug/ml and 40 ug/ml for 2 h"}
+  2: {record: GSE112068, field: Series_summary, quote: "High-resolution time course analysis of gene expression in DNA damage-induced cellular senescence and transient cell-cycle arrest was used to explore the transcriptomic differences between different cell fates after DNA damage response."}
+  3: {record: GSE112068, field: Series_overall_design, quote: "Examination of IMR90 cells with different levels of DNA damage."}
+  4: {record: each_sample, field: Sample_organism_ch1, quote: "Homo sapiens"}
+  5: {record: each_sample, field: Sample_source_name_ch1, quote: "lung"}
+  6: {record: each_sample, field: Sample_characteristics_ch1, quote: "cell line: IMR-90"}
+  7: {record: each_sample, field: Sample_characteristics_ch1, quote: "cell type: fibroblast"}
+  8: {record: each_sample, field: Sample_characteristics_ch1, quote: "age: 16 weeks gestation"}
+  9: {record: each_sample, field: Sample_library_strategy, quote: "RNA-Seq"}
+  10: {record: each_sample, field: Sample_molecule_ch1, quote: "polyA RNA"}
+  11: {record: each_sample, field: Sample_growth_protocol_ch1, quote: "Human diploid IMR90 fibroblasts were cultured at 37°C and 5% CO2 in Dulbecco’s modified Eagle’s medium, 10% fetal bovine serum and antibiotics."}
+  12: {record: each_sample, field: Sample_treatment_protocol_ch1, quote: "After two days, the cells were treated with the DNA-damaging agent bleomycin at 0 ug/ml, 2 ug/ml and 40 ug/ml for 2 h."}
+  13: {record: each_sample, field: Sample_treatment_protocol_ch1, quote: "The total RNA was extracted using TRIzol reagent (Invitrogen) at 12 time points (0 h, 2 h, 4 h, 8 h, 12 h, 24 h, 32 h, 2 days, 4 days, 6 days and 8 days) after exposure to bleomycin at 2 ug/ml and 40 ug/ml."}
+  14: {record: each_sample, field: Sample_treatment_protocol_ch1, quote: "The total RNA was extracted at 3 time points (0 h, 4 days and 8 days) after exposure to bleomycin at 0 ug/ml."}
+  15: {record: [GSM3056966, GSM3056967, GSM3056968], field: Sample_characteristics_ch1, quote: "agent: control"}
+  16: {record: [GSM3056969, GSM3056970, GSM3056971, GSM3056972, GSM3056973, GSM3056974, GSM3056975, GSM3056976, GSM3056977, GSM3056978, GSM3056979, GSM3056980, GSM3056981, GSM3056982, GSM3056983, GSM3056984, GSM3056985, GSM3056986, GSM3056987, GSM3056988], field: Sample_characteristics_ch1, quote: "agent: bleomycin"}
+  17: {record: [GSM3056966, GSM3056967, GSM3056968], field: Sample_characteristics_ch1, quote: "dose: 0 ug/ml"}
+  18: {record: [GSM3056969, GSM3056970, GSM3056971, GSM3056972, GSM3056973, GSM3056974, GSM3056975, GSM3056976, GSM3056977, GSM3056978], field: Sample_characteristics_ch1, quote: "dose: 2 ug/ml"}
+  19: {record: [GSM3056979, GSM3056980, GSM3056981, GSM3056982, GSM3056983, GSM3056984, GSM3056985, GSM3056986, GSM3056987, GSM3056988], field: Sample_characteristics_ch1, quote: "dose: 40 ug/ml"}
+  20: {record: GSM3056966, field: Sample_characteristics_ch1, quote: "time: 0 day"}
+  21: {record: [GSM3056970, GSM3056980], field: Sample_characteristics_ch1, quote: "time: 2 h"}
+  22: {record: [GSM3056972, GSM3056982], field: Sample_characteristics_ch1, quote: "time: 4 h"}
+  23: {record: [GSM3056975, GSM3056985], field: Sample_characteristics_ch1, quote: "time: 8 h"}
+  24: {record: [GSM3056976, GSM3056986], field: Sample_characteristics_ch1, quote: "time: 12 h"}
+  25: {record: [GSM3056977, GSM3056987], field: Sample_characteristics_ch1, quote: "time: 24 h"}
+  26: {record: [GSM3056978, GSM3056988], field: Sample_characteristics_ch1, quote: "time: 36 h"}
+  27: {record: [GSM3056969, GSM3056979], field: Sample_characteristics_ch1, quote: "time: 2 days"}
+  28: {record: [GSM3056967, GSM3056971, GSM3056981], field: Sample_characteristics_ch1, quote: "time: 4 days"}
+  29: {record: [GSM3056973, GSM3056983], field: Sample_characteristics_ch1, quote: "time: 6 days"}
+  30: {record: [GSM3056968, GSM3056974, GSM3056984], field: Sample_characteristics_ch1, quote: "time: 8 days"}
+  31: {record: [GSM3056969, GSM3056970, GSM3056971, GSM3056972, GSM3056973, GSM3056974, GSM3056975, GSM3056976, GSM3056977, GSM3056978], field: Sample_description, quote: "The sample was treated with the DNA-damaging agent bleomycin at 2 ug/ml for 2 h."}
+  32: {record: [GSM3056979, GSM3056980, GSM3056981, GSM3056982, GSM3056983, GSM3056984, GSM3056985, GSM3056986, GSM3056987, GSM3056988], field: Sample_description, quote: "The sample was treated with the DNA-damaging agent bleomycin at 40 ug/ml for 2 h."}
+  33: {record: [GSM3056970, GSM3056980], field: Sample_description, quote: "The total RNA was extracted at 2 h after exposure to bleomycin."}
+  34: {record: [GSM3056972, GSM3056982], field: Sample_description, quote: "The total RNA was extracted at 4 h after exposure to bleomycin."}
+  35: {record: [GSM3056975, GSM3056985], field: Sample_description, quote: "The total RNA was extracted at 8 h after exposure to bleomycin."}
+  36: {record: [GSM3056976, GSM3056986], field: Sample_description, quote: "The total RNA was extracted at 12 h after exposure to bleomycin."}
+  37: {record: [GSM3056977, GSM3056987], field: Sample_description, quote: "The total RNA was extracted at 24 h after exposure to bleomycin."}
+  38: {record: [GSM3056978, GSM3056988], field: Sample_description, quote: "The total RNA was extracted at 36 h after exposure to bleomycin."}
+  39: {record: [GSM3056969, GSM3056979], field: Sample_description, quote: "The total RNA was extracted at 2 days after exposure to bleomycin."}
+  40: {record: [GSM3056971, GSM3056981], field: Sample_description, quote: "The total RNA was extracted at 4 days after exposure to bleomycin."}
+  41: {record: [GSM3056973, GSM3056983], field: Sample_description, quote: "The total RNA was extracted at 6 days after exposure to bleomycin."}
+  42: {record: [GSM3056974, GSM3056984], field: Sample_description, quote: "The total RNA was extracted at 8 days after exposure to bleomycin."}
+  43: {record: GSM3056966, field: Sample_description, quote: "no exposure for 0 day"}
+  44: {record: GSM3056967, field: Sample_description, quote: "no exposure for 4 days"}
+  45: {record: GSM3056968, field: Sample_description, quote: "no exposure for 8 days"}
+
+# A factor names the label the study varied on purpose. `levels` is in the factor's own order.
+# The two factors are crossed, and the cross is not full: 2ug and 40ug each have the ten times
+# from 2h to 8d; 0ug has only 0d, 4d and 8d. No cell of the cross has a second library.
+# time_point is a study-specific attribute: the time from the exposure to the RNA harvest.
+# It is not `duration`, which holds the length of the exposure itself.
+factors:
+  dose:       {levels: [0ug, 2ug, 40ug], baseline: 0ug, ordered: true, quoted: [1, 12, 3], p: 0.97}
+  time_point: {levels: [0d, 2h, 4h, 8h, 12h, 24h, 36h, 2d, 4d, 6d, 8d], baseline: 0d, ordered: true, quoted: [2, 13, 14], p: 0.85}
+
+# Inheritance, the whole rule: a sample has every claim under `shared`, except a label its own
+# row writes, and that claim replaces the shared one whole. Here `treatment` and `duration` hold
+# for the twenty exposed samples, and the three unexposed rows replace them.
+shared:
+  donor:             {id: D1, inferred: "one named cell line with one donor age, so one fetus", see: [6, 8], p: 0.95}
+  assay:             {text: RNA-Seq, quoted: [9, 10], p: 0.99}
+  target:            {na: "RNA-seq of polyA RNA has no target", p: 0.99}
+  control_type:      {na: "no library is a background control; the 0 ug/ml samples are the dose factor's baseline", p: 0.97}
+  species:           {text: Homo sapiens, term: "NCBITaxon:9606", quoted: [4], p: 0.99}
+  sex:               {na: "a cell line; no record gives the donor's sex", p: 0.85}
+  age:               {text: 16 weeks gestation, value: 16, unit: week, quoted: [8], p: 0.93}
+  development_stage: {text: fetal, term: "HsapDv:0000037", inferred: "16 weeks of gestation is a fetal age", see: [8], p: 0.93}
+  tissue:            {text: lung, term: "UBERON:0002048", quoted: [5], p: 0.95}
+  cell_type:         {text: fibroblast, term: "CL:0000057", quoted: [7, 11], p: 0.97}
+  cell_line:         {text: IMR-90, term: CVCL_0347, quoted: [6, 11], p: 0.99}
+  disease:           {text: healthy, term: "PATO:0000461", inferred: "a diploid fibroblast line; no disease or disease model is named", see: [11], p: 0.85}
+  genotype:          {unknown: "no record field gives a genotype or says the line was modified", p: 0.97}
+  strain:            {na: "human cells", p: 0.99}
+  treatment:         {text: bleomycin, term: "CHEBI:22907", quoted: [16, 12], p: 0.98}
+  duration:          {text: 2 h, value: 2, unit: hour, quoted: [12, 1], p: 0.96}
+
+samples:
+  GSM3056966:
+    biosample:  {id: B1, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [14], p: 0.9}
+    treatment:  {text: control, quoted: [15, 43], p: 0.93}
+    dose:       {text: 0 ug/ml, value: 0, unit: ug/ml, level: 0ug, quoted: [17], p: 0.97}
+    duration:   {na: "the record says no exposure; the protocol's 2 h at 0 ug/ml may be a mock exposure", p: 0.7}
+    time_point: {text: 0 day, value: 0, unit: day, level: 0d, quoted: [20, 43], p: 0.9}
+  GSM3056967:
+    biosample:  {id: B2, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [14], p: 0.9}
+    treatment:  {text: control, quoted: [15, 44], p: 0.93}
+    dose:       {text: 0 ug/ml, value: 0, unit: ug/ml, level: 0ug, quoted: [17], p: 0.97}
+    duration:   {na: "the record says no exposure; the protocol's 2 h at 0 ug/ml may be a mock exposure", p: 0.7}
+    time_point: {text: 4 days, value: 4, unit: day, level: 4d, quoted: [28, 44], p: 0.95}
+  GSM3056968:
+    biosample:  {id: B3, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [14], p: 0.9}
+    treatment:  {text: control, quoted: [15, 45], p: 0.93}
+    dose:       {text: 0 ug/ml, value: 0, unit: ug/ml, level: 0ug, quoted: [17], p: 0.97}
+    duration:   {na: "the record says no exposure; the protocol's 2 h at 0 ug/ml may be a mock exposure", p: 0.7}
+    time_point: {text: 8 days, value: 8, unit: day, level: 8d, quoted: [30, 45], p: 0.95}
+  GSM3056969:
+    biosample:  {id: B4, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 2 days, value: 2, unit: day, level: 2d, quoted: [27, 39], p: 0.97}
+  GSM3056970:
+    biosample:  {id: B5, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 2 h, value: 2, unit: hour, level: 2h, quoted: [21, 33], p: 0.97}
+  GSM3056971:
+    biosample:  {id: B6, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 4 days, value: 4, unit: day, level: 4d, quoted: [28, 40], p: 0.97}
+  GSM3056972:
+    biosample:  {id: B7, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 4 h, value: 4, unit: hour, level: 4h, quoted: [22, 34], p: 0.97}
+  GSM3056973:
+    biosample:  {id: B8, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 6 days, value: 6, unit: day, level: 6d, quoted: [29, 41], p: 0.97}
+  GSM3056974:
+    biosample:  {id: B9, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 8 days, value: 8, unit: day, level: 8d, quoted: [30, 42], p: 0.97}
+  GSM3056975:
+    biosample:  {id: B10, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 8 h, value: 8, unit: hour, level: 8h, quoted: [23, 35], p: 0.97}
+  GSM3056976:
+    biosample:  {id: B11, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 12 h, value: 12, unit: hour, level: 12h, quoted: [24, 36], p: 0.97}
+  GSM3056977:
+    biosample:  {id: B12, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 24 h, value: 24, unit: hour, level: 24h, quoted: [25, 37], p: 0.97}
+  GSM3056978:
+    biosample:  {id: B13, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
+    time_point: {text: 36 h, value: 36, unit: hour, level: 36h, quoted: [26, 38], p: 0.9}
+  GSM3056979:
+    biosample:  {id: B14, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 2 days, value: 2, unit: day, level: 2d, quoted: [27, 39], p: 0.97}
+  GSM3056980:
+    biosample:  {id: B15, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 2 h, value: 2, unit: hour, level: 2h, quoted: [21, 33], p: 0.97}
+  GSM3056981:
+    biosample:  {id: B16, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 4 days, value: 4, unit: day, level: 4d, quoted: [28, 40], p: 0.97}
+  GSM3056982:
+    biosample:  {id: B17, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 4 h, value: 4, unit: hour, level: 4h, quoted: [22, 34], p: 0.97}
+  GSM3056983:
+    biosample:  {id: B18, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 6 days, value: 6, unit: day, level: 6d, quoted: [29, 41], p: 0.97}
+  GSM3056984:
+    biosample:  {id: B19, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 8 days, value: 8, unit: day, level: 8d, quoted: [30, 42], p: 0.97}
+  GSM3056985:
+    biosample:  {id: B20, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 8 h, value: 8, unit: hour, level: 8h, quoted: [23, 35], p: 0.97}
+  GSM3056986:
+    biosample:  {id: B21, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 12 h, value: 12, unit: hour, level: 12h, quoted: [24, 36], p: 0.97}
+  GSM3056987:
+    biosample:  {id: B22, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 24 h, value: 24, unit: hour, level: 24h, quoted: [25, 37], p: 0.97}
+  GSM3056988:
+    biosample:  {id: B23, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
+    dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
+    time_point: {text: 36 h, value: 36, unit: hour, level: 36h, quoted: [26, 38], p: 0.9}

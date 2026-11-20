@@ -1,0 +1,27 @@
+# Second pass over reading.yaml of GSE241718, checked against the toy store's records and paper.
+id: GSE241718
+model: claude-fable-5-2
+when: "2026-11-20T01:40:09Z"
+read: [records, abstract, full_text]
+format_fixes:
+  - "read: 'full text' changed to 'full_text' (the only problem the format check reported)"
+quotes: {checked: 28, found: 28, not_found: []}
+samples_match_bounds: true
+agrees: true
+disagreements:
+  # Neither is a real error: no value changes. Both are about how sure, or how complete, a line is.
+  - where: "samples.GSM7720368.donor, samples.GSM7720369.donor, samples.GSM7734325.donor, samples.GSM7734326.donor"
+    says: "D1 = GSM7720368 + GSM7734325 and D2 = GSM7720369 + GSM7734326, 'paired by number', p 0.5"
+    should_be: "the same ids at p about 0.4, with a note that the numbers do not match; or unknown for the four young libraries"
+    why: "The young SAT libraries are named FGG1_2M and FGG3_2M, so their numbers are 1 and 3, while the young VAT libraries are MM_VA_1 and MM_VA_2. Only the title's 'replicate2' matches 2 with 2. A 3 hints that a third young mouse gave inguinal fat, which weakens 'the same two mice gave both depots' for the young group. A coin flip on the pairing times about 0.85 for 'same two mice' is below 0.5. The four aged libraries (FGG1/XX1, FGG2/XX2, one submission, one naming scheme) pair by number more plausibly, and 0.55 there is fair."
+    passages: [5, 22, 24, "GSM7734326 Sample_title: \"FGG3_2M,replicate2,snRNA_seq\""]
+  - where: "passages.19"
+    says: "record: [GSM7720368, GSM7720369] hold '10x Genomics' in Sample_description"
+    should_be: "record: each_sample"
+    why: "All eight sample records hold '10x Genomics' in Sample_description, not only the two of GSE241275. The passage is valid as written, since both named records hold the quote, but the short list reads as if the six others differ. No claim cites this passage."
+    passages: [19]
+unsure:
+  - "Age of the four aged libraries, 24 or 26 months. The four sample records, their BioSample records, titles and file names say 24 (one source: the lab's sample sheet). Both Series designs and the paper, about 35 times and in the methods, say 26. The paper is careless with these numbers (passage 6 swaps the two ages). I would also write 26, at about the writer's 0.55; I cannot settle it."
+  - "Whether each mouse gave both depots at all. The paper says tissues came 'from two mice within each age group' (passage 5, and 'n = 2 for each age group' in the Figure 1 legend), which reads as four mice. The name FGG3_2M leaves room for a third young mouse."
+  - "Which SAT library shares a mouse with which VAT library. No record and no sentence of the paper says."
+reason: "Every one of the 28 quotes is in the field of each record, or the section of the paper, that its passage names, and the 8 samples are exactly those of the two Series in the bounds. Paper quotes were matched two ways, after removing markup: with only plain spaces, tabs and line breaks collapsed and no-break spaces (U+00A0) left as they are on both sides, and with every kind of white space collapsed to one space; all 8 paper quotes are found both ways, and passages 6 and 7 do hold the paper's real no-break spaces. The factors (age with baseline young, tissue with no baseline), each sample's levels, the assay, the na target and control type, and one biosample per library are right, and the relations command derives exactly the paper's four comparisons. Choosing 26 months over the records' 24 at p 0.55 is a fair call that I would also make. The donor ids are an honest guess: fair for the aged pairs, a little too sure for the young pairs, whose library numbers are 1 and 3 against 1 and 2. I looked up the four ontology ids (2-month-old stage, late adult stage, gonadal fat pad, inguinal fat pad) and all four fit."

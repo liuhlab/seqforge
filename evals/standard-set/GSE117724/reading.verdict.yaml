@@ -1,0 +1,18 @@
+id: GSE117724
+model: claude-fable-5-2
+when: "2026-11-20T01:40:11Z"
+read: [records, abstract, full_text]
+format_fixes:
+  - "factors: rewrote the list of two entries with a label key as a mapping keyed by the label (treatment, genotype); no value changed"
+  - "samples.GSM3398125.control_type: moved the passage numbers named in the na note text, (passages 33, 34), to see: [33, 34]"
+  - "samples.GSM3398126.control_type: moved the passage number named in the na note text, (passage 10), to see: [10]"
+quotes: {checked: 54, found: 54, not_found: []}
+samples_match_bounds: true
+agrees: true
+disagreements: []
+unsure:
+  - "shared.development_stage: every record says L4, but the protocol says the worms were L4 to young adult when moved to the plates and were then exposed overnight (about 18 hours in the paper), so they were probably young adults at harvest. No source names the stage at harvest, and the format does not say which moment the label means. The writer's p of 0.6 is fair."
+  - "strain of the 12 mutant RNA-seq samples: I back VL491 and RPW137 over the records' N2 (see reason), but whether this label should hold the named stock or the background it was made in is a convention the format page does not settle. The N2 background now lives only in the claim's note."
+  - "biosample of the 18 RNA-seq samples: no record and no paper passage says outright that the three replicates of a group were separate worm populations. Each sample has its own BioSample record and the titles say rep1 to rep3, so one id per library is the best reading."
+  - "strain of the 6 wild-type RNA-seq samples: the paper says 'Wild-type is either N2 or agIs44', in its paragraph on infection assays. The records say strain N2 and genotype wild-type, so N2 stands, with a small chance the wild-type was the reporter strain."
+reason: "All 54 quotes occur in the fields and paper sections named, and each claim cites only passages whose records include its sample. The 20 samples are exactly the 18 of GSE117700 plus the 2 of GSE117719. Overruling the records' strain N2 for the mutants is sound: N2 is the wild type, so a record that says N2 beside a mutant allele uses the field for the background, and the paper's strain list has exactly one strain whose whole genotype is nhr-86(tm2590) (VL491) and one for nhr-86(ums12) (RPW137); marking it inferred at p 0.8 to 0.85 is honest. Leaving level off the genotype claims of the two ChIP-seq samples is what the format page prescribes for a factor that does not cover a sample, and the relations command still derives the right DMSO against R24 contrast for them. The two factors, their levels and baselines, the 20 separate biosample ids, donor na for pooled worms, the NHR-86 target and control_type na for both ChIP libraries (no input library was deposited, and the DMSO library is a treatment baseline) all match the sources. I read the records, the abstract, the paper's methods and its RNA-seq and ChIP-seq results in full, and searched the rest of the paper by keyword."

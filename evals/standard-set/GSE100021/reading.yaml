@@ -1,0 +1,113 @@
+# A study reading: what each sequenced sample of this study is, with the words that say so.
+# One claim is one label of one sample: what it says, how it is backed, how sure.
+#   backed: exactly one of
+#     quoted: [passage numbers]   the passages below say it
+#     inferred: "how"             no passage says it outright; see: [numbers] names what it rests on
+#     unknown: "note"             the study does not say
+#     na: "why"                   the label does not apply to this sample
+#   p: the writing model's own estimate that the claim is true, given what `read` lists. Not
+#      calibrated. On `unknown`, p is the chance the material read really does not say.
+format: 1
+study: GSE100021
+models: {reading: claude-fable-5-2, probabilities: claude-fable-5-2}
+read: [records, abstract, full_text]
+read_detail: "GEO Series GSE100021 and all eight of its GEO Samples; the BioSamples, SRA experiments, SRA study and BioProject they link; the abstract of PMID 28645186 as the paper store holds it, and the full text of that paper from the stored PDF."
+
+# Each quote is one unbroken span copied from one field of one record, or from one section of the
+# paper, always on one line. record: each_sample means every GEO Sample record of the study holds
+# this quote in that field. A paper quote is checked after runs of whitespace are collapsed, because
+# the PDF text layer breaks lines inside sentences.
+passages:
+  1: {record: GSE100021, field: Series_overall_design, quote: "Hippocampal RNA-Seq profiles of 28 months old rats intracerebroventricularly injected with an adenovector expressing rat IGF-I was compared with placebo adenovector-injected counterparts (4 samples each group)"}
+  2: {record: GSE100021, field: Series_summary, quote: "Here, we assessed the effects of IGF-I gene therapy on spatial memory performance in old female rats and compared them with changes in the hippocampal transcriptome."}
+  3: {record: each_sample, field: Sample_organism_ch1, quote: "Rattus norvegicus"}
+  4: {record: each_sample, field: Sample_characteristics_ch1, quote: "strain: Sprague-Dawley rats"}
+  5: {record: each_sample, field: Sample_characteristics_ch1, quote: "Sex: female"}
+  6: {record: each_sample, field: Sample_characteristics_ch1, quote: "age: 28-months"}
+  7: {record: each_sample, field: Sample_source_name_ch1, quote: "Rat hippocampus"}
+  8: {record: each_sample, field: Sample_extract_protocol_ch1, quote: "The brains from four rats per group (i.e., DsRed and IGF-I groups) were rapidly removed after euthanasia and their right hippocampus dissected for transcriptome analysis. Tissues were homogenized in TRIzol Reagent."}
+  9: {record: each_sample, field: Sample_molecule_ch1, quote: "total RNA"}
+  10: {record: each_sample, field: Sample_library_strategy, quote: "RNA-Seq"}
+  11: {record: [GSM2668015, GSM2668016, GSM2668017, GSM2668018], field: Sample_description, quote: "Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I"}
+  12: {record: [GSM2668019, GSM2668020, GSM2668021, GSM2668022], field: Sample_description, quote: "Rat intracerebroventricularly injected with an adenovector with empty vector DsRed"}
+  13: {record: GSM2668015, field: Sample_description, quote: "IGF1_16"}
+  14: {record: GSM2668016, field: Sample_description, quote: "IGF1_24"}
+  15: {record: GSM2668017, field: Sample_description, quote: "IGF1_27"}
+  16: {record: GSM2668018, field: Sample_description, quote: "IGF1_29"}
+  17: {record: GSM2668019, field: Sample_description, quote: "DsRed_7"}
+  18: {record: GSM2668020, field: Sample_description, quote: "DsRed_12"}
+  19: {record: GSM2668021, field: Sample_description, quote: "DsRed_22"}
+  20: {record: GSM2668022, field: Sample_description, quote: "DsRed_25"}
+  21: {paper: "pmid:28645186", section: abstract, quote: "Hippocampal RNA-sequencing showed that 219 genes are differentially expressed in 28-month-old rats intracerebroventricularly injected with an adenovector expressing rat IGF-I as compared with placebo adenovector-injected counterparts."}
+  22: {paper: "pmid:28645186", section: "methods, Animals", quote: "Twenty three 25-months old female Sprague-Dawley rats weighing 267±5 g were used."}
+  23: {paper: "pmid:28645186", section: "introduction", quote: "In humans and rats, brain aging is associated with a progressive deterioration of spatial learning and memory, which makes this rodent species a suitable model to evaluate therapeutic strategies of potential value for correcting age-related cognitive deficits."}
+  24: {paper: "pmid:28645186", section: "methods, Helper-dependent adenovectors", quote: "an expression cassette containing the gene for either rat IGF-I or the red fluorescent protein DsRed, both under the control of the murine cytomegalovirus (mCMV) promoter, was cloned in pC4HSU"}
+  25: {paper: "pmid:28645186", section: "methods, Experimental design", quote: "On experimental day 0 rats were ICV injected with the IGF-I or DsRed vector as appropriate and on day 80, CSF was obtained from the great cerebral cistern by puncture as previously documented (6)."}
+  26: {paper: "pmid:28645186", section: "methods, Experimental design", quote: "On experimental day 80, at age 28 months, animals were euthanized by rapid decapitation and their hippocampi microdissected and stored at -80°C until RNA extraction (see below) (Fig 1A)."}
+  27: {paper: "pmid:28645186", section: "methods, Stereotaxic injections", quote: "The animals were injected bilaterally with 8 μl per side of a suspension containing 1.7 x1012 viral particles of the appropriate vector."}
+  28: {paper: "pmid:28645186", section: "methods, Experimental design", quote: "ten rats were allotted to group “DsRed” (injected with placebo Adenovirus) and 12 rats were allotted to group “IGF-I” (injected with an IGF-I Adenovirus) (see below)."}
+  29: {paper: "pmid:28645186", section: "methods, RNA extraction, library preparation, and sequencing", quote: "cDNA libraries were amplified and sequenced by using the cBot and HiSeq2000 from Illumina (SR; 50 bp; ca. 30–35 million reads per sample)."}
+
+# A factor names the label the study varied on purpose, and its levels. A sample's claim on that
+# label carries level: with one of these names, so two spellings of one level still match.
+factors:
+  treatment:
+    levels: [igf1, control_vector]
+    baseline: control_vector
+    ordered: false
+    quoted: [1, 11, 12]
+    p: 0.98
+
+# Inheritance, the whole rule: a sample has every claim under `shared`, except a label its own
+# row writes, and that claim replaces the shared one whole.
+shared:
+  assay:             {text: RNA-Seq, quoted: [10, 9, 1, 29], p: 0.99}
+  target:            {na: "RNA-seq of total RNA has no target", p: 0.99}
+  control_type:      {na: "no library is a background control; the empty-vector group is the factor's baseline", p: 0.97}
+  species:           {text: Rattus norvegicus, term: "NCBITaxon:10116", quoted: [3], p: 0.99}
+  sex:               {text: female, term: female, quoted: [5, 22, 2], p: 0.99}
+  age:               {text: 28-months, value: 28, unit: month, quoted: [6, 1, 26, 21], p: 0.98}
+  development_stage: {text: old, quoted: [2, 26], p: 0.9}
+  tissue:            {text: right hippocampus, term: "UBERON:0002421", quoted: [8, 7], p: 0.95}
+  cell_type:         {na: "whole dissected hippocampus, homogenized in TRIzol (passage 8)", p: 0.95}
+  cell_line:         {na: "tissue taken from the animal", p: 0.99}
+  disease:           {text: healthy, term: "PATO:0000461", inferred: "the rats model normal brain aging; neither the records nor the paper names a disease or a disease model", see: [23, 22], p: 0.92}
+  genotype:          {unknown: "no record field and no sentence of the paper gives a genotype; the rats are an outbred stock and the vector is not a germline change", p: 0.93}
+  strain:            {text: Sprague-Dawley, quoted: [4, 22], p: 0.99}
+  dose:              {text: "8 μl per side of a suspension containing 1.7 x1012 viral particles", value: 1.7e12, unit: viral_particles_per_side, quoted: [27], p: 0.9}
+  duration:          {unknown: "the vector was given once and expressed on to the day of death; no source gives a length of application", p: 0.85}
+  time_since_treatment: {text: "80 days from injection to euthanasia", value: 80, unit: day, inferred: "the vector went in on experimental day 0 and the hippocampi came out on experimental day 80", see: [25, 26], p: 0.95}
+
+samples:
+  GSM2668015:
+    biosample: {id: B1, inferred: "four rats per group and four samples per group, so one rat's right hippocampus per library", see: [8, 1, 28], p: 0.93}
+    donor:     {id: D1, text: IGF1_16, quoted: [13, 8], p: 0.88}
+    treatment: {text: adenovector expressing rat IGF-I, level: igf1, quoted: [11, 1, 24, 21], p: 0.98}
+  GSM2668016:
+    biosample: {id: B2, inferred: "four rats per group and four samples per group, so one rat's right hippocampus per library", see: [8, 1, 28], p: 0.93}
+    donor:     {id: D2, text: IGF1_24, quoted: [14, 8], p: 0.88}
+    treatment: {text: adenovector expressing rat IGF-I, level: igf1, quoted: [11, 1, 24, 21], p: 0.98}
+  GSM2668017:
+    biosample: {id: B3, inferred: "four rats per group and four samples per group, so one rat's right hippocampus per library", see: [8, 1, 28], p: 0.93}
+    donor:     {id: D3, text: IGF1_27, quoted: [15, 8], p: 0.88}
+    treatment: {text: adenovector expressing rat IGF-I, level: igf1, quoted: [11, 1, 24, 21], p: 0.98}
+  GSM2668018:
+    biosample: {id: B4, inferred: "four rats per group and four samples per group, so one rat's right hippocampus per library", see: [8, 1, 28], p: 0.93}
+    donor:     {id: D4, text: IGF1_29, quoted: [16, 8], p: 0.88}
+    treatment: {text: adenovector expressing rat IGF-I, level: igf1, quoted: [11, 1, 24, 21], p: 0.98}
+  GSM2668019:
+    biosample: {id: B5, inferred: "four rats per group and four samples per group, so one rat's right hippocampus per library", see: [8, 1, 28], p: 0.93}
+    donor:     {id: D5, text: DsRed_7, quoted: [17, 8], p: 0.88}
+    treatment: {text: adenovector with empty vector DsRed, level: control_vector, quoted: [12, 1, 24], p: 0.98}
+  GSM2668020:
+    biosample: {id: B6, inferred: "four rats per group and four samples per group, so one rat's right hippocampus per library", see: [8, 1, 28], p: 0.93}
+    donor:     {id: D6, text: DsRed_12, quoted: [18, 8], p: 0.88}
+    treatment: {text: adenovector with empty vector DsRed, level: control_vector, quoted: [12, 1, 24], p: 0.98}
+  GSM2668021:
+    biosample: {id: B7, inferred: "four rats per group and four samples per group, so one rat's right hippocampus per library", see: [8, 1, 28], p: 0.93}
+    donor:     {id: D7, text: DsRed_22, quoted: [19, 8], p: 0.88}
+    treatment: {text: adenovector with empty vector DsRed, level: control_vector, quoted: [12, 1, 24], p: 0.98}
+  GSM2668022:
+    biosample: {id: B8, inferred: "four rats per group and four samples per group, so one rat's right hippocampus per library", see: [8, 1, 28], p: 0.93}
+    donor:     {id: D8, text: DsRed_25, quoted: [20, 8], p: 0.88}
+    treatment: {text: adenovector with empty vector DsRed, level: control_vector, quoted: [12, 1, 24], p: 0.98}

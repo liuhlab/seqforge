@@ -1,0 +1,218 @@
+# Study reading of GSE235532: ChIP-seq of fly heads, two histone marks, two genotypes, two ages,
+# every pull-down with a matching input library.
+#
+# A claim is one label of one sample, on one line: what it says, how it is backed, how sure.
+#   what:   text (the source's own words), plus term (an ontology id) only on a clear match;
+#           age, dose and duration add value and unit; biosample and donor carry an id minted here;
+#           a claim on a factor's label adds level, one of that factor's level names.
+#   backed: exactly one of
+#             quoted: [passage numbers]     the passages below say it
+#             inferred: "how"               no passage says it outright; see: [passages it rests on]
+#             unknown: "note"               the study does not say
+#             na: "why"                     the label does not apply to this sample
+#   p:      the writing model's own estimate that the claim as written is right, given what `read`
+#           lists. Not calibrated.
+format: 1
+study: GSE235532
+models: {reading: claude-fable-5-2, probabilities: claude-fable-5-2}
+# Read: the Series record and all 24 sample records of GSE235532; the abstract and the main text of
+# pmid:38637528 (the article XML in the paper store, figure legends included; no supplement, no
+# figure image). The 24 BioSample records and two SRA experiment records were looked at and are
+# not cited: they add only "sex: male" and a replicate number that runs 1 to 24.
+read: [records, abstract, full_text]
+
+# Each quote is one unbroken span copied from one field, always on one line.
+# record: each_sample means every sample record of the study holds this quote in that field.
+# A paper quote is a span of the article XML's text with the tags removed and runs of white space
+# written as one space (the XML sets the allele name MB01942 as superscript).
+passages:
+  1: {record: GSE235532, field: Series_overall_design, quote: "we performed chromatin immunoprecipitation followed by sequencing (ChIP-seq) experiments targeting H3R17me2 and H3K27me3 in 3-day-old w1118 control, 3-day-old LKRSDHMB01942 mutant, 40-day-old w1118 control and 40-day-old LKRSDHMB01942 mutant flies"}
+  2: {record: GSE235532, field: Series_summary, quote: "To investigate the role of epigenetic modifications H3K27me3 and h3r17me2 in aging."}
+  3: {paper: "pmid:38637528", section: "abstract", quote: "ChIP-seq analyzes whole genome changes in H3R17me2 and H3K27me3 histone modifications in young and old flies with LKRSDH mutation and controls."}
+  4: {record: each_sample, field: Sample_organism_ch1, quote: "Drosophila melanogaster"}
+  5: {record: each_sample, field: Sample_characteristics_ch1, quote: "tissue: head"}
+  6: {record: each_sample, field: Sample_source_name_ch1, quote: "head"}
+  7: {record: each_sample, field: Sample_growth_protocol_ch1, quote: "Mated males were collected and maintained at 20 flies per vial"}
+  8: {record: each_sample, field: Sample_extract_protocol_ch1, quote: "25 fly heads were lightly triturated in 450 µl 1×PBS, added 6.02 µl 37% formaldehyde for cross-linking before incubating at RT for 10 minutes. After de-crosslinking with 1×glutamate and washing the pellet three times with 1×PBS, added 250 µl SDS lysis buffer (containing protease inhibitor cocktail) and homogenize, centrifuged and the supernatant was taken."}
+  9: {record: each_sample, field: Sample_library_strategy, quote: "ChIP-Seq"}
+  10: {record: [GSM7504787, GSM7504788, GSM7504789, GSM7504790, GSM7504795, GSM7504796, GSM7504797, GSM7504798, GSM7504803, GSM7504804, GSM7504805, GSM7504806], field: Sample_characteristics_ch1, quote: "age: 3 day"}
+  11: {record: [GSM7504791, GSM7504792, GSM7504793, GSM7504794, GSM7504799, GSM7504800, GSM7504801, GSM7504802, GSM7504807, GSM7504808, GSM7504809, GSM7504810], field: Sample_characteristics_ch1, quote: "age: 40 day"}
+  12: {record: [GSM7504789, GSM7504790, GSM7504793, GSM7504794, GSM7504797, GSM7504798, GSM7504801, GSM7504802, GSM7504805, GSM7504806, GSM7504809, GSM7504810], field: Sample_characteristics_ch1, quote: "genotype: w1118"}
+  13: {record: [GSM7504787, GSM7504788, GSM7504791, GSM7504792, GSM7504795, GSM7504796, GSM7504799, GSM7504800, GSM7504803, GSM7504804, GSM7504807, GSM7504808], field: Sample_characteristics_ch1, quote: "genotype: LKRSDHMB01942 mutant"}
+  14: {record: [GSM7504787, GSM7504788, GSM7504789, GSM7504790, GSM7504791, GSM7504792, GSM7504793, GSM7504794], field: Sample_characteristics_ch1, quote: "ip target: input"}
+  15: {record: [GSM7504795, GSM7504796, GSM7504797, GSM7504798, GSM7504799, GSM7504800, GSM7504801, GSM7504802], field: Sample_characteristics_ch1, quote: "ip target: H3K27me3"}
+  16: {record: [GSM7504803, GSM7504804, GSM7504805, GSM7504806, GSM7504807, GSM7504808, GSM7504809, GSM7504810], field: Sample_characteristics_ch1, quote: "ip target: H3R17me2"}
+  17: {record: [GSM7504787, GSM7504795, GSM7504803], field: Sample_title, quote: "3d 23382-1"}
+  18: {record: [GSM7504788, GSM7504796, GSM7504804], field: Sample_title, quote: "3d 23382-2"}
+  19: {record: [GSM7504789, GSM7504797, GSM7504805], field: Sample_title, quote: "3d w1118-1"}
+  20: {record: [GSM7504790, GSM7504798, GSM7504806], field: Sample_title, quote: "3d w1118-2"}
+  21: {record: [GSM7504791, GSM7504799, GSM7504807], field: Sample_title, quote: "40d 23382-1"}
+  22: {record: [GSM7504792, GSM7504800, GSM7504808], field: Sample_title, quote: "40d 23382-2"}
+  23: {record: [GSM7504793, GSM7504801, GSM7504809], field: Sample_title, quote: "40d w1118-1"}
+  24: {record: [GSM7504794, GSM7504802, GSM7504810], field: Sample_title, quote: "40d w1118-2"}
+  25: {paper: "pmid:38637528", section: "Methods > Fly stocks", quote: "w1118 (NO.5905), LKRSDHMB01942 (NO.23382)"}
+  26: {paper: "pmid:38637528", section: "Methods > Fly stocks", quote: "All mutants and transgenes were backcrossed by a w1118 for seven generations to clean up the genetic background."}
+  27: {paper: "pmid:38637528", section: "Methods > Fly stocks", quote: "All experiments in this study were conducted using male flies."}
+  28: {paper: "pmid:38637528", section: "Methods > RNA-seq, ChIP seq and data analysis", quote: "For ChIP-seq analysis, 25 fly heads of 3-day-old w1118, 3-day-old LKRSDHMB01942, 40-day-old w1118, and 40-day-old LKRSDHMB01942 were collected at ZT8."}
+  29: {paper: "pmid:38637528", section: "Methods > RNA-seq, ChIP seq and data analysis", quote: "In this experiment, anti-Histone H3 (asymmetric di methyl R17) (abcam, ab8284) and anti-Histone H3 (tri methyl K27) (abcam, ab6002) antibodies were used."}
+  30: {paper: "pmid:38637528", section: "Methods > RNA-seq, ChIP seq and data analysis", quote: "Two biological replicates were conducted for the ChIP-seq experiment."}
+
+# A factor names the label the study varied on purpose. The values are on the samples.
+# The mark that was pulled down is not a factor here: it has no baseline. See reading.notes.md.
+factors:
+  genotype: {levels: [w1118, LKRSDH_MB01942], baseline: w1118, ordered: false, quoted: [1, 3], p: 0.97}
+  age: {levels: [3d, 40d], baseline: 3d, ordered: true, quoted: [1, 3, 2], p: 0.95}
+
+# Inheritance, the whole rule: a sample has every claim under `shared`, except a label its own
+# row writes, and that claim replaces the shared one whole.
+shared:
+  donor:             {na: "each library comes from a pool of 25 fly heads (passages 8, 28); no single animal", p: 0.95}
+  assay:             {text: ChIP-Seq, quoted: [9, 1], p: 0.99}
+  control_type:      {na: "a pull-down library, not a background control", p: 0.98}
+  species:           {text: Drosophila melanogaster, term: "NCBITaxon:7227", quoted: [4], p: 0.99}
+  sex:               {text: male, term: male, quoted: [7, 27], p: 0.97}
+  development_stage: {text: adult, term: "FBdv:00005369", inferred: "mated males aged 3 or 40 days are adult flies", see: [7, 1], p: 0.97}
+  tissue:            {text: head, term: "UBERON:0000033", quoted: [5, 6, 8, 28], p: 0.97}
+  cell_type:         {na: "whole heads were cross-linked and homogenized; no cell type was isolated (passage 8)", p: 0.97}
+  cell_line:         {na: "tissue taken from the animal", p: 0.99}
+  disease:           {text: healthy, term: "PATO:0000461", inferred: "no disease or disease model is named; the groups differ by one mutation and by normal aging", see: [2], p: 0.8}
+  strain:            {text: w1118, inferred: "the mutant was backcrossed to w1118 for seven generations, so w1118 is the genetic background of both genotypes", see: [26, 25], p: 0.8}
+  treatment:         {na: "no treatment is described; the groups differ by genotype and age only", p: 0.9}
+  dose:              {na: "no treatment", p: 0.9}
+  duration:          {na: "no treatment", p: 0.9}
+
+# Pairing a pull-down with its input: the three libraries that share one biosample id are one
+# input, one H3K27me3 pull-down and one H3R17me2 pull-down of the same chromatin. No record and no
+# sentence of the paper says the chromatin was split this way. It is inferred from three things:
+# the titles of the three end in the same condition and replicate name (passages 17 to 24), there
+# are 8 inputs for 16 pull-downs, and the paper reports two biological replicates (passage 30).
+# The archive is no help: it gives each of the 24 libraries its own BioSample accession.
+samples:
+  GSM7504787:
+    biosample:    {id: B1, text: "3d 23382-1", inferred: "its title ends in the same condition and replicate name as one library of each mark", see: [17, 30], p: 0.7}
+    target:       {na: "input chromatin, no antibody pull-down", p: 0.98}
+    control_type: {text: input, quoted: [14], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504788:
+    biosample:    {id: B2, text: "3d 23382-2", inferred: "its title ends in the same condition and replicate name as one library of each mark", see: [18, 30], p: 0.7}
+    target:       {na: "input chromatin, no antibody pull-down", p: 0.98}
+    control_type: {text: input, quoted: [14], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504789:
+    biosample:    {id: B3, text: "3d w1118-1", inferred: "its title ends in the same condition and replicate name as one library of each mark", see: [19, 30], p: 0.7}
+    target:       {na: "input chromatin, no antibody pull-down", p: 0.98}
+    control_type: {text: input, quoted: [14], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504790:
+    biosample:    {id: B4, text: "3d w1118-2", inferred: "its title ends in the same condition and replicate name as one library of each mark", see: [20, 30], p: 0.7}
+    target:       {na: "input chromatin, no antibody pull-down", p: 0.98}
+    control_type: {text: input, quoted: [14], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504791:
+    biosample:    {id: B5, text: "40d 23382-1", inferred: "its title ends in the same condition and replicate name as one library of each mark", see: [21, 30], p: 0.7}
+    target:       {na: "input chromatin, no antibody pull-down", p: 0.98}
+    control_type: {text: input, quoted: [14], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504792:
+    biosample:    {id: B6, text: "40d 23382-2", inferred: "its title ends in the same condition and replicate name as one library of each mark", see: [22, 30], p: 0.7}
+    target:       {na: "input chromatin, no antibody pull-down", p: 0.98}
+    control_type: {text: input, quoted: [14], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504793:
+    biosample:    {id: B7, text: "40d w1118-1", inferred: "its title ends in the same condition and replicate name as one library of each mark", see: [23, 30], p: 0.7}
+    target:       {na: "input chromatin, no antibody pull-down", p: 0.98}
+    control_type: {text: input, quoted: [14], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504794:
+    biosample:    {id: B8, text: "40d w1118-2", inferred: "its title ends in the same condition and replicate name as one library of each mark", see: [24, 30], p: 0.7}
+    target:       {na: "input chromatin, no antibody pull-down", p: 0.98}
+    control_type: {text: input, quoted: [14], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504795:
+    biosample:    {id: B1, text: "3d 23382-1", inferred: "its title ends in the same condition and replicate name as one input library", see: [17, 30], p: 0.7}
+    target:       {text: H3K27me3, quoted: [15, 1, 29], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504796:
+    biosample:    {id: B2, text: "3d 23382-2", inferred: "its title ends in the same condition and replicate name as one input library", see: [18, 30], p: 0.7}
+    target:       {text: H3K27me3, quoted: [15, 1, 29], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504797:
+    biosample:    {id: B3, text: "3d w1118-1", inferred: "its title ends in the same condition and replicate name as one input library", see: [19, 30], p: 0.7}
+    target:       {text: H3K27me3, quoted: [15, 1, 29], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504798:
+    biosample:    {id: B4, text: "3d w1118-2", inferred: "its title ends in the same condition and replicate name as one input library", see: [20, 30], p: 0.7}
+    target:       {text: H3K27me3, quoted: [15, 1, 29], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504799:
+    biosample:    {id: B5, text: "40d 23382-1", inferred: "its title ends in the same condition and replicate name as one input library", see: [21, 30], p: 0.7}
+    target:       {text: H3K27me3, quoted: [15, 1, 29], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504800:
+    biosample:    {id: B6, text: "40d 23382-2", inferred: "its title ends in the same condition and replicate name as one input library", see: [22, 30], p: 0.7}
+    target:       {text: H3K27me3, quoted: [15, 1, 29], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504801:
+    biosample:    {id: B7, text: "40d w1118-1", inferred: "its title ends in the same condition and replicate name as one input library", see: [23, 30], p: 0.7}
+    target:       {text: H3K27me3, quoted: [15, 1, 29], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504802:
+    biosample:    {id: B8, text: "40d w1118-2", inferred: "its title ends in the same condition and replicate name as one input library", see: [24, 30], p: 0.7}
+    target:       {text: H3K27me3, quoted: [15, 1, 29], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504803:
+    biosample:    {id: B1, text: "3d 23382-1", inferred: "its title ends in the same condition and replicate name as one input library", see: [17, 30], p: 0.7}
+    target:       {text: H3R17me2, quoted: [16, 1, 29], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504804:
+    biosample:    {id: B2, text: "3d 23382-2", inferred: "its title ends in the same condition and replicate name as one input library", see: [18, 30], p: 0.7}
+    target:       {text: H3R17me2, quoted: [16, 1, 29], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504805:
+    biosample:    {id: B3, text: "3d w1118-1", inferred: "its title ends in the same condition and replicate name as one input library", see: [19, 30], p: 0.7}
+    target:       {text: H3R17me2, quoted: [16, 1, 29], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504806:
+    biosample:    {id: B4, text: "3d w1118-2", inferred: "its title ends in the same condition and replicate name as one input library", see: [20, 30], p: 0.7}
+    target:       {text: H3R17me2, quoted: [16, 1, 29], p: 0.98}
+    age:          {text: 3 day, value: 3, unit: day, level: 3d, quoted: [10, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504807:
+    biosample:    {id: B5, text: "40d 23382-1", inferred: "its title ends in the same condition and replicate name as one input library", see: [21, 30], p: 0.7}
+    target:       {text: H3R17me2, quoted: [16, 1, 29], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504808:
+    biosample:    {id: B6, text: "40d 23382-2", inferred: "its title ends in the same condition and replicate name as one input library", see: [22, 30], p: 0.7}
+    target:       {text: H3R17me2, quoted: [16, 1, 29], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: LKRSDHMB01942 mutant, level: LKRSDH_MB01942, quoted: [13, 1, 25], p: 0.97}
+  GSM7504809:
+    biosample:    {id: B7, text: "40d w1118-1", inferred: "its title ends in the same condition and replicate name as one input library", see: [23, 30], p: 0.7}
+    target:       {text: H3R17me2, quoted: [16, 1, 29], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}
+  GSM7504810:
+    biosample:    {id: B8, text: "40d w1118-2", inferred: "its title ends in the same condition and replicate name as one input library", see: [24, 30], p: 0.7}
+    target:       {text: H3R17me2, quoted: [16, 1, 29], p: 0.98}
+    age:          {text: 40 day, value: 40, unit: day, level: 40d, quoted: [11, 1], p: 0.97}
+    genotype:     {text: w1118, level: w1118, quoted: [12, 1], p: 0.97}

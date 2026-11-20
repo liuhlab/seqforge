@@ -1,0 +1,125 @@
+# Study reading of GSE241718: one paper, two Series, no SuperSeries.
+#   GSE241718 holds GSM7734325 to GSM7734330 (young SAT, aged SAT, aged VAT).
+#   GSE241275 holds GSM7720368 and GSM7720369 (young VAT).
+# These two lines are a comment, not data: the format has no place for a sample's Series.
+#
+# A claim is one label of one sample, on one line: what it says, how it is backed, how sure.
+#   backed: exactly one of quoted: [passages], inferred: "how", unknown: "note" (the material
+#           read does not say), na: "why" (does not apply). The last three may add see: [passages].
+#   p:      the chance the claim as written is right, given what `read` lists.
+format: 1
+study: GSE241718
+models: {reading: claude-fable-5-2, probabilities: claude-fable-5-2}
+read: [records, abstract, full_text]
+
+# Each quote is one unbroken span copied from one field, always on one line.
+# record: each_sample means all eight sample records, in both Series, hold this quote in that field.
+# The paper writes "2 months" with a no-break space; passages 6 and 7 keep it, written  .
+passages:
+  1: {record: [GSE241718, GSE241275], field: Series_overall_design, quote: "Subcutaneous mouse adipose tissue depots were dissected from 2 months and 26 months female C57BL/6J mice into ice-cold PBS."}
+  2: {record: [GSE241718, GSE241275], field: Series_summary, quote: "Here, we used single-nucleus RNA-seq to map the single-nucleus transcription profiles of mouse subcutaneous adipose tissue ( SAT ) and visceral adipose tissue ( VAT ) at a single-nucleus resolution, showing the differences in visceral and subcutaneous adipose tissue changes with aging."}
+  3: {paper: "pmid:38997312", section: abstract, quote: "In this research, we use single-nucleus RNA sequencing to create highly detailed transcriptional maps of subcutaneous adipose tissue and visceral adipose tissue in young and aged mice."}
+  4: {paper: "pmid:38997312", section: Results, quote: "we used single-nucleus RNA sequencing (snRNA-seq) on SAT and VAT adipose tissues from young (2-month-old) and aged (26-month-old) female"}
+  5: {paper: "pmid:38997312", section: Results, quote: "we specifically collected subcutaneous (inguinal) and visceral (gonadal) adipose tissues from two mice within each age group for snRNA-Seq analysis"}
+  6: {paper: "pmid:38997312", section: Results, quote: "This investigation encompassed four specific comparisons: (1) Aging patterns within SAT tissues (referred to as “SAT Aging”), (2) Aging patterns within VAT tissues (“VAT Aging”), (3) comparisons between SAT and VAT tissues at the young age of 26 months, and (4) comparisons between SAT and VAT tissues at the elderly age of 2 months."}
+  7: {paper: "pmid:38997312", section: Materials and methods, quote: "WAT, including both SAT and VAT was isolated from female C57BL/6J mice at 2 months and 26 months of age."}
+  8: {paper: "pmid:38997312", section: Materials and methods, quote: "This resulted in a sample pool comprising four SAT specimens, and four VAT specimens, with two replicates from each age category. This strategy generated eight distinct sets of snRNA-Seq sequencing data."}
+  9: {paper: "pmid:38997312", section: Materials and methods, quote: "All subjects were ensured to be Specific-Pathogen-Free (SPF) grade, excluding any disease effects."}
+  10: {paper: "pmid:38997312", section: Data availability, quote: "The appearance of two separate submissions is because the data were uploaded in two stages. However, all data are from the same batch of samples and mice, sequenced on the same platform."}
+  11: {record: each_sample, field: Sample_organism_ch1, quote: "Mus musculus"}
+  12: {record: each_sample, field: Sample_library_strategy, quote: "RNA-Seq"}
+  13: {record: each_sample, field: Sample_extract_protocol_ch1, quote: "This suspension was loaded onto a microfluidic chip, utilizing the GEXSCOPE® Single NucleusRNA-seq Kit (Singleron Biotechnologies). Following the manufacturer’s guidelines (Singleron Biotechnologies), we proceeded to construct the snRNA-seq libraries."}
+  14: {record: [GSM7734325, GSM7734326, GSM7734327, GSM7734328], field: Sample_characteristics_ch1, quote: "tissue: SAT"}
+  15: {record: [GSM7720368, GSM7720369, GSM7734329, GSM7734330], field: Sample_characteristics_ch1, quote: "tissue: VAT"}
+  16: {record: [GSM7720368, GSM7720369, GSM7734325, GSM7734326], field: Sample_characteristics_ch1, quote: "age: 2 months"}
+  # Passages 17 to 20 speak AGAINST a claim below. No claim cites them: `quoted` and `see` name support.
+  17: {record: [GSM7734327, GSM7734328, GSM7734329, GSM7734330], field: Sample_characteristics_ch1, quote: "age: 24 months"}
+  18: {record: each_sample, field: Sample_characteristics_ch1, quote: "cell type: Adipocytes"}
+  19: {record: [GSM7720368, GSM7720369], field: Sample_description, quote: "10x Genomics"}
+  20: {record: [GSM7720368, GSM7720369], field: Sample_title, quote: "scRNA_seq"}
+  21: {record: GSM7720368, field: Sample_supplementary_file_1, quote: "MM_VA_1"}
+  22: {record: GSM7720369, field: Sample_supplementary_file_1, quote: "MM_VA_2"}
+  23: {record: GSM7734325, field: Sample_title, quote: "FGG1_2M"}
+  24: {record: GSM7734326, field: Sample_title, quote: "FGG3_2M"}
+  25: {record: GSM7734327, field: Sample_title, quote: "FGG1_24M"}
+  26: {record: GSM7734328, field: Sample_title, quote: "FGG2_24M"}
+  27: {record: GSM7734329, field: Sample_title, quote: "XX1_24M"}
+  28: {record: GSM7734330, field: Sample_title, quote: "XX2_24M"}
+
+# A factor names a label the study varied on purpose. The two are crossed: 2 ages x 2 depots.
+# The paper compares the two depots with each other, so tissue has no baseline.
+factors:
+  age:    {levels: [young, aged], baseline: young, ordered: true, quoted: [3, 4, 6], p: 0.98}
+  tissue: {levels: [SAT, VAT], baseline: null, ordered: false, quoted: [2, 3, 6], p: 0.95}
+
+# Inheritance, the whole rule: a sample has every claim under `shared`, except a label its own
+# row writes, and that claim replaces the shared one whole.
+shared:
+  assay:             {text: single-nucleus RNA-seq, quoted: [2, 13, 12, 8], p: 0.97}
+  target:            {na: "RNA-seq of nuclear RNA has no target", p: 0.99}
+  control_type:      {na: "no library is a background control", p: 0.98}
+  species:           {text: Mus musculus, term: "NCBITaxon:10090", quoted: [11], p: 0.99}
+  sex:               {text: female, term: female, quoted: [1, 7, 4], p: 0.98}
+  cell_type:         {na: "nuclei of the whole fat depot, not sorted by cell type; the paper finds seven cell types in these libraries. The record's own 'cell type: Adipocytes' (passage 18) names the cell of interest", see: [8, 13], p: 0.88}
+  cell_line:         {na: "tissue taken from the animal", p: 0.99}
+  disease:           {text: healthy, term: "PATO:0000461", inferred: "pathogen-free mice in a study of normal aging; no disease or disease model is named", see: [9], p: 0.92}
+  genotype:          {text: wild type, inferred: "inbred C57BL/6J mice; records and paper name no mutation or transgene", see: [1, 7], p: 0.9}
+  strain:            {text: C57BL/6J, quoted: [1, 7], p: 0.98}
+  treatment:         {na: "no intervention: the mice only aged, on standard feed", p: 0.93}
+  dose:              {na: "no treatment", p: 0.93}
+  duration:          {na: "no treatment", p: 0.93}
+
+# Donors: two mice per age group each gave both depots (passage 5), so four mice, D1 to D4.
+# Which SAT library shares its mouse with which VAT library is NOT stated; replicate 1 is paired
+# with replicate 1 here, a guess. D1 and D2 each span the two Series.
+samples:
+  GSM7720368:
+    biosample:         {id: B1, text: MM_VA_1, quoted: [21, 8], p: 0.92}
+    donor:             {id: D1, inferred: "two mice per age group gave both depots; replicate 1 paired with SAT replicate 1 of the other Series by number, a guess", see: [5, 10], p: 0.5}
+    assay:             {text: single-nucleus RNA-seq, quoted: [2, 13, 12, 8], p: 0.93}
+    tissue:            {text: VAT, term: "UBERON:0003428", level: VAT, quoted: [15, 2, 5], p: 0.93}
+    age:               {text: 2 months, value: 2, unit: month, level: young, quoted: [16, 1], p: 0.97}
+    development_stage: {text: young, term: "MmusDv:0000062", quoted: [3, 4], p: 0.9}
+  GSM7720369:
+    biosample:         {id: B2, text: MM_VA_2, quoted: [22, 8], p: 0.92}
+    donor:             {id: D2, inferred: "two mice per age group gave both depots; replicate 2 paired with SAT replicate 2 of the other Series by number, a guess", see: [5, 10], p: 0.5}
+    assay:             {text: single-nucleus RNA-seq, quoted: [2, 13, 12, 8], p: 0.93}
+    tissue:            {text: VAT, term: "UBERON:0003428", level: VAT, quoted: [15, 2, 5], p: 0.93}
+    age:               {text: 2 months, value: 2, unit: month, level: young, quoted: [16, 1], p: 0.97}
+    development_stage: {text: young, term: "MmusDv:0000062", quoted: [3, 4], p: 0.9}
+  GSM7734325:
+    biosample:         {id: B3, text: FGG1_2M, quoted: [23, 8], p: 0.92}
+    donor:             {id: D1, inferred: "two mice per age group gave both depots; replicate 1 paired with VAT replicate 1 of the other Series by number, a guess", see: [5, 10], p: 0.5}
+    tissue:            {text: SAT, term: "UBERON:0010410", level: SAT, quoted: [14, 2, 5], p: 0.93}
+    age:               {text: 2 months, value: 2, unit: month, level: young, quoted: [16, 1], p: 0.97}
+    development_stage: {text: young, term: "MmusDv:0000062", quoted: [3, 4], p: 0.9}
+  GSM7734326:
+    biosample:         {id: B4, text: FGG3_2M, quoted: [24, 8], p: 0.92}
+    donor:             {id: D2, inferred: "two mice per age group gave both depots; replicate 2 paired with VAT replicate 2 of the other Series by number, a guess", see: [5, 10], p: 0.5}
+    tissue:            {text: SAT, term: "UBERON:0010410", level: SAT, quoted: [14, 2, 5], p: 0.93}
+    age:               {text: 2 months, value: 2, unit: month, level: young, quoted: [16, 1], p: 0.97}
+    development_stage: {text: young, term: "MmusDv:0000062", quoted: [3, 4], p: 0.9}
+  GSM7734327:
+    biosample:         {id: B5, text: FGG1_24M, quoted: [25, 8], p: 0.92}
+    donor:             {id: D3, inferred: "two mice per age group gave both depots; FGG1 paired with XX1 by number, a guess", see: [5], p: 0.55}
+    tissue:            {text: SAT, term: "UBERON:0010410", level: SAT, quoted: [14, 2, 5], p: 0.93}
+    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], p: 0.55}
+    development_stage: {text: aged, term: "MmusDv:0000134", quoted: [3, 4], p: 0.92}
+  GSM7734328:
+    biosample:         {id: B6, text: FGG2_24M, quoted: [26, 8], p: 0.92}
+    donor:             {id: D4, inferred: "two mice per age group gave both depots; FGG2 paired with XX2 by number, a guess", see: [5], p: 0.55}
+    tissue:            {text: SAT, term: "UBERON:0010410", level: SAT, quoted: [14, 2, 5], p: 0.93}
+    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], p: 0.55}
+    development_stage: {text: aged, term: "MmusDv:0000134", quoted: [3, 4], p: 0.92}
+  GSM7734329:
+    biosample:         {id: B7, text: XX1_24M, quoted: [27, 8], p: 0.92}
+    donor:             {id: D3, inferred: "two mice per age group gave both depots; XX1 paired with FGG1 by number, a guess", see: [5], p: 0.55}
+    tissue:            {text: VAT, term: "UBERON:0003428", level: VAT, quoted: [15, 2, 5], p: 0.93}
+    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], p: 0.55}
+    development_stage: {text: aged, term: "MmusDv:0000134", quoted: [3, 4], p: 0.92}
+  GSM7734330:
+    biosample:         {id: B8, text: XX2_24M, quoted: [28, 8], p: 0.92}
+    donor:             {id: D4, inferred: "two mice per age group gave both depots; XX2 paired with FGG2 by number, a guess", see: [5], p: 0.55}
+    tissue:            {text: VAT, term: "UBERON:0003428", level: VAT, quoted: [15, 2, 5], p: 0.93}
+    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], p: 0.55}
+    development_stage: {text: aged, term: "MmusDv:0000134", quoted: [3, 4], p: 0.92}
