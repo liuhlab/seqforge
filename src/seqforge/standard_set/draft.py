@@ -23,16 +23,17 @@ from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
 from ..passes.kinds import Kind, register
 from ..passes.review import ReviewForm
+from ..study.bounds import FORMAT
 from . import DRAFT, default_set_dir
 from .material import drafter_text, open_sources, pick_entries, read_group
 
 KIND_NAME = "standard-set-bounds"
 #: Raise it when the prompt, the answer's shape or a check changes.
-KIND_VERSION = "2026.11.3"
+KIND_VERSION = "2026.11.4"
 
 _LIST = {"type": "array", "items": {"type": "string"}}
-#: The bounds as a model writes them. ``left_out`` and ``split_samples`` are lists here, since a
-#: model fills a fixed shape more reliably than a mapping keyed by identifier; the files key them.
+#: The bounds as a model writes them. ``left_out`` is a list here, since a model fills a fixed
+#: shape more reliably than a mapping keyed by identifier; the draft and the verdict key it.
 BOUNDS_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -48,17 +49,8 @@ BOUNDS_SCHEMA: dict[str, Any] = {
                 "additionalProperties": False,
             },
         },
-        "split_samples": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {"series": {"type": "string"}, "samples": _LIST},
-                "required": ["series", "samples"],
-                "additionalProperties": False,
-            },
-        },
     },
-    "required": ["series", "papers", "reason", "left_out", "split_samples"],
+    "required": ["series", "papers", "reason", "left_out"],
     "additionalProperties": False,
 }
 ANSWER_SCHEMA: dict[str, Any] = {
@@ -86,8 +78,7 @@ Rules:
   dataset that re-uses this one's samples, is left out. The study is the one the group was picked by.
 - Every Series and every paper of the linked group is either in the study or in "left_out", never
   both. Each "left_out" entry gives its id and a reason of about eight words at most.
-- "split_samples" is empty unless one Series holds the samples of two different studies. Then it
-  lists, for that Series, the GEO sample ids that belong to this study.
+- A Series belongs to the study whole or not at all: never name some of its samples.
 - "reason" is one line saying why these Series and papers are one study.
 """
 _SYSTEM = (
@@ -99,8 +90,7 @@ _SYSTEM = (
     "the data, not the paper's finding. No accession numbers.\n\n"
     "Answer with one JSON object of this shape:\n"
     '{"summary": "...", "bounds": {"series": ["GSE..."], "papers": ["pmid:..."], "reason": "...", '
-    '"left_out": [{"id": "GSE... or pmid:...", "reason": "..."}], '
-    '"split_samples": [{"series": "GSE...", "samples": ["GSM..."]}]}}'
+    '"left_out": [{"id": "GSE... or pmid:...", "reason": "..."}]}}'
 )
 
 
@@ -113,7 +103,6 @@ def bounds_problems(bounds: Mapping[str, Any], group: Mapping[str, Any]) -> list
     papers = {p["id"] for p in group["papers"]}
     inside = [*bounds["series"], *bounds["papers"]]
     out = [entry["id"] for entry in bounds["left_out"]]
-    split = [entry["series"] for entry in bounds["split_samples"]]
     problems = []
     if not bounds["series"]:
         problems.append("no Series is in the study")
@@ -128,7 +117,6 @@ def bounds_problems(bounds: Mapping[str, Any], group: Mapping[str, Any]) -> list
         ("series", bounds["series"]),
         ("papers", bounds["papers"]),
         ("left_out", out),
-        ("split_samples", split),
     ):
         if repeated := sorted({i for i in ids if ids.count(i) > 1}):
             problems.append(f"listed more than once in {name}: {', '.join(repeated)}")
@@ -139,16 +127,6 @@ def bounds_problems(bounds: Mapping[str, Any], group: Mapping[str, Any]) -> list
     superseries = group.get("superseries")
     if superseries in bounds["series"]:
         problems.append(f"{superseries} is a SuperSeries, so its sub-Series are listed, not it")
-    for entry in bounds["split_samples"]:
-        gse, samples = entry["series"], entry["samples"]
-        if gse not in bounds["series"]:
-            problems.append(f"{gse} is split but is not in the study")
-            continue
-        own = {sample["id"] for sample in series.get(gse, {}).get("samples", [])}
-        if not samples or set(samples) - own or len(set(samples)) != len(samples):
-            problems.append(
-                f"the split of {gse} names no sample of it, samples of another, or one twice"
-            )
     return problems
 
 
@@ -220,15 +198,35 @@ def _build(store: Any) -> UnitKind:
 
 
 def file_bounds(bounds: Mapping[str, Any]) -> dict[str, Any]:
-    """Bounds as the study files hold them: ``left_out`` and ``split_samples`` keyed by identifier."""
+    """Bounds as the draft and the verdict hold them: ``left_out`` keyed by identifier."""
     return {
         "series": list(bounds["series"]),
         "papers": list(bounds["papers"]),
         "reason": " ".join(bounds["reason"].split()),
         "left_out": {entry["id"]: entry["reason"] for entry in bounds["left_out"]},
-        "split_samples": {
-            split["series"]: list(split["samples"]) for split in bounds["split_samples"]
-        },
+    }
+
+
+def study_bounds(study: str, bounds: Mapping[str, Any], model: str) -> dict[str, Any]:
+    """A study's bounds file, from bounds as the draft and the verdict hold them, drawn by ``model``.
+
+    Neither model here quotes a passage or gives a probability. So every claim is marked inferred,
+    with the reason the model wrote as how, and its probability is empty: no model has given one
+    yet. A sample split in older bounds is dropped, since a study is whole Series.
+    """
+    return {
+        "format": FORMAT,
+        "study": study,
+        "models": {"bounds": model, "probabilities": None},
+        "series": [
+            {"id": gse, "inferred": bounds["reason"], "p": None} for gse in bounds["series"]
+        ],
+        "papers": list(bounds["papers"]),
+        "left_out": [
+            {"id": record, "inferred": why, "p": None} for record, why in bounds["left_out"].items()
+        ],
+        "reason": bounds["reason"],
+        "passages": {},
     }
 
 

@@ -1,0 +1,26 @@
+format: 1
+study: GSE234962
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE234962
+  inferred: GSE234962 and its reporting atlas paper describe the adult motor neuron scRNA-seq atlas.
+  p: null
+papers:
+- pmid:38421866
+left_out:
+- id: GSE314726
+  inferred: Different study, re-uses this data
+  p: null
+- id: pmid:41390837
+  inferred: Different study, re-uses this data
+  p: null
+- id: pmid:41509263
+  inferred: Preprint of different UNC-3 study
+  p: null
+- id: pmid:42711312
+  inferred: Journal version of different UNC-3 study
+  p: null
+reason: GSE234962 and its reporting atlas paper describe the adult motor neuron scRNA-seq atlas.
+passages: {}

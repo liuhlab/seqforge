@@ -1,0 +1,19 @@
+format: 1
+study: GSE240375
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE240373
+  inferred: Both SubSeries profile young and aged glomeruli in one aging study under a common SuperSeries.
+  p: null
+- id: GSE240374
+  inferred: Both SubSeries profile young and aged glomeruli in one aging study under a common SuperSeries.
+  p: null
+papers: []
+left_out:
+- id: GSE240375
+  inferred: SuperSeries repeating sub-Series samples
+  p: null
+reason: Both SubSeries profile young and aged glomeruli in one aging study under a common SuperSeries.
+passages: {}

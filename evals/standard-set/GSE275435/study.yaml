@@ -15,14 +15,6 @@ records:
   - PRJNA1150916
   pmids:
   - '40537787'
-bounds:
-  series:
-  - GSE275435
-  papers:
-  - pmid:40537787
-  reason: Single RNA-seq Series and its one reporting paper on KChIP3 in 5XFAD mice.
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

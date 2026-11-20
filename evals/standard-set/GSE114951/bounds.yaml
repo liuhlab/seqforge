@@ -1,0 +1,14 @@
+format: 1
+study: GSE114951
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE114951
+  inferred: Single Series comparing WT to atfs-1(null) and atfs-1(et18) mutants, reported by one paper
+  p: null
+papers:
+- pmid:33473112
+left_out: []
+reason: Single Series comparing WT to atfs-1(null) and atfs-1(et18) mutants, reported by one paper
+passages: {}

@@ -4,13 +4,15 @@ The judge is Claude run from the command line, one call per study and never two 
 the draft and the text the drafting model saw, and may open the full records and the full paper
 texts, which :func:`~.material.stage` writes into a work folder outside the repo. It answers once:
 agree or disagree, its own bounds when it disagrees, a reason, whether it is unsure, and what it
-read. :func:`judge_study` then writes ``verdict.yaml`` and ``study.yaml`` beside the draft. Where
-the judge disagrees its bounds become the study's; a study it is unsure about stays, flagged.
+read. :func:`judge_study` then writes ``verdict.yaml``, ``bounds.yaml`` and ``study.yaml`` beside
+the draft. Where the judge disagrees its bounds become the study's; a study it is unsure about
+stays, flagged.
 
 A judge that refuses, or a call that fails, raises :class:`JudgeStopped` and writes neither file.
 Nothing here retries or rewords the request: a refusal is reported, and the study waits. The
-verdict is written first and the study file is made from the draft and the verdict alone, so a
-call that was cut off between the two is finished by the next one without asking the judge again.
+verdict is written first and the other two files are made from the draft and the verdict alone, so
+a call that was cut off after the verdict is finished by the next one without asking the judge
+again.
 """
 
 from __future__ import annotations
@@ -24,8 +26,9 @@ from typing import Any
 
 import yaml
 
-from . import DRAFT, STUDY, VERDICT
-from .draft import BOUNDS_SCHEMA, RULES, bounds_problems, file_bounds
+from ..study.bounds import check_bounds
+from . import BOUNDS, DRAFT, STUDY, VERDICT
+from .draft import BOUNDS_SCHEMA, RULES, bounds_problems, file_bounds, study_bounds
 from .material import drafter_text, record_ids, stage
 
 #: The judging model, as the command line names it.
@@ -56,9 +59,9 @@ _PROMPT = """\
 A smaller model drafted the bounds below from the records and the paper abstracts alone. Decide
 whether the draft is right.
 
-- "agrees" is true when the draft names the right Series, papers and sample split. Wording does not
-  matter. When it is false, give your own complete bounds in "bounds", in the same shape and under
-  the same rules, with a short reason for each record you leave out. When it is true, "bounds" is
+- "agrees" is true when the draft names the right Series and papers. Wording does not matter.
+  When it is false, give your own complete bounds in "bounds", in the same shape and under the
+  same rules, with a short reason for each record you leave out. When it is true, "bounds" is
   null.
 - "reason" says in a few plain sentences why, naming what settled it. Write it in your own words:
   never copy a phrase from a record or a paper, in "reason" or in any left-out reason. Say where
@@ -152,15 +155,15 @@ def judge_study(
     store_build: str | None,
     when: dt.datetime,
 ) -> dict[str, Any]:
-    """Judge one study's draft, write its verdict and study files, and return a short account.
+    """Judge one study's draft, write its verdict, bounds and study files, and return an account.
 
     ``entry`` is the study's row of the pick and ``group`` its linked group. ``work`` is where the
     judge's reading material, its prompt and its raw result go; record text lands there and never
-    in ``set_dir``. Raises :class:`JudgeStopped`, having written neither file, when the study has
-    no draft, already has its study file, or the judge gives no usable verdict.
+    in ``set_dir``. Raises :class:`JudgeStopped`, having written no file, when the study has no
+    draft, already has its study file, or the judge gives no usable verdict.
 
-    A study with a verdict but no study file was cut off between the two. Its study file is then
-    written from the draft and that verdict, and the judge is not asked again.
+    A study with a verdict but no study file was cut off after the verdict. Its bounds and study
+    files are then written from the draft and that verdict, and the judge is not asked again.
     """
     key = str(entry["id"])
     folder = set_dir / key
@@ -172,7 +175,7 @@ def judge_study(
     if (folder / VERDICT).exists():
         verdict = yaml.safe_load((folder / VERDICT).read_text())
         study = _study_file(entry, group, draft, verdict, store_build)
-        (folder / STUDY).write_text(yaml.safe_dump(study, sort_keys=False, width=100))
+        _write(folder, {BOUNDS: _bounds_file(key, draft, verdict), STUDY: study})
         return {**_account(verdict, study), "finished_from_verdict": True}
 
     work.mkdir(parents=True, exist_ok=True)
@@ -210,9 +213,6 @@ def judge_study(
             {
                 **kept,
                 "left_out": [{"id": k, "reason": v} for k, v in kept["left_out"].items()],
-                "split_samples": [
-                    {"series": k, "samples": v} for k, v in kept["split_samples"].items()
-                ],
             },
             group,
         )
@@ -236,9 +236,9 @@ def judge_study(
         "read": [name for name in READ if name in answer["read"]],
     }
     study = _study_file(entry, group, draft, verdict, store_build)
-    # The verdict first: it is the one file that cannot be made again without the judge.
-    for name, body in ((VERDICT, verdict), (STUDY, study)):
-        (folder / name).write_text(yaml.safe_dump(body, sort_keys=False, width=100))
+    # The verdict first: it is the one file that cannot be made again without the judge. The study
+    # file last: it is the one that says the study is judged.
+    _write(folder, {VERDICT: verdict, BOUNDS: _bounds_file(key, draft, verdict), STUDY: study})
     return {
         **_account(verdict, study),
         "cost_usd": result.get("total_cost_usd"),
@@ -246,6 +246,20 @@ def judge_study(
         "turns": result.get("num_turns"),
         "work": str(work),
     }
+
+
+def _write(folder: Path, files: Mapping[str, Mapping[str, Any]]) -> None:
+    for name, body in files.items():
+        (folder / name).write_text(yaml.safe_dump(dict(body), sort_keys=False, width=100))
+
+
+def _bounds_file(key: str, draft: Mapping[str, Any], verdict: Mapping[str, Any]) -> dict[str, Any]:
+    """The study's bounds file: the judge's bounds where it gave its own, else the draft's."""
+    drawn_by = verdict if verdict["bounds"] else draft
+    bounds = study_bounds(key, drawn_by["bounds"], drawn_by["model"])
+    if problems := check_bounds(bounds):
+        raise JudgeStopped(f"the bounds file of {key} would not pass its format check: {problems}")
+    return bounds
 
 
 def _study_file(
@@ -266,7 +280,6 @@ def _study_file(
         "reason_picked": entry["reason_picked"],
         "store_build": store_build,
         "records": record_ids(group),
-        "bounds": draft["bounds"] if own is None else own,
         "bounds_from": "draft" if own is None else "judge",
         "status": "unsure" if verdict["unsure"] else "settled",
         "read_to_decide": list(verdict["read"]),

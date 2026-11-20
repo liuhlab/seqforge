@@ -14,15 +14,6 @@ records:
   - PRJNA390522
   pmids:
   - '28645186'
-bounds:
-  series:
-  - GSE100021
-  papers:
-  - pmid:28645186
-  reason: One Series and one paper report hippocampal transcriptomes of aged rats given IGF-I versus control
-    adenovector
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

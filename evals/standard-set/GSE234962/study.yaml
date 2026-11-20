@@ -20,18 +20,6 @@ records:
   - '41390837'
   - '41509263'
   - '42711312'
-bounds:
-  series:
-  - GSE234962
-  papers:
-  - pmid:38421866
-  reason: GSE234962 and its reporting atlas paper describe the adult motor neuron scRNA-seq atlas.
-  left_out:
-    GSE314726: Different study, re-uses this data
-    pmid:41390837: Different study, re-uses this data
-    pmid:41509263: Preprint of different UNC-3 study
-    pmid:42711312: Journal version of different UNC-3 study
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

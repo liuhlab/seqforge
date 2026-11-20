@@ -1,0 +1,20 @@
+format: 1
+study: GSE306935
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE306935
+  inferred: scRNA-seq of adult, aged, and ISR-treated aged MuSCs after 18h activation.
+  p: null
+papers:
+- pmid:41256688
+left_out:
+- id: GSE143476
+  inferred: Separate study on activation kinetics, samples not reused here
+  p: null
+- id: pmid:32198156
+  inferred: Reports the separate GSE143476 activation kinetics study
+  p: null
+reason: scRNA-seq of adult, aged, and ISR-treated aged MuSCs after 18h activation.
+passages: {}

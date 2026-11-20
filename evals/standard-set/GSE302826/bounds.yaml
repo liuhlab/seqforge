@@ -1,0 +1,16 @@
+format: 1
+study: GSE302826
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE302826
+  inferred: One Series of bulk RNA-seq on isogenic ApoE3/3 vs ApoE4/4 iPSC-derived astrocytes, reported
+    by one paper.
+  p: null
+papers:
+- pmid:40983680
+left_out: []
+reason: One Series of bulk RNA-seq on isogenic ApoE3/3 vs ApoE4/4 iPSC-derived astrocytes, reported by
+  one paper.
+passages: {}

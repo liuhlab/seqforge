@@ -1,0 +1,16 @@
+format: 1
+study: GSE253651
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE253651
+  inferred: One Series of SMART-seq profiles of sorted cardiac macrophages comparing control, high-fat
+    diet and aged mice, reported by one paper
+  p: null
+papers:
+- pmid:38763956
+left_out: []
+reason: One Series of SMART-seq profiles of sorted cardiac macrophages comparing control, high-fat diet
+  and aged mice, reported by one paper
+passages: {}

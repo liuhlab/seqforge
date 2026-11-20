@@ -1,0 +1,17 @@
+format: 1
+study: GSE274290
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE274290
+  inferred: Both Series and the one paper report the same C. elegans germ cell gene expression study
+  p: null
+- id: GSE274291
+  inferred: Both Series and the one paper report the same C. elegans germ cell gene expression study
+  p: null
+papers:
+- pmid:40097379
+left_out: []
+reason: Both Series and the one paper report the same C. elegans germ cell gene expression study
+passages: {}

@@ -1,0 +1,20 @@
+format: 1
+study: GSE255902
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE255902
+  inferred: Both Series report the same Cell paper's bulk and single-cell RNA-seq of the 4R tauopathy
+    iPSC model.
+  p: null
+- id: GSE255904
+  inferred: Both Series report the same Cell paper's bulk and single-cell RNA-seq of the 4R tauopathy
+    iPSC model.
+  p: null
+papers:
+- pmid:38582079
+left_out: []
+reason: Both Series report the same Cell paper's bulk and single-cell RNA-seq of the 4R tauopathy iPSC
+  model.
+passages: {}

@@ -15,15 +15,6 @@ records:
   - PRJNA1066707
   pmids:
   - '38763956'
-bounds:
-  series:
-  - GSE253651
-  papers:
-  - pmid:38763956
-  reason: One Series of SMART-seq profiles of sorted cardiac macrophages comparing control, high-fat diet
-    and aged mice, reported by one paper
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

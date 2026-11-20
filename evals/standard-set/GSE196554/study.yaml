@@ -15,14 +15,6 @@ records:
   - PRJNA805502
   pmids:
   - '37192223'
-bounds:
-  series:
-  - GSE196554
-  papers:
-  - pmid:37192223
-  reason: One Series of scRNA-seq on human satellite cells across donor ages, reported by one paper.
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

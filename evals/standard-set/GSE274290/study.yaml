@@ -17,15 +17,6 @@ records:
   - PRJNA1145890
   pmids:
   - '40097379'
-bounds:
-  series:
-  - GSE274290
-  - GSE274291
-  papers:
-  - pmid:40097379
-  reason: Both Series and the one paper report the same C. elegans germ cell gene expression study
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

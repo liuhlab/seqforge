@@ -1,0 +1,16 @@
+format: 1
+study: GSE165978
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE165978
+  inferred: The Series and its linked paper report the same single-cell MuSC experiment across ages and
+    Sod1 genotypes
+  p: null
+papers:
+- pmid:34323217
+left_out: []
+reason: The Series and its linked paper report the same single-cell MuSC experiment across ages and Sod1
+  genotypes
+passages: {}

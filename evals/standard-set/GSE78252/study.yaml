@@ -15,15 +15,6 @@ records:
   - PRJNA313027
   pmids:
   - '27133166'
-bounds:
-  series:
-  - GSE78252
-  papers:
-  - pmid:27133166
-  reason: One RNA-seq Series profiling cco-1 RNAi mitochondrial stress response in wild-type and chromatin
-    mutant C. elegans, reported by one paper
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

@@ -62,6 +62,11 @@ standard_set_app = typer.Typer(
 )
 app.add_typer(standard_set_app, name="standard-set")
 
+study_app = typer.Typer(
+    help="A study's files: check one against its written format, and print a reading's relations."
+)
+app.add_typer(study_app, name="study")
+
 hook_app = typer.Typer(help="Agent hooks: the rules as mechanism, not aspiration.")
 app.add_typer(hook_app, name="hook")
 

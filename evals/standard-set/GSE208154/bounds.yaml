@@ -1,0 +1,13 @@
+format: 1
+study: GSE208154
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE208154
+  inferred: One time-series scRNA-seq atlas of C. elegans aging across six adult time points
+  p: null
+papers: []
+left_out: []
+reason: One time-series scRNA-seq atlas of C. elegans aging across six adult time points
+passages: {}

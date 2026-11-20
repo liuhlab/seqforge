@@ -1,0 +1,14 @@
+format: 1
+study: GSE60340
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE60340
+  inferred: Single RNA-seq series profiling passage and stress-induced senescence states in MDAH041 fibroblasts
+  p: null
+papers:
+- pmid:25483067
+left_out: []
+reason: Single RNA-seq series profiling passage and stress-induced senescence states in MDAH041 fibroblasts
+passages: {}

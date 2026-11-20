@@ -2,7 +2,9 @@
 
 **Provisional.** The standard set is the 50 small GEO studies that later work is built and checked
 on: 17 on aging, 17 on neurodegeneration and 16 on *C. elegans*. A study's **bounds** say which GEO
-Series and which papers belong to it. The file format can still change.
+Series and which papers belong to it. Each study's bounds are in a file of their own, in a
+[written format](../../docs/formats/bounds.md) that a command checks. The format of the other
+files can still change.
 
 This folder holds:
 
@@ -25,8 +27,9 @@ none, and no study had to be replaced by a spare.
 
 - **GSE101112:** the draft kept a later paper that only re-analyses the data. The full text of that
   paper settled it.
-- **GSE126954:** one of its eight samples is a re-deposited sample of an older study, so the study
-  is seven samples of the Series. This is the one study with a sample split.
+- **GSE126954:** one of its eight samples is a re-deposited sample of an older study, and the
+  checking model drew the study as the other seven. A study is whole Series, so its bounds are now
+  the whole Series. Telling the re-deposited sample apart is left to the reading of the study.
 - **Three studies were picked as possibly two studies in one Series** (GSE101112, GSE131269,
   GSE132886). Each turned out to be one study whose second paper re-uses the data or is linked by
   mistake. `pick.yaml` marks them `shape_not_found`.
@@ -53,7 +56,8 @@ seqforge standard-set judge <id>
 2. **`draft`** writes `<id>/draft.yaml` from the pass's answers, for each study that has none.
 3. **`judge`** asks Claude (`claude -p`, model `claude-fable-5-2`) about one study. It gets the
    draft and what the drafting model saw, and may open the full records and the full paper texts.
-   It writes `<id>/verdict.yaml` and `<id>/study.yaml`. Judge one study at a time. If the judge
+   It writes `<id>/verdict.yaml`, `<id>/bounds.yaml` and `<id>/study.yaml`. Judge one study at a
+   time. If the judge
    refuses a study, the command exits 3 and writes nothing: report it, and do not rephrase the
    request.
 
@@ -68,18 +72,36 @@ To look at the drawn studies, build the reading page:
 
 | File | Written by | Holds |
 |---|---|---|
-| `<id>/study.yaml` | the pipeline | the study: why it was picked, its records, its bounds |
+| `<id>/study.yaml` | the pipeline | the study: why it was picked, its records, where its bounds came from |
+| `<id>/bounds.yaml` | the pipeline | the study's bounds |
 | `<id>/draft.yaml` | the small model | the drafted summary and bounds |
 | `<id>/verdict.yaml` | the large model | whether it agrees with the draft, and why |
 
-No file is overwritten after it is written. The page that shows the studies is view-only: a
-correction file is written only when a person actually corrects a study.
+No file is overwritten after it is written, with one exception. Each of the 50 `study.yaml` files
+was rewritten once to move its bounds out into `bounds.yaml`, so that the bounds
+exist in one place. The page that shows the studies is view-only: a correction file is written
+only when a person actually corrects a study.
+
+## `bounds.yaml`
+
+[The bounds file](../../docs/formats/bounds.md) describes every field. In short: the Series that
+belong to the study, its papers, each linked Series or paper left out with a reason, and one
+reason line. A study is whole Series, so no field names samples.
+
+```bash
+seqforge study check-bounds evals/standard-set/<id>/bounds.yaml
+```
+
+The command exits 0 when the file is in the current format, and 3 with each problem named when it
+is not. All 50 files pass. They were converted from the bounds the two models drew, which came
+with no quotes and no probabilities. So each claim in them is marked `inferred`, with the model's
+reason as its text, and each `p` is `null`: no model has given one yet.
 
 ## `study.yaml`
 
 | Field | Meaning |
 |---|---|
-| `id` | The folder name: the Series the study was picked by. Two studies cut from one Series add `-a` and `-b`. |
+| `id` | The folder name: the Series the study was picked by. |
 | `summary` | One short plain line saying what the study is. From the draft. |
 | `direction` | `aging`, `neurodegeneration` or `c_elegans`. A study counts under one. |
 | `also_fits` | Other directions it could count under. May be empty. |
@@ -87,22 +109,11 @@ correction file is written only when a person actually corrects a study.
 | `reason_picked` | One or two sentences. |
 | `store_build` | The liulab-data store build the identifiers were read from. |
 | `records` | Every linked record, by identifier only: `series`, `superseries` (which of those Series is the SuperSeries, or `null`), `bioprojects`, `pmids`. No record text. |
-| `bounds` | What belongs to the study. See below. |
 | `bounds_from` | `draft` when the judge agreed, `judge` when its version replaced the draft. |
 | `status` | `settled`, or `unsure` when the judge was unsure. |
 | `read_to_decide` | What had to be read: `records`, `abstract`, `full_paper`. |
 
 The pipeline writes the last three together with the verdict.
-
-`bounds` holds:
-
-- `series`: the Series that belong to the study. For a SuperSeries these are its sub-Series.
-- `papers`: paper identifiers, written `pmid:<number>`.
-- `reason`: one line.
-- `left_out`: each linked Series or paper that is not in the study, with a reason of about
-  eight words at most.
-- `split_samples`: a list of samples per Series, only where a Series is split between two
-  studies. Empty otherwise.
 
 ## The other two files
 
@@ -111,3 +122,9 @@ The pipeline writes the last three together with the verdict.
   A malformed draft is still judged, and the judge then has to give its own bounds.
 - **Verdict:** `model`, `when`, `agrees`, `bounds` (the judge's own, only when it disagrees),
   `reason`, `unsure`, `read`.
+
+In these two files `bounds` is what the model answered, not the bounds format: `series`, `papers`,
+one `reason`, and `left_out` as a reason for each identifier. The 50 drafts and the two verdicts
+with bounds of their own also hold `split_samples`, from when a Series could be split between two
+studies. It is empty in all but the verdict of GSE126954. These files are kept as they were
+written.

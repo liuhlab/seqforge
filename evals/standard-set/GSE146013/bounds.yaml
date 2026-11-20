@@ -1,0 +1,16 @@
+format: 1
+study: GSE146013
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE146013
+  inferred: One Series and one paper report miRNA profiling of prion-inoculated versus control Tg501 mouse
+    spinal cord
+  p: null
+papers:
+- pmid:32549330
+left_out: []
+reason: One Series and one paper report miRNA profiling of prion-inoculated versus control Tg501 mouse
+  spinal cord
+passages: {}

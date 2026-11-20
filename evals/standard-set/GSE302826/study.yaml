@@ -15,15 +15,6 @@ records:
   - PRJNA1292230
   pmids:
   - '40983680'
-bounds:
-  series:
-  - GSE302826
-  papers:
-  - pmid:40983680
-  reason: One Series of bulk RNA-seq on isogenic ApoE3/3 vs ApoE4/4 iPSC-derived astrocytes, reported
-    by one paper.
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

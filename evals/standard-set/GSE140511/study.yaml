@@ -19,17 +19,6 @@ records:
   - PRJNA590041
   pmids:
   - '31932797'
-bounds:
-  series:
-  - GSE140399
-  - GSE140510
-  papers:
-  - pmid:31932797
-  reason: Two mouse snRNA-seq SubSeries at 7 and 15 months from one TREM2/5XFAD study, reported by one
-    paper
-  left_out:
-    GSE140511: SuperSeries repeating sub-Series samples
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

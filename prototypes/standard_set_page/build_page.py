@@ -1,6 +1,7 @@
 """PROTOTYPE, throwaway: draw each study of the standard set as one small picture.
 
-Reads a folder holding one subfolder per study (<ID>/study.yaml, draft.yaml, verdict.yaml) and
+Reads a folder holding one subfolder per study (<ID>/study.yaml, bounds.yaml, draft.yaml,
+verdict.yaml) and
 writes one self-contained, view-only HTML page with two views of the same pictures: one study at
 a time, and all of them as a gallery.
 
@@ -383,6 +384,17 @@ def main() -> None:
     for path in sorted(args.folder.glob("*/study.yaml")):
         study = load(path)
         study.setdefault("id", path.parent.name)
+        held = load(path.with_name("bounds.yaml"))
+        if held:  # the bounds file, read into the older shape the picture draws from
+            study["bounds"] = {
+                "series": [claim["id"] for claim in held["series"]],
+                "papers": held["papers"],
+                # A left-out record's backing says why: how it was inferred, or a note.
+                "left_out": {
+                    claim["id"]: claim.get("inferred") or claim.get("unknown") or ""
+                    for claim in held["left_out"]
+                },
+            }
         study["draft"] = load(path.with_name("draft.yaml"))
         study["verdict"] = load(path.with_name("verdict.yaml"))
         studies.append(study)

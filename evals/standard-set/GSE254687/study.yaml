@@ -20,18 +20,6 @@ records:
   pmids:
   - '30206190'
   - '39014482'
-bounds:
-  series:
-  - GSE254687
-  - GSE256105
-  papers:
-  - pmid:39014482
-  reason: Both Series report the PARK7/DJ-1 microglia LPS study by the same paper; GSE256105 adds the
-    24h single-cell comparison
-  left_out:
-    GSE115571: Prior LPS microglia dataset re-used for comparison
-    pmid:30206190: Earlier paper reporting the re-used dataset
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

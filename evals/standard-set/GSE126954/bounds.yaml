@@ -1,0 +1,16 @@
+format: 1
+study: GSE126954
+models:
+  bounds: claude-fable-5-2
+  probabilities: null
+series:
+- id: GSE126954
+  inferred: The 2019 Science embryo atlas and its single GEO Series are one study; the seven embryo samples
+    are its own data.
+  p: null
+papers:
+- pmid:31488706
+left_out: []
+reason: The 2019 Science embryo atlas and its single GEO Series are one study; the seven embryo samples
+  are its own data.
+passages: {}

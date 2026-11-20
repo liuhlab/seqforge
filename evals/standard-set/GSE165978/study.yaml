@@ -14,15 +14,6 @@ records:
   - PRJNA698820
   pmids:
   - '34323217'
-bounds:
-  series:
-  - GSE165978
-  papers:
-  - pmid:34323217
-  reason: The Series and its linked paper report the same single-cell MuSC experiment across ages and
-    Sod1 genotypes
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

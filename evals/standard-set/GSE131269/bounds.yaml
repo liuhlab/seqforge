@@ -1,0 +1,17 @@
+format: 1
+study: GSE131269
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE131269
+  inferred: GSE131269's design and samples match the METL-5 C. elegans stress study reported by pmid:32494643
+  p: null
+papers:
+- pmid:32494643
+left_out:
+- id: pmid:31279658
+  inferred: Different study on PCIF1 m6Am in mammalian cells
+  p: null
+reason: GSE131269's design and samples match the METL-5 C. elegans stress study reported by pmid:32494643
+passages: {}

@@ -1,0 +1,16 @@
+format: 1
+study: GSE100021
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE100021
+  inferred: One Series and one paper report hippocampal transcriptomes of aged rats given IGF-I versus
+    control adenovector
+  p: null
+papers:
+- pmid:28645186
+left_out: []
+reason: One Series and one paper report hippocampal transcriptomes of aged rats given IGF-I versus control
+  adenovector
+passages: {}

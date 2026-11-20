@@ -18,15 +18,6 @@ records:
   - PRJNA1003460
   - PRJNA1003456
   pmids: []
-bounds:
-  series:
-  - GSE240373
-  - GSE240374
-  papers: []
-  reason: Both SubSeries profile young and aged glomeruli in one aging study under a common SuperSeries.
-  left_out:
-    GSE240375: SuperSeries repeating sub-Series samples
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

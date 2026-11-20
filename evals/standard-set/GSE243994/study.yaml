@@ -16,14 +16,6 @@ records:
   - PRJNA1020853
   pmids:
   - '38851828'
-bounds:
-  series:
-  - GSE243994
-  papers:
-  - pmid:38851828
-  reason: One RNA-seq Series and its single reporting paper profile PSG cells across genotypes and ages
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

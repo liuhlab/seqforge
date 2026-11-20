@@ -14,15 +14,6 @@ records:
   - PRJNA1478654
   pmids:
   - '42570239'
-bounds:
-  series:
-  - GSE335500
-  papers:
-  - pmid:42570239
-  reason: One Series and its paper reporting bulk RNA-seq of APOE3 vs APOE4 astrocyte-grafted AD mouse
-    cortex
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

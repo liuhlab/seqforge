@@ -1,0 +1,13 @@
+format: 1
+study: GSE142633
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE142633
+  inferred: Single Series profiles frontal cortex mRNA from young and aged WT and 5XFAD mice
+  p: null
+papers: []
+left_out: []
+reason: Single Series profiles frontal cortex mRNA from young and aged WT and 5XFAD mice
+passages: {}

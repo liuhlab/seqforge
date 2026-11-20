@@ -1,0 +1,14 @@
+format: 1
+study: GSE151164
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE151164
+  inferred: One Series and its paper profile heat-shock response in affl-2 mutant versus wild-type worms
+  p: null
+papers:
+- pmid:32518061
+left_out: []
+reason: One Series and its paper profile heat-shock response in affl-2 mutant versus wild-type worms
+passages: {}

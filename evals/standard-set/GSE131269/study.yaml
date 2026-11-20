@@ -16,15 +16,6 @@ records:
   pmids:
   - '31279658'
   - '32494643'
-bounds:
-  series:
-  - GSE131269
-  papers:
-  - pmid:32494643
-  reason: GSE131269's design and samples match the METL-5 C. elegans stress study reported by pmid:32494643
-  left_out:
-    pmid:31279658: Different study on PCIF1 m6Am in mammalian cells
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

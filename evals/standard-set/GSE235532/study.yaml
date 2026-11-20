@@ -15,15 +15,6 @@ records:
   - PRJNA965925
   pmids:
   - '38637528'
-bounds:
-  series:
-  - GSE235532
-  papers:
-  - pmid:38637528
-  reason: One ChIP-seq dataset profiling two histone marks in wild-type and LKRSDH mutant fly heads at
-    two ages
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

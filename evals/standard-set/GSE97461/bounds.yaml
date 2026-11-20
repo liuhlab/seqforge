@@ -1,0 +1,14 @@
+format: 1
+study: GSE97461
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE97461
+  inferred: Single GEO Series and its linked paper report TRAP-seq of young versus aged striatal neurons
+  p: null
+papers:
+- pmid:30485811
+left_out: []
+reason: Single GEO Series and its linked paper report TRAP-seq of young versus aged striatal neurons
+passages: {}

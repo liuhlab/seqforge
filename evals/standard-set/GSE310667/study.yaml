@@ -15,14 +15,6 @@ records:
   - PRJNA1366913
   pmids:
   - '41332732'
-bounds:
-  series:
-  - GSE310667
-  papers:
-  - pmid:41332732
-  reason: One Series of scRNA-seq profiles of L1 C. elegans neurons, reported by one preprint
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

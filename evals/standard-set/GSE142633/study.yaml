@@ -12,13 +12,6 @@ records:
   bioprojects:
   - PRJNA597779
   pmids: []
-bounds:
-  series:
-  - GSE142633
-  papers: []
-  reason: Single Series profiles frontal cortex mRNA from young and aged WT and 5XFAD mice
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

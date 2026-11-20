@@ -15,14 +15,6 @@ records:
   - PRJNA644390
   pmids:
   - '33304899'
-bounds:
-  series:
-  - GSE153881
-  papers:
-  - pmid:33304899
-  reason: One RNA-seq dataset of plasma EV RNA in healthy, MCI and AD donors reported by one paper
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:
