@@ -70,6 +70,9 @@ To look at the drawn studies, build the reading page:
 
 ## One folder per study
 
+[Files from the hand work](../../docs/hand-work-files.md) lists every file here for someone outside
+the project: where it is, its format, who made it, and how to load it.
+
 | File | Written by | Holds |
 |---|---|---|
 | `<id>/study.yaml` | the pipeline | the study: why it was picked, its records, where its bounds came from |
