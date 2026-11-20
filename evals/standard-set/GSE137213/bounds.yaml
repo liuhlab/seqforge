@@ -1,0 +1,16 @@
+format: 1
+study: GSE137213
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE137213
+  inferred: Single Series and its one paper compare colon transcriptomes of SNCA transgenic and wild-type
+    mice under standard versus enriched housing
+  p: null
+papers:
+- pmid:31749671
+left_out: []
+reason: Single Series and its one paper compare colon transcriptomes of SNCA transgenic and wild-type
+  mice under standard versus enriched housing
+passages: {}

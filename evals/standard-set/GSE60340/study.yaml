@@ -15,14 +15,6 @@ records:
   - PRJNA258058
   pmids:
   - '25483067'
-bounds:
-  series:
-  - GSE60340
-  papers:
-  - pmid:25483067
-  reason: Single RNA-seq series profiling passage and stress-induced senescence states in MDAH041 fibroblasts
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

@@ -1,0 +1,20 @@
+format: 1
+study: GSE117724
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE117700
+  inferred: RNA-seq and ChIP-seq subseries from one NHR-86 immune activation study
+  p: null
+- id: GSE117719
+  inferred: RNA-seq and ChIP-seq subseries from one NHR-86 immune activation study
+  p: null
+papers:
+- pmid:30668573
+left_out:
+- id: GSE117724
+  inferred: SuperSeries repeating subseries samples
+  p: null
+reason: RNA-seq and ChIP-seq subseries from one NHR-86 immune activation study
+passages: {}

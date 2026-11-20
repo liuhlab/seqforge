@@ -16,15 +16,6 @@ records:
   pmids:
   - '33258951'
   - '39010112'
-bounds:
-  series:
-  - GSE132886
-  papers:
-  - pmid:33258951
-  reason: Same Series and matching abstract describe RNA-seq of mouse uteri across ages
-  left_out:
-    pmid:39010112: Re-uses GSE132886 data for functional follow-up on IL17RB
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

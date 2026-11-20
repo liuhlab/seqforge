@@ -14,14 +14,6 @@ records:
   - PRJNA1182399
   pmids:
   - '40199585'
-bounds:
-  series:
-  - GSE281157
-  papers:
-  - pmid:40199585
-  reason: GSE281157 is the only Series; pmid:40199585 is the paper linked to this Series.
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

@@ -1,0 +1,14 @@
+format: 1
+study: GSE106105
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE106105
+  inferred: One Drosophila RNA-seq study of mitochondrial stress and PGAM5, reported by one paper
+  p: null
+papers:
+- pmid:28891792
+left_out: []
+reason: One Drosophila RNA-seq study of mitochondrial stress and PGAM5, reported by one paper
+passages: {}

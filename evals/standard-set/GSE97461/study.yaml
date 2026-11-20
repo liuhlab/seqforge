@@ -16,14 +16,6 @@ records:
   - PRJNA381914
   pmids:
   - '30485811'
-bounds:
-  series:
-  - GSE97461
-  papers:
-  - pmid:30485811
-  reason: Single GEO Series and its linked paper report TRAP-seq of young versus aged striatal neurons
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

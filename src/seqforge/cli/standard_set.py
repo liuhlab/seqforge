@@ -1,9 +1,9 @@
 """`seqforge standard-set`: list the standard set of studies kept under ``evals/``, and draw one.
 
-A rough first version; the file format is provisional. A study is drawn in three steps: the
-drafting pass (``seqforge pass start standard-set-bounds``), ``draft``, which copies each unit's
-answer beside its study, and ``judge``, which asks the large model about one study and writes its
-verdict and its study file. No step overwrites a file.
+A rough first version; the format of the study, draft and verdict files is provisional. A study is
+drawn in three steps: the drafting pass (``seqforge pass start standard-set-bounds``), ``draft``,
+which copies each unit's answer beside its study, and ``judge``, which asks the large model about
+one study and writes its verdict, its bounds file and its study file. No step overwrites a file.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from pathlib import Path
 import typer
 import yaml
 
-from ..standard_set import STUDY, default_set_dir
+from ..standard_set import BOUNDS, STUDY, default_set_dir
 from ._common import _emit, _StageOut
 from .root import standard_set_app
 
@@ -24,9 +24,10 @@ _DIR = typer.Option(None, "--dir", help="Folder of study folders (default: evals
 
 @standard_set_app.command("list")
 def standard_set_list(set_dir: Path | None = _DIR) -> None:
-    """List the standard set: one object per study, from its ``<id>/study.yaml``.
+    """List the standard set: one object per study, from its ``<id>/study.yaml`` and ``bounds.yaml``.
 
-    Each object gives the study's record identifiers, the reason it was picked and its bounds.
+    Each object gives the study's record identifiers, the reason it was picked and its bounds, as
+    its bounds file holds them.
     """
     root = set_dir or default_set_dir()
     payload = []
@@ -42,7 +43,7 @@ def standard_set_list(set_dir: Path | None = _DIR) -> None:
                 "bounds_from": study["bounds_from"],
                 "reason_picked": " ".join(study["reason_picked"].split()),
                 "records": study["records"],
-                "bounds": study["bounds"],
+                "bounds": yaml.safe_load(path.with_name(BOUNDS).read_text()),
             }
         )
     typer.echo(json.dumps(payload, indent=2))
@@ -98,7 +99,7 @@ def standard_set_judge(
         ),
     ),
 ) -> None:
-    """Ask the judging model about one study's draft, and write its verdict and its study file.
+    """Ask the judging model about one study's draft, and write its verdict, bounds and study files.
 
     One study per call, and never two calls at once. The records and papers come from liulab-data's
     stores, named by ``LABDATA_STORE`` and ``LABDATA_PAPERS``. Exit 0 with a short JSON account; 2

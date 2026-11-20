@@ -14,15 +14,6 @@ records:
   - PRJNA922918
   pmids:
   - '37771191'
-bounds:
-  series:
-  - GSE222631
-  papers:
-  - pmid:37771191
-  reason: Single RNA-seq Series profiling perisynaptic versus other Schwann cells in young and aged muscle,
-    reported in one paper.
-  left_out: {}
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

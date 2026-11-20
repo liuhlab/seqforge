@@ -1,0 +1,14 @@
+format: 1
+study: GSE256266
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE256266
+  inferred: One Series of snRNA-seq glia from hermaphrodite and male worms, reported by one paper.
+  p: null
+papers:
+- pmid:40527319
+left_out: []
+reason: One Series of snRNA-seq glia from hermaphrodite and male worms, reported by one paper.
+passages: {}

@@ -1,0 +1,14 @@
+format: 1
+study: GSE77720
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE77720
+  inferred: One RNA-seq study comparing cortex and spinal cord of C9orf72 BAC transgenic and control mice.
+  p: null
+papers:
+- pmid:26637796
+left_out: []
+reason: One RNA-seq study comparing cortex and spinal cord of C9orf72 BAC transgenic and control mice.
+passages: {}

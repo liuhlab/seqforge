@@ -47,7 +47,7 @@ list, shared by every later stage.
 _Avoid_: benchmark, test set, gold set, corpus
 
 **Bounds**:
-What belongs to one study: its GEO Series, its papers, and its samples where a Series is shared.
+What belongs to one study: its GEO Series and its papers.
 A linked record that does not belong is left out with a reason.
 _Avoid_: scope, extent, membership, boundary
 

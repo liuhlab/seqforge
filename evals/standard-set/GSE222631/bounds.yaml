@@ -1,0 +1,16 @@
+format: 1
+study: GSE222631
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE222631
+  inferred: Single RNA-seq Series profiling perisynaptic versus other Schwann cells in young and aged
+    muscle, reported in one paper.
+  p: null
+papers:
+- pmid:37771191
+left_out: []
+reason: Single RNA-seq Series profiling perisynaptic versus other Schwann cells in young and aged muscle,
+  reported in one paper.
+passages: {}

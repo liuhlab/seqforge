@@ -19,16 +19,6 @@ records:
   - PRJNA492466
   pmids:
   - '30668573'
-bounds:
-  series:
-  - GSE117700
-  - GSE117719
-  papers:
-  - pmid:30668573
-  reason: RNA-seq and ChIP-seq subseries from one NHR-86 immune activation study
-  left_out:
-    GSE117724: SuperSeries repeating subseries samples
-  split_samples: {}
 bounds_from: draft
 status: settled
 read_to_decide:

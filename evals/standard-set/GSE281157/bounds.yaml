@@ -1,0 +1,14 @@
+format: 1
+study: GSE281157
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE281157
+  inferred: GSE281157 is the only Series; pmid:40199585 is the paper linked to this Series.
+  p: null
+papers:
+- pmid:40199585
+left_out: []
+reason: GSE281157 is the only Series; pmid:40199585 is the paper linked to this Series.
+passages: {}

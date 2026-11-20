@@ -1,0 +1,22 @@
+format: 1
+study: GSE140511
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE140399
+  inferred: Two mouse snRNA-seq SubSeries at 7 and 15 months from one TREM2/5XFAD study, reported by one
+    paper
+  p: null
+- id: GSE140510
+  inferred: Two mouse snRNA-seq SubSeries at 7 and 15 months from one TREM2/5XFAD study, reported by one
+    paper
+  p: null
+papers:
+- pmid:31932797
+left_out:
+- id: GSE140511
+  inferred: SuperSeries repeating sub-Series samples
+  p: null
+reason: Two mouse snRNA-seq SubSeries at 7 and 15 months from one TREM2/5XFAD study, reported by one paper
+passages: {}

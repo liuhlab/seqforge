@@ -1,0 +1,13 @@
+format: 1
+study: GSE112068
+models:
+  bounds: deepseek/deepseek-v4-flash
+  probabilities: null
+series:
+- id: GSE112068
+  inferred: Single Series profiles IMR-90 cells across bleomycin doses and time points after DNA damage.
+  p: null
+papers: []
+left_out: []
+reason: Single Series profiles IMR-90 cells across bleomycin doses and time points after DNA damage.
+passages: {}
