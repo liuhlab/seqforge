@@ -51,6 +51,7 @@ nav:
       - Compiling with Claude: tutorials/with-claude.md
       - Compiling Step-by-step: tutorials/step-by-step.md
       - Adding a technology: tutorials/adding-a-technology.md
+  - The study workflow: study-workflow.md
   - Passes and reviews: passes-and-reviews.md
   - Concepts:
       - The two artifacts: concepts/artifacts.md
