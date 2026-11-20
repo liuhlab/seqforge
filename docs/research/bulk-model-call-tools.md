@@ -95,7 +95,7 @@ candidate's section.
 - [`src/seqforge/harvest/meter.py`](../../src/seqforge/harvest/meter.py) wraps a provider and is the
   one counter, refuser and recorder: one Exchange per real request (retries included), a token
   Ceiling that reserves an estimate for each request before it is sent, and an in-memory Transcript.
-- The throwaway prototype helper on branch `prototype/study-reading-deepseek-jev`
+- The throwaway prototype helper on tag `archive/prototype-study-reading-deepseek-jev`
   (`prototypes/study_reading/harness/common.py`) adds what the engine needs and the seam lacks: a
   JSON file per call keyed by a hash of the request body, a `calls.jsonl` log, a dollar spend cap
   read back from that log, a fixed-pool thread runner, and a hand-written Jev client.

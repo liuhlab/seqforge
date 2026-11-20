@@ -93,7 +93,7 @@ The link relations followed, each stored once under its forward name: `sample` (
 
 ## Method
 
-The script is [`prototypes/standard_set/measure_candidates.py`](https://github.com/liuhlab/seqforge/blob/task/583-store-candidates/prototypes/standard_set/measure_candidates.py), kept on the branch `task/583-store-candidates` and not merged.
+The script is [`prototypes/standard_set/measure_candidates.py`](https://github.com/liuhlab/seqforge/blob/archive/task-583-store-candidates/prototypes/standard_set/measure_candidates.py), kept on the tag `archive/task-583-store-candidates` and not merged.
 It reads both stores, writes nothing in them, and prints JSON lines: the run's provenance, one
 line per candidate Series, per linked group and per linked paper, and a summary. It writes
 accessions, typed fields and counts, and no record text.
