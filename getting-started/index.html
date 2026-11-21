@@ -1287,9 +1287,9 @@ code</strong>. There is no <code>--json</code> flag; JSON is simply what comes o
 <a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>io<span class="w"> </span>records<span class="w"> </span>PRJNA1027859
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># 4. write down what the data IS  (immutable, content-addressed)</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1">#    --accession fetches the records and joins them to your files: that is where</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1">#    per-sample strain/tissue/sex/dev_stage come from. Without one you still get a</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1">#    manifest -- samples grouped by run, no facts attached. Most data has no accession.</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1">#    --accession fetches the records and joins them to your files, so each file</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="c1">#    lands in its archive sample. Without one you still get a manifest -- samples</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1">#    grouped by run. Most data has no accession.</span>
 <a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>fill<span class="w"> </span>reads/*.fastq.gz<span class="w"> </span>--accession<span class="w"> </span>PRJNA1027859
 <a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>validate<span class="w"> </span>seqforge/manifest.yaml
 <a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>

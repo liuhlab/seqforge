@@ -1551,19 +1551,17 @@ want to know <em>why</em>.</p>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>            └─ Run SRR28716553        the alias &quot;Rep3 daf2 reads&quot;, and your files
 </code></pre></div>
 <p>This verb is a <strong>transcriber</strong>. It reports what the submitter typed and stops; it decides nothing.</p>
-<p><strong>This is where per-sample metadata comes from, and it is the part seqforge used to throw away.</strong>
-<code>strain</code>, <code>tissue</code>, <code>sex</code> and <code>dev_stage</code> live on the BioSample record. The fields you get from
-<code>io resolve</code> are byte-identical across all six runs of this study — every one of them says "Model
-organism or animal sample from Caenorhabditis elegans" — so they can tell you nothing about any
-individual sample.</p>
+<p>The run and sample records are what match each of your files to its sample, and the records declare
+the organism and the project. What each sample <em>was</em> (its strain, tissue or treatment) is not part of
+the compiled manifest: a study reading holds those (see <a href="../../study-workflow/">Study workflow</a>).</p>
 <h2 id="3-write-down-what-the-data-is">3. Write down what the data IS<a class="headerlink" href="#3-write-down-what-the-data-is" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>fill<span class="w"> </span>data/*/*.fastq.gz<span class="w"> </span>--accession<span class="w"> </span>PRJNA1027859
 </code></pre></div>
 <p>Two resolvers run here, and they answer different questions.</p>
 <p><code>resolve score</code> reads the <strong>bytes</strong> and decides the library: which chemistry, which file is which
-read. The metadata resolver reads the <strong>records</strong> and decides which sample each file is and what that
-sample was. Neither is shown the other's input — the metadata resolver is handed file names and
-hashes, not the probe's output, because there is no byte in a FASTQ that bears on <code>tissue</code>.</p>
+read. The metadata resolver reads the <strong>records</strong> and decides which sample each file is. Neither is
+shown the other's input — the metadata resolver is handed file names and hashes, not the probe's
+output, because the join is made by the names the records declare.</p>
 <p>Both can refuse.</p>
 <p>You get <code>seqforge/manifest.yaml</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">experiment</span><span class="p">:</span>
@@ -1582,39 +1580,30 @@ hashes, not the probe's output, because there is no byte in a FASTQ that bears o
 <a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">  </span><span class="nt">samples</span><span class="p">:</span>
 <a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sample_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SAMN40935616</span>
 <a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">      </span><span class="nt">accession</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SAMN40935616</span>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">      </span><span class="nt">attributes</span><span class="p">:</span>
-<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">        </span><span class="nt">strain</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">{</span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="nv">CQ757</span><span class="p p-Indicator">,</span><span class="nt">         basis</span><span class="p">:</span><span class="w"> </span><span class="nv">asserted</span><span class="p p-Indicator">,</span><span class="nt"> evidence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SAMN40935616</span><span class="p p-Indicator">],</span><span class="nt"> confidence</span><span class="p">:</span><span class="w"> </span><span class="nv">null</span><span class="p p-Indicator">,</span><span class="nt"> rung</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">}</span>
-<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">        </span><span class="nt">tissue</span><span class="p">:</span><span class="w">    </span><span class="p p-Indicator">{</span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="nv">Neurons</span><span class="p p-Indicator">,</span><span class="nt">       basis</span><span class="p">:</span><span class="w"> </span><span class="nv">asserted</span><span class="p p-Indicator">,</span><span class="nt"> evidence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SAMN40935616</span><span class="p p-Indicator">],</span><span class="nt"> confidence</span><span class="p">:</span><span class="w"> </span><span class="nv">null</span><span class="p p-Indicator">,</span><span class="nt"> rung</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">}</span>
-<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">        </span><span class="nt">sex</span><span class="p">:</span><span class="w">       </span><span class="p p-Indicator">{</span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="nv">hermaphrodite</span><span class="p p-Indicator">,</span><span class="nt"> basis</span><span class="p">:</span><span class="w"> </span><span class="nv">asserted</span><span class="p p-Indicator">,</span><span class="nt"> evidence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SAMN40935616</span><span class="p p-Indicator">],</span><span class="nt"> confidence</span><span class="p">:</span><span class="w"> </span><span class="nv">null</span><span class="p p-Indicator">,</span><span class="nt"> rung</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">}</span>
-<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">        </span><span class="nt">dev_stage</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="nv">Adult Day 1</span><span class="p p-Indicator">,</span><span class="nt">   basis</span><span class="p">:</span><span class="w"> </span><span class="nv">asserted</span><span class="p p-Indicator">,</span><span class="nt"> evidence</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SAMN40935616</span><span class="p p-Indicator">],</span><span class="nt"> confidence</span><span class="p">:</span><span class="w"> </span><span class="nv">null</span><span class="p p-Indicator">,</span><span class="nt"> rung</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">}</span>
-<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="w">      </span><span class="nt">file_uris</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SRX24283130/SRR28716558_1.fastq.gz</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">SRX24283130/SRR28716558_2.fastq.gz</span><span class="p p-Indicator">]</span>
-<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="w">    </span><span class="c1"># ... five more</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">      </span><span class="nt">file_uris</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">SRX24283130/SRR28716558_1.fastq.gz</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">SRX24283130/SRR28716558_2.fastq.gz</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">    </span><span class="c1"># ... five more</span>
 </code></pre></div>
-<p>Three things worth reading closely.</p>
+<p>Two things worth reading closely.</p>
 <p><strong>You did not pass <code>--organism</code>.</strong> The record declares it, and the manifest cites the six BioSamples
 it came from. A flag still wins if you pass one — a human typing a taxid is asserting it now, having
 looked — but nothing is defaulted. There is no default taxid and there must not be: a wrong one
 aligns cleanly against the wrong genome, exits 0, and nothing downstream ever asks again.</p>
-<p><strong><code>confidence: null</code> is the informative value.</strong> It means nothing was judged. Copying <code>strain: CQ758</code>
-out of a BioSample record is a transcription — <code>basis: asserted</code> plus the record accession in
+<p><strong><code>confidence: null</code> is the informative value.</strong> It means nothing was judged. Copying the taxid out
+of a BioSample record is a transcription — <code>basis: asserted</code> plus the record accessions in
 <code>evidence</code> already says everything true about how we know it. A <code>1.0</code> there would invite the question
-it cannot answer ("you are certain the strain is CQ758?"). We are certain the <em>record declares</em> it,
-which is a different claim and the one we make.</p>
-<p><strong>The attribute keys are NCBI's, not ours.</strong> <code>strain</code>, <code>tissue</code>, <code>dev_stage</code> are three of NCBI's 960
-harmonized BioSample attribute names, each with a definition somebody else maintains
-(<code>seqforge io attributes tissue</code> will read it to you). There is no <code>condition</code>: that was ours, no
-archive defines it, and a field named "condition" accepts anything you can call a condition.</p>
+it cannot answer ("you are certain it is 6239?"). We are certain the <em>records declare</em> it, which is a
+different claim and the one we make.</p>
 <h3 id="if-you-have-no-accession">If you have no accession<a class="headerlink" href="#if-you-have-no-accession" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>manifest<span class="w"> </span>fill<span class="w"> </span>reads/*.fastq.gz<span class="w"> </span>--organism<span class="w"> </span><span class="m">6239</span>
 </code></pre></div>
-<p>That works, and it is the common case. Files are grouped into runs by name, each run becomes a
-sample, and the samples carry no facts. Exit 0. A quieter manifest, and just as true.</p>
+<p>That works, and it is the common case. Files are grouped into runs by name, and each run becomes a
+sample. Exit 0, and a manifest that is just as true.</p>
 <h3 id="if-the-accession-does-not-match-your-files">If the accession does not match your files<a class="headerlink" href="#if-the-accession-does-not-match-your-files" title="Permanent link">&para;</a></h3>
 <p>That is a refusal, not a shrug:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>RECORD_JOIN_INCOMPLETE: PRJNA1027859 declares 6 run(s) (SRR28716553, ...), and 1 file(s) on disk
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>match none of them by run accession or by the original filenames the record declares: mystery_1.fastq.gz
 </code></pre></div>
-<p>Half-joining would leave that file with no sample facts while the manifest still read as though it
+<p>Half-joining would leave that file with no sample while the manifest still read as though it
 described everything.</p>
 <h2 id="4-let-the-model-read-the-prose-optional">4. Let the model read the prose (optional)<a class="headerlink" href="#4-let-the-model-read-the-prose-optional" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>harvest<span class="w"> </span>extract<span class="w"> </span>info/paper.pdf<span class="w"> </span>--records<span class="w"> </span>seqforge/records/PRJNA1027859.json
@@ -1628,23 +1617,14 @@ seqforge is a verifier.</p>
 <p>Every claim it returns carries a verbatim quote. Code — not the model — greps that quote back into
 the normalized document, computes the offsets, and checks that the quote actually supports the value.
 A claim that fails either check is discarded.</p>
-<p><strong>How a claim names a sample.</strong> It doesn't. <code>--records</code> renders each archive record as its own
-document, so the document for SAMN40935621 contains that sample's prose and nothing else — which
-means "which sample" is answered by <em>which file we handed the model</em>. Code knows it because code
-chose it. The model is never asked to name a sample and could not.</p>
-<p>The ask is scoped the same way. A BioSample's document is asked for sample attributes and never for a
-chemistry; an experiment's protocol paragraph is asked for the chemistry and nothing else; the study
-abstract is read by nobody, because "wild-type and daf-2 mutants" is true of the study and false of
-every individual sample in it.</p>
-<p><strong>Two sources disagreeing is decided by precedence, then noted — not voted, and not a refusal.</strong> If
-the paper says "we dissected neurons and body wall muscle" and the model comes back with
-<code>tissue=muscle</code>, that quote is real and it does entail the value — the span check passes, and it is
-<em>right to</em> pass. What catches it is the record saying <code>Neurons</code>: the record is a declaration about
-that sample (<code>asserted</code>), the paper's reading is our inference (<code>inferred</code>), so <strong>the record's value
-stands</strong> and the paper's is reported as a non-blocking <strong>warning</strong>. The manifest still compiles — a
-single ambiguous sample annotation is no reason to refuse a dataset. And if two <em>equal</em> authorities
-disagree (two records, say), the field is left <strong>null</strong>: a missing value is not permanent, a wrong one
-is. Only a disagreement about what the data <em>is</em> — the byte-level chemistry — blocks.</p>
+<p><strong>What the model is asked.</strong> From a paper: the chemistry, whether the input was cells or nuclei, the
+organism and the accessions. <code>--records</code> renders each experiment record as its own document, and its
+protocol paragraph is asked for the chemistry and nothing else. Sample and run records, and the study
+abstract, are asked nothing. What each sample was is not the compiler's question; a study reading
+answers it.</p>
+<p><strong>A chemistry claim is a hint, never evidence.</strong> It can break a tie the bytes cannot settle, and a
+disagreement between what the paper claims and what the bytes show is a question for you, never
+something code picks.</p>
 <h2 id="5-write-down-what-you-want-done-with-it">5. Write down what you want DONE with it<a class="headerlink" href="#5-write-down-what-you-want-done-with-it" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>pixi<span class="w"> </span>run<span class="w"> </span>--<span class="w"> </span>seqforge<span class="w"> </span>processing<span class="w"> </span>new<span class="w"> </span>seqforge/manifest.yaml<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">    </span>--assembly<span class="w"> </span>ce11<span class="w"> </span>--annotation<span class="w"> </span>WS298<span class="w"> </span>--out<span class="w"> </span>seqforge/processing.yaml
