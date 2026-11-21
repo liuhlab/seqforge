@@ -13,7 +13,7 @@ keeps identifiers and short quotes.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 from xml.etree import ElementTree
@@ -339,16 +339,6 @@ def taxonomy(sample: Mapping[str, Any]) -> tuple[str | None, str | None]:
     return name, taxid
 
 
-def holders_of(sources: Mapping[str, Any], field: str, text: str) -> list[str]:
-    """The sample records whose ``field`` holds ``text`` whole, as one of its values."""
-    return [s["id"] for s in sources["samples"] if text in s["fields"].get(field, [])]
-
-
 def sample_ids(sources: Mapping[str, Any]) -> list[str]:
     """The study's sequenced samples, in accession order."""
     return [s["id"] for s in sources["samples"]]
-
-
-def joined(values: Iterable[str]) -> str:
-    """Values as one line of text, for a model's question."""
-    return "; ".join(values)
