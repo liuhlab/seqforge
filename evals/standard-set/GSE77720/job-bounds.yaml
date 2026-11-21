@@ -1,0 +1,14 @@
+format: 1
+study: GSE77720
+models:
+  bounds: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE77720
+  inferred: 'code: the study starts from GSE77720'
+  p: null
+papers:
+- pmid:26637796
+left_out: []
+reason: Code kept GEO Series GSE77720; Jev judged each other record kept here to be from the same research.
+passages: {}

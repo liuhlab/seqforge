@@ -1,0 +1,20 @@
+format: 1
+study: GSE240375
+models:
+  bounds: null
+  probabilities: null
+series:
+- id: GSE240373
+  inferred: 'code: a sub-Series of GSE240375'
+  p: null
+- id: GSE240374
+  inferred: 'code: a sub-Series of GSE240375'
+  p: null
+papers: []
+left_out:
+- id: GSE240375
+  inferred: 'code: a SuperSeries only repeats its sub-Series'' samples'
+  p: null
+reason: Code kept the Series under SuperSeries GSE240375; the linked group holds no other record to ask
+  about.
+passages: {}

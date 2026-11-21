@@ -1,0 +1,22 @@
+format: 1
+study: GSE147401
+models:
+  bounds: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE147401
+  inferred: 'code: the study starts from GSE147401'
+  p: null
+papers:
+- pmid:34519784
+left_out:
+- id: GSE107190
+  inferred: 'Jev''s p(yes) that GSE107190 was deposited for the same research as GEO Series GSE147401:
+    0.31; its p(yes) to the reversed question: 0.53'
+  p: 0.69
+- id: pmid:29167199
+  inferred: 'Jev''s p(yes) that pmid:29167199 first reports the data of GEO Series GSE147401: 0.04; its
+    p(yes) to the reversed question: 0.18'
+  p: 0.96
+reason: Code kept GEO Series GSE147401; Jev judged each other record kept here to be from the same research.
+passages: {}

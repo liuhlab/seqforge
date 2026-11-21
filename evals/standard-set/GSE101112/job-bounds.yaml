@@ -1,0 +1,22 @@
+format: 1
+study: GSE101112
+models:
+  bounds: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE101112
+  inferred: 'code: the study starts from GSE101112'
+  p: null
+papers:
+- pmid:31742554
+left_out:
+- id: pmid:32884834
+  inferred: 'Jev''s p(yes) that pmid:32884834 first reports the data of GEO Series GSE101112: 0.13; its
+    p(yes) to the reversed question: 0.86'
+  p: 0.87
+- id: pmid:33294943
+  inferred: 'Jev''s p(yes) that pmid:33294943 first reports the data of GEO Series GSE101112: 0.09; its
+    p(yes) to the reversed question: 0.89'
+  p: 0.91
+reason: Code kept GEO Series GSE101112; Jev judged each other record kept here to be from the same research.
+passages: {}

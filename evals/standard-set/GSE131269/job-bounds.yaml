@@ -1,0 +1,18 @@
+format: 1
+study: GSE131269
+models:
+  bounds: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE131269
+  inferred: 'code: the study starts from GSE131269'
+  p: null
+papers:
+- pmid:32494643
+left_out:
+- id: pmid:31279658
+  inferred: 'Jev''s p(yes) that pmid:31279658 first reports the data of GEO Series GSE131269: 0.10; its
+    p(yes) to the reversed question: 0.89'
+  p: 0.9
+reason: Code kept GEO Series GSE131269; Jev judged each other record kept here to be from the same research.
+passages: {}
