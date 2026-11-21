@@ -11,7 +11,7 @@ import datetime as dt
 import json
 import threading
 import types
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -118,38 +118,39 @@ def _jev() -> FakeGateway:
     return FakeGateway(answer, prices={bounding.JEV.name: Price(0.0, 0.0)})
 
 
-@pytest.fixture
-def drawn(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, dict[str, Any], Any]:
+@pytest.fixture(scope="module")
+def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict[str, Any], Any]]:
     """One pass over GSE10, GSE20 and GSE30, written twice beside the standard set's own files."""
     kind = dataclasses.replace(
         bounding.KIND,
         build=lambda store: bounding.bounds_kind(Store(), Papers()),
         reads_store=False,
     )
-    monkeypatch.setitem(KINDS, kind.name, kind)
-    fake = _jev()
-    monkeypatch.setattr(
-        "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
-    )
-    monkeypatch.delenv("SEQFORGE_REVIEWS", raising=False)
-    monkeypatch.chdir(tmp_path)
-    clone = ["--reviews", str(tmp_path / "clone")]
-    (tmp_path / "clone" / "reviews").mkdir(parents=True)
-    (tmp_path / "keys.txt").write_text("GSE10\nGSE20\nGSE30\n")
-    started = runner.invoke(
-        app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt", *clone]
-    )
-    assert started.exit_code == 0, started.output
-    counts = json.loads(started.stdout)["counts"]
-    assert (counts["settled"], counts["unsettled"], counts["refused"]) == (1, 1, 1)
+    fake, here = _jev(), tmp_path_factory.mktemp("bounding")
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setitem(KINDS, kind.name, kind)
+        monkeypatch.setattr(
+            "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
+        )
+        monkeypatch.delenv("SEQFORGE_REVIEWS", raising=False)
+        monkeypatch.chdir(here)
+        clone = ["--reviews", str(here / "clone")]
+        (here / "clone" / "reviews").mkdir(parents=True)
+        (here / "keys.txt").write_text("GSE10\nGSE20\nGSE30\n")
+        started = runner.invoke(
+            app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt", *clone]
+        )
+        assert started.exit_code == 0, started.output
+        counts = json.loads(started.stdout)["counts"]
+        assert (counts["settled"], counts["unsettled"], counts["refused"]) == (1, 1, 1)
 
-    set_dir = tmp_path / "set"
-    (set_dir / "GSE10").mkdir(parents=True)
-    (set_dir / "GSE10" / "bounds.yaml").write_text("the standard set's own\n")
-    write = ["study", "write-bounds", "--out", str(set_dir), "--name", "job-bounds.yaml", *clone]
-    written, again = runner.invoke(app, write), runner.invoke(app, write)
-    assert (written.exit_code, again.exit_code) == (0, 0), written.output
-    return set_dir, json.loads(written.stdout), json.loads(again.stdout)
+        set_dir = here / "set"
+        (set_dir / "GSE10").mkdir(parents=True)
+        (set_dir / "GSE10" / "bounds.yaml").write_text("the standard set's own\n")
+        write = ["study", "write-bounds", "--out", str(set_dir), "--name", "job-bounds.yaml"]
+        written, again = runner.invoke(app, [*write, *clone]), runner.invoke(app, [*write, *clone])
+        assert (written.exit_code, again.exit_code) == (0, 0), written.output
+        yield set_dir, json.loads(written.stdout), json.loads(again.stdout)
 
 
 def _placed(bounds: dict[str, Any]) -> dict[str, Any]:
