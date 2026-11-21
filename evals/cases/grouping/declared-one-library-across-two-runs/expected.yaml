@@ -32,9 +32,8 @@ description: >-
   that had stopped binding would still show two samples rather than four. The two libraries share a
   chemistry because a sample spanning two chemistries is refused a layer down — same-chemistry
   same-sample is the one fuse nothing else catches, which is precisely why ADR-0034 makes it a note.
-  And the set declares no attributes, because a `source: user` set may not: `experiment.samples.*`
-  is therefore empty here whatever happens, and the count is the only sample claim this dataset can
-  make at all.
+  And the set declares no attributes, because a `source: user` set may not, so the count is the only
+  sample claim this dataset can make at all.
 
   A COUNT AND NOT THE SAMPLE ID, even though the id here IS the one thing the record set chooses
   (`lib01`, a grouping key and not a specimen). Pinning it in `fields` would pin the fixture's own

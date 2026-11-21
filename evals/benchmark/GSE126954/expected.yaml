@@ -5,7 +5,6 @@
 # (2019), doi:10.1126/science.aax1971, PMID 31488706.
 # Pruned in review, because a submitter re-typing them would move them without the science moving:
 #   - study.center: the project record's center_name is the string "GEO" — plumbing, not a lab.
-#   - samples.*.source_name: "C. elegans embryos" re-types organism + dev_stage, both kept.
 # library.chemistry (+ equivalence_members) is the regression baseline resolved from the
 # fingerprint's pinned bytes at the `predicts` versions; the paper states "Single cell RNA-seq
 # libraries were generated with 10X Genomics v2 chemistry and standard protocols, and sequenced on
@@ -62,16 +61,12 @@ conflict:
   - 10x-5p-gex-v2
 description: >-
   Benchmark: GSE126954 (Packer et al., Science 2019) resolved from its fingerprint package. It pins
-  two things at once. First, that resolve still reads 10x-3p-gex-v2 out of the pinned bytes — the
-  chemistry the paper names. Second, that the BioSample join still lands each of the seven 10x
-  embryo samples on its own attributes: the four UW collections are VC2010 (a fully sequenced N2
-  derivative, used because it survives two bleach-synchronisation cycles) and the three UPenn
-  mixed-embryo collections are N2, a real lab-level split stated in both the paper's methods and
-  each sample's growth protocol — so a shuffled join surfaces as a wrong strain instead of passing
-  on the `*` list alone. The series' eighth sample (GSM4318946 / SAMN14126930) is the L2-stage
-  sci-RNA-seq re-analysis of Cao et al. 2017 and is in neither the package nor `records.json`; were
-  it ever added, these lists would grow an eighth entry and a dev_stage of L2. Breaking this case
-  means the chemistry decision or the record join moved.
+  that resolve still reads 10x-3p-gex-v2 out of the pinned bytes — the chemistry the paper names —
+  and asks between 3' v2 and 5' v2, which the bytes cannot separate; and that the organism and the
+  project title still come through from the archive records. The series' eighth sample
+  (GSM4318946 / SAMN14126930) is the L2-stage sci-RNA-seq re-analysis of Cao et al. 2017 and is in
+  neither the package nor `records.json`. Breaking this case means the chemistry decision or the
+  reading of the archive records moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6
@@ -81,21 +76,3 @@ fields:
   experiment.organism: 6239
   experiment.project.title: A lineage-resolved molecular atlas of C. elegans embryogenesis at
     single cell resolution
-  experiment.samples.*.strain:
-  - N2
-  - N2
-  - N2
-  - VC2010, derived from N2
-  - VC2010, derived from N2
-  - VC2010, derived from N2
-  - VC2010, derived from N2
-  experiment.samples.*.dev_stage:
-  - embryo
-  - embryo
-  - embryo
-  - embryo
-  - embryo
-  - embryo
-  - embryo
-  experiment.samples.SAMN10988833.strain: VC2010, derived from N2
-  experiment.samples.SAMN10988844.strain: N2

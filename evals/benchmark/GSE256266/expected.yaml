@@ -4,16 +4,8 @@
 # this file); every value below was confirmed against Purice, Quitevis, Manning et al.,
 # "Molecular profiling of adult C. elegans glia across sexes by single-nuclear RNA-seq",
 # Dev Cell 60(19):2659-2678.e10 (2025), doi:10.1016/j.devcel.2025.05.013, PMID 40527319.
-# Pruned in review, because a submitter re-typing them would move them without the science moving:
-#   - experiment.samples.*.tissue: "1 day old whole hermaphrodite worm" is a sentence, not a tissue
-#   - experiment.samples.*.source_name: the same sentence verbatim — one free-text string, twice.
-#   - experiment.samples.*.treatment: "none" asserts nothing; untreated is the paper's only arm.
-#   - experiment.samples.*.cell_line: "n/a" is a blank form field — a worm has no cell line.
+# Pruned in review, because a submitter re-typing it would move it without the science moving:
 #   - experiment.project.center: a submitting-account affiliation, not a fact about the data.
-# The sex split survives that pruning, but only through genotype: the archive carries no `sex`
-# attribute, and the paper acquired all male data in a him-5 background, so "miR228-GFP, Him5"
-# (males) against "miR228-GFP" (hermaphrodites) IS the sex claim here. It is pinned in both
-# shapes, and on one accession of each sex, so a shuffled join cannot pass.
 # library.chemistry (+ equivalence_members) is the regression baseline resolved from the
 # fingerprint's pinned bytes at the `predicts` versions; the paper states the nuclei were run on
 # "the 10X Chromium platform using 10X NextGem v3.1 chemistry" and sequenced on an Illumina
@@ -23,9 +15,7 @@ outcome: decide
 description: >-
   Benchmark: GSE256266 (Purice et al., Dev Cell 2025) — four glial snRNA-seq libraries, two
   hermaphrodite and two male. Pins the 10x v3.1 chemistry resolved from the fingerprint's pinned
-  bytes, and the archive join that gives each BioSample its genotype. Only the Him5 marker
-  separates the male samples from the hermaphrodite ones, so a dropped or shuffled sample join
-  would silently erase the sex axis this paper is about.
+  bytes, and the organism and project title read from the archive records.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6
@@ -36,15 +26,3 @@ fields:
   - 10x-3p-gex-v3.1
   experiment.organism: 6239
   experiment.project.title: The complete molecular atlas of adult C. elegans glia across sexes
-  experiment.samples.*.genotype:
-  - miR228-GFP
-  - miR228-GFP
-  - miR228-GFP, Him5
-  - miR228-GFP, Him5
-  experiment.samples.*.cell_type:
-  - glia
-  - glia
-  - glia
-  - glia
-  experiment.samples.SAMN40022214.genotype: miR228-GFP, Him5
-  experiment.samples.SAMN40022217.genotype: miR228-GFP

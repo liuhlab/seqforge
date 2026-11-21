@@ -8,9 +8,6 @@
 # Pruned in review, because a submitter re-typing them would move them without the science moving:
 #   - study.center: the SRA submitting account's label ("Princeton University"), not a fact about
 #     the experiment; no result in the paper moves if the core facility is named instead.
-#   - samples.*.strain: one 60-char genotype string repeated 8x. Unlike every other benchmark
-#     case, strain does not vary here, so the list buys nothing the per-accession claim (kept,
-#     below) does not already buy.
 # library.chemistry (+ equivalence_members) is the regression baseline resolved from the
 # fingerprint's pinned bytes at the `predicts` versions; the paper states "10X Genomics Chromium X
 # system using the Single Cell 3' v3.1 Reagent Kits" (key resources table), which agrees — v3.1 is
@@ -20,18 +17,13 @@
 # It is single-nucleus RNA-seq, not single-cell: FACS-sorted GFP+/Hoechst+ neuronal NUCLEI, and the
 # paper says why ("snRNA-seq is preferred over single-cell sequencing for neurons"), so intron
 # counting is not optional for this dataset.
-# The archive's 5 male libraries vs the paper's "3 biological replicates for hermaphrodites and 4
-# biological replicates for males" is NOT a conflict: "for the 4th male biological replicate
-# samples were split into two technical replicates". Male 4 (SAMN49549041) and Male Replicate 5
-# (SAMN49569331) share collection date 2024-05-30 and are that split; sex is graded per library.
 outcome: decide
 description: >-
-  Benchmark: PRJNA1195922 (Morillo et al., Cell Rep. 2025) resolved from its fingerprint package.
-  The only dataset in the corpus where `sex` varies across samples, so it is the one case pinning a
-  per-sample attribute that actually discriminates: 3 hermaphrodite + 5 male libraries off a single
-  him-8(e1489) strain, claimed as a multiset AND again on one named BioSample. Breaking it means
-  resolve_metadata dropped a sample attribute or shuffled the record-to-sample join — either would
-  mislabel the sex of every nucleus downstream, silently, in a corpus nobody re-reads.
+  Benchmark: PRJNA1195922 (Morillo et al., Cell Rep. 2025) resolved from its fingerprint package —
+  single-nucleus 10x libraries of adult C. elegans neuronal nuclei. It pins that resolve still reads
+  10x-3p-gex-v3 (with v3.1 processing-equivalent) out of the pinned bytes, and that the organism and
+  project title still come through from the archive records. Breaking it means the chemistry
+  resolver or the reading of the records moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6
@@ -43,35 +35,3 @@ fields:
   experiment.organism: 6239
   experiment.project.title: Single-Nucleus Neuronal Transcriptional Profiling of Male C. elegans
     Uncovers Regulators of Sex-Specific and Sex-Shared Behaviors
-  experiment.samples.*.sex:
-  - hermaphrodite
-  - hermaphrodite
-  - hermaphrodite
-  - male
-  - male
-  - male
-  - male
-  - male
-  experiment.samples.*.tissue:
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  experiment.samples.*.dev_stage:
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  # The anti-shuffle claim (ADR-0016): `*` grades as a sorted multiset, so it passes on a shuffled
-  # join. SAMN49549035 is "Herm 1" — a member of the minority class, so a shuffle is caught 5 times
-  # in 8 rather than 3.
-  experiment.samples.SAMN49549035.sex: hermaphrodite
-  experiment.samples.SAMN49549035.strain: 'CQ760: wqIs7 [Prgef-1::his-58::GFP] him-8(e1489) IV'

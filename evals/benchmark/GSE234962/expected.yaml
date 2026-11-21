@@ -6,22 +6,10 @@
 # Pruned in review, because a submitter re-typing them would move them without the science moving:
 #   - study.center: "Cell and Developmental Biology, Vanderbilt University" is the submitting lab's
 #     department, not a sequencing center; nothing in the paper turns on it.
-#   - samples.*.source_name: a verbatim duplicate of samples.*.tissue, so it is a second copy of
-#     one claim rather than a second claim.
-#   - samples.*.genotype ("wt"): contradicts the strain it sits beside — both strains carry an
-#     integrated transgene, and the paper never calls these animals wild type.
 # library.chemistry (+ equivalence_members) is the regression baseline resolved from the
 # fingerprint's pinned bytes at the `predicts` versions; the paper states "single cell 3' RNA
 # sequencing utilizing the 10X Chromium system, v3 chemistry", sequenced on a NovaSeq 6000, which
 # agrees. A code change that moves it turns this case red.
-#
-# Kept, with one discrepancy on the record: the archive writes KRA257's transgene as
-# "kasIs2 [lin-39p::RFP + pha-1(+)]", while the paper's key resources table writes
-# "kasIs2[lin-39_intron1::tagRFP]" (from Feng et al.) — same reporter, submitter shorthand for the
-# regulatory element, and pha-1(+) is the Kratsios lab's usual co-injection marker rather than an
-# extra allele. The value graded here is the archive's, per the corpus contract; strain stays
-# because it is the ONLY attribute that differs between the four samples, so it is what makes the
-# per-accession claim below able to catch a shuffled join at all.
 #
 # SETTLED 2026-08-01 (#160): the `--llm` grade that moved is EXPLAINED, and the explanation is that
 # nothing moved it. This case decides byte-only and is NONDETERMINISTIC under --llm; the mechanism is
@@ -80,11 +68,10 @@
 # stage's recall, which is the thing an `assertions:` block exists to measure rather than to assume.
 outcome: decide
 description: >-
-  Benchmark: GSE234962 (Smith et al. 2024, Cell Rep) pins two independent things — that resolve
-  still reads 10x-3p-gex-v3 out of this dataset's pinned bytes, and that the record join still
-  lands each of the four FACS-sorted motor-neuron libraries on its own strain, young-adult stage
-  and tissue. A red here means either the chemistry resolver moved or the sample-to-record join
-  shuffled.
+  Benchmark: GSE234962 (Smith et al. 2024, Cell Rep) pins that resolve still reads 10x-3p-gex-v3
+  out of this dataset's pinned bytes, and that the organism and project title still come through
+  from the archive records. A red here means the chemistry resolver or the reading of the records
+  moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6
@@ -96,22 +83,6 @@ fields:
   experiment.organism: 6239
   experiment.project.title: A molecular atlas of adult C. elegans motor neurons reveals ancient diversity
     delineated by conserved transcription factor codes
-  experiment.samples.*.strain:
-  - CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
-  - CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
-  - KRA257 kasIs2 [lin-39p::RFP + pha-1(+)]
-  - KRA257 kasIs2 [lin-39p::RFP + pha-1(+)]
-  experiment.samples.*.tissue:
-  - Motor neurons
-  - Motor neurons
-  - Motor neurons
-  - Motor neurons
-  experiment.samples.*.age:
-  - young adult
-  - young adult
-  - young adult
-  - young adult
-  experiment.samples.SAMN35739865.strain: KRA257 kasIs2 [lin-39p::RFP + pha-1(+)]
 # Harvest ground truth, added 2026-08-01, and checked against the text the PACKAGE carries — the
 # extracted `info/text` beside the reads, not the published article — because that file is the only
 # thing a run can read. Graded only under --llm.
@@ -122,16 +93,3 @@ assertions:
   # no archive record can collide with it.
   - field: experiment.organism
     value: Caenorhabditis elegans
-forbidden_fields:
-  # The bait is real and it is TYPED, which is what makes it this case's own. The carried text says
-  # "embryos obtained by hypochlorite treatment of adult hermaphrodites" — bleach synchronisation,
-  # husbandry rather than an experimental variable — and every BioSample beside it carries
-  # "synchronization protocol: L1 arrest" in a field of its own. `treatment` is asked of all four
-  # experiment documents, whose whole text is a GSM title, so a quote landing here would be a real
-  # sentence attached to the wrong sample and no byte could contradict it. This study has no
-  # treatment: the variable is the reporter strain.
-  - experiment.samples.treatment
-  # "disease" occurs four times in the carried text and never about a worm — "an ancient cell type
-  # targeted by multiple adult-onset diseases", ALS, and hindbrain/spinal-cord susceptibility. It is
-  # the paper's motivation, not a property of the animals that were sequenced.
-  - experiment.samples.disease

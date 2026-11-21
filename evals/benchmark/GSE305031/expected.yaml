@@ -214,6 +214,11 @@ description: >-
   DEFAULT_MAX_READS is still 2,000. Both `outcome` and all nine `fields` are byte-identical to the
   pre-registration commit — the case was never edited to meet the code. See the two dated POST-RUN
   blocks in the header, the first of which reported the defect and is deliberately kept.
+
+  AMENDMENT 2026-11-21 — the six sample-attribute claims (experiment.samples.*) are removed from
+  `fields:` because the compiler no longer carries sample attributes; a study reading holds them
+  now. The three that remain (chemistry, organism, project title) are unchanged, and "nine" above is
+  the count as it stood before this amendment. No other claim moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.7
@@ -222,13 +227,3 @@ fields:
   library.chemistry: 10x-gemx-3p-v4
   experiment.organism: 6239
   experiment.project.title: Single-cell RNA-seq data of C. elegans early embryos.
-  experiment.samples.*.strain:
-  - N2
-  experiment.samples.*.tissue:
-  - whole embryos
-  experiment.samples.*.cell_type:
-  - embryonic
-  experiment.samples.*.treatment:
-  - grown at 12C
-  experiment.samples.SAMN50554797.strain: N2
-  experiment.samples.SAMN50554797.treatment: grown at 12C

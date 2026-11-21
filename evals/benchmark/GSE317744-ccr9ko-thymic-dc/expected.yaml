@@ -86,6 +86,10 @@ description: >-
   DECIDING the 26 bp tie from bytes, which would mean an asymmetry had crept into two signatures that
   are byte-identical by construction, turning a tie into a guess wearing a decision's clothes.
   PRE-REGISTERED before any run.
+
+  AMENDMENT 2026-11-21 — the sample-attribute claims (experiment.samples.*) are removed from
+  `fields:` because the compiler no longer carries sample attributes; a study reading holds them
+  now. No other claim moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.7
@@ -94,13 +98,3 @@ fields:
   library.chemistry: 10x-5p-gex-v2
   experiment.organism: 10090
   experiment.project.title: Thymic CD11c+ cells [scRNA-seq]
-  experiment.samples.*.genotype:
-  - CCR9KO
-  experiment.samples.*.tissue:
-  - Thymus
-  experiment.samples.*.cell_type:
-  - CD11c+ cells
-  experiment.samples.*.treatment:
-  - MC38_3 weeks
-  experiment.samples.SAMN54923653.genotype: CCR9KO
-  experiment.samples.SAMN54923653.treatment: MC38_3 weeks

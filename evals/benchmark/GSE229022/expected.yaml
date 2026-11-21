@@ -56,6 +56,10 @@ description: >-
   resolve must seat 10x 3' v3 on the 28 bp and 90 bp mates and leave both dual-index reads
   unassigned. Breaking it means a file that fills no role got seated in one, or that the leftover
   penalty now refuses a routine 10x submission that happens to carry its index reads.
+
+  AMENDMENT 2026-11-21 — the sample-attribute claims (experiment.samples.*) are removed from
+  `fields:` because the compiler no longer carries sample attributes; a study reading holds them
+  now. No other claim moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.7
@@ -71,10 +75,3 @@ fields:
   experiment.organism: 6239
   experiment.project.title: Single nuclei gene expression profile for adult C. elegans and several
     longevity mutants
-  experiment.samples.*.strain:
-  - Wild-type(N2)
-  experiment.samples.*.tissue:
-  - whole body
-  # Both shapes, per ADR-0016. One library is fingerprinted here, so `*` cannot be shuffled against
-  # anything — the named-accession claim is what keeps the pair honest if the case ever grows.
-  experiment.samples.SAMN39550238.age: day12

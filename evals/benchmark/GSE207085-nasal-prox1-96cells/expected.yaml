@@ -150,6 +150,12 @@ description: >-
   EXCLUDED FROM THE FROZEN-18 GRADE DIGEST (`seqforge.evals.digest`): a red nineteenth case moves
   `n_cases`, the per-case list and `false_refuse_rate` at once, and equal-digest and add-a-case are
   incompatible instruments.
+
+  AMENDMENT 2026-11-21 — the sample-attribute claims (experiment.samples.*) are removed from
+  `fields:` because the compiler no longer carries sample attributes; a study reading holds them
+  now. With them go the 96-element strain multiset and the two per-accession claims, so this case
+  no longer checks that the plate stayed 96 samples or that the join reaches both ends of the block.
+  No other claim moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.8.3
@@ -159,106 +165,3 @@ fields:
   experiment.organism: 10090
   experiment.project.title: Three-dimensional morphologic and molecular atlases of murine nasal
     vasculatures [Mouse_Nasal_SmartSeq]
-  # Ninety-six entries, and the count is the assertion. See the header: no sample attribute in this
-  # deposit varies across cells, so this multiset cannot catch a shuffled join — it catches a plate
-  # that stopped being 96 samples.
-  experiment.samples.*.strain:
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  - FVB
-  # The two ends of the selected block, so a join that narrows to a prefix or a suffix still fails.
-  experiment.samples.SAMN29399808.cell_type: Nasal Prox1+ cells
-  experiment.samples.SAMN29400241.cell_type: Nasal Prox1+ cells
