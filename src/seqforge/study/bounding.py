@@ -1,4 +1,4 @@
-"""The bounding job: Jev places each record of a study's linked group, and code writes the bounds.
+"""The bounding job's kind: Jev places each record of a study's linked group, and code writes bounds.
 
 Importing this module registers the kind, so ``seqforge pass start study-bounds`` runs it on the run
 engine. One unit is one study, keyed by the GEO Series it starts from. Its inputs are the text Jev is
@@ -7,9 +7,9 @@ shown, so a changed record or paper changes only the units whose group holds it.
 Code keeps the starting Series in the study, or each sub-Series when it starts from a SuperSeries,
 and leaves every SuperSeries out. Jev, a model that answers yes/no questions with a probability, is
 asked about every other Series and every paper of the group twice: as written, then reversed. A
-record is in the study when Jev's p(yes) to the question as written is over one half. The answer is
-the bounds file and Jev's two probabilities for each record asked, since the file has no place for a
-kept paper's.
+record is in the study when Jev's p(yes) to the question as written is over :data:`IN_ABOVE`. The
+answer is the bounds file and Jev's two probabilities for each record asked, since the file has no
+place for a kept paper's.
 
 A unit ends refused when its group holds more than :data:`MOST_SERIES` Series or its bounds fail
 the format check, unsettled when Jev's two answers disagree on any record, and settled otherwise.
@@ -19,7 +19,6 @@ the format check, unsettled when Jev's two answers disagree on any record, and s
 from __future__ import annotations
 
 import hashlib
-import re
 import threading
 from pathlib import Path
 from typing import Any
@@ -31,13 +30,16 @@ from ..passes.kinds import Kind, register
 from ..passes.review import ReviewForm
 from ..standard_set import default_set_dir, pick_entries
 from .bounds import FORMAT, check_bounds
-from .group import group_text, linked_series, paper_reader, read_group
+from .group import SERIES, group_text, linked_series, paper_reader, read_group
 
 KIND_NAME = "study-bounds"
 #: Raise it when a question, the answer's shape or a rule of placing changes.
 KIND_VERSION = "2026.11.1"
 #: The most Series a linked group may hold. A larger group is refused before its records are read.
 MOST_SERIES = 50
+#: A record is in the study when Jev's p(yes) to the question as written is above this, and the
+#: reversed question agrees when its p(yes) is below it.
+IN_ABOVE = 0.5
 #: The role Jev fills, and the model that fills it unless a pass names another.
 ROLE = "jev"
 JEV = Model("typesafe", "jev-1.14.0")
@@ -60,7 +62,6 @@ ANSWER_SCHEMA: dict[str, Any] = {
     "required": ["bounds", "asked"],
     "additionalProperties": False,
 }
-_GSE = re.compile(r"GSE\d+")
 
 
 def _questions(record: str, target: str) -> tuple[str, str]:
@@ -125,11 +126,11 @@ def _draw(u: Unit) -> dict[str, Any]:
         said = (
             "was deposited for the same research as" if is_series else "first reports the data of"
         )
-        inside = p_yes[r] > 0.5
+        inside = p_yes[r] > IN_ABOVE
         claim = {
             "id": r,
-            "inferred": f"Jev's p(yes) that {r} {said} {target}: "
-            f"{p_yes[r]:.2f} as asked, {p_reversed[r]:.2f} reversed",
+            "inferred": f"Jev's p(yes) that {r} {said} {target}: {p_yes[r]:.2f}; "
+            f"its p(yes) to the reversed question: {p_reversed[r]:.2f}",
             "p": round(p_yes[r] if inside else 1 - p_yes[r], 4),
         }
         if not inside:
@@ -165,7 +166,11 @@ def _draw(u: Unit) -> dict[str, Any]:
 
 def answers_agree(inputs: Inputs, answer: Any) -> str | None:
     """Fail a study where Jev's answers to a record's question, as written and reversed, disagree."""
-    split = [a["id"] for a in answer["asked"] if (a["p_yes"] > 0.5) != (a["p_yes_reversed"] < 0.5)]
+    split = [
+        a["id"]
+        for a in answer["asked"]
+        if (a["p_yes"] > IN_ABOVE) != (a["p_yes_reversed"] < IN_ABOVE)
+    ]
     return f"Jev's two answers disagree on {', '.join(split)}" if split else None
 
 
@@ -175,7 +180,7 @@ def bounds_kind(store: Any, papers: Any | None) -> UnitKind:
     one_at_a_time = threading.Lock()
 
     def load(key: str) -> Inputs:
-        if not _GSE.fullmatch(key):
+        if not SERIES.fullmatch(key):
             raise Held(f"{key} is not a GEO Series")
         with one_at_a_time:
             series = linked_series(store, key)

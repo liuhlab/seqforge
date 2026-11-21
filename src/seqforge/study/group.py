@@ -25,7 +25,8 @@ _SERIES_FIELDS = (
     ("Series_citation", "Citation"),
     ("Series_relation", "Relation"),
 )
-_GSE = re.compile(r"GSE\d+")
+#: A GEO Series accession.
+SERIES = re.compile(r"GSE\d+")
 #: A record's link to a paper, by PubMed id or DOI.
 _PAPER = ("PubMed", "DOI")
 
@@ -77,7 +78,7 @@ def linked_series(store: Any, start: str) -> list[str]:
     found |= _ends(store, supers, "SuperSeries of")
     found |= _ends(store, projects, "BioProject of")
     found |= _ends(store, _papers(own), "PubMed of", "DOI of")
-    return sorted((s for s in found if _GSE.fullmatch(s)), key=lambda s: int(s[3:]))
+    return sorted((s for s in found if SERIES.fullmatch(s)), key=lambda s: int(s[3:]))
 
 
 def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict[str, Any]:
@@ -141,7 +142,7 @@ def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict
                 "series": sorted(
                     link.other
                     for link in links.get(f"PMID:{pmid}", [])
-                    if _GSE.fullmatch(link.other)
+                    if SERIES.fullmatch(link.other)
                 ),
             }
         )

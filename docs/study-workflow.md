@@ -61,11 +61,11 @@ small plain file: the question, the study, the answer, who gave it and when.
 
 ## 1. Bound the study
 
-Bounding is drawing a study from its linked records. The bounding job is a pass of the
-`study-bounds` kind: it asks a model the same kind of question once for each study, and keeps each
-answer in the pass's task folder. [Passes and reviews](passes-and-reviews.md) describes passes.
+Bounding is drawing a study from its linked records. The bounding job runs a pass of the
+`study-bounds` kind, which asks a model the same kind of question once for each study and keeps
+each answer in the pass's task folder. [Passes and reviews](passes-and-reviews.md) describes passes.
 A study is named by the GEO Series it starts from. With no `--keys` file, the pass runs the 50
-studies of the standard set, and a study swapped into the set is drawn the same way.
+studies of the standard set.
 
 ```bash
 seqforge pass start study-bounds --ceiling-usd 0.1
@@ -84,8 +84,8 @@ SuperSeries, and it leaves every SuperSeries out. Jev, a model that answers yes/
 probability, is asked about each other Series and each paper twice: once as written, once reversed.
 Jev reads the records and each paper's title, journal, date and abstract, and never a full paper. A
 record is in the study when Jev's answer as written is more likely yes than no. Each claim is
-`inferred`, and its text gives Jev's two probabilities. A kept paper has no probability in the
-file, so the task keeps it.
+`inferred`, and its text gives Jev's p(yes) to each of the two questions. A kept paper has no
+probability in the file, so the task keeps it.
 
 **What it writes.** `seqforge study write-bounds --out <folder>` writes each study's answer as
 `<folder>/<ID>/bounds.yaml`, or under the name that `--name` gives. It never overwrites a file. For

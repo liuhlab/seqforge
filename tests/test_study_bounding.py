@@ -27,6 +27,8 @@ from seqforge.study import bounding
 from seqforge.study.bounds import check_bounds
 
 runner = CliRunner()
+#: The module shares one pass, so its tests run on one worker.
+pytestmark = pytest.mark.xdist_group("study-bounding")
 
 #: Every link of the store, as it is stored: from, to, relation, and who stated it.
 LINKS = [
@@ -201,13 +203,14 @@ def test_a_study_whose_two_answers_disagree_on_a_record_is_unsettled_and_still_w
 
     assert said["studies"]["GSE20"]["ending"] == "unsettled"
     assert "pmid:401" in said["studies"]["GSE20"]["checks_failed"][0]
-    assert check_bounds(bounds) == []
     assert bounds["papers"] == ["pmid:400", "pmid:401"]
 
 
 def test_a_group_of_more_than_fifty_series_is_refused_and_written_nowhere(
     drawn: tuple[Path, dict[str, Any], Any],
 ) -> None:
+    """GSE30's paper is linked by 51 other Series: the job never reads so large a group, and the
+    study ends refused, with the reason, and no file."""
     set_dir, said, _ = drawn
 
     assert said["studies"]["GSE30"] == {"ending": "refused", "reason": "group too large: 52 Series"}

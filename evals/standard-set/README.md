@@ -39,7 +39,7 @@ What the links between records showed is written up in
 
 ## Draw a study
 
-The bounding job draws a study, and a study swapped into the set is drawn the same way. It reads
+The bounding job draws a study. It reads
 liulab-data's stores, so set `LABDATA_STORE` and `LABDATA_PAPERS`. It also needs the lab gateway
 and a clone of the review repo: see [Passes and reviews](../../docs/passes-and-reviews.md).
 
@@ -50,6 +50,11 @@ seqforge study write-bounds --out evals/standard-set --name job-bounds.yaml
 
 Without `--keys`, the pass runs every study of the pick. `write-bounds` writes the job's bounds as
 `<id>/job-bounds.yaml`, beside the study's own `bounds.yaml`, and never over a file.
+
+To swap a spare into the set, run the pass with `--keys` naming the spare, then `write-bounds` with
+no `--name`: that writes the spare's own `<id>/bounds.yaml`. Nothing writes its `study.yaml` now.
+Write it by hand from the spare's entry in `pick.yaml`, or `seqforge standard-set list` leaves the
+study out.
 [The study workflow](../../docs/study-workflow.md#1-bound-the-study) says how the job decides.
 
 The 50 studies' own files came from three commands that are now retired. A pass of the
