@@ -89,6 +89,9 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
 
 ### Fixed
 
+- `seqforge eval run --trials N` now asks the model for a fresh answer on each trial, by sending
+  trial k as replicate k. Through the lab gateway, trials 2 to N used to get trial 1's cached reply,
+  so stability always read 1. Needs `liulab-llms>=2026.11.4`; the compiler's own calls are unchanged.
 - Scoring reads against a shipped barcode onlist no longer converts the whole onlist to a wider
   integer type on every lookup. Each lookup against the 6.8 million barcodes of `3M-february-2018`
   took about 9 ms and now takes about 0.04 ms; the result is the same.
