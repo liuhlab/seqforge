@@ -528,14 +528,23 @@ def _check_passages(
         if where is None:
             counts["not_found"] += 1
             continue
+        held = where.passage.get("record")
+        held_by = (
+            "every sample record"
+            if held == src.EACH_SAMPLE
+            else ", ".join(held)
+            if isinstance(held, list)
+            else str(held or where.passage.get("paper"))
+        )
+        place = where.passage.get("field") or where.passage.get("section")
         for pulldown in tie.pulldowns:
             name = f"t{len(tie_names)}"
             tie_names[(tie.control, pulldown)] = (name, passages.number(where.passage))
             questions[name] = _noul(
                 f'Were control library {tie.control} ("{titles[tie.control]}") and pull-down '
                 f'library {pulldown} ("{titles[pulldown]}") made from the same material, such as '
-                "one chromatin preparation? The words cited for the tie: "
-                f'"{where.passage["quote"][:300]}". Answer no unless the text says or clearly '
+                f'one chromatin preparation? The words cited for the tie, "{where.passage["quote"][:300]}", '
+                f"are in the {place} of {held_by}. Answer no unless the text says or clearly "
                 "implies it."
             )
     answers = _ask(
@@ -802,8 +811,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
             "writer_answers": attempts,
             "quotes": counts["quotes"],
             "quotes_not_found": counts["not_found"],
-            "ties_asked": len(tied),
-            "ties_kept": sum(1 for t in tied.values() if t.kept),
+            "ties": [{"control": c, "pulldown": d, "p": _r(t.p)} for (c, d), t in tied.items()],
             "searches": terms.searched,
             "factors_listed": len(lists.factors),
             "factors_kept": len(covered),

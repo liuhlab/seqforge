@@ -10,6 +10,7 @@ A control library, such as an input or an IgG library, measures the background.
   pull-down library is na.
 - Under ties, list which control goes with which pull-downs. A tie names one control library and
   the pull-down libraries made from the same material, such as one chromatin preparation. Quote
-  the words that tie them, such as a condition and a replicate number that their sample titles
-  share, or a sentence that says which input serves which pull-down. List a tie only when such
-  words exist. Never pair libraries by a guess.
+  the words that tie them: the words that the records of the control and of each pull-down all
+  hold, such as "liver rep1" in the titles "input liver rep1" and "H3K4me3 liver rep1", or a
+  sentence that says which input serves which pull-down. List a tie only when such words exist.
+  Never pair libraries by a guess.
