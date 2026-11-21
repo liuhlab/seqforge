@@ -24,3 +24,15 @@
 - Level names start with a digit (`0ug`, `36h`, `2d`). YAML reads them as text; a bare `0` or `2` would load as a number.
 - `baseline` holds a level name, not the source's text.
 - A passage may be part of a field (one sentence of the protocol), and a Series passage may back a sample claim.
+
+## Format 2 (2026-11-21)
+
+The reading format changed, and the reading was rewritten to it. No claim's text, number, level or
+`p` changed.
+
+- `assay` gains the EFO id `EFO:0008896` (RNA-Seq). The file names where its ids came from: the
+  EBI's OLS4 on 2026-11-21. `CVCL_0347` is still from memory, since OLS4 does not hold Cellosaurus.
+- Item 5: the two 36 h claims now list passage 13, the protocol's "32 h", under `against`.
+- Item 6: an untreated sample in a study that treats now writes its text. `treatment: control` on
+  the three unexposed rows is that form, so the verdict's suggested `na` is no longer allowed by the
+  format. The claims are unchanged.

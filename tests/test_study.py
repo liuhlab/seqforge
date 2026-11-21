@@ -7,6 +7,7 @@ standard set is listed, in ``test_standard_set.py``.
 from __future__ import annotations
 
 import copy
+import datetime
 import json
 from pathlib import Path
 from typing import Any
@@ -222,11 +223,12 @@ def _material(biosample: str, **own: Any) -> dict[str, Any]:
 #: replicate and of the middle library, and an IgG library from the old one's. One more pull-down
 #: from the first replicate's material has a control type that nothing read gives.
 READING: dict[str, Any] = {
-    "format": 1,
+    "format": 2,
     "study": "GSE1",
     "models": {"reading": "test/large", "probabilities": "test/small"},
     "read": ["records", "abstract", "full_text"],
     "read_detail": "The Series, its six samples and the one paper.",
+    "ontology_snapshot": {"source": "a test snapshot", "date": datetime.date(2026, 11, 21)},
     "passages": {
         1: {"record": "GSE1", "field": "Series_overall_design", "quote": "a quote"},
         2: {"record": "each_sample", "field": "Sample_organism_ch1", "quote": "Mus musculus"},
@@ -265,16 +267,18 @@ READING: dict[str, Any] = {
         "disease": {"text": "healthy", "inferred": "No disease is named.", "p": 0.8},
         "genotype": _said("wild type", level="wt"),
         "strain": _gap("unknown"),
-        "treatment": _gap("na"),
-        "dose": _gap("na"),
-        "duration": _gap("na"),
+        "treatment": _said("bleomycin and DMSO", term=["CHEBI:22907", "CHEBI:28262"]),
+        "dose": _said("per side"),
+        "duration": _said("overnight"),
         "diet": {"text": "standard chow", "quoted": [4], "p": 0.9},
     },
     "samples": {
         "GSM1": _material("B1"),
         "GSM2": _material("B2"),
         "GSM3": _material("B3", age=_said("12 months", value=12, unit="month", level="middle")),
-        "GSM4": _material("B4", age=_said("20 to 24 months", value=[20, 24], level="old")),
+        "GSM4": _material(
+            "B4", age=_said("20 to 24 months", value=[20, 24], level="old", against=[4])
+        ),
         "GSM5": _material(
             "B1", target=_gap("na"), control_type={"text": "input", "quoted": [3], "p": 0.9}
         ),
@@ -304,7 +308,8 @@ def _a_factor_one_row_writes(reading: dict[str, Any]) -> None:
 
 def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
     """Each of the four backings, a passage of each source, a label of the study's own, a range, a
-    row that replaces a shared claim, and a gap that names the passages it rests on."""
+    row that replaces a shared claim, a gap that names the passages it rests on, a claim that names
+    a passage against it, a treatment of two compounds, and a dose and a duration with no number."""
     code, said = _check(tmp_path, READING, "check-reading")
 
     assert (code, said["valid"], said["problems"]) == (0, True, [])
@@ -313,7 +318,7 @@ def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("change", "field", "reason"),
     [
-        pytest.param(_with(2, "format"), "format", "expected 1", id="another format number"),
+        pytest.param(_with(1, "format"), "format", "expected 2", id="an older format number"),
         pytest.param(
             _with(["records", "full text"], "read"),
             "read[1]",
@@ -338,6 +343,34 @@ def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
             "factors.age.quoted",
             "passage 9 does not exist",
             id="a factor backed by a passage that is not there",
+        ),
+        pytest.param(
+            _with([9], "shared", "assay", "against"),
+            "shared.assay.against",
+            "passage 9 does not exist",
+            id="a claim that names a passage against it that is not there",
+        ),
+        pytest.param(
+            _with(["UBERON:0002107", "UBERON:0001114"], "shared", "tissue", "term"),
+            "shared.tissue.term",
+            "only for a treatment",
+            id="a list of terms on a label that is not the treatment",
+        ),
+        pytest.param(
+            _without("ontology_snapshot"),
+            "ontology_snapshot",
+            "missing",
+            id="ontology ids with no snapshot named",
+        ),
+        pytest.param(
+            _with(
+                {"levels": ["H3K4me3"], "baseline": None, "ordered": False, "quoted": [1], "p": 1},
+                "factors",
+                "target",
+            ),
+            "factors.target",
+            "never a factor",
+            id="the target of a pull-down made a factor",
         ),
         pytest.param(
             _without("shared", "strain"),

@@ -6,12 +6,17 @@
 #           dose and duration add value and unit; a biosample carries an id minted here.
 #   backed: exactly one of quoted: [passage numbers], inferred: "how" (see: [passages] it rests on),
 #           unknown: "note" (the material read does not say), na: "why" (the label does not apply).
+#   against: [passage numbers], optional beside any mark: the passages that say otherwise.
 #   p:      the writing model's own estimate that the claim as written is right, given `read`.
 #           On unknown it is the chance that the material read really does not say. Not calibrated.
-format: 1
+format: 2
 study: GSE117724
 models: {reading: claude-fable-5-2, probabilities: claude-fable-5-2}
 read: [records, abstract, full_text]
+
+# Where the ontology ids below came from. Every id was looked up at the EBI's OLS4 on this date,
+# when the assay ids were added.
+ontology_snapshot: {source: "EBI OLS4 web search", date: 2026-11-21}
 
 # Each quote is one unbroken span copied from one field, always on one line.
 # record: each_sample means all 20 sample records hold this quote in that field.
@@ -83,7 +88,7 @@ factors:
 # holds the RNA-seq value and the two ChIP-seq rows replace it.
 shared:
   donor:             {na: "each library is a pool of many whole worms of one strain; there is no single animal", p: 0.9}
-  assay:             {text: RNA-Seq, quoted: [21, 22, 8, 3], p: 0.99}
+  assay:             {text: RNA-Seq, term: "EFO:0008896", quoted: [21, 22, 8, 3], p: 0.99}
   target:            {na: "RNA-seq of polyA-selected mRNA has no target", p: 0.99}
   control_type:      {na: "RNA-seq; no library is a background control, and the DMSO groups are the treatment baseline", p: 0.98}
   species:           {text: Caenorhabditis elegans, term: "NCBITaxon:6239", quoted: [14], p: 0.99}
@@ -137,79 +142,79 @@ samples:
   GSM3307363:
     biosample: {id: B7, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [41], p: 0.9}
     genotype:  {text: "nhr-86(tm2590)", level: tm2590, quoted: [25], p: 0.98}
-    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [23, 25, 12], p: 0.8}
+    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [25, 12], against: [23], p: 0.8}
     treatment: {text: DMSO, term: "CHEBI:28262", level: DMSO, quoted: [19, 17], p: 0.98}
     dose:      {text: "1% final concentration", value: 1, unit: percent, quoted: [17, 7], p: 0.95}
   GSM3307364:
     biosample: {id: B8, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [42], p: 0.9}
     genotype:  {text: "nhr-86(tm2590)", level: tm2590, quoted: [25], p: 0.98}
-    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [23, 25, 12], p: 0.8}
+    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [25, 12], against: [23], p: 0.8}
     treatment: {text: DMSO, term: "CHEBI:28262", level: DMSO, quoted: [19, 17], p: 0.98}
     dose:      {text: "1% final concentration", value: 1, unit: percent, quoted: [17, 7], p: 0.95}
   GSM3307365:
     biosample: {id: B9, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [43], p: 0.9}
     genotype:  {text: "nhr-86(tm2590)", level: tm2590, quoted: [25], p: 0.98}
-    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [23, 25, 12], p: 0.8}
+    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [25, 12], against: [23], p: 0.8}
     treatment: {text: DMSO, term: "CHEBI:28262", level: DMSO, quoted: [19, 17], p: 0.98}
     dose:      {text: "1% final concentration", value: 1, unit: percent, quoted: [17, 7], p: 0.95}
   GSM3307366:
     biosample: {id: B10, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [44], p: 0.9}
     genotype:  {text: "nhr-86(tm2590)", level: tm2590, quoted: [25], p: 0.98}
-    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [23, 25, 12], p: 0.8}
+    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [25, 12], against: [23], p: 0.8}
     treatment: {text: R24, level: R24, quoted: [20, 1], p: 0.98}
     dose:      {text: "70 μM", value: 70, unit: "μM", quoted: [17, 7], p: 0.97}
   GSM3307367:
     biosample: {id: B11, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [45], p: 0.9}
     genotype:  {text: "nhr-86(tm2590)", level: tm2590, quoted: [25], p: 0.98}
-    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [23, 25, 12], p: 0.8}
+    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [25, 12], against: [23], p: 0.8}
     treatment: {text: R24, level: R24, quoted: [20, 1], p: 0.98}
     dose:      {text: "70 μM", value: 70, unit: "μM", quoted: [17, 7], p: 0.97}
   GSM3307368:
     biosample: {id: B12, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [46], p: 0.9}
     genotype:  {text: "nhr-86(tm2590)", level: tm2590, quoted: [25], p: 0.98}
-    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [23, 25, 12], p: 0.8}
+    strain:    {text: VL491, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists VL491 as its strain with only this mutation", see: [25, 12], against: [23], p: 0.8}
     treatment: {text: R24, level: R24, quoted: [20, 1], p: 0.98}
     dose:      {text: "70 μM", value: 70, unit: "μM", quoted: [17, 7], p: 0.97}
   GSM3307369:
     biosample: {id: B13, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [47], p: 0.9}
     genotype:  {text: "nhr-86(ums12)", level: ums12, quoted: [26], p: 0.98}
-    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [23, 26, 13], p: 0.85}
+    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [26, 13], against: [23], p: 0.85}
     treatment: {text: DMSO, term: "CHEBI:28262", level: DMSO, quoted: [19, 17], p: 0.98}
     dose:      {text: "1% final concentration", value: 1, unit: percent, quoted: [17, 7], p: 0.95}
   GSM3307370:
     biosample: {id: B14, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [48], p: 0.9}
     genotype:  {text: "nhr-86(ums12)", level: ums12, quoted: [26], p: 0.98}
-    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [23, 26, 13], p: 0.85}
+    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [26, 13], against: [23], p: 0.85}
     treatment: {text: DMSO, term: "CHEBI:28262", level: DMSO, quoted: [19, 17], p: 0.98}
     dose:      {text: "1% final concentration", value: 1, unit: percent, quoted: [17, 7], p: 0.95}
   GSM3307371:
     biosample: {id: B15, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [49], p: 0.9}
     genotype:  {text: "nhr-86(ums12)", level: ums12, quoted: [26], p: 0.98}
-    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [23, 26, 13], p: 0.85}
+    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [26, 13], against: [23], p: 0.85}
     treatment: {text: DMSO, term: "CHEBI:28262", level: DMSO, quoted: [19, 17], p: 0.98}
     dose:      {text: "1% final concentration", value: 1, unit: percent, quoted: [17, 7], p: 0.95}
   GSM3307372:
     biosample: {id: B16, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [50], p: 0.9}
     genotype:  {text: "nhr-86(ums12)", level: ums12, quoted: [26], p: 0.98}
-    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [23, 26, 13], p: 0.85}
+    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [26, 13], against: [23], p: 0.85}
     treatment: {text: R24, level: R24, quoted: [20, 1], p: 0.98}
     dose:      {text: "70 μM", value: 70, unit: "μM", quoted: [17, 7], p: 0.97}
   GSM3307373:
     biosample: {id: B17, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [51], p: 0.9}
     genotype:  {text: "nhr-86(ums12)", level: ums12, quoted: [26], p: 0.98}
-    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [23, 26, 13], p: 0.85}
+    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [26, 13], against: [23], p: 0.85}
     treatment: {text: R24, level: R24, quoted: [20, 1], p: 0.98}
     dose:      {text: "70 μM", value: 70, unit: "μM", quoted: [17, 7], p: 0.97}
   GSM3307374:
     biosample: {id: B18, inferred: "one RNA prep from one population of worms per library; the title numbers it as a replicate, and every other library is another genotype, treatment or replicate number", see: [52], p: 0.9}
     genotype:  {text: "nhr-86(ums12)", level: ums12, quoted: [26], p: 0.98}
-    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [23, 26, 13], p: 0.85}
+    strain:    {text: RPW137, inferred: "the record's strain field says N2 for all 18 RNA-seq samples, mutants too, so there it names the background; the paper lists RPW137 as its strain with only this mutation", see: [26, 13], against: [23], p: 0.85}
     treatment: {text: R24, level: R24, quoted: [20, 1], p: 0.98}
     dose:      {text: "70 μM", value: 70, unit: "μM", quoted: [17, 7], p: 0.97}
   # GSE117719, ChIP-seq: one transgenic strain, one library per treatment.
   GSM3398125:
     biosample:    {id: B19, inferred: "one lysate of DMSO-exposed VL648 worms; strain VL648 appears in no RNA-seq library, so no RNA-seq library shares this biosample", see: [53, 29], p: 0.97}
-    assay:        {text: ChIP-Seq, quoted: [27, 2, 3], p: 0.99}
+    assay:        {text: ChIP-Seq, term: "EFO:0002692", quoted: [27, 2, 3], p: 0.99}
     target:       {text: NHR-86, quoted: [2, 28, 32, 31, 5], p: 0.97}
     control_type: {na: "an anti-GFP pull-down like the R24 library, not an input or IgG library; it is the treatment baseline, and the peaks were called as R24 against it", see: [33, 34], p: 0.85}
     genotype:     {text: "unc-119(ed3); wwIs22 [Pnhr-86::nhr-86ORF::GFP unc-119(+)]", quoted: [30, 31], p: 0.97}
@@ -219,7 +224,7 @@ samples:
     duration:     {text: approximately 18 hours, value: 18, unit: hour, quoted: [9, 18], p: 0.9}
   GSM3398126:
     biosample:    {id: B20, inferred: "one lysate of R24-exposed VL648 worms; strain VL648 appears in no RNA-seq library, so no RNA-seq library shares this biosample", see: [54, 29], p: 0.97}
-    assay:        {text: ChIP-Seq, quoted: [27, 2, 3], p: 0.99}
+    assay:        {text: ChIP-Seq, term: "EFO:0002692", quoted: [27, 2, 3], p: 0.99}
     target:       {text: NHR-86, quoted: [2, 28, 32, 31, 5], p: 0.97}
     control_type: {na: "the signal library; no input or IgG library was deposited, though the paper says input was set aside", see: [10], p: 0.95}
     genotype:     {text: "unc-119(ed3); wwIs22 [Pnhr-86::nhr-86ORF::GFP unc-119(+)]", quoted: [30, 31], p: 0.97}

@@ -4,7 +4,7 @@ A **study** is one piece of research: the experiments one paper reports, or one 
 no paper yet. The [bounds file](bounds.md) says which GEO Series and papers belong to a study. The
 study's **reading** says what each sequenced sample is: the species, the tissue, the treatment, the
 assay, and which label the study varied between its samples. Each statement comes with the words
-that back it and with a probability. The reading file writes that down, one file per study, as
+that back it, the words that speak against it where the sources disagree, and a probability. The reading file writes that down, one file per study, as
 YAML. This page is all you need to read one.
 
 ```bash
@@ -21,7 +21,7 @@ A reading file has five parts. The arrows show how one part points at another.
 
 ```mermaid
 flowchart TD
-    HEAD["<b>header</b><br/><code>format</code> · <code>study</code><br/><code>models</code> · <code>read</code><br/><i>which study, who wrote it,<br/>what was read</i>"]
+    HEAD["<b>header</b><br/><code>format</code> · <code>study</code><br/><code>models</code> · <code>read</code><br/><code>ontology_snapshot</code><br/><i>which study, who wrote it,<br/>what was read, where ids came from</i>"]
     SHARED["<b>shared</b><br/>the claims every sample has"]
     SAMPLES["<span style='color:#fff'><b>samples</b><br/>one row per sequenced sample:<br/>the claims of its own</span>"]
     FACTORS["<b>factors</b><br/>the labels the study varied:<br/>levels, baseline, ordered or not"]
@@ -31,7 +31,7 @@ flowchart TD
     HEAD ~~~ SHARED
     SHARED -->|"a row's claim replaces<br/>the shared claim"| SAMPLES
     SAMPLES -->|"<code>level</code> names one<br/>of the factor's levels"| FACTORS
-    SHARED -->|"<code>quoted</code> and <code>see</code><br/>list passage numbers"| PASSAGES
+    SHARED -->|"<code>quoted</code>, <code>see</code> and<br/><code>against</code> list passage numbers"| PASSAGES
     SAMPLES --> PASSAGES
     FACTORS --> PASSAGES
     PASSAGES -->|"<code>record</code> or <code>paper</code>"| SRC
@@ -43,21 +43,23 @@ flowchart TD
 
 Read it from the samples outward. A sample's claims are its own row plus whatever `shared` adds. A
 claim that is backed by a source gives passage numbers, and each passage names the record or the
-paper that holds the quote. A claim on a label that the study varied also names its level.
+paper that holds the quote. A claim that a source contradicts names that passage too, under
+`against`. A claim on a label that the study varied also names its level.
 
 ## An example
 
 A liver study of two ages. Each age has one pull-down library and the input library made from the
-same chromatin.
+same chromatin. The paper gives the old mice a different age from the records.
 
 ```yaml
-format: 1
+format: 2
 study: GSE900001
 models:
   reading: example/model-a
   probabilities: example/model-b
 read: [records, abstract]
 read_detail: The Series, its four samples, and the abstract of the one paper.
+ontology_snapshot: {source: example ontology snapshot, date: 2026-11-21}
 
 passages:
   1: {record: GSE900001, field: Series_overall_design, quote: "H3K27me3 ChIP-seq and input from liver of young and old male mice"}
@@ -66,6 +68,7 @@ passages:
   4: {record: [GSM9000003, GSM9000004], field: Sample_characteristics_ch1, quote: "age: 24 months"}
   5: {record: [GSM9000002, GSM9000004], field: Sample_characteristics_ch1, quote: "antibody: none (input)"}
   6: {paper: "pmid:99000001", section: abstract, quote: "livers were collected at noon from C57BL/6J mice"}
+  7: {paper: "pmid:99000001", section: abstract, quote: "old mice were 22 months of age"}
 
 factors:
   age:
@@ -77,7 +80,7 @@ factors:
 
 shared:
   donor:             {unknown: "No record says which animal a library came from", p: 0.8}
-  assay:             {text: ChIP-seq, quoted: [1], p: 0.99}
+  assay:             {text: ChIP-seq, term: "EFO:0002692", quoted: [1], p: 0.99}
   target:            {text: H3K27me3, quoted: [1], p: 0.98}
   control_type:      {na: "A pull-down library, not a background control", p: 0.97}
   species:           {text: Mus musculus, term: "NCBITaxon:10090", quoted: [2], p: 0.99}
@@ -105,10 +108,10 @@ samples:
     control_type: {text: input, quoted: [5], p: 0.98}
   GSM9000003:
     biosample:    {id: B2, inferred: "One chromatin prep per age gave the pull-down and the input", see: [1], p: 0.7}
-    age:          {text: 24 months, value: 24, unit: month, level: old, quoted: [4], p: 0.97}
+    age:          {text: 24 months, value: 24, unit: month, level: old, quoted: [4], against: [7], p: 0.9}
   GSM9000004:
     biosample:    {id: B2, inferred: "One chromatin prep per age gave the pull-down and the input", see: [1], p: 0.7}
-    age:          {text: 24 months, value: 24, unit: month, level: old, quoted: [4], p: 0.97}
+    age:          {text: 24 months, value: 24, unit: month, level: old, quoted: [4], against: [7], p: 0.9}
     target:       {na: "Input chromatin, no pull-down", p: 0.98}
     control_type: {text: input, quoted: [5], p: 0.98}
 ```
@@ -123,11 +126,12 @@ field is rejected.
 
 | Field | Holds |
 | --- | --- |
-| `format` | The whole number `1`. See [When the format changes](#when-the-format-changes). |
+| `format` | The whole number `2`. See [When the format changes](#when-the-format-changes). |
 | `study` | The study's name: the GEO Series it was picked by, such as `GSE100021`. |
 | `models` | Who wrote the file. `reading` is the model that read the study. `probabilities` is the model that gave the `p` values. Either may be `null`. |
 | `read` | What the model read: one or more of `records`, `abstract` and `full_text`. No other word is accepted. |
 | `read_detail` | Optional. One sentence that says which records and which paper. |
+| `ontology_snapshot` | Where the file's ontology ids came from, written once: `source` names the dated snapshot of the ontologies, or the service the ids were looked up in, and `date` is its date, written `2026-11-21`. Required when any claim has a `term`, except a `term` on `sex`, which is a word of this page's own. |
 | `passages` | The quotes that back the claims, each under its number. May be empty: `{}`. |
 | `factors` | The labels the study varied on purpose, each under its label. May be empty: `{}`. |
 | `shared` | The claims that every sample has unless its own row says otherwise. May be empty: `{}`. |
@@ -162,7 +166,7 @@ sure the model is. In the example, `tissue: {text: liver, ...}` is one claim.
 | Field | Holds |
 | --- | --- |
 | `text` | The value, in the source's own words. |
-| `term` | An ontology id for the value, such as `UBERON:0002107`. Written only when the match is clear. |
+| `term` | An ontology id for the value, such as `UBERON:0002107`. Written only when the match is clear. On `treatment` only, a list of ids when one sample got several compounds. |
 | `value` | For an age, a dose or a duration: the number, or a range as `[low, high]`. YAML reads `1.7e12` as text, so write `1.7e+12`. |
 | `unit` | The unit of `value`, as one word: `month`, `day`, `hour`. |
 | `level` | On a label that is a factor: the name of the sample's level. See [Factors](#factors). |
@@ -172,6 +176,7 @@ sure the model is. In the example, `tissue: {text: liver, ...}` is one claim.
 | `unknown` | Backing mark. What was read does not say: a short note. |
 | `na` | Backing mark. The label does not apply to this sample: a short text saying why. |
 | `see` | Optional, and not beside `quoted`: the numbers of the passages the claim rests on. |
+| `against` | Optional, beside any backing mark: the numbers of the passages that say otherwise. |
 | `p` | A number from 0 to 1, or `null`. Required. |
 
 Only `p` and one backing mark are required. A claim with any other field is rejected.
@@ -180,7 +185,7 @@ The rules for a claim:
 
 - It has exactly one of `quoted`, `inferred`, `unknown` and `na`. None is rejected, and so are two.
 - `quoted` lists at least one passage.
-- Every number in `quoted` and in `see` must be a passage in the file.
+- Every number in `quoted`, in `see` and in `against` must be a passage in the file.
 - The text after `inferred`, `unknown` or `na` cannot be blank.
 - A `quoted` claim and an `inferred` claim say something: each has `text` or `value`. A `biosample`
   claim and a `donor` claim may have an `id` and neither of the two.
@@ -210,6 +215,12 @@ flowchart LR
     classDef artifact fill:#00695c,stroke:#004d40
     class Q,I artifact
 ```
+
+**`against`** is for sources that disagree. When the records say one thing and the paper another,
+the claim writes the value it judges right, backs it as usual, and lists the passages that say
+otherwise under `against`. Its `p` is the chance that the value it wrote is the right one. A
+passage that the claim merely does not use is not `against` it: `against` names a contradiction.
+A factor is a claim, so a factor can have `against` too.
 
 `unknown` and `na` are different gaps. `unknown` means that the label has a value and nothing that
 was read gives it. `na` means that the label has no value for this sample, such as the cell line of
@@ -241,26 +252,26 @@ After that rule is applied, every sample must have all 18 labels below. A gap is
 | --- | --- |
 | `biosample` | The piece of material the library was made from. Its `id` is required. Two samples with one `id` were made from the same material. |
 | `donor` | The person or animal the material came from. Its `id` names the individual. `na` when the material is a pool or has no single individual. |
-| `assay` | The kind of sequencing experiment, such as RNA-Seq or ChIP-Seq. |
-| `target` | What a pull-down enriches: a histone mark or a protein. `na` for an assay with no pull-down, and for a control library. |
+| `assay` | The kind of sequencing experiment, such as RNA-Seq or ChIP-Seq. Term: EFO, such as `EFO:0008896` for RNA-Seq. |
+| `target` | What a pull-down enriches: a histone mark or a protein. `na` for an assay with no pull-down, and for a control library. No term. Never a factor. |
 | `control_type` | The kind of background-control library, such as input or IgG. `na` for every other library. |
 | `species` | The species. Term: NCBI Taxonomy, written `NCBITaxon:9606`. Must be `quoted` or `inferred`. |
 | `sex` | The sex. Term: one of `female`, `male`, `hermaphrodite`, `mixed`. |
 | `age` | The age, with `value` and `unit`. |
-| `development_stage` | The stage of life, such as fetal, larval or adult. Term: the stage list of the species (HsapDv, MmusDv, WBls). |
+| `development_stage` | The stage of life, such as fetal, larval or adult. Term: the stage list of the species (HsapDv, MmusDv, WBls, FBdv). A rat stage has no list and no term. |
 | `tissue` | The tissue or organ. Term: UBERON, or WBbt for *C. elegans*. |
 | `cell_type` | The cell type. Term: Cell Ontology (CL). |
 | `cell_line` | The cell line. Term: Cellosaurus. |
 | `disease` | The disease or disease model. Term: MONDO, or `PATO:0000461` for healthy. |
 | `genotype` | The genotype, as text. |
 | `strain` | The strain, as text. |
-| `treatment` | What was applied to the sample. Term: ChEBI for a chemical, UniProt for a protein. |
-| `dose` | How much of the treatment, with `value` and `unit`. |
-| `duration` | How long the treatment was applied, with `value` and `unit`. |
+| `treatment` | What was applied to the sample. Term: ChEBI for a chemical, or a list of ChEBI ids when one sample got several compounds. A protein keeps its text with no term. |
+| `dose` | How much of the treatment, with `value` and `unit` for one number. Text alone when no single number applies, such as "per side". |
+| `duration` | How long the treatment was applied, with `value` and `unit` for one number. Text alone when no single number applies, such as "overnight". |
 
 Tissue, cell type and cell line are three labels, and a sample can have a value in each.
 
-Three points of meaning matter when you write or read these labels. The check cannot test them.
+Four points of meaning matter when you write or read these labels. The check does not test them.
 
 - **`control_type` is about background-control libraries only.** An input library or an IgG library
   measures the background of a pull-down. An untreated or wild-type group that the study compares
@@ -268,6 +279,9 @@ Three points of meaning matter when you write or read these labels. The check ca
   factor's `baseline` names it.
 - **`duration` is the length of the treatment itself.** Any other time is an attribute of the
   study's own. The time from the end of a treatment to the harvest is one example.
+- **An untreated sample in a study that treats writes its text.** Its `treatment` says what it got,
+  such as "untreated" or "vehicle (PBS)", and is not `na`. `na` on `treatment` is for a study with
+  no treatment. The route, the side and what a time is measured from stay in `text`.
 - **A pull-down library and its control are tied by the `biosample` id.** No other field ties them.
   In the example, each input has the `id` of the pull-down made from the same chromatin. This tie
   has a known limit. One control library that serves pull-downs made from different material
@@ -304,6 +318,8 @@ The rules for a factor:
 - When the claim under `shared` names a level, a row's claim that replaces it names a level too.
   A row's claim that is `unknown` or `na` is the exception, because it names none.
 - `level` on a label that is not a factor is rejected.
+- `target` is never a factor. The relations already keep samples with different targets apart, and
+  a target has no baseline. A factor keyed `target` is rejected.
 
 ## The check
 
@@ -312,7 +328,7 @@ The rules for a factor:
 ```json
 {
   "file": "reading.yaml",
-  "format": 1,
+  "format": 2,
   "valid": false,
   "problems": [
     {"field": "samples.GSM9000003.strain", "reason": "missing: every sample has this label, in its own row or under shared"},

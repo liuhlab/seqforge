@@ -142,7 +142,8 @@ set. A model wrote each of them.
 rejects the file. For each problem it names the field and the reason.
 
 The check looks at the structure of the file. Every sample must have every label, every claim must
-say how it is backed in exactly one way, and every passage that a claim cites must be in the file.
+say how it is backed in exactly one way, and every passage that a claim cites, for it or against
+it, must be in the file. A file that writes an ontology id must name where its ids came from.
 The check does not compare a quote with the record that the quote came from. That comparison needs
 the records, so it belongs to step 3.
 

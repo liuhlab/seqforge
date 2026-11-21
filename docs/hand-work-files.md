@@ -284,7 +284,9 @@ the second pass.
 **Path:** `evals/standard-set/<ID>/reading.yaml`. 5 files.
 
 **Format:** [The reading file](formats/reading.md) describes every field. All five files say
-`format: 1`.
+`format: 2`. They were written in format 1 and rewritten to format 2 on 2026-11-21. That change
+added the assay's ontology id, the source of the ids, and the passages that speak against a claim.
+No claim's text, number, level or `p` changed. Each `reading.notes.md` ends with what changed in it.
 
 **Made by:** `claude-fable-5-2`, named in `models.reading` and in `models.probabilities`. The
 files hold no date. They were added to the repository on 2026-11-20 (UTC).
@@ -388,7 +390,8 @@ seqforge study check-bounds evals/standard-set/<ID>/bounds.yaml
 seqforge study check-reading evals/standard-set/<ID>/reading.yaml
 ```
 
-All 50 bounds files and all five readings pass their check (measured on 2026-11-19).
+All 50 bounds files pass their check (measured on 2026-11-19), and all five readings pass theirs
+(measured on 2026-11-21).
 
 The other files have no format number, and their fields are the ones this page lists. The drafts
 and the verdicts are kept as the models wrote them, so they hold fields from before the bounds

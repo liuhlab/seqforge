@@ -37,3 +37,14 @@
   note repeats on all 24 rows; the full reasoning is one comment above `samples`.
 - `control_type: na` sits in `shared` and the 8 input rows replace it; `target` is in every row.
 - A paper section is named by its heading path; `read` adds `full_text`, with a comment on scope.
+
+## Format 2 (2026-11-21)
+
+The reading format changed, and the reading was rewritten to it. No claim's text, number, level or
+`p` changed.
+
+- `assay` gains the EFO id `EFO:0002692` (ChIP-seq). The file names where its ids came from: the
+  EBI's OLS4, where every id was looked up again on 2026-11-21.
+- Item 3: the mark stays a label. The check now rejects `target` as a factor.
+- Item 4: the format now keeps `na` for a study with no treatment, as this file writes it.
+- Item 9: assay now has a term source; target still has none.

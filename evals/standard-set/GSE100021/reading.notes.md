@@ -38,3 +38,15 @@ vector construction and the age at the start of the experiment.
 - `donor.text` takes each sample's description name (IGF1_16, DsRed_7), which looks like the animal
   number; the GEO title (IGF1_1 … DsRed_4) looks like a library number and is written nowhere.
 - I added one header key, `read_detail`: `read:` alone does not say which records were read.
+
+## Format 2 (2026-11-21)
+
+The reading format changed, and the reading was rewritten to it. No claim's text, number, level or
+`p` changed.
+
+- `assay` gains the EFO id `EFO:0008896` (RNA-Seq). The file names where its ids came from: the
+  EBI's OLS4, where every id was looked up again on 2026-11-21.
+- A dose may now be text only when no single number applies, such as "per side". The dose claim
+  keeps the value and unit it was written with, so the verdict's disagreement on it still stands.
+- Route and side stay in `text`, as the format now says. No sources disagree here, so no claim
+  uses `against`.

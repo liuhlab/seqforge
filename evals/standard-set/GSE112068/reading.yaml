@@ -10,12 +10,17 @@
 #             inferred: "how"               no passage says it outright; see: [numbers] it rests on
 #             unknown: "note"               the study does not say
 #             na: "why"                     the label does not apply to this sample
+#   against: [passage numbers], optional beside any mark: the passages that say otherwise
 #   p:      the writing model's own estimate that the claim as written is right, given what `read`
 #           lists. On unknown it is the chance that the material read really does not say.
-format: 1
+format: 2
 study: GSE112068
 models: {reading: claude-fable-5-2, probabilities: claude-fable-5-2}
 read: [records]
+
+# Where the ontology ids below came from. Every id but the Cellosaurus one was looked up at the
+# EBI's OLS4 on this date, when the assay id was added. OLS4 does not hold Cellosaurus.
+ontology_snapshot: {source: "EBI OLS4 web search; CVCL_0347 is from the writing model's memory, not looked up", date: 2026-11-21}
 
 # Each quote is one unbroken span copied from one field, always on one line.
 # record: each_sample means every sample record of the study holds this quote in that field.
@@ -80,7 +85,7 @@ factors:
 # for the twenty exposed samples, and the three unexposed rows replace them.
 shared:
   donor:             {id: D1, inferred: "one named cell line with one donor age, so one fetus", see: [6, 8], p: 0.95}
-  assay:             {text: RNA-Seq, quoted: [9, 10], p: 0.99}
+  assay:             {text: RNA-Seq, term: "EFO:0008896", quoted: [9, 10], p: 0.99}
   target:            {na: "RNA-seq of polyA RNA has no target", p: 0.99}
   control_type:      {na: "no library is a background control; the 0 ug/ml samples are the dose factor's baseline", p: 0.97}
   species:           {text: Homo sapiens, term: "NCBITaxon:9606", quoted: [4], p: 0.99}
@@ -154,7 +159,7 @@ samples:
   GSM3056978:
     biosample:  {id: B13, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
     dose:       {text: 2 ug/ml, value: 2, unit: ug/ml, level: 2ug, quoted: [18, 31], p: 0.98}
-    time_point: {text: 36 h, value: 36, unit: hour, level: 36h, quoted: [26, 38], p: 0.9}
+    time_point: {text: 36 h, value: 36, unit: hour, level: 36h, quoted: [26, 38], against: [13], p: 0.9}
   GSM3056979:
     biosample:  {id: B14, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
     dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
@@ -194,4 +199,4 @@ samples:
   GSM3056988:
     biosample:  {id: B23, inferred: "RNA extraction uses up a culture, so each dose and time is its own dish", see: [13], p: 0.9}
     dose:       {text: 40 ug/ml, value: 40, unit: ug/ml, level: 40ug, quoted: [19, 32], p: 0.98}
-    time_point: {text: 36 h, value: 36, unit: hour, level: 36h, quoted: [26, 38], p: 0.9}
+    time_point: {text: 36 h, value: 36, unit: hour, level: 36h, quoted: [26, 38], against: [13], p: 0.9}
