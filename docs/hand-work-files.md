@@ -40,7 +40,7 @@ were measured on 2026-11-19.
 | The reading's notes | `<ID>/reading.notes.md` | 5 | The model that wrote the reading | Markdown text |
 | A person's answers | none yet | 0 | Nobody yet | [The rule](#answers-a-person-gave-while-checking) |
 
-That is 216 files: the pick, four files for each of the 50 studies, and three more for each of the
+That is 266 files: the pick, five files for each of the 50 studies, and three more for each of the
 five studies that have a reading. The folder also holds a `README.md`, which describes the
 commands.
 
