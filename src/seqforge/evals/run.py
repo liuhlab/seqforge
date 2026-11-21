@@ -701,6 +701,11 @@ def _run_harvest(
         documents=[normalize_document(p) for p in doc_paths], records=case.records
     )
     docs: list[NormalizedDoc] = list(plan.documents)
+    if not docs:
+        # Records only, and none of them is asked anything: sample and run records have nothing to
+        # answer now that the sample attributes are gone. No call is made, and every expected
+        # claim is unchecked rather than one the model failed to make.
+        return HarvestGrade(unchecked=[w.field for w in case.expected.assertions]), []
     drafts: list[AssertionDraft] = []
     extractor: ExtractorProvenance | None = None
     #: An outcome has FOUR halves and this loop used to read two. The drafts a document produced and
@@ -721,7 +726,7 @@ def _run_harvest(
         if outcome.failure is not None:
             unanswered[doc.doc_sha256] = outcome.failure
 
-    assert extractor is not None  # docs is non-empty (checked by the caller via has_prose)
+    assert extractor is not None  # docs is non-empty (an empty plan returned above)
     report = verify_drafts(drafts, docs, extractor=extractor)
     accepted: list[Assertion] = report.assertions
     by_field = {a.field: a for a in accepted}

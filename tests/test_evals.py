@@ -1292,6 +1292,21 @@ def test_under_extraction_is_graded_wrong_reason_not_correct() -> None:
     assert run.grade.grade is Grade.WRONG_REASON
 
 
+def test_a_records_only_case_with_nothing_to_ask_grades_without_a_call() -> None:
+    """A hand-written record set renders no document anyone asks, so harvest sends nothing.
+
+    Sample and run records stopped being asked when the sample attributes left the compiler, and
+    the eval run then asserted an extractor that no call had produced. Under the model switch such
+    a case must still grade, with no call made and no claim charged as missing.
+    """
+    case = next(c for c in discover_cases() if c.id == "declared-one-library-across-two-runs")
+    run = run_case(case, llm=True, gateway=_stub([]))
+    assert run.skipped is None, run.skipped
+    assert run.harvest is not None
+    assert run.harvest.n_calls == 0
+    assert run.harvest.missing == []
+
+
 def test_harvest_hypothesis_steers_resolve() -> None:
     """The full stack: prose -> verified assertion -> hypothesis -> resolve agrees -> decide."""
     case = next(c for c in discover_cases() if c.id == "10x-v3-prose")
