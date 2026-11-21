@@ -1429,9 +1429,8 @@ Series links to papers and to other Series that do not all belong to the same st
 <p>The chain is built and checked on the <strong>standard set</strong>, a fixed list of 50 small GEO studies. For
 those 50, both files sit in the study's folder, <code>evals/standard-set/&lt;ID&gt;/</code>. <code>&lt;ID&gt;</code> is the Series
 the study was picked by, such as <code>GSE100021</code>.</p>
-<p>The work is planned in stages, and two steps are not built yet. Stage 5 builds the reader, and
-stage 6 runs the whole chain once with no person involved. Each of those steps already has its
-name, its input and its output below.</p>
+<p>The work is planned in stages, and one step is not built yet: stage 6 runs the whole chain once
+with no person involved. That step already has its name, its input and its output below.</p>
 <h2 id="the-steps-in-order">The steps in order<a class="headerlink" href="#the-steps-in-order" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1464,10 +1463,10 @@ name, its input and its output below.</p>
 <tr>
 <td>3</td>
 <td>Read the study</td>
-<td>Command not named yet</td>
-<td>The study's <code>bounds.yaml</code>, its records and its papers</td>
+<td><code>seqforge pass start study-reading</code>, then <code>seqforge study write-reading</code></td>
+<td>The study's <code>bounds.yaml</code>, its records, and its papers in full or by their abstracts</td>
 <td><code>reading.yaml</code></td>
-<td>Not built yet. Stage 5 builds it</td>
+<td>Built</td>
 </tr>
 <tr>
 <td>4</td>
@@ -1581,19 +1580,81 @@ problem it names the field and the reason. It exits 0 for an accepted file, 3 fo
 and 2 for a file that it cannot read.</p>
 <p>The check asks only whether the file is in the current format. It does not judge whether the
 bounds are right. The bounding job never writes a file that the check rejects: it ends the study
-refused. What the reader does with a rejected file, stage 5 decides.</p>
+refused. The reader reads each study's bounds file as it is.</p>
 <h2 id="3-read-the-study">3. Read the study<a class="headerlink" href="#3-read-the-study" title="Permanent link">&para;</a></h2>
-<p><strong>Not built yet.</strong> Stage 5 builds this step, and its command is not named yet.</p>
-<p>The reader writes one study's reading from three inputs: the study's <code>bounds.yaml</code>, the records of
-the Series in those bounds, and the study's papers. It writes one <code>reading.yaml</code>.</p>
-<p>A reading has one row per sample. The row says which biosample and which donor the sample came
-from, which assay was run, and what the library targets or which kind of control library it is. It
-also holds general attributes such as species and tissue. The reading names the study's
-<strong>factors</strong>, the labels that the study varied on purpose, such as a treatment. Each statement in
-the file is a claim. A claim says how it is backed, for example by a passage quoted from a record
-or a paper, and it carries a probability.</p>
-<p>Until the reader exists, the only readings are worked examples for a few studies of the standard
-set. A model wrote each of them.</p>
+<p>The reader writes one study's <strong>study reading</strong>: what each sequenced sample is, and which labels
+the study varied. It runs a pass of the <code>study-reading</code> kind, one study per unit, and keeps each
+answer in the pass's task folder. With no <code>--keys</code> file, the pass runs the 50 studies of the
+standard set.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-reading<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">2</span><span class="w"> </span>--units-at-once<span class="w"> </span><span class="m">2</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-reading<span class="w"> </span>--out<span class="w"> </span>evals/standard-set<span class="w"> </span>--name<span class="w"> </span>job-reading.yaml
+</code></pre></div>
+<p>With <code>--units-at-once 2</code>, at most eight model requests are in flight at once.</p>
+<p><strong>What it reads.</strong> The reader reads the study's own <code>bounds.yaml</code>, and liulab-data from
+<code>LABDATA_STORE</code> and <code>LABDATA_PAPERS</code>: the records of the Series that the bounds keep, the sequenced
+samples of those Series, and the bounds' papers. It reads a paper's full text where the paper store
+holds one, and the abstract where it does not. Only a sequenced sample gets a row, so a microarray
+sample is left out. The reader never reads a supplementary file of GEO or of a paper. A label that
+only such a file gives is <code>unknown</code>.</p>
+<p><strong>How it decides.</strong> Two models and code share the work:</p>
+<ol>
+<li>A writing model, DeepSeek Flash with thinking on, reads the records and the papers. It lists the
+   <strong>factors</strong>, which are the labels that the study varied on purpose, with their levels. It also
+   lists every value that each label takes, each with a quote. It does not say which sample has
+   which value. An answer that cannot be used is asked for once more.</li>
+<li>Jev, a model that answers closed questions with a probability, answers every closed question. It
+   says whether each factor was varied on purpose, which level is the baseline, and whether the
+   levels are in order. Then, for each sample, it picks the sample's level on each factor and its
+   value on each label from the lists. Some questions are asked twice: plain and negated, or with
+   the options in order and reversed.</li>
+<li>Code looks for every quote in its record, character for character, or in its paper once each
+   run of white space is one space. Jev judges whether each found passage backs its claim, or says
+   otherwise. A claim is <code>quoted</code> only from a found passage that backs it. Otherwise it is
+   <code>inferred</code>.</li>
+<li>Code writes the reading and runs the format check. It drops a level of a factor that no sample
+   is at.</li>
+</ol>
+<p><strong>Assay guides.</strong> An <strong>assay guide</strong> is a short text that the reader adds to the writer's
+instructions and to Jev's questions for a study whose records name its assay. Only pull-down
+assays have one: ChIP-seq, CUT&amp;RUN and CUT&amp;Tag. It says that the target is a label and never a
+factor. It also asks the writer to tie each control library to its pull-down libraries by the words
+that tie them, such as a replicate number in the sample titles. Jev checks each tie. Libraries that
+are tied share one <code>biosample</code> id.</p>
+<p><strong>Ontology ids.</strong> The species id comes from the record's own taxonomy id, and <code>healthy</code> is
+<code>PATO:0000461</code>. Every other id comes from an ontology search, and Jev picks one of its candidates
+or none. A term is written only when Jev is sure of its pick. The ontologies are liulab-data's, and
+until its search is plugged in, the reader searches nothing. So a reading's only ids are the
+species ids and <code>healthy</code>, and its <code>ontology_snapshot</code> says that no ontology was searched.</p>
+<p><strong>What it writes.</strong> <code>seqforge study write-reading --out &lt;folder&gt;</code> writes each study's answer as
+<code>&lt;folder&gt;/&lt;ID&gt;/reading.yaml</code>, or under the name that <code>--name</code> gives. It never overwrites a file.
+For the standard set, the job's file is <code>job-reading.yaml</code>, beside the five worked examples. Each
+study ends in one of three ways:</p>
+<table>
+<thead>
+<tr>
+<th>Ending</th>
+<th>When</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Settled</td>
+<td>Jev's two answers agree on every question asked twice</td>
+<td>Written</td>
+</tr>
+<tr>
+<td>Unsettled</td>
+<td>Jev's two answers disagree on whether a factor was varied on purpose, on its baseline, or on any sample's level</td>
+<td>Written, with each probability</td>
+</tr>
+<tr>
+<td>Refused</td>
+<td>The writer's answer cannot be used after one retry, or the reading fails the format check</td>
+<td>None. <code>write-reading</code> prints the reason</td>
+</tr>
+</tbody>
+</table>
 <h2 id="4-check-the-reading">4. Check the reading<a class="headerlink" href="#4-check-the-reading" title="Permanent link">&para;</a></h2>
 <p><code>seqforge study check-reading &lt;file&gt;</code> reads one <code>reading.yaml</code> and nothing else, and it accepts or
 rejects the file. For each problem it names the field and the reason.</p>
