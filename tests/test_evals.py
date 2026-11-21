@@ -2094,8 +2094,8 @@ def test_stability_is_not_contaminated_by_folding_the_harvest_grade() -> None:
 def test_stability_is_one_when_every_trial_is_clean_and_nothing_folds() -> None:
     """Three clean trials: stability 1.0 — and the per-trial wiring that produced it.
 
-    Every trial really runs, but each sends the request the first sent, so the gateway's cache
-    answers trials two and three with trial one's reply, at no cost.
+    Every trial really runs and asks for its own replicate, so the gateway answers each afresh:
+    were trial two to send trial one's request again, its cache would answer and measure nothing.
     """
     good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     run = run_case(_trap_case(), llm=True, gateway=_stub(good), trials=3)
@@ -2103,7 +2103,7 @@ def test_stability_is_one_when_every_trial_is_clean_and_nothing_folds() -> None:
     assert run.stability == 1.0
     assert run.trials == 3
     assert run.llm_calls == 3
-    assert run.usage["cache_hits"] == 2
+    assert run.usage["cache_hits"] == 0
 
 
 def _assertion(field_name: str, value: str, quote: str, sha: str = "d" * 64) -> Assertion:

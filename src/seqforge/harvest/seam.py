@@ -149,6 +149,9 @@ class ModelSeam:
         self.meter = meter
         self.model = model
         self._record = record
+        #: Which repeat of each request is sent. 1 is the plain request, the compiler's own; an eval
+        #: sets trial k's number before that trial, so each trial gets a fresh answer.
+        self.replicate = 1
         self._lock = threading.Lock()
         self._settled = threading.Condition(self._lock)
         self._in_flight = 0
@@ -205,7 +208,14 @@ class ModelSeam:
                 self._in_flight += 1
                 settled_before = self._n_settled
             try:
-                r = self.meter.chat(model, system=system, user=user, schema=schema, tag=tag)
+                r = self.meter.chat(
+                    model,
+                    system=system,
+                    user=user,
+                    schema=schema,
+                    tag=tag,
+                    replicate=self.replicate,
+                )
             except CeilingReached as exc:
                 if self._wait_for_room(settled_before):
                     continue
