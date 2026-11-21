@@ -1357,9 +1357,11 @@ job is to point at the data and say what you want.</p>
 </code></pre></div>
 </li>
 <li>
-<p><strong>Set an API key for reading prose.</strong> One stage — reading a paper or a sample sheet — uses a
-   language model. Put an <code>ANTHROPIC_API_KEY</code> (or <code>DEEPSEEK_API_KEY</code>) in your environment. If you have
-   no paper to read, you can skip this and stay fully offline.</p>
+<p><strong>Reach the model gateway for reading prose.</strong> One stage — reading a paper or a sample sheet —
+   uses a language model, through the lab's model gateway. Open a tunnel to it and set
+   <code>LABLLM_GATEWAY</code> to its local address
+   (<a href="https://liuhlab.github.io/liulab-llms/reach-the-gateway/">Reach the lab gateway</a>);
+   you need no provider key. If you have no paper to read, you can skip this and stay fully offline.</p>
 </li>
 </ol>
 <p>That's it. From here on you just talk to Claude.</p>

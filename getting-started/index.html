@@ -1268,9 +1268,11 @@ processes it). You don't need to know the chemistry, which file holds the barcod
 means — that's exactly what seqforge recovers from the files themselves. The full walkthrough,
 including what to do when Claude stops and asks a question, is in
 <a href="../tutorials/with-claude/">Compiling with Claude</a>.</p>
-<p>One thing worth knowing up front: reading a paper or sample sheet uses a language model, so set an
-<code>ANTHROPIC_API_KEY</code> (or <code>DEEPSEEK_API_KEY</code>) in your environment. If you have no prose to read, you can
-skip that and stay fully offline.</p>
+<p>One thing worth knowing up front: reading a paper or sample sheet uses a language model, through the
+lab's model gateway. Open a tunnel to it and set <code>LABLLM_GATEWAY</code> to its local address
+(<a href="https://liuhlab.github.io/liulab-llms/reach-the-gateway/">Reach the lab gateway</a>
+says how); you need no provider key. If you have no prose to read, you can skip that and stay fully
+offline.</p>
 <h2 id="running-it-yourself">Running it yourself<a class="headerlink" href="#running-it-yourself" title="Permanent link">&para;</a></h2>
 <p>If you'd rather drive it directly — or you're batching thousands of datasets in a script — seqforge
 is a plain command-line tool. Every command prints JSON and reports what happened through its <strong>exit

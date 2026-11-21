@@ -1515,8 +1515,10 @@ summary:</p>
 <p>It chains every stage below — records, the paper, the manifest, the recipe, the Snakefile — stops at
 the first refusal, and writes everything under <code>seqforge/</code>. The genome is the one argument with no
 default (a wrong one aligns cleanly and exits 0, so it will not guess). Reading the paper uses a
-language model, which needs its own <code>ANTHROPIC_API_KEY</code> or <code>DEEPSEEK_API_KEY</code> in the environment; add
-<code>--no-llm</code> to skip prose and stay fully deterministic.</p>
+language model through the lab's model gateway: open a tunnel to it and set <code>LABLLM_GATEWAY</code> to its
+local address (<a href="https://liuhlab.github.io/liulab-llms/reach-the-gateway/">Reach the lab gateway</a>).
+It spends at most a dollar unless <code>--ceiling-usd</code> says otherwise. Add <code>--no-llm</code> to skip prose and
+stay fully deterministic.</p>
 <p>The rest of this page walks the same pipeline one verb at a time — which is what you want when a step
 needs inspecting, and what <code>run</code> is doing for you when it does not.</p>
 <h2 id="1-ask-the-bytes-what-this-is">1. Ask the bytes what this is<a class="headerlink" href="#1-ask-the-bytes-what-this-is" title="Permanent link">&para;</a></h2>
