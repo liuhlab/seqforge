@@ -64,8 +64,8 @@ app.add_typer(standard_set_app, name="standard-set")
 
 study_app = typer.Typer(
     help=(
-        "A study's files: write the bounding pass's bounds, check a file against its written "
-        "format, and print a reading's relations."
+        "A study's files: write the bounding and reading passes' files, check a file against its "
+        "written format, and print a reading's relations."
     )
 )
 app.add_typer(study_app, name="study")

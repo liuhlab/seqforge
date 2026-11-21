@@ -1,0 +1,15 @@
+Assay guide: pull-down assays (ChIP-seq, CUT&RUN, CUT&Tag)
+
+In a pull-down assay, an antibody enriches the chromatin bound by one protein or one histone mark.
+A control library, such as an input or an IgG library, measures the background.
+
+- The target is a label, never a factor. Write each mark or protein the study pulls down as a
+  value of target, with its quote. Never list target as a factor, even when the study pulls down
+  several marks. A control library's target is na.
+- control_type names the control libraries only: input, IgG or mock. The control_type of each
+  pull-down library is na.
+- Under ties, list which control goes with which pull-downs. A tie names one control library and
+  the pull-down libraries made from the same material, such as one chromatin preparation. Quote
+  the words that tie them, such as a condition and a replicate number that their sample titles
+  share, or a sentence that says which input serves which pull-down. List a tie only when such
+  words exist. Never pair libraries by a guess.

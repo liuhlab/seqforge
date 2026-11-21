@@ -58,7 +58,10 @@ class Kind:
 KINDS: dict[str, Kind] = {}
 
 #: The module that registers each of seqforge's own kinds when it is imported, by the kind's name.
-KIND_MODULES: dict[str, str] = {"study-bounds": "seqforge.study.bounding"}
+KIND_MODULES: dict[str, str] = {
+    "study-bounds": "seqforge.study.bounding",
+    "study-reading": "seqforge.study.reader",
+}
 
 
 def register(kind: Kind) -> Kind:

@@ -19,12 +19,10 @@ the format check, unsettled when Jev's two answers disagree on any record, and s
 from __future__ import annotations
 
 import hashlib
-import os
 import threading
 from pathlib import Path
 from typing import Any
 
-import yaml
 from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
 from ..passes.kinds import Kind, register
@@ -32,6 +30,7 @@ from ..passes.review import ReviewForm
 from ..standard_set import default_set_dir, pick_entries
 from .bounds import FORMAT, check_bounds
 from .group import SERIES, group_text, linked_series, paper_reader, read_group
+from .publish import model_name, write_files
 
 KIND_NAME = "study-bounds"
 #: Raise it when a question, the answer's shape or a rule of placing changes.
@@ -227,58 +226,18 @@ def _build(store: Any) -> UnitKind:
 
 def bounds_file(outcome: Outcome) -> dict[str, Any]:
     """One unit's answer as its bounds file, each model named as the pass's stamp records it."""
-    models = outcome.stamp.models
     bounds = dict(outcome.answer["bounds"])
-    bounds["models"] = {
-        said: None if role is None else f"{models[role].provider}/{models[role].name}"
-        for said, role in bounds["models"].items()
-    }
+    bounds["models"] = {said: model_name(outcome, role) for said, role in bounds["models"].items()}
     return bounds
 
 
 def write_bounds(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str, dict[str, Any]]:
-    """Write ``<out>/<key>/<name>`` for each unit with an answer, and say how each study ended.
+    """Write ``<out>/<key>/<name>`` for each study with an answer, and say how each study ended.
 
-    A refused study gets no file, and its reason instead. A file already on disk is never
-    overwritten: delete it by hand to take a newer answer. ``name`` is a file name, not a path, so
-    no two studies can share a file, and each file appears whole or not at all.
+    A refused study gets no file, and its reason instead; a file already on disk is never
+    overwritten. See :func:`.publish.write_files`.
     """
-    if not name or name in {".", ".."} or Path(name).name != name:
-        raise ValueError(f"--name must be a file name, not a path: {name!r}")
-    done: dict[str, dict[str, Any]] = {}
-    for key in task.keys(kind, endings=["settled", "unsettled", "refused"]):
-        outcome = task.current(kind, key)
-        if outcome is None:
-            continue
-        said: dict[str, Any] = {"ending": outcome.ending}
-        if outcome.answer is None:
-            said["reason"] = outcome.reason
-        else:
-            path = out / key / name
-            said["file"] = "kept the file on disk" if path.exists() else "written"
-            if not path.exists():
-                _publish(path, yaml.safe_dump(bounds_file(outcome), sort_keys=False, width=100))
-            if failed := [f"{c.name}: {c.message}" for c in outcome.checks if c.message]:
-                said["checks_failed"] = failed
-        done[key] = said
-    return done
-
-
-def _publish(path: Path, text: str) -> None:
-    """Write ``text`` to ``path`` whole or not at all, and never over a file already there.
-
-    The text goes to a hidden file beside ``path`` first, which a hard link then publishes: the link
-    fails when ``path`` exists, so a file another run wrote first is kept.
-    """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    partial = path.with_name(f".{path.name}.partial")
-    partial.write_text(text)
-    try:
-        os.link(partial, path)
-    except FileExistsError:
-        pass
-    finally:
-        partial.unlink()
+    return write_files(task, kind, out, name, bounds_file)
 
 
 def _records(inputs: Inputs) -> str:
