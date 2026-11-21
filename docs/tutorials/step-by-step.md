@@ -100,11 +100,9 @@ BioProject PRJNA1027859      title, abstract, centre, data type
 
 This verb is a **transcriber**. It reports what the submitter typed and stops; it decides nothing.
 
-**This is where per-sample metadata comes from, and it is the part seqforge used to throw away.**
-`strain`, `tissue`, `sex` and `dev_stage` live on the BioSample record. The fields you get from
-`io resolve` are byte-identical across all six runs of this study — every one of them says "Model
-organism or animal sample from Caenorhabditis elegans" — so they can tell you nothing about any
-individual sample.
+The run and sample records are what match each of your files to its sample, and the records declare
+the organism and the project. What each sample *was* (its strain, tissue or treatment) is not part of
+the compiled manifest: a study reading holds those (see [Study workflow](../study-workflow.md)).
 
 ## 3. Write down what the data IS
 
@@ -115,9 +113,9 @@ pixi run -- seqforge manifest fill data/*/*.fastq.gz --accession PRJNA1027859
 Two resolvers run here, and they answer different questions.
 
 `resolve score` reads the **bytes** and decides the library: which chemistry, which file is which
-read. The metadata resolver reads the **records** and decides which sample each file is and what that
-sample was. Neither is shown the other's input — the metadata resolver is handed file names and
-hashes, not the probe's output, because there is no byte in a FASTQ that bears on `tissue`.
+read. The metadata resolver reads the **records** and decides which sample each file is. Neither is
+shown the other's input — the metadata resolver is handed file names and hashes, not the probe's
+output, because the join is made by the names the records declare.
 
 Both can refuse.
 
@@ -140,32 +138,22 @@ experiment:
   samples:
     - sample_id: SAMN40935616
       accession: SAMN40935616
-      attributes:
-        strain:    {value: CQ757,         basis: asserted, evidence: [SAMN40935616], confidence: null, rung: 0}
-        tissue:    {value: Neurons,       basis: asserted, evidence: [SAMN40935616], confidence: null, rung: 0}
-        sex:       {value: hermaphrodite, basis: asserted, evidence: [SAMN40935616], confidence: null, rung: 0}
-        dev_stage: {value: Adult Day 1,   basis: asserted, evidence: [SAMN40935616], confidence: null, rung: 0}
       file_uris: [SRX24283130/SRR28716558_1.fastq.gz, SRX24283130/SRR28716558_2.fastq.gz]
     # ... five more
 ```
 
-Three things worth reading closely.
+Two things worth reading closely.
 
 **You did not pass `--organism`.** The record declares it, and the manifest cites the six BioSamples
 it came from. A flag still wins if you pass one — a human typing a taxid is asserting it now, having
 looked — but nothing is defaulted. There is no default taxid and there must not be: a wrong one
 aligns cleanly against the wrong genome, exits 0, and nothing downstream ever asks again.
 
-**`confidence: null` is the informative value.** It means nothing was judged. Copying `strain: CQ758`
-out of a BioSample record is a transcription — `basis: asserted` plus the record accession in
+**`confidence: null` is the informative value.** It means nothing was judged. Copying the taxid out
+of a BioSample record is a transcription — `basis: asserted` plus the record accessions in
 `evidence` already says everything true about how we know it. A `1.0` there would invite the question
-it cannot answer ("you are certain the strain is CQ758?"). We are certain the *record declares* it,
-which is a different claim and the one we make.
-
-**The attribute keys are NCBI's, not ours.** `strain`, `tissue`, `dev_stage` are three of NCBI's 960
-harmonized BioSample attribute names, each with a definition somebody else maintains
-(`seqforge io attributes tissue` will read it to you). There is no `condition`: that was ours, no
-archive defines it, and a field named "condition" accepts anything you can call a condition.
+it cannot answer ("you are certain it is 6239?"). We are certain the *records declare* it, which is a
+different claim and the one we make.
 
 ### If you have no accession
 
@@ -173,8 +161,8 @@ archive defines it, and a field named "condition" accepts anything you can call 
 pixi run -- seqforge manifest fill reads/*.fastq.gz --organism 6239
 ```
 
-That works, and it is the common case. Files are grouped into runs by name, each run becomes a
-sample, and the samples carry no facts. Exit 0. A quieter manifest, and just as true.
+That works, and it is the common case. Files are grouped into runs by name, and each run becomes a
+sample. Exit 0, and a manifest that is just as true.
 
 ### If the accession does not match your files
 
@@ -185,7 +173,7 @@ RECORD_JOIN_INCOMPLETE: PRJNA1027859 declares 6 run(s) (SRR28716553, ...), and 1
 match none of them by run accession or by the original filenames the record declares: mystery_1.fastq.gz
 ```
 
-Half-joining would leave that file with no sample facts while the manifest still read as though it
+Half-joining would leave that file with no sample while the manifest still read as though it
 described everything.
 
 ## 4. Let the model read the prose (optional)
@@ -205,25 +193,15 @@ Every claim it returns carries a verbatim quote. Code — not the model — grep
 the normalized document, computes the offsets, and checks that the quote actually supports the value.
 A claim that fails either check is discarded.
 
-**How a claim names a sample.** It doesn't. `--records` renders each archive record as its own
-document, so the document for SAMN40935621 contains that sample's prose and nothing else — which
-means "which sample" is answered by *which file we handed the model*. Code knows it because code
-chose it. The model is never asked to name a sample and could not.
+**What the model is asked.** From a paper: the chemistry, whether the input was cells or nuclei, the
+organism and the accessions. `--records` renders each experiment record as its own document, and its
+protocol paragraph is asked for the chemistry and nothing else. Sample and run records, and the study
+abstract, are asked nothing. What each sample was is not the compiler's question; a study reading
+answers it.
 
-The ask is scoped the same way. A BioSample's document is asked for sample attributes and never for a
-chemistry; an experiment's protocol paragraph is asked for the chemistry and nothing else; the study
-abstract is read by nobody, because "wild-type and daf-2 mutants" is true of the study and false of
-every individual sample in it.
-
-**Two sources disagreeing is decided by precedence, then noted — not voted, and not a refusal.** If
-the paper says "we dissected neurons and body wall muscle" and the model comes back with
-`tissue=muscle`, that quote is real and it does entail the value — the span check passes, and it is
-*right to* pass. What catches it is the record saying `Neurons`: the record is a declaration about
-that sample (`asserted`), the paper's reading is our inference (`inferred`), so **the record's value
-stands** and the paper's is reported as a non-blocking **warning**. The manifest still compiles — a
-single ambiguous sample annotation is no reason to refuse a dataset. And if two *equal* authorities
-disagree (two records, say), the field is left **null**: a missing value is not permanent, a wrong one
-is. Only a disagreement about what the data *is* — the byte-level chemistry — blocks.
+**A chemistry claim is a hint, never evidence.** It can break a tie the bytes cannot settle, and a
+disagreement between what the paper claims and what the bytes show is a question for you, never
+something code picks.
 
 ## 5. Write down what you want DONE with it
 

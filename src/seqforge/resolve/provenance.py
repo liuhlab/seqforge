@@ -15,7 +15,6 @@ against the deterministic records and the byte-observed chemistry:
 - **accession** — study-level accessions (GSE / PRJ) the paper's text names vs the dataset's own.
 - **organism** — the paper's asserted ``experiment.organism`` (resolved offline to a taxid) vs the
   records' taxid.
-- **strain** — the strains/genotypes the paper asserts vs the records' sample strains.
 - **assay-vs-bytes** — the chemistry family the paper asserts vs the byte-observed winner.
 
 The refusal is graded, per the design decision on #51:
@@ -52,18 +51,6 @@ Signal = Literal["match", "mismatch", "abstain"]
 _ACCESSION = re.compile(r"\b([SED]R[RXPS]\d+|GS[EM]\d+|PRJ[A-Z]{2}\d+|SAM[NED][A-Z]?\d+)\b")
 _STUDY_LEVEL = re.compile(r"\b(GSE\d+|PRJ[A-Z]{2}\d+)\b")
 
-# Tokens too generic to establish a strain/genotype match on their own.
-_STRAIN_STOP = frozenset(
-    {"wild", "type", "wildtype", "strain", "control", "mutant", "line", "the", "and"}
-)
-
-
-def _significant_tokens(value: str) -> set[str]:
-    """Lowercased alphanumeric tokens of a strain/genotype string, minus generic noise."""
-    return {
-        t for t in re.split(r"[^a-z0-9]+", value.lower()) if len(t) >= 2 and t not in _STRAIN_STOP
-    }
-
 
 def _own_accessions(records: ArchiveRecordSet) -> set[str]:
     """Every accession the dataset can legitimately call its own — generous on purpose.
@@ -82,16 +69,6 @@ def _own_accessions(records: ArchiveRecordSet) -> set[str]:
         for fn in r.filenames:
             own.update(m.group(0) for m in _ACCESSION.finditer(fn))
     return {a for a in own if a}
-
-
-def _record_strains(records: ArchiveRecordSet) -> set[str]:
-    strains: set[str] = set()
-    for sample in records.at("sample"):
-        for key in ("strain", "genotype", "cell_line"):
-            value = sample.attribute(key)
-            if value:
-                strains.add(value)
-    return strains
 
 
 def _accession_signal(text: str, own: set[str]) -> Signal:
@@ -115,31 +92,6 @@ def _organism_signal(doc_asserts: list[Assertion], rec_taxid: int | None) -> Sig
                 continue  # an organism we cannot resolve offline is no evidence either way
             return "match" if taxid == rec_taxid else "mismatch"
     return "abstain"
-
-
-def _strain_signal(doc_asserts: list[Assertion], rec_strains: set[str]) -> Signal:
-    """Overlap between the strains/genotypes the paper names and the records'.
-
-    Mismatch only when the paper asserts strains, the records carry strains, and NO significant token
-    is shared between any pair — the daf-2-paper-over-a-whole-body-dataset (D2) shape. Token overlap,
-    not string equality, because a genotype is written a dozen ways.
-    """
-    doc_values = [
-        a.value
-        for a in doc_asserts
-        if a.field in ("experiment.samples.strain", "experiment.samples.genotype")
-    ]
-    if not doc_values or not rec_strains:
-        return "abstain"
-    rec_tokens: set[str] = set()
-    for s in rec_strains:
-        rec_tokens |= _significant_tokens(s)
-    doc_tokens: set[str] = set()
-    for value in doc_values:
-        doc_tokens |= _significant_tokens(value)
-    if not doc_tokens or not rec_tokens:
-        return "abstain"
-    return "match" if doc_tokens & rec_tokens else "mismatch"
 
 
 def _assay_contradicts_bytes(
@@ -188,7 +140,6 @@ def check_provenance(
     own_acc = _own_accessions(records)
     organism = _organism(records)
     rec_taxid = organism.value if organism else None
-    rec_strains = _record_strains(records)
 
     by_doc: dict[str, list[Assertion]] = defaultdict(list)
     for a in assertions:
@@ -206,7 +157,6 @@ def check_provenance(
         signals = {
             "accession": _accession_signal(text, own_acc),
             "organism": _organism_signal(doc_asserts, rec_taxid),
-            "strain": _strain_signal(doc_asserts, rec_strains),
         }
         if "mismatch" not in signals.values():
             continue  # no positive disagreement — a paper is allowed to be quiet or cite others

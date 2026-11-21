@@ -43,17 +43,12 @@ def _assert(field: str, value: str, *, doc: str = _PAPER) -> Assertion:
     )
 
 
-def _records(
-    *, taxid: str = "6239", strain: str = "N2", query: str = "PRJNA111111"
-) -> ArchiveRecordSet:
+def _records(*, taxid: str = "6239", query: str = "PRJNA111111") -> ArchiveRecordSet:
     sample = ArchiveRecord(
         level="sample",
         accession="SRS1",
         parent=query,
-        attributes=[
-            RecordAttribute(name="taxonomy_id", value=taxid),
-            RecordAttribute(name="strain", value=strain, harmonized=True),
-        ],
+        attributes=[RecordAttribute(name="taxonomy_id", value=taxid)],
         free_text=[FreeText(label="sample_alias", text="the-worm-atlas")],
     )
     project = ArchiveRecord(level="project", accession=query)
@@ -64,12 +59,9 @@ _DATASET_SUBJECT = [DocumentSubject(doc_sha256=_PAPER, scope="dataset", subject=
 
 
 def test_a_matching_paper_raises_nothing() -> None:
-    # Right organism, an overlapping strain, and the paper names our own project accession.
+    # Right organism, and the paper names our own project accession.
     conflicts, blockers = check_provenance(
-        assertions=[
-            _assert("experiment.organism", "Caenorhabditis elegans"),
-            _assert("experiment.samples.strain", "N2"),
-        ],
+        assertions=[_assert("experiment.organism", "Caenorhabditis elegans")],
         subjects=_DATASET_SUBJECT,
         records=_records(),
         winning_techs={"10x-3p-gex-v3"},
@@ -82,15 +74,14 @@ def test_a_matching_paper_raises_nothing() -> None:
 
 def test_the_wrong_pdf_same_organism_same_assay_surfaces_an_open_conflict() -> None:
     # D2: a daf-2 paper staged over a whole-body (N2) worm dataset. Same organism, same 10x assay, but
-    # the paper names a foreign study accession and a non-overlapping genotype -> a human should look.
+    # the paper names a foreign study accession -> a human should look.
     conflicts, blockers = check_provenance(
         assertions=[
             _assert("experiment.organism", "Caenorhabditis elegans"),
-            _assert("experiment.samples.genotype", "daf-2(e1370)"),
             _assert("library.chemistry", "10x-3p-gex-v3"),  # agrees with the bytes
         ],
         subjects=_DATASET_SUBJECT,
-        records=_records(strain="N2"),
+        records=_records(),
         winning_techs={"10x-3p-gex-v3"},
         specs=_SPECS,
         document_texts={_PAPER: "This snRNA-seq study of daf-2 mutants is archived as GSE999999."},
@@ -105,16 +96,15 @@ def test_the_wrong_pdf_same_organism_same_assay_surfaces_an_open_conflict() -> N
 
 
 def test_the_strongest_case_no_signal_matches_and_assay_contradicts_blocks() -> None:
-    # A wholly different study: wrong organism, foreign accession, non-overlapping strain, AND the
-    # paper describes bulk RNA-seq while the reads are 10x single-cell. That is not a nuance; refuse.
+    # A wholly different study: wrong organism, foreign accession, AND the paper describes bulk
+    # RNA-seq while the reads are 10x single-cell. That is not a nuance; refuse.
     conflicts, blockers = check_provenance(
         assertions=[
             _assert("experiment.organism", "Homo sapiens"),
-            _assert("experiment.samples.strain", "HeLa"),
             _assert("library.chemistry", "bulk-rnaseq"),
         ],
         subjects=_DATASET_SUBJECT,
-        records=_records(taxid="6239", strain="N2"),
+        records=_records(taxid="6239"),
         winning_techs={"10x-3p-gex-v3"},
         specs=_SPECS,
         document_texts={
@@ -129,12 +119,9 @@ def test_the_strongest_case_no_signal_matches_and_assay_contradicts_blocks() -> 
 
 
 def test_a_paper_that_cites_related_work_is_not_a_mismatch() -> None:
-    # The paper names our accession AND a foreign one it cites; organism + strain match. No mismatch.
+    # The paper names our accession AND a foreign one it cites; the organism matches. No mismatch.
     conflicts, blockers = check_provenance(
-        assertions=[
-            _assert("experiment.organism", "Caenorhabditis elegans"),
-            _assert("experiment.samples.strain", "N2"),
-        ],
+        assertions=[_assert("experiment.organism", "Caenorhabditis elegans")],
         subjects=_DATASET_SUBJECT,
         records=_records(),
         winning_techs={"10x-3p-gex-v3"},
@@ -160,12 +147,12 @@ def test_no_records_means_nothing_to_contradict() -> None:
     assert blockers == []
 
 
-def test_a_sample_scoped_document_is_never_a_wrong_pdf_risk() -> None:
-    # A record-rendered (sample-scoped) document is self-consistent with the records by construction,
-    # so even a "foreign" accession in its text is not checked.
+def test_a_record_rendered_document_is_never_a_wrong_pdf_risk() -> None:
+    # A record-rendered document is self-consistent with the records by construction, so even a
+    # "foreign" accession and a contradicting assay in its text are not checked.
     conflicts, blockers = check_provenance(
-        assertions=[_assert("experiment.samples.strain", "daf-2", doc="e" * 64)],
-        subjects=[DocumentSubject(doc_sha256="e" * 64, scope="sample", subject="SRS1")],
+        assertions=[_assert("library.chemistry", "bulk-rnaseq", doc="e" * 64)],
+        subjects=[DocumentSubject(doc_sha256="e" * 64, scope="experiment", subject="SRX1")],
         records=_records(),
         winning_techs={"10x-3p-gex-v3"},
         specs=_SPECS,
@@ -195,7 +182,7 @@ def test_dataset_document_texts_reads_only_dataset_scoped_docs_by_hash_suffix(
 
 
 def test_a_quiet_paper_naming_no_accession_and_no_conflicting_claim_is_fine() -> None:
-    # Organism matches, no strain claim, no accession printed -> every signal abstains -> nothing.
+    # Organism matches, no accession printed -> no signal mismatches -> nothing.
     conflicts, blockers = check_provenance(
         assertions=[_assert("experiment.organism", "Caenorhabditis elegans")],
         subjects=_DATASET_SUBJECT,
@@ -218,7 +205,7 @@ def test_a_wrong_pdf_over_real_bytes_makes_the_whole_pipeline_refuse(tmp_path: P
 
     The bytes are a clean bulk-rnaseq library (geometry-only, no onlist, so it resolves against the
     real registry with no whitelist step). The staged "paper" describes a *different* study — human,
-    HeLa, a foreign accession — with no chemistry claim, so it does not trip the byte cross-family
+    a foreign accession — with no chemistry claim, so it does not trip the byte cross-family
     conflict first; the provenance gate is what catches it.
     """
     from seqforge.workspace import documents_dir, state_dir
@@ -233,7 +220,7 @@ def test_a_wrong_pdf_over_real_bytes_makes_the_whole_pipeline_refuse(tmp_path: P
         write_fastq_gz(p, seqs)
         fastqs.append(p)
 
-    # The dataset's own records: worm, N2, PRJNA111111 — nothing the wrong paper names.
+    # The dataset's own records: worm, PRJNA111111 — nothing the wrong paper names.
     records = _records()
 
     # The wrong PDF, persisted where `harvest extract` would have put it (<stem>-<sha12>.txt).
@@ -250,7 +237,6 @@ def test_a_wrong_pdf_over_real_bytes_makes_the_whole_pipeline_refuse(tmp_path: P
             {
                 "assertions": [
                     _assert("experiment.organism", "Homo sapiens").model_dump(mode="json"),
-                    _assert("experiment.samples.strain", "HeLa").model_dump(mode="json"),
                 ],
                 "document_subjects": [{"doc_sha256": _PAPER, "scope": "dataset", "subject": None}],
             }

@@ -24,14 +24,13 @@ seqforge io efo                         # what EFO:0009922 is actually called
 There is **no `--json` flag**: every verb emits JSON on stdout by default. `kb list` is the one
 plain-text exception, and it is not in this skill.
 
-## `io records` is where per-sample metadata comes from
+## `io records` is what joins files to samples
 
 `io resolve` answers "what runs are in this accession". `io records` answers "what does the archive
-SAY about them" — and those are different questions with different answers. `strain`, `tissue`, `sex`
-and `dev_stage` live on the **BioSample** record; the ENA fields `io resolve` returns are
-byte-identical across every run of a study ("Model organism or animal sample from Caenorhabditis
-elegans" x6 on the pilot). Until 2026-07-16 nothing fetched the BioSample record at all, which is why
-the pilot's manifest said `tissue: null` on six samples under a paper that says "neurons".
+SAY about them" — and those are different questions with different answers. The run and sample
+records match each file to its archive sample, and the records declare the organism and the project.
+What each sample *was* (strain, tissue, treatment) is not compiled into the manifest; a study reading
+holds it.
 
 It is a **transcriber**: it reports what the record declares and stops. What any of it means is
 `resolve`'s job — pass the result to `manifest fill --accession` (which fetches it for you) or

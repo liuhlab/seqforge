@@ -39,7 +39,6 @@ from ..harvest import (
     EXTRACT_PROMPT_VERSION,
     ModelSeam,
     extract_planned,
-    fan_claims,
     harvest_model,
     normalize_document,
     plan_extraction,
@@ -59,7 +58,7 @@ from ..resolve import (
     reduce_dataset,
     resolve_runs,
 )
-from ..resolve.records import DocumentSubject, resolve_metadata
+from ..resolve.records import resolve_metadata
 from ..workspace import EVAL_TRANSCRIPTS_DIRNAME, eval_dir
 from .case import (
     Case,
@@ -313,10 +312,9 @@ def run_case(
             if case.recipe.hypothesis:
                 hypothesis = Hypothesis(value=case.recipe.hypothesis, id="recipe", confidence=0.9)
             verified: list[Assertion] = []
-            subjects: list[DocumentSubject] = []
             if seam is not None:
                 try:
-                    hg, verified, subjects = _run_harvest(case, docs, seam=seam)
+                    hg, verified = _run_harvest(case, docs, seam=seam)
                 except Stopped as exc:
                     # The case did not finish, so it scores nothing — but it carries the Blocker,
                     # and `eval run` exits 3 on it rather than shrugging.
@@ -367,15 +365,12 @@ def run_case(
                 use_cache=False,
                 _probed=built.probed,
             )
-            # The SECOND resolver, over the same files. It reads records and prose; it is handed no
-            # probe signal (`FileIdentity`, not `Observation`). Running it here is what lets a
-            # pre-registration's sample claims be graded at all -- before this the harness could not
-            # see a sample, so "tissue=Neurons" was prose in a description field.
+            # The SECOND resolver, over the same files. It reads records; it is handed no probe
+            # signal (`FileIdentity`, not `Observation`). Running it here is what lets a
+            # pre-registration's sample count, organism and project be graded at all.
             metadata = resolve_metadata(
                 files=[o.file for o in multi.observations],
                 records=built.records,
-                assertions=verified,
-                subjects=subjects,
             )
             # The SAME reduction `manifest fill` makes, from the same function — the exit code, the
             # one result, and the per-sample chemistry-agreement gate the harness used to skip
@@ -674,13 +669,12 @@ def _run_harvest(
     doc_paths: list[Path],
     *,
     seam: ModelSeam,
-) -> tuple[HarvestGrade, list[Assertion], list[DocumentSubject]]:
+) -> tuple[HarvestGrade, list[Assertion]]:
     """Normalize -> extract -> verify over the case's prose. Only verified claims are graded.
 
-    "The case's prose" now means three things: the documents a human put beside the case, the prose a
+    "The case's prose" means three things: the documents a human put beside the case, the prose a
     fingerprint package carried inside itself (``doc_paths`` is whichever of the two materialize
-    surfaced), and each archive record rendered as its own document. The record path is what lets a
-    claim name a sample, so a harness that read only the human's documents could never grade one.
+    surfaced), and each experiment record rendered as its own document.
 
     Every request goes through ``seam``, which is the case's and spans its trials — so the call
     count this returns is a **delta** over that seam, not a fresh count.
@@ -700,13 +694,18 @@ def _run_harvest(
     # same call `harvest extract` makes. This loop, not the case loop, is where a real dataset's cost
     # lives: an archive record with prose used to be its own document, so GSE126954's runs made one
     # call each inside ONE case, and running cases in parallel cannot touch that because the case is
-    # the unit above it. The plan collapses a sample's runs into one document, and its results come
+    # the unit above it. The plan asks only the records that can answer, and its results come
     # back positionally — required rather than tidy, because `verify_drafts` and the last-wins
     # `by_field` below (the HARVEST grade: did the model say this at all) both read it in order.
     plan = plan_extraction(
         documents=[normalize_document(p) for p in doc_paths], records=case.records
     )
     docs: list[NormalizedDoc] = list(plan.documents)
+    if not docs:
+        # Records only, and none of them is asked anything: sample and run records have nothing to
+        # answer now that the sample attributes are gone. No call is made, and every expected
+        # claim is unchecked rather than one the model failed to make.
+        return HarvestGrade(unchecked=[w.field for w in case.expected.assertions]), []
     drafts: list[AssertionDraft] = []
     extractor: ExtractorProvenance | None = None
     #: An outcome has FOUR halves and this loop used to read two. The drafts a document produced and
@@ -727,14 +726,9 @@ def _run_harvest(
         if outcome.failure is not None:
             unanswered[doc.doc_sha256] = outcome.failure
 
-    assert extractor is not None  # docs is non-empty (checked by the caller via has_prose)
+    assert extractor is not None  # docs is non-empty (an empty plan returned above)
     report = verify_drafts(drafts, docs, extractor=extractor)
-    # ...and then fan, exactly as `harvest extract` does. A collapsed group sends ONE member's prose
-    # and reads the rest as their differences, so a claim from that prose reaches the other members
-    # only through `fan_claims` — grade without it and the harness measures a stage the shipped path
-    # does not run, which is the one way a grade can be wrong in the compiler's favour. Inert on a
-    # corpus whose records all differ; #283 is what made it stop being inert in general.
-    accepted: list[Assertion] = fan_claims(report.assertions, plan).assertions
+    accepted: list[Assertion] = report.assertions
     by_field = {a.field: a for a in accepted}
     rejected.extend(report.rejected)
 
@@ -772,22 +766,15 @@ def _run_harvest(
     # compiler's own `chemistry_hypothesis` — one reduction, both callers. This function used to
     # take `by_field["library.chemistry"]`, i.e. the LAST document to claim one, which is a
     # different answer from the compiler's on exactly the datasets where it matters.
-    # `plan.all_documents`, not the send list: a fanned claim cites a member the collapse folded away
-    # and never sent, and `resolve` DROPS a claim whose document it cannot place — silently. Grading
-    # against the send list alone would throw away exactly the claims fanning just produced.
-    subjects = [
-        DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
-        for d in plan.all_documents
-    ]
-    return grade, accepted, subjects
+    return grade, accepted
 
 
 def _document_row(doc: NormalizedDoc, failure: str | None = None) -> dict[str, Any]:
     """One sent document, small enough to carry per case: what a Span's sha256 resolves back to.
 
     Deliberately not the plan's own report. That one carries the fields asked of each document and
-    every archive record folded into it — hundreds of accessions for a collapsed run document, none
-    of which a reader of a graded claim wants. ``scope`` is the load-bearing entry: it is what lets
+    every archive record folded into it — hundreds of accessions for a collapsed group, none of
+    which a reader of a graded claim wants. ``scope`` is the load-bearing entry: it is what lets
     one exchange stand for its level when a run has more of them than anyone will read.
 
     ``failure`` is the provider's own message where this document was never answered, and it lives

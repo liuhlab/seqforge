@@ -18,13 +18,12 @@ outcome: decide
 description: >-
   Benchmark: the pilot's worked example PRJNA1027859 (St Ange et al., Cell Genomics 2024) — six
   single-nucleus 10x libraries of FACS-sorted adult neuronal nuclei, three CQ757 (wqIs7
-  [Prgef-1::his-58::GFP]) and three CQ758 (the same transgene in daf-2(e1370) III). It pins two
-  things: that resolve still reads 10x-3p-gex-v3 (with v3.1 processing-equivalent) out of the
-  fingerprint's pinned bytes, and that the archive's per-sample facts still land on the right
-  BioSample — both the `*` multisets and two named accessions, one per genotype arm, because `*`
-  alone survives a shuffled join (ADR-0016). This is the byte-light benchmark twin of the pilot's
-  local pre-registration at evals/cases/real/PRJNA1027859, which grades the same dataset from real
-  FASTQs staged behind an environment variable.
+  [Prgef-1::his-58::GFP]) and three CQ758 (the same transgene in daf-2(e1370) III). It pins that
+  resolve still reads 10x-3p-gex-v3 (with v3.1 processing-equivalent) out of the fingerprint's
+  pinned bytes, and that the organism still comes through from the archive records. This is the
+  byte-light benchmark twin of the pilot's local pre-registration at
+  evals/cases/real/PRJNA1027859, which grades the same dataset from real FASTQs staged behind an
+  environment variable.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.6
@@ -34,41 +33,3 @@ fields:
   library.equivalence_members:
   - 10x-3p-gex-v3.1
   experiment.organism: 6239
-  # The only structured field separating the two arms: CQ757 is wqIs7 [Prgef-1::his-58::GFP], CQ758
-  # is that transgene plus daf-2(e1370) III (STAR Methods). The record declares no genotype at all,
-  # so a strain id is the whole of what the archive knows about WT-vs-daf-2.
-  experiment.samples.*.strain:
-  - CQ757
-  - CQ757
-  - CQ757
-  - CQ758
-  - CQ758
-  - CQ758
-  experiment.samples.*.tissue:
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  - Neurons
-  # Not stated of this study's own animals in the paper, but load-bearing rather than incidental:
-  # the same lab's male atlas (PRJNA1195922) is a separate dataset in this same benchmark, and sex
-  # is what tells the two apart. Neither strain carries a him allele.
-  experiment.samples.*.sex:
-  - hermaphrodite
-  - hermaphrodite
-  - hermaphrodite
-  - hermaphrodite
-  - hermaphrodite
-  - hermaphrodite
-  experiment.samples.*.dev_stage:
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  - Adult Day 1
-  # Named samples pin the JOIN, not just the multiset — one from each arm, so a shuffle swapping
-  # the WT and daf-2 halves is caught. Both agree with the pilot's pre-registration.
-  experiment.samples.SAMN40935616.strain: CQ757
-  experiment.samples.SAMN40935621.strain: CQ758

@@ -169,7 +169,13 @@ from __future__ import annotations
 #: above this one nothing about scoring moved, so no cached candidate is stale on its account; the
 #: stamp advances because the stage now emits a note it could not before. `dataset_hash` does not
 #: fold this stamp — no stored manifest moves, and nothing here reaches one.
-RESOLVE_VERSION = "2026.8.9"
+#: 2026.11.0 — the metadata resolver stops deciding sample attributes. It joins files to samples and
+#: reads the project and organism, and nothing else: no attribute, no attribute warning, and the
+#: wrong-paper guard loses its strain signal. No byte decision moved, so no cached candidate is
+#: stale on its account; the stamp advances because the stage's output changed shape. A manifest
+#: compiled from a record that declared attributes gets a new `dataset_hash`, because its samples
+#: no longer carry them.
+RESOLVE_VERSION = "2026.11.0"
 
 from .cache import Cache, dataset_id  # noqa: E402
 from .engine import (  # noqa: E402

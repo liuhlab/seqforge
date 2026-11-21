@@ -7,4 +7,6 @@ an open dict keyed by NCBI's 960 harmonized BioSample names, any other key refus
 lost because NCBI's next addition would then be a schema migration rather than a data refresh, and a
 free-form dict lost because a key that accepts everything checks nothing.
 
-**Status.** Amended — an attribute outside the 960 now warns rather than being silently skipped.
+**Status.** Superseded 2026-11-21 — the compiler carries no sample attributes: the manifest's
+`attributes`, harvest's ask and the resolver's choosing were removed outright, and a study reading
+holds what a sample was.

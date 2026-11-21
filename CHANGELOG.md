@@ -75,6 +75,18 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   too. The eval report shows dollars in place of token counts.
 - The Anthropic and OpenAI client libraries are no longer dependencies.
 
+### Removed
+
+- Sample attributes are gone from the compiler. `harvest` no longer asks for tissue, cell type,
+  strain, genotype, treatment, disease, sex, developmental stage or age, so sample and run records
+  are no longer sent to a model; the metadata resolver no longer chooses among attributes or warns
+  about them; the manifest's samples carry no `attributes`; `sample_metadata.tsv` has no attribute
+  columns; the report's Samples tab lists each sample and its files only; and `seqforge eval` no
+  longer grades `experiment.samples.*`. What a sample was now lives only in a study reading.
+  Matching files to samples, the organism, cells versus nuclei and the chemistry hint are
+  unchanged. `harvest extract` no longer prints `n_stored`, and each `fanned` row names its one
+  `assertion_id` instead of `assertion_ids` and `materialized`.
+
 ### Fixed
 
 - Scoring reads against a shipped barcode onlist no longer converts the whole onlist to a wider

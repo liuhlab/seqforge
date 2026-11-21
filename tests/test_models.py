@@ -183,24 +183,6 @@ def test_one_decision_carries_exactly_one_confidence() -> None:
     assert all(not hasattr(a, "confidence") for a in man.library.assay)
 
 
-def test_a_sample_attribute_key_must_be_one_ncbi_defines() -> None:
-    """No field enters the manifest without passing a validator, and the key space is NCBI's.
-
-    `condition` was ours. No archive uses it, and a field named "condition" accepts anything you can
-    call a condition -- which is how the pilot's extraction filed routine worm husbandry into it.
-    """
-    ok = m.SampleGroup(
-        sample_id="s1",
-        attributes={"strain": m.EvidencedStr(value="CQ758", basis="asserted", rung=0)},
-    )
-    assert ok.attributes["strain"].value == "CQ758"
-    with pytest.raises(ValidationError, match="NCBI harmonized"):
-        m.SampleGroup(
-            sample_id="s1",
-            attributes={"condition": m.EvidencedStr(value="daf-2", basis="asserted", rung=0)},
-        )
-
-
 @pytest.mark.parametrize(
     "bad_uri",
     [

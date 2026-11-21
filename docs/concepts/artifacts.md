@@ -87,8 +87,8 @@ changes; there are simply several of them.
 
 Two files tie the project back together at the top level:
 
-- **`sample_metadata.tsv`** — one row per sample across every assay, one column per field (strain,
-  age, tissue, diet, chemistry, files…): the flat "one study" view.
+- **`sample_metadata.tsv`** — one row per sample across every assay (sample id, accession, assay,
+  organism, files): the flat "one study" view.
 - **`project.yaml`** — the index of which assays exist, their chemistry and sample counts, and where
   each one's manifest and pipeline live.
 

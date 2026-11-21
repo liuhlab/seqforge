@@ -101,9 +101,9 @@ def flow_steps(assay: AssayReport) -> list[FlowStep]:
                 "Which files belong to which sample",
                 [
                     f"the files are grouped into {n_samples} sample(s)",
-                    "and labelled with strain, tissue, stage, sex…",
+                    "by the accessions and filenames the records declare",
                 ],
-                "from records and prose — disagreements left blank, never guessed",
+                "from the records, or from the filenames when there are none",
                 "measured",
             )
         )

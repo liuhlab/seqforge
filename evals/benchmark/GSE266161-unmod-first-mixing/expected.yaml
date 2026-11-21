@@ -99,6 +99,10 @@ description: >-
   fixed-offset bead started stealing Enhanced data. PRE-REGISTERED before any run; the header carries
   the filename-level evidence chain that pins the 97x3 leaf, and says why `experiment.organism` is
   deliberately unclaimed on a barnyard.
+
+  AMENDMENT 2026-11-21 — the sample-attribute claims (experiment.samples.*) are removed from
+  `fields:` because the compiler no longer carries sample attributes; a study reading holds them
+  now. No other claim moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.7
@@ -108,8 +112,3 @@ fields:
   experiment.project.title: 'RoCK and ROI: a single-cell RNA-sequencing method with enhanced
     transcriptome information via targeted enrichment of transcripts and preselected, region-specific
     sequencing I'
-  experiment.samples.*.cell_line:
-  - Mix of L-cells and HEK293T cells
-  experiment.samples.*.cell_type:
-  - Mouse adult adipose, human embryonic kidney
-  experiment.samples.SAMN41096408.cell_line: Mix of L-cells and HEK293T cells

@@ -91,6 +91,10 @@ description: >-
   Together with its sibling these are the first real cases whose correct compiled parameter is
   Reverse, so a regression that defaults or hardcodes Forward is invisible everywhere else in the
   corpus. PRE-REGISTERED before any run.
+
+  AMENDMENT 2026-11-21 — the sample-attribute claims (experiment.samples.*) are removed from
+  `fields:` because the compiler no longer carries sample attributes; a study reading holds them
+  now. No other claim moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.7
@@ -98,13 +102,3 @@ predicts:
 fields:
   library.chemistry: 10x-5p-gex-v3
   experiment.organism: 10090
-  experiment.samples.*.tissue:
-  - Tumor
-  experiment.samples.*.cell_type:
-  - Tumor Infiltrating Lymphocyte
-  experiment.samples.*.cell_line:
-  - MC38
-  experiment.samples.*.treatment:
-  - Pro VSV GFP
-  experiment.samples.SAMN53298197.cell_line: MC38
-  experiment.samples.SAMN53298197.treatment: Pro VSV GFP

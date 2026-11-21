@@ -25,13 +25,12 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from .base import Accession, AssayTerm, ChemistryId, Evidenced, Sha256, Uri
 from .evidenced import (
     EvidencedAccessionList,
     EvidencedChemistrySet,
-    EvidencedStr,
     EvidencedTaxid,
 )
 
@@ -208,46 +207,16 @@ class LibrarySection(BaseModel):
 
 
 class SampleGroup(BaseModel):
-    """One biological sample, the files that carry it, and what is declared about it.
+    """One biological sample and the files that carry it.
 
-    ``attributes`` is keyed by an **NCBI harmonized BioSample attribute name** — ``strain``,
-    ``tissue``, ``dev_stage``, ``genotype``, all 960 of them — and the validator refuses anything
-    else. Two named fields (``tissue``, ``condition``) used to sit here instead, and both were wrong
-    in the same way:
-
-    - ``condition`` is not a vocabulary anyone else uses. We invented it, and a field named
-      "condition" accepts anything you can call a condition; on the pilot a language model filed worm
-      husbandry into it. NCBI's ``treatment`` / ``genotype`` / ``disease`` are the real keys, each
-      with a definition somebody else maintains.
-    - Two typed fields cannot hold ``strain``, and ``strain`` is the only structured field that
-      separates the pilot's wild-type samples from its daf-2 mutants.
-
-    An open dict rather than 960 pydantic fields, because a typed list mirroring somebody else's
-    vocabulary is the shape this repo keeps getting bitten by: it rots the moment they add an
-    attribute, and nothing goes red. The vocabulary is the file NCBI's list was generated into, and
-    the validator reads *it*.
+    What the sample WAS (its tissue, strain or treatment) is not here: a study reading holds it.
     """
 
     sample_id: str
     #: The archive's id for this sample, when there is one. ``None`` for a dataset that never went
     #: near an archive — which is most of them, and not a defect.
     accession: Accession | None = None
-    attributes: dict[str, EvidencedStr] = Field(default_factory=dict)
     file_uris: list[Uri] = Field(default_factory=list)
-
-    @field_validator("attributes")
-    @classmethod
-    def _keys_are_ncbi_attributes(cls, value: dict[str, EvidencedStr]) -> dict[str, EvidencedStr]:
-        """Fail closed on a key NCBI does not define: no field enters a manifest unvalidated."""
-        from ..io.attributes import is_attribute
-
-        unknown = sorted(k for k in value if not is_attribute(k))
-        if unknown:
-            raise ValueError(
-                f"not NCBI harmonized BioSample attribute name(s): {unknown}. A sample attribute's "
-                f"key space is NCBI's 960 curated names (`seqforge io attributes list`), not ours."
-            )
-        return value
 
 
 class ArchiveProject(BaseModel):

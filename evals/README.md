@@ -130,7 +130,7 @@ no case ships FASTQ bytes.
 evals/cases/<group>/<case_id>/       # <group> = spec | prose | steering | refusal | real
   inputs/recipe.yaml   # HOW to build the FASTQ — never the FASTQ itself
   metadata/*.txt       # prose for the LLM stage (optional)
-  records.json         # archive transcript (optional; real cases — sample facts come from here)
+  records.json         # archive transcript (optional; real cases — archive facts come from here)
   expected.yaml        # ground truth, or the expected refusal/question
 ```
 
@@ -176,7 +176,7 @@ conflict:                               # outcome: ask
 assertions:                             # harvest ground truth (only checked under --llm)
   - {field: experiment.organism, value: Caenorhabditis elegans}
 forbidden_fields:                       # fields the prose does NOT state — silence is correct
-  - experiment.samples.tissue
+  - experiment.accessions
 ```
 
 `forbidden_fields` is not an afterthought. Rewarding recall alone trains the prompt to guess; these
@@ -234,18 +234,18 @@ What generalizes past the one case is here, because that is the part the next ca
   graded `false_accept` under `--llm` and `correct` without it, for a *resolver* reason rather than a
   hallucination: a quote of an experiment title re-derived `experiment.samples.treatment` from the
   same submission that had typed it into a BioSample slot, both positions arrived as `asserted`, and
-  equal authorities that disagree leave the attribute **null**. A prose reading wholly inside the typed
-  value is now absorbed rather than tied against. Containment holds in one direction and over whole
-  words, so a reading that *extends* the typed value (`control` read as `control RNAi`) is still a
-  disagreement and still leaves null.
+  equal authorities that disagree left the attribute **null**. The fix absorbed a prose reading wholly
+  inside the typed value rather than tying it. Since 2026-11-21 (#633) the compiler carries no sample
+  attributes at all, so this mechanism is history; the lesson about one deposit read at two levels
+  still stands.
 
 ## The `benchmark/` tier (real data on HF)
 
 Real datasets (mostly *C. elegans*), run from their byte-light **fingerprint packages** on the HF repo
 [`liuhlab/seqforge-benchmark`](https://huggingface.co/datasets/liuhlab/seqforge-benchmark). Each
 `benchmark/<accession>/` case is a `kind: fingerprint` recipe (`hf: packages/<accession>.fingerprint.tar.gz`)
-plus a committed `records.json`, so chemistry grades from the pinned bytes and sample facts from the
-archive transcript — anonymous read, no token, no NCBI key. A package that is unreachable **skips**; a
+plus a committed `records.json`, so chemistry grades from the pinned bytes and the organism, project
+and sample count from the archive transcript — anonymous read, no token, no NCBI key. A package that is unreachable **skips**; a
 package the repo does not hold (a 404 — it was never published) is reported as **absent**, a gap in
 the corpus rather than a network blip. Both are excluded from every rate. Publish one with
 `seqforge io publish-package <package>` (`--dry-run` first: it prints the URL the `hf:` key below must
@@ -309,32 +309,29 @@ was built with no `--doc` at all because its series has no linked publication. S
 be *the* harvest corpus; it can hold real, checkable claims where a real document makes them, and
 `cases/prose` keeps owning the adversarial ones a synthetic document can be built to contain.
 
-Two cases carry that ground truth today, and the pattern to copy is in their files:
+Three cases carry that ground truth today — `GSE234962`, `GSE274290` and `PRJNA658829`, each
+asserting `experiment.organism` — and the pattern to copy is in their files.
 
-| case | assertion | forbidden, and why silence is right |
-|---|---|---|
-| `GSE274290` | `experiment.organism` | the paper describes RNAi-treated animals — for its *western blots*, not for the library that was sequenced |
-| `PRJNA658829` | `experiment.organism` | every experiment record is 2 KB of routine husbandry, and `treatment` is asked of it |
+Until 2026-11-21 they also carried `forbidden_fields` for `experiment.samples.treatment` and
+`experiment.samples.disease`, which the documents baited and never stated about a worm. Those fields
+left harvest with the rest of the sample attributes (#633), so the forbidden entries went with them,
+and no benchmark case forbids a field today. `forbidden_fields` is still the half that guards against
+guessing — a graded assertion only rewards recall, and rewarding recall alone trains the prompt to
+guess — and `cases/prose` is where it is exercised now.
 
-Both also forbid `experiment.samples.disease`, which each document baits and neither states about a
-worm. **`forbidden_fields` is the half that earns this.** A graded assertion only rewards recall, and
-rewarding recall alone trains the prompt to guess; the claim these cases exist to catch is a *real
-quote attached to the wrong sample*, which span verification passes by construction and no byte can
-ever contradict.
-
-Three rules for adding more, learned from writing these two:
+Three rules for adding more, learned from writing the first two:
 
 - **Check the assertion against the package, not the paper you read online.** `info/text` is
   extracted text, sometimes lightly mangled, and it is the only thing a run can see. Unpack the
   package and grep.
 - **Prefer a field only one document can answer.** `experiment.organism` is asked of a
   *dataset*-scoped document and of nothing else, so the carried paper is its sole possible source. A
-  sample attribute can be claimed by several documents at once, and the grade keeps one of them.
+  field asked of several documents can be claimed by several at once, and the grade keeps one of them.
 - **A forbidden field must be absent from every document**, the archive records included — not just
   from the paper. The grade looks at the whole accepted set.
 
-None of this changes what `--no-llm` does: chemistry still comes from the pinned bytes and sample
-facts from `records.json`, with no key and nothing graded about harvest.
+None of this changes what `--no-llm` does: chemistry still comes from the pinned bytes and the
+archive facts from `records.json`, with no key and nothing graded about harvest.
 
 **Read this before you spend, because the plan is not the bill on the cheap model.** The first graded
 tier pass (2026-08-01, `deepseek-v4-flash`, default fan-out) issued **68** of the planned 141 requests
@@ -438,7 +435,7 @@ changing the shipped path has to repeat.
 maintainer-launched, single-trial, with `--llm` excluded** — six single-trial `--llm` runs of one case
 graded two `correct`, two `over_ask` and two aborted, so a single-trial harvest grade is a coin flip
 and a digest taken over one would be an instrument nobody trusted twice. `--no-llm` reaches no model,
-needs no gateway, and grades chemistry from pinned bytes and sample facts from committed records.
+needs no gateway, and grades chemistry from pinned bytes and archive facts from committed records.
 
 **It is two commands, not one**: a run over exactly the frozen eighteen, which the grade digest is
 taken from, and a run over the whole tier, which is what a newly-added case turns green. Land each

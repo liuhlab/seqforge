@@ -79,6 +79,11 @@ description: >-
   pools at rung 3, or the archive transcriber stopped carrying this BioSample's strain/tissue/
   treatment. PRE-REGISTERED before any run — see the header for the evidence chain and for why the
   leaf is predicted `-v2` rather than `-v1`.
+
+  AMENDMENT 2026-11-21 — the sample-attribute claims (experiment.samples.*) are removed from
+  `fields:` because the compiler no longer carries sample attributes; a study reading holds them
+  now, so "the archive transcriber stopped carrying this BioSample's strain/tissue/treatment" above
+  can no longer turn this case red. No other claim moved.
 predicts:
   seqforge: 2026.7.1
   kb: 2026.7.7
@@ -88,14 +93,3 @@ fields:
   experiment.organism: 10090
   experiment.project.title: Eosinophils restrict CRC metastasis by inhibiting pro-tumorigenic Spp1+ macrophage
     differentiation.
-  experiment.samples.*.strain:
-  - C57BL/6J Cre
-  experiment.samples.*.tissue:
-  - Colon
-  experiment.samples.*.treatment:
-  - Citrobacter rodentium infection
-  # `source_name` is NOT claimed: the record's value is "Colon", a verbatim duplicate of `tissue`,
-  # and the same-day review pruned exactly that shape from GSE126954, GSE234962, GSE256266 and
-  # GSE274290. One string asserted twice is one claim, not two.
-  experiment.samples.SAMN52065473.strain: C57BL/6J Cre
-  experiment.samples.SAMN52065473.treatment: Citrobacter rodentium infection

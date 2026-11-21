@@ -34,9 +34,9 @@ harvest(documents)              -> Assertion     LLM, span-verified. A document 
 score(Observation, KB, hypo?)   -> candidates x role_assignment, Conflicts, Questions. What the
                                    library IS, from BYTES; a hypothesis breaks ties and never enters
                                    the evidence matrix. BLOCKS on observed↔asserted
-resolve_metadata(FileIdentity,  -> samples x attributes, Conflicts, Warnings. Which sample each file
-                 records?,         is and what it was, from RECORDS + PROSE, no probe signal.
-                 assertions?)      DECIDES, and only WARNS (ADR-0010)
+resolve_metadata(FileIdentity,  -> samples, Warnings. Which sample each file is, from RECORDS, no
+                 records?)         probe signal. What a sample was lives in a study reading.
+                                   DECIDES, and only WARNS (ADR-0010)
 ──────────────────────────────────────────────────────────────────────────────────────────────
   => manifest.yaml     THE IR.    What the data IS. One per dataset. Immutable, hashed.
 plan(Assertions, flags, policy) -> ProcessingSection   precedence: flag > instruction > policy

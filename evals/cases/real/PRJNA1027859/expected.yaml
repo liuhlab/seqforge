@@ -175,6 +175,12 @@ description: >-
   `seqforge io records PRJNA1027859` returns them. It is an INPUT, like `inputs/recipe.yaml`, not an
   expectation — and it is public metadata, so it carries no lab path.
   ---------------------------------------------------------------------------------------------------
+  AMENDMENT 2026-11-21 — the sample-attribute claims (experiment.samples.*) are removed from
+  `fields:` because the compiler no longer carries sample attributes; a study reading holds them now.
+  The 2026-07-16 amendment above is kept verbatim as the dated record of why they were added. No
+  other claim moved: chemistry, the equivalence class, organism, project title and center are
+  byte-identical, and so is every DECLARED FACT.
+  ---------------------------------------------------------------------------------------------------
 predicts:
   # The code this expectation was written against. A (b) claim is only meaningful with one.
   seqforge: "2026.7.0"
@@ -185,20 +191,7 @@ fields:
   library.equivalence_members:
     - 10x-3p-gex-v3.1
   # ---- transcribed 2026-07-16 from the DECLARED FACTS block above. See the amendment. ----
-  # `*` means "across every sample, sorted". These were never claims about one of the six: the
-  # record declares them per BioSample and they happen to agree, and that agreement is the claim.
   experiment.organism: 6239
-  experiment.samples.*.tissue: [Neurons, Neurons, Neurons, Neurons, Neurons, Neurons]
-  # The ONLY structured field that separates this dataset's two conditions. 3 WT + 3 daf-2.
-  experiment.samples.*.strain: [CQ757, CQ757, CQ757, CQ758, CQ758, CQ758]
-  experiment.samples.*.sex:
-    [hermaphrodite, hermaphrodite, hermaphrodite, hermaphrodite, hermaphrodite, hermaphrodite]
-  experiment.samples.*.dev_stage:
-    ["Adult Day 1", "Adult Day 1", "Adult Day 1", "Adult Day 1", "Adult Day 1", "Adult Day 1"]
-  # A named sample, to pin the JOIN itself rather than only the multiset. If the six sets of facts
-  # were attached to the wrong six samples, every `*` assertion above would still pass.
-  experiment.samples.SAMN40935621.strain: CQ758
-  experiment.samples.SAMN40935616.strain: CQ757
   experiment.project.title: >-
     A Single-Nucleus Atlas of Adult C. elegans Neurons Reveals GPCR and Insulin-signaling Profiles
   experiment.project.center: Princeton University

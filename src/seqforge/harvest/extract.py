@@ -85,7 +85,10 @@ if TYPE_CHECKING:
 #: the spelling — and `identity.aliases` is byte-untouched, so every value that named this entry still
 #: names it. What moved is the STRING the model is told to return for a chemistry it was already being
 #: told about; the entry's own display name moved with it because the block prints that too.
-EXTRACT_PROMPT_VERSION = "2026.8.2"
+#: 2026.11.0 — the nine `experiment.samples.*` attributes left the ask, and with them the tissue rule
+#: in the values block and each attribute's NCBI definition in the per-document ask. Every remaining
+#: field is unchanged; a record document is now asked the chemistry or nothing.
+EXTRACT_PROMPT_VERSION = "2026.11.0"
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as
@@ -121,10 +124,6 @@ Values:
 - `experiment.organism`: the scientific name as written (e.g. "Caenorhabditis elegans").
 - `experiment.accessions`: only an explicit database accession (GEO/SRA/ENA/BioProject, e.g.
   "GSE110823", "PRJNA1027859"). A reference genome or assembly name is NOT an accession.
-- `experiment.samples.tissue`: a whole organism at a life stage ("adult worm", "L4 larva") is NOT a
-  tissue — omit it rather than filing the life stage here (that is `dev_stage`). Each asked sample
-  attribute arrives with its own NCBI definition; keep each value in its own field — a cell type is
-  `cell_type`, a perturbation is `treatment`, a mutation is `genotype`, none of them `tissue`.
 - `processing.quantification`: the STARsolo feature the document NAMES, exactly, as one of: Gene, SJ,
   GeneFull, GeneFull_ExonOverIntron, GeneFull_Ex50pAS, Velocyto. Emit one assertion per feature named.
   Only extract this when the document names the feature; a document describing the BIOLOGY ("single
@@ -290,13 +289,12 @@ def document_sha256_in(user: str) -> str | None:
 def _user_content(doc: NormalizedDoc, fields: tuple[str, ...]) -> str:
     """The per-document half of the prompt: which fields, and the document.
 
-    The ask is scoped, so a sample record's document is never even asked for a chemistry, and the
-    sample-attribute definitions come from NCBI's own list rather than from a paraphrase here — see
-    `fields.describe_asked`.
+    The ask is scoped (:mod:`seqforge.harvest.fields`), so a document is asked only what its scope and
+    role permit.
 
-    Note what this does NOT say: which sample the document is about. It does not need to. The document
-    holds one record's prose and nothing else, so "which sample" is answered by which file we handed
-    the model, and code already knows the answer because code chose the file.
+    Note what this does NOT say: which record the document is about. It does not need to. The
+    document holds one record's prose and nothing else, so "which record" is answered by which file we
+    handed the model, and code already knows the answer because code chose the file.
     """
     return (
         f"Document sha256: {doc.doc_sha256}\n"
@@ -313,8 +311,8 @@ def _batch_user_content(docs: Sequence[NormalizedDoc], fields: tuple[str, ...]) 
     """Several documents that receive the SAME ask, as the volatile half of ONE request.
 
     The ask is written **once** and the documents follow it, which is the second half of what
-    batching saves: the nine sample attributes with their NCBI definitions are ~1.3 KB, paid per
-    request now rather than per document, on top of the ~9 KB system prefix.
+    batching saves: the ask is paid per request rather than per document, on top of the ~9 KB system
+    prefix.
 
     All of it lives in the USER half, and none of it in the system prompt. That placement is
     load-bearing rather than tidy: the system half is byte-identical across a run, which is the only
@@ -361,8 +359,7 @@ def extract_drafts(
     """Ask a model for span-carrying claims about ``doc``. Proposes only — ``verify`` decides.
 
     ``fields`` defaults to the set appropriate to the document's SCOPE and ROLE: a reference document
-    is never asked about ``processing.*``, and a sample record's document is never asked about the
-    chemistry. Asking and enforcing are separate jobs, though — ``verify_drafts`` refuses an
+    is never asked about ``processing.*``, and a sample record's document is asked nothing at all. Asking and enforcing are separate jobs, though — ``verify_drafts`` refuses an
     off-scope field regardless of what was asked, because a prompt is not a boundary.
 
     One document, one request: this is :func:`extract_batch` at width one, and that width is the one
@@ -441,8 +438,8 @@ def extract_batch(
 ) -> list[ExtractionOutcome]:
     """One request for several documents that receive the same ask. One outcome per document, in order.
 
-    The overhead this removes is the whole reason it exists: the system prefix is ~9 KB and the
-    sample-attribute ask ~1.3 KB, both byte-identical per request, so three archive records of 45,
+    The overhead this removes is the whole reason it exists: the system prefix is ~9 KB and the ask
+    is byte-identical per request too, so three archive records of 45,
     209 and 213 characters cost ~9.4 K input tokens as three requests and are >95 % prompt (#190).
 
     **Every document in ``docs`` must receive the same ask**, because a prompt is the only place the
@@ -476,7 +473,7 @@ def extract_batch(
     A response that answers only SOME of the batch is **not** a failure. A document supporting nothing
     is a correct and common answer that returns no drafts at all, so partial coverage is
     indistinguishable from it — and treating it as a failure would re-ask a batch of fifty-seven
-    sample records every time fifty of them had nothing to say, which is strictly more requests than
+    records every time fifty of them had nothing to say, which is strictly more requests than
     not batching at all.
     """
     if not docs:

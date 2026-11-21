@@ -18,3 +18,7 @@ day13_CF_26` is visibly a filename convention rather than a bench measurement, a
 it. The cost is real and is the trade: a lab that writes its own prose can now reach `asserted`, the
 grade an archive's transcript gets, and nothing but that label distinguishes a careful record from a
 careless one.
+
+**Status.** Amended 2026-11-21 — no sample or run document is asked anything since the sample
+attributes left the compiler, so prose on a hand-written record reaches no claim. The loader still
+accepts it.

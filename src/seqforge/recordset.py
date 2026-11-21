@@ -87,8 +87,7 @@ _USER_LEVELS = ("run", "sample")
 #:
 #: ``free_text`` used to sit here beside ``attributes`` and no longer does, and the line between them
 #: is the line between a slot and a sentence. An ``attributes`` entry reaches ``asserted`` by being
-#: typed — ``_positions_for`` copies a record's typed slot straight into a position, so a value put
-#: there is believed because of WHERE it was written. Prose reaches nothing by being written: it
+#: typed — a record's typed slot is believed because of WHERE it was written. Prose reaches nothing by being written: it
 #: becomes a document, and a claim only leaves it carrying a quote that greps back and a value that
 #: quote entails. That is the same bar a README clears, and a README is the path the refusal here has
 #: always pointed at — same author, same morning, same freedom to edit it afterwards. What changes by
@@ -130,10 +129,10 @@ _TYPEABLE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 #: What a fact-key refusal tells the author to do instead. One sentence, because there is one answer:
 #: the path that keeps a span already exists.
 _HARVEST_INSTEAD = (
-    "Delete it. A fact about a sample enters through `seqforge harvest`, so that the value arrives "
-    "with the quote it came from. Put the words on this record as `free_text: [{label: ..., text: "
-    "...}]` and they become that sample's own document; put them in a README and they describe the "
-    "whole dataset. What this file may never do is state the value itself."
+    "Delete it. The manifest records which files form each sample, not what the sample was; that "
+    "belongs in a study reading. To keep the words beside the record, put them on it as "
+    "`free_text: [{label: ..., text: ...}]`, or in a README. What this file may never do is state "
+    "the value itself."
 )
 
 
@@ -464,9 +463,8 @@ def _load_user(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
                         f"{ref} declares {_quoted(facts)}. A `source: user` record set may say what "
                         f"a sample was, but only in prose that still has to be quoted — never in a "
                         f"typed slot. A value typed here is believed because of WHERE it sits: it "
-                        f"has no document to grep and no span to verify, yet it would outrank a "
-                        f"claim that has both, permanently, since sample attributes are hashed into "
-                        f"the dataset and the manifest is never rewritten."
+                        f"has no document to grep and no span to verify, and the manifest no longer "
+                        f"carries what a sample was."
                     ),
                     remedy=_HARVEST_INSTEAD,
                     evidence=facts,
@@ -937,8 +935,8 @@ def draft_record_set(fastq_dir: Path) -> str:
         "# ...then add `parent: my_library` to each run that belongs to it.",
         "#",
         "# It declares STRUCTURE ONLY. There is no place here for a strain, a tissue or a genotype:",
-        "# a line typed here has no document to grep and no span to verify, and it would outrank a",
-        "# claim that has both. Write those in a README and run `seqforge harvest` over it.",
+        "# a line typed here has no document to grep and no span to verify, and the manifest does not",
+        "# carry what a sample was. Prose about a sample may sit on its record as `free_text`.",
         "#",
         _scan_line(notes),
         yaml.safe_dump({"source": USER_SOURCE, "query": query}, sort_keys=False).rstrip("\n"),

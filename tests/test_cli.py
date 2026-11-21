@@ -1389,9 +1389,8 @@ def test_manifest_fill_on_a_three_run_dataset_keeps_every_file(tmp_path: Path) -
     assert manifest["library"]["chemistry"]["confidence"] is not None
     assert all(isinstance(f["read_id"], str) for f in files)
 
-    # No accession was given, so nothing was fetched and no sample carries a fact. That is not a
+    # No accession was given, so nothing was fetched and no sample carries one. That is not a
     # degraded mode -- most sequencing data never had an accession -- and it must not be a refusal.
-    assert all(s["attributes"] == {} for s in samples)
     assert all(s["accession"] is None for s in samples)
     assert manifest["experiment"]["project"] is None
 
@@ -1955,15 +1954,14 @@ def test_harvest_extract_pays_once_for_a_document_handed_to_it_twice(
     assert payload["n_accepted"] == 1
 
 
-def test_harvest_extract_asks_a_samples_runs_once_between_them(
+def test_harvest_extract_sends_the_experiment_record_and_no_run(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The fan-out, end to end through the verb.
+    """The send list, end to end through the verb.
 
-    Every archive record with prose used to be its own call, so a series with twelve runs per sample
-    spent twelve calls asking twelve one-line aliases the same nine questions. The runs are still
-    READ — an alias is often the only place a WT-vs-mutant contrast is written — but a run belongs to
-    exactly one sample, so they are one document, and it is the SAMPLE that document names.
+    Every archive record with prose used to be its own call. Now only a record that can answer
+    anything is sent: the experiment's protocol paragraph, asked for the chemistry. Six run aliases
+    and a project abstract cost nothing.
     """
     from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
 
@@ -1979,7 +1977,12 @@ def test_harvest_extract_asks_a_samples_runs_once_between_them(
                 free_text=[FreeText(label="abstract", text="Wild-type and daf-2 mutants.")],
             ),
             ArchiveRecord(level="sample", accession="SAMN1"),  # no prose: nothing to read
-            ArchiveRecord(level="experiment", accession="SRX1", parent="SAMN1"),
+            ArchiveRecord(
+                level="experiment",
+                accession="SRX1",
+                parent="SAMN1",
+                free_text=[FreeText(label="design", text="Chromium Single Cell 3' v3 libraries.")],
+            ),
             *(
                 ArchiveRecord(
                     level="run",
@@ -2008,15 +2011,15 @@ def test_harvest_extract_asks_a_samples_runs_once_between_them(
     )
     assert result.exit_code == 0, result.stdout
     usage = json.loads(result.stdout)["usage"]
-    assert usage["n_documents"] == 2, "the paper, and the six runs as one document"
+    assert usage["n_documents"] == 2, "the paper, and the experiment's protocol paragraph"
     assert usage["n_calls"] == 2
-    # the project is asked nothing at all, and a record with no prose has nothing to read
+    # the project and the runs are asked nothing at all, and a record with no prose has nothing to read
     subjects = json.loads((tmp_path / "seqforge" / "logs" / "assertions.json").read_text())
     placed = {(d["scope"], d["subject"]) for d in subjects["document_subjects"]}
-    assert placed == {("dataset", None), ("run", "SAMN1")}
+    assert placed == {("dataset", None), ("experiment", "SRX1")}
     # the bytes a citation greps into are on disk under a name a human can read
     documents = tmp_path / "seqforge" / "records" / "documents"
-    assert any(p.name.startswith("runs-SAMN1-") for p in documents.iterdir())
+    assert any(p.name.startswith("experiment-SRX1-") for p in documents.iterdir())
 
 
 # ---- io umi-extract: the per-cell half of the plate-assay counting engine -------------------------
@@ -2387,21 +2390,22 @@ def test_umi_extract_takes_the_table_or_the_paths_and_refuses_both_and_neither(
 # ---------- records-only harvest, and what a collapsed member leaves on disk ----------
 
 
-def _twin_records(n: int, *, prose: str = "whole worm, day3") -> object:
-    """N sample records whose documents differ only in their accessions, plus their runs."""
+def _twin_records(n: int, *, prose: str = "Chromium Single Cell 3' v3, day3") -> object:
+    """N experiment records whose documents differ only in their accessions, plus their samples and
+    runs."""
     from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText, SubmittedFile
 
     records = [ArchiveRecord(level="project", accession="PRJNA9")]
     for i in range(1, n + 1):
         accession = f"SAMN{str(i) * i}"
         records += [
+            ArchiveRecord(level="sample", accession=accession, parent="PRJNA9"),
             ArchiveRecord(
-                level="sample",
-                accession=accession,
-                parent="PRJNA9",
-                free_text=[FreeText(label="sample_alias", text=prose)],
+                level="experiment",
+                accession=f"SRX{i}",
+                parent=accession,
+                free_text=[FreeText(label="design", text=prose)],
             ),
-            ArchiveRecord(level="experiment", accession=f"SRX{i}", parent=accession),
             ArchiveRecord(
                 level="run",
                 accession=f"SRR{i}",
@@ -2432,7 +2436,7 @@ def test_a_records_only_extraction_is_a_legal_invocation(tmp_path: Path) -> None
     plan = json.loads(result.stdout)
     assert plan["n_records_read"] == 3
     assert plan["n_documents"] == 1
-    assert plan["documents"][0]["members"] == ["SAMN1", "SAMN22", "SAMN333"]
+    assert plan["documents"][0]["members"] == ["SRX1", "SRX2", "SRX3"]
 
 
 def test_harvest_extract_still_refuses_when_there_is_nothing_at_all_to_read(tmp_path: Path) -> None:
@@ -2447,12 +2451,11 @@ def test_harvest_extract_still_refuses_when_there_is_nothing_at_all_to_read(tmp_
 def test_a_collapsed_members_bytes_and_subject_both_reach_disk(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A fanned assertion cites a document that was never sent.
+    """A collapsed member's rendering is written even though it was never sent.
 
-    Its bytes exist nowhere else — we made them — so a span citation is checkable only while they
-    survive; and `resolve` silently drops a claim whose document has no subject, so the whole
-    mechanism would be lossy at the next stage if `document_subjects` listed only what was paid for.
-    Both are written, and the ask still costs one request (ADR-0031).
+    Its bytes exist nowhere else — we made them — so the record a fanned claim reached can be read
+    back only while they survive, and `document_subjects` names its scope beside the documents that
+    were paid for. Both are written, and the ask still costs one request (ADR-0031).
     """
     fake = harvest_kit.install(monkeypatch)
     records_path = tmp_path / "records.json"
@@ -2466,18 +2469,18 @@ def test_a_collapsed_members_bytes_and_subject_both_reach_disk(
     assert len(fake.record) == 1, "three records, one ask"
     stored = json.loads((tmp_path / "seqforge" / "logs" / "assertions.json").read_text())
     placed = {(d["scope"], d["subject"]) for d in stored["document_subjects"]}
-    assert placed == {("sample", "SAMN1"), ("sample", "SAMN22"), ("sample", "SAMN333")}
+    assert placed == {("experiment", "SRX1"), ("experiment", "SRX2"), ("experiment", "SRX3")}
     written = {
         p.name.split("-")[1] for p in (tmp_path / "seqforge" / "records" / "documents").iterdir()
     }
-    assert written == {"SAMN1", "SAMN22", "SAMN333"}
+    assert written == {"SRX1", "SRX2", "SRX3"}
 
 
 def test_a_records_only_compile_still_reaches_the_harvest_stage(tmp_path: Path) -> None:
     """`seqforge run` entered harvest only when a DOCUMENT was passed — the same defect `_roled`
     carried, one file over. A deposit whose whole metadata is its archive record silently skipped the
-    one stage that could read it, and its manifest was then short every fact a sample record states
-    in prose, with nothing in the summary saying so.
+    one stage that could read it, and its manifest was then short every fact an experiment record
+    states in prose, with nothing in the summary saying so.
 
     Driven under `--no-llm`, so what is under test is the GUARD and not a model: the stage has to
     appear, announcing it was skipped by the flag, where before it was absent altogether.
@@ -2593,7 +2596,7 @@ def test_a_record_set_with_no_prose_is_an_empty_extraction_and_not_a_crash(
 
     assert result.exit_code == 0, result.stdout + str(result.stderr or "")
     payload = json.loads(result.stdout)
-    assert payload["n_drafts"] == payload["n_accepted"] == payload["n_stored"] == 0
+    assert payload["n_drafts"] == payload["n_accepted"] == 0
     assert payload["assertions"] == payload["conflicts"] == payload["rejected"] == []
     assert "no_documents" in payload, "a row of zeros does not say WHY there was nothing to read"
     stored = json.loads((tmp_path / "seqforge" / "logs" / "assertions.json").read_text())
@@ -2663,7 +2666,7 @@ def test_a_structure_only_records_compile_reaches_the_manifest_with_no_credentia
     assert "manifest" in stages, "the compile got past harvest, which is the whole point"
     assert set(stages) == {"records", "harvest", "manifest", "processing", "compose", "project",
                            "report"}  # fmt: skip
-    assert stages["harvest"]["n_stored"] == 0, "structure only: there was nothing to harvest"
+    assert stages["harvest"]["n_accepted"] == 0, "structure only: there was nothing to harvest"
     assert "no_documents" in stages["harvest"], "and the summary says so rather than implying it"
     assert (tmp_path / "seqforge" / "manifest.yaml").is_file()
     assert (tmp_path / summary["snakefile"]).is_file()
@@ -2903,8 +2906,8 @@ def test_the_draft_applied_unedited_produces_the_samples_the_filenames_already_d
 def test_records_validate_refuses_a_typed_attribute_and_names_the_key(tmp_path: Path) -> None:
     """A hand-written set declares structure, never a fact — and the refusal has to say which key.
 
-    An attribute typed here carries no quote, no span and nothing that greps back, yet it would
-    outrank a harvested claim carrying all three, permanently. So this is a Blocker at exit 3 rather
+    An attribute typed here carries no quote, no span and nothing that greps back, and the manifest
+    has no place for it. So this is a Blocker at exit 3 rather
     than a dropped key, and the stdout object names the offending field: a refusal a caller cannot act
     on is a refusal that gets routed around.
     """
@@ -2935,8 +2938,8 @@ def test_records_validate_refuses_a_typed_attribute_and_names_the_key(tmp_path: 
     blockers = out["report"]["blockers"]
     assert any(b["subject"]["ref"] == "records[0].attributes" for b in blockers), blockers
     assert any("attributes" in b["evidence"] for b in blockers), blockers
-    assert any("harvest" in b["remedy"] for b in blockers), (
-        "it must name the path that keeps a span"
+    assert any("study reading" in b["remedy"] for b in blockers), (
+        "it must name where what a sample was now lives"
     )
 
 

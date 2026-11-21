@@ -8,10 +8,9 @@ description: >-
   to anyone with background knowledge — which the prompt forbids the extractor from using: extract
   only what the document explicitly states, never infer, never complete a pattern).
 
-  forbidden_fields is the real assertion. The document never states a tissue or a treatment, and
-  never gives an accession. "Whole L4-stage larvae" is not a tissue; a reader wanting to fill the
-  field would have to invent one. Silence is the correct answer, and only forbidden_fields rewards it
-  — measuring recall alone would train the prompt to guess.
+  forbidden_fields is the real assertion. The document never gives an accession, so silence is the
+  correct answer, and only forbidden_fields rewards it — measuring recall alone would train the
+  prompt to guess.
 fields:
   library.chemistry: 10x-3p-gex-v3
 assertions:
@@ -21,5 +20,3 @@ assertions:
     value: Caenorhabditis elegans
 forbidden_fields:
   - experiment.accessions
-  - experiment.samples.tissue
-  - experiment.samples.treatment

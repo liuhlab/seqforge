@@ -9,3 +9,6 @@ containment, overlap, synonym tables, punctuation folding — which closes the p
 leaves the misfiling open, where a model files a genotype under `treatment` and the strings share
 nothing; a rule keyed on one archive's title grammar lost because most datasets never had an
 accession.
+
+**Status.** Superseded 2026-11-21 — the precedence it governed left with the sample attributes.
+The harvest half stands: a quote wholly inside a typed column is still refused.

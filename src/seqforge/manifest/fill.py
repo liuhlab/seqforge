@@ -137,7 +137,6 @@ def experiment_from_metadata(
         SampleGroup(
             sample_id=s.sample_id,
             accession=s.accession,
-            attributes=dict(s.attributes),
             file_uris=[uris[sha] for sha in s.file_shas if sha in uris],
         )
         for s in resolution.samples

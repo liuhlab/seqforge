@@ -94,8 +94,7 @@ class PlannedDocument(BaseModel):
     source: str
     role: str
     scope: str
-    #: The record this document speaks for — a sample's accession on a collapsed run document,
-    #: because that is the sample its claims are declarations about. ``None`` for a dataset document.
+    #: The record this document was rendered from. ``None`` for a dataset document.
     subject: str | None = None
     n_chars: int
     fields: list[str]

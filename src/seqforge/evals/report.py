@@ -680,11 +680,11 @@ def _seconds(value: float) -> str:
 def _value_html(value: Any, other: Any) -> str:
     """One side of a field check.
 
-    A list value is the ``experiment.samples.*.<attr>`` multiset, and the shape it really takes is
-    seven samples with two distinct strains between them. So identical elements collapse to one chip
-    carrying its multiplicity, and a chip is marked when its count differs from the other side's.
-    Printing the raw list would show seven chips of which one differs by position — which is not the
-    question a reader has. "``N2`` ×3 here, ×2 there" is.
+    A list value is a multiset (``library.equivalence_members``, or the chemistries a dataset
+    partitioned into), so identical elements collapse to one chip carrying its multiplicity, and a
+    chip is marked when its count differs from the other side's. Printing the raw list would show
+    chips that differ by position — which is not the question a reader has. "``x`` ×3 here, ×2
+    there" is.
     """
     if isinstance(value, list):
         mine: Counter[str] = Counter(str(v) for v in value)

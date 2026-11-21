@@ -36,7 +36,6 @@ from .model import (
     ArtifactEmbed,
     AssayLabelView,
     AssayReport,
-    AttributeView,
     ChemistryDecision,
     ConclusionView,
     DecisionField,
@@ -151,15 +150,10 @@ def _collect_assay(
     plan = _plan(ws, proc, pipeline, assertions, doc_index) if proc is not None else None
     conclusion = _conclusion(has_manifest=True, snakefile=pipeline is not None)
 
-    samples = _samples(manifest, assertions, doc_index)
+    samples = _samples(manifest)
     stats = _pipeline_stats(pipeline, manifest, results_dir)
     matrices, ruled_out = _matrices(ws, manifest)
-    has_prose = any(
-        ref.kind == "assertion" and ref.quote
-        for s in samples
-        for a in s.attributes
-        for ref in a.evidence
-    )
+    has_prose = _quotes_prose(assertions, _staged_documents(ws))
 
     taxid = int(manifest.experiment.organism.value)
     return AssayReport(
@@ -252,36 +246,25 @@ def _files(library: LibrarySection) -> list[FileView]:
     ]
 
 
-def _samples(
-    manifest: DatasetManifest,
-    assertions: dict[str, dict[str, Any]],
-    doc_index: dict[str, str],
-) -> list[SampleView]:
-    out: list[SampleView] = []
-    for sample in manifest.experiment.samples:
-        attrs: list[AttributeView] = []
-        for key in sorted(sample.attributes):
-            ev = sample.attributes[key]
-            attrs.append(
-                AttributeView(
-                    key=key,
-                    value=str(ev.value),
-                    basis=ev.basis,
-                    confidence=ev.confidence,
-                    rung=ev.rung,
-                    evidence=[_resolve_evidence(t, assertions, doc_index) for t in ev.evidence],
-                )
-            )
-        out.append(
-            SampleView(
-                sample_id=sample.sample_id,
-                accession=sample.accession,
-                n_files=len(sample.file_uris),
-                file_names=sorted(Path(u).name for u in sample.file_uris),
-                attributes=attrs,
-            )
+def _samples(manifest: DatasetManifest) -> list[SampleView]:
+    return [
+        SampleView(
+            sample_id=sample.sample_id,
+            accession=sample.accession,
+            n_files=len(sample.file_uris),
+            file_names=sorted(Path(u).name for u in sample.file_uris),
         )
-    return out
+        for sample in manifest.experiment.samples
+    ]
+
+
+def _quotes_prose(assertions: dict[str, dict[str, Any]], staged: frozenset[str]) -> bool:
+    """Did harvest quote a document a human staged, rather than only an archive record's text?"""
+    for a in assertions.values():
+        span = a.get("span") or {}
+        if span.get("quote") and span.get("doc_sha256") in staged:
+            return True
+    return False
 
 
 # ---- evidence join ------------------------------------------------------------------------------
@@ -321,8 +304,8 @@ def _resolve_evidence(
     return EvidenceRef(raw=token, kind="other")
 
 
-def _load_assertions(ws: Path) -> dict[str, dict[str, Any]]:
-    """``{assert-id -> assertion dict}`` from ``logs/assertions.json`` (top-level name as fallback)."""
+def _harvest_log(ws: Path) -> dict[str, Any]:
+    """``logs/assertions.json`` as harvest wrote it (top-level name as fallback); empty if neither."""
     for path in (logs_dir(ws) / "assertions.json", state_dir(ws) / "assertions.json"):
         if not path.is_file():
             continue
@@ -330,11 +313,31 @@ def _load_assertions(ws: Path) -> dict[str, dict[str, Any]]:
             data = json.loads(path.read_text())
         except (ValueError, OSError):
             continue
-        items = data.get("assertions") if isinstance(data, dict) else data
-        if not isinstance(items, list):
-            continue
-        return {a["id"]: a for a in items if isinstance(a, dict) and "id" in a}
+        if isinstance(data, list):
+            data = {"assertions": data}
+        if isinstance(data, dict) and isinstance(data.get("assertions"), list):
+            return data
     return {}
+
+
+def _load_assertions(ws: Path) -> dict[str, dict[str, Any]]:
+    """``{assert-id -> assertion dict}`` from the harvest log."""
+    items = _harvest_log(ws).get("assertions", [])
+    return {a["id"]: a for a in items if isinstance(a, dict) and "id" in a}
+
+
+def _staged_documents(ws: Path) -> frozenset[str]:
+    """The documents a human staged for the whole dataset, as against those rendered from a record.
+
+    Read from the scope harvest saved for each document, not guessed from a file's name: a person
+    may call their own notes ``sample-notes.md``.
+    """
+    subjects = _harvest_log(ws).get("document_subjects", [])
+    return frozenset(
+        d["doc_sha256"]
+        for d in subjects
+        if isinstance(d, dict) and d.get("scope") == "dataset" and "doc_sha256" in d
+    )
 
 
 def _index_documents(ws: Path) -> dict[str, str]:

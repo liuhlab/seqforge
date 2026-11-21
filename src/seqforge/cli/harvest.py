@@ -107,7 +107,7 @@ def harvest_normalize(
 
 
 def _document_filename(doc: Any) -> str:
-    """``paper.pdf`` -> ``paper-3f8a1c2d9b04.txt``; a record -> ``sample-SAMN40935621-....txt``.
+    """``paper.pdf`` -> ``paper-3f8a1c2d9b04.txt``; a record -> ``experiment-SRX22069914-....txt``.
 
     The hash stays, because two documents can share a name and the identity is the hash. But a
     directory of bare 64-hex filenames is a directory you cannot read, and an early build's document
@@ -148,8 +148,8 @@ def harvest_extract(
     records_path: Path | None = typer.Option(
         None,
         "--records",
-        help="A record set from `seqforge io records`. Each record's free text becomes its OWN "
-        "document, which is how a claim gets to name a sample.",
+        help="A record set from `seqforge io records`. Each experiment record's free text becomes "
+        "its OWN document, asked for the chemistry.",
     ),
     provider: str | None = typer.Option(
         None, "--provider", help="The provider the lab gateway sends to (default: deepseek)."
@@ -191,13 +191,10 @@ def harvest_extract(
     2 for a bad option, 3 when the calls stop (ceiling reached, provider balance used up, provider
     unavailable, gateway unreachable), 4 if any claim fails verification.
 
-    **`--records` is how a claim names a sample.** Each archive record is rendered as its own
-    document and asked only what a record at that level can answer: a BioSample's document is asked
-    for sample attributes and never for a chemistry; an experiment's protocol paragraph is asked for
-    the chemistry and nothing else. Since a sample's document contains one sample's prose, "which
-    sample" is answered by which file we handed the model — the model never names one, and cannot. A
-    sample's RUNS are one document between them rather than one each: a run belongs to exactly one
-    sample, so the claims still name that sample and the exchange count stops scaling with the run count.
+    **`--records` adds the experiments' protocol paragraphs.** Each archive record is rendered as its
+    own document and asked only what a record at that level can answer: an experiment's protocol
+    paragraph is asked for the chemistry and nothing else, and a project, sample or run record is
+    asked nothing, so it is never sent.
 
     **`--dry-run` answers "what will this cost" without asking anybody.** It renders every document —
     which costs no token and no network — and prints the plan, so the send list you inspected is the
@@ -426,12 +423,10 @@ def _harvest_extract_pipeline(
     # instructable surface and `processing new` had no way to consume it. The join existed in
     # `fill_processing` the whole time and nothing could reach it.
     # `document_subjects` is the same idea one level up: which RECORD each document was rendered
-    # from. It is what lets `manifest fill` tell a sample's own alias (a declaration about that
-    # sample) from a paper about six samples (an inference about each), and it too lived only in this
+    # from, and which documents a human staged for the whole dataset. It is what lets `manifest fill`
+    # check a staged paper against the records (the wrong-paper guard), and it too lived only in this
     # process's memory. Code owns both mappings because code chose both documents.
-    # It spans `plan.all_documents` rather than the send list because a fanned assertion cites a
-    # document nobody sent, and `resolve.records._basis_for` silently drops a claim whose document has
-    # no subject here -- which would make the collapse lossy in the one place it must not be.
+    # It spans `plan.all_documents` rather than the send list, so every document on disk has a scope.
     (logs / "assertions.json").write_text(
         json.dumps(
             {
@@ -453,12 +448,9 @@ def _harvest_extract_pipeline(
     docdir.mkdir(parents=True, exist_ok=True)
     for nd in every:
         (docdir / _document_filename(nd)).write_text(nd.text)
-    # Two counts, because they answer two questions and one cannot stand in for the other:
-    # `n_accepted` is how many DRAFTS survived the tripwire (its meaning since the flags existed, and
-    # a fan may not inflate it), `n_stored` is how many Assertions were written — larger exactly when
-    # a sample-scoped claim was materialized once per collapsed member.
+    # How many DRAFTS survived the tripwire; a fan never copies a claim, so it is also how many
+    # Assertions were written.
     payload["n_accepted"] = report.n_accepted
-    payload["n_stored"] = len(fan.assertions)
     payload["n_rejected"] = len(report.rejected)
     # How many records a claim was fanned to -- the CLAIM side of what `PlannedDocument` argues once
     # for the document side: N does not move the epistemics, it moves what a human must audit.
@@ -470,8 +462,7 @@ def _harvest_extract_pipeline(
             "source_doc_sha256": f.source_doc_sha256,
             "n_records": f.n_records,
             "records": list(f.records),
-            "materialized": f.materialized,
-            "assertion_ids": list(f.assertion_ids),
+            "assertion_id": f.assertion_id,
         }
         for f in fan.fanned
     ]
@@ -544,7 +535,6 @@ def _nothing_to_ask(workspace: Path) -> _StageOut:
             "n_extract_rejected": 0,
             "extract_rejected": [],
             "n_accepted": 0,
-            "n_stored": 0,
             "n_rejected": 0,
             "drafts": [],
             "assertions": [],
@@ -620,9 +610,9 @@ def harvest_verify(
 
     Both flags are code-owned, so a hallucinated or mis-attributed claim fails closed.
 
-    **``--records`` is what makes a per-sample claim checkable without a model.** A record's document
+    **``--records`` is what makes a per-record claim checkable without a model.** A record's document
     is not a file — it is rendered from the record, and it was previously reachable only from inside
-    `extract`, so drafts naming one had nothing to be verified against and the whole per-sample path
+    `extract`, so drafts naming one had nothing to be verified against and the whole per-record path
     required a credential to walk. The rendering is the same function `extract` plans with, so the
     bytes a quote greps into are identical either way; what differs is only who proposed the drafts,
     which is the half this command never owned.

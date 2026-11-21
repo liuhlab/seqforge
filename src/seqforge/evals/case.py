@@ -265,8 +265,8 @@ class FingerprintRecipe(BaseModel):
       package staged out of git by the maintainer. Unset/absent ⇒ **skip**, like a missing local root.
 
     The package carries its own ``info/text/`` prose, surfaced as ``metadata_docs`` so a ``--llm`` run
-    harvests it; a hermetic ``--no-llm`` run resolves the chemistry from the pinned bytes and grades
-    sample attributes from the committed ``records.json`` — no network, no key.
+    harvests it; a hermetic ``--no-llm`` run resolves the chemistry from the pinned bytes and joins
+    the samples through the committed ``records.json`` — no network, no key.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -398,7 +398,7 @@ class Case:
     #: and it is byte-identical to what `io records` returns today.
     #:
     #: A hand-written set declares which files compile together and never a fact about a sample, so
-    #: a case carrying one grades a sample COUNT and no attribute — see `_records_the_case_commits`.
+    #: a case carrying one grades a sample COUNT — see `_records_the_case_commits`.
     records: ArchiveRecordSet | None = None
 
     @property
@@ -411,9 +411,8 @@ class Case:
         """Whether the expectation depends on a claim only *harvest* (the LLM) can supply.
 
         True iff there is a document to read and no declared hypothesis to stand in for it. Records
-        alone do **not** need the LLM: a record's harmonized sample attributes resolve deterministically
-        through the metadata resolver, so a records-only case (a hermetic fingerprint case is the
-        motivating example) runs with no key. A case whose package carries prose surfaces that prose at
+        alone do **not** need the LLM: the metadata resolver joins them deterministically, so a
+        records-only case (a hermetic fingerprint case is the motivating example) runs with no key. A case whose package carries prose surfaces that prose at
         ``materialize`` time, not here, so this stays load-time cheap and never unpacks a package.
         """
         return bool(self.metadata_docs) and self.recipe.hypothesis is None
@@ -511,8 +510,8 @@ def _records_the_case_commits(root: Path) -> ArchiveRecordSet | None:
 
     **Through the one loader**, which is most of the point. This used to be a bare
     ``model_validate_json``, so a case's record set was validated by the container model alone: a
-    hand-written set declaring an attribute would have loaded here and been graded ``asserted``,
-    while the CLI reading the identical file refused it. A corpus that validates its inputs more
+    hand-written set declaring an attribute would have loaded here, while the CLI reading the
+    identical file refused it. A corpus that validates its inputs more
     weakly than the product does cannot pre-register what the product will do with them.
 
     **Two names, and never both.** A case carrying both would have one read and the other silently

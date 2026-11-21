@@ -609,30 +609,21 @@ def test_the_who_decided_column_answers_for_every_basis_in_the_who_voice() -> No
     assert "_" not in _who(chosen)  # never a raw underscore-stripped token
 
 
-def test_both_basis_phrasings_cover_the_closed_basis_set() -> None:
-    """Two maps, and they are correct to be two — but each must be total over ``Basis``.
+def test_the_who_phrasing_covers_the_closed_basis_set() -> None:
+    """The "who decided" map must be total over ``Basis``.
 
     The member set is read out of the ``Literal`` itself rather than restated here: a fifth basis
-    then breaks this test on the day it is added, which is the only way either map gets completed
-    before a page renders a raw token. Restating the four would make this a test that agrees with
-    itself and notices nothing.
+    then breaks this test on the day it is added, which is the only way the map gets completed before
+    a page renders a raw token. Restating the four would make this a test that agrees with itself and
+    notices nothing.
     """
     from seqforge.models.base import Basis
-    from seqforge.report.panels import _BASIS_LEGEND, _BASIS_PHRASE, _WHO_PHRASE
+    from seqforge.report.panels import _WHO_PHRASE
 
     members = set(get_args(Basis))
     assert len(members) > 1, "get_args should yield the Literal's members, not an empty tuple"
-
-    assert set(_BASIS_PHRASE) == members, "the 'how we know' map lost a basis"
     assert set(_WHO_PHRASE) == members, "the 'who decided' map lost a basis"
-    # Three now: the Samples legend says the same four bases in three or four words under a mark,
-    # and a basis missing from it ships a mark whose key does not name it.
-    assert set(_BASIS_LEGEND) == members, "the Samples legend lost a basis"
-    assert all(v for v in _BASIS_PHRASE.values())
     assert all(v for v in _WHO_PHRASE.values())
-    assert all(v for v in _BASIS_LEGEND.values())
-    # Kept separate on purpose: one answers how we know, the other who decided.
-    assert _BASIS_PHRASE != _WHO_PHRASE
 
 
 def test_the_level_phrasing_covers_the_closed_verdict_set() -> None:
@@ -731,11 +722,10 @@ def test_the_report_package_ships_no_private_helper_nothing_calls() -> None:
     )
 
 
-# -- the two dense grids: the sample-metadata table and the evidence matrix ------------------------
+# -- the two dense grids: the sample table and the evidence matrix ---------------------------------
 #
-# The headless bulk fixture resolves one sample with no attributes and a matrix with no forbidden
-# gate, so it cannot exercise a provenance mark, a withheld value or a ruled-out cell — the branches
-# these two views exist for. So this section builds a display model that has all of them and renders
+# The headless bulk fixture resolves one sample and a matrix with no forbidden gate, so it cannot
+# exercise a forbidden or ruled-out cell — the branches the evidence view exists for. So this section builds a display model that has all of them and renders
 # the WHOLE PAGE from it. `render_html(report)` in, HTML out: a panel function's return value is not
 # the page, and the one test here that used to reach below that seam is the reason to say so.
 
@@ -744,18 +734,14 @@ def _rich_assay() -> AssayReport:
     """One assay whose Samples and Evidence tabs are actually full.
 
     Deliberately a hand-built display model and not a workspace: every branch below is reachable only
-    from data no headless run produces (an assertion with a quote, a resolver that withheld a value, a
-    scored candidate whose gate forbade a read). It is still the production renderer that turns it
+    from data no headless run produces (a scored candidate whose gate forbade a read). It is still the production renderer that turns it
     into a page — this fixture replaces the *collector*, never the seam under test.
     """
-    from seqforge.models.base import Basis
     from seqforge.report.model import (
         AssayLabelView,
-        AttributeView,
         ChemistryDecision,
         ConclusionView,
         ElementView,
-        EvidenceRef,
         FileView,
         MatrixCellView,
         MatrixRoleRow,
@@ -763,37 +749,6 @@ def _rich_assay() -> AssayReport:
         ReadView,
         RuledOut,
         SampleView,
-    )
-
-    quote = "daf-2(e1370) animals were grown at 20 °C and harvested at the L4 stage."
-    # One attribute per basis, read out of the Literal so a fifth one lands in this fixture — and
-    # therefore on the rendered page — the day it is added, rather than being quietly untested.
-    attributes = [
-        AttributeView(
-            key=f"trait_{basis}",
-            value=f"value carried by {basis}",
-            basis=basis,
-            rung=2,
-            evidence=[
-                EvidenceRef(
-                    raw="assert-1", kind="assertion", quote=quote, document="lee-et-al-2023", page=3
-                )
-            ],
-        )
-        for basis in get_args(Basis)
-    ]
-    attributes.append(
-        AttributeView(key="treatment", value="", basis="asserted", rung=1, withheld=True)
-    )
-    attributes.append(
-        AttributeView(
-            key="source_name",
-            value="whole animal, mixed-stage population harvested 48 h after the L1 "
-            "synchronisation step described in the supplementary methods, washed in M9",
-            basis="asserted",
-            rung=2,
-            evidence=[EvidenceRef(raw="SAMN12345678", kind="accession", accession="SAMN12345678")],
-        )
     )
 
     def cells(
@@ -858,9 +813,8 @@ def _rich_assay() -> AssayReport:
                 accession="SAMN00001",
                 n_files=1,
                 file_names=["SRR0001_R1.fastq.gz"],
-                attributes=attributes,
             ),
-            SampleView(sample_id="SRS0002", n_files=0),  # every attribute absent: the `—` cells
+            SampleView(sample_id="SRS0002", n_files=0),
         ],
         matrices=[
             matrix("10x-3p-gex-v3", 0.94, winner=True, absent=True),
@@ -886,7 +840,7 @@ def _rich_page(n_samples: int = 0) -> str:
     """The whole page from that model — optionally with its first sample multiplied out to a plate.
 
     ``n_samples`` exists for the paging test and changes nothing else: the samples are copies of the
-    one that carries every basis, so a long table is the same table with more rows in it.
+    first one, so a long table is the same table with more rows in it.
     """
     from seqforge.report.model import ProjectReport
 
@@ -909,55 +863,10 @@ def _rich_page(n_samples: int = 0) -> str:
     )
 
 
-def test_every_basis_the_manifest_can_carry_reaches_the_page_as_its_own_mark() -> None:
-    """Provenance is one centrally declared layer, and the key names every member of it.
-
-    Read out of ``Basis`` rather than restated: a fifth basis must break here — on the legend that
-    says what a mark means — instead of shipping an unexplained mark onto a page. And each member has
-    to appear TWICE, once in the legend and once on a cell, because a legend entry with no mark
-    beside any value is a key to a language the page does not speak.
-    """
-    from seqforge.models.base import Basis
-
-    page = _rich_page().split("</style>")[-1]
-
-    for basis in get_args(Basis):
-        assert page.count(f"basis-mark basis-{basis}") >= 2, (
-            f"{basis} is missing from the legend or from the grid"
-        )
-    # …and the legend's own words, so a mark is never offered without a phrase for it.
-    from seqforge.report.panels import _BASIS_LEGEND
-
-    for label in _BASIS_LEGEND.values():
-        assert f">{label}</span>" in page
-
-
-def test_a_withheld_attribute_renders_as_withheld_and_an_unmentioned_one_renders_as_absent() -> (
-    None
-):
-    """Two different silences, and the page must not spell them the same way.
-
-    ``withheld`` is a real answer — two equally trusted sources disagreed, so the resolver recorded
-    nothing rather than guess — and it is shown as a value. An attribute nobody ever mentioned is a
-    gap. Collapsing the first into the second would turn a decision the compiler made on purpose into
-    an absence the reader would read as missing data.
-    """
-    page = _rich_page().split("</style>")[-1]
-
-    assert '<span class="basis-v basis-withheld">— withheld</span>' in page
-    assert 'data-value="withheld"' in page  # …and it says so in the popover too
-    assert '<td class="basis-cell text-faint">—</td>' in page  # the gap: a dash, no provenance
-    # The gap is the one cell with nothing to say, and the script decides that from the DATA rather
-    # than from a styling class -- so it must be the branch that carries no `data-key`.
-    assert '<td class="basis-cell text-faint">—</td>'.replace("—", "—") in page
-    for cell in re.findall(r'<td class="basis-cell[^"]*"[^>]*>', page):
-        assert ("data-key=" in cell) != ("text-faint" in cell)
-
-
-def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> None:
-    """A metadata cell carries its provenance as ``data-*`` on a keyboard-reachable button, so the
-    script can pin a selectable, copyable popover — never a native ``title=`` a reader can neither
-    select nor copy, and which never appears at all on touch.
+def test_a_forbidden_matrix_cell_is_a_pinnable_popover_not_a_transient_tooltip() -> None:
+    """A forbidden cell carries WHY as ``data-*`` on a keyboard-reachable button, so the script can
+    pin a selectable, copyable popover — never a native ``title=`` a reader can neither select nor
+    copy, and which never appears at all on touch.
 
     Asserted at the render seam and against the script together: the markup alone cannot show that
     anything reads those attributes, and the script alone cannot show that anything emits them.
@@ -965,18 +874,16 @@ def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> No
     page = _rich_page().split("</style>")[-1]
     script = (_ASSETS / "report.js").read_text()
 
-    cell = re.search(r'<td class="basis-cell[^"]*"[^>]*data-key="trait_asserted"[^>]*>', page)
-    assert cell, "the asserted attribute did not render as a provenance cell"
+    cell = re.search(r'<td class="mx-cell mx-forbidden"[^>]*>', page)
+    assert cell, "the forbidden cell did not render as a provenance cell"
     assert 'role="button"' in cell.group(0)
     assert 'tabindex="0"' in cell.group(0)
     assert "data-basis=" in cell.group(0)
-    assert "data-quote=" in cell.group(0)
-    assert "data-source=" in cell.group(0)
-    assert "title=" not in cell.group(0)  # no transient native tooltip on the value cell
+    assert "title=" not in cell.group(0)  # no transient native tooltip on the cell
 
     # The script's end of the same contract: it selects these cells, it PINS (a click handler, not a
     # mouseover), it offers Copy, and Escape closes it.
-    assert ".basis-cell" in script
+    assert ".mx-cell" in script
     assert 'copyBtn.textContent = "Copy"' in script
     assert 'e.key === "Escape"' in script
     assert "mouseover" not in script
@@ -985,7 +892,7 @@ def test_sample_provenance_is_a_pinnable_popover_not_a_transient_tooltip() -> No
 
 def _samples_grid_of(ws: Path, n_samples: int) -> str:
     """The Samples pane with ``n_samples`` rows in it. The workspace is unused — this grid is built
-    from the hand-written display model, which is where every provenance branch lives."""
+    from the hand-written display model."""
     del ws
     return _pane(_rich_page(n_samples), "samples")
 
@@ -1088,7 +995,7 @@ def test_every_matrix_cell_renders_the_status_it_was_tagged_with() -> None:
     A forbidden cell used to be an empty ``<td>`` whose ✕ was drawn by the stylesheet and whose reason
     was a ``title=``; a cell that was scored but carried no number fell down the same branch and was
     labelled forbidden, which is a different claim. So: the glyph is in the markup, the reason is real
-    text on the same pinnable popover the Samples grid uses, and "nobody scored this" says so.
+    text on a pinnable popover, and "nobody scored this" says so.
     """
     page = _rich_page().split("</style>")[-1]
 

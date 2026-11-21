@@ -18,37 +18,27 @@ def test_the_allowlist_is_exact_match_not_a_prefix_rule() -> None:
     """A prefix rule ("anything under experiment.") would re-open the hole it exists to close."""
     from seqforge.harvest.fields import is_permitted
 
-    assert is_permitted("experiment.samples.tissue")
-    assert not is_permitted("experiment.samples.tissue.extra")
-    # `condition` was OURS, not NCBI's. It is gone -- see io/attributes.py.
-    assert not is_permitted("experiment.samples.condition")
+    assert is_permitted("experiment.organism")
+    assert not is_permitted("experiment.organism.extra")
+    # What a sample WAS is a study reading's to say: no sample attribute is assertable at all.
+    assert not is_permitted("experiment.samples.tissue")
     assert not is_permitted("experiment.anything.you.can.name")
     assert not is_permitted("library.chemistry.value")
 
 
-def test_the_ask_is_scoped_so_a_biosample_is_never_asked_for_a_chemistry() -> None:
-    """A sample record has no opinion about the chemistry, so asking invites a guess from an alias.
+def test_only_an_experiment_record_is_asked_anything() -> None:
+    """A record document is asked only what its level can answer, and only one level can answer.
 
-    "single nucleus sequencing daf2 replicate 3" contains no chemistry, but it does contain words a
-    model could pattern-match on. The cheapest defence is not asking.
+    An experiment's protocol paragraph names the chemistry. A sample or run record has no opinion
+    about it -- "single nucleus sequencing daf2 replicate 3" contains no chemistry, but it does
+    contain words a model could pattern-match on -- and a project's abstract is true of the study
+    and of no single library, so the cheapest defence is not asking.
     """
     from seqforge.harvest.fields import fields_for
 
-    assert "library.chemistry" not in fields_for("sample", "reference")
-    assert "experiment.samples.tissue" in fields_for("sample", "reference")
-    # ...and the experiment's protocol paragraph is asked for the chemistry, plus `treatment` (and only
-    # treatment): the GSM title carries the diet, which lives nowhere in the typed BioSample fields.
-    assert fields_for("experiment", "reference") == (
-        "library.chemistry",
-        "experiment.samples.treatment",
-    )
-    # ...but NOT strain/age/tissue: those are the BioSample's own typed fields, and asking the title
-    # for them would let "Day6" vs "day6" null a value the record already resolved.
-    assert "experiment.samples.strain" not in fields_for("experiment", "reference")
-    assert "experiment.samples.age" not in fields_for("experiment", "reference")
-    # ...and the project level is asked nothing at all: "wild-type and daf-2 mutants" is true of the
-    # study and false of every single sample in it.
-    assert fields_for("project", "reference") == ()
+    assert fields_for("experiment", "reference") == ("library.chemistry",)
+    for scope in ("project", "sample", "run"):
+        assert fields_for(scope, "reference") == (), scope
 
 
 def test_a_record_document_may_never_set_processing() -> None:
@@ -58,25 +48,3 @@ def test_a_record_document_may_never_set_processing() -> None:
     for scope in ("project", "sample", "experiment", "run"):
         assert not any(f.startswith("processing.") for f in fields_for(scope, "reference"))
         assert not permitted_for("processing.genome.assembly", scope, "reference")
-
-
-def test_every_asked_attribute_is_one_ncbi_defines() -> None:
-    """Derived, not typed twice. A name we invent here would sail past the manifest validator's
-    key check only by being invented in both places -- which is exactly how `condition` survived."""
-    from seqforge.harvest.fields import ASKED_SAMPLE_ATTRIBUTES
-    from seqforge.io.attributes import is_attribute
-
-    for name in ASKED_SAMPLE_ATTRIBUTES:
-        assert is_attribute(name), f"{name!r} is not an NCBI harmonized BioSample attribute"
-    assert "condition" not in ASKED_SAMPLE_ATTRIBUTES
-
-
-def test_the_ask_carries_ncbis_own_definition_not_our_paraphrase() -> None:
-    """The prompt is the worst place to keep a definition: nothing checks it, and it is exactly where
-    the pilot's misfiling happened. So the text comes out of NCBI's list."""
-    from seqforge.harvest.fields import describe_asked
-    from seqforge.io.attributes import get_attribute
-
-    text = describe_asked(("experiment.samples.dev_stage",))
-    assert get_attribute("dev_stage").description in text
-    assert "dev_stage" in text

@@ -316,14 +316,13 @@
   // ---- provenance popover -----------------------------------------------------------------------
   // A native title="" tooltip is transient and can't be selected or copied. Instead, a click pins a
   // small card next to the cell with the provenance as real, selectable text plus a Copy button. It
-  // lives at the top of <body> (position:fixed) so the samples table's horizontal scroll never clips it.
-  // Three kinds of cell opt in, and they are the three places this page has a sentence worth copying:
-  // a sample attribute (.basis-cell) carries where a value came from and the quote that says so; an
+  // lives at the top of <body> (position:fixed) so a table's horizontal scroll never clips it.
+  // Two kinds of cell opt in, and they are the two places this page has a sentence worth copying: an
   // evidence-matrix cell that was forbidden or never scored (.mx-cell) carries WHY, which used to be a
   // title="" a reader could neither select nor keep open; and a Results metric COLUMN HEADER
   // (.metric-head) carries what the number means — on the header, not the cell, because the hint
   // describes the metric and is stored once per column instead of once per sample.
-  var CELL_SEL = ".basis-cell, .mx-cell, .metric-head";
+  var CELL_SEL = ".mx-cell, .metric-head";
 
   // The one handle out of the popover's closure. Turning a sample table's page can take the cell a
   // popover is pinned beside off the page, and a card left floating beside nothing is worse than no

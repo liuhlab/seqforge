@@ -46,9 +46,9 @@ the harvest glossary says how.
   the byte resolver is what turns that report into a chemistry and a role assignment.
 - **Knowledge base → Resolve**: every candidate the byte resolver ranks is one KB spec. The KB
   declares what a chemistry is; resolve decides which one these bytes are.
-- **Harvest → Resolve**: harvest turns prose and archive records into **Assertion**s. The metadata
-  resolver applies precedence over them; the byte resolver takes at most a hypothesis from them and
-  never lets one into its evidence.
+- **Harvest → Resolve**: harvest turns prose and archive records into **Assertion**s. The byte
+  resolver takes at most a hypothesis from them and never lets one into its evidence; the
+  wrong-paper guard checks a staged paper's claims against the records.
 - **Resolve → Compose**: resolve writes the **Manifest**. Compose pairs it with a recipe — the one
   place the two artifacts meet — and emits a runnable pipeline.
 - **Compose → back**: what a finished pipeline measured re-enters as advisory evidence against
@@ -79,8 +79,7 @@ ENA declared. A claim, never a measurement, however authoritative the archive.
 _Avoid_: declared, reported, known, metadata-derived
 
 **Inferred**:
-**Basis** for a value code derived rather than read or was told: every policy default, and a sample
-fact a model read in a dataset-level document.
+**Basis** for a value code derived rather than read or was told: every policy default.
 _Avoid_: guessed, assumed, defaulted
 
 **User-confirmed**:
@@ -106,8 +105,8 @@ never a path). Always fatal, exit 3: no human answer clears it.
 _Avoid_: error, failure, hard warning
 
 **Warning**:
-A non-blocking advisory, exit 0 — what a resolver emits once it has *decided* a disagreement,
-including deciding to leave the field null.
+A non-blocking advisory, exit 0 — what a resolver emits once it has *decided* something a reader
+should still see, such as a submitted file whose size disagrees with the archive's.
 _Avoid_: soft error, minor blocker, notice; spelled `ValidationWarning` in code
 
 **Conflict**:

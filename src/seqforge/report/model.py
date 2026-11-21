@@ -47,31 +47,13 @@ class EvidenceRef(_View):
     accession: str | None = None
 
 
-class AttributeView(_View):
-    """One sample attribute cell: the value, how we know it, and where it came from.
-
-    ``withheld`` marks the null-over-wrong case — an attribute a joined record or assertion mentions
-    that the resolver deliberately left out of the manifest because equal authorities disagreed. It is
-    a real answer (a value would be a lie), so it is shown as a distinct row, not an empty one.
-    """
-
-    key: str
-    value: str
-    basis: str
-    confidence: float | None = None
-    rung: int
-    evidence: list[EvidenceRef] = Field(default_factory=list)
-    withheld: bool = False
-
-
 class SampleView(_View):
-    """One biological sample and everything declared about it."""
+    """One biological sample and the files that carry it."""
 
     sample_id: str
     accession: str | None = None
     n_files: int = 0
     file_names: list[str] = Field(default_factory=list)
-    attributes: list[AttributeView] = Field(default_factory=list)
 
 
 class AssayLabelView(_View):
@@ -319,7 +301,7 @@ class AssayReport(_View):
     #: pipeline reported, an alert is a judgement about a decision, and one judgement is one envelope.
     alerts: list[Alert] = Field(default_factory=list)
     provenance: list[tuple[str, str]] = Field(default_factory=list)
-    #: True iff archive records were joined (sample facts have a declared source).
+    #: True iff archive records were joined (the samples have a declared source).
     has_records: bool = False
     #: True iff a paper/instruction document was read and quoted (harvest ran with real prose).
     has_prose: bool = False
@@ -344,20 +326,6 @@ class AssayReport(_View):
     def label(self) -> str:
         """A human title for this assay's section — its subdir, or its winning chemistry."""
         return self.subdir or (self.chemistry.value[0] if self.chemistry.value else "assay")
-
-    @property
-    def attribute_columns(self) -> list[str]:
-        """The union of sample-attribute keys, common ones first — the columns of the sample table."""
-        preferred = (
-            "strain", "genotype", "age", "dev_stage", "sex", "tissue", "cell_type",
-            "cell_line", "treatment", "source_name", "disease",
-        )  # fmt: skip
-        seen: set[str] = set()
-        for s in self.samples:
-            seen.update(a.key for a in s.attributes)
-        ordered = [k for k in preferred if k in seen]
-        ordered += sorted(seen - set(preferred))
-        return ordered
 
 
 class ProjectReport(_View):
@@ -392,7 +360,6 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "Alert",
     "PipelineStats",
     "EvidenceRef",
-    "AttributeView",
     "SampleView",
     "AssayLabelView",
     "ElementView",

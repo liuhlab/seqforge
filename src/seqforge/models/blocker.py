@@ -45,8 +45,8 @@ class BlockerCode(StrEnum):
     #: An archive record was supplied and does not account for the files on disk. Only ever raised
     #: when a record EXISTS: a dataset with no accession has nothing to join and is not a refusal.
     #: Half-joining is the failure this exists to prevent — the files it could not place would get no
-    #: sample facts, and a manifest that is confidently right about four samples and silent about two
-    #: reads as a manifest about six.
+    #: sample, and a manifest that is confidently right about four samples and silent about two reads
+    #: as a manifest about six.
     RECORD_JOIN_INCOMPLETE = "RECORD_JOIN_INCOMPLETE"
     #: A ``--records`` file is not a legal record set at all, so nothing could be joined WITH. Refused
     #: at parse, one blocker per problem. Distinct from RECORD_JOIN_INCOMPLETE, which is a well-formed
