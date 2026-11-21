@@ -102,7 +102,7 @@ def test_a_fact_typed_into_a_user_set_is_refused_and_the_same_set_without_it_loa
     (blocker,) = caught.value.blockers
     assert blocker.code is BlockerCode.RECORD_SET_INVALID
     assert blocker.evidence == ["attributes"]
-    assert "harvest" in blocker.remedy
+    assert "study reading" in blocker.remedy
     assert caught.value.report.ok is False
     assert caught.value.report.blockers == caught.value.blockers
 

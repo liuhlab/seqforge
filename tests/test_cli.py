@@ -2906,8 +2906,8 @@ def test_the_draft_applied_unedited_produces_the_samples_the_filenames_already_d
 def test_records_validate_refuses_a_typed_attribute_and_names_the_key(tmp_path: Path) -> None:
     """A hand-written set declares structure, never a fact — and the refusal has to say which key.
 
-    An attribute typed here carries no quote, no span and nothing that greps back, yet it would
-    outrank a harvested claim carrying all three, permanently. So this is a Blocker at exit 3 rather
+    An attribute typed here carries no quote, no span and nothing that greps back, and the manifest
+    has no place for it. So this is a Blocker at exit 3 rather
     than a dropped key, and the stdout object names the offending field: a refusal a caller cannot act
     on is a refusal that gets routed around.
     """
@@ -2938,8 +2938,8 @@ def test_records_validate_refuses_a_typed_attribute_and_names_the_key(tmp_path: 
     blockers = out["report"]["blockers"]
     assert any(b["subject"]["ref"] == "records[0].attributes" for b in blockers), blockers
     assert any("attributes" in b["evidence"] for b in blockers), blockers
-    assert any("harvest" in b["remedy"] for b in blockers), (
-        "it must name the path that keeps a span"
+    assert any("study reading" in b["remedy"] for b in blockers), (
+        "it must name where what a sample was now lives"
     )
 
 

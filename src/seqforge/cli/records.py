@@ -101,8 +101,7 @@ def records_new(
     written there and stdout carries a JSON envelope naming the file and what it says.
 
     It declares STRUCTURE ONLY -- no strain, no tissue, no genotype. A fact typed into this file has
-    no document to grep and no span to verify, and it would outrank a claim that has both. Write those
-    in a README and run `seqforge harvest` over it.
+    no document to grep and no span to verify, and the manifest does not carry what a sample was.
     """
     # Checked before anything is read, because it is a fact about the invocation and not about the
     # data: a caller who mistyped -o should be told so whether or not the directory they named holds
