@@ -2,7 +2,7 @@
 
 This is where all the graceful degradation lives. The manifest is the one required artifact (the
 chemistry decision it carries is what makes the page always render); everything else — the harvested
-assertions behind a sample quote, the archive records behind a study abstract, the persisted evidence
+assertions behind a sample quote, the archive records behind a project abstract, the persisted evidence
 matrix, the composed pipeline, and the per-sample QC artifacts a *finished* pipeline left behind — is
 joined in if present and simply omitted if not. Nothing here decides anything: it reads what the
 deterministic verbs already wrote (and, for the results, what the user's own snakemake wrote) and
@@ -32,6 +32,7 @@ from ..project import discover_assays
 from ..workflows.metrics import Alert, Decision, DecisionRef, PipelineStats, gather_alerts
 from ..workspace import cache_dir, documents_dir, logs_dir, records_dir, state_dir
 from .model import (
+    ArchiveProjectView,
     ArtifactEmbed,
     AssayLabelView,
     AssayReport,
@@ -52,7 +53,6 @@ from .model import (
     ReadView,
     RuledOut,
     SampleView,
-    StudyView,
 )
 
 #: A handful of common lab organisms, so the Overview can say "C. elegans" not just "taxid 6239".
@@ -139,7 +139,7 @@ def _collect_assay(
 
     assertions = _load_assertions(ws)
     doc_index = _index_documents(ws)
-    records = _load_records(ws, manifest.experiment.study)
+    records = _load_records(ws, manifest.experiment.project)
 
     proc_path = base / "processing.yaml"
     proc = (
@@ -168,7 +168,7 @@ def _collect_assay(
         organism_taxid=taxid,
         organism_name=_ORGANISM_NAMES.get(taxid),
         organism_basis=manifest.experiment.organism.basis,
-        study=_study(manifest, records),
+        project=_project(manifest, records),
         chemistry=_chemistry(manifest.library),
         reads=_reads(manifest.library),
         onlists=_onlists(manifest.library),
@@ -351,11 +351,11 @@ def _index_documents(ws: Path) -> dict[str, str]:
     return index
 
 
-def _load_records(ws: Path, study: Any) -> dict[str, Any]:
-    """The archive record set for the study, if one was fetched (for the study abstract + samples).
+def _load_records(ws: Path, project: Any) -> dict[str, Any]:
+    """The archive record set for the project, if one was fetched (for its abstract + samples).
 
-    The file is preferentially the one named for the manifest's study accession, but that accession may
-    be a different *form* of the same study than the file is keyed by — the manifest often resolves a
+    The file is preferentially the one named for the manifest's project accession, but that accession may
+    be a different *form* of the same project than the file is keyed by — the manifest often resolves a
     GEO id (``GSE234962``) to its BioProject (``PRJNA983807``) while the record set was saved under the
     id the user passed. So when the exact name misses, fall back to any ``records/*.json`` that carries
     a record set; there is one per dataset, so this is unambiguous for the common single-dataset case.
@@ -363,7 +363,7 @@ def _load_records(ws: Path, study: Any) -> dict[str, Any]:
     rdir = records_dir(ws)
     if not rdir.is_dir():
         return {}
-    accession = getattr(study, "accession", None) if study is not None else None
+    accession = getattr(project, "accession", None) if project is not None else None
     candidates: list[Path] = []
     if accession:
         preferred = rdir / f"{accession}.json"
@@ -380,16 +380,16 @@ def _load_records(ws: Path, study: Any) -> dict[str, Any]:
     return {}
 
 
-def _study(manifest: DatasetManifest, records: dict[str, Any]) -> StudyView | None:
-    study = manifest.experiment.study
-    if study is None:
+def _project(manifest: DatasetManifest, records: dict[str, Any]) -> ArchiveProjectView | None:
+    project = manifest.experiment.project
+    if project is None:
         return None
-    return StudyView(
-        accession=study.accession,
-        title=study.title,
-        center=study.center,
-        data_type=study.data_type,
-        released=study.released,
+    return ArchiveProjectView(
+        accession=project.accession,
+        title=project.title,
+        center=project.center,
+        data_type=project.data_type,
+        released=project.released,
         abstract=_abstract(records),
     )
 

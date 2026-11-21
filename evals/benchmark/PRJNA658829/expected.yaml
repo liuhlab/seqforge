@@ -30,7 +30,7 @@ fields:
   library.equivalence_members:
   - 10x-3p-gex-v3.1
   experiment.organism: 6239
-  experiment.study.title: Whole-organism mapping of the genetics of gene expression at cellular resolution
+  experiment.project.title: Whole-organism mapping of the genetics of gene expression at cellular resolution
   # The two strain strings are NOT two spellings of one cross, and must not be tidied into each
   # other:
   #   QX2314xPTM299_F4 (SAMN15970313) is the F4 segregant pool — "192,000 F4 were seeded", 5 lanes;

@@ -256,8 +256,8 @@ class PipelineStage(_View):
     detail: str
 
 
-class StudyView(_View):
-    """The study as the archive declared it, plus its abstract when a record carried one."""
+class ArchiveProjectView(_View):
+    """The archive's project as it declared it, plus its abstract when a record carried one."""
 
     accession: str | None = None
     title: str | None = None
@@ -294,7 +294,7 @@ class AssayReport(_View):
     organism_taxid: int | None = None
     organism_name: str | None = None
     organism_basis: str | None = None
-    study: StudyView | None = None
+    project: ArchiveProjectView | None = None
     chemistry: ChemistryDecision
     reads: list[ReadView] = Field(default_factory=list)
     onlists: list[OnlistView] = Field(default_factory=list)
@@ -408,7 +408,7 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "PlanView",
     "ArtifactEmbed",
     "PipelineStage",
-    "StudyView",
+    "ArchiveProjectView",
     "ConclusionView",
     "AssayReport",
     "ProjectReport",

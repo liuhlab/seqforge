@@ -78,7 +78,7 @@ predicts:
 fields:
   library.chemistry: 10x-3p-gex-v2
   experiment.organism: 6239
-  experiment.study.title: A lineage-resolved molecular atlas of C. elegans embryogenesis at
+  experiment.project.title: A lineage-resolved molecular atlas of C. elegans embryogenesis at
     single cell resolution
   experiment.samples.*.strain:
   - N2

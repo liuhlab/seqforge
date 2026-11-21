@@ -100,10 +100,11 @@ from ..io.attributes import is_attribute
 from ..models.assertion import Assertion
 from ..models.base import Basis
 from ..models.blocker import Blocker, BlockerCode, BlockerSubject, ValidationWarning
+from ..models.dataset import ArchiveProject
 from ..models.evidenced import EvidencedStr, EvidencedTaxid
 from ..models.observation import FileIdentity
 from ..models.records import ArchiveRecord, ArchiveRecordSet, RecordAttribute, SubmittedFile
-from ..models.resolve import MetadataResolution, ProjectFacts, ResolvedSample
+from ..models.resolve import MetadataResolution, ResolvedSample
 from .group import run_key
 
 #: Which authority wins when two sources disagree about one sample attribute. Never a vote and never
@@ -234,7 +235,7 @@ def resolve_metadata(
 
     return MetadataResolution(
         samples=resolved,
-        project=_project_facts(records),
+        project=_archive_project(records),
         organism=_organism(records),
         warnings=warnings,
         blockers=blockers,
@@ -864,8 +865,8 @@ def _evidenced(p: _Position) -> EvidencedStr:
     )
 
 
-def _project_facts(records: ArchiveRecordSet | None) -> ProjectFacts | None:
-    """The study's declared, structured facts. The abstract is deliberately not among them."""
+def _archive_project(records: ArchiveRecordSet | None) -> ArchiveProject | None:
+    """The archive project's declared, structured facts. The abstract is deliberately not among them."""
     if records is None:
         return None
     projects = records.at("project")
@@ -873,7 +874,7 @@ def _project_facts(records: ArchiveRecordSet | None) -> ProjectFacts | None:
         return None
     p = projects[0]
     accession = p.accession if _looks_like_accession(p.accession) else None
-    return ProjectFacts(
+    return ArchiveProject(
         accession=accession,
         title=p.text("study_title"),
         center=_meta(p, "center_name"),

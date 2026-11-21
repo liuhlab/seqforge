@@ -157,7 +157,7 @@ predicts:
 fields:
   library.chemistry: smartseq3
   experiment.organism: 10090
-  experiment.study.title: Three-dimensional morphologic and molecular atlases of murine nasal
+  experiment.project.title: Three-dimensional morphologic and molecular atlases of murine nasal
     vasculatures [Mouse_Nasal_SmartSeq]
   # Ninety-six entries, and the count is the assertion. See the header: no sample attribute in this
   # deposit varies across cells, so this multiset cannot catch a shuffled join — it catches a plate

@@ -86,7 +86,7 @@ predicts:
 fields:
   library.chemistry: bd-rhapsody-wta-enhanced-v2
   experiment.organism: 10090
-  experiment.study.title: Eosinophils restrict CRC metastasis by inhibiting pro-tumorigenic Spp1+ macrophage
+  experiment.project.title: Eosinophils restrict CRC metastasis by inhibiting pro-tumorigenic Spp1+ macrophage
     differentiation.
   experiment.samples.*.strain:
   - C57BL/6J Cre

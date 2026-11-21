@@ -130,7 +130,7 @@ experiment:
                SAMN40935619, SAMN40935620, SAMN40935621]
     confidence: null
     rung: 0
-  study:
+  project:
     accession: PRJNA1027859
     title: A Single-Nucleus Atlas of Adult C. elegans Neurons Reveals GPCR and Insulin-signaling Profiles
     center: Princeton University
@@ -194,8 +194,9 @@ pixi run -- seqforge manifest fill data/*/*.fastq.gz --accession PRJNA1027859 \
     --assertions seqforge/logs/assertions.json
 ```
 
-This is the **only** stage that touches a language model. It has exactly two jobs: turn prose into
-claims that carry a quote, and settle an ambiguity code has already flagged. Everything else in
+This is the **only** stage that touches a language model. A model writes an answer only where code can
+check it. Here that means two jobs: turn prose into claims that carry a quote, and settle an
+ambiguity code has already flagged. Code decides whether each answer stands. Everything else in
 seqforge is a verifier.
 
 Every claim it returns carries a verbatim quote. Code — not the model — greps that quote back into

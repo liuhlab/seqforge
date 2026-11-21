@@ -41,7 +41,7 @@ fields:
   library.equivalence_members:
   - 10x-3p-gex-v3.1
   experiment.organism: 6239
-  experiment.study.title: Single-Nucleus Neuronal Transcriptional Profiling of Male C. elegans
+  experiment.project.title: Single-Nucleus Neuronal Transcriptional Profiling of Male C. elegans
     Uncovers Regulators of Sex-Specific and Sex-Shared Behaviors
   experiment.samples.*.sex:
   - hermaphrodite

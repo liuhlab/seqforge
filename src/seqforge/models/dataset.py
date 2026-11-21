@@ -250,8 +250,8 @@ class SampleGroup(BaseModel):
         return value
 
 
-class Study(BaseModel):
-    """The study these files came from, as the archive declares it.
+class ArchiveProject(BaseModel):
+    """The archive's project these files came from, as the archive declares it.
 
     Deliberately **not** ``Evidenced``: none of it is an interpretation. The record says the title is
     X and we copied X, exactly as we copy a file's ``sha256``. The abstract is deliberately absent —
@@ -272,7 +272,7 @@ class ExperimentSection(BaseModel):
     organism: EvidencedTaxid
     accessions: EvidencedAccessionList
     samples: list[SampleGroup]
-    study: Study | None = None
+    project: ArchiveProject | None = None
 
 
 class DatasetProvenance(BaseModel):
@@ -352,6 +352,7 @@ class DatasetManifest(BaseModel):
 
 
 __all__ = [
+    "ArchiveProject",
     "AssayLabel",
     "DatasetManifest",
     "DatasetProvenance",
@@ -365,5 +366,4 @@ __all__ = [
     "ReadElement",
     "ReadLayout",
     "SampleGroup",
-    "Study",
 ]

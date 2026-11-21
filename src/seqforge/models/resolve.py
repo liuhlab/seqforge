@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from .base import Accession, Basis, ChemistryId, Rung, Sha256, Uri
 from .blocker import Blocker, ValidationWarning
 from .conflict import Conflict, ConflictPosition, Decidable
+from .dataset import ArchiveProject
 from .evidenced import EvidencedStr, EvidencedTaxid
 from .processing import RuntimeEnv
 
@@ -108,23 +109,6 @@ class ResolvedSample(BaseModel):
     file_shas: list[Sha256] = Field(default_factory=list)
 
 
-class ProjectFacts(BaseModel):
-    """The study, as the archive declares it. Structured facts only (design decision, 2026-07-16).
-
-    Not ``Evidenced``: none of this is an interpretation. The record says the title is X and we copied
-    X, exactly as we copy a file's ``sha256`` — a basis and a confidence would be theatre. The study
-    *abstract* is deliberately absent: it is prose, it belongs in a document a quote can grep back
-    into, and pasting it into a content-addressed manifest would make the dataset's identity depend on
-    a paragraph of English.
-    """
-
-    accession: Accession | None = None
-    title: str | None = None
-    center: str | None = None
-    data_type: str | None = None
-    released: str | None = None
-
-
 class MetadataResolution(BaseModel):
     """The output of the metadata resolver — the sibling of ``resolve score``, over records not bytes.
 
@@ -138,7 +122,7 @@ class MetadataResolution(BaseModel):
     """
 
     samples: list[ResolvedSample] = Field(default_factory=list)
-    project: ProjectFacts | None = None
+    project: ArchiveProject | None = None
     #: The organism, when a record or a document declares it. ``None`` means nobody said, and the
     #: caller must supply it — never a default, because a wrong taxid aligns cleanly against the wrong
     #: genome and nothing downstream ever asks again.

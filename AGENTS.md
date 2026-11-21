@@ -16,12 +16,12 @@ genomic-AI corpus. Same manifest + a different recipe = a different pipeline, ha
 artifact is the point, **a Snakefile the user submits**, and `seqforge` does not submit jobs. It is
 implemented and green (`pixi run check`); the demo dataset PRJNA1027859 compiles end to end.
 
-Deterministic code owns every decision. The LLM has exactly **two** jobs: (a) parse prose into
-span-verified `Assertion`s; (b) arbitrate ambiguity code has *already flagged* (modelled, verb
-unbuilt). Instruction-following is **not** a third job, and sample metadata is no third job either —
-both enter as `Assertion`s carrying a quote that greps back, and code applies precedence. Everything
-else is a verifier; don't blur that line. An assay that seems to need the model to **act** is the
-signal to re-read this paragraph, not to relax it.
+**A model writes an answer only where code can check it, and code decides whether it stands.** In
+the compiler a model parses prose into span-verified `Assertion`s and arbitrates ambiguity code has
+*already flagged* (verb unbuilt); instructions and sample metadata enter as `Assertion`s too. In the
+study chain, models draw bounds and write readings; code owns the checks and the threshold that
+settles them. An assay that seems to need the model to **act** is the signal to re-read this
+paragraph, not to relax it.
 
 ```text
 probe(files)                    -> Observation   bytes only, no LLM, no network; `io probe-remote`
@@ -69,8 +69,8 @@ moves between directories and its number does not; `—` means no record cites t
 
 ## Where to read next
 
-- **A term, or a synonym to avoid** — [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md) and the five
-  per-context `GLOSSARY.md` files it lists under `src/seqforge/probe|harvest|kb|resolve|compose/`.
+- **A term, or a synonym to avoid** — [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md) and the six
+  per-context `GLOSSARY.md` files it lists under `src/seqforge/<context>/`.
 - **A decision — why it is this way, and what lost** — [`docs/adr/`](docs/adr/), or
   `src/seqforge/<context>/docs/adr/`; filenames are unique, so `find . -name '0008-*.md'` finds one.
 - **A measurement — a number, and the method that produced it** — [`docs/research/`](docs/research/),

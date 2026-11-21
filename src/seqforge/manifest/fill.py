@@ -33,6 +33,7 @@ from ..kb.schema import Element, Spec
 from ..models.base import Basis
 from ..models.blocker import ValidationWarning
 from ..models.dataset import (
+    ArchiveProject,
     AssayLabel,
     DatasetManifest,
     DatasetProvenance,
@@ -45,7 +46,6 @@ from ..models.dataset import (
     ReadElement,
     ReadLayout,
     SampleGroup,
-    Study,
 )
 from ..models.evidenced import (
     EvidencedAccessionList,
@@ -102,7 +102,7 @@ class ExperimentInputs:
     organism: EvidencedTaxid
     accessions: list[str] = field(default_factory=list)
     samples: list[SampleGroup] = field(default_factory=list)
-    study: Study | None = None
+    project: ArchiveProject | None = None
     #: Confidence for ``accessions`` only: a list of accessions a human typed or a record declared.
     accession_confidence: float | None = None
 
@@ -155,12 +155,11 @@ def experiment_from_metadata(
     accessions = sorted({s.accession for s in resolution.samples if s.accession})
     if resolution.project is not None and resolution.project.accession:
         accessions.append(resolution.project.accession)
-    study = Study(**resolution.project.model_dump()) if resolution.project is not None else None
     return ExperimentInputs(
         organism=organism,
         accessions=sorted(set(accessions)),
         samples=samples,
-        study=study,
+        project=resolution.project,
         accession_confidence=None,  # transcribed from the record; no judgement was made
     )
 
@@ -263,7 +262,7 @@ def fill_manifest(
             rung=0,
         ),
         samples=list(experiment.samples),
-        study=experiment.study,
+        project=experiment.project,
     )
 
     # Every observed file, on every manifest — never conditioned on what the loaded KB asks for, or
