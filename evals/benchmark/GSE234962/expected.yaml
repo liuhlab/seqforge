@@ -94,7 +94,7 @@ fields:
   library.equivalence_members:
   - 10x-3p-gex-v3.1
   experiment.organism: 6239
-  experiment.study.title: A molecular atlas of adult C. elegans motor neurons reveals ancient diversity
+  experiment.project.title: A molecular atlas of adult C. elegans motor neurons reveals ancient diversity
     delineated by conserved transcription factor codes
   experiment.samples.*.strain:
   - CZ631 juIs14 [ acr-2::GFP + lin-15(+)]

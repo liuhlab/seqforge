@@ -28,7 +28,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-#: The four levels of the archive's own hierarchy. ``project`` is the study; ``sample`` is the
+#: The four levels of the archive's own hierarchy. ``project`` is the archive's project; ``sample`` is the
 #: biological material; ``experiment`` is the library prep; ``run`` is one sequencing run == the
 #: files. Other archives use other words for the same four things.
 RecordLevel = Literal["project", "sample", "experiment", "run"]

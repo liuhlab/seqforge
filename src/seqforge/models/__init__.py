@@ -50,6 +50,7 @@ from .conflict import (
     Resolution,
 )
 from .dataset import (
+    ArchiveProject,
     AssayLabel,
     DatasetManifest,
     DatasetProvenance,
@@ -62,7 +63,6 @@ from .dataset import (
     ReadElement,
     ReadLayout,
     SampleGroup,
-    Study,
 )
 from .evidenced import (
     EvidencedAccessionList,
@@ -263,7 +263,7 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "FileInventoryItem",
     "SampleGroup",
     "AssayLabel",
-    "Study",
+    "ArchiveProject",
     # processing manifest — the flags: what to DO with it (many per dataset)
     "ProcessingManifest",
     "ProcessingProvenance",

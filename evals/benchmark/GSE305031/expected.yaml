@@ -221,7 +221,7 @@ predicts:
 fields:
   library.chemistry: 10x-gemx-3p-v4
   experiment.organism: 6239
-  experiment.study.title: Single-cell RNA-seq data of C. elegans early embryos.
+  experiment.project.title: Single-cell RNA-seq data of C. elegans early embryos.
   experiment.samples.*.strain:
   - N2
   experiment.samples.*.tissue:

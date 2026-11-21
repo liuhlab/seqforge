@@ -14,7 +14,7 @@
 #    records and the same six graded field checks.
 #
 # WHAT IS KEPT, AND WHY EACH ONE:
-#   project   every attribute + study_title (GRADED as `experiment.study.title`) + study_abstract,
+#   project   every attribute + study_title (GRADED as `experiment.project.title`) + study_abstract,
 #             which is the only prose about the study and costs 298 B.
 #   sample    taxonomy_id (GRADED, via `experiment.organism`), strain (GRADED, the 96-element
 #             multiset), cell_type (GRADED on two accessions), sample_title (the cell's own name —

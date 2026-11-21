@@ -321,7 +321,7 @@ def _extract_experiment_field(path: str, metadata: MetadataResolution | None) ->
       archive's accession when a record was joined, so this is a claim about a specific BioSample.
     - ``experiment.samples.*.<attr>`` — the attribute across EVERY sample, sorted. This is what a
       pre-registration usually wants: "tissue=Neurons" was never a claim about one of the six.
-    - ``experiment.organism`` / ``experiment.study.<field>``.
+    - ``experiment.organism`` / ``experiment.project.<field>``.
     - ``experiment.n_samples`` — how many samples the dataset resolved into.
 
     **The count is here because for a record-less dataset it is the ONLY sample claim there is.**
@@ -339,7 +339,7 @@ def _extract_experiment_field(path: str, metadata: MetadataResolution | None) ->
         return len(metadata.samples)
     if path == "experiment.organism":
         return metadata.organism.value if metadata.organism is not None else None
-    if path.startswith("experiment.study."):
+    if path.startswith("experiment.project."):
         field = path.split(".", 2)[2]
         return getattr(metadata.project, field, None) if metadata.project else None
     if path.startswith("experiment.samples."):

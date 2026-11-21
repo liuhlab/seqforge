@@ -43,7 +43,7 @@
 # every rival by a wide margin — and the claim under test was always "the index reads are left
 # unassigned", never the absolute score.
 #
-# NOT PINNED, deliberately: `experiment.study.center` ("4D Cellular Physiology, Janelia Research
+# NOT PINNED, deliberately: `experiment.project.center` ("4D Cellular Physiology, Janelia Research
 # Campus") is the SRA submitting account's label, which a re-submission moves without the science
 # moving; pruned for the same reason PRJNA1195922's was.
 #
@@ -69,7 +69,7 @@ fields:
   library.roles.R1: SRR27685600_3
   library.roles.R2: SRR27685600_4
   experiment.organism: 6239
-  experiment.study.title: Single nuclei gene expression profile for adult C. elegans and several
+  experiment.project.title: Single nuclei gene expression profile for adult C. elegans and several
     longevity mutants
   experiment.samples.*.strain:
   - Wild-type(N2)

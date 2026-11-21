@@ -3162,7 +3162,7 @@ def _render_fixture() -> dict[str, Any]:
                 "usage": {"input_tokens": 61000, "output_tokens": 1400},
                 "harvest": {
                     "matched": ["experiment.organism"],
-                    "missing": ["experiment.study.title"],
+                    "missing": ["experiment.project.title"],
                     "hallucinated": ["experiment.samples.tissue"],
                     "unstable": ["experiment.samples.dev_stage"],
                     "n_rejected": 4,

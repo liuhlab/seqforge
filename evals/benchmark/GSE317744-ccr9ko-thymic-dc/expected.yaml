@@ -93,7 +93,7 @@ predicts:
 fields:
   library.chemistry: 10x-5p-gex-v2
   experiment.organism: 10090
-  experiment.study.title: Thymic CD11c+ cells [scRNA-seq]
+  experiment.project.title: Thymic CD11c+ cells [scRNA-seq]
   experiment.samples.*.genotype:
   - CCR9KO
   experiment.samples.*.tissue:

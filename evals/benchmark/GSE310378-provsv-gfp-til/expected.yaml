@@ -49,7 +49,7 @@
 # on this leaf and not on `10x-gemx-3p-v4`.
 #
 # ---- SCOPE NOTES -------------------------------------------------------------------------------
-# * `experiment.study.title` IS DELIBERATELY NOT CLAIMED, and the reason is worth recording. GEO
+# * `experiment.project.title` IS DELIBERATELY NOT CLAIMED, and the reason is worth recording. GEO
 #   reports this series as "Public on May 30 2026" with the real title "Engineered Vesicular
 #   Stomatitis Virus for Cancer-Specific Delivery of Potent Immunotherapy Payloads", but SRA's
 #   BioProject copy still carries the pre-release placeholder "GEO accession GSE310378 is currently

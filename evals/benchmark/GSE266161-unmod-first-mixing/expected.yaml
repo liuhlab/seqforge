@@ -105,7 +105,7 @@ predicts:
   workflow: 2026.7.14
 fields:
   library.chemistry: bd-rhapsody-wta-enhanced-v1
-  experiment.study.title: 'RoCK and ROI: a single-cell RNA-sequencing method with enhanced
+  experiment.project.title: 'RoCK and ROI: a single-cell RNA-sequencing method with enhanced
     transcriptome information via targeted enrichment of transcripts and preselected, region-specific
     sequencing I'
   experiment.samples.*.cell_line:

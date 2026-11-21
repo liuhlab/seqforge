@@ -3,10 +3,10 @@
 Hand-rolled rather than templated: one self-contained page does not earn a templating dependency, and
 keeping the fragments as functions means the types flow (an :class:`AssayReport` in, a string out) and
 mypy checks the projection is used the way it was built. Every dynamic value goes through :func:`esc`;
-the only structured untrusted inputs (a study title, a forbidden reason, a metadata value) are escaped
+the only structured untrusted inputs (a project title, a forbidden reason, a metadata value) are escaped
 at the point they enter the string.
 
-The audience is a wet-lab reader, so the surface is de-jargoned: the Overview leads with the study's
+The audience is a wet-lab reader, so the surface is de-jargoned: the Overview leads with the project's
 own words, the Flow narrates in plain language, and Samples is a metadata table with provenance on
 hover. The technical artifacts (the recipe, the Snakefile, the config) live on the Pipeline tab,
 embedded so the page stays self-contained. A later LLM-written summary would be one more function here.
@@ -117,7 +117,7 @@ _WHO_PHRASE: dict[str, str] = {
 def esc(value: object) -> str:
     """Escape one value for HTML text or an attribute — and render a missing one as **nothing**.
 
-    The display model is optional-heavy (a study's centre, an element's ``onlist_ref``, a sample's
+    The display model is optional-heavy (a project's centre, an element's ``onlist_ref``, a sample's
     note), so ``None`` reaches here routinely. ``str(None)`` puts the five-letter English word
     ``None`` on the page, which a reader cannot tell apart from a value that was genuinely recorded —
     the one failure this page must never have. Guarding at every call site was the alternative and is
@@ -235,10 +235,10 @@ def _assay_kind(assay: AssayReport) -> str:
 
 def overview_pane(assay: AssayReport) -> str:
     chem = assay.chemistry
-    study = assay.study
-    title = (study.title if study and study.title else None) or assay.label
-    study_acc = study.accession if study and study.accession else ""
-    center = study.center if study and study.center else ""
+    project = assay.project
+    title = (project.title if project and project.title else None) or assay.label
+    project_acc = project.accession if project and project.accession else ""
+    center = project.center if project and project.center else ""
     organism_name = assay.organism_name
     organism = organism_name or (
         f"taxid {assay.organism_taxid}" if assay.organism_taxid else "organism not declared"
@@ -268,7 +268,7 @@ def overview_pane(assay: AssayReport) -> str:
             f'{name_html}<code class="font-mono text-xs text-dim">{esc(chem_id)}</code>{more}</div>'
         )
 
-    eyebrow = " · ".join(x for x in (study_acc, center) if x)
+    eyebrow = " · ".join(x for x in (project_acc, center) if x)
     hero = (
         '<div class="flex flex-wrap items-start gap-6">'
         '<div class="min-w-0 flex-1 basis-80">'
@@ -283,12 +283,12 @@ def overview_pane(assay: AssayReport) -> str:
 
     # abstract — first-class, shown by default (only when a record actually carried one). Capped at
     # 70ch because a 1080px-wide paragraph is not a paragraph anyone finishes.
-    if study and study.abstract:
+    if project and project.abstract:
         abstract = (
             '<div class="mt-6 border-t border-line pt-6"><div class="sf-sub-h mb-2">'
             "About this study</div>"
             '<p class="m-0 max-w-[70ch] border-l-2 border-line pl-4">'
-            f"{esc(study.abstract)}</p></div>"
+            f"{esc(project.abstract)}</p></div>"
         )
     else:
         abstract = ""

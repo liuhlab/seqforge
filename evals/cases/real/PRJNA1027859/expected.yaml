@@ -199,6 +199,6 @@ fields:
   # were attached to the wrong six samples, every `*` assertion above would still pass.
   experiment.samples.SAMN40935621.strain: CQ758
   experiment.samples.SAMN40935616.strain: CQ757
-  experiment.study.title: >-
+  experiment.project.title: >-
     A Single-Nucleus Atlas of Adult C. elegans Neurons Reveals GPCR and Insulin-signaling Profiles
-  experiment.study.center: Princeton University
+  experiment.project.center: Princeton University

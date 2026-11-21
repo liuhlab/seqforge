@@ -37,7 +37,7 @@ predicts:
 fields:
   library.chemistry: bd-rhapsody-wta
   experiment.organism: 6239
-  experiment.study.title: Spatiotemporal single-cell architecture of gene expression in the
+  experiment.project.title: Spatiotemporal single-cell architecture of gene expression in the
     Caenorhabditis elegans germ cells [scRNA-seq]
   experiment.samples.*.strain:
   - gfp::tev::flag::prg-1

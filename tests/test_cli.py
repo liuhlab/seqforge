@@ -1392,7 +1392,7 @@ def test_manifest_fill_on_a_three_run_dataset_keeps_every_file(tmp_path: Path) -
     # degraded mode -- most sequencing data never had an accession -- and it must not be a refusal.
     assert all(s["attributes"] == {} for s in samples)
     assert all(s["accession"] is None for s in samples)
-    assert manifest["experiment"]["study"] is None
+    assert manifest["experiment"]["project"] is None
 
 
 def test_processing_new_takes_an_assembly_from_a_verified_instruction(
