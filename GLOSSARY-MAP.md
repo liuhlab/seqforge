@@ -3,7 +3,7 @@
 `seqforge` compiles `(FASTQ files) + (unstructured metadata)` into a validated `manifest.yaml` and a
 runnable Snakemake pipeline. Its vocabulary splits by bounded context: each file below is the
 glossary for one part of the source tree, and the shared kernel at the bottom holds the words every
-context uses. Rules live in `AGENTS.md`; this map and the five files it lists are a glossary and
+context uses. Rules live in `AGENTS.md`; this map and the six files it lists are a glossary and
 nothing else.
 
 **Use these words.** When your output names a domain concept — an issue title, a refactor proposal,
@@ -27,29 +27,16 @@ module, interface, depth, seam, adapter, leverage, locality — are fixed, and "
   and which sample, from bytes and from records
 - [Compose](./src/seqforge/compose/GLOSSARY.md) — covers `compose/`, `workflows/`, `report/`,
   `pipeline.py`: the recipe, the compiled pipeline, and what it reported
+- [Study](./src/seqforge/study/GLOSSARY.md) — covers `study/`, `standard_set/`: a study's bounds and
+  its reading, and the fixed set of studies they are built on
 
 ## The run engine's words
 
-`passes/` is not a sixth context. It starts passes of seqforge's unit kinds on the run engine,
+`passes/` is not a context of its own. It starts passes of seqforge's unit kinds on the run engine,
 liulab-llms, whose [glossary](https://github.com/liuhlab/liulab-llms/blob/main/GLOSSARY.md) defines
 its words: Unit, Unit kind, Pass, Task, Settled, Unsettled, Refused, Dropped, Unfinished, Held,
 Inputs tag, Stamp, Review, Review queue, Gateway, Meter and Waiting call. Nothing here redefines
 them. A pass is never a *run*, *batch*, *job* or *round*.
-
-## The standard set's words
-
-`standard_set/` is not a sixth context either. Its two words are used wherever studies are
-discussed:
-
-**Standard set**:
-The fixed list of 50 small GEO studies that work on reading studies is built and checked on. One
-list, shared by every later stage.
-_Avoid_: benchmark, test set, gold set, corpus
-
-**Bounds**:
-What belongs to one study: its GEO Series and its papers.
-A linked record that does not belong is left out with a reason.
-_Avoid_: scope, extent, membership, boundary
 
 ## Relationships
 

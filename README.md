@@ -13,9 +13,10 @@ Compile `(arbitrary FASTQ files) + (unstructured human/DB metadata)` into a vali
 machine-independent **dataset manifest**, then into a runnable Snakemake config — for headless
 reprocessing of large collections of public sequencing datasets into a genomic-AI training corpus.
 
-**seqforge is a compiler, not a chatbot.** Deterministic code owns every decision. The LLM has
-exactly two jobs: parse prose into span-verified assertions, and settle ambiguity the
-deterministic layer has *already flagged*. Everything else is a verifier.
+**seqforge is a compiler, not a chatbot.** A model writes an answer only where code can check it,
+and code decides whether the answer stands. In the compiler a model parses prose into span-verified
+assertions and settles ambiguity the deterministic layer has *already flagged*. Everything else is a
+verifier.
 
 It produces two artifacts, and only the second is plural:
 
