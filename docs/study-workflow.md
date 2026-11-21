@@ -17,15 +17,15 @@ The chain is built and checked on the **standard set**, a fixed list of 50 small
 those 50, both files sit in the study's folder, `evals/standard-set/<ID>/`. `<ID>` is the Series
 the study was picked by, such as `GSE100021`.
 
-The work is planned in stages, and three steps are not built yet. Stage 4 builds the bounding job,
-stage 5 builds the reader, and stage 6 runs the whole chain once with no person involved. Each of
-those steps already has its name, its input and its output below.
+The work is planned in stages, and two steps are not built yet. Stage 5 builds the reader, and
+stage 6 runs the whole chain once with no person involved. Each of those steps already has its
+name, its input and its output below.
 
 ## The steps in order
 
 | # | Step | Command | Reads | Writes | State |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Bound the study | Command not named yet | The records linked to the study | `bounds.yaml` | Not built yet. Stage 4 builds it |
+| 1 | Bound the study | `seqforge pass start study-bounds`, then `seqforge study write-bounds` | The records linked to the study, and its papers' abstracts | `bounds.yaml` | Built |
 | 2 | Check the bounds | `seqforge study check-bounds <file>` | One `bounds.yaml` | No file. It prints whether the file is accepted | Built |
 | 3 | Read the study | Command not named yet | The study's `bounds.yaml`, its records and its papers | `reading.yaml` | Not built yet. Stage 5 builds it |
 | 4 | Check the reading | `seqforge study check-reading <file>` | One `reading.yaml` | No file. It prints whether the file is accepted | Built |
@@ -34,9 +34,9 @@ those steps already has its name, its input and its output below.
 
 Steps 1 to 5 handle one study. Step 6 is the same chain, run over many studies at once.
 
-The 50 studies of the standard set have bounds although step 1 is not built. Three older commands
-drew them, and [How the standard set got its bounds](#how-the-standard-set-got-its-bounds) lists
-those commands. The steps that are built today run like this, on one study of the standard set:
+The 50 studies of the standard set got their own bounds before step 1 was built, from commands
+that are now retired. [How the standard set got its bounds](#how-the-standard-set-got-its-bounds)
+lists them. The checks run like this, on one study of the standard set:
 
 ```bash
 seqforge study check-bounds evals/standard-set/<ID>/bounds.yaml
@@ -61,30 +61,52 @@ small plain file: the question, the study, the answer, who gave it and when.
 
 ## 1. Bound the study
 
-**Not built yet.** Stage 4 builds this step, and its command is not named yet.
+Bounding is drawing a study from its linked records. The bounding job runs a pass of the
+`study-bounds` kind, which asks a model the same kind of question once for each study and keeps
+each answer in the pass's task folder. [Passes and reviews](passes-and-reviews.md) describes passes.
+A study is named by the GEO Series it starts from. With no `--keys` file, the pass runs the 50
+studies of the standard set.
 
-Bounding is drawing a study from its linked records. The bounding job gathers the records linked to
-one study: its GEO Series, and the Series and the papers that those link to. Models then decide
-which of them belong to the study and which are left out, and they name the study. The job writes
-the result as one `bounds.yaml`.
+```bash
+seqforge pass start study-bounds --ceiling-usd 0.1
+seqforge study write-bounds --out evals/standard-set --name job-bounds.yaml
+```
+
+**What it reads.** The job reads liulab-data, the lab package that stores the archive records and
+the papers, from `LABDATA_STORE` and `LABDATA_PAPERS`. For each study it gathers the **linked
+group**: the starting Series, every Series one link away from it, and every paper that those Series
+link. Four kinds of link count: a SuperSeries and its sub-Series, a shared BioProject, two
+BioProjects under one umbrella BioProject, and a shared paper. A reanalysis link counts for nothing,
+and so does a paper that only a BioProject links.
+
+**How it decides.** Code keeps the starting Series, or each sub-Series when the study starts from a
+SuperSeries, and it leaves every SuperSeries out. Jev, a model that answers yes/no questions with a
+probability, is asked about each other Series and each paper twice: once as written, once reversed.
+Jev reads the records and each paper's title, journal, date and abstract, and never a full paper. A
+record is in the study when Jev's answer as written is more likely yes than no. Each claim is
+`inferred`, and its text gives Jev's p(yes) to each of the two questions. A kept paper has no
+probability in the file, so the task keeps it.
+
+**What it writes.** `seqforge study write-bounds --out <folder>` writes each study's answer as
+`<folder>/<ID>/bounds.yaml`, or under the name that `--name` gives. It never overwrites a file. For
+the standard set, the job's file is `job-bounds.yaml`, beside the set's own `bounds.yaml`. Each
+study ends in one of three ways:
+
+| Ending | When | File |
+| --- | --- | --- |
+| Settled | Jev's two answers agree on every record | Written |
+| Unsettled | Jev's two answers disagree on a record | Written, with each probability |
+| Refused | The group holds more than 50 Series, or the bounds fail the format check | None. `write-bounds` prints the reason, such as `group too large` |
 
 ### How the standard set got its bounds
 
-The 50 studies were bounded before the bounding job existed. A small model drafted each study's
-bounds, and a large model judged each draft once. The first three commands below did that work, in
-this order. The fourth command shows the result.
-
-| Step | Command | Reads | Writes |
-| --- | --- | --- | --- |
-| Drafting pass | `seqforge pass start standard-set-bounds` | The records linked to each study and the abstract of each paper, from liulab-data, the lab package that stores the archive records and the papers | Each study's answer, in the pass's task folder |
-| Draft | `seqforge standard-set draft` | The answers of the drafting pass | `<ID>/draft.yaml`, for each study that has none |
-| Judge | `seqforge standard-set judge <ID>` | One study's draft and what the drafting model saw. The judge may also open the full records and the full paper texts | `<ID>/verdict.yaml`, `<ID>/bounds.yaml` and `<ID>/study.yaml` |
-| List | `seqforge standard-set list` | Each study's `study.yaml` and `bounds.yaml` | No file. It prints one JSON object per study |
-
-A pass asks a model the same kind of question once for each study on a list.
-[Passes and reviews](passes-and-reviews.md) describes passes and the task folder. The
+This is history: these commands are retired. A small model drafted each of the 50 studies' bounds
+in a pass of the `standard-set-bounds` kind. The `standard-set draft` command wrote each answer as
+`<ID>/draft.yaml`. The `standard-set judge` command asked a large model about one draft and wrote
+`<ID>/verdict.yaml`, `<ID>/bounds.yaml` and `<ID>/study.yaml`. `seqforge standard-set list` still
+prints one JSON object per study. The
 [standard set's own page](https://github.com/liuhlab/seqforge/tree/main/evals/standard-set) says
-how to run these commands and what each file holds.
+what each file holds.
 
 ## 2. Check the bounds
 
@@ -94,8 +116,8 @@ problem it names the field and the reason. It exits 0 for an accepted file, 3 fo
 and 2 for a file that it cannot read.
 
 The check asks only whether the file is in the current format. It does not judge whether the
-bounds are right. What the chain does with a rejected file is not decided yet. Stages 4 and 5
-decide it.
+bounds are right. The bounding job never writes a file that the check rejects: it ends the study
+refused. What the reader does with a rejected file, stage 5 decides.
 
 ## 3. Read the study
 

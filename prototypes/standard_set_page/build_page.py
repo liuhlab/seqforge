@@ -335,7 +335,7 @@ def store_lookup(studies: list[dict]) -> dict:
 
     A record the store does not hold is left out, and its box shows the identifier alone.
     """
-    from seqforge.standard_set.material import open_sources, read_group
+    from seqforge.study.group import open_sources, read_group
 
     store, papers = open_sources()
     lookup: dict = {"series": {}, "superseries_members": {}, "papers": {}}

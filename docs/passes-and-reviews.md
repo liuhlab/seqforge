@@ -8,9 +8,8 @@ call through the lab gateway, caches every answer, stops at a dollar ceiling, an
 in a **task** folder. seqforge names its kinds and starts their passes. The engine's words are
 defined in [liulab-llms's glossary](https://github.com/liuhlab/liulab-llms/blob/main/GLOSSARY.md).
 
-seqforge has one kind so far, `standard-set-bounds`: a rough first version that drafts the bounds of
-each study of the standard set. [`evals/standard-set/`](https://github.com/liuhlab/seqforge/tree/main/evals/standard-set)
-says how it is used.
+seqforge has one kind so far, `study-bounds`, which draws each study's bounds.
+[The study workflow](study-workflow.md#1-bound-the-study) says how it is used.
 
 ## Before you start
 
