@@ -62,7 +62,8 @@ def study_write_bounds(
 
     A refused study gets no file; the JSON gives its reason. A file already there is never
     overwritten. It reads the task only, so it works with the gateway down. Exit 0 with one object
-    per study; 2 for no task or no review clone; 3 when a running pass holds the task.
+    per study; 2 for no task, no review clone or a ``--name`` that is a path; 3 when a running pass
+    holds the task.
     """
     from ..study.bounding import KIND_NAME, write_bounds
     from ._kind_task import KindTask, for_kind
@@ -71,8 +72,11 @@ def study_write_bounds(
         from ..passes.status import read_only_kind
 
         setup.require_task()
-        with setup.read() as opened:
-            done = write_bounds(opened, read_only_kind(KIND_NAME), out, name)
+        try:
+            with setup.read() as opened:
+                done = write_bounds(opened, read_only_kind(KIND_NAME), out, name)
+        except ValueError as e:
+            return _StageOut({"error": str(e)}, 2)
         said: dict[str, object] = {"kind": KIND_NAME, "task": str(setup.folder), "out": str(out)}
         return _StageOut({**said, "studies": done}, 0)
 

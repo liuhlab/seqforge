@@ -19,6 +19,7 @@ the format check, unsettled when Jev's two answers disagree on any record, and s
 from __future__ import annotations
 
 import hashlib
+import os
 import threading
 from pathlib import Path
 from typing import Any
@@ -239,8 +240,11 @@ def write_bounds(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str, 
     """Write ``<out>/<key>/<name>`` for each unit with an answer, and say how each study ended.
 
     A refused study gets no file, and its reason instead. A file already on disk is never
-    overwritten: delete it by hand to take a newer answer.
+    overwritten: delete it by hand to take a newer answer. ``name`` is a file name, not a path, so
+    no two studies can share a file, and each file appears whole or not at all.
     """
+    if not name or name in {".", ".."} or Path(name).name != name:
+        raise ValueError(f"--name must be a file name, not a path: {name!r}")
     done: dict[str, dict[str, Any]] = {}
     for key in task.keys(kind, endings=["settled", "unsettled", "refused"]):
         outcome = task.current(kind, key)
@@ -253,12 +257,28 @@ def write_bounds(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str, 
             path = out / key / name
             said["file"] = "kept the file on disk" if path.exists() else "written"
             if not path.exists():
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(yaml.safe_dump(bounds_file(outcome), sort_keys=False, width=100))
+                _publish(path, yaml.safe_dump(bounds_file(outcome), sort_keys=False, width=100))
             if failed := [f"{c.name}: {c.message}" for c in outcome.checks if c.message]:
                 said["checks_failed"] = failed
         done[key] = said
     return done
+
+
+def _publish(path: Path, text: str) -> None:
+    """Write ``text`` to ``path`` whole or not at all, and never over a file already there.
+
+    The text goes to a hidden file beside ``path`` first, which a hard link then publishes: the link
+    fails when ``path`` exists, so a file another run wrote first is kept.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    partial = path.with_name(f".{path.name}.partial")
+    partial.write_text(text)
+    try:
+        os.link(partial, path)
+    except FileExistsError:
+        pass
+    finally:
+        partial.unlink()
 
 
 def _records(inputs: Inputs) -> str:
