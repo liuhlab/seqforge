@@ -16,15 +16,12 @@ genomic-AI corpus. Same manifest + a different recipe = a different pipeline, ha
 artifact is the point, **a Snakefile the user submits**, and `seqforge` does not submit jobs. It is
 implemented and green (`pixi run check`); the demo dataset PRJNA1027859 compiles end to end.
 
-**A model writes an answer only where code can check it, and code decides whether the answer
-stands.** In the compiler, a model has two jobs: (a) parse prose into span-verified `Assertion`s,
-and (b) arbitrate ambiguity that code has *already flagged* (modelled; the verb is unbuilt).
-Instructions and sample metadata enter as `Assertion`s too, and code applies precedence. In the
-study chain, models draw a study's bounds and write its reading. Code owns the formats and the
-checks, greps every quote back, holds the threshold that settles an answer, and derives the
-relations. A model never writes code, never sets a threshold and never reads a chemistry from bytes.
-An assay that seems to need the model to **act** is the signal to re-read this paragraph, not to
-relax it.
+**A model writes an answer only where code can check it, and code decides whether it stands.** In
+the compiler a model parses prose into span-verified `Assertion`s and arbitrates ambiguity code has
+*already flagged* (verb unbuilt); instructions and sample metadata enter as `Assertion`s too. In the
+study chain, models draw bounds and write readings; code owns the checks and the threshold that
+settles them. An assay that seems to need the model to **act** is the signal to re-read this
+paragraph, not to relax it.
 
 ```text
 probe(files)                    -> Observation   bytes only, no LLM, no network; `io probe-remote`
@@ -73,7 +70,7 @@ moves between directories and its number does not; `—` means no record cites t
 ## Where to read next
 
 - **A term, or a synonym to avoid** — [`GLOSSARY-MAP.md`](GLOSSARY-MAP.md) and the six
-  per-context `GLOSSARY.md` files it lists under `src/seqforge/probe|harvest|kb|resolve|compose|study/`.
+  per-context `GLOSSARY.md` files it lists under `src/seqforge/<context>/`.
 - **A decision — why it is this way, and what lost** — [`docs/adr/`](docs/adr/), or
   `src/seqforge/<context>/docs/adr/`; filenames are unique, so `find . -name '0008-*.md'` finds one.
 - **A measurement — a number, and the method that produced it** — [`docs/research/`](docs/research/),
@@ -89,9 +86,10 @@ test was considered and declined, and is the fallback if the bar drifts.
 
 - **Tests: run the narrowest thing that can go red, then stop.** Four rungs, and the last one is
   reading rather than running. **While editing** — the narrowest selector that can go red and
-  nothing else: `pixi run -e test pytest tests/test_<mod>.py -k <expr>` (files mirror packages).
-  **After a red run** — `pixi run test-failed`, which re-runs only what failed, serially, and stops
-  at the first one. Its cache is local, so a failure only CI has seen is not in it: run the test CI named, and the verb
+  nothing else: `pixi run -e test pytest tests/test_<mod>.py -k <expr>` (files mirror packages). A
+  run naming a selector stays serial, which is why it costs a second or two. **After a red run** —
+  `pixi run test-failed`, which re-runs only what failed, serially, and stops at the first one. Its
+  cache is local, so a failure only CI has seen is not in it: run the test CI named, and the verb
   has it from then on. **Once, before pushing** — `pixi run check`: the three test lanes plus lint,
   formatting, types and conformance. **It is not everything CI runs, on purpose.** Markdownlint,
   vale, the strict docs build and the wheel build are CI steps, and they stay out of the gate because
@@ -100,7 +98,9 @@ test was considered and declined, and is the fallback if the bar drifts.
   then. **After pushing** — read CI (pull requests only, on the merge commit); do not re-run it
   locally. **Never** run the whole
   suite to check a change that is not finished, re-run the gate to confirm a failure CI has already
-  named, or run the gate twice in one session.
+  named, or run the gate twice in one session. Nothing enforces the ladder, and what it guards is
+  not the suite's cost: the gate is cheap and reading CI is free, so a session's minutes are the
+  number of times either was asked the question again.
 - **Two markers, both semantic:** `external` (a binary seqforge does not own) and `repo` (repo
   consistency, not `src/` behaviour). Three lanes — unit, corpus, external — partition the suite,
   and CI runs each as a step; **selection may not be a function of a fact living outside the
