@@ -417,10 +417,8 @@ class EvalPlanReport(BaseModel):
     half, and it exists because the decision it informs — *is this run worth its money* — is taken
     over a corpus and was answerable only by spending one.
 
-    Every token here is an **input** token, and the estimate is a lower bound against a Ceiling:
-    ``--ceiling`` counts output and cache writes too, and neither is knowable before the model
-    answers. So a case in :attr:`estimated_over_ceiling` will certainly breach, and a case absent
-    from it may still.
+    Every token here is an **input** token: output is not knowable before the model answers, so the
+    estimate is a lower bound on what a run sends.
     """
 
     #: Cases planned — skips excluded, exactly as ``EvalReport.n_cases`` excludes them.
@@ -446,9 +444,4 @@ class EvalPlanReport(BaseModel):
     #: and why it is charged per request rather than per run.
     system_prompt_chars: int = 0
     estimated_input_tokens: int = 0
-    #: The per-case token Ceiling this plan was read against, or ``None`` if none was given.
-    ceiling: int | None = None
-    #: Cases whose estimated INPUT alone already clears the ceiling. A lower bound, never a list of
-    #: the only cases that can breach.
-    estimated_over_ceiling: list[str] = Field(default_factory=list)
     per_case: list[CasePlanRow] = Field(default_factory=list)

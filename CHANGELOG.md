@@ -54,6 +54,26 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   `2026.8.1.dev2+g30e302516`. seqforge now imports from `genome.assembly.metadata` and
   `genome.assembly.chimera`, so an installed liulab-genome older than this pin fails with an
   `ImportError`.
+- `harvest extract`, `run` and `eval run --llm` now call their model through the lab gateway, at
+  `LABLLM_GATEWAY`, instead of calling a provider directly. A machine that reads prose needs a
+  tunnel to the gateway and no provider key; `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY` and the
+  `SEQFORGE_LLM_*` variables are no longer read. A repeated harvest is answered from the gateway's
+  cache at no cost. `--provider` and `--model` name the model directly, with `deepseek` and
+  `deepseek-v4-pro` as the defaults; any other provider needs `--model`, and the
+  `openai-compatible` provider is gone.
+- `--ceiling-usd` replaces `--ceiling` on `harvest extract`, `run` and `eval run`. It is in
+  dollars, defaults to one dollar per harvest (per case for `eval run`), and has no "no ceiling"
+  value. `eval plan` no longer takes `--ceiling`, and its report drops `ceiling` and
+  `estimated_over_ceiling`.
+- Harvest's calls now stop with exit 3 and a `MODEL_CALLS_STOPPED` blocker, which replaces
+  `TOKEN_CEILING_EXCEEDED`, for four reasons: the ceiling is reached, the provider's balance or
+  cap is used up, the provider stays unavailable, or the gateway cannot be reached. The `reason`
+  field names which. A request the gateway rejects as malformed or unauthorized exits 1.
+- `seqforge/logs/usage.json` is now in dollars: its totals are `spent_usd`, `first_cost_usd`,
+  `ceiling_usd`, `provider_requests`, `cache_hits`, `n_calls` and `n_documents`, and each document's
+  row has `cost_usd` and `cached`. Each exchange in `transcript.jsonl` has `cost_usd` and `cached`
+  too. The eval report shows dollars in place of token counts.
+- The Anthropic and OpenAI client libraries are no longer dependencies.
 
 ### Fixed
 

@@ -70,7 +70,7 @@ from pathlib import Path
 from typing import Any
 
 from ..harvest.extract import document_sha256_in
-from ..harvest.meter import RAW_KEYS, Exchange
+from ..harvest.seam import Exchange
 from ..harvest.transcript import read_transcript
 
 #: Bumped when the page's layout or projection changes. Not folded into any content-addressed key —
@@ -414,11 +414,9 @@ class ExchangeView:
     model: str
     error: str | None
     why: str
-    usage: dict[str, int]
-
-    @property
-    def tokens(self) -> int:
-        return sum(int(self.usage.get(k, 0) or 0) for k in RAW_KEYS)
+    #: What the request cost in dollars, zero on a cache hit; ``None`` in a report written before
+    #: harvest's calls were priced in dollars, which recorded tokens instead.
+    cost_usd: float | None
 
 
 @dataclass(frozen=True)
@@ -494,7 +492,8 @@ class CaseView:
     trials: int
     stability: float
     harvest: HarvestView | None
-    usage: dict[str, int]
+    #: What the case cost at the model seam: ``spent_usd``, ``first_cost_usd``, ``cache_hits``.
+    usage: dict[str, float]
     seconds: float
     llm_calls: int
     #: The exchanges folded in by :func:`attach_transcripts` — a selection, not the run.
@@ -561,7 +560,7 @@ def _case_view(raw: dict[str, Any]) -> CaseView:
         harvest=None if harvest is None else _harvest_view(harvest),
         seconds=float(raw.get("seconds", 0.0) or 0.0),
         llm_calls=int(raw.get("llm_calls", 0) or 0),
-        usage={str(k): int(v) for k, v in raw.get("usage", {}).items()},
+        usage={str(k): float(v) for k, v in raw.get("usage", {}).items()},
         exchanges=[_exchange_view(x) for x in raw.get("exchanges", [])],
         n_exchanges=int(raw.get("n_exchanges", 0) or 0),
         transcript=raw.get("transcript"),
@@ -652,7 +651,7 @@ def _exchange_view(raw: dict[str, Any]) -> ExchangeView:
         model=str(raw.get("model", "")),
         error=(str(raw["error"]) if raw.get("error") else None),
         why=str(raw.get("why", "")),
-        usage={str(k): int(v) for k, v in (raw.get("usage") or {}).items()},
+        cost_usd=float(raw["cost_usd"]) if raw.get("cost_usd") is not None else None,
     )
 
 
@@ -663,6 +662,11 @@ def _exchange_view(raw: dict[str, Any]) -> ExchangeView:
 
 def _count(value: float) -> str:
     return f"{value:,.0f}"
+
+
+def _dollars(value: float) -> str:
+    """Dollars to the cent, or to a tenth of a cent below a dollar: model calls are cheap."""
+    return f"${value:,.2f}" if value >= 1 else f"${value:.3f}"
 
 
 def _seconds(value: float) -> str:
@@ -974,11 +978,9 @@ def _exchange_block(case: CaseView) -> str:
     cards = []
     for x in case.exchanges:
         source = case.harvest.source_of(x.doc_sha256) if case.harvest else (x.doc_sha256 or "?")
-        head = (
-            f'<code class="path">{esc(source)}</code>'
-            f'<span class="hv-note">{esc(x.why)}</span>'
-            f'<span class="hv-note tabular-nums">{x.tokens:,} tokens</span>'
-        )
+        head = f'<code class="path">{esc(source)}</code><span class="hv-note">{esc(x.why)}</span>'
+        if x.cost_usd is not None:
+            head += f'<span class="hv-note tabular-nums">{_dollars(x.cost_usd)}</span>'
         if x.error:
             head += f'<span class="chip chip-diff">{esc(x.error)}</span>'
         cards.append(
@@ -1037,7 +1039,7 @@ def _prompt_panel(report: dict[str, Any]) -> str:
 
 
 def _meta(case: CaseView) -> str:
-    """The per-case costs, on one line: fields, trials, seconds, calls, tokens."""
+    """The per-case costs, on one line: fields, trials, seconds, calls, dollars."""
     bits: list[str] = []
     if case.fields:
         n_ok = len(case.fields) - len(case.bad_fields)
@@ -1060,20 +1062,16 @@ def _meta(case: CaseView) -> str:
         bits.append(
             f'<span class="meta"><b class="tabular-nums">{case.llm_calls}</b> exchanges</span>'
         )
-    # `input_tokens` is the WHOLE input on both providers; `cached` and `cache written` are the
-    # breakdown of it, not extra tokens beside it. `cache_write_tokens` only the Anthropic path
-    # reports, and every consumer but the on-disk ledger used to drop it.
-    for key, label in (
-        ("input_tokens", "in"),
-        ("output_tokens", "out"),
-        ("cache_read_tokens", "cached"),
-        ("cache_write_tokens", "cache-written"),
-    ):
-        if case.usage.get(key):
-            bits.append(
-                f'<span class="meta"><b class="tabular-nums">{case.usage[key]:,}</b> '
-                f"{label} tokens</span>"
-            )
+    if case.usage.get("spent_usd") or case.usage.get("cache_hits"):
+        bits.append(
+            f'<span class="meta"><b class="tabular-nums">'
+            f"{_dollars(case.usage.get('spent_usd', 0.0))}</b> spent</span>"
+        )
+    if case.usage.get("cache_hits"):
+        bits.append(
+            f'<span class="meta"><b class="tabular-nums">{int(case.usage["cache_hits"]):,}</b> '
+            "from the cache</span>"
+        )
     # How the calls were made — the fourth thing an extraction outcome carries, and the one the eval
     # path used to drop. It belongs beside the token counts because it is the same kind of fact: not
     # what the model said, but what it was asked to do it under.
@@ -1094,10 +1092,10 @@ def _case_card(case: CaseView) -> str:
             else ("skipped", "excluded from every rate")
         )
         level = "warn" if case.is_absent else "skip"
-        # The one thing a skipped card still owes a reader. A case stopped at its token Ceiling
-        # reports AS a skip — it was not graded — but the exchanges up to the breach were paid for,
-        # and "on what?" is exactly the question a breach produces. A skip that reached no model has
-        # no exchanges, so this is empty for every other skip there is.
+        # The one thing a skipped card still owes a reader. A case whose model calls stopped reports
+        # AS a skip — it was not graded — but the exchanges up to the stop were paid for, and "on
+        # what?" is exactly the question a stop produces. A skip that reached no model has no
+        # exchanges, so this is empty for every other skip there is.
         spent = f'<div class="case-body">{_exchange_block(case)}</div>' if case.exchanges else ""
         return (
             '<div class="case lv-skip" data-level="skip">'
@@ -1240,10 +1238,10 @@ def _tiles(report: dict[str, Any], cases: list[CaseView], false_accepts: list[Ca
 
     work = float(cost.get("seconds", 0.0) or 0.0)
     wall = cost.get("wall_seconds")
-    # Raw, and only two keys: `input_tokens` already includes the cached input and the cache writes
-    # on both providers, so adding the breakdown back in would count the cached half twice. Same
-    # arithmetic the token Ceiling uses, so the tile and the refusal agree about what a run cost.
-    tokens = sum(int(cost.get(k, 0) or 0) for k in RAW_KEYS)
+    # Absent from a report written before harvest's calls were priced in dollars: those runs counted
+    # tokens, and reading the absence as zero would say they were free.
+    spent = cost.get("spent_usd")
+    calls = float(cost.get("llm_calls", 0) or 0)
 
     tiles = [
         _tile(
@@ -1298,8 +1296,14 @@ def _tiles(report: dict[str, Any], cases: list[CaseView], false_accepts: list[Ca
     tiles.append(
         _tile(
             "exchanges",
-            _count(float(cost.get("llm_calls", 0) or 0)),
-            f"{tokens:,} tokens" if tokens else "none — this tier is deterministic",
+            _count(calls),
+            (
+                "none — this tier is deterministic"
+                if not calls
+                else "dollar cost not recorded"
+                if spent is None
+                else f"{_dollars(float(spent))} spent"
+            ),
         )
     )
     # Only on a run that harvested. A `--no-llm` run has no stage to report coverage of, and a tile

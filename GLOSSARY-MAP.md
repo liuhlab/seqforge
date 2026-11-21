@@ -35,8 +35,10 @@ module, interface, depth, seam, adapter, leverage, locality — are fixed, and "
 `passes/` is not a context of its own. It starts passes of seqforge's unit kinds on the run engine,
 liulab-llms, whose [glossary](https://github.com/liuhlab/liulab-llms/blob/main/GLOSSARY.md) defines
 its words: Unit, Unit kind, Pass, Task, Settled, Unsettled, Refused, Dropped, Unfinished, Held,
-Inputs tag, Stamp, Review, Review queue, Gateway, Meter and Waiting call. Nothing here redefines
-them. A pass is never a *run*, *batch*, *job* or *round*.
+Inputs tag, Stamp, Review, Review queue, Gateway, Meter, Ceiling and Waiting call. Nothing here
+redefines them. A pass is never a *run*, *batch*, *job* or *round*. Harvest makes its model calls
+through the same Gateway and a Meter of its own; its **Exchange** is narrower than liulab-llms's, and
+the harvest glossary says how.
 
 ## Relationships
 

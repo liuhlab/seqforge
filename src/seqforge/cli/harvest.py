@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import json
+import math
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -13,15 +14,24 @@ from typing import TYPE_CHECKING, Any
 import typer
 from pydantic import ValidationError
 
+from ..harvest.seam import DEFAULT_CEILING_USD
 from ..manifest import instructions_from_assertions
 from ..workspace import documents_dir, logs_dir, readable
 from ._common import _emit, _StageOut
 from .root import harvest_app
 
+
+def bad_ceiling(ceiling_usd: float) -> str | None:
+    """Why ``--ceiling-usd`` cannot be used, or ``None``: it is a number of dollars, zero or more."""
+    if math.isfinite(ceiling_usd) and ceiling_usd >= 0:
+        return None
+    return f"--ceiling-usd must be a number of dollars, not {ceiling_usd}"
+
+
 if TYPE_CHECKING:
     from ..harvest.fields import DocRole
-    from ..harvest.meter import TokenMeter
     from ..harvest.normalize import PdfBackend
+    from ..harvest.seam import ModelSeam
     from ..models.assertion import ExtractorProvenance
 
 
@@ -142,26 +152,26 @@ def harvest_extract(
         "document, which is how a claim gets to name a sample.",
     ),
     provider: str | None = typer.Option(
-        None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
+        None, "--provider", help="The provider the lab gateway sends to (default: deepseek)."
     ),
     model: str | None = typer.Option(
         None,
         "--model",
-        help="Override the model (default: the provider's own). DeepSeek serves "
-        "deepseek-v4-pro (the default) and deepseek-flash.",
+        help="The provider's exact model name (default on deepseek: deepseek-v4-pro). Required "
+        "with any other --provider.",
     ),
-    ceiling: int = typer.Option(
-        0,
-        "--ceiling",
+    ceiling_usd: float = typer.Option(
+        DEFAULT_CEILING_USD,
+        "--ceiling-usd",
         min=0,
-        help="Refuse past N tokens spent at the model seam in this run (raw: cached input and "
-        "cache writes count too). Blocks with exit 3 rather than warning. 0 = no ceiling.",
+        help="The most this run may spend, in dollars. The gateway refuses a request that would "
+        "cross it, and harvest stops with exit 3.",
     ),
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
         help="Print the extraction PLAN and stop: what will be asked, of what, and an estimated "
-        "input-token cost. Reaches no model and needs no credential.",
+        "input-token cost. Reaches no gateway.",
     ),
     verify: bool = typer.Option(
         True, "--verify/--no-verify", help="Span-verify the drafts immediately."
@@ -176,9 +186,10 @@ def harvest_extract(
     """The ONE LLM touchpoint: prose -> AssertionDraft[] -> (verified) Assertion[].
 
     The model only proposes `{field, value, quote}`; code computes the offsets and decides what
-    survives — which is what makes the provider swappable. Auto-detects DEEPSEEK_API_KEY /
-    ANTHROPIC_API_KEY. Exit 1 if the LLM surface is unavailable, 3 if the run reaches its
-    `--ceiling`, 4 if any claim fails verification.
+    survives — which is what makes the model swappable. Every request goes through the lab gateway
+    at `$LABLLM_GATEWAY`, under one meter labelled by the dataset. Exit 1 if a reply cannot be used,
+    2 for a bad option, 3 when the calls stop (ceiling reached, provider balance used up, provider
+    unavailable, gateway unreachable), 4 if any claim fails verification.
 
     **`--records` is how a claim names a sample.** Each archive record is rendered as its own
     document and asked only what a record at that level can answer: a BioSample's document is asked
@@ -199,7 +210,7 @@ def harvest_extract(
             records_path=records_path,
             provider=provider,
             model=model,
-            ceiling=ceiling,
+            ceiling_usd=ceiling_usd,
             verify=verify,
             dry_run=dry_run,
             workspace=workspace,
@@ -218,39 +229,48 @@ def _harvest_extract_pipeline(
     verify: bool,
     workspace: Path,
     pdf_backend: PdfBackend = "pymupdf",
-    ceiling: int = 0,
+    ceiling_usd: float = DEFAULT_CEILING_USD,
     dry_run: bool = False,
 ) -> _StageOut:
     """The body of ``harvest extract``, returned as a value so ``seqforge run`` can chain it.
 
     The one LLM stage, and the one place ``run`` cannot be fully deterministic — hence ``--no-llm``,
-    which is the caller choosing not to enter here at all. Every exit is a ``_StageOut``: exit 1 if no
-    provider or the endpoint fails, exit 3 with a ``Blocker`` if the run reaches its token
-    ``ceiling``, exit 4 if a claim fails the span tripwire (a rejected claim needs a human, not a
-    silent drop). On success it still writes ``assertions.json``, the transcript and the rendered
-    documents to disk, because a span citation is only checkable while the exact text survives.
+    which is the caller choosing not to enter here at all. Every exit is a ``_StageOut``: exit 1 if a
+    reply cannot be used or the gateway rejects a request, exit 2 for a bad option, exit 3 with a
+    ``Blocker`` when the calls stop, exit 4 if a claim fails the span tripwire (a rejected claim
+    needs a human, not a silent drop). On success it still writes ``assertions.json``, the
+    transcript and the rendered documents to disk, because a span citation is only checkable while
+    the exact text survives.
 
-    ``dry_run`` returns the plan and stops **before** a provider is even resolved: "what will this
-    dataset cost" must be answerable on a machine with no credential at all.
+    ``dry_run`` returns the plan and stops **before** a gateway client is even built: "what will
+    this dataset cost" must be answerable on a machine that cannot reach the gateway.
     """
+    from labllm import GatewayUnreachable, Rejected, Stopped
+
     from ..harvest import (
-        CeilingExceeded,
         ExtractUnavailable,
-        ProviderUnavailable,
-        TokenMeter,
+        ModelSeam,
         UnreadableDocument,
         build_system_prompt,
         extract_planned,
         fan_claims,
+        harvest_model,
         llm_schema,
         normalize_document,
         plan_extraction,
-        resolve_provider,
+        stop_blocker,
         verify_drafts,
     )
     from ..kb import load_all_specs
+    from ..passes import gateway
     from ..recordset import RecordSetError, load_record_set
 
+    if refused := bad_ceiling(ceiling_usd):
+        return _StageOut(refused, 2, err=True)
+    try:
+        chosen = harvest_model(provider, model)
+    except ValueError as exc:
+        return _StageOut(str(exc), 2, err=True)
     specs = load_all_specs()
     roled = _roled(docs, instruction)
     if not roled and records_path is None:
@@ -266,7 +286,7 @@ def _harvest_extract_pipeline(
             handed.append(normalize_document(doc, role=role, pdf_backend=pdf_backend))
         except UnreadableDocument as exc:
             # A document that yields no quotable text is a refusal, not a silent empty extraction:
-            # surface it with a nonzero exit exactly like a missing provider, so `run` halts here
+            # surface it with a nonzero exit exactly like an unusable reply, so `run` halts here
             # rather than emitting a manifest that is silent about a paper it could not read.
             return _StageOut(
                 {"error": "unreadable_document", "detail": str(exc), "document": str(doc)},
@@ -274,7 +294,9 @@ def _harvest_extract_pipeline(
                 err=True,
             )
 
-    dataset_ref = "dataset"
+    # What the meter is labelled and a stop's Blocker names: the record set's query when there is
+    # one, else the workspace's folder, which is where a dataset with no accession is named.
+    dataset_ref = workspace.resolve().name or "dataset"
     records = None
     if records_path is not None:
         try:
@@ -291,7 +313,7 @@ def _harvest_extract_pipeline(
 
     # Which documents exist, and what each will be asked, is one module's decision — the eval harness
     # makes the same call. Rendering costs nothing, so the plan is the send list rather than a
-    # projection of one, and `--dry-run` hands it back before a provider is resolved.
+    # projection of one, and `--dry-run` hands it back before a gateway client is built.
     plan = plan_extraction(
         documents=handed,
         records=records,
@@ -304,41 +326,44 @@ def _harvest_extract_pipeline(
 
     logs = logs_dir(workspace)
     logs.mkdir(parents=True, exist_ok=True)
-    try:
-        resolved = resolve_provider(provider)
-    except ProviderUnavailable as exc:
-        return _StageOut({"error": "no_provider", "detail": str(exc)}, 1, err=True)
-    chosen = model or resolved.default_model()
-
     all_drafts = []
     normalized = list(plan.documents)
     extractor = None
-
-    # Every request goes through the meter, and only the meter counts. It proxies the provider's
-    # identity (`name`, `default_model`), so provenance still records who actually answered.
-    llm = TokenMeter(resolved, ceiling=ceiling, subject=dataset_ref)
-
     usage_records: list[dict[str, object]] = []
+
     try:
-        outcomes = extract_planned(plan, specs, provider=llm, model=chosen)
-    except CeilingExceeded as exc:
-        # A refusal, not a failure: the provider was fine and another attempt would only spend more.
-        # The ledger and the transcript are written first, because the tokens up to the ceiling were
-        # really spent and a reader asking "on what?" is exactly the reader a breach produces.
-        _write_usage(logs, llm, chosen, None, usage_records, len(normalized))
+        client = gateway.make_gateway()
+    except GatewayUnreachable as exc:
+        # No usable gateway address is a setup this command cannot use, as `pass start` treats it:
+        # nothing was sent, so there is nothing to stop.
+        return _StageOut(f"no gateway address: {exc}", 2, err=True)
+    # One meter per invocation, labelled by the dataset: its ceiling is this run's, and the
+    # gateway's record groups this run's calls under it.
+    seam = ModelSeam(client.meter(dataset_ref, ceiling_usd=ceiling_usd), chosen)
+    try:
+        outcomes = extract_planned(plan, specs, seam=seam)
+    except Stopped as exc:
+        # A stop, not a failure of this code: exit 3 with the reason. The Ledger and the Transcript
+        # are written first, because what was spent up to the stop was really spent.
+        _write_usage(logs, seam, None, usage_records, len(normalized))
+        blocker = stop_blocker(exc, subject=dataset_ref, spent_usd=seam.meter.spent_usd)
+        # stdout, like every other refusal: a `blockers` list IS the result object.
         return _StageOut(
             {
-                "error": "token_ceiling_exceeded",
+                "error": "stopped",
+                "reason": exc.reason,
                 "detail": str(exc),
-                "blockers": [exc.blocker().model_dump(mode="json")],
-                "usage": {**llm.usage(), "n_calls": llm.n_exchanges},
+                "blockers": [blocker.model_dump(mode="json")],
+                "usage": {**seam.totals(), "n_documents": len(normalized)},
                 "usage_path": str(logs / "usage.json"),
-                "transcript_path": str(_write_transcript(logs, llm)),
+                "transcript_path": str(_write_transcript(logs, seam)),
             },
-            # stdout, like every other refusal: a `blockers` list IS the result object, and a caller
-            # that has to parse stderr to learn why a run stopped has no contract at all.
             3,
         )
+    except Rejected as exc:
+        # A request the provider or the gateway rejects as malformed or unauthorized is a bug,
+        # here or in the gateway's settings: an error, not a stop to rerun past.
+        return _StageOut({"error": "rejected", "detail": str(exc)}, 1, err=True)
     except ExtractUnavailable as exc:
         return _StageOut({"error": "llm_unavailable", "detail": str(exc)}, 1, err=True)
 
@@ -356,27 +381,29 @@ def _harvest_extract_pipeline(
                 "provider": outcome.provider,
                 "model": outcome.model,
                 "mode": outcome.mode,
+                "cost_usd": outcome.cost_usd,
+                "cached": outcome.cached,
                 "usage": outcome.usage,
             }
         )
 
-    _write_usage(logs, llm, chosen, extractor, usage_records, len(normalized))
+    _write_usage(logs, seam, extractor, usage_records, len(normalized))
     payload: dict[str, object] = {
-        "provider": llm.name,
-        "model": chosen,
+        "provider": seam.provider,
+        "model": chosen.name,
         "n_drafts": len(all_drafts),
         # Drafts the model returned malformed (e.g. `value: null`) — dropped, not fatal (#5). Surfaced
         # so a run is not silent about a batch that was partly lost, but never an exit code: a flaky
         # token is a provider hiccup we tolerate, not a claim a human must weigh in on.
         "n_extract_rejected": len(extract_rejected),
         "extract_rejected": extract_rejected,
-        "usage": {**llm.usage(), "n_calls": llm.n_exchanges, "n_documents": len(normalized)},
+        "usage": {**seam.totals(), "n_documents": len(normalized)},
         "usage_by_document": usage_records,
         "usage_path": str(logs / "usage.json"),
         # The transcript, at an address. `usage.json` says what the run spent; this says what it
         # spent it on, and it is a PATH on stdout rather than the text: stdout is the result object,
         # and a thousand exchanges cannot ride on it.
-        "transcript_path": str(_write_transcript(logs, llm)),
+        "transcript_path": str(_write_transcript(logs, seam)),
         "drafts": [d.model_dump(mode="json") for d in all_drafts],
     }
     if not verify:
@@ -484,9 +511,9 @@ def _nothing_to_ask(workspace: Path) -> _StageOut:
     the LLM stage on the in-house, no-accession, no-prose dataset a record set exists for — a compile
     that otherwise stopped dead unless the caller happened to know to pass ``--no-llm``.
 
-    **Before a provider is resolved**, for the reason ``--dry-run`` is: a records-only compile on a
-    machine with no credential at all must not fail on a credential it never needed. Nothing here
-    spends a token, so there is no ledger and no transcript to write — those two files record
+    **Before a gateway client is built**, for the reason ``--dry-run`` is: a records-only compile on
+    a machine that cannot reach the gateway must not fail on a gateway it never needed. Nothing here
+    spends a cent, so there is no ledger and no transcript to write — those two files record
     exchanges, and there were none to record.
 
     The one artifact that *is* written is ``assertions.json``, empty. It is written because every
@@ -530,50 +557,41 @@ def _nothing_to_ask(workspace: Path) -> _StageOut:
     )
 
 
-def _write_transcript(logs: Path, meter: TokenMeter) -> Path:
-    """The run's exchanges, on disk beside the ledger that says what they cost.
+def _write_transcript(logs: Path, seam: ModelSeam) -> Path:
+    """The run's exchanges, on disk beside the Ledger that says what they cost.
 
-    Nothing anywhere used to persist a prompt or a response: ``usage.json`` records the shape of every
-    call and no text, and ``records/documents/`` holds the document but never the message. So "why did
-    the model say that" was unanswerable the moment the process exited, which is exactly when it is
-    asked. Written whether or not verification follows, and written on a ceiling breach too — a run
-    that stopped mid-way is the one whose transcript is most worth reading.
+    Written whether or not verification follows, and on a stop too: a run that stopped mid-way is
+    the one whose transcript is most worth reading. The gateway's record holds every exchange as
+    well, but only the gateway's admin can read it.
     """
     from ..harvest import TRANSCRIPT_FILENAME, write_transcript
 
-    return write_transcript(logs / TRANSCRIPT_FILENAME, meter.transcript())
+    return write_transcript(logs / TRANSCRIPT_FILENAME, seam.transcript())
 
 
 def _write_usage(
     logs: Path,
-    meter: TokenMeter,
-    model: str,
+    seam: ModelSeam,
     extractor: ExtractorProvenance | None,
     rows: list[dict[str, object]],
     n_documents: int,
 ) -> None:
-    """The cost ledger (disk is state), written whether or not we go on to verify.
+    """The Ledger, in dollars, written whether or not we go on to verify, and on a stop.
 
-    The calls happened and cost tokens regardless, and a run refused at its ceiling is the one that
-    most needs to say what it spent.
-
-    ``n_calls`` is the meter's count of real REQUESTS, retries included. It used to be the document
-    count, which made every retry free in the only place a reader would look. ``n_documents`` keeps
-    the old number beside it, because "983 documents, 1002 requests" is two facts and neither
-    substitutes for the other. ``cache_read_tokens > 0`` means the stable KB prefix was served from
-    cache, so a second run over the same documents is much cheaper.
+    ``totals`` are the meter's counters: ``spent_usd`` what this run paid, ``first_cost_usd`` what
+    its answers cost when first paid (a rerun replays them from the gateway's cache for nothing),
+    ``provider_requests`` the requests the gateway sent providers, retries included, and
+    ``cache_hits``. ``n_calls`` is the requests harvest sent and ``n_documents`` the documents they
+    carried: "983 documents, 41 requests" is two facts. Each row of ``calls`` is one document, with
+    its request's cost booked against the first document that request carried.
     """
     (logs / "usage.json").write_text(
         json.dumps(
             {
-                "provider": meter.name,
-                "model": model,
+                "provider": seam.provider,
+                "model": seam.model.name,
                 "prompt_version": extractor.prompt_version if extractor else None,
-                "totals": {
-                    **meter.usage(),
-                    "n_calls": meter.n_exchanges,
-                    "n_documents": n_documents,
-                },
+                "totals": {**seam.totals(), "n_documents": n_documents},
                 "calls": rows,
             },
             indent=2,

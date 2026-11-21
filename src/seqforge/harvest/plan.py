@@ -78,7 +78,6 @@ from .extract import (
     extract_drafts,
 )
 from .fields import DocScope, fields_for
-from .meter import CHARS_PER_TOKEN
 from .normalize import (
     NormalizedDoc,
     VariantSpan,
@@ -100,7 +99,12 @@ from .verify import find_span
 
 if TYPE_CHECKING:
     from ..kb.schema import Spec
-    from .providers import LLMProvider
+    from .seam import ModelSeam
+
+#: Characters per token: near enough to plan a whole run with. A plan is a warning about an order of
+#: magnitude ("this dataset is 900 calls"), and a real tokenizer would buy a second decimal place
+#: nobody acts on while adding a model-specific answer to a question asked before a model is chosen.
+CHARS_PER_TOKEN = 4
 
 #: The most extraction requests this process may have in flight at once, however the pools nest above
 #: it. Case-level and document-level concurrency MULTIPLY and the provider sees the product: 14 cases
@@ -111,17 +115,9 @@ MAX_IN_FLIGHT = min(24, (os.cpu_count() or 1) * 2)
 _SLOTS = threading.Semaphore(MAX_IN_FLIGHT)
 
 #: The most DOCUMENT TEXT one request may carry, in characters. ~6 K tokens, which is how much a
-#: batch may add to a request that would have been made anyway — and that number is the width of the
-#: promise a token Ceiling makes.
-#:
-#: The meter reserves a request's estimate before issuing it, so "a run overshoots its ceiling by at
-#: most approximately one request's cost" is now one BATCH's cost, and a ceiling narrower than one
-#: batch refuses the run at the gate having issued nothing. Two things keep that honest.
-#: :func:`~seqforge.harvest.meter.estimated_tokens` reads the prompt actually being sent, so a batch
-#: of three 200-character records estimates what a single such request estimates and coarsens nothing;
-#: and this cap bounds the worst case at +6 K tokens over one document's request, which is smaller
-#: than one long paper already is. Against the 500 K per-case ceiling `eval run` defaults to, a full
-#: batch is ~1.7 % — well under, which is the property to preserve if this number ever moves.
+#: batch may add to a request that would have been made anyway: smaller than one long paper already
+#: is, so the gateway's ceiling, which holds back each request's largest possible cost before it is
+#: sent, never refuses a batch that one long document would have got through.
 #:
 #: A document longer than the budget is never split: it is its own request. Splitting one would change
 #: the text a quote is greppable against, which is the one thing this pipeline may not do.
@@ -148,14 +144,10 @@ MAX_BATCH_CHARS = 24_000
 #: dying at 181 s on a transient connection error the shipped retry covers — so widening this
 #: multiplies both the wall clock and what one drop costs, for drafts that are almost never emitted.
 #:
-#: **And a second, independent reason to keep it well under the ceiling: it is what the Ceiling
-#: overshoots by.** :class:`~seqforge.harvest.meter.TokenMeter` reserves the INPUT half of a request
-#: and declines to reserve ``max_tokens`` outright, on the stated grounds that "the cap is several
-#: times a real extraction's output" and reserving it would refuse runs that would have fitted. Its
-#: own docstring concedes the consequence: during the first wave, before any exchange has banked, the
-#: unreserved remainder is the output of every request in flight. Raising the per-request cap from
-#: 8 000 to ~31 690 widens that window by ~4x. That trade is still the right one — but the multiple
-#: moved, so anyone tightening a Ceiling should read this number rather than the old literal.
+#: **And a second, independent reason to keep it well under the provider's maximum: the gateway's
+#: Ceiling holds back each request's FULL output allowance while it is in flight.** A wider budget
+#: makes every request in flight hold back more of a run's dollars, so a tight ``--ceiling-usd``
+#: refuses sooner, before most of what it held back is ever spent.
 #:
 #: If a provider ever does refuse an output ceiling this size, the fallback is a count cap PER ASK
 #: WIDTH — 8 for the nine-field ask, 36 for the two-field one — rather than the single cap that used
@@ -178,11 +170,10 @@ BATCH_OUTPUT_BUDGET = 32_000
 #:
 #: **Calibrated on the one provider that was measured, and it is not a bound on every provider.**
 #: It was measured on DeepSeek before the preset sent a thinking setting, so at whatever effort the
-#: API defaulted to then; the preset now sends ``enabled:high``, DeepSeek's documented default. A
-#: higher DeepSeek effort, or the ``thinking={"type": "adaptive"}`` that
-#: :class:`~seqforge.harvest.providers.AnthropicProvider` sends, bills against this same
-#: ``max_tokens`` with no bound we set — so a reasoning-heavy turn there can spend past this reserve.
-#: ADR-0009 makes the provider pluggable, so state the limit rather than imply generality.
+#: API defaulted to then; harvest now sends thinking on at ``high``, DeepSeek's documented default.
+#: A higher DeepSeek effort, or another provider's reasoning, bills against this same ``max_tokens``
+#: with no bound we set — so a reasoning-heavy turn there can spend past this reserve. ADR-0009
+#: makes the provider pluggable, so state the limit rather than imply generality.
 #: What it costs when it happens is a truncated response, which is a batch-level failure
 #: :func:`extract_planned` already re-asks one document at a time without losing a claim.
 REASONING_HEADROOM_TOKENS = 1_000
@@ -191,7 +182,7 @@ REASONING_HEADROOM_TOKENS = 1_000
 #:
 #: **The measured rate, carried unrounded, and that is the whole discipline here.** One draft under
 #: the strict schema is 251 characters — 64 of them the echoed ``doc_sha256`` — which is ~62 tokens at
-#: the meter's rule of thumb (:data:`CHARS_PER_TOKEN`). The same 62 is what makes the two numbers this
+#: the planner's rule of thumb (:data:`CHARS_PER_TOKEN`). The same 62 is what makes the two numbers this
 #: change exists to reconcile: the nine-field ask costs 558 tokens per document and the two-field ask
 #: 124, so a fixed ``max_tokens`` of 8 000 had room for 14 of the former and **64** of the latter
 #: against a cap of 8.
@@ -377,13 +368,7 @@ class ExtractionPlan:
         must move when the paid run does, in both directions.
 
         Output is not estimated and is not estimable — the model decides how many claims a document
-        supports. The token Ceiling is what bounds that half; this bounds the half we choose.
-
-        ``CHARS_PER_TOKEN`` comes from the meter rather than living here, because the meter applies
-        the same rule of thumb per request: it reserves a request's estimated cost against the
-        Ceiling before issuing it. A plan costed by a second constant could fit under a ceiling that
-        then refused it, and a dry run that disagrees with the run it is a dry run of is worse than
-        no dry run.
+        supports. The dollar Ceiling is what bounds the whole; this bounds the half we choose.
         """
         return (self.n_requests * self.system_prompt_chars + self.n_chars) // CHARS_PER_TOKEN
 
@@ -776,8 +761,7 @@ def extract_planned(
     plan: ExtractionPlan,
     specs: dict[str, Spec],
     *,
-    provider: LLMProvider,
-    model: str | None = None,
+    seam: ModelSeam,
     partial: bool = False,
 ) -> list[ExtractionOutcome]:
     """Extract every planned document, concurrently, returned **in plan order**.
@@ -820,12 +804,10 @@ def extract_planned(
     twelve documents it declined to send, and a whole dataset raising on its one flaky supplementary
     table is how a graded tier reported nothing at all about five of its seven prose cases.
 
-    A **Ceiling** is not caught either way, and a batch failure does not fall back past one. It is a
-    refusal rather than an unavailability — the provider answered everything it was given — and the
-    caller owes it a ``Blocker``, so it must still reach one. The meter reconciles a reservation on
-    every path out of a request, so a batch that failed has already given its estimate back by the
-    time the retries ask for theirs; what the retries do face is the batch's REAL spend, which was
-    banked because it was really spent.
+    A **stop** (liulab-llms's ``Stopped``: the ceiling reached, the provider's balance used up, the
+    provider unavailable, the gateway unreachable) is not caught either way, and a batch failure
+    does not fall back past one. The caller owes it a ``Blocker``, so it must still reach one; the
+    seam stops the meter at the first, so the requests not yet sent raise at once.
     """
 
     def _alone(doc: NormalizedDoc) -> ExtractionOutcome:
@@ -836,14 +818,12 @@ def extract_planned(
         """
         max_tokens = batch_max_tokens(plan.asked(doc), 1)
         if not partial:
-            return extract_drafts(doc, specs, provider=provider, model=model, max_tokens=max_tokens)
+            return extract_drafts(doc, specs, seam=seam, max_tokens=max_tokens)
         try:
-            return extract_drafts(doc, specs, provider=provider, model=model, max_tokens=max_tokens)
+            return extract_drafts(doc, specs, seam=seam, max_tokens=max_tokens)
         except ExtractUnavailable as exc:
             return ExtractionOutcome.unanswered(
-                provider=provider.name,
-                model=model or provider.default_model(),
-                detail=str(exc),
+                provider=seam.provider, model=seam.model.name, detail=str(exc)
             )
 
     def _one(batch: tuple[int, ...]) -> list[ExtractionOutcome]:
@@ -855,8 +835,7 @@ def extract_planned(
                 return extract_batch(
                     docs,
                     specs,
-                    provider=provider,
-                    model=model,
+                    seam=seam,
                     max_tokens=batch_max_tokens(plan.asked(docs[0]), len(docs)),
                 )
             except ExtractUnavailable:

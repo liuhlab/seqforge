@@ -42,8 +42,8 @@ seqforge run FILES... \
   gave you — the paper AND a sample sheet like `sample_info.txt`, not just one. Each is read
   independently (and concurrently), so a sample sheet that names the per-sample diet and a methods PDF
   that describes the chemistry both get mined; dropping either silently loses whatever only it said.
-  This stage calls its **own** model provider (`DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` in the
-  environment) — it is not you. If no key is set, `run` exits 1 telling you so; add `--no-llm` to skip
+  This stage calls a model through the lab gateway at `LABLLM_GATEWAY` — it is not you. If the
+  gateway cannot be reached, `run` exits 3 with `reason: gateway_unreachable`; add `--no-llm` to skip
   prose entirely and stay fully deterministic.
 - **`--assembly`/`--annotation`** are the genome — **the one real decision**, and it has no default.
   A wrong genome aligns cleanly and exits 0, so seqforge refuses to guess. If the user named a genome

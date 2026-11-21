@@ -11,7 +11,7 @@ case's send list with the same :func:`~seqforge.harvest.plan.plan_extraction` th
 token and no network, so the document count is the send list itself rather than a projection of one.
 Input tokens are estimated from characters. **Output tokens are not estimated at all**: the model
 decides how many claims a document supports, and a number invented for that half would be the one a
-reader quotes. The token Ceiling is what bounds it.
+reader quotes. Each case's dollar Ceiling is what bounds the whole.
 
 **A case still has to be materialized**, because a fingerprint package carries its prose inside
 itself and the characters cannot be counted without unpacking it. That is a package pull and a probe,
@@ -84,17 +84,12 @@ def plan_cases(
     cases: list[Case],
     *,
     trials: int = 1,
-    ceiling: int | None = None,
     jobs: int | None = None,
 ) -> EvalPlanReport:
     """Price an ``--llm`` run over these cases without making one.
 
     ``trials`` multiplies every total, because ``eval run --trials N`` really does send the same list
     N times — the per-case rows stay per trial, since a trial is the unit that repeats.
-
-    ``ceiling`` is read against the estimate to name the cases that will certainly breach. It is a
-    lower bound in the only direction that can mislead: output and cache-write tokens count against a
-    Ceiling and neither is knowable here, so a case *absent* from that list may still breach.
 
     Order follows the case list, for the same reason ``run_cases`` preserves it: a plan is read in a
     diff against the last one.
@@ -115,7 +110,6 @@ def plan_cases(
             rows = list(pool.map(one, cases))
 
     planned = [r for r in rows if r.skipped is None]
-    over = [r.case for r in planned if r.estimated_input_tokens >= ceiling] if ceiling else []
     return EvalPlanReport(
         n_cases=len(planned),
         n_reaching_a_model=sum(1 for r in planned if r.n_documents),
@@ -129,8 +123,6 @@ def plan_cases(
         n_chars=sum(r.n_chars for r in planned) * trials,
         system_prompt_chars=prompt_chars,
         estimated_input_tokens=sum(r.estimated_input_tokens for r in planned) * trials,
-        ceiling=ceiling,
-        estimated_over_ceiling=over,
         per_case=rows,
     )
 

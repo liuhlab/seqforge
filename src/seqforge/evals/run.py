@@ -32,18 +32,18 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..harvest import (
+    DEFAULT_CEILING_USD,
     EXTRACT_PROMPT_VERSION,
-    CeilingExceeded,
-    LLMProvider,
-    TokenMeter,
+    ModelSeam,
     extract_planned,
     fan_claims,
+    harvest_model,
     normalize_document,
     plan_extraction,
-    resolve_provider,
+    stop_blocker,
     verify_drafts,
     write_transcript,
 )
@@ -72,6 +72,9 @@ from .case import (
 )
 from .grade import CaseGrade, Grade, grade_case
 
+if TYPE_CHECKING:
+    from labllm import Gateway, Model
+
 
 @dataclass
 class HarvestGrade:
@@ -96,17 +99,16 @@ class HarvestGrade:
     unchecked: list[str] = field(default_factory=list)
     #: Forbidden fields that survived verification — a claim the prose does not make. Corpus poison.
     hallucinated: list[str] = field(default_factory=list)
-    #: Requests actually issued at the model seam, counted by the meter — **not** the document
-    #: count, which is a floor: a document whose first attempt hit a 429 costs two requests and the
-    #: old number reported one. An archive record with prose is its own document, so the caller
-    #: cannot infer either number from the file count it passed in.
+    #: Requests harvest sent at the model seam — **not** the document count: documents that share an
+    #: ask share a request. An archive record with prose is its own document, so the caller cannot
+    #: infer either number from the file count it passed in.
     n_calls: int = 0
     #: Documents sent, kept beside `n_calls` because "73 documents, 78 requests" is two facts and
     #: neither substitutes for the other.
     n_documents: int = 0
-    #: Of those, the ones the provider never answered — retries exhausted, nothing to read. It is
-    #: the plan-versus-issued gap at the grain a reader can act on, and the third fact beside the
-    #: other two: 73 documents, 78 requests, 5 of the documents never answered.
+    #: Of those, the ones whose reply could not be used, even asked alone. It is the plan-versus-
+    #: answered gap at the grain a reader can act on, and the third fact beside the other two: 73
+    #: documents, 41 requests, 5 of the documents never answered.
     n_documents_failed: int = 0
     #: Fields extracted in SOME trials but not all. Not averaged away: a field the model finds two
     #: times in three is a field you cannot depend on, and that is a finding in its own right.
@@ -122,8 +124,9 @@ class HarvestGrade:
     #: What each document sent was: sha, basename, scope, subject, size. Small by construction, and
     #: it is what turns the sha256 in a Span back into "GSM4318946's sample record" for a reader.
     documents: list[dict[str, Any]] = field(default_factory=list)
-    #: How the calls were made — max_tokens, response_format, thinking. One dict, because every
-    #: request in a run is made the same way; the eval path used to drop it while the CLI kept it.
+    #: How the calls were made — the model's settings and its output allowance. One dict, because
+    #: every request in a run is made the same way; the eval path used to drop it while the CLI kept
+    #: it.
     mode: dict[str, Any] = field(default_factory=dict)
 
     @property
@@ -182,7 +185,9 @@ class CaseRun:
     trials: int = 1
     stability: float = 1.0
     harvest: HarvestGrade | None = None
-    usage: dict[str, int] = field(default_factory=dict)
+    #: What the case cost at the model seam, from its meter: ``spent_usd``, ``first_cost_usd`` and
+    #: ``cache_hits``. Empty for a case that reached no model.
+    usage: dict[str, float] = field(default_factory=dict)
     seconds: float = 0.0
     llm_calls: int = 0
     skipped: str | None = None
@@ -190,9 +195,10 @@ class CaseRun:
     #: case's package at all, so nobody anywhere can run it; ``unavailable`` is this machine's
     #: problem. Both are excluded from every rate, and only one is something to act on.
     skip_kind: SkipKind = "unavailable"
-    #: Set when this case reached its token Ceiling. The case did not finish, so it is reported as a
-    #: skip and excluded from every rate — but a skip is a shrug and this is a refusal, so it also
-    #: carries the structured ``Blocker`` and `eval run` exits 3 on it.
+    #: Set when this case's model calls stopped (its dollar ceiling reached, the provider's balance
+    #: used up, the provider unavailable, the gateway unreachable). The case did not finish, so it is
+    #: reported as a skip and excluded from every rate — but a skip is a shrug and this is a refusal,
+    #: so it also carries the structured ``Blocker`` and `eval run` exits 3 on it.
     blocker: Blocker | None = None
     #: Where this case's exchanges landed, RELATIVE to the run directory — so the report survives the
     #: directory being moved or downloaded as a CI artifact. ``None`` when nothing was recorded: a
@@ -206,7 +212,7 @@ class CaseRun:
             "seconds": round(self.seconds, 3),
             "llm_calls": self.llm_calls,
         }
-        # Before the skip short-circuit: a case stopped at its ceiling is the one whose exchanges are
+        # Before the skip short-circuit: a case whose calls stopped is the one whose exchanges are
         # most worth reading, and it reports as a skip.
         if self.transcript is not None:
             out["transcript"] = self.transcript
@@ -228,19 +234,22 @@ def run_case(
     case: Case,
     *,
     llm: bool = False,
-    provider: LLMProvider | None = None,
-    model: str | None = None,
+    gateway: Gateway | None = None,
+    model: Model | None = None,
     trials: int = 1,
-    ceiling: int | None = None,
+    ceiling_usd: float = DEFAULT_CEILING_USD,
     workspace: Path | None = None,
 ) -> CaseRun:
     """Run one case through the compiler ``trials`` times and grade every trial.
 
     Deterministic cases ignore ``trials`` (re-running identical bytes measures nothing).
 
-    ``ceiling`` is **per case**, because a case is a dataset and the ceiling bounds a dataset. A
-    corpus-wide one would stop the whole run at the first expensive case and never grade the
-    thirteen behind it, which is the opposite of what a backstop is for.
+    An ``llm`` case's calls go through one liulab-llms meter on ``gateway`` (the one
+    :func:`seqforge.passes.gateway.make_gateway` builds when none is given), labelled by the case and
+    spanning its trials, to ``model`` (harvest's default when none is given). ``ceiling_usd`` is
+    **per case**, because a case is a dataset and the ceiling bounds a dataset. A corpus-wide one
+    would stop the whole run at the first expensive case and never grade the thirteen behind it,
+    which is the opposite of what a backstop is for.
 
     ``workspace`` is the run directory every case in this run shares — where this case's exchanges
     land, as ``transcripts/<case>.jsonl``. Without one the case still runs, in a temporary directory
@@ -259,9 +268,10 @@ def run_case(
             seconds=time.monotonic() - started,
         )
 
+    from labllm import Stopped
+
     grades: list[CaseGrade] = []
     harvests: list[HarvestGrade] = []
-    usage: dict[str, int] = {}
     calls = 0
 
     with tempfile.TemporaryDirectory(prefix="seqforge-eval-") as tmp:
@@ -283,20 +293,19 @@ def run_case(
         use_llm = llm and (bool(docs) or case.records is not None)
         n = trials if use_llm else 1
 
-        # One meter per case, spanning every trial: it is the only thing that counts the requests,
-        # and the ceiling it holds is this dataset's. It records only when there is a run directory
-        # to write the transcript into — otherwise 14 cases x N exchanges of held text is memory
-        # nothing will ever read.
-        meter = (
-            TokenMeter(
-                provider if provider is not None else resolve_provider(),
-                ceiling=ceiling,
-                subject=case.id,
+        # One meter per case, spanning every trial: the ceiling it holds is this dataset's. The seam
+        # records only when there is a run directory to write the transcript into — otherwise 14
+        # cases x N exchanges of held text is memory nothing will ever read.
+        seam: ModelSeam | None = None
+        if use_llm:
+            from ..passes import gateway as gateway_module
+
+            client = gateway if gateway is not None else gateway_module.make_gateway()
+            seam = ModelSeam(
+                client.meter(case.id, ceiling_usd=ceiling_usd),
+                model or harvest_model(),
                 record=workspace is not None,
             )
-            if use_llm
-            else None
-        )
 
         ws = workspace or tmp_path
         for _ in range(n):
@@ -305,34 +314,30 @@ def run_case(
                 hypothesis = Hypothesis(value=case.recipe.hypothesis, id="recipe", confidence=0.9)
             verified: list[Assertion] = []
             subjects: list[DocumentSubject] = []
-            if use_llm:
-                assert meter is not None  # built above from the same `use_llm`
+            if seam is not None:
                 try:
-                    hg, u, verified, subjects = _run_harvest(case, docs, meter=meter, model=model)
-                except CeilingExceeded as exc:
-                    # A refusal, not an unavailability: the provider answered every request it was
-                    # given. The case did not finish, so it scores nothing — but it carries the
-                    # Blocker, and `eval run` exits 3 on it rather than shrugging.
+                    hg, verified, subjects = _run_harvest(case, docs, seam=seam)
+                except Stopped as exc:
+                    # The case did not finish, so it scores nothing — but it carries the Blocker,
+                    # and `eval run` exits 3 on it rather than shrugging.
                     return CaseRun(
                         case.id,
                         _empty_grade(case),
-                        skipped=f"token ceiling: {exc}",
-                        blocker=exc.blocker(),
-                        usage=meter.usage(),
-                        llm_calls=meter.n_exchanges,
+                        skipped=f"{exc.reason}: {exc}",
+                        blocker=stop_blocker(exc, subject=case.id, spent_usd=seam.meter.spent_usd),
+                        usage=_case_cost(seam),
+                        llm_calls=seam.n_exchanges,
                         seconds=time.monotonic() - started,
-                        # The exchanges up to the breach were paid for, and "on what?" is exactly
-                        # the question a breach produces.
-                        transcript=_save_transcript(workspace, case.id, meter),
+                        # The exchanges up to the stop were paid for, and "on what?" is exactly the
+                        # question a stop produces.
+                        transcript=_save_transcript(workspace, case.id, seam),
                     )
                 harvests.append(hg)
-                # `hg.n_calls` is the METER's count of requests, not `len(docs)`. Every archive
-                # record with prose is extracted as its own document, so the carried-file count
+                # `hg.n_calls` is the requests harvest sent, not `len(docs)`: every archive record
+                # with prose is extracted as its own document, so the carried-file count
                 # under-reports the real cost by the record count — on GSE126954 that is 1 against
-                # 983 — and the document count in turn under-reports it by every retry.
+                # 983.
                 calls += hg.n_calls
-                for k, v in u.items():
-                    usage[k] = usage.get(k, 0) + v
                 # The SAME reduction `manifest fill` makes, over the same verified assertions AND the
                 # same records — a harness that reduced prose its own way would be measuring itself
                 # (#188), and one shown less input than production would measure a different compiler.
@@ -401,11 +406,21 @@ def run_case(
         trials=n,
         stability=n_ok / len(grades) if grades else 0.0,
         harvest=harvest,
-        usage=usage,
+        usage=_case_cost(seam) if seam is not None else {},
         seconds=time.monotonic() - started,
         llm_calls=calls,
-        transcript=_save_transcript(workspace, case.id, meter),
+        transcript=_save_transcript(workspace, case.id, seam),
     )
+
+
+def _case_cost(seam: ModelSeam) -> dict[str, float]:
+    """What a case's meter says it cost: paid now, first paid, and the cache's answers."""
+    m = seam.meter
+    return {
+        "spent_usd": m.spent_usd,
+        "first_cost_usd": m.first_cost_usd,
+        "cache_hits": float(m.cache_hits),
+    }
 
 
 #: Under the run directory, one file per case. A directory rather than one file for the corpus: a
@@ -413,17 +428,17 @@ def run_case(
 #: thirteen other datasets out of them first.
 
 
-def _save_transcript(workspace: Path | None, case_id: str, meter: TokenMeter | None) -> str | None:
+def _save_transcript(workspace: Path | None, case_id: str, seam: ModelSeam | None) -> str | None:
     """Write one case's exchanges under the run directory; return the path RELATIVE to it.
 
     Relative because the run directory travels — it is downloaded as a CI artifact and read on
     another machine — and an absolute path recorded on the machine that produced it would name a
     directory that is not there. ``None`` when there is nothing to write: no run directory, no model
-    reached, or a meter that recorded nothing.
+    reached, or a seam that recorded nothing.
     """
-    if workspace is None or meter is None:
+    if workspace is None or seam is None:
         return None
-    transcript = meter.transcript()
+    transcript = seam.transcript()
     if not transcript.exchanges:
         return None
     relative = f"{EVAL_TRANSCRIPTS_DIRNAME}/{case_id}.jsonl"
@@ -464,11 +479,11 @@ def run_cases(
     cases: list[Case],
     *,
     llm: bool = False,
-    provider: LLMProvider | None = None,
-    model: str | None = None,
+    gateway: Gateway | None = None,
+    model: Model | None = None,
     trials: int = 1,
     jobs: int | None = None,
-    ceiling: int | None = None,
+    ceiling_usd: float = DEFAULT_CEILING_USD,
     workspace: Path | None = None,
 ) -> tuple[EvalReport, list[CaseRun]]:
     """Run every case and aggregate into the harness's metric set.
@@ -494,16 +509,18 @@ def run_cases(
     n = jobs if jobs is not None else default_jobs()
     started = time.monotonic()
     run_dir = eval_dir(workspace) if workspace is not None else None
+    chosen = model or harvest_model()
 
     def one(case: Case) -> CaseRun:
-        # `ceiling` is handed down per case, not shared: it bounds a dataset, and each case is one.
+        # `ceiling_usd` is handed down per case, not shared: it bounds a dataset, and each case is
+        # one, with a meter of its own.
         return run_case(
             case,
             llm=llm,
-            provider=provider,
-            model=model,
+            gateway=gateway,
+            model=chosen,
             trials=trials,
-            ceiling=ceiling,
+            ceiling_usd=ceiling_usd,
             workspace=run_dir,
         )
 
@@ -515,15 +532,15 @@ def run_cases(
             runs = list(pool.map(one, cases))
 
     # Resolved once, here, rather than read off a run: `model` is usually None and the *effective*
-    # model is the provider's default — `deepseek-v4-pro` on the DeepSeek preset. A report that
-    # printed `null` for the common case would say nothing about the run that actually happened, and
-    # this number does not transfer across models (ADR-0009). `eval run`'s coverage warning reads
-    # this back, which is how a remedy line can name the model that ran instead of prescribing one.
+    # model is harvest's default — `deepseek-v4-pro`. A report that printed `null` for the common
+    # case would say nothing about the run that actually happened, and this number does not transfer
+    # across models (ADR-0009). `eval run`'s coverage warning reads this back, which is how a remedy
+    # line can name the model that ran instead of prescribing one.
     extractor = None
-    if llm and provider is not None:
+    if llm:
         extractor = {
-            "provider": provider.name,
-            "model": model or provider.default_model(),
+            "provider": chosen.provider,
+            "model": chosen.name,
             "prompt_version": EXTRACT_PROMPT_VERSION,
         }
 
@@ -580,10 +597,8 @@ def build_report(
     }
     if wall_seconds is not None:
         cost["wall_seconds"] = round(wall_seconds, 3)
-    # `cache_write_tokens` is in this tuple because the Anthropic normalizer produces it and every
-    # consumer but the on-disk ledger used to drop it — a cost the report simply did not show.
-    for key in ("input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens"):
-        total = sum(r.usage.get(key, 0) for r in runs)
+    for key in ("spent_usd", "first_cost_usd", "cache_hits"):
+        total = sum(r.usage.get(key, 0.0) for r in runs)
         if total:
             cost[key] = float(total)
 
@@ -658,9 +673,8 @@ def _run_harvest(
     case: Case,
     doc_paths: list[Path],
     *,
-    meter: TokenMeter,
-    model: str | None,
-) -> tuple[HarvestGrade, dict[str, int], list[Assertion], list[DocumentSubject]]:
+    seam: ModelSeam,
+) -> tuple[HarvestGrade, list[Assertion], list[DocumentSubject]]:
     """Normalize -> extract -> verify over the case's prose. Only verified claims are graded.
 
     "The case's prose" now means three things: the documents a human put beside the case, the prose a
@@ -668,9 +682,8 @@ def _run_harvest(
     surfaced), and each archive record rendered as its own document. The record path is what lets a
     claim name a sample, so a harness that read only the human's documents could never grade one.
 
-    Every request goes through ``meter``, which is the case's and spans its trials — so the call
-    count this returns is a **delta** over that meter, not a fresh count. It proxies the provider's
-    identity, so ``ExtractorProvenance`` still records who answered.
+    Every request goes through ``seam``, which is the case's and spans its trials — so the call
+    count this returns is a **delta** over that seam, not a fresh count.
 
     **The fan-out is asked for a partial result**, which is the opposite of what the compiler asks
     it for and is right for opposite reasons. A harness exists to measure the stage; a case that
@@ -681,7 +694,7 @@ def _run_harvest(
     rather than as claims the model failed to make.
     """
     specs = load_all_specs()
-    called_before = meter.n_exchanges
+    called_before = seam.n_exchanges
 
     # Which documents exist, and the fan-out that pays for them, is `harvest/plan.py`'s job — the
     # same call `harvest extract` makes. This loop, not the case loop, is where a real dataset's cost
@@ -695,7 +708,6 @@ def _run_harvest(
     )
     docs: list[NormalizedDoc] = list(plan.documents)
     drafts: list[AssertionDraft] = []
-    usage: dict[str, int] = {}
     extractor: ExtractorProvenance | None = None
     #: An outcome has FOUR halves and this loop used to read two. The drafts a document produced and
     #: what it cost were kept; the drafts it produced *malformed* and how the call was made were
@@ -704,7 +716,7 @@ def _run_harvest(
     rejected: list[dict[str, Any]] = []
     mode: dict[str, Any] = {}
 
-    outcomes = extract_planned(plan, specs, provider=meter, model=model, partial=True)
+    outcomes = extract_planned(plan, specs, seam=seam, partial=True)
 
     unanswered: dict[str, str] = {}
     for doc, outcome in zip(docs, outcomes, strict=True):
@@ -712,8 +724,6 @@ def _run_harvest(
         extractor = outcome.extractor
         rejected.extend(outcome.rejected)
         mode = dict(outcome.mode) or mode
-        for k, v in outcome.usage.items():
-            usage[k] = usage.get(k, 0) + v
         if outcome.failure is not None:
             unanswered[doc.doc_sha256] = outcome.failure
 
@@ -737,7 +747,7 @@ def _run_harvest(
     blinded: set[str] = {f for d in docs if d.doc_sha256 in unanswered for f in plan.asked(d)}
 
     grade = HarvestGrade(
-        n_calls=meter.n_exchanges - called_before,
+        n_calls=seam.n_exchanges - called_before,
         n_documents=len(docs),
         n_documents_failed=len(unanswered),
         assertions=list(accepted),
@@ -769,7 +779,7 @@ def _run_harvest(
         DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
         for d in plan.all_documents
     ]
-    return grade, usage, accepted, subjects
+    return grade, accepted, subjects
 
 
 def _document_row(doc: NormalizedDoc, failure: str | None = None) -> dict[str, Any]:

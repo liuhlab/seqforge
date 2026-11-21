@@ -21,7 +21,8 @@
 #
 # Measured cost, deepseek-v4-pro, before -> after (the drop above, then collapsing each sample's run
 # aliases into one document): 983 -> 22 calls, 3,141,899 -> 86,220 input tokens, 300.6s -> 131.7s.
-# The 500,000-token ceiling this run carried was never approached, which is what a ceiling is for.
+# The 500,000-token ceiling this run carried (since replaced by a dollar ceiling) was never
+# approached, which is what a ceiling is for.
 #
 # SETTLED 2026-08-01 (#160): the outcome moves from `decide` to `ask`, and the question is one a
 # human must answer. Nothing about the chemistry claim moved with it.

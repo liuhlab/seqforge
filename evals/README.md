@@ -3,29 +3,32 @@
 ```bash
 seqforge eval list                       # what is in the corpus
 seqforge eval plan --cases evals/benchmark   # what an --llm pass would cost; spends nothing
-seqforge eval run                        # deterministic cases only — no API key, no network
-seqforge eval run --llm --trials 3       # include the prose cases (costs tokens)
+seqforge eval run                        # deterministic cases only — no gateway, no network
+seqforge eval run --llm                  # include the prose cases (costs money, via the gateway)
 seqforge eval run --llm --model deepseek-flash  # the other DeepSeek model; the default is -v4-pro
-seqforge eval run --llm --provider anthropic --model claude-opus-4-8
 seqforge eval run --case chemistry-unstated-trap --llm
-seqforge eval run --llm --ceiling 2000000  # raise the per-case token ceiling; 0 removes it
+seqforge eval run --llm --ceiling-usd 5  # raise the per-case dollar ceiling (default: one dollar)
 seqforge eval run --no-llm -C out && seqforge eval report out/seqforge/eval
 ```
 
 **`eval plan` is the dry run for a whole tier.** `harvest extract --dry-run` prices one dataset; the
 decision it informs — *is this `--llm` pass worth its money* — is taken over a corpus, and used to be
-answerable only by making one. It reaches no model and needs no credential, though it does
-materialize each case, because a fingerprint package carries its prose inside itself and those
-characters cannot be counted without unpacking it. Every token it reports is an **input** token:
-output is not estimable, since the model decides how many claims a document supports, and that half
-is what `--ceiling` bounds.
+answerable only by making one. It reaches no gateway, though it does materialize each case, because
+a fingerprint package carries its prose inside itself and those characters cannot be counted without
+unpacking it. Every token it reports is an **input** token: output is not estimable, since the model
+decides how many claims a document supports.
 
-**`--ceiling` ships on, at 500,000 raw tokens per case**, and it refuses rather than warns: a case
-that reaches it is reported with a `TOKEN_CEILING_EXCEEDED` Blocker instead of a grade, and the run
-exits 3. Raw means everything counts — fresh input, cached input, cache writes and output — because
-a ceiling is a backstop and not a price. Measured 2026-07-31, the largest benchmark case other than
-GSE126954 spent 122 K, so the default clears the corpus by 4x and is a number nothing normally
-touches. It costs nothing under `--no-llm`, which spends no tokens at all.
+**`--llm` calls the model through the lab gateway** at `LABLLM_GATEWAY` (a tunnel's local address), one
+meter per case, labelled by the case. **`--ceiling-usd` ships on, at one dollar per case**, and it
+refuses rather than warns: a case whose calls stop — at that ceiling, at the provider's balance, or
+because the provider or the gateway is down — is reported with a `MODEL_CALLS_STOPPED` Blocker
+instead of a grade, and the run exits 3. A rerun replays every answered request from the gateway's
+cache at no cost. `--no-llm` reaches no gateway and spends nothing.
+
+**The cache also answers repeated trials.** Each trial of `--trials N` sends the requests the first
+trial sent, so trials after the first get the first trial's replies, and `stability` and `unstable`
+cannot show a model that answers differently from one request to the next. Only DeepSeek has been
+run through the gateway so far.
 
 **`-C` gives the run a directory**, under `seqforge/eval/`: `report.json` — byte-identical to what the
 command printed — and `transcripts/<case>.jsonl` for every case that reached a model. That is where a
@@ -257,7 +260,7 @@ generate:
 
 A benchmark case may also declare a `hypothesis:` beside `generate:`, exactly as a `steering/` case
 does. It stands in for a chemistry claim the archive states in prose, so the case exercises the
-metadata-conditioned branches without an API key — `GSE208154` needs one to reach
+metadata-conditioned branches without a model call — `GSE208154` needs one to reach
 `MISSING_TECHNICAL_READ` at all: its lone 91 bp cDNA read is honestly bulk without it, so
 `bulk-rnaseq`'s single-end read set explains the deposit and the run *decides* at exit 0 rather than
 refusing (before read sets it degraded to the generic `UNSUPPORTED_TECHNOLOGY` instead — either way,
@@ -388,7 +391,7 @@ number, a stderr line, and a tile on the page.
 ### The default model, and the run that decided it (2026-08-02, #188)
 
 **This section is the measurement's home.** Everywhere else that says pro is the default — ADR-0009,
-`harvest/providers.py`, `cli/eval.py`, the harvest skill — carries the claim and points here, so there
+`harvest/seam.py`, `cli/eval.py`, the harvest skill — carries the claim and points here, so there
 is one place to re-date when the next re-baseline lands.
 
 `deepseek-v4-flash` was the default (#167) on a *cost* argument: ≈3× cheaper per token across 10⁴
@@ -435,7 +438,7 @@ changing the shipped path has to repeat.
 maintainer-launched, single-trial, with `--llm` excluded** — six single-trial `--llm` runs of one case
 graded two `correct`, two `over_ask` and two aborted, so a single-trial harvest grade is a coin flip
 and a digest taken over one would be an instrument nobody trusted twice. `--no-llm` reaches no model,
-needs no credential, and grades chemistry from pinned bytes and sample facts from committed records.
+needs no gateway, and grades chemistry from pinned bytes and sample facts from committed records.
 
 **It is two commands, not one**: a run over exactly the frozen eighteen, which the grade digest is
 taken from, and a run over the whole tier, which is what a newly-added case turns green. Land each

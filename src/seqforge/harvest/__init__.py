@@ -40,14 +40,6 @@ from .fields import (  # noqa: E402
     DocScope,
     is_permitted,
 )
-from .meter import (  # noqa: E402
-    RAW_KEYS,
-    CeilingExceeded,
-    Exchange,
-    TokenMeter,
-    Transcript,
-    raw_tokens,
-)
 from .normalize import (  # noqa: E402
     DEFAULT_PDF_BACKEND,
     NORMALIZER_VERSION,
@@ -80,19 +72,16 @@ from .plan import (  # noqa: E402
     plan_extraction,
     quote_residue,
 )
-from .providers import (  # noqa: E402
-    ANTHROPIC_DEFAULT_MODEL,
+from .seam import (  # noqa: E402
     DEEPSEEK_DEFAULT_MODEL,
-    DEEPSEEK_FLASH_MODEL,
-    DEEPSEEK_MODELS,
-    DEEPSEEK_PRO_MODEL,
-    AnthropicProvider,
-    LLMProvider,
-    LLMResponse,
-    OpenAICompatibleProvider,
-    ProviderUnavailable,
-    deepseek_provider,
-    resolve_provider,
+    DEFAULT_CEILING_USD,
+    DEFAULT_PROVIDER,
+    Exchange,
+    ModelSeam,
+    Reply,
+    Transcript,
+    harvest_model,
+    stop_blocker,
 )
 from .transcript import (  # noqa: E402
     TRANSCRIPT_FILENAME,
@@ -171,27 +160,17 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "RequestResidue",
     "CHARS_PER_TOKEN",
     "MAX_IN_FLIGHT",
-    # providers (the LLM is swappable; nothing downstream trusts it)
-    "LLMProvider",
-    "LLMResponse",
-    "AnthropicProvider",
-    "OpenAICompatibleProvider",
-    "deepseek_provider",
-    "resolve_provider",
-    "ProviderUnavailable",
-    "ANTHROPIC_DEFAULT_MODEL",
+    # the model seam (calls through one liulab-llms meter; nothing downstream trusts the reply)
+    "ModelSeam",
+    "Reply",
+    "harvest_model",
+    "stop_blocker",
+    "DEFAULT_PROVIDER",
     "DEEPSEEK_DEFAULT_MODEL",
-    "DEEPSEEK_FLASH_MODEL",
-    "DEEPSEEK_PRO_MODEL",
-    "DEEPSEEK_MODELS",
-    # the meter (counts every exchange, refuses past the Ceiling, holds the transcript)
-    "TokenMeter",
-    "CeilingExceeded",
+    "DEFAULT_CEILING_USD",
     "Exchange",
     "Transcript",
-    "raw_tokens",
-    "RAW_KEYS",
-    # the transcript's address on disk (the meter holds it; this writes and reads it)
+    # the transcript's address on disk (the seam holds it; this writes and reads it)
     "TRANSCRIPT_FILENAME",
     "write_transcript",
     "read_transcript",

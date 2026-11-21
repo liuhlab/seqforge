@@ -1,49 +1,46 @@
-"""Tests for ``harvest extract`` — the one LLM touchpoint, across providers.
+"""Tests for ``harvest extract`` — the one LLM touchpoint.
 
-The model call is faked. That is the point: everything *around* the model is deterministic and must be
+The model call is faked: liulab-llms's fake gateway keeps the gateway's rules, and a function in each
+test plays the provider. That is the point: everything *around* the model is deterministic and must be
 provable without spending a token — the schema, the stability of the cached prefix, and above all that
 code (not the model) owns provenance, offsets, and the shape gate. Extraction *quality* is an evals
 concern (evals), not a unit-test one.
 
-Both provider shapes are covered, because they differ in a way that matters: a strict-schema provider
-guarantees the shape, a json-object provider (DeepSeek) does not. The gate must hold either way.
+Sending, retrying, caching and the dollar Ceiling are the gateway's, and liulab-llms tests them. What
+is tested here is harvest's side of the seam: what it asks, what it keeps of a reply, and that it never
+trusts a reply's shape. A json-object provider (DeepSeek) does not guarantee the shape, so the gate
+must hold whichever provider answered.
 """
 
 from __future__ import annotations
 
 import json
-import threading
 import time
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import pytest
+from labllm import ProviderExhausted
+from labllm.testing import FakeGateway
 
+import harvest_kit
 from seqforge import kb
 from seqforge.harvest import (
-    ANTHROPIC_DEFAULT_MODEL,
     DEEPSEEK_DEFAULT_MODEL,
-    DEEPSEEK_MODELS,
-    DEEPSEEK_PRO_MODEL,
     EXTRACT_PROMPT_VERSION,
-    AnthropicProvider,
     ExtractUnavailable,
-    LLMResponse,
+    ModelSeam,
     NormalizedDoc,
-    OpenAICompatibleProvider,
-    ProviderUnavailable,
     build_kb_context,
     build_system_prompt,
-    deepseek_provider,
     extract_drafts,
+    harvest_model,
     llm_schema,
     normalize_document,
-    resolve_provider,
     verify_drafts,
 )
-from seqforge.harvest.providers import classify_api_error
-from seqforge.io.remote import _MAX_RETRIES
 from seqforge.models.assertion import ExtractorProvenance, SourceSpan
 from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText, RecordLevel
 
@@ -51,24 +48,38 @@ _QUOTE = "Chromium Single Cell 3' v3"
 _TEXT = "Libraries were prepared with the Chromium Single Cell 3' v3 kit."
 
 
-class _FakeProvider:
-    """A provider that returns whatever JSON text we hand it, and records the request."""
+def _over(provider: Callable[[dict[str, Any]], Any], **seam: Any) -> tuple[FakeGateway, ModelSeam]:
+    """A fake gateway with ``provider`` playing the provider, and a seam over a new meter on it.
 
-    name = "fake"
+    The ceiling is ten dollars unless a test says otherwise, which no test here reaches by accident:
+    the ceiling is the gateway's to enforce, and a test of it would be a test of liulab-llms.
+    """
+    fake = FakeGateway(provider, prices=harvest_kit.PRICES)
+    return fake, harvest_kit.seam_over(fake, **{"ceiling_usd": 10.0, **seam})
 
-    def __init__(self, payload: str | Exception, model: str = "fake-model-1") -> None:
-        self._payload = payload
-        self._model = model
-        self.captured: dict[str, Any] = {}
 
-    def default_model(self) -> str:
-        return self._model
+def _answering(text: str, **seam: Any) -> tuple[FakeGateway, ModelSeam]:
+    """A seam whose provider answers every request with ``text``.
 
-    def complete_json(self, **kwargs: Any) -> LLMResponse:
-        self.captured = kwargs
-        if isinstance(self._payload, Exception):
-            raise self._payload
-        return LLMResponse(text=self._payload, usage={"input_tokens": 10, "cache_read_tokens": 800})
+    A fake gateway caches by request, so two calls that must get two different replies to the same
+    request take two seams.
+    """
+    return _over(harvest_kit.answering(text), **seam)
+
+
+def _sent(fake: FakeGateway) -> list[dict[str, Any]]:
+    """The form of every request the provider was sent, in order. A cache hit sends none."""
+    return [e.form for e in fake.record if e.form is not None]
+
+
+def _user(form: dict[str, Any]) -> str:
+    """The volatile half of a request: the documents, and what is asked of them."""
+    return str(form["messages"][-1]["content"])
+
+
+def _system(form: dict[str, Any]) -> str:
+    """The stable half of a request: the system prompt."""
+    return str(form["messages"][0]["content"])
 
 
 def _doc(tmp_path: Path, text: str = _TEXT) -> NormalizedDoc:
@@ -99,38 +110,6 @@ def _batch(
 
 _GOOD: dict[str, Any] = json.loads(_batch())["drafts"][0]
 _BAD = {**_GOOD, "value": None}  # the flaky token: a null value where a string is required
-
-
-# ---------- the wire schema ----------
-def test_anthropic_strict_transform_drops_unsupported_constraints() -> None:
-    """Constraints live in the canonical schema (Pydantic enforces them at ingest) and
-    are stripped from the LLM-facing one. The SDK performs that transform, so there is no second
-    hand-maintained schema to drift — this is the CI guard on that.
-
-    Cost is `import anthropic` (the transform itself is free); it is the only seam that proves our wire
-    schema survives strict-mode transformation, so we pay it knowingly. It reaches a third-party PRIVATE
-    module, so it will break on an SDK upgrade rather than on a seqforge defect."""
-    from anthropic.lib._parse._transform import transform_schema
-
-    strict = transform_schema(llm_schema())
-
-    def all_keys(node: Any, acc: set[str] | None = None) -> set[str]:
-        acc = acc if acc is not None else set()
-        if isinstance(node, dict):
-            for k, v in node.items():
-                acc.add(k)
-                all_keys(v, acc)
-        elif isinstance(node, list):
-            for v in node:
-                all_keys(v, acc)
-        return acc
-
-    banned = {
-        "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
-        "multipleOf", "minLength", "maxLength", "pattern", "default",
-    }  # fmt: skip
-    assert not (all_keys(strict) & banned)
-    assert strict["$defs"]["AssertionDraft"]["additionalProperties"] is False
 
 
 # ---------- the prompt / stable prefix ----------
@@ -177,10 +156,14 @@ def test_prompt_names_only_permitted_fields() -> None:
 
 
 def test_extract_keeps_the_document_out_of_the_cached_prefix(tmp_path: Path) -> None:
-    provider = _FakeProvider(json.dumps({"drafts": []}))
-    extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
-    assert _TEXT not in provider.captured["system"]  # volatile content must not poison the prefix
-    assert _TEXT in provider.captured["user"]
+    """The document rides in the volatile half, and the request travels under the wire schema derived
+    from ``AssertionDraft`` rather than a second, hand-maintained copy that could drift from it."""
+    fake, seam = _answering(harvest_kit.NOTHING)
+    extract_drafts(_doc(tmp_path), kb.load_all_specs(), seam=seam)
+    (sent,) = _sent(fake)
+    assert _TEXT not in _system(sent)  # volatile content must not poison the prefix
+    assert _TEXT in _user(sent)
+    assert sent["schema"] == llm_schema()
 
 
 def test_the_request_says_which_document_it_is_about_and_says_it_readably(tmp_path: Path) -> None:
@@ -192,12 +175,13 @@ def test_the_request_says_which_document_it_is_about_and_says_it_readably(tmp_pa
     from seqforge.harvest import document_sha256_in
 
     doc = _doc(tmp_path)
-    provider = _FakeProvider(json.dumps({"drafts": []}))
-    extract_drafts(doc, kb.load_all_specs(), provider=provider)
+    fake, seam = _answering(harvest_kit.NOTHING)
+    extract_drafts(doc, kb.load_all_specs(), seam=seam)
+    (sent,) = _sent(fake)
 
-    assert document_sha256_in(provider.captured["user"]) == doc.doc_sha256
+    assert document_sha256_in(_user(sent)) == doc.doc_sha256
     assert document_sha256_in("no document line here") is None
-    assert document_sha256_in(provider.captured["system"]) is None, "the prefix names no document"
+    assert document_sha256_in(_system(sent)) is None, "the prefix names no document"
 
 
 # ---------- code owns the gate, provenance, offsets ----------
@@ -211,8 +195,8 @@ def test_extract_drops_one_malformed_draft_and_keeps_the_rest(tmp_path: Path) ->
     compiling.
     """
     missing = {"field": "library.chemistry"}  # no span at all — malformed the same way, dropped too
-    provider = _FakeProvider(json.dumps({"drafts": [_GOOD, _BAD, missing]}))
-    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
+    _, seam = _answering(json.dumps({"drafts": [_GOOD, _BAD, missing]}))
+    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), seam=seam)
 
     assert [d.value for d in outcome.drafts] == ["10x-3p-gex-v3"]  # only the good one survives
     # both malformed shapes — a null value, and a missing required span — are dropped per-draft, not
@@ -230,14 +214,14 @@ def test_extract_rejects_a_broken_top_level_shape_wholesale(tmp_path: Path) -> N
         extract_drafts(
             _doc(tmp_path),
             kb.load_all_specs(),
-            provider=_FakeProvider(json.dumps({"not_drafts": 1})),
+            seam=_answering(json.dumps({"not_drafts": 1}))[1],
         )
     # `{"drafts": null}` must blame `drafts`, not report the useless top-level `got dict`.
     with pytest.raises(ExtractUnavailable, match="`drafts` key is a NoneType"):
         extract_drafts(
             _doc(tmp_path),
             kb.load_all_specs(),
-            provider=_FakeProvider(json.dumps({"drafts": None})),
+            seam=_answering(json.dumps({"drafts": None}))[1],
         )
 
 
@@ -264,9 +248,9 @@ def test_a_bare_top_level_array_is_the_same_batch_under_a_different_envelope(
     """
     doc = _doc(tmp_path)
     wrapped = extract_drafts(
-        doc, kb.load_all_specs(), provider=_FakeProvider(json.dumps({"drafts": drafts}))
+        doc, kb.load_all_specs(), seam=_answering(json.dumps({"drafts": drafts}))[1]
     )
-    bare = extract_drafts(doc, kb.load_all_specs(), provider=_FakeProvider(json.dumps(drafts)))
+    bare = extract_drafts(doc, kb.load_all_specs(), seam=_answering(json.dumps(drafts))[1])
 
     assert [d.value for d in bare.drafts] == [d.value for d in wrapped.drafts] == values
     assert len(bare.rejected) == len(wrapped.rejected) == n_rejected
@@ -287,7 +271,7 @@ def test_every_other_top_level_shape_still_dies_wholesale(
     and the refusal names what came back plus both shapes that would have been read, which the old
     wording ("not a JSON object") can no longer say now that an object is not the only one."""
     with pytest.raises(ExtractUnavailable) as caught:
-        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=_FakeProvider(payload))
+        extract_drafts(_doc(tmp_path), kb.load_all_specs(), seam=_answering(payload)[1])
 
     message = str(caught.value)
     assert f"top-level {named}" in message
@@ -298,846 +282,118 @@ def test_every_other_top_level_shape_still_dies_wholesale(
 def test_extract_overwrites_the_models_doc_sha(tmp_path: Path) -> None:
     """We know which document we sent; the model's echo is worthless as evidence. Code wins."""
     nd = _doc(tmp_path)
-    outcome = extract_drafts(
-        nd, kb.load_all_specs(), provider=_FakeProvider(_batch(sha="dead" * 16))
-    )
+    outcome = extract_drafts(nd, kb.load_all_specs(), seam=_answering(_batch(sha="dead" * 16))[1])
     assert outcome.drafts[0].span.doc_sha256 == nd.doc_sha256
 
 
 def test_extract_discards_model_supplied_offsets(tmp_path: Path) -> None:
     nd = _doc(tmp_path)
     payload = _batch(char_start=999, char_end=1234)  # a model cannot count characters
-    outcome = extract_drafts(nd, kb.load_all_specs(), provider=_FakeProvider(payload))
+    outcome = extract_drafts(nd, kb.load_all_specs(), seam=_answering(payload)[1])
     assert outcome.drafts[0].span.char_start is None
     assert outcome.drafts[0].span.char_end is None
 
 
-def test_extract_records_provider_in_provenance(tmp_path: Path) -> None:
-    """The same prompt on a different provider is a different extractor; evals must tell them apart."""
-    provider = _FakeProvider(json.dumps({"drafts": []}), model="v4-test")
-    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
-    assert outcome.extractor.model_id == "fake/v4-test"
-    assert outcome.extractor.prompt_version == EXTRACT_PROMPT_VERSION
-    assert outcome.provider == "fake"
-    assert outcome.cache_hit is True
-
-
-def test_extract_carries_call_mode_and_model_for_the_cost_ledger(tmp_path: Path) -> None:
-    """The outcome records HOW the call was made (thinking/effort, max_tokens, response_format) and
-
-    which model, plus the token usage — the raw material the harvest stage writes to seqforge/usage.json
-    so a reader can see what understanding the prose cost and at what effort.
-    """
-
-    class _ModeProvider(_FakeProvider):
-        def complete_json(self, **kwargs: Any) -> LLMResponse:
-            self.captured = kwargs
-            return LLMResponse(
-                text=str(self._payload),
-                usage={"input_tokens": 5, "output_tokens": 7},
-                mode={
-                    "thinking": "adaptive",
-                    "max_tokens": kwargs["max_tokens"],
-                    "response_format": "json_schema",
-                },
-            )
-
-    outcome = extract_drafts(
-        _doc(tmp_path),
-        kb.load_all_specs(),
-        provider=_ModeProvider(json.dumps({"drafts": []}), model="v4-test"),
-    )
-    assert outcome.model == "v4-test"
-    assert outcome.mode["thinking"] == "adaptive"
-    assert outcome.mode["response_format"] == "json_schema"
-    assert outcome.usage["input_tokens"] == 5
-    assert outcome.usage["output_tokens"] == 7
-
-
-class _SequencedProvider:
-    """A provider that plays a SEQUENCE of outcomes, one per call — an exception is raised, a string
-    is returned as the body. Lets a test watch the retry climb a ladder of failures."""
-
-    name = "fake"
-
-    def __init__(self, outcomes: list[object]) -> None:
-        self._outcomes = list(outcomes)
-        self.n_calls = 0
-
-    def default_model(self) -> str:
-        return "fake-model-1"
-
-    def complete_json(self, **kwargs: Any) -> LLMResponse:
-        outcome = self._outcomes[min(self.n_calls, len(self._outcomes) - 1)]
-        self.n_calls += 1
-        if isinstance(outcome, Exception):
-            raise outcome
-        return LLMResponse(text=str(outcome), usage={"input_tokens": 10})
-
-
-def _transient(msg: str = "429 rate limited", **kw: Any) -> ProviderUnavailable:
-    return ProviderUnavailable(msg, transient=True, **kw)
-
-
-_OK = json.dumps({"drafts": []})
-
-#: The retry policy as a TABLE — transient vs terminal, recover-on-retry vs exhaust-the-budget. Before
-#: this, one 429 mid-harvest exited the whole headless run and discarded every document already
-#: extracted (#138). `expected` is None when the call must succeed, else a regex the raised
-#: `ExtractUnavailable` must match. `n_calls` is what the provider actually saw.
-_PROVIDER_RETRY = [
+#: `--provider` and `--model` -> who the extractor was and what every request is sent with, or a
+#: refusal. DeepSeek is the default, called with `deepseek-v4-pro` (it won the benchmark on every
+#: axis, cost included) and with thinking on at high effort, its documented default, sent explicitly
+#: so the setting is in the cache key. A DeepSeek name harvest does not default to still reaches the
+#: gateway. Any other provider takes its own defaults and must be named a model, since harvest knows
+#: no other provider's names: a guessed model is a provenance bug. `mode` is None for a refusal.
+_MODELS = [
     pytest.param(
-        [_transient(), _OK], None, 2,
-        id="a-429-backs-off-then-succeeds",
+        None, None, "deepseek/deepseek-v4-pro", {"thinking": True, "effort": "high"},
+        id="deepseek-pro-thinking-high-by-default",
     ),
     pytest.param(
-        [_transient("503 bad gateway"), _transient("503 bad gateway"), _OK], None, 3,
-        id="a-run-of-5xx-keeps-retrying-inside-the-budget",
-    ),
-    # The trap this design exists to avoid: `ProviderUnavailable` also carries terminal conditions, so
-    # a loop that retried every one of them would back off four times over a missing credential.
-    pytest.param(
-        [ProviderUnavailable("no API key for deepseek")], "no API key", 1,
-        id="a-missing-credential-is-terminal-and-is-not-retried",
+        "deepseek", "deepseek-flash", "deepseek/deepseek-flash", {"thinking": True, "effort": "high"},
+        id="a-deepseek-name-is-passed-through",
     ),
     pytest.param(
-        [ProviderUnavailable("the `openai` SDK is not installed")], "not installed", 1,
-        id="a-missing-sdk-is-terminal-and-is-not-retried",
+        "anthropic", "claude-test-1", "anthropic/claude-test-1", {},
+        id="another-provider-is-sent-no-settings",
     ),
-    pytest.param(
-        [_transient("503 bad gateway")], "503", _MAX_RETRIES + 1,
-        id="a-persistent-5xx-gives-up-once-the-budget-is-spent",
-    ),
+    pytest.param("anthropic", None, None, None, id="another-provider-needs-a-model"),
 ]  # fmt: skip
 
 
-@pytest.mark.parametrize(("outcomes", "expected", "n_calls"), _PROVIDER_RETRY)
-def test_extract_retries_what_is_transient_and_gives_up_on_what_is_not(
-    outcomes: list[object],
-    expected: str | None,
-    n_calls: int,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(time, "sleep", lambda _s: None)  # no real wait in the test
-    provider = _SequencedProvider(outcomes)
-
-    if expected is None:
-        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
-    else:
-        with pytest.raises(ExtractUnavailable, match=expected):
-            extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
-    assert provider.n_calls == n_calls
-
-
-def test_a_failed_attempt_still_counts_against_the_ledger(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A refused call burned tokens. The ledger must say what the calls cost, not what the last did."""
-    monkeypatch.setattr(time, "sleep", lambda _s: None)
-    provider = _SequencedProvider([_transient(usage={"input_tokens": 700}), _OK])
-
-    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
-    assert outcome.usage["input_tokens"] == 710, "the 429's 700 plus the successful call's 10"
-
-
-#: Which SDK exceptions are worth another attempt. Duck-typed on `status_code` / the `Retry-After`
-#: header, because both SDKs are OPTIONAL imports — naming their exception classes here would make
-#: classification depend on the SDK being installed, which is the terminal case we must tell apart.
-_CLASSIFY = [
-    pytest.param(429, "3", (True, "3"), id="429-is-transient-and-honours-retry-after"),
-    pytest.param(503, None, (True, None), id="5xx-is-transient-and-backs-off"),
-    pytest.param(529, "7", (True, "7"), id="529-overloaded-is-transient-and-honours-retry-after"),
-    pytest.param(400, None, (False, None), id="400-is-a-verdict-not-a-blip"),
-    pytest.param(401, None, (False, None), id="401-is-a-verdict-not-a-blip"),
-    pytest.param(404, None, (False, None), id="404-is-a-verdict-not-a-blip"),
-]
-
-
-@pytest.mark.parametrize(("status", "retry_after", "expected"), _CLASSIFY)
-def test_classify_reads_the_status_the_network_surface_already_decided_on(
-    status: int, retry_after: str | None, expected: tuple[bool, str | None]
-) -> None:
-    class _Resp:
-        headers = {"retry-after": retry_after} if retry_after else {}
-
-    exc = type("APIStatusError", (Exception,), {"status_code": status, "response": _Resp()})()
-    assert classify_api_error(exc) == expected
-
-
-@pytest.mark.parametrize(
-    ("name", "transient"),
-    [("APITimeoutError", True), ("APIConnectionError", True), ("BadRequestError", False)],
-)
-def test_classify_treats_a_transport_failure_as_transient(name: str, transient: bool) -> None:
-    """A call that never reached a verdict is the transport twin of a 5xx — the same as `_get`."""
-    assert classify_api_error(type(name, (Exception,), {})()) == (transient, None)
-
-
-# ---------- provider selection ----------
-#: The provider-precedence table: (explicit --provider arg, environment) -> which provider, or a
-#: refusal. Explicit beats implicit; a lone credential auto-detects; no credential (and an unknown
-#: name) refuses rather than guessing — a silent wrong model is a provenance bug. `expected` is a
-#: provider name to select, or (exc, match) for a refusal.
-_PROVIDER_SELECTION = [
-    ("anthropic", {"ANTHROPIC_API_KEY": "x", "DEEPSEEK_API_KEY": "y"}, "anthropic"),
-    ("deepseek", {"ANTHROPIC_API_KEY": "x", "DEEPSEEK_API_KEY": "y"}, "deepseek"),
-    (None, {"DEEPSEEK_API_KEY": "y"}, "deepseek"),  # auto-detect from the one credential present
-    (
-        None,
-        {},
-        (ProviderUnavailable, "no LLM credential"),
-    ),  # neither present -> refuse, don't guess
-    ("gpt-9", {}, (ProviderUnavailable, "unknown provider")),  # a name we do not know -> refuse
-]
-
-
-@pytest.mark.parametrize(
-    ("explicit", "env", "expected"),
-    _PROVIDER_SELECTION,
-    ids=[
-        "explicit-anthropic",
-        "explicit-deepseek",
-        "auto-deepseek",
-        "refuse-none",
-        "refuse-unknown",
-    ],
-)
-def test_resolve_provider_walks_the_precedence_table(
-    explicit: str | None,
-    env: dict[str, str],
-    expected: str | tuple[type[Exception], str],
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    for var in ("SEQFORGE_LLM_PROVIDER", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY"):
-        monkeypatch.delenv(var, raising=False)
-    for key, val in env.items():
-        monkeypatch.setenv(key, val)
-    if isinstance(expected, str):
-        assert resolve_provider(explicit).name == expected
-    else:
-        exc, match = expected
-        with pytest.raises(exc, match=match):
-            resolve_provider(explicit)
-
-
-def test_provider_defaults() -> None:
-    assert AnthropicProvider().default_model() == ANTHROPIC_DEFAULT_MODEL == "claude-opus-4-8"
-    assert deepseek_provider(api_key="k").default_model() == DEEPSEEK_DEFAULT_MODEL
-    # The names DeepSeek serves today, never a routed alias: `deepseek-v4-flash` was retired on
-    # 2026-09-10 and is only temporarily routed to `deepseek-flash`, as `deepseek-chat` was before it.
-    assert set(DEEPSEEK_MODELS) == {"deepseek-flash", "deepseek-v4-pro"}
-    # Pro is the default. Flash was, on the argument that it is the cheap end of V4 — and the same
-    # benchmark that argument was made for falsified it (#188): pro is faster AND spends fewer output
-    # tokens. Cost is still the only axis a model can move (R2 re-greps every quote whichever one
-    # proposed it); flash just loses that axis too. The run is written up in `evals/README.md`.
-    assert DEEPSEEK_DEFAULT_MODEL == DEEPSEEK_PRO_MODEL == "deepseek-v4-pro"
-
-
-def test_deepseek_model_catalogue_is_not_an_allowlist() -> None:
-    """A name we do not list still reaches the endpoint — DeepSeek may ship one before we do."""
-    client = _FakeOpenAIClient('{"drafts": []}')
-    provider = deepseek_provider(api_key="k", client=client)
-    provider.complete_json(
-        system="s", user="u", schema={}, model="deepseek-v9-unreleased", max_tokens=64
-    )
-    assert client.captured["model"] == "deepseek-v9-unreleased"
-
-
-#: Thinking is a request parameter DeepSeek reads, not a property of the model name. Left unsent, a
-#: V4 call reasons at the provider's default effort while the exchange's mode said nothing was set.
-#: The preset now sends its setting on every request and its mode names exactly what it sent; any
-#: other OpenAI-shaped endpoint gets no parameter it may not accept, and its mode says so.
-_THINKING = [
-    pytest.param(
-        lambda client: deepseek_provider(api_key="k", client=client),
-        {"extra_body": {"thinking": {"type": "enabled"}, "reasoning_effort": "high"}},
-        "enabled:high",
-        id="deepseek-sends-its-documented-default",
-    ),
-    pytest.param(
-        lambda client: deepseek_provider(api_key="k", client=client, thinking="disabled"),
-        {"extra_body": {"thinking": {"type": "disabled"}}},
-        "disabled",
-        id="deepseek-can-be-told-not-to-think",
-    ),
-    pytest.param(
-        lambda client: OpenAICompatibleProvider(
-            base_url="http://localhost:8000/v1", api_key="k", client=client
-        ),
-        {},
-        "model-default",
-        id="another-endpoint-is-sent-nothing-and-its-mode-says-so",
-    ),
-]
-
-
-@pytest.mark.parametrize(("make", "sent", "recorded"), _THINKING)
-def test_thinking_is_sent_where_the_endpoint_takes_it_and_recorded_as_sent(
-    make: Any, sent: dict[str, Any], recorded: str
-) -> None:
-    client = _FakeOpenAIClient('{"drafts": []}')
-    response = make(client).complete_json(system="s", user="u", schema={}, model="m", max_tokens=64)
-    thinking_kwargs = {"reasoning_effort", "extra_body"}
-    assert {k: v for k, v in client.captured.items() if k in thinking_kwargs} == sent
-    assert response.mode["thinking"] == recorded
-
-
-def test_openai_compatible_needs_a_key() -> None:
-    """DeepSeek is a preset, not a special case — any OpenAI-shaped endpoint reaches the same gate."""
-    with pytest.raises(ProviderUnavailable, match="no API key"):
-        OpenAICompatibleProvider(base_url="http://localhost:8000/v1", api_key=None).complete_json(
-            system="s", user="u", schema={}, model="m", max_tokens=10
-        )
-
-
-# ---------- a DeepSeek-shaped provider, end to end into the tripwire ----------
-class _FakeOpenAIClient:
-    """Mimics the OpenAI SDK surface DeepSeek speaks (chat.completions.create)."""
-
-    def __init__(self, content: str) -> None:
-        payload = self
-
-        class _Message:
-            def __init__(self) -> None:
-                self.content = content
-
-        class _Choice:
-            def __init__(self) -> None:
-                self.message = _Message()
-
-        class _Usage:
-            prompt_tokens = 1500
-            completion_tokens = 60
-            prompt_cache_hit_tokens = 1024
-
-        class _Response:
-            def __init__(self) -> None:
-                self.choices = [_Choice()]
-                self.usage = _Usage()
-
-        class _Completions:
-            def create(self, **kwargs: Any) -> _Response:
-                payload.captured = kwargs
-                return _Response()
-
-        class _Chat:
-            completions = _Completions()
-
-        self.chat = _Chat()
-        self.captured: dict[str, Any] = {}
-
-
-class _SequencedOpenAIClient:
-    """An OpenAI-shaped client that returns a SEQUENCE of contents, one per create() call — so a test
-    can present empty bodies followed by a good one and watch the provider retry (#4)."""
-
-    def __init__(self, contents: list[str]) -> None:
-        self._contents = list(contents)
-        self.n_calls = 0
-        outer = self
-
-        class _Message:
-            def __init__(self, content: str) -> None:
-                self.content = content
-
-        class _Choice:
-            def __init__(self, content: str) -> None:
-                self.message = _Message(content)
-
-        class _Usage:
-            prompt_tokens = 1500
-            completion_tokens = 60
-            prompt_cache_hit_tokens = 1024
-
-        class _Response:
-            def __init__(self, content: str) -> None:
-                self.choices = [_Choice(content)]
-                self.usage = _Usage()
-
-        class _Completions:
-            def create(self, **kwargs: Any) -> _Response:
-                i = outer.n_calls
-                outer.n_calls += 1
-                content = outer._contents[i] if i < len(outer._contents) else ""
-                return _Response(content)
-
-        class _Chat:
-            completions = _Completions()
-
-        self.chat = _Chat()
-
-
-def test_deepseek_retries_past_empty_content_then_succeeds(tmp_path: Path) -> None:
-    """#4: json_object mode intermittently returns an empty body. That is a provider hiccup, not the
-    document saying nothing, so the provider re-issues the request rather than aborting the harvest."""
-    nd = _doc(tmp_path)
-    client = _SequencedOpenAIClient(
-        ["", "   ", json.dumps({"drafts": []})]
-    )  # two empties, then good
-    provider = deepseek_provider(api_key="k", client=client)
-
-    outcome = extract_drafts(nd, kb.load_all_specs(), provider=provider)
-    assert client.n_calls == 3, (
-        "it retried through the two empty bodies and stopped at the good one"
-    )
-    assert outcome.drafts == []
-    # usage is summed over ALL three attempts — the two empty ones still cost tokens (1024 cache-read
-    # tokens each in the fake), so the ledger must not undercount them
-    assert outcome.usage["cache_read_tokens"] == 3 * 1024
-
-
-def test_deepseek_gives_up_after_the_retry_budget_of_empty_bodies(tmp_path: Path) -> None:
-    """Bounded: a model that ALWAYS returns empty content still fails loudly, it does not spin."""
-    nd = _doc(tmp_path)
-    client = _SequencedOpenAIClient([""] * 12)  # never a body
-    provider = deepseek_provider(api_key="k", client=client)
-
-    with pytest.raises(ExtractUnavailable, match="empty content"):
-        extract_drafts(nd, kb.load_all_specs(), provider=provider)
-    # One budget now, shared with the transient-API case, instead of a second one nested in the
-    # provider. An empty body carries `retry_after="0"`, so these re-issue at once — the backoff is
-    # for an endpoint asking for room, and an empty body asks for nothing.
-    assert client.n_calls == _MAX_RETRIES + 1
-
-
-class _SequencedAnthropicClient:
-    """An Anthropic-shaped client playing a sequence of turns. A turn is the text block it returns;
-    `None` is a thinking-only turn, which carries no text block at all."""
-
-    def __init__(self, turns: list[str | None]) -> None:
-        self._turns = list(turns)
-        self.n_calls = 0
-        outer = self
-
-        class _Block:
-            def __init__(self, text: str) -> None:
-                self.type, self.text = "text", text
-
-        class _Usage:
-            input_tokens, output_tokens = 1500, 60
-            cache_read_input_tokens, cache_creation_input_tokens = 1024, 0
-
-        class _Response:
-            def __init__(self, text: str | None) -> None:
-                # a thinking-only turn has a thinking block and NO text block
-                self.content = [_Block(text)] if text is not None else []
-                self.usage = _Usage()
-
-        class _Messages:
-            def create(self, **kwargs: Any) -> _Response:
-                i = outer.n_calls
-                outer.n_calls += 1
-                return _Response(outer._turns[i] if i < len(outer._turns) else None)
-
-        self.messages = _Messages()
-
-
-def test_anthropic_retries_a_thinking_only_turn_rather_than_calling_it_bad_json(
+@pytest.mark.parametrize(("provider", "name", "model_id", "mode"), _MODELS)
+def test_extract_records_provider_in_provenance(
+    provider: str | None,
+    name: str | None,
+    model_id: str | None,
+    mode: dict[str, Any] | None,
     tmp_path: Path,
 ) -> None:
-    """The empty-body recovery was written per-provider, so only the json-object path had it (#138).
+    """The same prompt on a different provider is a different extractor; evals must tell them apart.
 
-    A thinking-only turn leaves no text block. Left as `text=""` it surfaced one step later as
-    "returned output that is not valid JSON" — a shape complaint about a response that had no shape.
+    And the settings the request was sent with are the ones the outcome records, so the Ledger says
+    at what effort the prose was read rather than what someone meant to send.
     """
-    client = _SequencedAnthropicClient([None, "", json.dumps({"drafts": []})])
-    provider = AnthropicProvider(client=client)
-
-    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
-    assert client.n_calls == 3, "it retried through the empty turns and stopped at the good one"
-    assert outcome.drafts == []
-    assert outcome.usage["cache_read_tokens"] == 3 * 1024, "every attempt cost tokens"
-
-
-def test_anthropic_gives_up_on_empty_turns_once_the_budget_is_spent(tmp_path: Path) -> None:
-    """Bounded on this provider too: never a spin, always a loud `llm_unavailable`."""
-    client = _SequencedAnthropicClient([None] * 12)
-    provider = AnthropicProvider(client=client)
-
-    with pytest.raises(ExtractUnavailable, match="no text block"):
-        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=provider)
-    assert client.n_calls == _MAX_RETRIES + 1
-
-
-def test_deepseek_shaped_provider_requests_json_mode_and_flows_into_verify(tmp_path: Path) -> None:
-    nd = _doc(tmp_path)
-    good = json.loads(_batch())
-    bad = json.loads(_batch(quote="the 10x v3 protocol (Fig. 2)"))  # never appears in the document
-    client = _FakeOpenAIClient(json.dumps({"drafts": good["drafts"] + bad["drafts"]}))
-    provider = deepseek_provider(api_key="k", client=client)
-
-    outcome = extract_drafts(nd, kb.load_all_specs(), provider=provider)
-    sent = client.captured
-    assert sent["model"] == DEEPSEEK_DEFAULT_MODEL
-    assert sent["response_format"] == {"type": "json_object"}  # DeepSeek's only structured mode
-    assert sent["messages"][0]["role"] == "system"
-    assert outcome.usage["cache_read_tokens"] == 1024  # DeepSeek's automatic prefix caching
-    assert outcome.extractor.model_id == f"deepseek/{DEEPSEEK_DEFAULT_MODEL}"
-
-    # the tripwire does not care which model produced the drafts: the good draft is accepted, the
-    # fabricated quote is rejected. (The offset re-check that a quote greps back is owned by
-    # test_harvest.py, not re-proved here.)
-    report = verify_drafts(outcome.drafts, [nd], extractor=outcome.extractor)
-    assert report.n_accepted == 1
-    assert report.rejected[0]["reason"] == "span_not_found"
-
-
-# ---------- the meter at the provider seam ----------
-# One module counts, refuses and records; the three adapters stay untouched. These prove the three
-# jobs separately, and prove that doing them does not change what the caller gets back.
-
-
-def _meter(outcomes: list[object], **kwargs: Any) -> Any:
-    """A `TokenMeter` over a `_SequencedProvider`, so a test can watch retries reach the meter."""
-    from seqforge.harvest import TokenMeter
-
-    return TokenMeter(_SequencedProvider(outcomes), **kwargs)
-
-
-def test_the_meter_proxies_the_wrapped_providers_identity(tmp_path: Path) -> None:
-    """`ExtractorProvenance.model_id` is `provider/model`, so a meter that named itself would
-    restamp every assertion in a corpus with a provider that does not exist."""
-    from seqforge.harvest import TokenMeter
-
-    inner = deepseek_provider(api_key="k", client=_FakeOpenAIClient(_batch()))
-    meter = TokenMeter(inner)
-
-    assert meter.name == "deepseek"
-    assert meter.default_model() == DEEPSEEK_DEFAULT_MODEL
-    assert meter.base_url == inner.base_url, "anything else falls through to the provider"
-
-    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
-    assert outcome.extractor.model_id == f"deepseek/{DEEPSEEK_DEFAULT_MODEL}"
-    assert outcome.provider == "deepseek"
-
-
-@pytest.mark.parametrize(("outcomes", "expected", "n_calls"), _PROVIDER_RETRY)
-def test_the_meter_counts_real_requests_not_documents(
-    outcomes: list[object],
-    expected: str | None,
-    n_calls: int,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """`n_calls` was `len(documents)`, so up to three retries per document cost tokens nothing
-    counted. Metered, it is the retry table's own count — one exchange per request, failures
-    included, over ONE document in every row."""
-    monkeypatch.setattr(time, "sleep", lambda _s: None)
-    meter = _meter(outcomes)
-
-    if expected is None:
-        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
-    else:
-        with pytest.raises(ExtractUnavailable, match=expected):
-            extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
-    assert meter.n_exchanges == n_calls
-
-
-def test_the_meter_banks_what_a_refused_attempt_cost(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(time, "sleep", lambda _s: None)
-    meter = _meter([_transient(usage={"input_tokens": 700}), _OK])
-
-    extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
-    assert meter.usage()["input_tokens"] == 710, "the 429's 700 plus the successful call's 10"
-    assert meter.n_exchanges == 2
-
-
-def test_the_meter_hands_the_response_back_untouched(tmp_path: Path) -> None:
-    """It measures; it never reads the text for meaning. Repairing or partly accepting a batch stays
-    the forbidden act, and a meter that rewrote a response would be doing it."""
-    from seqforge.harvest import TokenMeter
-
-    inner = _FakeProvider(_batch())
-    unmetered = inner.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
-    metered = TokenMeter(_FakeProvider(_batch())).complete_json(
-        system="s", user="u", schema={}, model="m", max_tokens=8
-    )
-    assert metered == unmetered
-
-
-# ---------- the Ceiling ----------
-#: A prompt whose ESTIMATE is exactly 1000 tokens. The meter deducts a request's estimated cost from
-#: the budget before it issues it, and that estimate is the prompt's characters over
-#: `CHARS_PER_TOKEN` — so fixing the character count fixes the reservation, and the ceilings below
-#: read as a whole number of requests.
-_SYSTEM_1K = "s" * 3600
-_USER_1K = "u" * 400
-
-
-class _CostingProvider:
-    """Always answers, always costs the same. Enough to reach a ceiling, from any number of threads."""
-
-    name = "costing"
-
-    def __init__(self, per_call: int = 1000) -> None:
-        self.per_call = per_call
-        self.n_calls = 0
-        self._lock = threading.Lock()
-
-    def default_model(self) -> str:
-        return "costing-1"
-
-    def complete_json(self, **kwargs: Any) -> LLMResponse:
-        with self._lock:
-            self.n_calls += 1
-        return LLMResponse(text=_OK, usage={"input_tokens": self.per_call})
-
-
-def _ask(meter: Any, system: str = _SYSTEM_1K, user: str = _USER_1K) -> None:
-    meter.complete_json(system=system, user=user, schema={}, model="m", max_tokens=8)
-
-
-def test_the_ceiling_refuses_the_request_it_cannot_afford_before_issuing_it() -> None:
-    """A Ceiling bounds what a run may SPEND, so the refused request is the one the budget could not
-    cover — not the one after it. What it will cost is not knowable until it returns, so an estimate
-    is deducted at admission and reconciled against the real usage when the response arrives."""
-    from seqforge.harvest import CeilingExceeded, TokenMeter
-
-    inner = _CostingProvider(per_call=1000)
-    meter = TokenMeter(inner, ceiling=2500)
-
-    _ask(meter)
-    _ask(meter)  # 2000 banked, and a third request is estimated at 1000 more than the budget has
-
-    with pytest.raises(CeilingExceeded) as caught:
-        _ask(meter)
-
-    assert inner.n_calls == 2, "the request the budget could not cover never reached the provider"
-    assert meter.n_exchanges == 2
-    assert meter.tokens == 2000
-    assert caught.value.spent == 2000
-    assert caught.value.ceiling == 2500
-
-
-def test_the_ceiling_refuses_a_wave_admitted_before_anything_has_banked() -> None:
-    """The concurrent case, pinned — a whole document set admitted in one wave of the pool.
-
-    A check on the tokens ALREADY BANKED asks a question whose answer is not yet knowable: six
-    workers pass it before any of them has banked a thing, so a run that fits inside one wave could
-    never refuse at all, and the tightness of a ceiling would depend on the core count of the
-    machine that ran it. Nothing here banks until every worker has settled — issued or refused — so
-    a meter that admitted on banked totals alone issues all six and this goes red.
-    """
-    from concurrent.futures import ThreadPoolExecutor
-
-    from seqforge.harvest import CeilingExceeded, TokenMeter
-
-    settled = threading.Semaphore(0)  # one release per worker that has been issued OR refused
-    resume = threading.Event()
-
-    class _HeldOpen(_CostingProvider):
-        """Holds every issued request open until the whole wave has settled."""
-
-        def complete_json(self, **kwargs: Any) -> LLMResponse:
-            settled.release()
-            assert resume.wait(timeout=10), "the wave never settled"
-            return super().complete_json(**kwargs)
-
-    inner = _HeldOpen(per_call=1000)
-    meter = TokenMeter(inner, ceiling=3000)  # three requests, at an estimated 1000 each
-
-    def one(_i: int) -> bool:
-        try:
-            _ask(meter)
-        except CeilingExceeded:
-            settled.release()
-            return False
-        return True
-
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        futures = [pool.submit(one, i) for i in range(6)]
-        for _ in range(6):
-            assert settled.acquire(timeout=10), "a worker neither reached the provider nor refused"
-        resume.set()
-        issued = [f.result() for f in futures]
-
-    assert inner.n_calls == 3, "what the budget covered, however many the pool offered at once"
-    assert sum(issued) == 3
-    assert issued.count(False) == 3
-    assert meter.tokens == 3000, "the ceiling was spent, not overshot by five more requests"
-
-
-def test_a_request_the_whole_ceiling_cannot_cover_refuses_at_the_gate() -> None:
-    """A ceiling smaller than one request stops the run before anything is issued. Admitting it
-    "because nothing has been spent yet" would be a ceiling that always allows one arbitrarily
-    large call, which is the reading a run of a single enormous document would get."""
-    from seqforge.harvest import CeilingExceeded, TokenMeter
-
-    inner = _CostingProvider(per_call=1000)
-    meter = TokenMeter(inner, ceiling=500)  # one request is estimated at 1000
-
-    with pytest.raises(CeilingExceeded) as caught:
-        _ask(meter)
-
-    assert inner.n_calls == 0
-    assert meter.n_exchanges == 0
-    assert meter.tokens == 0
-    assert caught.value.spent == 0
-    assert caught.value.estimate == 1000
-    # "0 tokens spent, ceiling 500" reads as a bug rather than a refusal, so the number that
-    # actually decided it is in the message a caller sees.
-    assert "estimated at 1,000 tokens" in str(caught.value)
-
-
-def test_a_failed_request_gives_its_reservation_back() -> None:
-    """Reserving before the request means reconciling after it, on the failure path too. A leaked
-    reservation would starve a run of budget it never spent, and the leak compounds: three flaky
-    documents early on would refuse everything after them for the rest of the run."""
-    from seqforge.harvest import ProviderUnavailable, TokenMeter
-
-    inner = _SequencedProvider([_transient(), _transient(), _transient(), _OK])
-    meter = TokenMeter(inner, ceiling=1000)  # room for exactly one request's estimate at a time
-
-    for _ in range(3):
-        with pytest.raises(ProviderUnavailable):
-            _ask(meter)
-
-    _ask(meter)  # admitted: three failed requests hold nothing against the budget
-    assert meter.n_exchanges == 4
-    assert meter.tokens == 10
-
-
-def test_the_reservation_learns_what_a_request_really_costs() -> None:
-    """The character estimate is a rule of thumb that knows nothing about the OUTPUT half, so on its
-    own it under-reserves — and a systematic under-reservation restores exactly the pool-width
-    dependence that reserving exists to remove. Once a run has banked an exchange it stops guessing:
-    a reservation is at least what an exchange has really cost so far.
-    """
-    from seqforge.harvest import CeilingExceeded, TokenMeter
-
-    inner = _CostingProvider(per_call=100)
-    meter = TokenMeter(inner, ceiling=350)
-
-    for _ in range(3):
-        _ask(meter, system="", user="")  # nothing to estimate FROM: zero characters
-
-    with pytest.raises(CeilingExceeded):
-        _ask(meter, system="", user="")
-    assert meter.tokens == 300, "three at 100, and a fourth the remaining 50 could not cover"
-
-
-def test_the_ceiling_counts_raw_so_cached_input_is_not_free() -> None:
-    """Decided and written down: fresh input, cached input, cache writes and output ALL count. A
-    ceiling is a backstop, not a price — and `input_tokens` is normalized to be the whole input on
-    both providers, so the reading does not depend on who answered."""
-    from seqforge.harvest import raw_tokens
-
-    deepseek = {"input_tokens": 3000, "output_tokens": 300, "cache_read_tokens": 2800}
-    anthropic = {
-        "input_tokens": 3000,
-        "output_tokens": 300,
-        "cache_read_tokens": 2500,
-        "cache_write_tokens": 300,
+    if model_id is None or mode is None:
+        with pytest.raises(ValueError, match="needs --model"):
+            harvest_model(provider, name)
+        return
+
+    fake, seam = _answering(harvest_kit.NOTHING, model=harvest_model(provider, name))
+    outcome = extract_drafts(_doc(tmp_path), kb.load_all_specs(), seam=seam)
+
+    assert outcome.extractor.model_id == model_id
+    assert outcome.extractor.prompt_version == EXTRACT_PROMPT_VERSION
+    assert f"{outcome.provider}/{outcome.model}" == model_id
+    (sent,) = _sent(fake)
+    assert f"{sent['provider']}/{sent['model']}" == model_id
+    allowance = sent["settings"]["max_output_tokens"]
+    assert {k: v for k, v in sent["settings"].items() if v is not None} == {
+        **mode,
+        "max_output_tokens": allowance,
     }
-    assert raw_tokens(deepseek) == raw_tokens(anthropic) == 3300
+    assert outcome.mode == {**mode, "max_output_tokens": allowance}
 
 
-def test_a_ceiling_breach_is_a_blocker_with_an_operable_remedy() -> None:
-    """Exit 3 with a refusal a caller can act on — never a warning, and never `llm_unavailable`."""
-    from seqforge.harvest import CeilingExceeded
-    from seqforge.models.blocker import BlockerCode
+def test_extract_carries_what_its_request_cost_for_the_ledger(tmp_path: Path) -> None:
+    """The outcome records what its request cost: the provider's own usage record, the dollars, and
+    whether the gateway's cache answered. That is the raw material the harvest stage writes to
+    `seqforge/logs/usage.json`, so a reader can see what understanding the prose cost — and the same
+    request again is answered from the cache, for nothing.
+    """
+    fake, seam = _answering(harvest_kit.NOTHING)
+    doc = _doc(tmp_path)
 
-    blocker = CeilingExceeded(
-        ceiling=500_000, spent=512_000, n_exchanges=180, subject="GSE126954"
-    ).blocker()
+    paid = extract_drafts(doc, kb.load_all_specs(), seam=seam)
+    replayed = extract_drafts(doc, kb.load_all_specs(), seam=seam)
 
-    assert blocker.code is BlockerCode.TOKEN_CEILING_EXCEEDED
-    assert blocker.subject.kind == "dataset"
-    assert blocker.subject.ref == "GSE126954"
-    assert "--ceiling" in blocker.remedy, "a remedy that names no command is not finished"
-    assert "500,000" in blocker.message
-    assert "180" in blocker.message
-
-
-def test_no_ceiling_never_refuses() -> None:
-    """`None` and `0` both mean no ceiling, so a CLI default of 0 needs no special case."""
-    from seqforge.harvest import TokenMeter
-
-    for ceiling in (None, 0):
-        meter = TokenMeter(_SequencedProvider([_OK]), ceiling=ceiling)
-        for _ in range(5):
-            meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
-        assert meter.n_exchanges == 5
-        assert meter.ceiling is None
-
-
-def test_the_meter_holds_under_the_concurrent_fan_out() -> None:
-    """Extraction fans out over threads — a pool per document under a pool per case — so the running
-    total is shared mutable state. Unlocked, `+=` on it loses increments, and the ceiling it guards
-    reads low exactly when the run is widest."""
-    from concurrent.futures import ThreadPoolExecutor
-
-    from seqforge.harvest import CeilingExceeded, TokenMeter
-
-    meter = TokenMeter(_SequencedProvider([_OK]), ceiling=200)  # 10 input tokens per call
-
-    def one(_i: int) -> bool:
-        try:
-            meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
-        except CeilingExceeded:
-            return False
-        return True
-
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        issued = sum(pool.map(one, range(200)))
-
-    assert meter.n_exchanges == issued, "every issued request was banked exactly once"
-    assert meter.tokens == 10 * issued
-    # Reserving is what makes this exact rather than pool-shaped: every request costs what the run
-    # has learned a request costs, so the budget is spent to the last token and none of it twice.
-    assert meter.tokens == 200
+    first, again = fake.record
+    assert not first.cached
+    assert again.cached
+    assert paid.cost_usd == pytest.approx(first.cost_usd)
+    assert paid.cost_usd > 0
+    assert not paid.cached
+    assert paid.usage, "the provider's own usage record rides along"
+    assert replayed.cost_usd == 0.0
+    assert replayed.cached
 
 
 # ---------- the transcript ----------
 def test_the_transcript_is_one_prompt_plus_a_pair_per_exchange(tmp_path: Path) -> None:
     """983 exchanges share one byte-identical system prompt (that is why prefix caching works), so
     a transcript stores it ONCE and every exchange points at it."""
-    from seqforge.harvest import TokenMeter
-
-    meter = TokenMeter(_SequencedProvider([_OK]))
+    _, seam = _answering(harvest_kit.NOTHING)
     docs = []
     for i in range(4):
         (tmp_path / f"d{i}").mkdir()
         docs.append(_doc(tmp_path / f"d{i}", f"We used protocol number {i}."))
     for doc in docs:
-        extract_drafts(doc, kb.load_all_specs(), provider=meter)
+        extract_drafts(doc, kb.load_all_specs(), seam=seam)
 
-    transcript = meter.transcript()
+    transcript = seam.transcript()
     assert transcript.n_exchanges == 4
     assert len(transcript.prompts) == 1, "the stable prefix is stored once, not four times"
     system = transcript.prompt_for(transcript.exchanges[0])
     assert system == build_system_prompt(kb.load_all_specs(), llm_schema())
     # the volatile half is per document, and it is the document that varies
     assert [d.text in e.user for d, e in zip(docs, transcript.exchanges, strict=True)] == [True] * 4
-    assert all(e.ok and e.text == _OK for e in transcript.exchanges)
-
-
-def test_a_refused_exchange_is_still_in_the_transcript(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A retry is its own exchange, because tokens were spent on it. A transcript that dropped the
-    failures would disagree with the count beside it."""
-    monkeypatch.setattr(time, "sleep", lambda _s: None)
-    meter = _meter([_transient("429 rate limited", usage={"input_tokens": 700}), _OK])
-
-    extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
-    transcript = meter.transcript()
-
-    assert transcript.n_exchanges == 2
-    failed, succeeded = transcript.exchanges
-    assert not failed.ok
-    assert "429" in (failed.error or "")
-    assert failed.text == ""
-    assert failed.tokens == 700
-    assert succeeded.tokens == 10
-    assert succeeded.ok
-    # json-safe, and the failure says so rather than reading as an empty response
-    assert "error" in failed.to_json()
-    assert "error" not in succeeded.to_json()
-    assert transcript.to_json()["prompts"] == transcript.prompts
+    assert all(e.ok and e.text == harvest_kit.NOTHING for e in transcript.exchanges)
 
 
 # ---------- the plan: records -> documents, before a token is spent ----------
@@ -1310,8 +566,8 @@ def test_a_structure_only_record_set_plans_nothing_and_asks_nobody(tmp_path: Pat
     no accession and no paper — and not a degraded one, so the whole pipeline below it has to treat
     an empty plan as an answer rather than as an input it never expected.
 
-    **Asks nobody, and that is the half that was missing.** With no batches there is no request, so a
-    provider that raises when it is touched still yields a clean empty list of outcomes. Zero
+    **Asks nobody, and that is the half that was missing.** With no batches there is no request, so
+    the gateway records nothing and the fan-out yields a clean empty list of outcomes. Zero
     outcomes is precisely what `harvest extract` used to be unable to survive — the loop that builds
     the extractor never ran and the verify step then asserted on the `None` it was left holding.
 
@@ -1352,9 +608,10 @@ def test_a_structure_only_record_set_plans_nothing_and_asks_nobody(tmp_path: Pat
     assert plan.estimated_input_tokens == 0, "not even the stable prefix, which is paid per request"
     assert plan.report().documents == [], "a dry run says the same thing, in the same shape"
 
-    provider = _FakeProvider(AssertionError("an empty plan must not reach a provider"))
-    assert extract_planned(plan, kb.load_all_specs(), provider=provider) == []
-    assert provider.captured == {}, "no request was built, let alone sent"
+    fake, seam = _answering(harvest_kit.NOTHING)
+    assert extract_planned(plan, kb.load_all_specs(), seam=seam) == []
+    assert fake.record == [], "no request was built, let alone sent"
+    assert seam.n_exchanges == 0
 
 
 def test_the_plan_charges_the_stable_prefix_once_per_request(tmp_path: Path) -> None:
@@ -1410,8 +667,8 @@ def test_two_identical_asks_are_one_document_and_one_result(tmp_path: Path) -> N
     plan = plan_extraction(documents=[doc, doc, doc])
     assert plan.n_documents == 1
 
-    provider = _FakeProvider(_batch())
-    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+    _, seam = _answering(_batch())
+    outcomes = extract_planned(plan, kb.load_all_specs(), seam=seam)
     assert len(outcomes) == 1
     assert sum(len(o.drafts) for o in outcomes) == 1, "one document, one document's worth of drafts"
 
@@ -1441,46 +698,30 @@ def test_the_fan_out_returns_outcomes_in_plan_order(tmp_path: Path) -> None:
     plan = plan_extraction(records=_records({"SAMN1": 2, "SAMN2": 2}))
     assert plan.n_documents == 6
 
-    class _FinishesOutOfOrder:
+    def finishes_out_of_order(form: dict[str, Any]) -> str:
         """The first document submitted is the last to answer."""
+        time.sleep(0.05 if plan.documents[0].text in _user(form) else 0.0)
+        return _batch(quote=_QUOTE)
 
-        name = "echo"
-
-        def default_model(self) -> str:
-            return "echo-1"
-
-        def complete_json(self, **kwargs: Any) -> LLMResponse:
-            time.sleep(0.05 if plan.documents[0].text in str(kwargs["user"]) else 0.0)
-            return LLMResponse(text=_batch(quote=_QUOTE), usage={"input_tokens": 1})
-
-    outcomes = extract_planned(plan, kb.load_all_specs(), provider=_FinishesOutOfOrder())
+    _, seam = _over(finishes_out_of_order)
+    outcomes = extract_planned(plan, kb.load_all_specs(), seam=seam)
 
     # every draft is anchored by code onto the document that was actually sent, so the shas ARE the
     # order the calls were made in
     assert [o.drafts[0].span.doc_sha256 for o in outcomes] == [d.doc_sha256 for d in plan.documents]
 
 
-class _OneDocumentFails:
+def _one_document_fails(poison: str) -> Callable[[dict[str, Any]], str]:
     """Answers every document except the one whose text holds ``poison``, which comes back unusable.
 
-    Modelled on the failure that produced this seam: DeepSeek's empty/invalid ``json_object`` (#4),
-    which lands on whichever document provokes a long response rather than on the longest document.
+    Modelled on the failure that produced this seam: DeepSeek's invalid ``json_object`` (#4), which
+    lands on whichever document provokes a long response rather than on the longest document.
     """
 
-    name = "flaky"
+    def provider(form: dict[str, Any]) -> str:
+        return "not json at all" if poison in _user(form) else _batch(quote=_QUOTE)
 
-    def __init__(self, poison: str) -> None:
-        self._poison = poison
-        self.n_calls = 0
-
-    def default_model(self) -> str:
-        return "flaky-1"
-
-    def complete_json(self, **kwargs: Any) -> LLMResponse:
-        self.n_calls += 1
-        if self._poison in str(kwargs["user"]):
-            return LLMResponse(text="not json at all", usage={"input_tokens": 3})
-        return LLMResponse(text=_batch(quote=_QUOTE), usage={"input_tokens": 1})
+    return provider
 
 
 def test_one_documents_abort_takes_down_the_whole_plan_by_default(tmp_path: Path) -> None:
@@ -1495,7 +736,7 @@ def test_one_documents_abort_takes_down_the_whole_plan_by_default(tmp_path: Path
     assert plan.n_documents == 2
 
     with pytest.raises(ExtractUnavailable):
-        extract_planned(plan, kb.load_all_specs(), provider=_OneDocumentFails("poison"))
+        extract_planned(plan, kb.load_all_specs(), seam=_over(_one_document_fails("poison"))[1])
 
 
 def test_under_partial_one_documents_abort_costs_only_that_document(tmp_path: Path) -> None:
@@ -1511,9 +752,8 @@ def test_under_partial_one_documents_abort_costs_only_that_document(tmp_path: Pa
     good, bad = _doc(tmp_path), _doc(_sub(tmp_path), "A poison table.")
     plan = plan_extraction(documents=[good, bad])
 
-    outcomes = extract_planned(
-        plan, kb.load_all_specs(), provider=_OneDocumentFails("poison"), partial=True
-    )
+    _, seam = _over(_one_document_fails("poison"))
+    outcomes = extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
 
     assert len(outcomes) == 2, "still positionally aligned with the plan"
     by_doc = dict(zip(plan.documents, outcomes, strict=True))
@@ -1526,7 +766,7 @@ def test_under_partial_one_documents_abort_costs_only_that_document(tmp_path: Pa
     assert "not valid JSON" in survivor.failure
     # ...and it still names who did not answer, because "nothing came back" is a fact about an
     # extractor and a report that cannot say which one is unreadable a week later.
-    assert survivor.extractor.model_id == "flaky/flaky-1"
+    assert survivor.extractor.model_id == f"deepseek/{DEEPSEEK_DEFAULT_MODEL}"
 
 
 def test_an_empty_batch_is_an_answer_and_a_failure_is_not(tmp_path: Path) -> None:
@@ -1538,72 +778,93 @@ def test_an_empty_batch_is_an_answer_and_a_failure_is_not(tmp_path: Path) -> Non
     from seqforge.harvest import extract_planned, plan_extraction
 
     plan = plan_extraction(documents=[_doc(tmp_path, "We sequenced some things.")])
-    (silent,) = extract_planned(
-        plan, kb.load_all_specs(), provider=_FakeProvider(json.dumps({"drafts": []})), partial=True
-    )
+    _, seam = _answering(harvest_kit.NOTHING)
+    (silent,) = extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
     assert silent.answered
     assert silent.drafts == []
     assert silent.failure is None
 
 
-def test_partial_does_not_swallow_a_ceiling(tmp_path: Path) -> None:
-    """A Ceiling is a refusal, not an unavailability — the provider answered everything it was given.
+def _balance_used_up(form: dict[str, Any]) -> str:
+    """A provider whose prepaid balance is gone: every request stops."""
+    raise ProviderExhausted("the prepaid balance is used up")
 
-    It owes the caller a ``Blocker`` and exit 3, so it must reach one however the fan-out was asked
-    to treat a failed document.
+
+@pytest.mark.parametrize("width", [1, 3], ids=["a-lone-document", "a-batch"])
+def test_partial_does_not_swallow_a_stop(width: int, tmp_path: Path) -> None:
+    """A stop is not an unanswered document. The ceiling reached, the provider's balance used up, the
+    gateway gone: each says no further request will be answered, so it owes the caller a ``Blocker``
+    and exit 3, and must reach one however the fan-out was asked to treat a failed document.
+
+    Nor does a batch fall back past one. Re-asking its documents alone would only meet the stop
+    again, once per document, so the request that stopped is the only exchange the seam keeps — and
+    it keeps it, with the reason, because a run that stopped is the one most worth reading.
     """
-    from seqforge.harvest import CeilingExceeded, TokenMeter, extract_planned, plan_extraction
+    from seqforge.harvest import extract_planned, plan_extraction
 
-    plan = plan_extraction(documents=[_doc(tmp_path)])
-    meter = TokenMeter(_FakeProvider(_batch()), ceiling=1)
-    # Bank a request's worth first, so the ceiling is already reached when the fan-out asks to be
-    # admitted — the check is on the total banked so far, not on a guess about the next request.
-    meter.complete_json(system="s", user="u", schema={}, model="m", max_tokens=8)
+    docs, _ = _species_docs(tmp_path)
+    plan = plan_extraction(documents=docs[:width])
+    assert [len(b) for b in plan.batches] == [width]
+    _, seam = _over(_balance_used_up)
 
-    with pytest.raises(CeilingExceeded):
-        extract_planned(plan, kb.load_all_specs(), provider=meter, partial=True)
+    with pytest.raises(ProviderExhausted):
+        extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
+
+    (stopped,) = seam.transcript().exchanges
+    assert not stopped.ok
+    assert (stopped.error or "").startswith("provider_exhausted")
+    assert stopped.text == ""
 
 
 # ---------- the transcript's address on disk ----------
 def test_a_transcript_round_trips_through_its_file(tmp_path: Path) -> None:
     """One writer, one reader, one format. A writer with no reader is a shape every consumer has to
-    re-derive from the code that produced it — and the report renderer is the consumer."""
-    from seqforge.harvest import TokenMeter, read_transcript, write_transcript
+    re-derive from the code that produced it — and the report renderer is the consumer.
 
-    monkey = _SequencedProvider([_transient("429 rate limited", usage={"input_tokens": 700}), _OK])
-    meter = TokenMeter(monkey)
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(time, "sleep", lambda _s: None)
-        extract_drafts(_doc(tmp_path), kb.load_all_specs(), provider=meter)
+    One exchange of each kind a run keeps — paid for, answered from the gateway's cache, and stopped
+    — so what each cost, whether it was cached and why it stopped all survive the file.
+    """
+    from seqforge.harvest import read_transcript, write_transcript
 
-    path = write_transcript(tmp_path / "transcript.jsonl", meter.transcript())
+    answered, unanswered = _doc(tmp_path), _doc(_sub(tmp_path), "A table nobody will read.")
+
+    def provider(form: dict[str, Any]) -> str:
+        if unanswered.text in _user(form):
+            raise ProviderExhausted("the prepaid balance is used up")
+        return harvest_kit.NOTHING
+
+    _, seam = _over(provider)
+    for doc in (answered, answered):
+        extract_drafts(doc, kb.load_all_specs(), seam=seam)
+    with pytest.raises(ProviderExhausted):
+        extract_drafts(unanswered, kb.load_all_specs(), seam=seam)
+
+    path = write_transcript(tmp_path / "transcript.jsonl", seam.transcript())
     back = read_transcript(path)
 
-    assert back.to_json() == meter.transcript().to_json()
-    assert back.n_exchanges == 2
-    assert not back.exchanges[0].ok
-    assert "429" in (back.exchanges[0].error or "")
-    assert back.prompt_for(back.exchanges[1]) == build_system_prompt(
-        kb.load_all_specs(), llm_schema()
-    )
+    assert back == seam.transcript()
+    paid, replayed, stopped = back.exchanges
+    assert (paid.ok, paid.cached, paid.cost_usd > 0) == (True, False, True)
+    assert (replayed.ok, replayed.cached, replayed.cost_usd) == (True, True, 0.0)
+    assert not stopped.ok
+    assert (stopped.error or "").startswith("provider_exhausted")
+    assert back.prompt_for(stopped) == build_system_prompt(kb.load_all_specs(), llm_schema())
 
 
 def test_the_transcript_file_holds_one_prompt_and_a_line_per_exchange(tmp_path: Path) -> None:
     """The header carries the prompts; every line after it is one exchange pointing at its sha. At
     983 exchanges the alternative is three megabytes of one repeated string, and a file nobody
     opens — and it is what makes the file streamable rather than a tree to parse whole."""
-    from seqforge.harvest import TokenMeter, write_transcript
+    from seqforge.harvest import write_transcript
 
-    meter = TokenMeter(_SequencedProvider([_OK, _OK, _OK]))
+    _, seam = _answering(harvest_kit.NOTHING)
     for i in range(3):
         (tmp_path / f"d{i}").mkdir()
         extract_drafts(
-            _doc(tmp_path / f"d{i}", f"We used protocol {i}."),
-            kb.load_all_specs(),
-            provider=meter,
+            _doc(tmp_path / f"d{i}", f"We used protocol {i}."), kb.load_all_specs(), seam=seam
         )
 
-    lines = write_transcript(tmp_path / "t.jsonl", meter.transcript()).read_text().splitlines()
+    lines = write_transcript(tmp_path / "t.jsonl", seam.transcript()).read_text().splitlines()
 
     assert len(lines) == 4, "one header plus one line per exchange"
     header = json.loads(lines[0])
@@ -1663,21 +924,21 @@ class _AnswersEveryDocument:
     """A model that answers every document a request carries, and says which claim came from which.
 
     Batching hands the model one job a single-document request never gives it: naming the document a
-    claim came from. So this reads the shas the request printed, answers each with the claim only
-    that document supports, and records the WIDTH of every request — which is how a test observes
-    that the request count dropped rather than inferring it.
+    claim came from. So this reads the shas the request printed and answers each with the claim only
+    that document supports. The fake gateway records every request, so a test reads the WIDTH of each
+    off the record (:func:`_widths`) — which is how it observes that the request count dropped rather
+    than inferring it.
 
-    The knobs are the three ways a batch can go wrong, one per test: refusing a multi-document
-    request outright, answering only some of it, and losing track of which document is which.
+    The knobs are the three ways a batch can go wrong, one per test: answering a multi-document
+    request with a reply nobody can use, answering only some of it, and losing track of which
+    document is which.
     """
-
-    name = "batching"
 
     def __init__(
         self,
         answers: dict[str, str],
         *,
-        batch_failure: Exception | str | None = None,
+        batch_failure: str | None = None,
         answer_only: int | None = None,
         reroute: dict[str, str] | None = None,
     ) -> None:
@@ -1685,28 +946,21 @@ class _AnswersEveryDocument:
         self._batch_failure = batch_failure
         self._answer_only = answer_only
         self._reroute = reroute or {}
-        self.n_calls = 0
-        #: How many documents each request carried, in call order.
-        self.widths: list[int] = []
-        self.asked: list[dict[str, Any]] = []
 
-    def default_model(self) -> str:
-        return "batching-1"
-
-    def complete_json(self, **kwargs: Any) -> LLMResponse:
-        self.n_calls += 1
-        self.asked.append(kwargs)
-        shas = _shas_in(str(kwargs["user"]))
-        self.widths.append(len(shas))
+    def __call__(self, form: dict[str, Any]) -> str:
+        shas = _shas_in(_user(form))
         if len(shas) > 1 and self._batch_failure is not None:
-            if isinstance(self._batch_failure, Exception):
-                raise self._batch_failure
-            return LLMResponse(text=self._batch_failure, usage={"input_tokens": 30})
+            return self._batch_failure
         drafts = [
             _organism(self._answers[sha], self._reroute.get(sha, sha))
             for sha in shas[: self._answer_only]
         ]
-        return LLMResponse(text=json.dumps({"drafts": drafts}), usage={"input_tokens": 10})
+        return json.dumps({"drafts": drafts})
+
+
+def _widths(fake: FakeGateway) -> list[int]:
+    """How many documents each request the provider was sent carried, in the order it was sent."""
+    return [len(_shas_in(_user(form))) for form in _sent(fake)]
 
 
 def test_documents_that_receive_the_same_ask_travel_in_one_request(tmp_path: Path) -> None:
@@ -1716,25 +970,34 @@ def test_documents_that_receive_the_same_ask_travel_in_one_request(tmp_path: Pat
     the volatile half, because a preamble in the cached half would make the prefix a function of how
     a plan happened to group and invalidate the cache on every batch of a different width — and the
     ask, ~1.3 KB of NCBI definitions, is now written once per REQUEST rather than once per document.
+
+    One request is one bill, booked whole against the document it opens with, which is the document
+    its tag names to the gateway. Divided per document it would be a number nobody was billed;
+    repeated per document, every consumer that sums the outcomes would report three times the spend.
     """
     from seqforge.harvest import extract_planned, plan_extraction
 
     docs, answers = _species_docs(tmp_path)
     plan = plan_extraction(documents=docs)
-    provider = _AnswersEveryDocument(answers)
+    fake, seam = _over(_AnswersEveryDocument(answers))
 
-    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+    outcomes = extract_planned(plan, kb.load_all_specs(), seam=seam)
 
     assert plan.n_documents == 3, "still three documents..."
-    assert plan.n_requests == provider.n_calls == 1, "...and one question, asked once"
-    assert provider.widths == [3]
+    assert plan.n_requests == len(_sent(fake)) == 1, "...and one question, asked once"
+    assert _widths(fake) == [3]
     assert [len(o.drafts) for o in outcomes] == [1, 1, 1], "every document still got its own answer"
 
-    (sent,) = provider.asked
-    assert sent["system"] == build_system_prompt(kb.load_all_specs(), llm_schema())
-    assert sent["user"].count("Fields to look for") == 1, "the ask is paid once, not once per doc"
-    assert _shas_in(sent["user"]) == [d.doc_sha256 for d in docs]
-    assert all(d.text in sent["user"] for d in docs)
+    (paid,) = fake.record
+    assert paid.tag == docs[0].doc_sha256
+    assert [o.cost_usd for o in outcomes] == [pytest.approx(paid.cost_usd), 0.0, 0.0]
+    assert paid.cost_usd > 0
+
+    (sent,) = _sent(fake)
+    assert _system(sent) == build_system_prompt(kb.load_all_specs(), llm_schema())
+    assert _user(sent).count("Fields to look for") == 1, "the ask is paid once, not once per doc"
+    assert _shas_in(_user(sent)) == [d.doc_sha256 for d in docs]
+    assert all(d.text in _user(sent) for d in docs)
 
 
 def test_two_different_asks_never_share_a_request() -> None:
@@ -1757,10 +1020,12 @@ def test_two_different_asks_never_share_a_request() -> None:
     scopes = {tuple(sorted(plan.documents[i].scope for i in batch)) for batch in plan.batches}
     assert scopes == {("run", "run", "sample", "sample"), ("experiment", "experiment")}
 
-    provider = _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in plan.documents})
-    extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
-    assert provider.n_calls == 2 < plan.n_documents
-    assert sorted(provider.widths) == [2, 4]
+    fake, seam = _over(
+        _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in plan.documents})
+    )
+    extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
+    assert len(_sent(fake)) == 2 < plan.n_documents
+    assert sorted(_widths(fake)) == [2, 4]
 
 
 def test_the_character_budget_splits_an_oversized_group_rather_than_sending_one_request(
@@ -1783,14 +1048,13 @@ def test_the_character_budget_splits_an_oversized_group_rather_than_sending_one_
     assert len(docs[2].text) > MAX_BATCH_CHARS
 
     plan = plan_extraction(documents=docs)
-    provider = _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in docs})
-    extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
+    fake, seam = _over(_AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in docs}))
+    extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
 
-    assert plan.n_requests == provider.n_calls == 3
-    assert provider.widths == [1, 1, 1]
-    assert all(any(d.text in str(sent["user"]) for sent in provider.asked) for d in docs), (
-        "whole, in one request each"
-    )
+    assert plan.n_requests == len(_sent(fake)) == 3
+    assert _widths(fake) == [1, 1, 1]
+    users = harvest_kit.sent_texts(fake)
+    assert all(any(d.text in user for user in users) for d in docs), "whole, in one request each"
 
 
 def test_the_width_of_a_request_is_the_output_budget_divided_by_its_ask() -> None:
@@ -1908,14 +1172,15 @@ def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
         "one full-width request, and this is its price"
     )
 
-    provider = _AnswersEveryDocument(
-        {d.doc_sha256: "Mus musculus" for d in docs},
-        batch_failure=ProviderUnavailable("this endpoint refused the request"),
+    fake, seam = _over(
+        _AnswersEveryDocument(
+            {d.doc_sha256: "Mus musculus" for d in docs}, batch_failure="not json at all"
+        )
     )
-    extract_planned(plan, kb.load_all_specs(), provider=provider)
+    extract_planned(plan, kb.load_all_specs(), seam=seam)
 
-    ceilings = [sent["max_tokens"] for sent in provider.asked]
-    assert provider.widths == [width] + [1] * width, "the batch, then one request per document"
+    ceilings = [form["settings"]["max_output_tokens"] for form in _sent(fake)]
+    assert _widths(fake) == [width] + [1] * width, "the batch, then one request per document"
     assert ceilings == [31_690] + [8000] * width
 
     from seqforge.harvest.plan import PER_DRAFT_TOKENS, REASONING_HEADROOM_TOKENS
@@ -1957,9 +1222,9 @@ def test_the_requests_a_plan_sends_do_not_depend_on_the_machine(
 
     def _requests(pool: int) -> list[tuple[str, int]]:
         monkeypatch.setattr("seqforge.harvest.plan.MAX_IN_FLIGHT", pool)
-        provider = _AnswersEveryDocument(answers)
-        extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
-        return sorted((str(sent["user"]), int(sent["max_tokens"])) for sent in provider.asked)
+        fake, seam = _over(_AnswersEveryDocument(answers))
+        extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
+        return sorted((_user(f), int(f["settings"]["max_output_tokens"])) for f in _sent(fake))
 
     laptop, node = _requests(1), _requests(48)
 
@@ -1979,13 +1244,15 @@ def test_the_dry_runs_request_list_is_the_one_the_paid_run_issues(tmp_path: Path
 
     plan = plan_extraction(documents=[_doc(tmp_path)], records=_records({"SAMN1": 2, "SAMN2": 2}))
     report = plan.report()
-    provider = _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in plan.documents})
+    fake, seam = _over(
+        _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in plan.documents})
+    )
 
-    extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
+    extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
 
-    assert report.n_requests == provider.n_calls < report.n_documents
-    assert sorted(provider.widths) == sorted(len(b) for b in plan.batches)
-    sent = [sha for request in provider.asked for sha in _shas_in(str(request["user"]))]
+    assert report.n_requests == len(_sent(fake)) < report.n_documents
+    assert sorted(_widths(fake)) == sorted(len(b) for b in plan.batches)
+    sent = [sha for user in harvest_kit.sent_texts(fake) for sha in _shas_in(user)]
     assert sorted(sent) == sorted(d.doc_sha256 for d in report.documents), (
         "each document once, and nothing the dry run did not list"
     )
@@ -2003,11 +1270,9 @@ def test_a_batched_run_lands_every_claim_on_the_document_that_carried_it(tmp_pat
     docs, answers = _species_docs(tmp_path)
     plan = plan_extraction(documents=docs)
 
-    batched = extract_planned(plan, kb.load_all_specs(), provider=_AnswersEveryDocument(answers))
-    alone = [
-        extract_drafts(d, kb.load_all_specs(), provider=_AnswersEveryDocument(answers))
-        for d in docs
-    ]
+    _, seam = _over(_AnswersEveryDocument(answers))
+    batched = extract_planned(plan, kb.load_all_specs(), seam=seam)
+    alone = [extract_drafts(d, kb.load_all_specs(), seam=seam) for d in docs]
 
     assert [[d.model_dump() for d in o.drafts] for o in batched] == [
         [d.model_dump() for d in o.drafts] for o in alone
@@ -2038,12 +1303,9 @@ def test_a_claim_routed_to_the_wrong_member_fails_the_span_tripwire(tmp_path: Pa
     plan = plan_extraction(documents=docs)
     swap = {docs[0].doc_sha256: docs[1].doc_sha256}
 
+    _, seam = _over(_AnswersEveryDocument(answers, reroute=swap))
     (contaminated,) = [
-        o
-        for o in extract_planned(
-            plan, kb.load_all_specs(), provider=_AnswersEveryDocument(answers, reroute=swap)
-        )
-        if len(o.drafts) == 2
+        o for o in extract_planned(plan, kb.load_all_specs(), seam=seam) if len(o.drafts) == 2
     ]
     report = verify_drafts(contaminated.drafts, docs, extractor=contaminated.extractor)
 
@@ -2063,11 +1325,11 @@ def test_a_batch_that_answers_only_some_of_its_documents_is_not_a_failure(tmp_pa
 
     docs, answers = _species_docs(tmp_path)
     plan = plan_extraction(documents=docs)
-    provider = _AnswersEveryDocument(answers, answer_only=2)
+    fake, seam = _over(_AnswersEveryDocument(answers, answer_only=2))
 
-    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+    outcomes = extract_planned(plan, kb.load_all_specs(), seam=seam)
 
-    assert provider.n_calls == 1, "no fallback: the request was answered"
+    assert len(_sent(fake)) == 1, "no fallback: the request was answered"
     assert [len(o.drafts) for o in outcomes] == [1, 1, 0]
     assert [o.answered for o in outcomes] == [True, True, True]
     assert outcomes[2].failure is None, "checked and found nothing is not could not check"
@@ -2091,19 +1353,18 @@ def test_a_draft_for_a_document_the_request_never_carried_refuses_the_whole_batc
 
     with pytest.raises(ExtractUnavailable, match="none of the 3 documents"):
         extract_batch(
-            docs, kb.load_all_specs(), provider=_AnswersEveryDocument(answers, reroute=stray)
+            docs, kb.load_all_specs(), seam=_over(_AnswersEveryDocument(answers, reroute=stray))[1]
         )
 
     plan = plan_extraction(documents=docs)
-    provider = _AnswersEveryDocument(answers, reroute=stray)
-    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+    fake, seam = _over(_AnswersEveryDocument(answers, reroute=stray))
+    outcomes = extract_planned(plan, kb.load_all_specs(), seam=seam)
 
-    assert provider.widths == [3, 1, 1, 1], "the batch, then one request per document"
+    assert _widths(fake) == [3, 1, 1, 1], "the batch, then one request per document"
     assert [len(o.drafts) for o in outcomes] == [1, 1, 1], "and the claim it nearly dropped is back"
 
 
 _BATCH_FAILURES = [
-    pytest.param(ProviderUnavailable("this endpoint refused the request"), id="a-provider-error"),
     pytest.param("not json at all", id="an-unusable-envelope"),
     pytest.param(json.dumps({"notes": []}), id="an-envelope-with-no-drafts"),
 ]
@@ -2111,29 +1372,31 @@ _BATCH_FAILURES = [
 
 @pytest.mark.parametrize("failure", _BATCH_FAILURES)
 def test_a_batch_failure_falls_back_to_per_document_calls_and_loses_nothing(
-    failure: Exception | str, tmp_path: Path
+    failure: str, tmp_path: Path
 ) -> None:
     """THE decision (#190): batching may never lose more documents than not batching would have.
 
     Unbatched, a failed request costs one document; batched it could cost the whole batch, which
     would make "half a batch is worse than none" worse rather than better. So a batch-level failure
-    — a provider error, or any response the one shape gate cannot use — re-asks every member
-    individually, at once. Worst case that is one extra round trip; here the provider fails on
-    anything wider than one document, which is the worst case, and all three documents still answer
-    with the claim each carries.
+    — any reply the one shape gate cannot use — re-asks every member individually, at once. Worst
+    case that is one extra round trip; here the model fails on anything wider than one document,
+    which is the worst case, and all three documents still answer with the claim each carries.
+
+    A provider's own failure is not a batch failure: the gateway retries it, and what outlasts the
+    retries is a stop, which no fallback re-asks (:func:`test_partial_does_not_swallow_a_stop`).
     """
     from seqforge.harvest import extract_planned, plan_extraction
 
     docs, answers = _species_docs(tmp_path)
     plan = plan_extraction(documents=docs)
-    provider = _AnswersEveryDocument(answers, batch_failure=failure)
+    fake, seam = _over(_AnswersEveryDocument(answers, batch_failure=failure))
 
-    outcomes = extract_planned(plan, kb.load_all_specs(), provider=provider)
+    outcomes = extract_planned(plan, kb.load_all_specs(), seam=seam)
 
     assert [o.answered for o in outcomes] == [True] * 3
     assert [d.value for o in outcomes for d in o.drafts] == list(_SPECIES)
-    assert provider.widths == [3, 1, 1, 1], "one wasted round trip, and exactly one"
-    assert provider.n_calls == 1 + plan.n_documents
+    assert _widths(fake) == [3, 1, 1, 1], "one wasted round trip, and exactly one"
+    assert len(_sent(fake)) == 1 + plan.n_documents
 
 
 def test_a_document_that_fails_alone_costs_what_it_cost_before_batching(tmp_path: Path) -> None:
@@ -2149,79 +1412,24 @@ def test_a_document_that_fails_alone_costs_what_it_cost_before_batching(tmp_path
     docs, answers = _species_docs(tmp_path)
     plan = plan_extraction(documents=docs)
 
-    class _AlsoFailsOnOne(_AnswersEveryDocument):
-        """Refuses every batch, and also refuses one particular document on its own."""
+    every_batch_fails = _AnswersEveryDocument(answers, batch_failure="not json at all")
 
-        def complete_json(self, **kwargs: Any) -> LLMResponse:
-            if docs[1].text in str(kwargs["user"]) and len(_shas_in(str(kwargs["user"]))) == 1:
-                self.n_calls += 1
-                self.widths.append(1)
-                return LLMResponse(text="not json at all", usage={"input_tokens": 3})
-            return super().complete_json(**kwargs)
+    def also_fails_on_one(form: dict[str, Any]) -> str:
+        """Refuses every batch, and also refuses one particular document on its own."""
+        user = _user(form)
+        if docs[1].text in user and len(_shas_in(user)) == 1:
+            return "not json at all"
+        return every_batch_fails(form)
 
     with pytest.raises(ExtractUnavailable):
-        extract_planned(
-            plan,
-            kb.load_all_specs(),
-            provider=_AlsoFailsOnOne(answers, batch_failure="not json at all"),
-        )
+        extract_planned(plan, kb.load_all_specs(), seam=_over(also_fails_on_one)[1])
 
-    outcomes = extract_planned(
-        plan,
-        kb.load_all_specs(),
-        provider=_AlsoFailsOnOne(answers, batch_failure="not json at all"),
-        partial=True,
-    )
+    _, seam = _over(also_fails_on_one)
+    outcomes = extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
     assert [o.answered for o in outcomes] == [True, False, True]
     assert outcomes[1].failure is not None
     assert "not valid JSON" in outcomes[1].failure
     assert [d.value for o in outcomes for d in o.drafts] == [_SPECIES[0], _SPECIES[2]]
-
-
-def test_a_failed_batch_gives_its_reservation_back_before_the_fallback_asks_for_one(
-    tmp_path: Path,
-) -> None:
-    """The meter interaction the fallback must not get wrong: a batch that failed still reserved.
-
-    The meter deducts a request's estimate before issuing it and reconciles on every path out, so by
-    the time the retries ask to be admitted the batch's estimate is already back in the budget. Held
-    instead, it would starve the very fallback it was meant to protect — the run would refuse at a
-    ceiling that comfortably covers one batch plus one document at a time, having answered nothing.
-    """
-    from seqforge.harvest import CeilingExceeded, TokenMeter, extract_planned, plan_extraction
-    from seqforge.harvest.meter import estimated_tokens
-
-    docs, answers = _species_docs(tmp_path)
-    plan = plan_extraction(documents=docs)
-    refuses = ProviderUnavailable("this endpoint refused the request")
-
-    # The PROMPTS are read off an unceilinged run; what they are estimated at is then computed with
-    # the meter's own `estimated_tokens`, deliberately. This is a ceiling expressed as a SCALE, not
-    # an expected value: the subject is whether a failed batch's reservation comes back, and that is
-    # only observable against a budget tight enough that holding it would starve the retries. Pinning
-    # a literal here would pin the estimator instead, and go red on any change to it while proving
-    # nothing about release. What gives this test its failure power is the mechanism, not the number
-    # — neuter `_release` and it refuses at the third retry.
-    probe = TokenMeter(_AnswersEveryDocument(answers, batch_failure=refuses))
-    extract_planned(plan, kb.load_all_specs(), provider=probe)
-    transcript = probe.transcript()
-    costs = [estimated_tokens(transcript.prompt_for(x), x.user) for x in transcript.exchanges[:2]]
-
-    provider = _AnswersEveryDocument(answers, batch_failure=refuses)
-    meter = TokenMeter(provider, ceiling=sum(costs) - 1)
-    outcomes = extract_planned(plan, kb.load_all_specs(), provider=meter)
-
-    assert [o.answered for o in outcomes] == [True] * 3
-    assert provider.widths == [3, 1, 1, 1]
-    # ...and the ceiling is genuinely binding: one token less and the batch itself cannot be issued.
-    with pytest.raises(CeilingExceeded):
-        extract_planned(
-            plan,
-            kb.load_all_specs(),
-            provider=TokenMeter(
-                _AnswersEveryDocument(answers, batch_failure=refuses), ceiling=costs[0] - 1
-            ),
-        )
 
 
 # ---------- the near-identical collapse: read once, fan by grep, and price the plate that differs ---
@@ -2508,11 +1716,13 @@ def test_the_collapse_is_at_plan_time_so_the_dry_run_is_the_bill_the_paid_run_pa
     plan = plan_extraction(records=_twins(["whole worm, day3"] * 6))
     report = plan.report()
 
-    provider = _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in plan.documents})
-    extract_planned(plan, kb.load_all_specs(), provider=provider, partial=True)
+    fake, seam = _over(
+        _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in plan.documents})
+    )
+    extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
 
     assert report.n_documents == plan.n_documents == 1
-    assert provider.n_calls == report.n_requests == 1, "one document sent, one request made"
+    assert len(_sent(fake)) == report.n_requests == 1, "one document sent, one request made"
     assert report.n_records_collapsed == 5
 
 
