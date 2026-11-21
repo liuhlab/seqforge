@@ -172,7 +172,11 @@ class ModelSeam:
         return f"{self.model.provider}/{self.model.name}"
 
     def mode(self, max_tokens: int) -> dict[str, Any]:
-        """The settings a request with this output allowance is sent with: the Ledger's ``mode``."""
+        """The settings a request with this output allowance is sent with: the Ledger's ``mode``.
+
+        A replicate other than the plain request is part of the request, so it is kept here and a
+        transcript can tell an eval's trials apart and replay each one.
+        """
         return {
             **{
                 k: v
@@ -184,6 +188,7 @@ class ModelSeam:
                 if v is not None
             },
             "max_output_tokens": max_tokens,
+            **({"replicate": self.replicate} if self.replicate != 1 else {}),
         }
 
     @property
@@ -202,6 +207,7 @@ class ModelSeam:
         from labllm import CeilingReached, Stopped
 
         model = replace(self.model, max_output_tokens=max_tokens)
+        replicate = self.replicate
         mode = self.mode(max_tokens)
         while True:
             with self._lock:
@@ -214,7 +220,7 @@ class ModelSeam:
                     user=user,
                     schema=schema,
                     tag=tag,
-                    replicate=self.replicate,
+                    replicate=replicate,
                 )
             except CeilingReached as exc:
                 if self._wait_for_room(settled_before):
