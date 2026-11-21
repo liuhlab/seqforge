@@ -39,31 +39,24 @@ What the links between records showed is written up in
 
 ## Draw a study
 
-A small model drafts the bounds, and a large model judges the draft once. Both read liulab-data's
-stores, so set `LABDATA_STORE` and `LABDATA_PAPERS` to the store that holds the picked studies. The
-drafting pass also needs the lab gateway and a clone of the review repo: see
-[Passes and reviews](../../docs/passes-and-reviews.md).
+The bounding job draws a study, and a study swapped into the set is drawn the same way. It reads
+liulab-data's stores, so set `LABDATA_STORE` and `LABDATA_PAPERS`. It also needs the lab gateway
+and a clone of the review repo: see [Passes and reviews](../../docs/passes-and-reviews.md).
 
 ```bash
-seqforge pass start standard-set-bounds --ceiling-usd 0.5 --keys KEYS.txt
-seqforge standard-set draft
-seqforge standard-set judge <id>
+seqforge pass start study-bounds --ceiling-usd 0.1
+seqforge study write-bounds --out evals/standard-set --name job-bounds.yaml
 ```
 
-1. **The drafting pass** runs `deepseek/deepseek-v4-flash` over the studies in `KEYS.txt`, one id a
-   line. Without `--keys` it runs every study of the pick. The model reads the records of the
-   linked group and each paper's abstract, nothing else.
-2. **`draft`** writes `<id>/draft.yaml` from the pass's answers, for each study that has none.
-3. **`judge`** asks Claude (`claude -p`, model `claude-fable-5-2`) about one study. It gets the
-   draft and what the drafting model saw, and may open the full records and the full paper texts.
-   It writes `<id>/verdict.yaml`, `<id>/bounds.yaml` and `<id>/study.yaml`. Judge one study at a
-   time. If the judge
-   refuses a study, the command exits 3 and writes nothing: report it, and do not rephrase the
-   request.
+Without `--keys`, the pass runs every study of the pick. `write-bounds` writes the job's bounds as
+`<id>/job-bounds.yaml`, beside the study's own `bounds.yaml`, and never over a file.
+[The study workflow](../../docs/study-workflow.md#1-bound-the-study) says how the job decides.
 
-Where the judge disagrees, its bounds become the study's and the draft is kept. A study the judge
-is unsure about stays, with `status: unsure`. The judge's reading material holds record and paper
-text, so it goes to a work folder that git ignores (`--work`), never into this folder.
+The 50 studies' own files came from three commands that are now retired. A pass of the
+`standard-set-bounds` kind had `deepseek/deepseek-v4-flash` draft each study, `standard-set draft`
+wrote each `draft.yaml`, and `standard-set judge` asked Claude (`claude-fable-5-2`) about one study
+and wrote its `verdict.yaml`, `bounds.yaml` and `study.yaml`. Where the judge disagreed, its bounds
+became the study's and the draft was kept.
 
 To look at the drawn studies, build the reading page:
 [`prototypes/standard_set_page/`](../../prototypes/standard_set_page/).
@@ -77,6 +70,7 @@ the project: where it is, its format, who made it, and how to load it.
 |---|---|---|
 | `<id>/study.yaml` | the pipeline | the study: why it was picked, its records, where its bounds came from |
 | `<id>/bounds.yaml` | the pipeline | the study's bounds |
+| `<id>/job-bounds.yaml` | the bounding job | its own bounds, once it has run on the set |
 | `<id>/draft.yaml` | the small model | the drafted summary and bounds |
 | `<id>/verdict.yaml` | the large model | whether it agrees with the draft, and why |
 | `<id>/reading.yaml` | a large model | the study reading, for five worked examples only |

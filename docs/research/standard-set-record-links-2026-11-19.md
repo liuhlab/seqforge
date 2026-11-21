@@ -21,8 +21,8 @@ links. A study's **bounds** are the Series, papers and samples that belong to it
 
 ## Method
 
-Each of the 50 studies went through `seqforge pass start standard-set-bounds`, then
-`seqforge standard-set draft`, then `seqforge standard-set judge`, as
+Each of the 50 studies went through a pass of the `standard-set-bounds` kind, then the
+`standard-set draft` and `standard-set judge` commands (all three since retired), as
 [`evals/standard-set/README.md`](https://github.com/liuhlab/seqforge/blob/main/evals/standard-set/README.md)
 describes. The counts below were taken from the resulting `study.yaml` and `verdict.yaml` files.
 The checking model could read the toy store only, so it could not look for a paper that no record

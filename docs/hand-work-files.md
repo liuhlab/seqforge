@@ -62,21 +62,13 @@ and PubMed lists each paper by its number.
 ## The standard set
 
 The 50 studies were picked on 2026-11-19. A small model then drafted each study's bounds, and a
-large model judged each draft once. Three commands did that work for each study, in this order:
-
-```bash
-seqforge pass start standard-set-bounds --ceiling-usd 0.5 --keys KEYS.txt
-seqforge standard-set draft
-seqforge standard-set judge <ID>
-```
-
-The first command asks the small model about each study on a list. The second command writes
-`draft.yaml` from the answers. The third command asks the large model about one study and writes
-`verdict.yaml`, `bounds.yaml` and `study.yaml`. The
-[standard set's own page](https://github.com/liuhlab/seqforge/blob/main/evals/standard-set/README.md)
-describes each command. The commands read GEO records and papers from liulab-data, the lab's
-package that stores them. You can load every file without that store, but you cannot run the
-commands again without it.
+large model judged each draft once. Three commands did that work, and all three are now retired: a
+pass of the `standard-set-bounds` kind asked the small model about each study, the
+`standard-set draft` command wrote `draft.yaml` from the answers, and the `standard-set judge`
+command asked the large model about one study and wrote `verdict.yaml`, `bounds.yaml` and
+`study.yaml`. The bounding job now draws a study:
+[the study workflow](study-workflow.md#1-bound-the-study) says how. You can load every file here
+without liulab-data, the lab's package that stores the GEO records and the papers.
 
 The judge agreed with 48 drafts and replaced 2, those of GSE101112 and GSE126954. It was unsure
 about none.
@@ -135,7 +127,7 @@ print(pick["studies"][0]["id"], pick["studies"][0]["reason_picked"])
 
 **Path:** `evals/standard-set/<ID>/study.yaml`. 50 files.
 
-**Made by:** the `seqforge standard-set judge` command, when it wrote the verdict. It copies the
+**Made by:** the retired `standard-set judge` command, when it wrote the verdict. It copies the
 pick's facts, takes `summary` from the draft, and adds three fields from the verdict. Each file
 was rewritten once, on 2026-11-20 (UTC), to move the bounds out into `bounds.yaml`.
 
