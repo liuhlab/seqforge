@@ -1,0 +1,1127 @@
+format: 1
+study: GSE131269
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM3768276
+    - GSM3768277
+    - GSM3768278
+    - GSM3768279
+    - GSM3768280
+    - GSM3768281
+    - GSM3768288
+    - GSM3768289
+    - GSM3768290
+    - GSM3768291
+    - GSM3768292
+    - GSM3768293
+    field: Sample_characteristics_ch1
+    quote: 'strain: deltaC38delta4.9'
+  2:
+    record:
+    - GSM3768276
+    - GSM3768277
+    - GSM3768278
+    - GSM3768282
+    - GSM3768283
+    - GSM3768284
+    - GSM3768288
+    - GSM3768289
+    - GSM3768290
+    - GSM3768294
+    - GSM3768295
+    - GSM3768296
+    field: Sample_characteristics_ch1
+    quote: 'temperature: 20'
+  3:
+    record:
+    - GSM3768276
+    - GSM3768277
+    - GSM3768278
+    - GSM3768279
+    - GSM3768280
+    - GSM3768281
+    - GSM3768282
+    - GSM3768283
+    - GSM3768284
+    - GSM3768285
+    - GSM3768286
+    - GSM3768287
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  5:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: adult worm
+  6:
+    record: GSM3768276
+    field: Sample_title
+    quote: Metl5_20deg_mRNAseq_replicate1
+  7:
+    record: GSM3768277
+    field: Sample_title
+    quote: Metl5_20deg_mRNAseq_replicate2
+  8:
+    record: GSM3768278
+    field: Sample_title
+    quote: Metl5_20deg_mRNAseq_replicate3
+  9:
+    record:
+    - GSM3768279
+    - GSM3768280
+    - GSM3768281
+    - GSM3768285
+    - GSM3768286
+    - GSM3768287
+    - GSM3768291
+    - GSM3768292
+    - GSM3768293
+    - GSM3768297
+    - GSM3768298
+    - GSM3768299
+    field: Sample_characteristics_ch1
+    quote: 'temperature: 37'
+  10:
+    record:
+    - GSM3768282
+    - GSM3768283
+    - GSM3768284
+    - GSM3768285
+    - GSM3768286
+    - GSM3768287
+    - GSM3768294
+    - GSM3768295
+    - GSM3768296
+    - GSM3768297
+    - GSM3768298
+    - GSM3768299
+    field: Sample_characteristics_ch1
+    quote: 'strain: Wild Type N2'
+  11:
+    record:
+    - GSM3768288
+    - GSM3768289
+    - GSM3768290
+    - GSM3768291
+    - GSM3768292
+    - GSM3768293
+    - GSM3768294
+    - GSM3768295
+    - GSM3768296
+    - GSM3768297
+    - GSM3768298
+    - GSM3768299
+    field: Sample_description
+    quote: Ribosomal profiling
+  12:
+    record: GSE131269
+    field: Series_overall_design
+    quote: Two strains (WT and DMETL-5), two temperatures (20 and 37 ⁰C), 3 replicates in each group.
+  13:
+    record: GSE131269
+    field: Series_overall_design
+    quote: two temperatures (20 and 37 ⁰C)
+  14:
+    record: GSE131269
+    field: Series_overall_design
+    quote: Comparing transcriptomes and ribosome profiles of adult nematode worms.
+factors:
+  genotype:
+    levels:
+    - metl5_mutant
+    - wild_type
+    baseline: wild_type
+    ordered: false
+    quoted:
+    - 12
+    p: 0.98
+  temperature:
+    levels:
+    - 20C
+    - 37C
+    baseline: 20C
+    ordered: false
+    quoted:
+    - 13
+    p: 0.98
+  assay:
+    levels:
+    - mRNAseq
+    - RiboSeq
+    baseline: null
+    ordered: false
+    quoted:
+    - 14
+    p: 0.96
+shared:
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 0.56
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: adult worm
+    quoted:
+    - 5
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease described
+    p: 0.91
+  control_type:
+    na: no input or IgG control libraries
+    p: 0.99
+  sex:
+    unknown: no sample record states sex
+    p: 0.81
+  age:
+    unknown: only adult worm, no number and unit
+    p: 0.84
+  tissue:
+    na: whole worms, no tissue dissected
+    p: 0.57
+  cell_type:
+    na: whole organism, no cell type
+    p: 0.95
+  cell_line:
+    na: animals, not cultured cells
+    p: 1.0
+  dose:
+    na: no dose-like treatment applied
+    p: 0.87
+  duration:
+    unknown: 37C exposure length not in sample records
+    p: 0.74
+  donor:
+    na: a pool of many individuals
+    p: 0.74
+samples:
+  GSM3768276:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate1
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768277:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate2
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768278:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate3
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768279:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 1.0
+    replicate:
+      text: replicate1
+      quoted:
+      - 6
+      p: 0.9
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768280:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 0.98
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 0.99
+    replicate:
+      text: replicate2
+      quoted:
+      - 7
+      p: 0.75
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768281:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 0.97
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 0.99
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 0.97
+    replicate:
+      text: replicate3
+      quoted:
+      - 8
+      p: 0.82
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768282:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 0.99
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.98
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate1
+      quoted:
+      - 6
+      p: 0.94
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768283:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 0.96
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.96
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate2
+      quoted:
+      - 7
+      p: 0.9
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768284:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 0.95
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.95
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate3
+      quoted:
+      - 8
+      p: 0.91
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768285:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.98
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 1.0
+    replicate:
+      text: replicate1
+      quoted:
+      - 6
+      p: 0.86
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768286:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 0.99
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 0.98
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.97
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 1.0
+    replicate:
+      text: replicate2
+      quoted:
+      - 7
+      p: 0.53
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768287:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 0.98
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 0.98
+    assay:
+      text: RNA-Seq
+      level: mRNAseq
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.94
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 0.98
+    replicate:
+      text: replicate3
+      quoted:
+      - 8
+      p: 0.79
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768288:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 0.99
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate1
+      quoted:
+      - 6
+      p: 0.86
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768289:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 0.97
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate2
+      quoted:
+      - 7
+      p: 0.89
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768290:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 0.98
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 0.99
+    replicate:
+      text: replicate3
+      quoted:
+      - 8
+      p: 0.86
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768291:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 1.0
+    replicate:
+      text: replicate1
+      quoted:
+      - 6
+      p: 0.87
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768292:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 0.99
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 0.99
+    replicate:
+      text: replicate2
+      quoted:
+      - 7
+      p: 0.85
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768293:
+    genotype:
+      text: deltaC38delta4.9
+      level: metl5_mutant
+      quoted:
+      - 1
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 0.99
+    strain:
+      text: deltaC38delta4.9
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 0.99
+    replicate:
+      text: replicate3
+      quoted:
+      - 8
+      p: 0.91
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768294:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 1.0
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.98
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate1
+      quoted:
+      - 6
+      p: 0.87
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768295:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 1.0
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.98
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate2
+      quoted:
+      - 7
+      p: 0.85
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768296:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 0.99
+    temperature:
+      text: '20'
+      level: 20C
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 0.99
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.98
+    treatment:
+      text: 'temperature: 20'
+      quoted:
+      - 2
+      p: 1.0
+    replicate:
+      text: replicate3
+      quoted:
+      - 8
+      p: 0.89
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768297:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.99
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 1.0
+    replicate:
+      text: replicate1
+      quoted:
+      - 6
+      p: 0.86
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768298:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.99
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 1.0
+    replicate:
+      text: replicate2
+      quoted:
+      - 7
+      p: 0.8
+    biosample:
+      id: B23
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3768299:
+    genotype:
+      text: Wild Type N2
+      level: wild_type
+      quoted:
+      - 10
+      p: 1.0
+    temperature:
+      text: '37'
+      level: 37C
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: Ribosomal profiling
+      level: RiboSeq
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: Wild Type N2
+      quoted:
+      - 10
+      p: 0.97
+    treatment:
+      text: 'temperature: 37'
+      quoted:
+      - 9
+      p: 1.0
+    replicate:
+      text: replicate3
+      quoted:
+      - 8
+      p: 0.87
+    biosample:
+      id: B24
+      inferred: no text says this library shares its material with another
+      p: null

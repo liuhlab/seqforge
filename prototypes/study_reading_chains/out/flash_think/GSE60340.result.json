@@ -1,0 +1,3728 @@
+{
+ "study": "GSE60340",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 24,
+ "dropped_samples": 0,
+ "has_full_text": false,
+ "factors": [
+  {
+   "label": "sample_group",
+   "levels": [
+    "young",
+    "aging",
+    "replicatively_senescent",
+    "induced_senescence",
+    "induced_quiescence",
+    "spontaneously_immortal"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.11,
+   "baseline": "L0",
+   "p_baseline": 0.71,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.8,
+   "p_ordered": 0.71,
+   "writer_baseline": "young",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "none",
+    "adriamycin",
+    "five_aza",
+    "h2o2",
+    "serum_starved"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.06,
+   "baseline": "no_reference",
+   "p_baseline": 0.55,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.65,
+   "p_ordered": 0.15,
+   "writer_baseline": "none",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": true,
+   "kept": true
+  },
+  {
+   "label": "passage",
+   "levels": [
+    "p10_12",
+    "p17_19",
+    "p28_30",
+    "gt200"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.19,
+   "baseline": "L0",
+   "p_baseline": 0.95,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.98,
+   "p_ordered": 0.94,
+   "writer_baseline": "p10_12",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [
+  "factor treatment: baseline differs when options are reversed"
+ ],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "na",
+   "p": 0.6,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "na",
+   "p": 0.8,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.84,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "na",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "sample_group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "passage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:sample_group",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "factor:passage",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM1473759": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "spontaneously immortal cells",
+    "spontaneously_immortal"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM1473764": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "spontaneously immortal cells",
+    "spontaneously_immortal"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM1473767": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "spontaneously immortal cells",
+    "spontaneously_immortal"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM1473770": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "young cells",
+    "young"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    "10-12",
+    "p10_12"
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM1473772": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "young cells",
+    "young"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    "10-12",
+    "p10_12"
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM1473774": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "young cells",
+    "young"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    "10-12",
+    "p10_12"
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM1473776": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "aging cells",
+    "aging"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    "17-19",
+    "p17_19"
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM1473779": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "aging cells",
+    "aging"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    "17-19",
+    "p17_19"
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM1473781": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "aging cells",
+    "aging"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    "17-19",
+    "p17_19"
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM1473784": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "replicatively senescent",
+    "replicatively_senescent"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    "28-30",
+    "p28_30"
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM1473786": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "replicatively senescent",
+    "replicatively_senescent"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    "28-30",
+    "p28_30"
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM1473788": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "replicatively senescent",
+    "replicatively_senescent"
+   ],
+   "treatment": [
+    "None",
+    "none"
+   ],
+   "passage": [
+    "28-30",
+    "p28_30"
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM1473790": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into senescence",
+    "induced_senescence"
+   ],
+   "treatment": [
+    "Adriamycin",
+    "adriamycin"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM1473792": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into senescence",
+    "induced_senescence"
+   ],
+   "treatment": [
+    "Adriamycin",
+    "adriamycin"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM1473794": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into senescence",
+    "induced_senescence"
+   ],
+   "treatment": [
+    "Adriamycin",
+    "adriamycin"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM1473796": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into senescence",
+    "induced_senescence"
+   ],
+   "treatment": [
+    "5-aza",
+    "five_aza"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  },
+  "GSM1473798": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into senescence",
+    "induced_senescence"
+   ],
+   "treatment": [
+    "5-aza",
+    "five_aza"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B17",
+    null
+   ]
+  },
+  "GSM1473800": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into senescence",
+    "induced_senescence"
+   ],
+   "treatment": [
+    "5-aza",
+    "five_aza"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B18",
+    null
+   ]
+  },
+  "GSM1473803": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into senescence",
+    "induced_senescence"
+   ],
+   "treatment": [
+    "H2O2",
+    "h2o2"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B19",
+    null
+   ]
+  },
+  "GSM1473805": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into senescence",
+    "induced_senescence"
+   ],
+   "treatment": [
+    "H2O2",
+    "h2o2"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B20",
+    null
+   ]
+  },
+  "GSM1473807": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into senescence",
+    "induced_senescence"
+   ],
+   "treatment": [
+    "H2O2",
+    "h2o2"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B21",
+    null
+   ]
+  },
+  "GSM1473810": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into quiescence",
+    "induced_quiescence"
+   ],
+   "treatment": [
+    "Serum-starved",
+    "serum_starved"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B22",
+    null
+   ]
+  },
+  "GSM1473812": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into quiescence",
+    "induced_quiescence"
+   ],
+   "treatment": [
+    "Serum-starved",
+    "serum_starved"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B23",
+    null
+   ]
+  },
+  "GSM1473815": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Skin",
+    null
+   ],
+   "cell_type": [
+    "MDAH041 LFS fibroblasts",
+    null
+   ],
+   "cell_line": [
+    "MDAH041",
+    null
+   ],
+   "disease": [
+    "LFS",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "sample_group": [
+    "induced into quiescence",
+    "induced_quiescence"
+   ],
+   "treatment": [
+    "Serum-starved",
+    "serum_starved"
+   ],
+   "passage": [
+    ">200",
+    "gt200"
+   ],
+   "biosample": [
+    "B24",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "sample_group": {
+   "levels": [
+    "young",
+    "aging",
+    "replicatively_senescent",
+    "induced_senescence",
+    "induced_quiescence",
+    "spontaneously_immortal"
+   ],
+   "baseline": "young",
+   "ordered": true,
+   "quoted": [
+    21
+   ],
+   "p": 0.98
+  },
+  "treatment": {
+   "levels": [
+    "none",
+    "adriamycin",
+    "five_aza",
+    "h2o2",
+    "serum_starved"
+   ],
+   "baseline": null,
+   "ordered": false,
+   "quoted": [
+    22
+   ],
+   "p": 0.97
+  },
+  "passage": {
+   "levels": [
+    "p10_12",
+    "p17_19",
+    "p28_30",
+    "gt200"
+   ],
+   "baseline": "p10_12",
+   "ordered": true,
+   "quoted": [
+    23
+   ],
+   "p": 0.97
+  }
+ },
+ "n_passages": 23,
+ "n_shared": 16,
+ "n_row_claims": 96,
+ "lists_summary": {
+  "factors": 3,
+  "factors_kept": 3,
+  "labels_with_values": 6,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "factor_over_part",
+    "note": "passage comparison covers only young, aging and senescent cultures; all treated groups are >200"
+   },
+   {
+    "kind": "duration_without_number",
+    "note": "treatment durations for Adriamycin, H2O2, 5-aza and serum starvation are not stated"
+   },
+   {
+    "kind": "term_missing",
+    "note": "LFS is never expanded and the senescence state has no ontology term in the records"
+   }
+  ],
+  "donor_kind_writer": "cell_line",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "sample_group/L0",
+   "status": "named",
+   "source": "GSM1473770",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 25,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sample_group/L1",
+   "status": "named",
+   "source": "GSM1473776",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 25,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sample_group/L2",
+   "status": "named",
+   "source": "GSM1473784",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 37,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sample_group/L3",
+   "status": "named",
+   "source": "GSM1473790",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 37,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sample_group/L4",
+   "status": "named",
+   "source": "GSM1473810",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 37,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sample_group/L5",
+   "status": "named",
+   "source": "GSM1473759",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 42,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sample_group/_factor",
+   "status": "named",
+   "source": "GSE60340",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 222,
+   "backs_p": 0.91
+  },
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM1473770",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM1473790",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L2",
+   "status": "named",
+   "source": "GSM1473796",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L3",
+   "status": "named",
+   "source": "GSM1473803",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L4",
+   "status": "named",
+   "source": "GSM1473810",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 27,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "named",
+   "source": "pmid:25483067",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 100,
+   "backs_p": 0.94
+  },
+  {
+   "key": "passage/L0",
+   "status": "named",
+   "source": "GSM1473770",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "passage/L1",
+   "status": "named",
+   "source": "GSM1473776",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.98
+  },
+  {
+   "key": "passage/L2",
+   "status": "named",
+   "source": "GSM1473784",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "passage/L3",
+   "status": "named",
+   "source": "GSM1473759",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "passage/_factor",
+   "status": "named",
+   "source": "GSE60340",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 70,
+   "backs_p": 0.83
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM1473759",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "GSM1473759",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 34,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_line/v0",
+   "status": "named",
+   "source": "GSE60340",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 42,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "GSE60340",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 42,
+   "backs_p": 0.92
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_line",
+   "text": "MDAH041",
+   "vocab": "cellosaurus",
+   "candidates": [
+    {
+     "id": "CVCL_E212",
+     "label": "MDAH041",
+     "exact": true
+    },
+    {
+     "id": "CVCL_IM77",
+     "label": "TR9-7",
+     "exact": false
+    }
+   ],
+   "pick": "CVCL_E212",
+   "p": 0.89,
+   "probe_pick": "none",
+   "probe_p": 0.75
+  },
+  {
+   "label": "cell_type",
+   "text": "MDAH041 LFS fibroblasts",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "LFS",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": [
+    {
+     "id": "MONDO:0018875",
+     "label": "Li-Fraumeni syndrome",
+     "exact": true
+    },
+    {
+     "id": "MONDO:0014165",
+     "label": "multiple congenital anomalies-hypotonia-seizures syndrome 3",
+     "exact": false
+    }
+   ],
+   "pick": "MONDO:0018875",
+   "p": 0.97,
+   "probe_pick": "none",
+   "probe_p": 0.99
+  },
+  {
+   "label": "tissue",
+   "text": "Skin",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0000014",
+     "label": "zone of skin",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0002097",
+     "label": "skin of body",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0001003",
+     "label": "skin epidermis",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0002199",
+     "label": "integument",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0003530",
+     "label": "pedal digit skin",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003533",
+     "label": "manual digit skin",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0001868",
+     "label": "skin of chest",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003605",
+     "label": "eye skin gland",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0002097",
+   "p": 0.82,
+   "probe_pick": "UBERON:0002199",
+   "probe_p": 0.69
+  },
+  {
+   "label": "treatment",
+   "text": "5-aza",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:2038",
+     "label": "5-azacytidine",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:191926",
+     "label": "[9-azaniumyl-4-[1-(5-azaniumyl-5-carboxypentyl)-3,5-bis(3-azaniumyl-3-carboxypropyl)pyridin-1-ium-4-yl]-1,9-dicarboxynonyl]azanium",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:46319",
+     "label": "6-azauridine 5'-monophosphate",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:57892",
+     "label": "3-(dioxido-lambda(5)-azanylidene)propanoate(2-)",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:102257",
+     "label": "6-azathymidine 5'-monophosphate",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:71523",
+     "label": "{[(1r,7r)-4-(4-acetamidophenyl)-3,5-dioxo-4-azatricyclo[5.2.2.0(2,6)]undec-1-yl]carbamoyloxy}acetic acid",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:185676",
+     "label": "5-Azacytidine 5'-diphosphate",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:7579",
+     "label": "(6S,7R)-2-azaspiro[5.5]undecan-7-ol",
+     "exact": false
+    }
+   ],
+   "pick": "CHEBI:2038",
+   "p": 0.96,
+   "probe_pick": "CHEBI:185676",
+   "probe_p": 0.5
+  },
+  {
+   "label": "treatment",
+   "text": "Adriamycin",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:28748",
+     "label": "doxorubicin",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:165223",
+     "label": "Adriamycinone",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:230657",
+     "label": "tetrahydropyranyl adriamycin",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:94770",
+     "label": "pirarubicin",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:133817",
+     "label": "doxorubicinol",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:41576",
+     "label": "3'-deamino-3'-(3-cyanomorpholin-4-yl)doxorubicin",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:761091",
+     "label": "doxorubicinol(1+)",
+     "exact": false
+    }
+   ],
+   "pick": "CHEBI:28748",
+   "p": 0.98,
+   "probe_pick": "none",
+   "probe_p": 0.8
+  },
+  {
+   "label": "treatment",
+   "text": "H2O2",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:16240",
+     "label": "hydrogen peroxide",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:50423",
+     "label": "EC 1.6.3.1. [NAD(P)H oxidase (H2O2-forming)] inhibitor",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:79092",
+     "label": "EC 1.11.2.* (oxidoreductase with H2O2 as acceptor, incorporating 1 O atom into product) inhibitor",
+     "exact": false
+    }
+   ],
+   "pick": "CHEBI:16240",
+   "p": 0.97,
+   "probe_pick": "none",
+   "probe_p": 0.97
+  },
+  {
+   "label": "treatment",
+   "text": "None",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:85655",
+     "label": "(3E)-nonenoyl-CoA(4-)",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:85960",
+     "label": "(3E)-nonenoyl-CoA",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:76292",
+     "label": "trans-2-nonenoyl-CoA(4-)",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:76314",
+     "label": "trans-2-nonenoyl-CoA",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:133457",
+     "label": "(3E)-3-nonen-2-one",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:142592",
+     "label": "(E)-non-2-enal",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:142603",
+     "label": "(Z)-non-6-en-1-ol",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:142604",
+     "label": "(E)-non-2-en-1-ol",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 1.0
+  },
+  {
+   "label": "treatment",
+   "text": "Serum-starved",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.19,
+  "untreated_or_vehicle": 0.94,
+  "several_compounds": 0.06,
+  "route_or_side": 0.04,
+  "dose_per_unit": 0.17,
+  "duration_without_number": 0.14,
+  "time_from_event": 0.22,
+  "pooled_material": 0.06,
+  "held_constant": 0.95,
+  "batch": 0.09,
+  "sequencer": 0.03,
+  "vector": 0.03,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.07,
+  "single_cell": 0.01,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "cell_line",
+  1.0
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.005447106,
+   "seconds": 39.66,
+   "tokens_in": 4787,
+   "tokens_out": 8164
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000314958,
+   "seconds": 0.293,
+   "tokens_in": 7499
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.334,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.354,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.379,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.341,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.327,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.481,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.379,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.236,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.372,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.214,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.378,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.278,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.34,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.261,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.376,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.26,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.524,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3744e-05,
+   "seconds": 0.579,
+   "tokens_in": 2232
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.496,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.469,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.435,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.47,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.306,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4164e-05,
+   "seconds": 0.266,
+   "tokens_in": 2242
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3996e-05,
+   "seconds": 0.258,
+   "tokens_in": 2238
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3996e-05,
+   "seconds": 0.317,
+   "tokens_in": 2238
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3996e-05,
+   "seconds": 0.345,
+   "tokens_in": 2238
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3996e-05,
+   "seconds": 0.223,
+   "tokens_in": 2238
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3996e-05,
+   "seconds": 0.349,
+   "tokens_in": 2238
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3996e-05,
+   "seconds": 0.205,
+   "tokens_in": 2238
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.268,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.241,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.236,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.257,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.239,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.231,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.278,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.273,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.257,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.256,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.279,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.412199999999999e-05,
+   "seconds": 0.258,
+   "tokens_in": 2241
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3954e-05,
+   "seconds": 0.309,
+   "tokens_in": 2237
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3954e-05,
+   "seconds": 0.249,
+   "tokens_in": 2237
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3954e-05,
+   "seconds": 0.246,
+   "tokens_in": 2237
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3954e-05,
+   "seconds": 0.3,
+   "tokens_in": 2237
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3954e-05,
+   "seconds": 0.356,
+   "tokens_in": 2237
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.3954e-05,
+   "seconds": 0.245,
+   "tokens_in": 2237
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000267834,
+   "seconds": 0.244,
+   "tokens_in": 6377
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 9.3618e-05,
+   "seconds": 0.229,
+   "tokens_in": 2229
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 7.6272e-05,
+   "seconds": 0.254,
+   "tokens_in": 1816
+  }
+ ],
+ "seconds": 0.36,
+ "ending": "unsettled",
+ "variant": "flash_think"
+}

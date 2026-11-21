@@ -1,0 +1,5821 @@
+{
+ "study": "GSE101112",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 32,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "treatment",
+   "levels": [
+    "control",
+    "CMS121",
+    "J147"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 0.99,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.98,
+   "p_ordered": 0.23,
+   "writer_baseline": "control",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "age",
+   "levels": [
+    "9_months",
+    "13_months",
+    "embryo"
+   ],
+   "p_designed": 0.94,
+   "p_designed_neg": 0.16,
+   "baseline": "L0",
+   "p_baseline": 0.78,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.94,
+   "p_ordered": 0.76,
+   "writer_baseline": null,
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [
+  [
+   "GSM2699387",
+   "lab_sex",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM2699388",
+   "lab_sex",
+   "v0",
+   "unknown"
+  ],
+  [
+   "GSM2699389",
+   "lab_duration",
+   "v0",
+   "na"
+  ],
+  [
+   "GSM2699390",
+   "lab_sex",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM2699390",
+   "lab_duration",
+   "na",
+   "v0"
+  ],
+  [
+   "GSM2699391",
+   "lab_duration",
+   "v0",
+   "na"
+  ],
+  [
+   "GSM2699393",
+   "lab_duration",
+   "v0",
+   "na"
+  ],
+  [
+   "GSM2699394",
+   "lab_sex",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM2699394",
+   "lab_duration",
+   "na",
+   "v0"
+  ],
+  [
+   "GSM2699408",
+   "lab_sex",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM2699411",
+   "lab_sex",
+   "unknown",
+   "v0"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.83,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "unknown",
+   "p": 0.71,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.79,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.59,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.58,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.47,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.61,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.5,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.61,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.66,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.54,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.49,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.58,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.49,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.49,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.53,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.72,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.76,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.76,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.5,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.72,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.5,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.72,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.72,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.72,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.48,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.72,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.59,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.5,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.47,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.66,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.59,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.76,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.66,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:age",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM2699384": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "9 months",
+    "9_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM2699385": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "9 months",
+    "9_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM2699386": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "9 months",
+    "9_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM2699387": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "9 months",
+    "9_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM2699388": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "9 months",
+    "9_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM2699389": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM2699390": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM2699391": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM2699392": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  },
+  "GSM2699393": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D10",
+    null
+   ]
+  },
+  "GSM2699394": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D11",
+    null
+   ]
+  },
+  "GSM2699401": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drug121",
+    "CMS121"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "400ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D12",
+    null
+   ]
+  },
+  "GSM2699402": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drug121",
+    "CMS121"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "400ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D13",
+    null
+   ]
+  },
+  "GSM2699403": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drug121",
+    "CMS121"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "400ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D14",
+    null
+   ]
+  },
+  "GSM2699404": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drug121",
+    "CMS121"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "400ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D15",
+    null
+   ]
+  },
+  "GSM2699405": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drug121",
+    "CMS121"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "400ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D16",
+    null
+   ]
+  },
+  "GSM2699406": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drug121",
+    "CMS121"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "400ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ],
+   "donor": [
+    "D17",
+    null
+   ]
+  },
+  "GSM2699407": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drugJ147",
+    "J147"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "200ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ],
+   "donor": [
+    "D18",
+    null
+   ]
+  },
+  "GSM2699408": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drugJ147",
+    "J147"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "200ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B19",
+    null
+   ],
+   "donor": [
+    "D19",
+    null
+   ]
+  },
+  "GSM2699409": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drugJ147",
+    "J147"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "200ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B20",
+    null
+   ],
+   "donor": [
+    "D20",
+    null
+   ]
+  },
+  "GSM2699410": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drugJ147",
+    "J147"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "200ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B21",
+    null
+   ],
+   "donor": [
+    "D21",
+    null
+   ]
+  },
+  "GSM2699411": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drugJ147",
+    "J147"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "200ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B22",
+    null
+   ],
+   "donor": [
+    "D22",
+    null
+   ]
+  },
+  "GSM2699412": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drugJ147",
+    "J147"
+   ],
+   "age": [
+    "13 months",
+    "13_months"
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain hippocampal tissue",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "SAMP8",
+    null
+   ],
+   "dose": [
+    "200ppm",
+    null
+   ],
+   "duration": [
+    "four months",
+    null
+   ],
+   "biosample": [
+    "B23",
+    null
+   ],
+   "donor": [
+    "D23",
+    null
+   ]
+  },
+  "GSM2699413": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "embryo",
+    "embryo"
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "embryo",
+    null
+   ],
+   "tissue": [
+    "cortical neurons",
+    null
+   ],
+   "cell_type": [
+    "rat primary neuron",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "24h",
+    null
+   ],
+   "biosample": [
+    "B24",
+    null
+   ],
+   "donor": [
+    "D24",
+    null
+   ]
+  },
+  "GSM2699414": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "embryo",
+    "embryo"
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "embryo",
+    null
+   ],
+   "tissue": [
+    "cortical neurons",
+    null
+   ],
+   "cell_type": [
+    "rat primary neuron",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "24h",
+    null
+   ],
+   "biosample": [
+    "B25",
+    null
+   ],
+   "donor": [
+    "D25",
+    null
+   ]
+  },
+  "GSM2699415": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "age": [
+    "embryo",
+    "embryo"
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "embryo",
+    null
+   ],
+   "tissue": [
+    "cortical neurons",
+    null
+   ],
+   "cell_type": [
+    "rat primary neuron",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "24h",
+    null
+   ],
+   "biosample": [
+    "B26",
+    null
+   ],
+   "donor": [
+    "D26",
+    null
+   ]
+  },
+  "GSM2699419": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drug121",
+    "CMS121"
+   ],
+   "age": [
+    "embryo",
+    "embryo"
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "embryo",
+    null
+   ],
+   "tissue": [
+    "cortical neurons",
+    null
+   ],
+   "cell_type": [
+    "rat primary neuron",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "1μM",
+    null
+   ],
+   "duration": [
+    "24h",
+    null
+   ],
+   "biosample": [
+    "B27",
+    null
+   ],
+   "donor": [
+    "D27",
+    null
+   ]
+  },
+  "GSM2699420": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drug121",
+    "CMS121"
+   ],
+   "age": [
+    "embryo",
+    "embryo"
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "embryo",
+    null
+   ],
+   "tissue": [
+    "cortical neurons",
+    null
+   ],
+   "cell_type": [
+    "rat primary neuron",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "1μM",
+    null
+   ],
+   "duration": [
+    "24h",
+    null
+   ],
+   "biosample": [
+    "B28",
+    null
+   ],
+   "donor": [
+    "D28",
+    null
+   ]
+  },
+  "GSM2699421": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drug121",
+    "CMS121"
+   ],
+   "age": [
+    "embryo",
+    "embryo"
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "embryo",
+    null
+   ],
+   "tissue": [
+    "cortical neurons",
+    null
+   ],
+   "cell_type": [
+    "rat primary neuron",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "1μM",
+    null
+   ],
+   "duration": [
+    "24h",
+    null
+   ],
+   "biosample": [
+    "B29",
+    null
+   ],
+   "donor": [
+    "D29",
+    null
+   ]
+  },
+  "GSM2699422": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drugJ147",
+    "J147"
+   ],
+   "age": [
+    "embryo",
+    "embryo"
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "embryo",
+    null
+   ],
+   "tissue": [
+    "cortical neurons",
+    null
+   ],
+   "cell_type": [
+    "rat primary neuron",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "1μM",
+    null
+   ],
+   "duration": [
+    "24h",
+    null
+   ],
+   "biosample": [
+    "B30",
+    null
+   ],
+   "donor": [
+    "D30",
+    null
+   ]
+  },
+  "GSM2699423": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drugJ147",
+    "J147"
+   ],
+   "age": [
+    "embryo",
+    "embryo"
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "embryo",
+    null
+   ],
+   "tissue": [
+    "cortical neurons",
+    null
+   ],
+   "cell_type": [
+    "rat primary neuron",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "1μM",
+    null
+   ],
+   "duration": [
+    "24h",
+    null
+   ],
+   "biosample": [
+    "B31",
+    null
+   ],
+   "donor": [
+    "D31",
+    null
+   ]
+  },
+  "GSM2699424": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "drugJ147",
+    "J147"
+   ],
+   "age": [
+    "embryo",
+    "embryo"
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "embryo",
+    null
+   ],
+   "tissue": [
+    "cortical neurons",
+    null
+   ],
+   "cell_type": [
+    "rat primary neuron",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "1μM",
+    null
+   ],
+   "duration": [
+    "24h",
+    null
+   ],
+   "biosample": [
+    "B32",
+    null
+   ],
+   "donor": [
+    "D32",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "treatment": {
+   "levels": [
+    "control",
+    "CMS121",
+    "J147"
+   ],
+   "baseline": "control",
+   "ordered": false,
+   "quoted": [
+    19
+   ],
+   "p": 0.98
+  },
+  "age": {
+   "levels": [
+    "9_months",
+    "13_months",
+    "embryo"
+   ],
+   "baseline": "9_months",
+   "ordered": true,
+   "inferred": "young vs old mouse ages plus embryonic neurons",
+   "p": 0.94
+  }
+ },
+ "n_passages": 19,
+ "n_shared": 6,
+ "n_row_claims": 384,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 11,
+  "extra_labels": 0,
+  "writer_gaps": [
+   {
+    "kind": "sources_disagree",
+    "note": "Series says five 8-month male baseline; sample young are 9 months; series says six per group but five young samples."
+   },
+   {
+    "kind": "baseline_as_control",
+    "note": "Young baseline group is labelled treatment: control in sample records; it is a comparison baseline."
+   },
+   {
+    "kind": "several_compounds",
+    "note": "Protocol mentions CAD031, but no CAD031 samples are sequenced; only CMS121 and J147."
+   },
+   {
+    "kind": "factor_over_part",
+    "note": "Treatment, dose and duration differ between mouse hippocampus and rat primary neuron experiments."
+   },
+   {
+    "kind": "crossed_not_fully",
+    "note": "Age and treatment are not fully crossed; young mice are only control."
+   },
+   {
+    "kind": "term_missing",
+    "note": "Neuron age is recorded as embryo with no number; rat embryo sex is absent."
+   },
+   {
+    "kind": "dose_per_unit",
+    "note": "Diet doses are ppm of diet, while culture dose is μM."
+   },
+   {
+    "kind": "pooled_material",
+    "note": "Primary cortical neurons prepared from day seventeen rat embryos; pooling not specified."
+   },
+   {
+    "kind": "group_smaller_than_study",
+    "note": "Only five young samples appear, whereas series describes six mice per group."
+   }
+  ],
+  "donor_kind_writer": "unknown",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM2699384",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM2699401",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L2",
+   "status": "named",
+   "source": "GSM2699407",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "named",
+   "source": "GSE101112",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 123,
+   "backs_p": 0.98
+  },
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM2699384",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM2699389",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L2",
+   "status": "named",
+   "source": "GSM2699413",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM2699384",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "target/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "control_type/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM2699384",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v1",
+   "status": "named",
+   "source": "GSM2699413",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "GSE101112",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 46,
+   "backs_p": 0.97
+  },
+  {
+   "key": "sex/v1",
+   "status": "named",
+   "source": "GSE101112",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 77,
+   "backs_p": 0.96
+  },
+  {
+   "key": "sex/v2",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_extract_protocol_ch1",
+   "exact": true,
+   "quote_len": 121,
+   "backs_p": 0.58
+  },
+  {
+   "key": "development_stage/v1",
+   "status": "named",
+   "source": "GSM2699413",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM2699384",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 43,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v1",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_growth_protocol_ch1",
+   "exact": true,
+   "quote_len": 69,
+   "backs_p": 0.94
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "GSM2699413",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v1",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSE101112",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.98
+  },
+  {
+   "key": "dose/v0",
+   "status": "named",
+   "source": "GSE101112",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 39,
+   "backs_p": 0.78
+  },
+  {
+   "key": "dose/v1",
+   "status": "named",
+   "source": "GSE101112",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 39,
+   "backs_p": 0.2
+  },
+  {
+   "key": "dose/v2",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 63,
+   "backs_p": 0.98
+  },
+  {
+   "key": "dose/v3",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "duration/v0",
+   "status": "named",
+   "source": "GSE101112",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 80,
+   "backs_p": 0.98
+  },
+  {
+   "key": "duration/v1",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 63,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "rat primary neuron",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "development_stage",
+   "text": "adult",
+   "vocab": [
+    "mmusdv"
+   ],
+   "candidates": [
+    {
+     "id": "MmusDv:0000134",
+     "label": "late adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000136",
+     "label": "prime adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000153",
+     "label": "young adult stage",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.65
+  },
+  {
+   "label": "development_stage",
+   "text": "embryo",
+   "vocab": [
+    "mmusdv"
+   ],
+   "candidates": [
+    {
+     "id": "MmusDv:0000002",
+     "label": "embryonic stage",
+     "exact": false
+    }
+   ],
+   "pick": "MmusDv:0000002",
+   "p": 0.72
+  },
+  {
+   "label": "tissue",
+   "text": "brain hippocampal tissue",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "cortical neurons",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "CL:4023038",
+     "label": "L6b glutamatergic cortical neuron",
+     "exact": false
+    },
+    {
+     "id": "CL:0010012",
+     "label": "cerebral cortex neuron",
+     "exact": false
+    }
+   ],
+   "pick": "CL:0010012",
+   "p": 0.66,
+   "probe_pick": "none",
+   "probe_p": 0.69
+  },
+  {
+   "label": "treatment",
+   "text": "control",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:131770",
+     "label": "EC 3.6.3.49 (channel-conductance-controlling ATPase) inhibitor",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:50689",
+     "label": "reproductive control drug",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:50270",
+     "label": "pantoprazole sodium",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:753701",
+     "label": "schick test control",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:51268",
+     "label": "drying control chemical additive",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:64049",
+     "label": "food acidity regulator",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:749857",
+     "label": "histamine dihydrochloride",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.94
+  },
+  {
+   "label": "treatment",
+   "text": "drug121",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "drugJ147",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.53,
+  "untreated_or_vehicle": 0.99,
+  "several_compounds": 0.09,
+  "route_or_side": 0.78,
+  "dose_per_unit": 0.66,
+  "duration_without_number": 0.23,
+  "time_from_event": 0.68,
+  "pooled_material": 0.07,
+  "held_constant": 0.9,
+  "batch": 0.09,
+  "sequencer": 0.03,
+  "vector": 0.03,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.13,
+  "single_cell": 0.01,
+  "mixed_assays": 0.03
+ },
+ "donor_kind": [
+  "one_each",
+  0.78
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.010202256,
+   "seconds": 88.108,
+   "tokens_in": 5888,
+   "tokens_out": 15814
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000298242,
+   "seconds": 0.373,
+   "tokens_in": 7101
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.302,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.304,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.347,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.299,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.348,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.339,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.348,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.292,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.415,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012306,
+   "seconds": 0.325,
+   "tokens_in": 2930
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.315,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.376,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.328,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.315,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.356,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.281,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.272,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.368,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.348,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.37,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.507,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.368,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123018,
+   "seconds": 0.293,
+   "tokens_in": 2929
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.424,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.283,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.335,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.334,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.339,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.335,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.339,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.337,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.338,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.289,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.289,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.272,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.33,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.324,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.434,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.509,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.473,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.46,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.327,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.333,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.315,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.293,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123648,
+   "seconds": 0.245,
+   "tokens_in": 2944
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012285,
+   "seconds": 0.298,
+   "tokens_in": 2925
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012285,
+   "seconds": 0.248,
+   "tokens_in": 2925
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012285,
+   "seconds": 0.3,
+   "tokens_in": 2925
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012285,
+   "seconds": 0.267,
+   "tokens_in": 2925
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012285,
+   "seconds": 1.455,
+   "tokens_in": 2925
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012285,
+   "seconds": 1.577,
+   "tokens_in": 2925
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 1.572,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 1.571,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 1.468,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 1.524,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.456,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123396,
+   "seconds": 0.313,
+   "tokens_in": 2938
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123564,
+   "seconds": 0.469,
+   "tokens_in": 2942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123564,
+   "seconds": 0.468,
+   "tokens_in": 2942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123564,
+   "seconds": 0.314,
+   "tokens_in": 2942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123564,
+   "seconds": 0.356,
+   "tokens_in": 2942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123564,
+   "seconds": 0.463,
+   "tokens_in": 2942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123564,
+   "seconds": 0.32,
+   "tokens_in": 2942
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00030575999999999997,
+   "seconds": 0.16,
+   "tokens_in": 7280
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 5.1072e-05,
+   "seconds": 0.357,
+   "tokens_in": 1216
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 3.2802e-05,
+   "seconds": 0.423,
+   "tokens_in": 781
+  }
+ ],
+ "seconds": 0.25,
+ "ending": "settled",
+ "variant": "flash_think"
+}

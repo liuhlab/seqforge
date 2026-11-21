@@ -1,0 +1,3506 @@
+{
+ "study": "GSE112068",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 23,
+ "dropped_samples": 0,
+ "has_full_text": false,
+ "factors": [
+  {
+   "label": "treatment",
+   "levels": [
+    "control",
+    "bleomycin"
+   ],
+   "p_designed": 0.82,
+   "p_designed_neg": 0.12,
+   "baseline": "L0",
+   "p_baseline": 0.97,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.98,
+   "p_ordered": 0.96,
+   "writer_baseline": "control",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "dose",
+   "levels": [
+    "0",
+    "2",
+    "40"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 0.98,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.99,
+   "p_ordered": 0.96,
+   "writer_baseline": "0",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "time_after_exposure",
+   "levels": [
+    "0_day",
+    "2_h",
+    "4_h",
+    "8_h",
+    "12_h",
+    "24_h",
+    "36_h",
+    "2_days",
+    "4_days",
+    "6_days",
+    "8_days"
+   ],
+   "p_designed": 0.96,
+   "p_designed_neg": 0.04,
+   "baseline": "L0",
+   "p_baseline": 0.96,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.98,
+   "p_ordered": 0.98,
+   "writer_baseline": "0_day",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.71,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.65,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "na",
+   "p": 0.63,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.83,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_exposure",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "inferred",
+   "p": 0.82,
+   "shared": true
+  },
+  {
+   "label": "factor:dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "factor:time_after_exposure",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM3056966": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "dose": [
+    "0 ug/ml",
+    "0"
+   ],
+   "time_after_exposure": [
+    "0 day",
+    "0_day"
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM3056967": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "dose": [
+    "0 ug/ml",
+    "0"
+   ],
+   "time_after_exposure": [
+    "4 days",
+    "4_days"
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM3056968": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "control",
+    "control"
+   ],
+   "dose": [
+    "0 ug/ml",
+    "0"
+   ],
+   "time_after_exposure": [
+    "8 days",
+    "8_days"
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM3056969": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "2 days",
+    "2_days"
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM3056970": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "2 h",
+    "2_h"
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM3056971": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "4 days",
+    "4_days"
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM3056972": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "4 h",
+    "4_h"
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM3056973": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "6 days",
+    "6_days"
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM3056974": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "8 days",
+    "8_days"
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM3056975": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "8 h",
+    "8_h"
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM3056976": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "12 h",
+    "12_h"
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM3056977": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "24 h",
+    "24_h"
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM3056978": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "2 ug/ml",
+    "2"
+   ],
+   "time_after_exposure": [
+    "36 h",
+    "36_h"
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM3056979": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "2 days",
+    "2_days"
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM3056980": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "2 h",
+    "2_h"
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM3056981": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "4 days",
+    "4_days"
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  },
+  "GSM3056982": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "4 h",
+    "4_h"
+   ],
+   "biosample": [
+    "B17",
+    null
+   ]
+  },
+  "GSM3056983": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "6 days",
+    "6_days"
+   ],
+   "biosample": [
+    "B18",
+    null
+   ]
+  },
+  "GSM3056984": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "8 days",
+    "8_days"
+   ],
+   "biosample": [
+    "B19",
+    null
+   ]
+  },
+  "GSM3056985": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "8 h",
+    "8_h"
+   ],
+   "biosample": [
+    "B20",
+    null
+   ]
+  },
+  "GSM3056986": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "12 h",
+    "12_h"
+   ],
+   "biosample": [
+    "B21",
+    null
+   ]
+  },
+  "GSM3056987": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "24 h",
+    "24_h"
+   ],
+   "biosample": [
+    "B22",
+    null
+   ]
+  },
+  "GSM3056988": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "age": [
+    "16 weeks gestation",
+    null
+   ],
+   "development_stage": [
+    "16 weeks gestation",
+    null
+   ],
+   "tissue": [
+    "lung",
+    null
+   ],
+   "cell_type": [
+    "fibroblast",
+    null
+   ],
+   "cell_line": [
+    "IMR-90",
+    null
+   ],
+   "duration": [
+    "2 h",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "bleomycin",
+    "bleomycin"
+   ],
+   "dose": [
+    "40 ug/ml",
+    "40"
+   ],
+   "time_after_exposure": [
+    "36 h",
+    "36_h"
+   ],
+   "biosample": [
+    "B23",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "treatment": {
+   "levels": [
+    "control",
+    "bleomycin"
+   ],
+   "baseline": "control",
+   "ordered": true,
+   "inferred": "Agent control versus bleomycin; control is baseline.",
+   "p": 0.82
+  },
+  "dose": {
+   "levels": [
+    "0",
+    "2",
+    "40"
+   ],
+   "baseline": "0",
+   "ordered": true,
+   "quoted": [
+    24
+   ],
+   "p": 0.99
+  },
+  "time_after_exposure": {
+   "levels": [
+    "0_day",
+    "2_h",
+    "4_h",
+    "8_h",
+    "12_h",
+    "24_h",
+    "36_h",
+    "2_days",
+    "4_days",
+    "6_days",
+    "8_days"
+   ],
+   "baseline": "0_day",
+   "ordered": true,
+   "inferred": "Harvest times after exposure; sample records include 36 h.",
+   "p": 0.96
+  }
+ },
+ "n_passages": 24,
+ "n_shared": 15,
+ "n_row_claims": 92,
+ "lists_summary": {
+  "factors": 3,
+  "factors_kept": 3,
+  "labels_with_values": 8,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "sources_disagree",
+    "note": "Protocol lists 32 h; sample records list 36 h for bleomycin time course."
+   },
+   {
+    "kind": "baseline_as_control",
+    "note": "'agent: control' at 0 ug/ml is untreated baseline, not an input/IgG control."
+   },
+   {
+    "kind": "time_from_event",
+    "note": "Recorded time is harvest after exposure, not treatment duration."
+   },
+   {
+    "kind": "crossed_not_fully",
+    "note": "Control samples have only 0 day, 4 days, 8 days; bleomycin has other time points."
+   },
+   {
+    "kind": "untreated_or_vehicle",
+    "note": "0 ug/ml records say 'no exposure'; no vehicle control is described."
+   }
+  ],
+  "donor_kind_writer": "cell_line",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM3056966",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM3056969",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "dose/L0",
+   "status": "named",
+   "source": "GSM3056966",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "dose/L1",
+   "status": "named",
+   "source": "GSM3056969",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "dose/L2",
+   "status": "named",
+   "source": "GSM3056979",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "dose/_factor",
+   "status": "named",
+   "source": "GSE112068",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 51,
+   "backs_p": 0.94
+  },
+  {
+   "key": "time_after_exposure/L0",
+   "status": "named",
+   "source": "GSM3056966",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.98
+  },
+  {
+   "key": "time_after_exposure/L1",
+   "status": "named",
+   "source": "GSM3056970",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_after_exposure/L2",
+   "status": "named",
+   "source": "GSM3056972",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.98
+  },
+  {
+   "key": "time_after_exposure/L3",
+   "status": "named",
+   "source": "GSM3056975",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_after_exposure/L4",
+   "status": "named",
+   "source": "GSM3056976",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_after_exposure/L5",
+   "status": "named",
+   "source": "GSM3056977",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_after_exposure/L6",
+   "status": "named",
+   "source": "GSM3056978",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.3
+  },
+  {
+   "key": "time_after_exposure/L7",
+   "status": "named",
+   "source": "GSM3056969",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_after_exposure/L8",
+   "status": "named",
+   "source": "GSM3056971",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_after_exposure/L9",
+   "status": "named",
+   "source": "GSM3056973",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_after_exposure/L10",
+   "status": "named",
+   "source": "GSM3056974",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_after_exposure/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.97
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 4,
+   "backs_p": 0.91
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_line/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "duration/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 87,
+   "backs_p": 0.98
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_line",
+   "text": "IMR-90",
+   "vocab": "cellosaurus",
+   "candidates": [
+    {
+     "id": "CVCL_0347",
+     "label": "IMR-90",
+     "exact": true
+    },
+    {
+     "id": "CVCL_2963",
+     "label": "IMR-90-40",
+     "exact": false
+    },
+    {
+     "id": "CVCL_2964",
+     "label": "IMR-90-50",
+     "exact": false
+    },
+    {
+     "id": "CVCL_6269",
+     "label": "IMR-90-SV",
+     "exact": false
+    },
+    {
+     "id": "CVCL_HA48",
+     "label": "IMR-90/GFPdeltaRaf-1[YY]:ER",
+     "exact": false
+    },
+    {
+     "id": "CVCL_3874",
+     "label": "IDH4",
+     "exact": false
+    },
+    {
+     "id": "CVCL_ZX71",
+     "label": "IMR90-890",
+     "exact": false
+    },
+    {
+     "id": "CVCL_U243",
+     "label": "ITV",
+     "exact": false
+    }
+   ],
+   "pick": "CVCL_0347",
+   "p": 0.97,
+   "probe_pick": "none",
+   "probe_p": 0.75
+  },
+  {
+   "label": "cell_type",
+   "text": "fibroblast",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": [
+    {
+     "id": "CL:0000057",
+     "label": "fibroblast",
+     "exact": true
+    },
+    {
+     "id": "CL:4028006",
+     "label": "alveolar adventitial fibroblast",
+     "exact": false
+    },
+    {
+     "id": "CL:0002548",
+     "label": "fibroblast of cardiac tissue",
+     "exact": false
+    },
+    {
+     "id": "CL:0002620",
+     "label": "skin fibroblast",
+     "exact": false
+    },
+    {
+     "id": "CL:0020123",
+     "label": "submucosal gut fibroblast",
+     "exact": false
+    },
+    {
+     "id": "CL:4052004",
+     "label": "intestinal fibroblastic reticular cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0002241",
+     "label": "pulmonary interstitial fibroblast",
+     "exact": false
+    },
+    {
+     "id": "CL:4023058",
+     "label": "mesothelial fibroblast of the leptomeninx",
+     "exact": false
+    }
+   ],
+   "pick": "CL:0000057",
+   "p": 0.96,
+   "probe_pick": "CL:0002241",
+   "probe_p": 0.55
+  },
+  {
+   "label": "development_stage",
+   "text": "16 weeks gestation",
+   "vocab": [
+    "hsapdv"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "lung",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0002048",
+     "label": "lung",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0002174",
+     "label": "middle lobe of right lung",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0002170",
+     "label": "upper lobe of right lung",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0002171",
+     "label": "lower lobe of right lung",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003615",
+     "label": "lung elastic tissue",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0000102",
+     "label": "lung vasculature",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0000170",
+     "label": "pair of lungs",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004887",
+     "label": "left lung hilus",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0002048",
+   "p": 0.97,
+   "probe_pick": "UBERON:0000170",
+   "probe_p": 0.64
+  },
+  {
+   "label": "treatment",
+   "text": "bleomycin",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:22907",
+     "label": "bleomycin",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:3139",
+     "label": "bleomycin A2",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:34582",
+     "label": "bleomycin sulfate",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:28641",
+     "label": "bleomycin B2",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:78160",
+     "label": "bleomycin A5",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:78353",
+     "label": "bleomycin hydrochloride",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:749657",
+     "label": "bleomycin a6",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:201414",
+     "label": "Bleomycin A5 hydrochloride",
+     "exact": false
+    }
+   ],
+   "pick": "CHEBI:22907",
+   "p": 0.89,
+   "probe_pick": "CHEBI:3139",
+   "probe_p": 0.39
+  },
+  {
+   "label": "treatment",
+   "text": "control",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:131770",
+     "label": "EC 3.6.3.49 (channel-conductance-controlling ATPase) inhibitor",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:50689",
+     "label": "reproductive control drug",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:50270",
+     "label": "pantoprazole sodium",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:753701",
+     "label": "schick test control",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:51268",
+     "label": "drying control chemical additive",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:64049",
+     "label": "food acidity regulator",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:749857",
+     "label": "histamine dihydrochloride",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.94
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.62,
+  "untreated_or_vehicle": 0.97,
+  "several_compounds": 0.03,
+  "route_or_side": 0.04,
+  "dose_per_unit": 0.18,
+  "duration_without_number": 0.06,
+  "time_from_event": 0.82,
+  "pooled_material": 0.07,
+  "held_constant": 0.96,
+  "batch": 0.07,
+  "sequencer": 0.04,
+  "vector": 0.02,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.08,
+  "single_cell": 0.02,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "cell_line",
+  0.99
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.011634756,
+   "seconds": 93.092,
+   "tokens_in": 6342,
+   "tokens_out": 18088
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000362166,
+   "seconds": 0.293,
+   "tokens_in": 8623
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000118482,
+   "seconds": 0.241,
+   "tokens_in": 2821
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011844,
+   "seconds": 0.261,
+   "tokens_in": 2820
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000118482,
+   "seconds": 0.341,
+   "tokens_in": 2821
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000118482,
+   "seconds": 0.29,
+   "tokens_in": 2821
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000118482,
+   "seconds": 0.311,
+   "tokens_in": 2821
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011844,
+   "seconds": 0.292,
+   "tokens_in": 2820
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.277,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.238,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.336,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.329,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.295,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.33,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.221,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.472,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.384,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.426,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.366,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.478,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.423,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.308,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.314,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.211,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.265,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.443,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.439,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.328,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.334,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.287,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.333,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.26,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.257,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.311,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.31,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.305,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.397,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.348,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.457,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.408,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.389,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012012,
+   "seconds": 0.419,
+   "tokens_in": 2860
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120288,
+   "seconds": 0.317,
+   "tokens_in": 2864
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120288,
+   "seconds": 0.415,
+   "tokens_in": 2864
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120288,
+   "seconds": 0.362,
+   "tokens_in": 2864
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120288,
+   "seconds": 0.49,
+   "tokens_in": 2864
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120288,
+   "seconds": 0.49,
+   "tokens_in": 2864
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120288,
+   "seconds": 0.53,
+   "tokens_in": 2864
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00032949,
+   "seconds": 0.189,
+   "tokens_in": 7845
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 7.9212e-05,
+   "seconds": 0.275,
+   "tokens_in": 1886
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 6.615e-05,
+   "seconds": 0.258,
+   "tokens_in": 1575
+  }
+ ],
+ "seconds": 0.27,
+ "ending": "settled",
+ "variant": "flash_think"
+}

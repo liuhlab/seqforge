@@ -77,14 +77,14 @@ for v in VARIANTS:
     c_ds = [cost(r, "deepseek") for r in rs.values()]
     c_j = [cost(r, "jev") for r in rs.values()]
     t_w = [secs(r, "deepseek") for r in rs.values()]
-    t_s = [r.get("seconds", 0) for r in rs.values()]
+    t_s = [secs(r, "jev") for r in rs.values()]
     rows.append([NAME[v], len(rs), e["settled"], e["unsettled"], e["refused"],
                  f"${sum(c_ds):.3f}", f"${sum(c_j):.3f}",
                  f"${med([a + b for a, b in zip(c_ds, c_j)]):.4f} / ${max([a + b for a, b in zip(c_ds, c_j)] or [0]):.4f}",
                  f"{med(t_w):.1f} / {max(t_w or [0]):.1f}",
                  f"{med(t_s):.1f} / {max(t_s or [0]):.1f}"])
 table(["Chain", "Studies", "Settled", "Unsettled", "Refused", "DeepSeek $ (all)", "Jev $ (all)",
-       "$ per study, median / max", "Writer s, median / max", "Jev steps wall s, median / max"],
+       "$ per study, median / max", "Writer s, median / max", "Jev s summed over requests, median / max"],
       rows)
 
 p("Refusal reasons:\n")
@@ -140,7 +140,7 @@ for v in VARIANTS:
     any_p = sum(1 for r in ok if any((c["p"] is not None and c["p"] < 0.5) for c in r.get("claims", [])))
     rows.append([NAME[v], len(ok), asrun, any_dis, lvl_p, fac_p, any_p])
 table(["Chain", "Not refused", "As run: asks disagree on a factor or a level",
-       "Asks disagree on any question", "A factor or level claim with p < 0.8",
+       "A per-sample pick on any label changes with options reversed", "A factor or level claim with p < 0.8",
        "A kept factor with p(varied) < 0.9", "Any claim with p < 0.5"], rows)
 
 # ------------------------------------------------------------------ ask twice
@@ -163,7 +163,7 @@ for v in VARIANTS:
             fd += bool(f.get("designed_disagree"))
             bd += bool(f.get("baseline_disagree"))
     rows.append([NAME[v], nf, fd, bd, n_q, n_d, n_ld])
-table(["Chain", "Factors listed", "Varied-on-purpose: plain and negated agree on the side (disagree)",
+table(["Chain", "Factors listed", "Varied on purpose: plain and negated asks contradict",
        "Baseline differs with options reversed", "Per-sample claims", "Per-sample picks that change with options reversed",
        "of which a factor level"], rows)
 
@@ -347,6 +347,37 @@ for lb in labels18:
         out.append(f"{100 * diff / max(1, same + diff):.0f}%")
     rows.append([lb] + out)
 table(["Label", "thinking+full vs code", "Flash full: thinking off vs on", "Flash: abstracts vs full text"], rows)
+
+p("Per label, how a sample's claim changes from chain A to chain B: unknown in A and a value in B "
+  "(gained), a value in A and unknown in B (lost), a value in both with different words (reworded or "
+  "different), na in one and a value in the other:\n")
+rows = []
+for a, b in (("flash", "flash_full"), ("flash_think", "flash_think_full"), ("code", "flash_think"),
+             ("flash", "flash_think")):
+    for lb in labels18:
+        c = Counter()
+        for g in IDS:
+            ra, rb = R[a].get(g), R[b].get(g)
+            if not ra or not rb or not ra.get("values") or not rb.get("values"):
+                continue
+            for s_, labs in ra["values"].items():
+                x = labs.get(lb, ("?",))[0]
+                y = rb["values"].get(s_, {}).get(lb, ("?",))[0]
+                xv, yv = x not in ("<unknown>", "<na>"), y not in ("<unknown>", "<na>")
+                if x == "<unknown>" and yv:
+                    c["gained"] += 1
+                elif xv and y == "<unknown>":
+                    c["lost"] += 1
+                elif xv and yv and norm(x) != norm(y):
+                    c["differ"] += 1
+                elif (x == "<na>") != (y == "<na>") and (xv or yv):
+                    c["na vs value"] += 1
+                c["n"] += 1
+        if c["gained"] or c["lost"] or c["differ"] or c["na vs value"]:
+            rows.append([f"{NAME[a]} -> {NAME[b]}", lb, c["n"], c["gained"], c["lost"], c["differ"],
+                         c["na vs value"]])
+table(["A -> B", "Label", "Sample claims compared", "Gained a value", "Lost a value",
+       "Both valued, words differ", "na in one, value in other"], rows)
 
 # ------------------------------------------------------------------ vs the five examples
 p("## Against the five example readings (differences only; the examples are not a gold standard)\n")

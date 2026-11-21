@@ -1,0 +1,395 @@
+format: 1
+study: GSE165978
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM5059685
+    - GSM5059686
+    - GSM5059687
+    - GSM5059688
+    - GSM5059689
+    - GSM5059692
+    - GSM5059693
+    field: Sample_characteristics_ch1
+    quote: 'strain: C57BL6J'
+  2:
+    record:
+    - GSM5059685
+    - GSM5059686
+    - GSM5059687
+    - GSM5059692
+    field: Sample_characteristics_ch1
+    quote: 'age: 22-24 months'
+  3:
+    record:
+    - GSM5059685
+    - GSM5059688
+    - GSM5059689
+    - GSM5059690
+    - GSM5059691
+    - GSM5059692
+    - GSM5059693
+    field: Sample_characteristics_ch1
+    quote: 'timepoint (days post injury): 0'
+  4:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  5:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  6:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: TA and EDL muscle
+  7:
+    record: GSM5059686
+    field: Sample_characteristics_ch1
+    quote: 'timepoint (days post injury): 3'
+  8:
+    record: GSM5059687
+    field: Sample_characteristics_ch1
+    quote: 'timepoint (days post injury): 7'
+  9:
+    record: GSM5059688
+    field: Sample_characteristics_ch1
+    quote: 'age: 26 months'
+  10:
+    record:
+    - GSM5059689
+    - GSM5059693
+    field: Sample_characteristics_ch1
+    quote: 'age: 3-4 months'
+  11:
+    record: GSM5059690
+    field: Sample_characteristics_ch1
+    quote: 'strain: SynTgSod1-/-'
+  12:
+    record:
+    - GSM5059690
+    - GSM5059691
+    field: Sample_characteristics_ch1
+    quote: 'age: 10-12 months'
+  13:
+    record: GSM5059691
+    field: Sample_characteristics_ch1
+    quote: 'strain: Sod1-/-'
+factors:
+  strain:
+    levels:
+    - C57BL6J
+    - SynTgSod1-/-
+    - Sod1-/-
+    baseline: C57BL6J
+    ordered: false
+    inferred: the characteristic "strain" varies between samples
+    p: 0.93
+  age:
+    levels:
+    - 22-24 months
+    - 26 months
+    - 3-4 months
+    - 10-12 months
+    baseline: 3-4 months
+    ordered: true
+    inferred: the characteristic "age" varies between samples
+    p: 0.93
+  duration:
+    levels:
+    - '0'
+    - '3'
+    - '7'
+    baseline: '0'
+    ordered: true
+    inferred: the characteristic "timepoint (days post injury)" varies between samples
+    p: 0.92
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 4
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 5
+    p: 1.0
+  tissue:
+    text: TA and EDL muscle
+    quoted:
+    - 6
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.8
+  development_stage:
+    na: does not apply to these samples
+    p: 0.52
+  cell_type:
+    unknown: nothing read says it
+    p: 0.93
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    na: does not apply to these samples
+    p: 0.52
+  genotype:
+    unknown: nothing read says it
+    p: 0.75
+  treatment:
+    unknown: nothing read says it
+    p: 0.68
+  dose:
+    unknown: nothing read says it
+    p: 0.6
+  donor:
+    na: a pool of many individuals
+    p: 0.69
+samples:
+  GSM5059685:
+    strain:
+      text: C57BL6J
+      level: C57BL6J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 22-24 months
+      value: &id001
+      - 22.0
+      - 24.0
+      unit: month
+      level: 22-24 months
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      text: '0'
+      level: '0'
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059686:
+    strain:
+      text: C57BL6J
+      level: C57BL6J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 22-24 months
+      value: *id001
+      unit: month
+      level: 22-24 months
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      text: '3'
+      level: '3'
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059687:
+    strain:
+      text: C57BL6J
+      level: C57BL6J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 22-24 months
+      value: *id001
+      unit: month
+      level: 22-24 months
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      text: '7'
+      level: '7'
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059688:
+    strain:
+      text: C57BL6J
+      level: C57BL6J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 26 months
+      value: 26
+      unit: month
+      level: 26 months
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: '0'
+      level: '0'
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059689:
+    strain:
+      text: C57BL6J
+      level: C57BL6J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 3-4 months
+      value: &id003
+      - 3.0
+      - 4.0
+      unit: month
+      level: 3-4 months
+      quoted:
+      - 10
+      p: 1.0
+    duration:
+      text: '0'
+      level: '0'
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059690:
+    strain:
+      text: SynTgSod1-/-
+      level: SynTgSod1-/-
+      quoted:
+      - 11
+      p: 1.0
+    age:
+      text: 10-12 months
+      value: &id002
+      - 10.0
+      - 12.0
+      unit: month
+      level: 10-12 months
+      quoted:
+      - 12
+      p: 1.0
+    duration:
+      text: '0'
+      level: '0'
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059691:
+    strain:
+      text: Sod1-/-
+      level: Sod1-/-
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 10-12 months
+      value: *id002
+      unit: month
+      level: 10-12 months
+      quoted:
+      - 12
+      p: 1.0
+    duration:
+      text: '0'
+      level: '0'
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059692:
+    strain:
+      text: C57BL6J
+      level: C57BL6J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 22-24 months
+      value: *id001
+      unit: month
+      level: 22-24 months
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      text: '0'
+      level: '0'
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059693:
+    strain:
+      text: C57BL6J
+      level: C57BL6J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 3-4 months
+      value: *id003
+      unit: month
+      level: 3-4 months
+      quoted:
+      - 10
+      p: 1.0
+    duration:
+      text: '0'
+      level: '0'
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null

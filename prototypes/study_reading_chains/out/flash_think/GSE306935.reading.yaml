@@ -1,0 +1,557 @@
+format: 1
+study: GSE306935
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM9212752
+    - GSM9212754
+    - GSM9212756
+    - GSM9212758
+    field: Sample_characteristics_ch1
+    quote: 4 months
+  2:
+    record:
+    - GSM9212752
+    - GSM9212754
+    - GSM9212756
+    - GSM9212758
+    - GSM9212760
+    - GSM9212762
+    - GSM9212763
+    - GSM9212764
+    field: Sample_characteristics_ch1
+    quote: DMSO
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: GSE306935
+    field: Series_overall_design
+    quote: adult (4 month), aged (22 month)
+  6:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: hindlimb and forelimb
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: Muscle Stem Cells
+  8:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: for 18 hours in DMSO
+  9:
+    record: GSM9212752
+    field: Sample_description
+    quote: 'Library name: Sample AD1'
+  10:
+    record: GSM9212754
+    field: Sample_description
+    quote: 'Library name: Sample AD2'
+  11:
+    record: GSM9212756
+    field: Sample_description
+    quote: 'Library name: Sample AD3'
+  12:
+    record: GSM9212758
+    field: Sample_description
+    quote: 'Library name: Sample AD4'
+  13:
+    record:
+    - GSM9212760
+    - GSM9212762
+    - GSM9212763
+    - GSM9212764
+    - GSM9212765
+    - GSM9212766
+    - GSM9212767
+    - GSM9212768
+    field: Sample_characteristics_ch1
+    quote: 22 months
+  14:
+    record: GSM9212760
+    field: Sample_description
+    quote: 'Library name: Sample AG1'
+  15:
+    record: GSM9212762
+    field: Sample_description
+    quote: 'Library name: Sample AG2'
+  16:
+    record: GSM9212763
+    field: Sample_description
+    quote: 'Library name: Sample AG3'
+  17:
+    record: GSM9212764
+    field: Sample_description
+    quote: 'Library name: Sample AG4'
+  18:
+    record:
+    - GSM9212765
+    - GSM9212766
+    - GSM9212767
+    - GSM9212768
+    field: Sample_characteristics_ch1
+    quote: Sal003
+  19:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: in DMSO or in 10 µM of the the ISR activator (ISR-a Sal003 (activated)
+  20:
+    record: GSM9212765
+    field: Sample_description
+    quote: 'Library name: Sample AGS1'
+  21:
+    record: GSM9212766
+    field: Sample_description
+    quote: 'Library name: Sample AGS2'
+  22:
+    record: GSM9212767
+    field: Sample_description
+    quote: 'Library name: Sample AGS3'
+  23:
+    record: GSM9212768
+    field: Sample_description
+    quote: 'Library name: Sample AGS4'
+  24:
+    record: GSE306935
+    field: Series_overall_design
+    quote: ISR-activator treated of activated (18h) Murin Muscle Stem Cells
+factors:
+  age:
+    levels:
+    - adult
+    - aged
+    baseline: adult
+    ordered: true
+    quoted:
+    - 5
+    p: 0.99
+  treatment:
+    levels:
+    - DMSO
+    - Sal003
+    baseline: DMSO
+    ordered: false
+    quoted:
+    - 24
+    p: 0.98
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: adult
+    quoted:
+    - 5
+    p: 0.91
+  tissue:
+    text: hindlimb and forelimb
+    quoted:
+    - 6
+    p: 1.0
+  cell_type:
+    text: Muscle Stem Cells
+    quoted:
+    - 7
+    p: 1.0
+  duration:
+    text: 18 hours
+    value: 18
+    unit: hour
+    quoted:
+    - 8
+    p: 0.87
+  target:
+    na: single-cell RNA sequencing; no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no input or IgG background library; DMSO is a baseline
+    p: 1.0
+  sex:
+    unknown: sex not stated in records or paper
+    p: 0.98
+  cell_line:
+    na: primary FACS-sorted cells, not a cultured line
+    p: 1.0
+  disease:
+    na: no disease or health status stated in records
+    p: 0.75
+  genotype:
+    unknown: no genotype described in records or paper
+    p: 0.88
+  strain:
+    unknown: mouse strain not named in records or paper
+    p: 1.0
+  donor:
+    unknown: nothing read says which individual a library came from
+    p: 0.55
+samples:
+  GSM9212752:
+    age:
+      text: 4 months
+      value: 4
+      unit: month
+      level: adult
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.79
+    library_name:
+      text: Sample AD1
+      quoted:
+      - 9
+      p: 0.98
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212754:
+    age:
+      text: 4 months
+      value: 4
+      unit: month
+      level: adult
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.77
+    library_name:
+      text: Sample AD2
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212756:
+    age:
+      text: 4 months
+      value: 4
+      unit: month
+      level: adult
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.82
+    library_name:
+      text: Sample AD3
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212758:
+    age:
+      text: 4 months
+      value: 4
+      unit: month
+      level: adult
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.75
+    library_name:
+      text: Sample AD4
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212760:
+    age:
+      text: 22 months
+      value: 22
+      unit: month
+      level: aged
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.75
+    library_name:
+      text: Sample AG1
+      quoted:
+      - 14
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212762:
+    age:
+      text: 22 months
+      value: 22
+      unit: month
+      level: aged
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.72
+    library_name:
+      text: Sample AG2
+      quoted:
+      - 15
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212763:
+    age:
+      text: 22 months
+      value: 22
+      unit: month
+      level: aged
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.82
+    library_name:
+      text: Sample AG3
+      quoted:
+      - 16
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212764:
+    age:
+      text: 22 months
+      value: 22
+      unit: month
+      level: aged
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.75
+    library_name:
+      text: Sample AG4
+      quoted:
+      - 17
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212765:
+    age:
+      text: 22 months
+      value: 22
+      unit: month
+      level: aged
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: Sal003
+      level: Sal003
+      quoted:
+      - 18
+      p: 1.0
+    dose:
+      text: 10 µM
+      value: 10
+      unit: µM
+      quoted:
+      - 19
+      p: 0.99
+    library_name:
+      text: Sample AGS1
+      quoted:
+      - 20
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212766:
+    age:
+      text: 22 months
+      value: 22
+      unit: month
+      level: aged
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: Sal003
+      level: Sal003
+      quoted:
+      - 18
+      p: 1.0
+    dose:
+      text: 10 µM
+      value: 10
+      unit: µM
+      quoted:
+      - 19
+      p: 0.99
+    library_name:
+      text: Sample AGS2
+      quoted:
+      - 21
+      p: 0.98
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212767:
+    age:
+      text: 22 months
+      value: 22
+      unit: month
+      level: aged
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: Sal003
+      level: Sal003
+      quoted:
+      - 18
+      p: 1.0
+    dose:
+      text: 10 µM
+      value: 10
+      unit: µM
+      quoted:
+      - 19
+      p: 0.99
+    library_name:
+      text: Sample AGS3
+      quoted:
+      - 22
+      p: 0.99
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9212768:
+    age:
+      text: 22 months
+      value: 22
+      unit: month
+      level: aged
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: Sal003
+      level: Sal003
+      quoted:
+      - 18
+      p: 1.0
+    dose:
+      text: 10 µM
+      value: 10
+      unit: µM
+      quoted:
+      - 19
+      p: 0.99
+    library_name:
+      text: Sample AGS4
+      quoted:
+      - 23
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

@@ -1,0 +1,263 @@
+format: 1
+study: GSE234962
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM7486857
+    - GSM7486858
+    field: Sample_characteristics_ch1
+    quote: 'strain: CZ631 juIs14 [ acr-2::GFP + lin-15(+)]'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    paper: pmid:38421866
+    section: RESULTS > Single-cell profiling of adult C. elegans MNs reveals striking molecular diversity
+    quote: Here, we developed a genetic labeling strategy to isolate, in day 1 adult C. elegans hermaphrodites,
+      all 58 MNs located in the VNC
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'age: young adult'
+  6:
+    paper: pmid:38421866
+    section: RESULTS > Single-cell profiling of adult C. elegans MNs reveals striking molecular diversity
+    quote: day 1 adult C. elegans hermaphrodites
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Motor neurons'
+  8:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: Motor neurons
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wt'
+  10:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'synchronization protocol: L1 arrest'
+  11:
+    record:
+    - GSM7486857
+    - GSM7486858
+    field: Sample_extract_protocol_ch1
+    quote: Worms were then incubated in 500 uL of pronase (15 mg/mL in egg buffer, Sigma-Aldrich P8811)
+      for 23 minutes at room temperature.
+  12:
+    paper: pmid:38421866
+    section: STAR★METHODS > METHOD DETAILS > FACS isolation of C. elegans motor neurons for single-cell
+      RNA-seq
+    quote: We estimate the time from harvesting worms off plates to encapsulation in the 10X Genomics
+      Chromium Controller to be ~6 h
+  13:
+    record:
+    - GSM7486859
+    - GSM7486860
+    field: Sample_characteristics_ch1
+    quote: 'strain: KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]'
+  14:
+    record:
+    - GSM7486859
+    - GSM7486860
+    field: Sample_characteristics_ch1
+    quote: 'synchronization protocol: L1 arrest + mesh synchronization'
+  15:
+    record:
+    - GSM7486859
+    - GSM7486860
+    field: Sample_extract_protocol_ch1
+    quote: Worms were then incubated in 500 uL of cold active protease (10 mg/mL in egg buffer, Protease
+      from Bacillus licheniformis, Sigma-Aldrich P4860, with DNAse I 35 U/mL) for 35 minutes at 4 C.
+  16:
+    record: GSE234962
+    field: Series_overall_design
+    quote: Ventral nerve cord MNs were isolated from two strains of worms.
+factors:
+  strain:
+    levels:
+    - CZ631
+    - KRA257
+    baseline: null
+    ordered: false
+    quoted:
+    - 16
+    p: 0.84
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  sex:
+    text: hermaphrodites
+    quoted:
+    - 4
+    p: 0.91
+  age:
+    text: young adult
+    quoted:
+    - 5
+    p: 1.0
+  development_stage:
+    text: day 1 adult
+    term: WBls:0000064
+    quoted:
+    - 6
+    p: 0.98
+  tissue:
+    text: Motor neurons
+    term: WBbt:0005409
+    quoted:
+    - 7
+    p: 1.0
+  cell_type:
+    text: Motor neurons
+    term: CL:0000100
+    quoted:
+    - 8
+    p: 1.0
+  disease:
+    text: wt
+    inferred: wild-type worms; no disease model described
+    see:
+    - 9
+    p: 0.98
+  genotype:
+    text: wt
+    quoted:
+    - 9
+    p: 1.0
+  time_harvest_to_encapsulation:
+    text: ~6 h
+    quoted:
+    - 12
+    p: 0.87
+  target:
+    na: no pull-down; single-cell transcriptome library
+    p: 1.0
+  control_type:
+    na: no background-control library in this series
+    p: 1.0
+  cell_line:
+    na: whole C. elegans animals; no cell line
+    p: 1.0
+  treatment:
+    na: no drug, diet, vector, infection or procedure applied
+    p: 0.77
+  dose:
+    na: no treatment applied to the animals
+    p: 0.99
+  duration:
+    na: no treatment applied to the animals
+    p: 0.96
+  donor:
+    na: a pool of many individuals
+    p: 0.96
+samples:
+  GSM7486857:
+    strain:
+      text: CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
+      level: CZ631
+      quoted:
+      - 1
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest
+      quoted:
+      - 10
+      p: 1.0
+    dissociation_protease:
+      text: pronase
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7486858:
+    strain:
+      text: CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
+      level: CZ631
+      quoted:
+      - 1
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest
+      quoted:
+      - 10
+      p: 1.0
+    dissociation_protease:
+      text: pronase
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7486859:
+    strain:
+      text: KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]
+      level: KRA257
+      quoted:
+      - 13
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest + mesh synchronization
+      quoted:
+      - 14
+      p: 0.98
+    dissociation_protease:
+      text: cold active protease
+      quoted:
+      - 15
+      p: 0.93
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7486860:
+    strain:
+      text: KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]
+      level: KRA257
+      quoted:
+      - 13
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest + mesh synchronization
+      quoted:
+      - 14
+      p: 0.99
+    dissociation_protease:
+      text: cold active protease
+      quoted:
+      - 15
+      p: 0.94
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null

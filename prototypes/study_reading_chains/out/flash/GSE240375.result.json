@@ -1,0 +1,1742 @@
+{
+ "study": "GSE240375",
+ "chain": "flash",
+ "read_full": false,
+ "n_samples": 10,
+ "dropped_samples": 0,
+ "has_full_text": false,
+ "factors": [
+  {
+   "label": "age",
+   "levels": [
+    "young",
+    "aged"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.07,
+   "baseline": "L0",
+   "p_baseline": 0.93,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.96,
+   "p_ordered": 0.27,
+   "writer_baseline": "young",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "assay",
+   "levels": [
+    "bulk_rna_seq",
+    "scrna_seq"
+   ],
+   "p_designed": 0.96,
+   "p_designed_neg": 0.42,
+   "baseline": "no_reference",
+   "p_baseline": 0.85,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.79,
+   "p_ordered": 0.62,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.77,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.76,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.93,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "factor:age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "factor:assay",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM7697100": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "young",
+    "young"
+   ],
+   "assay": [
+    "Regular input RNA-Seq",
+    "bulk_rna_seq"
+   ],
+   "library_chemistry": [
+    "Truseq Stranded mRNA kit",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM7697101": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "young",
+    "young"
+   ],
+   "assay": [
+    "Regular input RNA-Seq",
+    "bulk_rna_seq"
+   ],
+   "library_chemistry": [
+    "Truseq Stranded mRNA kit",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM7697102": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "young",
+    "young"
+   ],
+   "assay": [
+    "Regular input RNA-Seq",
+    "bulk_rna_seq"
+   ],
+   "library_chemistry": [
+    "Truseq Stranded mRNA kit",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM7697103": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "aged",
+    "aged"
+   ],
+   "assay": [
+    "Regular input RNA-Seq",
+    "bulk_rna_seq"
+   ],
+   "library_chemistry": [
+    "Truseq Stranded mRNA kit",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM7697104": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "aged",
+    "aged"
+   ],
+   "assay": [
+    "Regular input RNA-Seq",
+    "bulk_rna_seq"
+   ],
+   "library_chemistry": [
+    "Truseq Stranded mRNA kit",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM7697105": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "aged",
+    "aged"
+   ],
+   "assay": [
+    "Regular input RNA-Seq",
+    "bulk_rna_seq"
+   ],
+   "library_chemistry": [
+    "Truseq Stranded mRNA kit",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM7697106": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "young",
+    "young"
+   ],
+   "assay": [
+    "transcriptomic single cell",
+    "scrna_seq"
+   ],
+   "library_chemistry": [
+    "Chromium Next GEM Single Cell 3’ Kit v3.1",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM7697107": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "young",
+    "young"
+   ],
+   "assay": [
+    "transcriptomic single cell",
+    "scrna_seq"
+   ],
+   "library_chemistry": [
+    "Chromium Next GEM Single Cell 3’ Kit v3.1",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM7697108": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "aged",
+    "aged"
+   ],
+   "assay": [
+    "transcriptomic single cell",
+    "scrna_seq"
+   ],
+   "library_chemistry": [
+    "Chromium Next GEM Single Cell 3’ Kit v3.1",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  },
+  "GSM7697109": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Kidney",
+    null
+   ],
+   "cell_type": [
+    "whole tissue",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "none",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "aged",
+    "aged"
+   ],
+   "assay": [
+    "transcriptomic single cell",
+    "scrna_seq"
+   ],
+   "library_chemistry": [
+    "Chromium Next GEM Single Cell 3’ Kit v3.1",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D10",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "age": {
+   "levels": [
+    "young",
+    "aged"
+   ],
+   "baseline": "young",
+   "ordered": false,
+   "quoted": [
+    11
+   ],
+   "p": 0.99
+  },
+  "assay": {
+   "levels": [
+    "bulk_rna_seq",
+    "scrna_seq"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "inferred": "bulk vs single cell RNA-Seq",
+   "see": [
+    12
+   ],
+   "p": 0.96
+  }
+ },
+ "n_passages": 12,
+ "n_shared": 14,
+ "n_row_claims": 50,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 5,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "held_constant",
+    "note": "instrument NovaSeq 6000 same for all samples"
+   },
+   {
+    "kind": "term_missing",
+    "note": "age recorded as young/aged without numeric age or unit"
+   },
+   {
+    "kind": "term_missing",
+    "note": "sex, strain, genotype absent from all records"
+   }
+  ],
+  "donor_kind_writer": "unknown",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "age/L0",
+   "status": "other_record",
+   "source": "GSM7697100",
+   "field": "Sample_characteristics_ch1",
+   "holders": [
+    "GSM7697100",
+    "GSM7697101",
+    "GSM7697102",
+    "GSM7697106",
+    "GSM7697107"
+   ],
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "other_record",
+   "source": "GSM7697103",
+   "field": "Sample_characteristics_ch1",
+   "holders": [
+    "GSM7697103",
+    "GSM7697104",
+    "GSM7697105",
+    "GSM7697108",
+    "GSM7697109"
+   ],
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/_factor",
+   "status": "named",
+   "source": "GSE240373",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 88,
+   "backs_p": 0.94
+  },
+  {
+   "key": "assay/L0",
+   "status": "named",
+   "source": "GSM7697100",
+   "field": "Sample_extract_protocol_ch1",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.96
+  },
+  {
+   "key": "assay/L1",
+   "status": "named",
+   "source": "GSM7697106",
+   "field": "Sample_library_source",
+   "exact": true,
+   "quote_len": 26,
+   "backs_p": 0.98
+  },
+  {
+   "key": "assay/_factor",
+   "status": "other_record",
+   "source": "GSE240373",
+   "field": "Series_title",
+   "holders": [
+    "GSE240373"
+   ],
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.27
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "library_chemistry/v0",
+   "status": "named",
+   "source": "GSM7697100",
+   "field": "Sample_extract_protocol_ch1",
+   "exact": true,
+   "quote_len": 92,
+   "backs_p": 0.99
+  },
+  {
+   "key": "library_chemistry/v1",
+   "status": "named",
+   "source": "GSM7697106",
+   "field": "Sample_extract_protocol_ch1",
+   "exact": true,
+   "quote_len": 112,
+   "backs_p": 0.98
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "whole tissue",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Kidney",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0002113",
+     "label": "kidney",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0003527",
+     "label": "kidney capillary",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004788",
+     "label": "kidney pelvis urothelium",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0005006",
+     "label": "mucosa of renal pelvis",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004775",
+     "label": "outer renal medulla vasa recta",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004819",
+     "label": "kidney epithelium",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0005215",
+     "label": "kidney interstitium",
+     "exact": false
+    },
+    {
+     "id": "UBERON:8410073",
+     "label": "medullary region of kidney",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0002113",
+   "p": 0.99,
+   "probe_pick": "none",
+   "probe_p": 0.89
+  },
+  {
+   "label": "treatment",
+   "text": "none",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:85655",
+     "label": "(3E)-nonenoyl-CoA(4-)",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:85960",
+     "label": "(3E)-nonenoyl-CoA",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:76292",
+     "label": "trans-2-nonenoyl-CoA(4-)",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:76314",
+     "label": "trans-2-nonenoyl-CoA",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:133457",
+     "label": "(3E)-3-nonen-2-one",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:142592",
+     "label": "(E)-non-2-enal",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:142603",
+     "label": "(Z)-non-6-en-1-ol",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:142604",
+     "label": "(E)-non-2-en-1-ol",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 1.0
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.16,
+  "untreated_or_vehicle": 0.96,
+  "several_compounds": 0.73,
+  "route_or_side": 0.33,
+  "dose_per_unit": 0.1,
+  "duration_without_number": 0.06,
+  "time_from_event": 0.24,
+  "pooled_material": 0.46,
+  "held_constant": 0.92,
+  "batch": 0.28,
+  "sequencer": 0.06,
+  "vector": 0.02,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.07,
+  "single_cell": 0.79,
+  "mixed_assays": 0.58
+ },
+ "donor_kind": [
+  "one_each",
+  0.44
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.0018618059999999997,
+   "seconds": 5.251,
+   "tokens_in": 8745,
+   "tokens_out": 1199
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000470736,
+   "seconds": 0.402,
+   "tokens_in": 11208
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.366,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.365,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.312,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.312,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.259,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.312,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.262,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.249,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.251,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.299,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.344,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6142e-05,
+   "seconds": 0.344,
+   "tokens_in": 2051
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.7234e-05,
+   "seconds": 0.28,
+   "tokens_in": 2077
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.7234e-05,
+   "seconds": 0.286,
+   "tokens_in": 2077
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.7234e-05,
+   "seconds": 0.239,
+   "tokens_in": 2077
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.7234e-05,
+   "seconds": 0.198,
+   "tokens_in": 2077
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.7276e-05,
+   "seconds": 0.234,
+   "tokens_in": 2078
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.7276e-05,
+   "seconds": 0.331,
+   "tokens_in": 2078
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.7276e-05,
+   "seconds": 0.334,
+   "tokens_in": 2078
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.7276e-05,
+   "seconds": 0.286,
+   "tokens_in": 2078
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000423108,
+   "seconds": 0.184,
+   "tokens_in": 10074
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 4.3134e-05,
+   "seconds": 0.349,
+   "tokens_in": 1027
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 3.0744e-05,
+   "seconds": 0.371,
+   "tokens_in": 732
+  }
+ ],
+ "seconds": 0.23,
+ "ending": "settled",
+ "variant": "flash"
+}

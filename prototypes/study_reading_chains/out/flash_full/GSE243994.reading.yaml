@@ -1,0 +1,446 @@
+format: 1
+study: GSE243994
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM7804448
+    - GSM7804449
+    - GSM7804450
+    - GSM7804454
+    - GSM7804455
+    - GSM7804456
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-2(rf)'
+  2:
+    record: GSM7804448
+    field: Sample_title
+    quote: d1_daf2_1
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  5:
+    paper: pmid:38851828
+    section: Introduction
+    quote: support the continuous oogenesis in the adult C. elegans hermaphrodites
+  6:
+    paper: pmid:38851828
+    section: Results > RNA-seq transcriptional profiling to define the DAF-16/FOXO transcriptomes of isolated
+      adult PSG cells
+    quote: on day 1 (D1) and day 7 (D7) of adulthood
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: the proximal region of the somatic gonad (PSG) cells'
+  8:
+    paper: pmid:38851828
+    section: Results > RNA-seq transcriptional profiling to define the DAF-16/FOXO transcriptomes of isolated
+      adult PSG cells
+    quote: GFP+ cells were immediately isolated by fluorescence-activated cell sorting (FACS)
+  9:
+    paper: pmid:38851828
+    section: Methods > C. elegans strains and maintenance
+    quote: Strains were derived from N2 wild type (Bristol) and handled using standard methods
+  10:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: untreated'
+  11:
+    record:
+    - GSM7804451
+    - GSM7804452
+    - GSM7804453
+    - GSM7804457
+    - GSM7804458
+    - GSM7804459
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf 16(-); daf 2(rf)'
+  12:
+    record: GSM7804454
+    field: Sample_title
+    quote: d7_daf2_1
+factors:
+  genotype:
+    levels:
+    - daf_2_rf
+    - daf_16_0_daf_2_rf
+    baseline: daf_2_rf
+    ordered: true
+    inferred: two genetic backgrounds compared
+    p: 0.99
+  age:
+    levels:
+    - day1
+    - day7
+    baseline: day1
+    ordered: true
+    inferred: day 1 vs day 7 of adulthood
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 4
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 5
+    p: 0.92
+  development_stage:
+    text: adult
+    quoted:
+    - 6
+    p: 0.97
+  tissue:
+    text: the proximal region of the somatic gonad (PSG) cells
+    quoted:
+    - 7
+    p: 1.0
+  cell_type:
+    text: PSG cells
+    quoted:
+    - 8
+    p: 0.97
+  disease:
+    text: healthy
+    inferred: no disease model stated
+    p: 0.95
+  strain:
+    text: N2 wild type (Bristol)
+    inferred: background strain Bristol N2
+    see:
+    - 9
+    p: 0.76
+  treatment:
+    text: untreated
+    quoted:
+    - 10
+    p: 0.99
+  target:
+    na: RNA-Seq, no pull-down
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  cell_line:
+    na: primary cells from animals, no cell line
+    p: 1.0
+  dose:
+    na: no treatment applied
+    p: 1.0
+  duration:
+    na: no treatment applied
+    p: 0.98
+  donor:
+    na: a pool of many individuals
+    p: 0.53
+samples:
+  GSM7804448:
+    genotype:
+      text: daf-2(rf)
+      level: daf_2_rf
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: D1
+      value: 1
+      unit: day
+      level: day1
+      quoted:
+      - 2
+      p: 0.99
+    time_point:
+      text: d1
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804449:
+    genotype:
+      text: daf-2(rf)
+      level: daf_2_rf
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: D1
+      value: 1
+      unit: day
+      level: day1
+      quoted:
+      - 2
+      p: 0.7
+    time_point:
+      text: d1
+      quoted:
+      - 2
+      p: 0.83
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804450:
+    genotype:
+      text: daf-2(rf)
+      level: daf_2_rf
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: D1
+      value: 1
+      unit: day
+      level: day1
+      quoted:
+      - 2
+      p: 0.6
+    time_point:
+      text: d1
+      quoted:
+      - 2
+      p: 0.86
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804451:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf_16_0_daf_2_rf
+      quoted:
+      - 11
+      p: 1.0
+    age:
+      text: D1
+      value: 1
+      unit: day
+      level: day1
+      quoted:
+      - 2
+      p: 0.99
+    time_point:
+      text: d1
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804452:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf_16_0_daf_2_rf
+      quoted:
+      - 11
+      p: 1.0
+    age:
+      text: D1
+      value: 1
+      unit: day
+      level: day1
+      quoted:
+      - 2
+      p: 0.95
+    time_point:
+      text: d1
+      quoted:
+      - 2
+      p: 0.98
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804453:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf_16_0_daf_2_rf
+      quoted:
+      - 11
+      p: 1.0
+    age:
+      text: D1
+      value: 1
+      unit: day
+      level: day1
+      quoted:
+      - 2
+      p: 0.94
+    time_point:
+      text: d1
+      quoted:
+      - 2
+      p: 0.98
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804454:
+    genotype:
+      text: daf-2(rf)
+      level: daf_2_rf
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: D7
+      value: 7
+      unit: day
+      level: day7
+      quoted:
+      - 12
+      p: 0.99
+    time_point:
+      text: d7
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804455:
+    genotype:
+      text: daf-2(rf)
+      level: daf_2_rf
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: D7
+      value: 7
+      unit: day
+      level: day7
+      quoted:
+      - 12
+      p: 0.83
+    time_point:
+      text: d7
+      quoted:
+      - 12
+      p: 0.8
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804456:
+    genotype:
+      text: daf-2(rf)
+      level: daf_2_rf
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: D7
+      value: 7
+      unit: day
+      level: day7
+      quoted:
+      - 12
+      p: 0.91
+    time_point:
+      text: d7
+      quoted:
+      - 12
+      p: 0.86
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804457:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf_16_0_daf_2_rf
+      quoted:
+      - 11
+      p: 1.0
+    age:
+      text: D7
+      value: 7
+      unit: day
+      level: day7
+      quoted:
+      - 12
+      p: 0.99
+    time_point:
+      text: d7
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804458:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf_16_0_daf_2_rf
+      quoted:
+      - 11
+      p: 1.0
+    age:
+      text: D7
+      value: 7
+      unit: day
+      level: day7
+      quoted:
+      - 12
+      p: 0.97
+    time_point:
+      text: d7
+      quoted:
+      - 12
+      p: 0.94
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804459:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf_16_0_daf_2_rf
+      quoted:
+      - 11
+      p: 1.0
+    age:
+      text: D7
+      value: 7
+      unit: day
+      level: day7
+      quoted:
+      - 12
+      p: 0.96
+    time_point:
+      text: d7
+      quoted:
+      - 12
+      p: 0.96
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

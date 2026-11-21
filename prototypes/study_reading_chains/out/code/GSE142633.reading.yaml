@@ -1,0 +1,431 @@
+format: 1
+study: GSE142633
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM4233218
+    - GSM4233219
+    - GSM4233220
+    - GSM4233221
+    - GSM4233225
+    - GSM4233226
+    - GSM4233227
+    field: Sample_characteristics_ch1
+    quote: 'strain: B6SJLF1/J'
+  2:
+    record:
+    - GSM4233218
+    - GSM4233219
+    - GSM4233220
+    - GSM4233221
+    - GSM4233222
+    - GSM4233223
+    - GSM4233224
+    field: Sample_characteristics_ch1
+    quote: 'age: 6 months'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Frontal cortex of brain'
+  6:
+    record:
+    - GSM4233222
+    - GSM4233223
+    - GSM4233224
+    - GSM4233228
+    - GSM4233229
+    - GSM4233230
+    field: Sample_characteristics_ch1
+    quote: 'strain: 5XFAD'
+  7:
+    record:
+    - GSM4233225
+    - GSM4233226
+    - GSM4233227
+    - GSM4233228
+    - GSM4233229
+    - GSM4233230
+    field: Sample_characteristics_ch1
+    quote: 'age: 11 months'
+factors:
+  strain:
+    levels:
+    - B6SJLF1/J
+    - 5XFAD
+    baseline: B6SJLF1/J
+    ordered: true
+    inferred: the characteristic "strain" varies between samples
+    p: 0.95
+  age:
+    levels:
+    - 6 months
+    - 11 months
+    baseline: null
+    ordered: true
+    inferred: the characteristic "age" varies between samples
+    p: 0.98
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: Frontal cortex of brain
+    quoted:
+    - 5
+    p: 0.84
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.99
+  development_stage:
+    unknown: nothing read says it
+    p: 0.76
+  cell_type:
+    na: whole tissue with no cell type isolated
+    p: 0.96
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    unknown: nothing read says it
+    p: 0.63
+  genotype:
+    unknown: nothing read says it
+    p: 0.71
+  treatment:
+    na: no treatment applied
+    p: 0.89
+  dose:
+    na: no treatment
+    p: 0.93
+  duration:
+    na: no treatment
+    p: 0.92
+samples:
+  GSM4233218:
+    strain:
+      text: B6SJLF1/J
+      level: B6SJLF1/J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233219:
+    strain:
+      text: B6SJLF1/J
+      level: B6SJLF1/J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233220:
+    strain:
+      text: B6SJLF1/J
+      level: B6SJLF1/J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233221:
+    strain:
+      text: B6SJLF1/J
+      level: B6SJLF1/J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233222:
+    strain:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233223:
+    strain:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233224:
+    strain:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233225:
+    strain:
+      text: B6SJLF1/J
+      level: B6SJLF1/J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233226:
+    strain:
+      text: B6SJLF1/J
+      level: B6SJLF1/J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233227:
+    strain:
+      text: B6SJLF1/J
+      level: B6SJLF1/J
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233228:
+    strain:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233229:
+    strain:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.88
+  GSM4233230:
+    strain:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 0.88

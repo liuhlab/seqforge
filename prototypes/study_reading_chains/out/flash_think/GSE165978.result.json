@@ -1,0 +1,2086 @@
+{
+ "study": "GSE165978",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 9,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "age",
+   "levels": [
+    "young_3_4mo",
+    "sod1_10_12mo",
+    "aged_22_24mo",
+    "geriatric_26mo"
+   ],
+   "p_designed": 0.92,
+   "p_designed_neg": 0.07,
+   "baseline": "L0",
+   "p_baseline": 0.82,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.92,
+   "p_ordered": 0.92,
+   "writer_baseline": "young_3_4mo",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "genotype",
+   "levels": [
+    "wild_type",
+    "sod1_knockout",
+    "sod1_rescue"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.06,
+   "baseline": "L0",
+   "p_baseline": 0.91,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.93,
+   "p_ordered": 0.36,
+   "writer_baseline": "wild_type",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "uninjured",
+    "bacl2_injury"
+   ],
+   "p_designed": 0.88,
+   "p_designed_neg": 0.09,
+   "baseline": "L0",
+   "p_baseline": 0.91,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.85,
+   "p_ordered": 0.93,
+   "writer_baseline": "uninjured",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "levels": [
+    "d0",
+    "d3",
+    "d7"
+   ],
+   "p_designed": 0.95,
+   "p_designed_neg": 0.08,
+   "baseline": "L0",
+   "p_baseline": 0.98,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.98,
+   "p_ordered": 0.97,
+   "writer_baseline": "d0",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.73,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.62,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.74,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "tenx_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.72,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.54,
+   "shared": false
+  },
+  {
+   "label": "tenx_chemistry",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.72,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "tenx_chemistry",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "tenx_chemistry",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.77,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "tenx_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "tenx_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.76,
+   "shared": false
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "tenx_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.8,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "tenx_chemistry",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "timepoint_days_post_injury",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "tenx_chemistry",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:age",
+   "mark": "inferred",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "inferred",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "factor:timepoint_days_post_injury",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM5059685": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "TA and EDL muscle",
+    null
+   ],
+   "cell_type": [
+    "MuSCs",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "22-24 months",
+    "aged_22_24mo"
+   ],
+   "genotype": [
+    "C57BL/6J wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "uninjured",
+    "uninjured"
+   ],
+   "timepoint_days_post_injury": [
+    "timepoint (days post injury): 0",
+    "d0"
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL6J",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "tenx_chemistry": [
+    "v3",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM5059686": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "TA and EDL muscle",
+    null
+   ],
+   "cell_type": [
+    "MuSCs",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "22-24 months",
+    "aged_22_24mo"
+   ],
+   "genotype": [
+    "C57BL/6J wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "1.2% barium chloride (BaCl2) solution",
+    "bacl2_injury"
+   ],
+   "timepoint_days_post_injury": [
+    "timepoint (days post injury): 3",
+    "d3"
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL6J",
+    null
+   ],
+   "dose": [
+    "80 µL per hindlimb",
+    null
+   ],
+   "tenx_chemistry": [
+    "v3",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM5059687": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "TA and EDL muscle",
+    null
+   ],
+   "cell_type": [
+    "MuSCs",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "22-24 months",
+    "aged_22_24mo"
+   ],
+   "genotype": [
+    "C57BL/6J wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "1.2% barium chloride (BaCl2) solution",
+    "bacl2_injury"
+   ],
+   "timepoint_days_post_injury": [
+    "timepoint (days post injury): 7",
+    "d7"
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL6J",
+    null
+   ],
+   "dose": [
+    "80 µL per hindlimb",
+    null
+   ],
+   "tenx_chemistry": [
+    "v3",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM5059688": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "TA and EDL muscle",
+    null
+   ],
+   "cell_type": [
+    "MuSCs",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "26 months",
+    "geriatric_26mo"
+   ],
+   "genotype": [
+    "C57BL/6J wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "uninjured",
+    "uninjured"
+   ],
+   "timepoint_days_post_injury": [
+    "timepoint (days post injury): 0",
+    "d0"
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL6J",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "tenx_chemistry": [
+    "v3",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM5059689": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "TA and EDL muscle",
+    null
+   ],
+   "cell_type": [
+    "MuSCs",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3-4 months",
+    "young_3_4mo"
+   ],
+   "genotype": [
+    "C57BL/6J wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "uninjured",
+    "uninjured"
+   ],
+   "timepoint_days_post_injury": [
+    "timepoint (days post injury): 0",
+    "d0"
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL6J",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "tenx_chemistry": [
+    "v3",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM5059690": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "TA and EDL muscle",
+    null
+   ],
+   "cell_type": [
+    "MuSCs",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "10-12 months",
+    "sod1_10_12mo"
+   ],
+   "genotype": [
+    "SynTgSod1-/-",
+    "sod1_rescue"
+   ],
+   "treatment": [
+    "uninjured",
+    "uninjured"
+   ],
+   "timepoint_days_post_injury": [
+    "timepoint (days post injury): 0",
+    "d0"
+   ],
+   "disease": [
+    "neuromuscular degeneration",
+    null
+   ],
+   "strain": [
+    "SynTgSod1-/-",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "tenx_chemistry": [
+    "v3",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM5059691": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "TA and EDL muscle",
+    null
+   ],
+   "cell_type": [
+    "MuSCs",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "10-12 months",
+    "sod1_10_12mo"
+   ],
+   "genotype": [
+    "Sod1-/-",
+    "sod1_knockout"
+   ],
+   "treatment": [
+    "uninjured",
+    "uninjured"
+   ],
+   "timepoint_days_post_injury": [
+    "timepoint (days post injury): 0",
+    "d0"
+   ],
+   "disease": [
+    "neuromuscular degeneration",
+    null
+   ],
+   "strain": [
+    "Sod1-/-",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "tenx_chemistry": [
+    "v3",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM5059692": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "TA and EDL muscle",
+    null
+   ],
+   "cell_type": [
+    "MuSCs",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "22-24 months",
+    "aged_22_24mo"
+   ],
+   "genotype": [
+    "C57BL/6J wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "uninjured",
+    "uninjured"
+   ],
+   "timepoint_days_post_injury": [
+    "timepoint (days post injury): 0",
+    "d0"
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL6J",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "tenx_chemistry": [
+    "v2",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM5059693": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "TA and EDL muscle",
+    null
+   ],
+   "cell_type": [
+    "MuSCs",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3-4 months",
+    "young_3_4mo"
+   ],
+   "genotype": [
+    "C57BL/6J wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "uninjured",
+    "uninjured"
+   ],
+   "timepoint_days_post_injury": [
+    "timepoint (days post injury): 0",
+    "d0"
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL6J",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "tenx_chemistry": [
+    "v2",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "age": {
+   "levels": [
+    "young_3_4mo",
+    "sod1_10_12mo",
+    "aged_22_24mo",
+    "geriatric_26mo"
+   ],
+   "baseline": "young_3_4mo",
+   "ordered": true,
+   "inferred": "Young, aged, geriatric, and SOD1 adult ages compared.",
+   "p": 0.92
+  },
+  "genotype": {
+   "levels": [
+    "wild_type",
+    "sod1_knockout",
+    "sod1_rescue"
+   ],
+   "baseline": "wild_type",
+   "ordered": false,
+   "inferred": "Wild-type, Sod1-/-, and SynTgSod1-/- rescue compared.",
+   "p": 0.97
+  },
+  "treatment": {
+   "levels": [
+    "uninjured",
+    "bacl2_injury"
+   ],
+   "baseline": "uninjured",
+   "ordered": true,
+   "inferred": "Uninjured vs BaCl2-induced muscle injury.",
+   "p": 0.88
+  },
+  "timepoint_days_post_injury": {
+   "levels": [
+    "d0",
+    "d3",
+    "d7"
+   ],
+   "baseline": "d0",
+   "ordered": true,
+   "inferred": "0, 3, and 7 days post injury.",
+   "p": 0.95
+  }
+ },
+ "n_passages": 22,
+ "n_shared": 11,
+ "n_row_claims": 81,
+ "lists_summary": {
+  "factors": 4,
+  "factors_kept": 4,
+  "labels_with_values": 9,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "sources_disagree",
+    "note": "Series says young mice 4-6 months; sample records say 3-4 months."
+   },
+   {
+    "kind": "sources_disagree",
+    "note": "Sample source_name says TA and EDL; protocol and series say tibialis anterior and gastrocnemius."
+   },
+   {
+    "kind": "sequencer",
+    "note": "Protocol says NextSeq 500 or NovaSeq; sample records say NovaSeq 6000."
+   },
+   {
+    "kind": "batch",
+    "note": "10x chemistry v2 and v3 both used among samples."
+   },
+   {
+    "kind": "crossed_not_fully",
+    "note": "Young only d0; aged d0/3/7; SOD1 rescue/knockout only d0."
+   },
+   {
+    "kind": "time_from_event",
+    "note": "timepoint days post injury is time to harvest, not treatment duration."
+   },
+   {
+    "kind": "dose_per_unit",
+    "note": "BaCl2 dose is 80 µL per hindlimb, not per animal."
+   },
+   {
+    "kind": "pooled_material",
+    "note": "n=4 per group but nine 10x libraries; mouse pooling unstated."
+   },
+   {
+    "kind": "baseline_as_control",
+    "note": "Uninjured and young are baselines, not input/IgG control libraries."
+   }
+  ],
+  "donor_kind_writer": "unknown",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM5059689",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM5059690",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L2",
+   "status": "named",
+   "source": "GSM5059685",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L3",
+   "status": "named",
+   "source": "GSM5059688",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.98
+  },
+  {
+   "key": "age/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSE165978",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 30,
+   "backs_p": 0.95
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM5059691",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L2",
+   "status": "named",
+   "source": "GSM5059690",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM5059685",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 30,
+   "backs_p": 0.97
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 148,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "timepoint_days_post_injury/L0",
+   "status": "named",
+   "source": "GSM5059685",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.98
+  },
+  {
+   "key": "timepoint_days_post_injury/L1",
+   "status": "named",
+   "source": "GSM5059686",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.98
+  },
+  {
+   "key": "timepoint_days_post_injury/L2",
+   "status": "named",
+   "source": "GSM5059687",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.97
+  },
+  {
+   "key": "timepoint_days_post_injury/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.98
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 66,
+   "backs_p": 0.98
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "pmid:34323217",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 27,
+   "backs_p": 0.94
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.97
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "GSM5059685",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 30,
+   "backs_p": 0.98
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "pmid:34323217",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 27,
+   "backs_p": 0.28
+  },
+  {
+   "key": "disease/v1",
+   "status": "named",
+   "source": "pmid:34323217",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 89,
+   "backs_p": 0.91
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM5059685",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v1",
+   "status": "named",
+   "source": "GSM5059691",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v2",
+   "status": "named",
+   "source": "GSM5059690",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.98
+  },
+  {
+   "key": "dose/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 37,
+   "backs_p": 0.98
+  },
+  {
+   "key": "dose/v1",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 33,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tenx_chemistry/v0",
+   "status": "named",
+   "source": "GSM5059685",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tenx_chemistry/v1",
+   "status": "named",
+   "source": "GSM5059692",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "MuSCs",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": [
+    {
+     "id": "CL:0000192",
+     "label": "smooth muscle cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0000514",
+     "label": "smooth muscle myoblast",
+     "exact": false
+    },
+    {
+     "id": "CL:0000188",
+     "label": "cell of skeletal muscle",
+     "exact": false
+    },
+    {
+     "id": "CL:0000746",
+     "label": "cardiac muscle cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0000594",
+     "label": "skeletal muscle satellite cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0011027",
+     "label": "skeletal muscle fibroblast",
+     "exact": false
+    },
+    {
+     "id": "CL:0000680",
+     "label": "muscle precursor cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0002211",
+     "label": "type I muscle cell",
+     "exact": false
+    }
+   ],
+   "pick": "CL:0000594",
+   "p": 0.99,
+   "probe_pick": "CL:0000680",
+   "probe_p": 0.86
+  },
+  {
+   "label": "development_stage",
+   "text": "adult",
+   "vocab": [
+    "mmusdv"
+   ],
+   "candidates": [
+    {
+     "id": "MmusDv:0000134",
+     "label": "late adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000136",
+     "label": "prime adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000153",
+     "label": "young adult stage",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.5
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "neuromuscular degeneration",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "TA and EDL muscle",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "1.2% barium chloride (BaCl2) solution",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "uninjured",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.93,
+  "untreated_or_vehicle": 0.9,
+  "several_compounds": 0.21,
+  "route_or_side": 0.97,
+  "dose_per_unit": 0.81,
+  "duration_without_number": 0.2,
+  "time_from_event": 0.94,
+  "pooled_material": 0.66,
+  "held_constant": 0.93,
+  "batch": 0.53,
+  "sequencer": 0.82,
+  "vector": 0.28,
+  "one_control_many_materials": 0.07,
+  "baseline_as_control": 0.14,
+  "single_cell": 0.96,
+  "mixed_assays": 0.03
+ },
+ "donor_kind": [
+  "pool",
+  0.74
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.014276856,
+   "seconds": 122.177,
+   "tokens_in": 4160,
+   "tokens_out": 23037
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000265524,
+   "seconds": 0.307,
+   "tokens_in": 6322
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00015246,
+   "seconds": 0.305,
+   "tokens_in": 3630
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000153258,
+   "seconds": 0.284,
+   "tokens_in": 3649
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00015246,
+   "seconds": 0.319,
+   "tokens_in": 3630
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00015246,
+   "seconds": 0.268,
+   "tokens_in": 3630
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000153258,
+   "seconds": 0.378,
+   "tokens_in": 3649
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00015246,
+   "seconds": 0.519,
+   "tokens_in": 3630
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000153174,
+   "seconds": 0.477,
+   "tokens_in": 3647
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000153174,
+   "seconds": 0.507,
+   "tokens_in": 3647
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152544,
+   "seconds": 0.528,
+   "tokens_in": 3632
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152544,
+   "seconds": 0.47,
+   "tokens_in": 3632
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152418,
+   "seconds": 0.47,
+   "tokens_in": 3629
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152418,
+   "seconds": 0.284,
+   "tokens_in": 3629
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152334,
+   "seconds": 0.363,
+   "tokens_in": 3627
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152334,
+   "seconds": 0.27,
+   "tokens_in": 3627
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152712,
+   "seconds": 0.363,
+   "tokens_in": 3636
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152712,
+   "seconds": 0.315,
+   "tokens_in": 3636
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152628,
+   "seconds": 0.314,
+   "tokens_in": 3634
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000152628,
+   "seconds": 0.238,
+   "tokens_in": 3634
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000235914,
+   "seconds": 0.129,
+   "tokens_in": 5617
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 5.2332e-05,
+   "seconds": 0.285,
+   "tokens_in": 1246
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 4.6452e-05,
+   "seconds": 0.242,
+   "tokens_in": 1106
+  }
+ ],
+ "seconds": 0.22,
+ "ending": "settled",
+ "variant": "flash_think"
+}

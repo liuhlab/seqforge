@@ -1,0 +1,1095 @@
+format: 1
+study: GSE146013
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Non-inoculated age-matched Tg501 animals were used as controls.
+  2:
+    record:
+    - GSM4351989
+    - GSM4351990
+    - GSM4351991
+    - GSM4351992
+    - GSM4351993
+    - GSM4351994
+    - GSM4351995
+    field: Sample_characteristics_ch1
+    quote: 'Stage: clinical (control)'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: miRNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record:
+    - GSM4351989
+    - GSM4351990
+    - GSM4351991
+    - GSM4351992
+    - GSM4351993
+    - GSM4351994
+    - GSM4351995
+    - GSM4351996
+    - GSM4351997
+    - GSM4351998
+    - GSM4351999
+    - GSM4352000
+    field: Sample_characteristics_ch1
+    quote: 'age: postnatal day 200'
+  6:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: Cervical spinal cord
+  7:
+    paper: pmid:32549330
+    section: 2. Materials and Methods > 2.1. Animals
+    quote: Tg501 mice used for small RNA sequencing express wild-type goat PRNP allele under the control
+      of murine PrP promoter
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: Tg501'
+  9:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Tg501 mice were intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2) at 50 days
+      of age.
+  10:
+    record: GSE146013
+    field: Series_title
+    quote: MicroRNA alterations in a mouse model of prion disease
+  11:
+    record:
+    - GSM4352007
+    - GSM4352008
+    - GSM4352009
+    - GSM4352010
+    - GSM4352011
+    - GSM4352012
+    field: Sample_characteristics_ch1
+    quote: 'Stage: preclinical (prion-inoculated), 150 days post inoculation'
+  12:
+    record:
+    - GSM4352001
+    - GSM4352002
+    - GSM4352003
+    - GSM4352004
+    - GSM4352005
+    - GSM4352006
+    field: Sample_characteristics_ch1
+    quote: 'Stage: preclinical (control)'
+  13:
+    record:
+    - GSM4352001
+    - GSM4352002
+    - GSM4352003
+    - GSM4352004
+    - GSM4352005
+    - GSM4352006
+    - GSM4352007
+    - GSM4352008
+    - GSM4352009
+    - GSM4352010
+    - GSM4352011
+    - GSM4352012
+    field: Sample_characteristics_ch1
+    quote: 'age: postnatal day 100'
+  14:
+    paper: pmid:32549330
+    section: 2. Materials and Methods > 2.2. Tissue Collection
+    quote: 100 days post-inoculation (DPI, preclinical stage)
+factors:
+  treatment:
+    levels:
+    - scrapie_inoculated
+    - non_inoculated
+    baseline: non_inoculated
+    ordered: true
+    inferred: inoculation with Goat-Sc S2 scrapie versus non-inoculated
+    p: 0.98
+  disease_stage:
+    levels:
+    - preclinical
+    - clinical
+    baseline: null
+    ordered: true
+    inferred: presymptomatic versus symptomatic stage at sacrifice
+    p: 0.87
+shared:
+  assay:
+    text: miRNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: Cervical spinal cord
+    term: UBERON:0002726
+    quoted:
+    - 6
+    p: 1.0
+  genotype:
+    text: expresses wild-type goat PRNP allele under the control of murine PrP promoter
+    quoted:
+    - 7
+    p: 0.98
+  strain:
+    text: Tg501
+    quoted:
+    - 8
+    p: 1.0
+  target:
+    na: no pull-down; small RNA sequencing libraries
+    p: 1.0
+  control_type:
+    na: non-inoculated animals are a baseline, not input or IgG
+    p: 1.0
+  sex:
+    unknown: no sex stated in records or paper
+    p: 0.98
+  development_stage:
+    unknown: records give only postnatal age, no stage term
+    p: 0.78
+  cell_type:
+    na: spinal cord tissue, not cultured cells
+    p: 0.97
+  cell_line:
+    na: in vivo tissue, no cell line
+    p: 1.0
+  dose:
+    unknown: inoculum amount per mouse not stated
+    p: 0.99
+  duration:
+    unknown: inoculation is a point event; interval to harvest is not duration
+    p: 0.8
+samples:
+  GSM4351989:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.96
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 0.99
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.99
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.85
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.5
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC1
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM4351990:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.99
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 0.99
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.98
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.88
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.57
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC2
+      inferred: Jev picked the individual from the listed names
+      p: 0.9
+  GSM4351991:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.98
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.98
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.87
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.55
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC3
+      inferred: Jev picked the individual from the listed names
+      p: 0.93
+  GSM4351992:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.98
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.98
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.85
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.52
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC4
+      inferred: Jev picked the individual from the listed names
+      p: 0.82
+  GSM4351993:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.97
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 0.99
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.98
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.84
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.53
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC5
+      inferred: Jev picked the individual from the listed names
+      p: 0.87
+  GSM4351994:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.97
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 0.99
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.98
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.83
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.47
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC6
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM4351995:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.98
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.99
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.84
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.53
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC7
+      inferred: Jev picked the individual from the listed names
+      p: 0.85
+  GSM4351996:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 1.0
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 0.8
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.99
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 1.0
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 0.75
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CIN1
+      inferred: Jev picked the individual from the listed names
+      p: 0.71
+  GSM4351997:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 0.99
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 0.85
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.98
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.98
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 0.76
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CIN2
+      inferred: Jev picked the individual from the listed names
+      p: 0.78
+  GSM4351998:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 0.98
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 0.84
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.99
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.99
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 0.75
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351999:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 1.0
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 0.84
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.99
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.99
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 0.83
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CIN4
+      inferred: Jev picked the individual from the listed names
+      p: 0.82
+  GSM4352000:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 0.99
+    disease_stage:
+      text: clinical (control)
+      level: clinical
+      quoted:
+      - 2
+      p: 0.87
+    age:
+      text: postnatal day 200
+      value: 200
+      unit: day
+      quoted:
+      - 5
+      p: 0.99
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.98
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 0.77
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CIN5
+      inferred: Jev picked the individual from the listed names
+      p: 0.89
+  GSM4352001:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.98
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 1.0
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.85
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.54
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PC1
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM4352002:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.99
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 1.0
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.88
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.59
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PC2
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM4352003:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.97
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 1.0
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.85
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.45
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PC3
+      inferred: Jev picked the individual from the listed names
+      p: 0.77
+  GSM4352004:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.98
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 1.0
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.83
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.5
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PC4
+      inferred: Jev picked the individual from the listed names
+      p: 0.9
+  GSM4352005:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.99
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 1.0
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.87
+    days_post_inoculation:
+      na: it does not apply to this sample
+      p: 0.5
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PC5
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM4352006:
+    treatment:
+      text: Non-inoculated age-matched Tg501 animals were used as controls
+      level: non_inoculated
+      quoted:
+      - 1
+      p: 0.98
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 1.0
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: non-inoculated controls without prion disease
+      see:
+      - 1
+      p: 0.89
+    days_post_inoculation:
+      text: 100 days post-inoculation (DPI, preclinical stage)
+      quoted:
+      - 14
+      p: 0.43
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PC6
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM4352007:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 1.0
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 0.78
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.99
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PIN1
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM4352008:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 1.0
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 0.79
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.99
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PIN2
+      inferred: Jev picked the individual from the listed names
+      p: 0.77
+  GSM4352009:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 1.0
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 0.78
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.99
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PIN3
+      inferred: Jev picked the individual from the listed names
+      p: 0.88
+  GSM4352010:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 1.0
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 0.77
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 1.0
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.99
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PIN4
+      inferred: Jev picked the individual from the listed names
+      p: 0.77
+  GSM4352011:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 1.0
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 0.79
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 0.99
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.99
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B23
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PIN5
+      inferred: Jev picked the individual from the listed names
+      p: 0.84
+  GSM4352012:
+    treatment:
+      text: intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)
+      level: scrapie_inoculated
+      quoted:
+      - 9
+      p: 1.0
+    disease_stage:
+      text: preclinical (control)
+      level: preclinical
+      quoted:
+      - 12
+      p: 0.8
+    age:
+      text: postnatal day 100
+      value: 100
+      unit: day
+      quoted:
+      - 13
+      p: 0.99
+    disease:
+      text: prion disease
+      term: MONDO:0005429
+      quoted:
+      - 10
+      p: 0.99
+    days_post_inoculation:
+      text: 150 days post inoculation
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B24
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_PIN6
+      inferred: Jev picked the individual from the listed names
+      p: 0.93

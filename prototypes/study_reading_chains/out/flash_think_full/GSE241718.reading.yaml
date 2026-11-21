@@ -1,0 +1,448 @@
+format: 1
+study: GSE241718
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM7720368
+    - GSM7720369
+    - GSM7734325
+    - GSM7734326
+    field: Sample_characteristics_ch1
+    quote: 'age: 2 months'
+  2:
+    record:
+    - GSM7720368
+    - GSM7720369
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'tissue: VAT'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: GSE241718
+    field: Series_overall_design
+    quote: female C57BL/6J mice
+  6:
+    paper: pmid:38997312
+    section: Results > Single-nucleus RNA sequencing uncovers the full spectrum of cell types in mouse
+      SAT and VAT
+    quote: young (2-month-old) and aged (26-month-old) female C57BL/6 J mice
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Adipocytes'
+  8:
+    paper: pmid:38997312
+    section: Materials and methods > Mice
+    quote: All subjects were ensured to be Specific-Pathogen-Free (SPF) grade, excluding any disease effects.
+  9:
+    record:
+    - GSM7720368
+    - GSM7720369
+    field: Sample_characteristics_ch1
+    quote: 'time: 2022-04-02'
+  10:
+    record: GSM7734325
+    field: Sample_title
+    quote: FGG1_2M,replicate1,snRNA_seq
+  11:
+    record: GSM7734326
+    field: Sample_title
+    quote: FGG3_2M,replicate2,snRNA_seq
+  12:
+    record:
+    - GSM7734325
+    - GSM7734326
+    - GSM7734327
+    - GSM7734328
+    field: Sample_characteristics_ch1
+    quote: 'tissue: SAT'
+  13:
+    record:
+    - GSM7734327
+    - GSM7734328
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'age: 24 months'
+  14:
+    record:
+    - GSM7734325
+    - GSM7734326
+    - GSM7734327
+    - GSM7734328
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'time: 4/2/2022'
+  15:
+    record: GSE241718
+    field: Series_overall_design
+    quote: Subcutaneous mouse adipose tissue depots were dissected from 2 months and 26 months female
+      C57BL/6J mice into ice-cold PBS
+  16:
+    record: GSE241718
+    field: Series_summary
+    quote: showing the differences in visceral and subcutaneous adipose tissue changes with aging
+factors:
+  age:
+    levels:
+    - young_2m
+    - aged_24m
+    baseline: young_2m
+    ordered: false
+    quoted:
+    - 15
+    p: 0.85
+  tissue:
+    levels:
+    - SAT
+    - VAT
+    baseline: null
+    ordered: true
+    quoted:
+    - 16
+    p: 0.96
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  sex:
+    text: female
+    term: female
+    quoted:
+    - 5
+    p: 0.91
+  development_stage:
+    text: adult
+    inferred: 2- and 24-month-old mice are adults
+    see:
+    - 6
+    p: 0.97
+  cell_type:
+    text: Adipocytes
+    term: CL:0000136
+    quoted:
+    - 7
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: SPF mice with no disease stated
+    see:
+    - 8
+    p: 0.97
+  strain:
+    text: C57BL/6J
+    quoted:
+    - 5
+    p: 0.92
+  target:
+    na: snRNA-seq, no pull-down or enrichment
+    p: 1.0
+  control_type:
+    na: no background-control libraries in this study
+    p: 1.0
+  cell_line:
+    na: primary adipose tissue, no cultured cell line
+    p: 1.0
+  genotype:
+    unknown: no genotype given; only strain C57BL/6J
+    p: 0.82
+  treatment:
+    na: no drug, diet or procedure applied
+    p: 0.86
+  dose:
+    na: no treatment given
+    p: 0.99
+  duration:
+    na: no treatment given
+    p: 0.99
+samples:
+  GSM7720368:
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: young_2m
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 2
+      p: 1.0
+    collection_date:
+      text: '2022-04-02'
+      quoted:
+      - 9
+      p: 0.95
+    replicate:
+      text: replicate1
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_FGG1_2M
+      inferred: Jev picked the individual from the listed names
+      p: 0.65
+  GSM7720369:
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: young_2m
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 2
+      p: 1.0
+    collection_date:
+      text: '2022-04-02'
+      quoted:
+      - 9
+      p: 0.94
+    replicate:
+      text: replicate2
+      quoted:
+      - 11
+      p: 0.95
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_FGG3_2M
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM7734325:
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: young_2m
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 12
+      p: 1.0
+    collection_date:
+      text: '2022-04-02'
+      quoted:
+      - 9
+      p: 0.54
+    replicate:
+      text: replicate1
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_FGG1_2M
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM7734326:
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: young_2m
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 12
+      p: 1.0
+    collection_date:
+      text: '2022-04-02'
+      quoted:
+      - 9
+      p: 0.55
+    replicate:
+      text: replicate2
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_FGG3_2M
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM7734327:
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: aged_24m
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 12
+      p: 1.0
+    collection_date:
+      text: '2022-04-02'
+      quoted:
+      - 9
+      p: 0.51
+    replicate:
+      text: replicate1
+      quoted:
+      - 10
+      p: 0.85
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_FGG1_24M
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM7734328:
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: aged_24m
+      quoted:
+      - 13
+      p: 0.99
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 12
+      p: 1.0
+    collection_date:
+      text: 4/2/2022
+      quoted:
+      - 14
+      p: 0.51
+    replicate:
+      text: replicate2
+      quoted:
+      - 11
+      p: 0.85
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_FGG2_24M
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM7734329:
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: aged_24m
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 2
+      p: 1.0
+    collection_date:
+      text: 4/2/2022
+      quoted:
+      - 14
+      p: 0.55
+    replicate:
+      text: replicate1
+      quoted:
+      - 10
+      p: 0.95
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_XX1_24M
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM7734330:
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: aged_24m
+      quoted:
+      - 13
+      p: 0.99
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 2
+      p: 1.0
+    collection_date:
+      text: 4/2/2022
+      quoted:
+      - 14
+      p: 0.52
+    replicate:
+      text: replicate2
+      quoted:
+      - 11
+      p: 0.87
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_XX2_24M
+      inferred: Jev picked the individual from the listed names
+      p: 0.97

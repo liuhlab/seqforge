@@ -1,0 +1,676 @@
+format: 1
+study: GSE165978
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM5059685
+    - GSM5059686
+    - GSM5059687
+    - GSM5059692
+    field: Sample_characteristics_ch1
+    quote: 'age: 22-24 months'
+  2:
+    record: GSE165978
+    field: Series_overall_design
+    quote: C57BL/6J wild-type female mice
+  3:
+    record:
+    - GSM5059685
+    - GSM5059688
+    - GSM5059689
+    - GSM5059690
+    - GSM5059691
+    - GSM5059692
+    - GSM5059693
+    field: Sample_characteristics_ch1
+    quote: 'timepoint (days post injury): 0'
+  4:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  5:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  6:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: C57BL/6 wild-type female mice were obtained from Charles River Breeding Laboratories
+  7:
+    paper: pmid:34323217
+    section: abstract
+    quote: healthy young adult muscles
+  8:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: TA and EDL muscle
+  9:
+    paper: pmid:34323217
+    section: Results > Identification of an NMJ-associated subset of MuSCs that increases with age
+    quote: FACS-sorted MuSCs
+  10:
+    record:
+    - GSM5059685
+    - GSM5059686
+    - GSM5059687
+    - GSM5059688
+    - GSM5059689
+    - GSM5059692
+    - GSM5059693
+    field: Sample_characteristics_ch1
+    quote: 'strain: C57BL6J'
+  11:
+    record: GSM5059685
+    field: Sample_title
+    quote: Aged Uninjured MuSCs [d0_Aged]
+  12:
+    record:
+    - GSM5059685
+    - GSM5059686
+    - GSM5059687
+    - GSM5059688
+    - GSM5059689
+    - GSM5059690
+    - GSM5059691
+    field: Sample_characteristics_ch1
+    quote: '10x chemistry: v3'
+  13:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: for a total of 80 µL per hindlimb
+  14:
+    record: GSM5059686
+    field: Sample_characteristics_ch1
+    quote: 'timepoint (days post injury): 3'
+  15:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: administered a 1.2% barium chloride (BaCl2) solution injected intramuscularly
+  16:
+    record: GSM5059687
+    field: Sample_characteristics_ch1
+    quote: 'timepoint (days post injury): 7'
+  17:
+    record: GSM5059688
+    field: Sample_characteristics_ch1
+    quote: 'age: 26 months'
+  18:
+    record:
+    - GSM5059689
+    - GSM5059693
+    field: Sample_characteristics_ch1
+    quote: 'age: 3-4 months'
+  19:
+    record:
+    - GSM5059690
+    - GSM5059691
+    field: Sample_characteristics_ch1
+    quote: 'age: 10-12 months'
+  20:
+    record: GSM5059690
+    field: Sample_characteristics_ch1
+    quote: 'strain: SynTgSod1-/-'
+  21:
+    paper: pmid:34323217
+    section: abstract
+    quote: mouse model of neuromuscular degeneration (Cu/Zn superoxide dismutase knockout - Sod1-/-)
+  22:
+    record: GSM5059691
+    field: Sample_characteristics_ch1
+    quote: 'strain: Sod1-/-'
+  23:
+    record:
+    - GSM5059692
+    - GSM5059693
+    field: Sample_characteristics_ch1
+    quote: '10x chemistry: v2'
+  24:
+    record: GSE165978
+    field: Series_overall_design
+    quote: Young female mice (4-6 months) and aged female mice (20-24 months)
+factors:
+  age:
+    levels:
+    - young_3_4m
+    - aged_22_24m
+    - geriatric_26m
+    - sod1_10_12m
+    baseline: young_3_4m
+    ordered: true
+    quoted:
+    - 24
+    p: 0.93
+  genotype:
+    levels:
+    - wild_type_C57BL6J
+    - Sod1_knockout
+    - SynTgSod1_rescue
+    baseline: wild_type_C57BL6J
+    ordered: false
+    inferred: WT, Sod1 knockout, and motor-neuron SOD1 rescue.
+    p: 0.97
+  timepoint_days_post_injury:
+    levels:
+    - day_0_uninjured
+    - day_3_post_injury
+    - day_7_post_injury
+    baseline: day_0_uninjured
+    ordered: true
+    inferred: Uninjured versus 3 and 7 days post BaCl2 injury.
+    p: 0.93
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 4
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 5
+    p: 1.0
+  sex:
+    text: female
+    term: female
+    quoted:
+    - 6
+    p: 0.76
+  development_stage:
+    text: adult
+    quoted:
+    - 7
+    p: 0.91
+  tissue:
+    text: TA and EDL muscle
+    quoted:
+    - 8
+    p: 1.0
+  cell_type:
+    text: muscle stem cell (MuSC)
+    quoted:
+    - 9
+    p: 1.0
+  injection_volume:
+    text: for a total of 80 µL per hindlimb
+    quoted:
+    - 13
+    p: 0.56
+  target:
+    na: RNA-Seq has no pull-down target
+    p: 1.0
+  control_type:
+    na: No input or IgG background-control libraries
+    p: 1.0
+  cell_line:
+    na: Primary sorted MuSCs, not a cultured cell line
+    p: 1.0
+  duration:
+    unknown: BaCl2 injection is acute; days post injury are not duration
+    p: 0.62
+  donor:
+    na: a pool of many individuals
+    p: 0.75
+samples:
+  GSM5059685:
+    age:
+      text: 22-24 months
+      value: &id001
+      - 22
+      - 24
+      unit: months
+      level: aged_22_24m
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: C57BL/6J wild-type
+      level: wild_type_C57BL6J
+      quoted:
+      - 2
+      p: 0.98
+    timepoint_days_post_injury:
+      text: '0'
+      level: day_0_uninjured
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: Wild-type mice; no disease stated
+      see:
+      - 2
+      p: 1.0
+    strain:
+      text: C57BL6J
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: uninjured
+      quoted:
+      - 11
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.95
+    tenx_chemistry:
+      text: '10x chemistry: v3'
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059686:
+    age:
+      text: 22-24 months
+      value: *id001
+      unit: months
+      level: aged_22_24m
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: C57BL/6J wild-type
+      level: wild_type_C57BL6J
+      quoted:
+      - 2
+      p: 0.98
+    timepoint_days_post_injury:
+      text: '3'
+      level: day_3_post_injury
+      quoted:
+      - 14
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: Wild-type mice; no disease stated
+      see:
+      - 2
+      p: 0.95
+    strain:
+      text: C57BL6J
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: barium chloride (BaCl2) injury
+      quoted:
+      - 15
+      p: 0.99
+    dose:
+      text: 1.2% barium chloride (BaCl2) solution
+      value: 1.2
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.85
+    tenx_chemistry:
+      text: '10x chemistry: v3'
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059687:
+    age:
+      text: 22-24 months
+      value: *id001
+      unit: months
+      level: aged_22_24m
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: C57BL/6J wild-type
+      level: wild_type_C57BL6J
+      quoted:
+      - 2
+      p: 0.99
+    timepoint_days_post_injury:
+      text: '7'
+      level: day_7_post_injury
+      quoted:
+      - 16
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: Wild-type mice; no disease stated
+      see:
+      - 2
+      p: 0.95
+    strain:
+      text: C57BL6J
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: barium chloride (BaCl2) injury
+      quoted:
+      - 15
+      p: 0.99
+    dose:
+      text: 1.2% barium chloride (BaCl2) solution
+      value: 1.2
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.87
+    tenx_chemistry:
+      text: '10x chemistry: v3'
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059688:
+    age:
+      text: 26 months
+      value: 26
+      unit: months
+      level: geriatric_26m
+      quoted:
+      - 17
+      p: 1.0
+    genotype:
+      text: C57BL/6J wild-type
+      level: wild_type_C57BL6J
+      quoted:
+      - 2
+      p: 1.0
+    timepoint_days_post_injury:
+      text: '0'
+      level: day_0_uninjured
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: Wild-type mice; no disease stated
+      see:
+      - 2
+      p: 1.0
+    strain:
+      text: C57BL6J
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: uninjured
+      quoted:
+      - 11
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.95
+    tenx_chemistry:
+      text: '10x chemistry: v3'
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059689:
+    age:
+      text: 3-4 months
+      value: &id003
+      - 3
+      - 4
+      unit: months
+      level: young_3_4m
+      quoted:
+      - 18
+      p: 1.0
+    genotype:
+      text: C57BL/6J wild-type
+      level: wild_type_C57BL6J
+      quoted:
+      - 2
+      p: 0.71
+    timepoint_days_post_injury:
+      text: '0'
+      level: day_0_uninjured
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: Wild-type mice; no disease stated
+      see:
+      - 2
+      p: 0.82
+    strain:
+      text: C57BL6J
+      quoted:
+      - 10
+      p: 0.95
+    treatment:
+      text: uninjured
+      quoted:
+      - 11
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.89
+    tenx_chemistry:
+      text: '10x chemistry: v3'
+      quoted:
+      - 12
+      p: 0.99
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059690:
+    age:
+      text: 10-12 months
+      value: &id002
+      - 10
+      - 12
+      unit: months
+      level: sod1_10_12m
+      quoted:
+      - 19
+      p: 1.0
+    genotype:
+      text: SynTgSod1-/-
+      level: SynTgSod1_rescue
+      quoted:
+      - 20
+      p: 1.0
+    timepoint_days_post_injury:
+      text: '0'
+      level: day_0_uninjured
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: Sod1-/- neuromuscular degeneration model
+      quoted:
+      - 21
+      p: 0.96
+    strain:
+      text: SynTgSod1-/-
+      quoted:
+      - 20
+      p: 0.99
+    treatment:
+      text: uninjured
+      quoted:
+      - 11
+      p: 0.82
+    dose:
+      na: no treatment
+      p: 0.71
+    tenx_chemistry:
+      text: '10x chemistry: v3'
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059691:
+    age:
+      text: 10-12 months
+      value: *id002
+      unit: months
+      level: sod1_10_12m
+      quoted:
+      - 19
+      p: 1.0
+    genotype:
+      text: Sod1-/-
+      level: Sod1_knockout
+      quoted:
+      - 22
+      p: 1.0
+    timepoint_days_post_injury:
+      text: '0'
+      level: day_0_uninjured
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: Sod1-/- neuromuscular degeneration model
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: Sod1-/-
+      quoted:
+      - 22
+      p: 0.99
+    treatment:
+      text: uninjured
+      quoted:
+      - 11
+      p: 0.85
+    dose:
+      na: no treatment
+      p: 0.67
+    tenx_chemistry:
+      text: '10x chemistry: v3'
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059692:
+    age:
+      text: 22-24 months
+      value: *id001
+      unit: months
+      level: aged_22_24m
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: C57BL/6J wild-type
+      level: wild_type_C57BL6J
+      quoted:
+      - 2
+      p: 0.83
+    timepoint_days_post_injury:
+      text: '0'
+      level: day_0_uninjured
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: Wild-type mice; no disease stated
+      see:
+      - 2
+      p: 0.85
+    strain:
+      text: C57BL6J
+      quoted:
+      - 10
+      p: 0.98
+    treatment:
+      text: uninjured
+      quoted:
+      - 11
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.95
+    tenx_chemistry:
+      text: '10x chemistry: v2'
+      quoted:
+      - 23
+      p: 0.97
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM5059693:
+    age:
+      text: 3-4 months
+      value: *id003
+      unit: months
+      level: young_3_4m
+      quoted:
+      - 18
+      p: 1.0
+    genotype:
+      text: C57BL/6J wild-type
+      level: wild_type_C57BL6J
+      quoted:
+      - 2
+      p: 0.77
+    timepoint_days_post_injury:
+      text: '0'
+      level: day_0_uninjured
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: Wild-type mice; no disease stated
+      see:
+      - 2
+      p: 0.88
+    strain:
+      text: C57BL6J
+      quoted:
+      - 10
+      p: 0.97
+    treatment:
+      text: uninjured
+      quoted:
+      - 11
+      p: 0.94
+    dose:
+      na: no treatment
+      p: 0.91
+    tenx_chemistry:
+      text: '10x chemistry: v2'
+      quoted:
+      - 23
+      p: 0.96
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null

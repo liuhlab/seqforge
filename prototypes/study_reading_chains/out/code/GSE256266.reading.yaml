@@ -1,0 +1,239 @@
+format: 1
+study: GSE256266
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM8092237
+    - GSM8092238
+    field: Sample_characteristics_ch1
+    quote: 'tissue: 1 day old whole hermaphrodite worm'
+  2:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: miR228-GFP'
+  3:
+    record:
+    - GSM8092237
+    - GSM8092238
+    field: Sample_source_name_ch1
+    quote: 1 day old whole hermaphrodite worm
+  4:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  5:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: glia'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell line: n/a'
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: none'
+  9:
+    record:
+    - GSM8092239
+    - GSM8092240
+    field: Sample_characteristics_ch1
+    quote: 'tissue: 1 day old whole male worm'
+  10:
+    record:
+    - GSM8092239
+    - GSM8092240
+    field: Sample_characteristics_ch1
+    quote: 'genotype: miR228-GFP, Him5'
+  11:
+    record:
+    - GSM8092239
+    - GSM8092240
+    field: Sample_source_name_ch1
+    quote: 1 day old whole male worm
+factors:
+  tissue:
+    levels:
+    - 1 day old whole hermaphrodite worm
+    - 1 day old whole male worm
+    baseline: null
+    ordered: false
+    inferred: the characteristic "tissue" varies between samples
+    p: 0.67
+  genotype:
+    levels:
+    - miR228-GFP
+    - miR228-GFP, Him5
+    baseline: null
+    ordered: false
+    inferred: the characteristic "genotype" varies between samples
+    p: 0.79
+  sex:
+    levels:
+    - 1 day old whole hermaphrodite worm
+    - 1 day old whole male worm
+    baseline: null
+    ordered: false
+    inferred: the characteristic "source name" varies between samples
+    p: 0.97
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 4
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 5
+    p: 1.0
+  cell_type:
+    text: glia
+    term: CL:0000125
+    quoted:
+    - 6
+    p: 0.99
+  cell_line:
+    text: n/a
+    quoted:
+    - 7
+    p: 0.88
+  treatment:
+    text: none
+    quoted:
+    - 8
+    p: 0.96
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  age:
+    unknown: nothing read says it
+    p: 0.72
+  development_stage:
+    unknown: nothing read says it
+    p: 0.57
+  disease:
+    na: does not apply to these samples
+    p: 0.91
+  strain:
+    unknown: nothing read says it
+    p: 0.98
+  dose:
+    na: no treatment
+    p: 1.0
+  duration:
+    na: no treatment
+    p: 0.99
+  donor:
+    na: a pool of many individuals
+    p: 0.99
+samples:
+  GSM8092237:
+    tissue:
+      text: 1 day old whole hermaphrodite worm
+      level: 1 day old whole hermaphrodite worm
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: miR228-GFP
+      level: miR228-GFP
+      quoted:
+      - 2
+      p: 1.0
+    sex:
+      text: 1 day old whole hermaphrodite worm
+      level: 1 day old whole hermaphrodite worm
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 3
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8092238:
+    tissue:
+      text: 1 day old whole hermaphrodite worm
+      level: 1 day old whole hermaphrodite worm
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: miR228-GFP
+      level: miR228-GFP
+      quoted:
+      - 2
+      p: 1.0
+    sex:
+      text: 1 day old whole hermaphrodite worm
+      level: 1 day old whole hermaphrodite worm
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 3
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8092239:
+    tissue:
+      text: 1 day old whole male worm
+      level: 1 day old whole male worm
+      quoted:
+      - 9
+      p: 1.0
+    genotype:
+      text: miR228-GFP, Him5
+      level: miR228-GFP, Him5
+      quoted:
+      - 10
+      p: 1.0
+    sex:
+      text: 1 day old whole male worm
+      level: 1 day old whole male worm
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8092240:
+    tissue:
+      text: 1 day old whole male worm
+      level: 1 day old whole male worm
+      quoted:
+      - 9
+      p: 1.0
+    genotype:
+      text: miR228-GFP, Him5
+      level: miR228-GFP, Him5
+      quoted:
+      - 10
+      p: 1.0
+    sex:
+      text: 1 day old whole male worm
+      level: 1 day old whole male worm
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null

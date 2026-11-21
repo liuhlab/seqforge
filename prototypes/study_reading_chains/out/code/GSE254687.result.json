@@ -1,0 +1,3267 @@
+{
+ "study": "GSE254687",
+ "chain": "code",
+ "read_full": false,
+ "n_samples": 21,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "tissue",
+   "levels": [
+    "CD11b enrichment of cells from whole brain",
+    "Brain"
+   ],
+   "p_designed": 0.33,
+   "p_designed_neg": 0.83,
+   "baseline": "L0",
+   "p_baseline": 0.62,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.69,
+   "p_ordered": 0.14,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": false
+  },
+  {
+   "label": "cell_type",
+   "levels": [
+    "Primary Microglia",
+    "microglia"
+   ],
+   "p_designed": 0.16,
+   "p_designed_neg": 0.89,
+   "baseline": "L0",
+   "p_baseline": 0.4,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.4,
+   "p_ordered": 0.11,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": false
+  },
+  {
+   "label": "genotype",
+   "levels": [
+    "KO",
+    "WT",
+    "PARK7/DJ-1 knock-out (KO)",
+    "PARK7/DJ-1 wild type (WT)"
+   ],
+   "p_designed": 0.96,
+   "p_designed_neg": 0.04,
+   "baseline": "L3",
+   "p_baseline": 0.63,
+   "baseline_rev": "L3",
+   "p_baseline_rev": 0.5,
+   "p_ordered": 0.05,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "LPS",
+    "PBS"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.04,
+   "baseline": "L1",
+   "p_baseline": 0.76,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 0.74,
+   "p_ordered": 0.33,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "tissue",
+   "levels": [
+    "CD11b enrichment of cells from whole brain",
+    "Brain"
+   ],
+   "p_designed": 0.34,
+   "p_designed_neg": 0.82,
+   "baseline": "L0",
+   "p_baseline": 0.54,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.67,
+   "p_ordered": 0.12,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": false
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.82,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.73,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.55,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "na",
+   "p": 0.51,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.93,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": true
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM8048782": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM8048783": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM8048784": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM8048785": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM8048786": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM8048787": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM8048788": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM8048789": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM8048790": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  },
+  "GSM8048791": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D10",
+    null
+   ]
+  },
+  "GSM8048792": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D11",
+    null
+   ]
+  },
+  "GSM8048793": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D12",
+    null
+   ]
+  },
+  "GSM8048794": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D13",
+    null
+   ]
+  },
+  "GSM8048795": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D14",
+    null
+   ]
+  },
+  "GSM8048796": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D15",
+    null
+   ]
+  },
+  "GSM8048797": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D16",
+    null
+   ]
+  },
+  "GSM8048798": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ],
+   "donor": [
+    "D17",
+    null
+   ]
+  },
+  "GSM8048799": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ],
+   "donor": [
+    "D18",
+    null
+   ]
+  },
+  "GSM8048800": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "biosample": [
+    "B19",
+    null
+   ],
+   "donor": [
+    "D19",
+    null
+   ]
+  },
+  "GSM8085924": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "PARK7/DJ-1 knock-out (KO)",
+    "PARK7/DJ-1 knock-out (KO)"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "cell_type": [
+    "microglia",
+    null
+   ],
+   "biosample": [
+    "B20",
+    null
+   ],
+   "donor": [
+    "D20",
+    null
+   ]
+  },
+  "GSM8085925": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "PARK7/DJ-1 wild type (WT)",
+    "PARK7/DJ-1 wild type (WT)"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "cell_type": [
+    "microglia",
+    null
+   ],
+   "biosample": [
+    "B21",
+    null
+   ],
+   "donor": [
+    "D21",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "KO",
+    "WT",
+    "PARK7/DJ-1 knock-out (KO)",
+    "PARK7/DJ-1 wild type (WT)"
+   ],
+   "baseline": "PARK7/DJ-1 wild type (WT)",
+   "ordered": false,
+   "inferred": "the characteristic \"genotype\" varies between samples",
+   "p": 0.96
+  },
+  "treatment": {
+   "levels": [
+    "LPS",
+    "PBS"
+   ],
+   "baseline": "PBS",
+   "ordered": false,
+   "inferred": "the characteristic \"treatment\" varies between samples",
+   "p": 0.97
+  }
+ },
+ "n_passages": 12,
+ "n_shared": 12,
+ "n_row_claims": 126,
+ "lists_summary": {
+  "factors": 5,
+  "factors_kept": 2,
+  "labels_with_values": 4,
+  "extra_labels": 0,
+  "writer_gaps": [],
+  "donor_kind_writer": null,
+  "keymap": {
+   "tissue": {
+    "label": "tissue",
+    "p": 0.99
+   },
+   "cell type": {
+    "label": "cell_type",
+    "p": 1.0
+   },
+   "genotype": {
+    "label": "genotype",
+    "p": 1.0
+   },
+   "treatment": {
+    "label": "treatment",
+    "p": 1.0
+   },
+   "source name": {
+    "label": "tissue",
+    "p": 0.71
+   }
+  }
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM8048792",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L2",
+   "status": "named",
+   "source": "GSM8085924",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.95
+  },
+  {
+   "key": "genotype/L3",
+   "status": "named",
+   "source": "GSM8085925",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.96
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM8048787",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 50,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v1",
+   "status": "named",
+   "source": "GSM8085924",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.93
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v1",
+   "status": "named",
+   "source": "GSM8085924",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.96
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "Primary Microglia",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "microglia",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": [
+    {
+     "id": "CL:0000129",
+     "label": "microglial cell",
+     "exact": true
+    },
+    {
+     "id": "CL:4307132",
+     "label": "microglial cell (Mmus)",
+     "exact": false
+    },
+    {
+     "id": "CL:0002629",
+     "label": "mature microglial cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0002628",
+     "label": "immature microglial cell",
+     "exact": false
+    },
+    {
+     "id": "GO:0014008",
+     "label": "positive regulation of microglia differentiation",
+     "exact": false
+    },
+    {
+     "id": "GO:0014007",
+     "label": "negative regulation of microglia differentiation",
+     "exact": false
+    },
+    {
+     "id": "GO:0014004",
+     "label": "microglia differentiation",
+     "exact": false
+    },
+    {
+     "id": "GO:0014006",
+     "label": "regulation of microglia differentiation",
+     "exact": false
+    }
+   ],
+   "pick": "CL:0000129",
+   "p": 0.94,
+   "probe_pick": "CL:0002629",
+   "probe_p": 0.61
+  },
+  {
+   "label": "tissue",
+   "text": "Brain",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0000955",
+     "label": "brain",
+     "exact": true
+    },
+    {
+     "id": "UBERON:6110636",
+     "label": "insect adult cerebral ganglion",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0002616",
+     "label": "regional part of brain",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003528",
+     "label": "brain gray matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003544",
+     "label": "brain white matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0013150",
+     "label": "future brain vesicle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014891",
+     "label": "brainstem white matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003547",
+     "label": "brain meninx",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0000955",
+   "p": 0.98,
+   "probe_pick": "none",
+   "probe_p": 0.7
+  },
+  {
+   "label": "tissue",
+   "text": "CD11b enrichment of cells from whole brain",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "LPS",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:89981",
+     "label": "LPS with O-antigen",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:16412",
+     "label": "lipopolysaccharide",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:52603",
+     "label": "1-acyl-sn-glycero-3-phosphoserine",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:136358",
+     "label": "beta-D-Gal-(1->4)-(1S)-D-GaloNAc-(1->4,6)-alpha-D-GalN-(1->4)-[alpha-LD-Hep-(1->2)-alpha-DD-Hep-(1->2)]-alpha-D-GalA-(1->3)-[alpha-LD-Hep-(1->7)]-alpha-LD-Hep6PEtn-(1->3)-[beta-D-Glc-(1->4)]-alpha-LD-Hep-(1->5)-[alpha-Kdo-(2->4)][beta-L-Arap4N-(1->8)]-alpha-Kdo",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:89983",
+     "label": "LPS core",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:134650",
+     "label": "alpha-D-Glc-(1->4)-alpha-D-GalNAc-(1->2)-alpha-DD-Hep-(1->6)-alpha-D-GlcNGly-(1->4)-[alpha-LD-Hep-(1->2)-alpha-DD-Hep-(1->2)]-alpha-D-GalA-(1->3)-[alpha-LD-Hep-(1->7)]-alpha-LD-Hep6PEtn-(1->3)-[beta-D-Glc-(1->4)]-alpha-LD-Hep-(1->5)-[alpha-Kdo-(2->4)][beta-L-Arap4N-(1->8)]-alpha-Kdo",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:136237",
+     "label": "alpha-L-Fuc3NHb-(1->4)-alpha-D-Gal-(1->6)-beta-D-Glc-(1->3)-alpha-D-GalN6PEtn-(1->4)-[alpha-LD-Hep-(1->2)-alpha-DD-Hep-(1->2)]-alpha-D-GalA-(1->3)-[alpha-LD-Hep-(1->7)]-alpha-LD-Hep6PEtn-(1->3)-[beta-D-Glc-(1->4)]-alpha-LD-Hep-(1->5)-[alpha-Kdo-(2->4)][beta-L-Arap4N-(1->8)]-alpha-Kdo",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:156248",
+     "label": "E. coli strain O157 LPS core oligosaccharide R1",
+     "exact": false
+    }
+   ],
+   "pick": "CHEBI:16412",
+   "p": 0.9,
+   "probe_pick": "none",
+   "probe_p": 0.46
+  },
+  {
+   "label": "treatment",
+   "text": "PBS",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:63080",
+     "label": "1-O-(6-acetamido-6-deoxy-alpha-D-galactosyl)-N-[(15Z)-tetracos-15-enoyl]phytosphingosine",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:757915",
+     "label": "abx-196",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:194150",
+     "label": "polybutylene succinate adipate",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:495150",
+     "label": "1-O-(alpha-D-galactopyranosyl)-N-tetracosanyl-2-aminononane-1,3,4-triol",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:527437",
+     "label": "1-O-(alpha-D-galactopyranosyl)-N-octanoylphytosphingosine",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:83272",
+     "label": "1-O-(alpha-D-galactosyl)-N-[(15Z)-tetracos-15-enoyl]phytosphingosine",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:83702",
+     "label": "1,2-di-O-stearoyl-3-S-{2-[(2-{beta-D-Glcp-(1->4)-[beta-D-Glcp-(1->4)-beta-D-Glcp-(1->6)]-beta-D-GlcpNAc-1-O-yl}ethyl)amino]-2-oxoethyl}monothioglycerol",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.97
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.64,
+  "untreated_or_vehicle": 0.98,
+  "several_compounds": 0.07,
+  "route_or_side": 0.98,
+  "dose_per_unit": 0.9,
+  "duration_without_number": 0.1,
+  "time_from_event": 0.7,
+  "pooled_material": 0.59,
+  "held_constant": 0.86,
+  "batch": 0.31,
+  "sequencer": 0.98,
+  "vector": 0.05,
+  "one_control_many_materials": 0.08,
+  "baseline_as_control": 0.12,
+  "single_cell": 0.59,
+  "mixed_assays": 0.11
+ },
+ "donor_kind": [
+  "one_each",
+  0.63
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "jev",
+   "step": "keymap",
+   "cost": 0.00033931799999999997,
+   "seconds": 0.275,
+   "tokens_in": 8079
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000730296,
+   "seconds": 0.384,
+   "tokens_in": 17388
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.275,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.478,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.49,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.275,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.249,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.253,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.383,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.257,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.514,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.243,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.261,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.272,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.321,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.266,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.262,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.24,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.252,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.247,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.256,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.253,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.252,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.289,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.254,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.268,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.262,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.262,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.277,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.243,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.271,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4878e-05,
+   "seconds": 0.269,
+   "tokens_in": 2259
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.256,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.269,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.241,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.268,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.249,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.267,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.272,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.4836e-05,
+   "seconds": 0.255,
+   "tokens_in": 2258
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.4714e-05,
+   "seconds": 0.25,
+   "tokens_in": 2017
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.4714e-05,
+   "seconds": 0.267,
+   "tokens_in": 2017
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.4714e-05,
+   "seconds": 0.274,
+   "tokens_in": 2017
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.4714e-05,
+   "seconds": 0.257,
+   "tokens_in": 2017
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000501942,
+   "seconds": 0.198,
+   "tokens_in": 11951
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 9.282e-05,
+   "seconds": 0.255,
+   "tokens_in": 2210
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 7.3122e-05,
+   "seconds": 0.267,
+   "tokens_in": 1741
+  }
+ ],
+ "seconds": 0.25,
+ "ending": "settled",
+ "variant": "code"
+}

@@ -1,0 +1,828 @@
+format: 1
+study: GSE77720
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM2057826
+    - GSM2057827
+    - GSM2057828
+    - GSM2057829
+    - GSM2057845
+    - GSM2057846
+    - GSM2057847
+    - GSM2057848
+    field: Sample_characteristics_ch1
+    quote: 'genotype: nontransgenic (NTg)'
+  2:
+    record:
+    - GSM2057826
+    - GSM2057827
+    - GSM2057828
+    - GSM2057829
+    - GSM2057830
+    - GSM2057831
+    - GSM2057832
+    - GSM2057833
+    - GSM2057834
+    - GSM2057835
+    - GSM2057836
+    field: Sample_characteristics_ch1
+    quote: 'tissue: cortex'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: Mouse brains and spinal cords were collected at 6 month
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: C57BL/6'
+  7:
+    record:
+    - GSM2057826
+    - GSM2057827
+    - GSM2057828
+    - GSM2057829
+    - GSM2057830
+    - GSM2057831
+    - GSM2057832
+    - GSM2057833
+    - GSM2057834
+    - GSM2057835
+    - GSM2057836
+    field: Sample_instrument_model
+    quote: Ion Torrent Proton
+  8:
+    record:
+    - GSM2057830
+    - GSM2057831
+    - GSM2057832
+    - GSM2057833
+    - GSM2057841
+    - GSM2057842
+    - GSM2057843
+    - GSM2057844
+    field: Sample_characteristics_ch1
+    quote: 'genotype: F08'
+  9:
+    record:
+    - GSM2057834
+    - GSM2057835
+    - GSM2057836
+    - GSM2057837
+    - GSM2057838
+    - GSM2057839
+    - GSM2057840
+    field: Sample_characteristics_ch1
+    quote: 'genotype: F112exp'
+  10:
+    record:
+    - GSM2057837
+    - GSM2057838
+    - GSM2057839
+    - GSM2057840
+    - GSM2057841
+    - GSM2057842
+    - GSM2057843
+    - GSM2057844
+    - GSM2057845
+    - GSM2057846
+    - GSM2057847
+    - GSM2057848
+    field: Sample_characteristics_ch1
+    quote: 'tissue: lumbar spinal cord'
+  11:
+    record:
+    - GSM2057837
+    - GSM2057838
+    - GSM2057839
+    - GSM2057840
+    - GSM2057841
+    - GSM2057842
+    - GSM2057843
+    - GSM2057844
+    - GSM2057845
+    - GSM2057846
+    - GSM2057847
+    - GSM2057848
+    field: Sample_instrument_model
+    quote: Illumina HiSeq 2000
+  12:
+    record: GSE77720
+    field: Series_overall_design
+    quote: To compare the RNA Seq profiles from the cortex and spinal cord of transgenic mice expressing
+      unexpanded human C9orf72 (F08, n=4), expanded human C9orf72 (F112, n=3/4), and nontransgenic controls
+      (n=4).
+factors:
+  genotype:
+    levels:
+    - NTg
+    - F08
+    - F112exp
+    baseline: NTg
+    ordered: false
+    quoted:
+    - 12
+    p: 0.99
+  tissue:
+    levels:
+    - cortex
+    - lumbar_spinal_cord
+    baseline: null
+    ordered: false
+    quoted:
+    - 12
+    p: 0.95
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  age:
+    text: 6 month
+    value: 6
+    unit: month
+    quoted:
+    - 5
+    p: 1.0
+  development_stage:
+    text: adult
+    quoted:
+    - 5
+    p: 0.98
+  strain:
+    text: C57BL/6
+    quoted:
+    - 6
+    p: 1.0
+  target:
+    na: RNA-Seq libraries have no pull-down target
+    p: 1.0
+  control_type:
+    na: no input or IgG libraries; nontransgenic mice are a baseline
+    p: 1.0
+  sex:
+    unknown: no sample record states the sex of the mice
+    p: 0.98
+  cell_type:
+    na: bulk tissue samples, no cell type specified
+    p: 0.98
+  cell_line:
+    na: in vivo mouse tissues, no cell line
+    p: 1.0
+  disease:
+    unknown: records give no disease term per sample; mice presymptomatic
+    p: 0.59
+  treatment:
+    na: no drug, diet, vector or procedure applied to these mice
+    p: 0.66
+  dose:
+    na: no treatment applied
+    p: 0.97
+  duration:
+    na: no treatment applied
+    p: 0.94
+samples:
+  GSM2057826:
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.98
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6322
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057827:
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.98
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6323
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM2057828:
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.98
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6326
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM2057829:
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.96
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6327
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057830:
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 8
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.96
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6318
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057831:
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 8
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.96
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6319
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057832:
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 8
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.98
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6320
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM2057833:
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 8
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.98
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6321
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057834:
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 9
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.97
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6316
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM2057835:
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 9
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.97
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6317
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057836:
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 9
+      p: 1.0
+    tissue:
+      text: cortex
+      term: UBERON:0001851
+      level: cortex
+      quoted:
+      - 2
+      p: 1.0
+    sequencing_platform:
+      text: Ion Torrent Proton
+      quoted:
+      - 7
+      p: 0.96
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6324
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057837:
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 9
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6316
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM2057838:
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 9
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6317
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM2057839:
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 9
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6324
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM2057840:
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 9
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6325
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM2057841:
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 8
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6318
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057842:
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 8
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6319
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057843:
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 8
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6320
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057844:
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 8
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6321
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057845:
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6322
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM2057846:
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6323
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM2057847:
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6326
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM2057848:
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_platform:
+      text: Illumina HiSeq 2000
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B23
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_6327
+      inferred: Jev picked the individual from the listed names
+      p: 0.99

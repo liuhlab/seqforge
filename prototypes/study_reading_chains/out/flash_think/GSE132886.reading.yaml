@@ -1,0 +1,669 @@
+format: 1
+study: GSE132886
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM3895616
+    - GSM3895617
+    - GSM4512964
+    - GSM4512965
+    - GSM4512966
+    - GSM4512967
+    - GSM4512968
+    field: Sample_characteristics_ch1
+    quote: 'age: 5 weeks'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole uterus'
+  5:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: Healthy wild type (WT) C57BL/6J mice
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wild type'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: C57BL/6J'
+  8:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: To induce estrus cycles, 5 or 7.5 units of pregnant mare serum gonadotropin (PMSG; Serotropin,
+      ASKA Animal Health Co., Ltd., Tokyo, Japan) were injected into the abdominal cavity 48 hours before
+      uterine dissection.
+  9:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: 5 or 7.5 units of pregnant mare serum gonadotropin
+  10:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: injected into the abdominal cavity 48 hours before uterine dissection
+  11:
+    record:
+    - GSM3895616
+    - GSM3895617
+    - GSM3895618
+    - GSM3895619
+    - GSM3895620
+    - GSM3895621
+    field: Sample_instrument_model
+    quote: Illumina HiSeq 1500
+  12:
+    record:
+    - GSM3895618
+    - GSM3895619
+    - GSM4512969
+    - GSM4512970
+    - GSM4512971
+    - GSM4512972
+    - GSM4512973
+    field: Sample_characteristics_ch1
+    quote: 'age: 8 weeks'
+  13:
+    record:
+    - GSM3895620
+    - GSM3895621
+    field: Sample_characteristics_ch1
+    quote: 'age: 60-75 weeks (old)'
+  14:
+    record:
+    - GSM4512964
+    - GSM4512965
+    - GSM4512966
+    - GSM4512967
+    - GSM4512968
+    - GSM4512969
+    - GSM4512970
+    - GSM4512971
+    - GSM4512972
+    - GSM4512973
+    - GSM4512974
+    - GSM4512975
+    - GSM4512976
+    - GSM4512977
+    - GSM4512978
+    field: Sample_instrument_model
+    quote: Illumina NovaSeq 6000
+  15:
+    record:
+    - GSM4512974
+    - GSM4512975
+    - GSM4512976
+    - GSM4512977
+    - GSM4512978
+    field: Sample_characteristics_ch1
+    quote: 'age: 79 weeks'
+  16:
+    paper: pmid:33258951
+    section: abstract
+    quote: differential expression between aged WT mice and a group of mice composed of 5- and 8-week-old
+      WT (young) animals
+factors:
+  age:
+    levels:
+    - 5w
+    - 8w
+    - aged_60_75w
+    - aged_79w
+    baseline: null
+    ordered: true
+    quoted:
+    - 16
+    p: 0.98
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  tissue:
+    text: whole uterus
+    quoted:
+    - 4
+    p: 1.0
+  disease:
+    text: healthy
+    quoted:
+    - 5
+    p: 1.0
+  genotype:
+    text: wild type
+    quoted:
+    - 6
+    p: 1.0
+  strain:
+    text: C57BL/6J
+    quoted:
+    - 7
+    p: 1.0
+  treatment:
+    text: pregnant mare serum gonadotropin (PMSG)
+    quoted:
+    - 8
+    p: 1.0
+  dose:
+    text: 5 or 7.5 units
+    value:
+    - 5
+    - 7.5
+    unit: units
+    quoted:
+    - 9
+    p: 0.95
+  time_from_injection_to_dissection:
+    text: 48 hours before uterine dissection
+    quoted:
+    - 10
+    p: 1.0
+  target:
+    na: RNA-Seq, no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no background-control libraries in series
+    p: 1.0
+  sex:
+    unknown: sex not stated in records or paper
+    p: 0.93
+  development_stage:
+    unknown: only weeks of age given, no stage term
+    p: 0.63
+  cell_type:
+    na: whole uterus tissue, no cells isolated
+    p: 0.99
+  cell_line:
+    na: primary mouse tissue, no cell line
+    p: 1.0
+  duration:
+    na: no treatment duration; 48 h is injection-to-dissection time
+    p: 0.53
+samples:
+  GSM3895616:
+    age:
+      text: 5 weeks
+      value: 5
+      unit: week
+      level: 5w
+      quoted:
+      - 1
+      p: 1.0
+    sequencer:
+      text: Illumina HiSeq 1500
+      quoted:
+      - 11
+      p: 0.93
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM3895617:
+    age:
+      text: 5 weeks
+      value: 5
+      unit: week
+      level: 5w
+      quoted:
+      - 1
+      p: 1.0
+    sequencer:
+      text: Illumina HiSeq 1500
+      quoted:
+      - 11
+      p: 0.96
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM3895618:
+    age:
+      text: 8 weeks
+      value: 8
+      unit: week
+      level: 8w
+      quoted:
+      - 12
+      p: 1.0
+    sequencer:
+      text: Illumina HiSeq 1500
+      quoted:
+      - 11
+      p: 0.95
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM3895619:
+    age:
+      text: 8 weeks
+      value: 8
+      unit: week
+      level: 8w
+      quoted:
+      - 12
+      p: 1.0
+    sequencer:
+      text: Illumina HiSeq 1500
+      quoted:
+      - 11
+      p: 0.95
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM3895620:
+    age:
+      text: 60-75 weeks (old)
+      value: &id001
+      - 60
+      - 75
+      unit: week
+      level: aged_60_75w
+      quoted:
+      - 13
+      p: 1.0
+    sequencer:
+      text: Illumina HiSeq 1500
+      quoted:
+      - 11
+      p: 0.94
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM3895621:
+    age:
+      text: 60-75 weeks (old)
+      value: *id001
+      unit: week
+      level: aged_60_75w
+      quoted:
+      - 13
+      p: 1.0
+    sequencer:
+      text: Illumina HiSeq 1500
+      quoted:
+      - 11
+      p: 0.95
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512964:
+    age:
+      text: 5 weeks
+      value: 5
+      unit: week
+      level: 5w
+      quoted:
+      - 1
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512965:
+    age:
+      text: 5 weeks
+      value: 5
+      unit: week
+      level: 5w
+      quoted:
+      - 1
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512966:
+    age:
+      text: 5 weeks
+      value: 5
+      unit: week
+      level: 5w
+      quoted:
+      - 1
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512967:
+    age:
+      text: 5 weeks
+      value: 5
+      unit: week
+      level: 5w
+      quoted:
+      - 1
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512968:
+    age:
+      text: 5 weeks
+      value: 5
+      unit: week
+      level: 5w
+      quoted:
+      - 1
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512969:
+    age:
+      text: 8 weeks
+      value: 8
+      unit: week
+      level: 8w
+      quoted:
+      - 12
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512970:
+    age:
+      text: 8 weeks
+      value: 8
+      unit: week
+      level: 8w
+      quoted:
+      - 12
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512971:
+    age:
+      text: 8 weeks
+      value: 8
+      unit: week
+      level: 8w
+      quoted:
+      - 12
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.97
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512972:
+    age:
+      text: 8 weeks
+      value: 8
+      unit: week
+      level: 8w
+      quoted:
+      - 12
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512973:
+    age:
+      text: 8 weeks
+      value: 8
+      unit: week
+      level: 8w
+      quoted:
+      - 12
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.97
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D16
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512974:
+    age:
+      text: 79 weeks
+      value: 79
+      unit: week
+      level: aged_79w
+      quoted:
+      - 15
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D17
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512975:
+    age:
+      text: 79 weeks
+      value: 79
+      unit: week
+      level: aged_79w
+      quoted:
+      - 15
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.97
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D18
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512976:
+    age:
+      text: 79 weeks
+      value: 79
+      unit: week
+      level: aged_79w
+      quoted:
+      - 15
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D19
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512977:
+    age:
+      text: 79 weeks
+      value: 79
+      unit: week
+      level: aged_79w
+      quoted:
+      - 15
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.97
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D20
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM4512978:
+    age:
+      text: 79 weeks
+      value: 79
+      unit: week
+      level: aged_79w
+      quoted:
+      - 15
+      p: 1.0
+    sequencer:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 14
+      p: 0.98
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D21
+      inferred: each sample is from its own individual
+      p: 0.92

@@ -1,0 +1,1531 @@
+{
+ "study": "GSE281157",
+ "chain": "code",
+ "read_full": false,
+ "n_samples": 12,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "wild type (N2)",
+    "daf-16(mu86)",
+    "daf-18(ok480)",
+    "daf-16(mu86); daf-18(ok480)"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 0.91,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.94,
+   "p_ordered": 0.08,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.61,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.62,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.69,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "na",
+   "p": 0.94,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.69,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.89,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM8611902": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type (N2)",
+    "wild type (N2)"
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM8611903": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type (N2)",
+    "wild type (N2)"
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM8611904": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type (N2)",
+    "wild type (N2)"
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM8611905": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86)",
+    "daf-16(mu86)"
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM8611906": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86)",
+    "daf-16(mu86)"
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM8611907": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86)",
+    "daf-16(mu86)"
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM8611908": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-18(ok480)",
+    "daf-18(ok480)"
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM8611909": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-18(ok480)",
+    "daf-18(ok480)"
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM8611910": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-18(ok480)",
+    "daf-18(ok480)"
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM8611911": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86); daf-18(ok480)",
+    "daf-16(mu86); daf-18(ok480)"
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM8611912": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86); daf-18(ok480)",
+    "daf-16(mu86); daf-18(ok480)"
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM8611913": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86); daf-18(ok480)",
+    "daf-16(mu86); daf-18(ok480)"
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "wild type (N2)",
+    "daf-16(mu86)",
+    "daf-18(ok480)",
+    "daf-16(mu86); daf-18(ok480)"
+   ],
+   "baseline": "wild type (N2)",
+   "ordered": false,
+   "inferred": "the characteristic \"genotype\" varies between samples",
+   "p": 0.99
+  }
+ },
+ "n_passages": 8,
+ "n_shared": 16,
+ "n_row_claims": 24,
+ "lists_summary": {
+  "factors": 1,
+  "factors_kept": 1,
+  "labels_with_values": 4,
+  "extra_labels": 0,
+  "writer_gaps": [],
+  "donor_kind_writer": null,
+  "keymap": {
+   "tissue": {
+    "label": "tissue",
+    "p": 1.0
+   },
+   "genotype": {
+    "label": "genotype",
+    "p": 0.98
+   },
+   "treatment": {
+    "label": "treatment",
+    "p": 0.99
+   },
+   "source name": {
+    "label": "tissue",
+    "p": 0.95
+   }
+  }
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM8611902",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM8611905",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L2",
+   "status": "named",
+   "source": "GSM8611908",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L3",
+   "status": "named",
+   "source": "GSM8611911",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 37,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM8611902",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM8611902",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.98
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM8611902",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "source": "GSM8611902",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 78,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "tissue",
+   "text": "whole worm",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.53,
+  "untreated_or_vehicle": 0.36,
+  "several_compounds": 0.22,
+  "route_or_side": 0.07,
+  "dose_per_unit": 0.13,
+  "duration_without_number": 0.17,
+  "time_from_event": 0.84,
+  "pooled_material": 0.93,
+  "held_constant": 0.98,
+  "batch": 0.08,
+  "sequencer": 0.03,
+  "vector": 0.03,
+  "one_control_many_materials": 0.06,
+  "baseline_as_control": 0.15,
+  "single_cell": 0.02,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "pool",
+  0.99
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "jev",
+   "step": "keymap",
+   "cost": 0.00019551,
+   "seconds": 0.312,
+   "tokens_in": 4655
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000219576,
+   "seconds": 0.411,
+   "tokens_in": 5228
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2068e-05,
+   "seconds": 0.335,
+   "tokens_in": 1954
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2068e-05,
+   "seconds": 0.335,
+   "tokens_in": 1954
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2068e-05,
+   "seconds": 0.335,
+   "tokens_in": 1954
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2068e-05,
+   "seconds": 0.28,
+   "tokens_in": 1954
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2068e-05,
+   "seconds": 0.281,
+   "tokens_in": 1954
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2068e-05,
+   "seconds": 0.281,
+   "tokens_in": 1954
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2236e-05,
+   "seconds": 0.32,
+   "tokens_in": 1958
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2236e-05,
+   "seconds": 0.352,
+   "tokens_in": 1958
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2236e-05,
+   "seconds": 0.301,
+   "tokens_in": 1958
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2236e-05,
+   "seconds": 0.303,
+   "tokens_in": 1958
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2236e-05,
+   "seconds": 0.463,
+   "tokens_in": 1958
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2236e-05,
+   "seconds": 0.463,
+   "tokens_in": 1958
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2278e-05,
+   "seconds": 0.262,
+   "tokens_in": 1959
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2278e-05,
+   "seconds": 0.397,
+   "tokens_in": 1959
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2278e-05,
+   "seconds": 0.323,
+   "tokens_in": 1959
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2278e-05,
+   "seconds": 0.327,
+   "tokens_in": 1959
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2278e-05,
+   "seconds": 0.241,
+   "tokens_in": 1959
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2278e-05,
+   "seconds": 0.251,
+   "tokens_in": 1959
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.282399999999999e-05,
+   "seconds": 0.256,
+   "tokens_in": 1972
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.282399999999999e-05,
+   "seconds": 0.249,
+   "tokens_in": 1972
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.282399999999999e-05,
+   "seconds": 0.23,
+   "tokens_in": 1972
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.282399999999999e-05,
+   "seconds": 0.323,
+   "tokens_in": 1972
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.282399999999999e-05,
+   "seconds": 0.282,
+   "tokens_in": 1972
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.282399999999999e-05,
+   "seconds": 0.315,
+   "tokens_in": 1972
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00015657599999999999,
+   "seconds": 0.195,
+   "tokens_in": 3728
+  }
+ ],
+ "seconds": 0.23,
+ "ending": "settled",
+ "variant": "code"
+}

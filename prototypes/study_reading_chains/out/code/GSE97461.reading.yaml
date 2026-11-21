@@ -1,0 +1,1060 @@
+format: 1
+study: GSE97461
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_source_name_ch1
+    quote: Brain, striatum
+  2:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_characteristics_ch1
+    quote: 'Sex: female'
+  5:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    field: Sample_characteristics_ch1
+    quote: 'age: 42 days old'
+  6:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    field: Sample_characteristics_ch1
+    quote: 'cell type: D1 spiny projection neurons'
+  7:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    field: Sample_characteristics_ch1
+    quote: 'strain: Drd1::EGFP-L10a on C56BL/6J background'
+  8:
+    record:
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_characteristics_ch1
+    quote: 'cell type: D2 spiny projection neurons'
+  9:
+    record:
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_characteristics_ch1
+    quote: 'strain: Drd2::EGFP-L10a on C56BL/6J background'
+  10:
+    record:
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_characteristics_ch1
+    quote: 'age: 2 years old'
+  11:
+    record:
+    - GSM3475596
+    - GSM3475597
+    - GSM3475598
+    field: Sample_source_name_ch1
+    quote: NIH-3T3 cell line
+  12:
+    record:
+    - GSM3475596
+    - GSM3475597
+    - GSM3475598
+    field: Sample_library_strategy
+    quote: OTHER
+  13:
+    record:
+    - GSM3475596
+    - GSM3475597
+    - GSM3475598
+    field: Sample_characteristics_ch1
+    quote: 'cell line: NIH-3T3'
+  14:
+    record: GSM3475596
+    field: Sample_characteristics_ch1
+    quote: 'treatment: 100uM paraquat'
+  15:
+    record: GSM3475597
+    field: Sample_characteristics_ch1
+    quote: 'treatment: ABCE1 siRNA'
+  16:
+    record: GSM3475598
+    field: Sample_characteristics_ch1
+    quote: 'treatment: control siRNA'
+factors:
+  tissue:
+    levels:
+    - Brain, striatum
+    - NIH-3T3 cell line
+    baseline: Brain, striatum
+    ordered: false
+    inferred: the characteristic "source name" varies between samples
+    p: 0.7
+shared:
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  target:
+    unknown: nothing read says it
+    p: 0.75
+  control_type:
+    na: a library that is not a background control
+    p: 0.99
+  development_stage:
+    unknown: nothing read says it
+    p: 0.72
+  disease:
+    na: does not apply to these samples
+    p: 0.76
+  genotype:
+    unknown: nothing read says it
+    p: 0.69
+  dose:
+    unknown: nothing read says it
+    p: 0.73
+  duration:
+    unknown: nothing read says it
+    p: 0.92
+  donor:
+    na: a pool of many individuals
+    p: 0.31
+samples:
+  GSM2565655:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: D1 spiny projection neurons
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.76
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565656:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: D1 spiny projection neurons
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.74
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565657:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: D1 spiny projection neurons
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.77
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565658:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: D1 spiny projection neurons
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.79
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565659:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: D2 spiny projection neurons
+      quoted:
+      - 8
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.79
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565660:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: D2 spiny projection neurons
+      quoted:
+      - 8
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.77
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565661:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: D2 spiny projection neurons
+      quoted:
+      - 8
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.69
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565662:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: D2 spiny projection neurons
+      quoted:
+      - 8
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.72
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565663:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: year
+      quoted:
+      - 10
+      p: 1.0
+    cell_type:
+      text: D1 spiny projection neurons
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.73
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565664:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: year
+      quoted:
+      - 10
+      p: 1.0
+    cell_type:
+      text: D1 spiny projection neurons
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.76
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565665:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: year
+      quoted:
+      - 10
+      p: 0.99
+    cell_type:
+      text: D1 spiny projection neurons
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.77
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565666:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: year
+      quoted:
+      - 10
+      p: 0.99
+    cell_type:
+      text: D1 spiny projection neurons
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.82
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565667:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: year
+      quoted:
+      - 10
+      p: 0.99
+    cell_type:
+      text: D2 spiny projection neurons
+      quoted:
+      - 8
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.75
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565668:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: year
+      quoted:
+      - 10
+      p: 0.99
+    cell_type:
+      text: D2 spiny projection neurons
+      quoted:
+      - 8
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.76
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565669:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: year
+      quoted:
+      - 10
+      p: 1.0
+    cell_type:
+      text: D2 spiny projection neurons
+      quoted:
+      - 8
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.81
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2565670:
+    tissue:
+      text: Brain, striatum
+      level: Brain, striatum
+      quoted:
+      - 1
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 2
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: year
+      quoted:
+      - 10
+      p: 1.0
+    cell_type:
+      text: D2 spiny projection neurons
+      quoted:
+      - 8
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.99
+    strain:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      na: no treatment applied
+      p: 0.84
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3475596:
+    tissue:
+      text: NIH-3T3 cell line
+      level: NIH-3T3 cell line
+      quoted:
+      - 11
+      p: 0.99
+    assay:
+      text: OTHER
+      quoted:
+      - 12
+      p: 0.81
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.44
+    age:
+      unknown: what was read does not say its age
+      p: 0.55
+    cell_type:
+      unknown: what was read does not say its cell type
+      p: 0.56
+    cell_line:
+      text: NIH-3T3
+      term: CVCL_0594
+      quoted:
+      - 13
+      p: 0.98
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.96
+    treatment:
+      text: 100uM paraquat
+      quoted:
+      - 14
+      p: 1.0
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3475597:
+    tissue:
+      text: NIH-3T3 cell line
+      level: NIH-3T3 cell line
+      quoted:
+      - 11
+      p: 1.0
+    assay:
+      text: OTHER
+      quoted:
+      - 12
+      p: 0.86
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 4
+      p: 0.37
+    age:
+      na: it does not apply to this sample
+      p: 0.54
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.53
+    cell_line:
+      text: NIH-3T3
+      term: CVCL_0594
+      quoted:
+      - 13
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.96
+    treatment:
+      text: ABCE1 siRNA
+      quoted:
+      - 15
+      p: 1.0
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3475598:
+    tissue:
+      text: NIH-3T3 cell line
+      level: NIH-3T3 cell line
+      quoted:
+      - 11
+      p: 0.99
+    assay:
+      text: OTHER
+      quoted:
+      - 12
+      p: 0.85
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.42
+    age:
+      unknown: what was read does not say its age
+      p: 0.43
+    cell_type:
+      unknown: what was read does not say its cell type
+      p: 0.58
+    cell_line:
+      text: NIH-3T3
+      term: CVCL_0594
+      quoted:
+      - 13
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.94
+    treatment:
+      text: control siRNA
+      quoted:
+      - 16
+      p: 0.99
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null

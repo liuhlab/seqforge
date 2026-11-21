@@ -1,0 +1,2363 @@
+{
+ "study": "GSE175410",
+ "chain": "flash_think",
+ "read_full": true,
+ "n_samples": 15,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "age",
+   "levels": [
+    "young",
+    "aged"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.08,
+   "baseline": "L1",
+   "p_baseline": 0.47,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 0.46,
+   "p_ordered": 0.58,
+   "writer_baseline": "young",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "sedentary",
+    "exercise"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.04,
+   "baseline": "L0",
+   "p_baseline": 0.85,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.86,
+   "p_ordered": 0.35,
+   "writer_baseline": "sedentary",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.93,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.9,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.76,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "na",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.8,
+   "shared": false
+  },
+  {
+   "label": "training_age_range",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "factor:age",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM5333067": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "4mo",
+    "young"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D_Young Sedentary 1",
+    null
+   ]
+  },
+  "GSM5333068": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "4mo",
+    "young"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D_Young Sedentary 2",
+    null
+   ]
+  },
+  "GSM5333069": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "4mo",
+    "young"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D_Young Sedentary 3",
+    null
+   ]
+  },
+  "GSM5333070": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "4mo",
+    "young"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D_Young Sedentary 4",
+    null
+   ]
+  },
+  "GSM5333071": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "4mo",
+    "young"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D_Young Sedentary 5",
+    null
+   ]
+  },
+  "GSM5333072": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D_Old Sedentary 1",
+    null
+   ]
+  },
+  "GSM5333073": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D_Old Sedentary 2",
+    null
+   ]
+  },
+  "GSM5333074": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D_Old Sedentary 3",
+    null
+   ]
+  },
+  "GSM5333075": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D_Old Sedentary 4",
+    null
+   ]
+  },
+  "GSM5333076": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Sedentary",
+    "sedentary"
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "training_age_range": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D_Old Sedentary 5",
+    null
+   ]
+  },
+  "GSM5333077": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Exercise",
+    "exercise"
+   ],
+   "duration": [
+    "eight weeks",
+    null
+   ],
+   "training_age_range": [
+    "22-24 months of age",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D_Old Exercise 1",
+    null
+   ]
+  },
+  "GSM5333078": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Exercise",
+    "exercise"
+   ],
+   "duration": [
+    "eight weeks",
+    null
+   ],
+   "training_age_range": [
+    "22-24 months of age",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D_Old Exercise 2",
+    null
+   ]
+  },
+  "GSM5333079": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Exercise",
+    "exercise"
+   ],
+   "duration": [
+    "eight weeks",
+    null
+   ],
+   "training_age_range": [
+    "22-24 months of age",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D_Old Exercise 3",
+    null
+   ]
+  },
+  "GSM5333080": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Exercise",
+    "exercise"
+   ],
+   "duration": [
+    "eight weeks",
+    null
+   ],
+   "training_age_range": [
+    "22-24 months of age",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D_Old Exercise 4",
+    null
+   ]
+  },
+  "GSM5333081": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "tibialis anterior",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "24mo",
+    "aged"
+   ],
+   "treatment": [
+    "Exercise",
+    "exercise"
+   ],
+   "duration": [
+    "eight weeks",
+    null
+   ],
+   "training_age_range": [
+    "22-24 months of age",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D_Old Exercise 5",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "age": {
+   "levels": [
+    "young",
+    "aged"
+   ],
+   "baseline": "aged",
+   "ordered": true,
+   "inferred": "Young 4mo vs aged 24mo mice",
+   "p": 0.98
+  },
+  "treatment": {
+   "levels": [
+    "sedentary",
+    "exercise"
+   ],
+   "baseline": "sedentary",
+   "ordered": false,
+   "inferred": "Sedentary vs PoWeR exercise from 22-24 months",
+   "p": 0.98
+  }
+ },
+ "n_passages": 9,
+ "n_shared": 13,
+ "n_row_claims": 90,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 6,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "sources_disagree",
+    "note": "GEO/source names tibialis anterior; paper says gastrocnemius for RRBS."
+   },
+   {
+    "kind": "crossed_not_fully",
+    "note": "Exercise only in 24mo mice; no young exercise group."
+   },
+   {
+    "kind": "term_missing",
+    "note": "Sex, strain, and genotype absent from sample records and paper."
+   }
+  ],
+  "donor_kind_writer": "one_each",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM5333067",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 8,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM5333072",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM5333067",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM5333077",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.98
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "duration/v0",
+   "status": "same_source_other_field",
+   "source": "pmid:34932867",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 156,
+   "backs_p": 0.96
+  },
+  {
+   "key": "training_age_range/v0",
+   "status": "named",
+   "source": "pmid:34932867",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 136,
+   "backs_p": 0.97
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "adult",
+   "vocab": [
+    "mmusdv"
+   ],
+   "candidates": [
+    {
+     "id": "MmusDv:0000134",
+     "label": "late adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000136",
+     "label": "prime adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000153",
+     "label": "young adult stage",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.6
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "tibialis anterior",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0001385",
+     "label": "tibialis anterior",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0004499",
+     "label": "skeletal muscle tissue of tibialis anterior",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0001537",
+     "label": "anterior tibial artery",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0001385",
+   "p": 0.67,
+   "probe_pick": "UBERON:0004499",
+   "probe_p": 0.96
+  },
+  {
+   "label": "treatment",
+   "text": "Exercise",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "Sedentary",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.16,
+  "untreated_or_vehicle": 0.79,
+  "several_compounds": 0.04,
+  "route_or_side": 0.2,
+  "dose_per_unit": 0.18,
+  "duration_without_number": 0.11,
+  "time_from_event": 0.48,
+  "pooled_material": 0.04,
+  "held_constant": 0.91,
+  "batch": 0.09,
+  "sequencer": 0.04,
+  "vector": 0.02,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.08,
+  "single_cell": 0.01,
+  "mixed_assays": 0.07
+ },
+ "donor_kind": [
+  "one_each",
+  0.99
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.008118084,
+   "seconds": 66.936,
+   "tokens_in": 6714,
+   "tokens_out": 12667
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000186522,
+   "seconds": 0.264,
+   "tokens_in": 4441
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.353,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.35,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.354,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.352,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.398,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.357,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.358,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.363,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.358,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.786e-05,
+   "seconds": 0.358,
+   "tokens_in": 2330
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.354,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.357,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.327,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.326,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.326,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.326,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.227,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.331,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.333,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7902e-05,
+   "seconds": 0.234,
+   "tokens_in": 2331
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.239,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.259,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.28,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.286,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.286,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.309,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.26,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.281,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.426,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.7734e-05,
+   "seconds": 0.286,
+   "tokens_in": 2327
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000135198,
+   "seconds": 0.224,
+   "tokens_in": 3219
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 2.982e-05,
+   "seconds": 0.569,
+   "tokens_in": 710
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 2.3898e-05,
+   "seconds": 0.272,
+   "tokens_in": 569
+  }
+ ],
+ "seconds": 0.31,
+ "ending": "settled",
+ "variant": "flash_think_full"
+}

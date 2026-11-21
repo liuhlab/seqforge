@@ -1,0 +1,2603 @@
+format: 1
+study: GSE101112
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM2699384
+    - GSM2699385
+    - GSM2699386
+    - GSM2699387
+    - GSM2699388
+    - GSM2699389
+    - GSM2699390
+    - GSM2699391
+    - GSM2699392
+    - GSM2699393
+    - GSM2699394
+    - GSM2699413
+    - GSM2699414
+    - GSM2699415
+    field: Sample_characteristics_ch1
+    quote: 'treatment: control'
+  2:
+    record:
+    - GSM2699384
+    - GSM2699385
+    - GSM2699386
+    - GSM2699387
+    - GSM2699388
+    field: Sample_characteristics_ch1
+    quote: 'age: 9 months'
+  3:
+    record:
+    - GSM2699384
+    - GSM2699385
+    - GSM2699386
+    - GSM2699387
+    - GSM2699388
+    - GSM2699389
+    - GSM2699390
+    - GSM2699391
+    - GSM2699392
+    - GSM2699393
+    - GSM2699394
+    - GSM2699401
+    - GSM2699402
+    - GSM2699403
+    - GSM2699404
+    - GSM2699405
+    - GSM2699406
+    - GSM2699407
+    - GSM2699408
+    - GSM2699409
+    - GSM2699410
+    - GSM2699411
+    - GSM2699412
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record:
+    - GSM2699384
+    - GSM2699385
+    - GSM2699386
+    - GSM2699387
+    - GSM2699388
+    - GSM2699389
+    - GSM2699390
+    - GSM2699391
+    - GSM2699392
+    - GSM2699393
+    - GSM2699394
+    - GSM2699401
+    - GSM2699402
+    - GSM2699403
+    - GSM2699404
+    - GSM2699405
+    - GSM2699406
+    - GSM2699407
+    - GSM2699408
+    - GSM2699409
+    - GSM2699410
+    - GSM2699411
+    - GSM2699412
+    field: Sample_characteristics_ch1
+    quote: 'tissue: SAMP8 mice brain hippocampal tissue'
+  5:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  6:
+    record: GSE101112
+    field: Series_overall_design
+    quote: Six nine-month old female SAMP8 mice per group
+  7:
+    record: GSE101112
+    field: Series_overall_design
+    quote: Mice were then sacrificed and RNA extracted from the brain hippocampus.
+  8:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Mice were fed control diet and diet containing CAD031, CMS 121 and J147 for four months.
+  9:
+    record:
+    - GSM2699389
+    - GSM2699390
+    - GSM2699391
+    - GSM2699392
+    - GSM2699393
+    - GSM2699394
+    - GSM2699401
+    - GSM2699402
+    - GSM2699403
+    - GSM2699404
+    - GSM2699405
+    - GSM2699406
+    - GSM2699407
+    - GSM2699408
+    - GSM2699409
+    - GSM2699410
+    - GSM2699411
+    - GSM2699412
+    field: Sample_characteristics_ch1
+    quote: 'age: 13 months'
+  10:
+    record:
+    - GSM2699401
+    - GSM2699402
+    - GSM2699403
+    - GSM2699404
+    - GSM2699405
+    - GSM2699406
+    - GSM2699419
+    - GSM2699420
+    - GSM2699421
+    field: Sample_characteristics_ch1
+    quote: 'treatment: drug121'
+  11:
+    record: GSE101112
+    field: Series_overall_design
+    quote: CMS121 (400ppm)
+  12:
+    record: GSE101112
+    field: Series_overall_design
+    quote: Diet treatment lasted for four months until mice reached thirteen months of age.
+  13:
+    record:
+    - GSM2699407
+    - GSM2699408
+    - GSM2699409
+    - GSM2699410
+    - GSM2699411
+    - GSM2699412
+    - GSM2699422
+    - GSM2699423
+    - GSM2699424
+    field: Sample_characteristics_ch1
+    quote: 'treatment: drugJ147'
+  14:
+    record: GSE101112
+    field: Series_overall_design
+    quote: J147 (200ppm)
+  15:
+    record:
+    - GSM2699413
+    - GSM2699414
+    - GSM2699415
+    - GSM2699419
+    - GSM2699420
+    - GSM2699421
+    - GSM2699422
+    - GSM2699423
+    - GSM2699424
+    field: Sample_characteristics_ch1
+    quote: 'age: embryo'
+  16:
+    record:
+    - GSM2699413
+    - GSM2699414
+    - GSM2699415
+    - GSM2699419
+    - GSM2699420
+    - GSM2699421
+    - GSM2699422
+    - GSM2699423
+    - GSM2699424
+    field: Sample_organism_ch1
+    quote: Rattus norvegicus
+  17:
+    record: GSE101112
+    field: Series_overall_design
+    quote: Primary cortical neurons were prepared from day seventeen rat embryos
+  18:
+    record:
+    - GSM2699413
+    - GSM2699414
+    - GSM2699415
+    - GSM2699419
+    - GSM2699420
+    - GSM2699421
+    - GSM2699422
+    - GSM2699423
+    - GSM2699424
+    field: Sample_characteristics_ch1
+    quote: 'cell type: rat primary neuron'
+  19:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Primary neurons were treated with 1μM of each compound for 24h.
+  20:
+    record: GSE101112
+    field: Series_overall_design
+    quote: Six nine-month old female SAMP8 mice per group were fed with vehicle diet and with CMS121 (400ppm)
+      and J147 (200ppm) diets.
+factors:
+  treatment:
+    levels:
+    - control
+    - drug121
+    - drugJ147
+    baseline: control
+    ordered: false
+    quoted:
+    - 20
+    p: 0.98
+  age:
+    levels:
+    - 9 months
+    - 13 months
+    - embryo
+    baseline: 9 months
+    ordered: true
+    quoted:
+    - 6
+    p: 0.88
+  species:
+    levels:
+    - Mus musculus
+    - Rattus norvegicus
+    baseline: Mus musculus
+    ordered: true
+    inferred: mouse hippocampus vs rat neurons
+    p: 0.89
+  tissue:
+    levels:
+    - hippocampus
+    - cortex
+    baseline: hippocampus
+    ordered: false
+    inferred: mouse hippocampus and rat cortical neurons
+    p: 0.71
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    na: no pull-down; polyA RNA sequencing
+    p: 1.0
+  control_type:
+    na: no background-control libraries; vehicle/untreated are baselines
+    p: 1.0
+  cell_line:
+    na: primary cells and tissue, no cell line
+    p: 0.91
+  disease:
+    unknown: SAMP8 senescence model implied; disease term not written
+    p: 0.7
+  genotype:
+    unknown: SAMP8 strain noted; genotype not stated
+    p: 0.85
+samples:
+  GSM2699384:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 9 months
+      value: 9
+      unit: month
+      level: 9 months
+      quoted:
+      - 2
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.76
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.94
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.7
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.88
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699385:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 9 months
+      value: 9
+      unit: month
+      level: 9 months
+      quoted:
+      - 2
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.73
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.98
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.92
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.64
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.89
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699386:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 9 months
+      value: 9
+      unit: month
+      level: 9 months
+      quoted:
+      - 2
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.75
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.98
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.9
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.64
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.83
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699387:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 9 months
+      value: 9
+      unit: month
+      level: 9 months
+      quoted:
+      - 2
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.67
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.98
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.93
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.99
+    duration:
+      na: no treatment
+      p: 0.65
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.86
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699388:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 9 months
+      value: 9
+      unit: month
+      level: 9 months
+      quoted:
+      - 2
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.63
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.98
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.92
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.57
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.87
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699389:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.51
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.94
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.59
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.9
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699390:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.67
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.94
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.59
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.88
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699391:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.65
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.92
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.57
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.9
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699392:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.61
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.91
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.54
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.89
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699393:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.66
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.92
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.67
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.86
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699394:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.59
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.92
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.58
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.9
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699401:
+    treatment:
+      text: drug121
+      level: drug121
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.63
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.92
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 400ppm
+      value: 400
+      unit: ppm
+      quoted:
+      - 11
+      p: 0.73
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.89
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.87
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.96
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699402:
+    treatment:
+      text: drug121
+      level: drug121
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.7
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.94
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 400ppm
+      value: 400
+      unit: ppm
+      quoted:
+      - 11
+      p: 0.66
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.9
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.89
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.96
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699403:
+    treatment:
+      text: drug121
+      level: drug121
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.68
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.93
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 400ppm
+      value: 400
+      unit: ppm
+      quoted:
+      - 11
+      p: 0.72
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.91
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.88
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.96
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699404:
+    treatment:
+      text: drug121
+      level: drug121
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 0.99
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.69
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.9
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 400ppm
+      value: 400
+      unit: ppm
+      quoted:
+      - 11
+      p: 0.6
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.9
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.87
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.96
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699405:
+    treatment:
+      text: drug121
+      level: drug121
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.68
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.95
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 400ppm
+      value: 400
+      unit: ppm
+      quoted:
+      - 11
+      p: 0.6
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.92
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.88
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.95
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D16
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699406:
+    treatment:
+      text: drug121
+      level: drug121
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.72
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.92
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 400ppm
+      value: 400
+      unit: ppm
+      quoted:
+      - 11
+      p: 0.61
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.91
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.87
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.95
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D17
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699407:
+    treatment:
+      text: drugJ147
+      level: drugJ147
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.83
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.92
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 200ppm
+      value: 200
+      unit: ppm
+      quoted:
+      - 14
+      p: 0.85
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.94
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.88
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D18
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699408:
+    treatment:
+      text: drugJ147
+      level: drugJ147
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.84
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.94
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 200ppm
+      value: 200
+      unit: ppm
+      quoted:
+      - 14
+      p: 0.86
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.95
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.91
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D19
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699409:
+    treatment:
+      text: drugJ147
+      level: drugJ147
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.8
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.95
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 200ppm
+      value: 200
+      unit: ppm
+      quoted:
+      - 14
+      p: 0.8
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.94
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.89
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D20
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699410:
+    treatment:
+      text: drugJ147
+      level: drugJ147
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.82
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.94
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 200ppm
+      value: 200
+      unit: ppm
+      quoted:
+      - 14
+      p: 0.83
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.94
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.88
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D21
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699411:
+    treatment:
+      text: drugJ147
+      level: drugJ147
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.77
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.93
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 200ppm
+      value: 200
+      unit: ppm
+      quoted:
+      - 14
+      p: 0.84
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.95
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.9
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D22
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699412:
+    treatment:
+      text: drugJ147
+      level: drugJ147
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 13 months
+      value: 13
+      unit: month
+      level: 13 months
+      quoted:
+      - 9
+      p: 1.0
+    species:
+      text: Mus musculus
+      term: NCBITaxon:10090
+      level: Mus musculus
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: SAMP8 mice brain hippocampal tissue
+      level: hippocampus
+      quoted:
+      - 4
+      p: 1.0
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 6
+      p: 0.81
+    development_stage:
+      text: adult
+      quoted:
+      - 7
+      p: 0.99
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.93
+    strain:
+      text: SAMP8
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 200ppm
+      value: 200
+      unit: ppm
+      quoted:
+      - 14
+      p: 0.84
+    duration:
+      text: four months
+      value: 4
+      unit: month
+      quoted:
+      - 12
+      p: 0.96
+    days_in_vitro:
+      na: it does not apply to this sample
+      p: 0.88
+    diet_vs_culture:
+      text: fed
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B23
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D23
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699413:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: embryo
+      level: embryo
+      quoted:
+      - 15
+      p: 1.0
+    species:
+      text: Rattus norvegicus
+      term: NCBITaxon:10090
+      level: Rattus norvegicus
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Primary cortical neurons
+      level: cortex
+      quoted:
+      - 17
+      p: 1.0
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.75
+    development_stage:
+      text: embryo
+      quoted:
+      - 15
+      p: 1.0
+    cell_type:
+      text: rat primary neuron
+      quoted:
+      - 18
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.86
+    dose:
+      na: no treatment
+      p: 0.84
+    duration:
+      na: no treatment
+      p: 0.57
+    days_in_vitro:
+      text: seven days in vitro
+      inferred: culture time before treatment
+      p: 0.9
+    diet_vs_culture:
+      text: treated in culture
+      quoted:
+      - 19
+      p: 0.99
+    biosample:
+      id: B24
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D24
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699414:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: embryo
+      level: embryo
+      quoted:
+      - 15
+      p: 1.0
+    species:
+      text: Rattus norvegicus
+      term: NCBITaxon:10090
+      level: Rattus norvegicus
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Primary cortical neurons
+      level: cortex
+      quoted:
+      - 17
+      p: 1.0
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.78
+    development_stage:
+      text: embryo
+      quoted:
+      - 15
+      p: 1.0
+    cell_type:
+      text: rat primary neuron
+      quoted:
+      - 18
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.84
+    dose:
+      na: no treatment
+      p: 0.78
+    duration:
+      text: 24h
+      value: 24
+      unit: hour
+      quoted:
+      - 19
+      p: 0.5
+    days_in_vitro:
+      text: seven days in vitro
+      inferred: culture time before treatment
+      p: 0.91
+    diet_vs_culture:
+      text: treated in culture
+      quoted:
+      - 19
+      p: 1.0
+    biosample:
+      id: B25
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D25
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699415:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: embryo
+      level: embryo
+      quoted:
+      - 15
+      p: 1.0
+    species:
+      text: Rattus norvegicus
+      term: NCBITaxon:10090
+      level: Rattus norvegicus
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Primary cortical neurons
+      level: cortex
+      quoted:
+      - 17
+      p: 0.99
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.76
+    development_stage:
+      text: embryo
+      quoted:
+      - 15
+      p: 1.0
+    cell_type:
+      text: rat primary neuron
+      quoted:
+      - 18
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.85
+    dose:
+      na: no treatment
+      p: 0.74
+    duration:
+      text: 24h
+      value: 24
+      unit: hour
+      quoted:
+      - 19
+      p: 0.5
+    days_in_vitro:
+      text: seven days in vitro
+      inferred: culture time before treatment
+      p: 0.86
+    diet_vs_culture:
+      text: treated in culture
+      quoted:
+      - 19
+      p: 0.99
+    biosample:
+      id: B26
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D26
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699419:
+    treatment:
+      text: drug121
+      level: drug121
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: embryo
+      level: embryo
+      quoted:
+      - 15
+      p: 1.0
+    species:
+      text: Rattus norvegicus
+      term: NCBITaxon:10090
+      level: Rattus norvegicus
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Primary cortical neurons
+      level: cortex
+      quoted:
+      - 17
+      p: 1.0
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.73
+    development_stage:
+      text: embryo
+      quoted:
+      - 15
+      p: 1.0
+    cell_type:
+      text: rat primary neuron
+      quoted:
+      - 18
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.86
+    dose:
+      text: 1μM
+      value: 1
+      unit: uM
+      quoted:
+      - 19
+      p: 0.99
+    duration:
+      text: 24h
+      value: 24
+      unit: hour
+      quoted:
+      - 19
+      p: 1.0
+    days_in_vitro:
+      text: seven days in vitro
+      inferred: culture time before treatment
+      p: 0.91
+    diet_vs_culture:
+      text: treated in culture
+      quoted:
+      - 19
+      p: 0.99
+    biosample:
+      id: B27
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D27
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699420:
+    treatment:
+      text: drug121
+      level: drug121
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: embryo
+      level: embryo
+      quoted:
+      - 15
+      p: 1.0
+    species:
+      text: Rattus norvegicus
+      term: NCBITaxon:10090
+      level: Rattus norvegicus
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Primary cortical neurons
+      level: cortex
+      quoted:
+      - 17
+      p: 1.0
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.72
+    development_stage:
+      text: embryo
+      quoted:
+      - 15
+      p: 1.0
+    cell_type:
+      text: rat primary neuron
+      quoted:
+      - 18
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.83
+    dose:
+      text: 1μM
+      value: 1
+      unit: uM
+      quoted:
+      - 19
+      p: 0.99
+    duration:
+      text: 24h
+      value: 24
+      unit: hour
+      quoted:
+      - 19
+      p: 1.0
+    days_in_vitro:
+      text: seven days in vitro
+      inferred: culture time before treatment
+      p: 0.91
+    diet_vs_culture:
+      text: treated in culture
+      quoted:
+      - 19
+      p: 0.99
+    biosample:
+      id: B28
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D28
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699421:
+    treatment:
+      text: drug121
+      level: drug121
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: embryo
+      level: embryo
+      quoted:
+      - 15
+      p: 1.0
+    species:
+      text: Rattus norvegicus
+      term: NCBITaxon:10090
+      level: Rattus norvegicus
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Primary cortical neurons
+      level: cortex
+      quoted:
+      - 17
+      p: 1.0
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.76
+    development_stage:
+      text: embryo
+      quoted:
+      - 15
+      p: 1.0
+    cell_type:
+      text: rat primary neuron
+      quoted:
+      - 18
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.82
+    dose:
+      text: 1μM
+      value: 1
+      unit: uM
+      quoted:
+      - 19
+      p: 0.99
+    duration:
+      text: 24h
+      value: 24
+      unit: hour
+      quoted:
+      - 19
+      p: 1.0
+    days_in_vitro:
+      text: seven days in vitro
+      inferred: culture time before treatment
+      p: 0.93
+    diet_vs_culture:
+      text: treated in culture
+      quoted:
+      - 19
+      p: 1.0
+    biosample:
+      id: B29
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D29
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699422:
+    treatment:
+      text: drugJ147
+      level: drugJ147
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: embryo
+      level: embryo
+      quoted:
+      - 15
+      p: 1.0
+    species:
+      text: Rattus norvegicus
+      term: NCBITaxon:10090
+      level: Rattus norvegicus
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Primary cortical neurons
+      level: cortex
+      quoted:
+      - 17
+      p: 1.0
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.76
+    development_stage:
+      text: embryo
+      quoted:
+      - 15
+      p: 1.0
+    cell_type:
+      text: rat primary neuron
+      quoted:
+      - 18
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.85
+    dose:
+      text: 1μM
+      value: 1
+      unit: uM
+      quoted:
+      - 19
+      p: 0.99
+    duration:
+      text: 24h
+      value: 24
+      unit: hour
+      quoted:
+      - 19
+      p: 1.0
+    days_in_vitro:
+      text: seven days in vitro
+      inferred: culture time before treatment
+      p: 0.92
+    diet_vs_culture:
+      text: treated in culture
+      quoted:
+      - 19
+      p: 1.0
+    biosample:
+      id: B30
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D30
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699423:
+    treatment:
+      text: drugJ147
+      level: drugJ147
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: embryo
+      level: embryo
+      quoted:
+      - 15
+      p: 1.0
+    species:
+      text: Rattus norvegicus
+      term: NCBITaxon:10090
+      level: Rattus norvegicus
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Primary cortical neurons
+      level: cortex
+      quoted:
+      - 17
+      p: 1.0
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.74
+    development_stage:
+      text: embryo
+      quoted:
+      - 15
+      p: 1.0
+    cell_type:
+      text: rat primary neuron
+      quoted:
+      - 18
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.85
+    dose:
+      text: 1μM
+      value: 1
+      unit: uM
+      quoted:
+      - 19
+      p: 0.99
+    duration:
+      text: 24h
+      value: 24
+      unit: hour
+      quoted:
+      - 19
+      p: 1.0
+    days_in_vitro:
+      text: seven days in vitro
+      inferred: culture time before treatment
+      p: 0.92
+    diet_vs_culture:
+      text: treated in culture
+      quoted:
+      - 19
+      p: 1.0
+    biosample:
+      id: B31
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D31
+      inferred: each sample is from its own individual
+      p: 0.76
+  GSM2699424:
+    treatment:
+      text: drugJ147
+      level: drugJ147
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: embryo
+      level: embryo
+      quoted:
+      - 15
+      p: 1.0
+    species:
+      text: Rattus norvegicus
+      term: NCBITaxon:10090
+      level: Rattus norvegicus
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Primary cortical neurons
+      level: cortex
+      quoted:
+      - 17
+      p: 1.0
+    sex:
+      unknown: what was read does not say its sex
+      p: 0.69
+    development_stage:
+      text: embryo
+      quoted:
+      - 15
+      p: 1.0
+    cell_type:
+      text: rat primary neuron
+      quoted:
+      - 18
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.83
+    dose:
+      text: 1μM
+      value: 1
+      unit: uM
+      quoted:
+      - 19
+      p: 0.98
+    duration:
+      text: 24h
+      value: 24
+      unit: hour
+      quoted:
+      - 19
+      p: 1.0
+    days_in_vitro:
+      text: seven days in vitro
+      inferred: culture time before treatment
+      p: 0.89
+    diet_vs_culture:
+      text: treated in culture
+      quoted:
+      - 19
+      p: 1.0
+    biosample:
+      id: B32
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D32
+      inferred: each sample is from its own individual
+      p: 0.76

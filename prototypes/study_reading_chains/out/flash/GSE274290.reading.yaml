@@ -1,0 +1,448 @@
+format: 1
+study: GSE274290
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record: GSM8446960
+    field: Sample_description
+    quote: BD Rhapsody™ Single-Cell Analysis System
+  2:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  3:
+    record: GSM8446960
+    field: Sample_title
+    quote: L4 C.elegans germ cells, scRNAseq
+  4:
+    record: GSM8446960
+    field: Sample_characteristics_ch1
+    quote: 'tissue: germline'
+  5:
+    record: GSM8446960
+    field: Sample_characteristics_ch1
+    quote: 'cell type: germ cell'
+  6:
+    record: GSM8446960
+    field: Sample_characteristics_ch1
+    quote: 'strain: gfp::tev::flag::prg-1'
+  7:
+    record:
+    - GSM8446961
+    - GSM8446962
+    - GSM8446963
+    field: Sample_characteristics_ch1
+    quote: 'treatment: with vector RNAi control'
+  8:
+    record:
+    - GSM8446961
+    - GSM8446962
+    - GSM8446963
+    - GSM8446964
+    - GSM8446965
+    - GSM8446966
+    field: Sample_library_strategy
+    quote: ncRNA-Seq
+  9:
+    record:
+    - GSM8446961
+    - GSM8446962
+    - GSM8446963
+    - GSM8446964
+    - GSM8446965
+    - GSM8446966
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole worms'
+  10:
+    record:
+    - GSM8446961
+    - GSM8446962
+    - GSM8446963
+    - GSM8446964
+    - GSM8446965
+    - GSM8446966
+    field: Sample_characteristics_ch1
+    quote: 'strain: wild type (N2)'
+  11:
+    record: GSM8446961
+    field: Sample_title
+    quote: ctrl_RNAi, smRNA-seq,bio rep1
+  12:
+    record: GSM8446962
+    field: Sample_title
+    quote: ctrl_RNAi, smRNA-seq,bio rep2
+  13:
+    record: GSM8446963
+    field: Sample_title
+    quote: ctrl_RNAi, smRNA-seq,bio rep3
+  14:
+    record:
+    - GSM8446964
+    - GSM8446965
+    - GSM8446966
+    field: Sample_characteristics_ch1
+    quote: 'treatment: with elt-1 RNAi'
+factors:
+  treatment:
+    levels:
+    - vector_RNAi
+    - elt-1_RNAi
+    baseline: vector_RNAi
+    ordered: false
+    inferred: vector RNAi control vs elt-1 RNAi
+    p: 0.98
+  assay:
+    levels:
+    - scRNA-seq
+    - smRNA-seq
+    baseline: smRNA-seq
+    ordered: false
+    inferred: scRNA-seq vs smRNA-seq libraries
+    p: 0.84
+shared:
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 0.92
+  control_type:
+    na: a library that is not a background control
+    p: 0.85
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 2
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease mentioned
+    p: 0.92
+  sex:
+    unknown: not stated in records or paper
+    p: 0.82
+  age:
+    unknown: not stated in records or paper
+    p: 0.64
+  cell_line:
+    na: tissue from whole animals
+    p: 1.0
+  dose:
+    unknown: RNAi dose not stated
+    p: 0.98
+  duration:
+    unknown: treatment duration not stated
+    p: 0.98
+  donor:
+    na: a pool of many individuals
+    p: 0.92
+samples:
+  GSM8446960:
+    treatment:
+      unknown: the record of this sample does not say its treatment
+      p: 0.9
+    assay:
+      text: BD Rhapsody™ Single-Cell Analysis System
+      level: scRNA-seq
+      quoted:
+      - 1
+      p: 1.0
+    development_stage:
+      text: L4
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: germline
+      term: WBbt:0005784
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: germ cell
+      term: CL:0000586
+      quoted:
+      - 5
+      p: 1.0
+    genotype:
+      text: gfp::tev::flag::prg-1
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: gfp::tev::flag::prg-1
+      quoted:
+      - 6
+      p: 1.0
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.92
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8446961:
+    treatment:
+      text: with vector RNAi control
+      level: vector_RNAi
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: ncRNA-Seq
+      level: smRNA-seq
+      quoted:
+      - 8
+      p: 1.0
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.63
+    tissue:
+      text: whole worms
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.95
+    genotype:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 1.0
+    replicate:
+      text: bio rep1
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8446962:
+    treatment:
+      text: with vector RNAi control
+      level: vector_RNAi
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: ncRNA-Seq
+      level: smRNA-seq
+      quoted:
+      - 8
+      p: 1.0
+    development_stage:
+      text: L4
+      quoted:
+      - 3
+      p: 0.5
+    tissue:
+      text: whole worms
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.93
+    genotype:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 0.98
+    replicate:
+      text: bio rep2
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8446963:
+    treatment:
+      text: with vector RNAi control
+      level: vector_RNAi
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: ncRNA-Seq
+      level: smRNA-seq
+      quoted:
+      - 8
+      p: 1.0
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.49
+    tissue:
+      text: whole worms
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.89
+    genotype:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 0.99
+    strain:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 0.99
+    replicate:
+      text: bio rep3
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8446964:
+    treatment:
+      text: with elt-1 RNAi
+      level: elt-1_RNAi
+      quoted:
+      - 14
+      p: 1.0
+    assay:
+      text: ncRNA-Seq
+      level: smRNA-seq
+      quoted:
+      - 8
+      p: 1.0
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.65
+    tissue:
+      text: whole worms
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.95
+    genotype:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 0.99
+    strain:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 0.99
+    replicate:
+      text: bio rep1
+      quoted:
+      - 11
+      p: 0.97
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8446965:
+    treatment:
+      text: with elt-1 RNAi
+      level: elt-1_RNAi
+      quoted:
+      - 14
+      p: 1.0
+    assay:
+      text: ncRNA-Seq
+      level: smRNA-seq
+      quoted:
+      - 8
+      p: 1.0
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.65
+    tissue:
+      text: whole worms
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.96
+    genotype:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 0.99
+    strain:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 0.98
+    replicate:
+      text: bio rep2
+      quoted:
+      - 12
+      p: 0.93
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8446966:
+    treatment:
+      text: with elt-1 RNAi
+      level: elt-1_RNAi
+      quoted:
+      - 14
+      p: 0.99
+    assay:
+      text: ncRNA-Seq
+      level: smRNA-seq
+      quoted:
+      - 8
+      p: 1.0
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.59
+    tissue:
+      text: whole worms
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.94
+    genotype:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 0.98
+    strain:
+      text: wild type (N2)
+      quoted:
+      - 10
+      p: 0.97
+    replicate:
+      text: bio rep3
+      quoted:
+      - 13
+      p: 0.91
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null

@@ -1,0 +1,246 @@
+format: 1
+study: GSE243994
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM7804448
+    - GSM7804449
+    - GSM7804450
+    - GSM7804454
+    - GSM7804455
+    - GSM7804456
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-2(rf)'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: the proximal region of the somatic gonad (PSG) cells'
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: untreated'
+  6:
+    record:
+    - GSM7804451
+    - GSM7804452
+    - GSM7804453
+    - GSM7804457
+    - GSM7804458
+    - GSM7804459
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf 16(-); daf 2(rf)'
+factors:
+  genotype:
+    levels:
+    - daf-2(rf)
+    - daf 16(-); daf 2(rf)
+    baseline: daf-2(rf)
+    ordered: true
+    inferred: the characteristic "genotype" varies between samples
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  tissue:
+    text: the proximal region of the somatic gonad (PSG) cells
+    quoted:
+    - 4
+    p: 1.0
+  treatment:
+    text: untreated
+    quoted:
+    - 5
+    p: 0.98
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.94
+  age:
+    unknown: nothing read says it
+    p: 0.86
+  development_stage:
+    unknown: nothing read says it
+    p: 0.84
+  cell_type:
+    unknown: nothing read says it
+    p: 0.73
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    na: does not apply to these samples
+    p: 0.72
+  strain:
+    unknown: nothing read says it
+    p: 0.99
+  dose:
+    na: no treatment
+    p: 1.0
+  duration:
+    na: no treatment
+    p: 0.98
+  donor:
+    na: a pool of many individuals
+    p: 0.55
+samples:
+  GSM7804448:
+    genotype:
+      text: daf-2(rf)
+      level: daf-2(rf)
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804449:
+    genotype:
+      text: daf-2(rf)
+      level: daf-2(rf)
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804450:
+    genotype:
+      text: daf-2(rf)
+      level: daf-2(rf)
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804451:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf 16(-); daf 2(rf)
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804452:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf 16(-); daf 2(rf)
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804453:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf 16(-); daf 2(rf)
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804454:
+    genotype:
+      text: daf-2(rf)
+      level: daf-2(rf)
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804455:
+    genotype:
+      text: daf-2(rf)
+      level: daf-2(rf)
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804456:
+    genotype:
+      text: daf-2(rf)
+      level: daf-2(rf)
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804457:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf 16(-); daf 2(rf)
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804458:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf 16(-); daf 2(rf)
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7804459:
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf 16(-); daf 2(rf)
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

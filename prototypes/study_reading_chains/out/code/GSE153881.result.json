@@ -1,0 +1,2855 @@
+{
+ "study": "GSE153881",
+ "chain": "code",
+ "read_full": false,
+ "n_samples": 15,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "disease",
+   "levels": [
+    "Healthy",
+    "Alzheimer's disease (AD)",
+    "mild cognitive impairment (MCI)"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.15,
+   "baseline": "L0",
+   "p_baseline": 0.99,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 1.0,
+   "p_ordered": 0.7,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "age",
+   "levels": [
+    "81",
+    "75",
+    "74",
+    "68",
+    "83",
+    "80",
+    "76",
+    "77",
+    "64",
+    "72",
+    "79"
+   ],
+   "p_designed": 0.25,
+   "p_designed_neg": 0.87,
+   "baseline": "no_reference",
+   "p_baseline": 0.61,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.48,
+   "p_ordered": 0.36,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": false
+  },
+  {
+   "label": "sex",
+   "levels": [
+    "Female",
+    "Male"
+   ],
+   "p_designed": 0.36,
+   "p_designed_neg": 0.9,
+   "baseline": "no_reference",
+   "p_baseline": 0.87,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.89,
+   "p_ordered": 0.1,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": false
+  },
+  {
+   "label": "clinical_stage",
+   "levels": [
+    "Healthy Donor",
+    "Mild Dementia",
+    "aMCI",
+    "multidomain MCI"
+   ],
+   "p_designed": 0.81,
+   "p_designed_neg": 0.53,
+   "baseline": "L0",
+   "p_baseline": 1.0,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 1.0,
+   "p_ordered": 0.65,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": true,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "adas_70",
+   "levels": [
+    "--",
+    "15",
+    "22",
+    "26",
+    "28",
+    "18",
+    "5",
+    "10",
+    "13",
+    "8"
+   ],
+   "p_designed": 0.53,
+   "p_designed_neg": 0.82,
+   "baseline": "L0",
+   "p_baseline": 0.92,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.93,
+   "p_ordered": 0.36,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": true,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "disease",
+   "levels": [
+    "Extracellular vesicle derived from Healthy donor",
+    "Extracellular vesicle derived from patient with Alzheimer's ",
+    "Extracellular vesicle derived from patients with mild cognit"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.18,
+   "baseline": "L0",
+   "p_baseline": 1.0,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 1.0,
+   "p_ordered": 0.59,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [
+  "factor clinical_stage: plain and negated asks disagree",
+  "factor adas_70: plain and negated asks disagree"
+ ],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "unknown",
+   "p": 0.66,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 0.71,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.77,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.93,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.91,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.9,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "clinical_stage",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "adas_70",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "factor:disease",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:clinical_stage",
+   "mark": "inferred",
+   "p": 0.81,
+   "shared": true
+  },
+  {
+   "label": "factor:adas_70",
+   "mark": "inferred",
+   "p": 0.53,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM4658057": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Healthy",
+    "Healthy"
+   ],
+   "clinical_stage": [
+    "Healthy Donor",
+    "Healthy Donor"
+   ],
+   "adas_70": [
+    "--",
+    "--"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "age": [
+    "81",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM4658058": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Healthy",
+    "Healthy"
+   ],
+   "clinical_stage": [
+    "Healthy Donor",
+    "Healthy Donor"
+   ],
+   "adas_70": [
+    "--",
+    "--"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "age": [
+    "75",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM4658059": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Healthy",
+    "Healthy"
+   ],
+   "clinical_stage": [
+    "Healthy Donor",
+    "Healthy Donor"
+   ],
+   "adas_70": [
+    "--",
+    "--"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "age": [
+    "74",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM4658060": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Healthy",
+    "Healthy"
+   ],
+   "clinical_stage": [
+    "Healthy Donor",
+    "Healthy Donor"
+   ],
+   "adas_70": [
+    "--",
+    "--"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "age": [
+    "68",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM4658061": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Healthy",
+    "Healthy"
+   ],
+   "clinical_stage": [
+    "Healthy Donor",
+    "Healthy Donor"
+   ],
+   "adas_70": [
+    "--",
+    "--"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "age": [
+    "83",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM4658062": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (AD)",
+    "Alzheimer's disease (AD)"
+   ],
+   "clinical_stage": [
+    "Mild Dementia",
+    "Mild Dementia"
+   ],
+   "adas_70": [
+    "15",
+    "15"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "age": [
+    "80",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM4658063": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (AD)",
+    "Alzheimer's disease (AD)"
+   ],
+   "clinical_stage": [
+    "Mild Dementia",
+    "Mild Dementia"
+   ],
+   "adas_70": [
+    "22",
+    "22"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "age": [
+    "83",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM4658064": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (AD)",
+    "Alzheimer's disease (AD)"
+   ],
+   "clinical_stage": [
+    "Mild Dementia",
+    "Mild Dementia"
+   ],
+   "adas_70": [
+    "26",
+    "26"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "age": [
+    "76",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM4658065": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (AD)",
+    "Alzheimer's disease (AD)"
+   ],
+   "clinical_stage": [
+    "Mild Dementia",
+    "Mild Dementia"
+   ],
+   "adas_70": [
+    "28",
+    "28"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "age": [
+    "77",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  },
+  "GSM4658066": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (AD)",
+    "Alzheimer's disease (AD)"
+   ],
+   "clinical_stage": [
+    "Mild Dementia",
+    "Mild Dementia"
+   ],
+   "adas_70": [
+    "18",
+    "18"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "age": [
+    "64",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D10",
+    null
+   ]
+  },
+  "GSM4658067": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "mild cognitive impairment (MCI)",
+    "mild cognitive impairment (MCI)"
+   ],
+   "clinical_stage": [
+    "aMCI",
+    "aMCI"
+   ],
+   "adas_70": [
+    "5",
+    "5"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "age": [
+    "81",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D11",
+    null
+   ]
+  },
+  "GSM4658068": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "mild cognitive impairment (MCI)",
+    "mild cognitive impairment (MCI)"
+   ],
+   "clinical_stage": [
+    "multidomain MCI",
+    "multidomain MCI"
+   ],
+   "adas_70": [
+    "10",
+    "10"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "age": [
+    "76",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D12",
+    null
+   ]
+  },
+  "GSM4658069": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "mild cognitive impairment (MCI)",
+    "mild cognitive impairment (MCI)"
+   ],
+   "clinical_stage": [
+    "aMCI",
+    "aMCI"
+   ],
+   "adas_70": [
+    "5",
+    "5"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "age": [
+    "72",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D13",
+    null
+   ]
+  },
+  "GSM4658070": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "mild cognitive impairment (MCI)",
+    "mild cognitive impairment (MCI)"
+   ],
+   "clinical_stage": [
+    "multidomain MCI",
+    "multidomain MCI"
+   ],
+   "adas_70": [
+    "13",
+    "13"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "age": [
+    "80",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D14",
+    null
+   ]
+  },
+  "GSM4658071": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Extracellular vesicle from plasma",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "mild cognitive impairment (MCI)",
+    "mild cognitive impairment (MCI)"
+   ],
+   "clinical_stage": [
+    "aMCI",
+    "aMCI"
+   ],
+   "adas_70": [
+    "8",
+    "8"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "age": [
+    "79",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D15",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "disease": {
+   "levels": [
+    "Healthy",
+    "Alzheimer's disease (AD)",
+    "mild cognitive impairment (MCI)"
+   ],
+   "baseline": "Healthy",
+   "ordered": true,
+   "inferred": "the characteristic \"diagnosis\" varies between samples",
+   "p": 0.98
+  },
+  "clinical_stage": {
+   "levels": [
+    "Healthy Donor",
+    "Mild Dementia",
+    "aMCI",
+    "multidomain MCI"
+   ],
+   "baseline": "Healthy Donor",
+   "ordered": true,
+   "inferred": "the characteristic \"clinical stage\" varies between samples",
+   "p": 0.81
+  },
+  "adas_70": {
+   "levels": [
+    "--",
+    "15",
+    "22",
+    "26",
+    "28",
+    "18",
+    "5",
+    "10",
+    "13",
+    "8"
+   ],
+   "baseline": "--",
+   "ordered": false,
+   "inferred": "the characteristic \"adas.70\" varies between samples",
+   "p": 0.53
+  }
+ },
+ "n_passages": 33,
+ "n_shared": 13,
+ "n_row_claims": 105,
+ "lists_summary": {
+  "factors": 6,
+  "factors_kept": 3,
+  "labels_with_values": 5,
+  "extra_labels": 2,
+  "writer_gaps": [],
+  "donor_kind_writer": null,
+  "keymap": {
+   "tissue": {
+    "label": "tissue",
+    "p": 0.99
+   },
+   "diagnosis": {
+    "label": "disease",
+    "p": 1.0
+   },
+   "age": {
+    "label": "age",
+    "p": 0.99
+   },
+   "Sex": {
+    "label": "sex",
+    "p": 1.0
+   },
+   "clinical stage": {
+    "label": "own_attribute",
+    "p": 0.56
+   },
+   "adas.70": {
+    "label": "own_attribute",
+    "p": 0.92
+   },
+   "source name": {
+    "label": "disease",
+    "p": 0.66
+   }
+  }
+ },
+ "quotes": [
+  {
+   "key": "disease/L0",
+   "status": "named",
+   "source": "GSM4658057",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.85
+  },
+  {
+   "key": "disease/L1",
+   "status": "named",
+   "source": "GSM4658062",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/L2",
+   "status": "named",
+   "source": "GSM4658067",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 42,
+   "backs_p": 0.07
+  },
+  {
+   "key": "disease/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "clinical_stage/L0",
+   "status": "named",
+   "source": "GSM4658057",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.99
+  },
+  {
+   "key": "clinical_stage/L1",
+   "status": "named",
+   "source": "GSM4658062",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.99
+  },
+  {
+   "key": "clinical_stage/L2",
+   "status": "named",
+   "source": "GSM4658067",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.16
+  },
+  {
+   "key": "clinical_stage/L3",
+   "status": "named",
+   "source": "GSM4658068",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.98
+  },
+  {
+   "key": "clinical_stage/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "adas_70/L0",
+   "status": "named",
+   "source": "GSM4658057",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.98
+  },
+  {
+   "key": "adas_70/L1",
+   "status": "named",
+   "source": "GSM4658062",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "adas_70/L2",
+   "status": "named",
+   "source": "GSM4658063",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "adas_70/L3",
+   "status": "named",
+   "source": "GSM4658064",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.78
+  },
+  {
+   "key": "adas_70/L4",
+   "status": "named",
+   "source": "GSM4658065",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.37
+  },
+  {
+   "key": "adas_70/L5",
+   "status": "named",
+   "source": "GSM4658066",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.08
+  },
+  {
+   "key": "adas_70/L6",
+   "status": "named",
+   "source": "GSM4658067",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.14
+  },
+  {
+   "key": "adas_70/L7",
+   "status": "named",
+   "source": "GSM4658068",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "adas_70/L8",
+   "status": "named",
+   "source": "GSM4658070",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.85
+  },
+  {
+   "key": "adas_70/L9",
+   "status": "named",
+   "source": "GSM4658071",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "adas_70/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM4658057",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM4658057",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "GSM4658057",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v1",
+   "status": "named",
+   "source": "GSM4658059",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "source": "GSM4658057",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v1",
+   "status": "named",
+   "source": "GSM4658058",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v2",
+   "status": "named",
+   "source": "GSM4658059",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v3",
+   "status": "named",
+   "source": "GSM4658060",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v4",
+   "status": "named",
+   "source": "GSM4658061",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v5",
+   "status": "named",
+   "source": "GSM4658062",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v6",
+   "status": "named",
+   "source": "GSM4658064",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.64
+  },
+  {
+   "key": "age/v7",
+   "status": "named",
+   "source": "GSM4658065",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.05
+  },
+  {
+   "key": "age/v8",
+   "status": "named",
+   "source": "GSM4658066",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.28
+  },
+  {
+   "key": "age/v9",
+   "status": "named",
+   "source": "GSM4658069",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.09
+  },
+  {
+   "key": "age/v10",
+   "status": "named",
+   "source": "GSM4658071",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM4658057",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 41,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "disease",
+   "text": "Alzheimer's disease (AD)",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": [
+    {
+     "id": "MONDO:0014265",
+     "label": "Alzheimer disease 18",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0007088",
+     "label": "Alzheimer disease type 1",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0007089",
+     "label": "Alzheimer disease 2",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0010422",
+     "label": "Alzheimer disease 16",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011194",
+     "label": "Alzheimer disease 5",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011401",
+     "label": "Alzheimer disease without neurofibrillary tangles",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011561",
+     "label": "Alzheimer disease 6",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011647",
+     "label": "Alzheimer disease 7",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.6
+  },
+  {
+   "label": "disease",
+   "text": "Healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "mild cognitive impairment (MCI)",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Extracellular vesicle from plasma",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.22,
+  "untreated_or_vehicle": 0.41,
+  "several_compounds": 0.26,
+  "route_or_side": 0.07,
+  "dose_per_unit": 0.1,
+  "duration_without_number": 0.06,
+  "time_from_event": 0.19,
+  "pooled_material": 0.05,
+  "held_constant": 0.9,
+  "batch": 0.11,
+  "sequencer": 0.03,
+  "vector": 0.02,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.11,
+  "single_cell": 0.01,
+  "mixed_assays": 0.05
+ },
+ "donor_kind": [
+  "one_each",
+  0.97
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "jev",
+   "step": "keymap",
+   "cost": 0.000315798,
+   "seconds": 0.24,
+   "tokens_in": 7519
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000374136,
+   "seconds": 0.616,
+   "tokens_in": 8908
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.346,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.358,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.397,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.296,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.345,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.397,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.327,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.326,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.321,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000123984,
+   "seconds": 0.265,
+   "tokens_in": 2952
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.275,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.275,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.294,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.245,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.256,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.249,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.295,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.299,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.224,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012453,
+   "seconds": 0.347,
+   "tokens_in": 2965
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124698,
+   "seconds": 0.266,
+   "tokens_in": 2969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124698,
+   "seconds": 0.272,
+   "tokens_in": 2969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124866,
+   "seconds": 0.376,
+   "tokens_in": 2973
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124866,
+   "seconds": 0.297,
+   "tokens_in": 2973
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124698,
+   "seconds": 0.265,
+   "tokens_in": 2969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124698,
+   "seconds": 0.237,
+   "tokens_in": 2969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124866,
+   "seconds": 0.26,
+   "tokens_in": 2973
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124866,
+   "seconds": 0.247,
+   "tokens_in": 2973
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124698,
+   "seconds": 0.347,
+   "tokens_in": 2969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124698,
+   "seconds": 0.204,
+   "tokens_in": 2969
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000275562,
+   "seconds": 0.179,
+   "tokens_in": 6561
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 5.922e-05,
+   "seconds": 0.215,
+   "tokens_in": 1410
+  }
+ ],
+ "seconds": 0.23,
+ "ending": "unsettled",
+ "variant": "code"
+}

@@ -1,0 +1,871 @@
+format: 1
+study: GSE153881
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM4658057
+    - GSM4658058
+    - GSM4658059
+    - GSM4658060
+    - GSM4658061
+    field: Sample_characteristics_ch1
+    quote: 'diagnosis: Healthy'
+  2:
+    record:
+    - GSM4658057
+    - GSM4658058
+    - GSM4658059
+    - GSM4658060
+    - GSM4658061
+    field: Sample_characteristics_ch1
+    quote: 'clinical stage: Healthy Donor'
+  3:
+    record:
+    - GSM4658057
+    - GSM4658058
+    - GSM4658059
+    - GSM4658060
+    - GSM4658061
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: --'
+  4:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  5:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+  6:
+    record:
+    - GSM4658057
+    - GSM4658058
+    - GSM4658062
+    - GSM4658065
+    - GSM4658067
+    - GSM4658068
+    field: Sample_characteristics_ch1
+    quote: 'Sex: Female'
+  7:
+    record:
+    - GSM4658057
+    - GSM4658067
+    field: Sample_characteristics_ch1
+    quote: 'age: 81'
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Extracellular vesicle from plasma'
+  9:
+    record: GSM4658058
+    field: Sample_characteristics_ch1
+    quote: 'age: 75'
+  10:
+    record:
+    - GSM4658059
+    - GSM4658060
+    - GSM4658061
+    - GSM4658063
+    - GSM4658064
+    - GSM4658066
+    - GSM4658069
+    - GSM4658070
+    - GSM4658071
+    field: Sample_characteristics_ch1
+    quote: 'Sex: Male'
+  11:
+    record: GSM4658059
+    field: Sample_characteristics_ch1
+    quote: 'age: 74'
+  12:
+    record: GSM4658060
+    field: Sample_characteristics_ch1
+    quote: 'age: 68'
+  13:
+    record:
+    - GSM4658061
+    - GSM4658063
+    field: Sample_characteristics_ch1
+    quote: 'age: 83'
+  14:
+    record:
+    - GSM4658062
+    - GSM4658063
+    - GSM4658064
+    - GSM4658065
+    - GSM4658066
+    field: Sample_characteristics_ch1
+    quote: 'diagnosis: Alzheimer''s disease (AD)'
+  15:
+    record:
+    - GSM4658062
+    - GSM4658063
+    - GSM4658064
+    - GSM4658065
+    - GSM4658066
+    field: Sample_characteristics_ch1
+    quote: 'clinical stage: Mild Dementia'
+  16:
+    record: GSM4658062
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: 15'
+  17:
+    record:
+    - GSM4658062
+    - GSM4658070
+    field: Sample_characteristics_ch1
+    quote: 'age: 80'
+  18:
+    record: GSM4658063
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: 22'
+  19:
+    record: GSM4658064
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: 26'
+  20:
+    record:
+    - GSM4658064
+    - GSM4658068
+    field: Sample_characteristics_ch1
+    quote: 'age: 76'
+  21:
+    record: GSM4658065
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: 28'
+  22:
+    record: GSM4658065
+    field: Sample_characteristics_ch1
+    quote: 'age: 77'
+  23:
+    record: GSM4658066
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: 18'
+  24:
+    record: GSM4658066
+    field: Sample_characteristics_ch1
+    quote: 'age: 64'
+  25:
+    record:
+    - GSM4658067
+    - GSM4658068
+    - GSM4658069
+    - GSM4658070
+    - GSM4658071
+    field: Sample_characteristics_ch1
+    quote: 'diagnosis: mild cognitive impairment (MCI)'
+  26:
+    record:
+    - GSM4658067
+    - GSM4658069
+    - GSM4658071
+    field: Sample_characteristics_ch1
+    quote: 'clinical stage: aMCI'
+  27:
+    record:
+    - GSM4658067
+    - GSM4658069
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: 5'
+  28:
+    record:
+    - GSM4658068
+    - GSM4658070
+    field: Sample_characteristics_ch1
+    quote: 'clinical stage: multidomain MCI'
+  29:
+    record: GSM4658068
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: 10'
+  30:
+    record: GSM4658069
+    field: Sample_characteristics_ch1
+    quote: 'age: 72'
+  31:
+    record: GSM4658070
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: 13'
+  32:
+    record: GSM4658071
+    field: Sample_characteristics_ch1
+    quote: 'adas.70: 8'
+  33:
+    record: GSM4658071
+    field: Sample_characteristics_ch1
+    quote: 'age: 79'
+factors:
+  disease:
+    levels:
+    - Healthy
+    - Alzheimer's disease (AD)
+    - mild cognitive impairment (MCI)
+    baseline: Healthy
+    ordered: true
+    inferred: the characteristic "diagnosis" varies between samples
+    p: 0.98
+  clinical_stage:
+    levels:
+    - Healthy Donor
+    - Mild Dementia
+    - aMCI
+    - multidomain MCI
+    baseline: Healthy Donor
+    ordered: true
+    inferred: the characteristic "clinical stage" varies between samples
+    p: 0.81
+  adas_70:
+    levels:
+    - --
+    - '15'
+    - '22'
+    - '26'
+    - '28'
+    - '18'
+    - '5'
+    - '10'
+    - '13'
+    - '8'
+    baseline: --
+    ordered: false
+    inferred: the characteristic "adas.70" varies between samples
+    p: 0.53
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 4
+    p: 1.0
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 5
+    p: 1.0
+  tissue:
+    text: Extracellular vesicle from plasma
+    quoted:
+    - 8
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  development_stage:
+    unknown: nothing read says it
+    p: 0.56
+  cell_type:
+    unknown: nothing read says it
+    p: 0.66
+  cell_line:
+    na: tissue taken from an animal
+    p: 0.71
+  genotype:
+    unknown: nothing read says it
+    p: 0.77
+  strain:
+    na: a species with no strains, such as human
+    p: 0.99
+  treatment:
+    na: no treatment applied
+    p: 0.93
+  dose:
+    na: no treatment
+    p: 0.91
+  duration:
+    na: no treatment
+    p: 0.9
+samples:
+  GSM4658057:
+    disease:
+      text: Healthy
+      level: Healthy
+      quoted:
+      - 1
+      p: 1.0
+    clinical_stage:
+      text: Healthy Donor
+      level: Healthy Donor
+      quoted:
+      - 2
+      p: 1.0
+    adas_70:
+      text: --
+      level: --
+      quoted:
+      - 3
+      p: 0.99
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: '81'
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658058:
+    disease:
+      text: Healthy
+      level: Healthy
+      quoted:
+      - 1
+      p: 1.0
+    clinical_stage:
+      text: Healthy Donor
+      level: Healthy Donor
+      quoted:
+      - 2
+      p: 1.0
+    adas_70:
+      text: --
+      level: --
+      quoted:
+      - 3
+      p: 0.99
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: '75'
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658059:
+    disease:
+      text: Healthy
+      level: Healthy
+      quoted:
+      - 1
+      p: 1.0
+    clinical_stage:
+      text: Healthy Donor
+      level: Healthy Donor
+      quoted:
+      - 2
+      p: 1.0
+    adas_70:
+      text: --
+      level: --
+      quoted:
+      - 3
+      p: 0.99
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: '74'
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658060:
+    disease:
+      text: Healthy
+      level: Healthy
+      quoted:
+      - 1
+      p: 1.0
+    clinical_stage:
+      text: Healthy Donor
+      level: Healthy Donor
+      quoted:
+      - 2
+      p: 1.0
+    adas_70:
+      text: --
+      level: --
+      quoted:
+      - 3
+      p: 0.99
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: '68'
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658061:
+    disease:
+      text: Healthy
+      level: Healthy
+      quoted:
+      - 1
+      p: 1.0
+    clinical_stage:
+      text: Healthy Donor
+      level: Healthy Donor
+      quoted:
+      - 2
+      p: 1.0
+    adas_70:
+      text: --
+      level: --
+      quoted:
+      - 3
+      p: 0.99
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: '83'
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658062:
+    disease:
+      text: Alzheimer's disease (AD)
+      level: Alzheimer's disease (AD)
+      quoted:
+      - 14
+      p: 1.0
+    clinical_stage:
+      text: Mild Dementia
+      level: Mild Dementia
+      quoted:
+      - 15
+      p: 1.0
+    adas_70:
+      text: '15'
+      level: '15'
+      quoted:
+      - 16
+      p: 1.0
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: '80'
+      quoted:
+      - 17
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658063:
+    disease:
+      text: Alzheimer's disease (AD)
+      level: Alzheimer's disease (AD)
+      quoted:
+      - 14
+      p: 1.0
+    clinical_stage:
+      text: Mild Dementia
+      level: Mild Dementia
+      quoted:
+      - 15
+      p: 1.0
+    adas_70:
+      text: '22'
+      level: '22'
+      quoted:
+      - 18
+      p: 1.0
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: '83'
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658064:
+    disease:
+      text: Alzheimer's disease (AD)
+      level: Alzheimer's disease (AD)
+      quoted:
+      - 14
+      p: 1.0
+    clinical_stage:
+      text: Mild Dementia
+      level: Mild Dementia
+      quoted:
+      - 15
+      p: 1.0
+    adas_70:
+      text: '26'
+      level: '26'
+      quoted:
+      - 19
+      p: 1.0
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: '76'
+      quoted:
+      - 20
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658065:
+    disease:
+      text: Alzheimer's disease (AD)
+      level: Alzheimer's disease (AD)
+      quoted:
+      - 14
+      p: 1.0
+    clinical_stage:
+      text: Mild Dementia
+      level: Mild Dementia
+      quoted:
+      - 15
+      p: 1.0
+    adas_70:
+      text: '28'
+      level: '28'
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 21
+      p: 1.0
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: '77'
+      inferred: the characteristic "age" varies between samples
+      see:
+      - 22
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658066:
+    disease:
+      text: Alzheimer's disease (AD)
+      level: Alzheimer's disease (AD)
+      quoted:
+      - 14
+      p: 1.0
+    clinical_stage:
+      text: Mild Dementia
+      level: Mild Dementia
+      quoted:
+      - 15
+      p: 1.0
+    adas_70:
+      text: '18'
+      level: '18'
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 23
+      p: 1.0
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: '64'
+      inferred: the characteristic "age" varies between samples
+      see:
+      - 24
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658067:
+    disease:
+      text: mild cognitive impairment (MCI)
+      level: mild cognitive impairment (MCI)
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 25
+      p: 1.0
+    clinical_stage:
+      text: aMCI
+      level: aMCI
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 26
+      p: 1.0
+    adas_70:
+      text: '5'
+      level: '5'
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 27
+      p: 1.0
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: '81'
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658068:
+    disease:
+      text: mild cognitive impairment (MCI)
+      level: mild cognitive impairment (MCI)
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 25
+      p: 1.0
+    clinical_stage:
+      text: multidomain MCI
+      level: multidomain MCI
+      quoted:
+      - 28
+      p: 1.0
+    adas_70:
+      text: '10'
+      level: '10'
+      quoted:
+      - 29
+      p: 1.0
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 6
+      p: 1.0
+    age:
+      text: '76'
+      quoted:
+      - 20
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658069:
+    disease:
+      text: mild cognitive impairment (MCI)
+      level: mild cognitive impairment (MCI)
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 25
+      p: 1.0
+    clinical_stage:
+      text: aMCI
+      level: aMCI
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 26
+      p: 1.0
+    adas_70:
+      text: '5'
+      level: '5'
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 27
+      p: 1.0
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: '72'
+      inferred: the characteristic "age" varies between samples
+      see:
+      - 30
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658070:
+    disease:
+      text: mild cognitive impairment (MCI)
+      level: mild cognitive impairment (MCI)
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 25
+      p: 1.0
+    clinical_stage:
+      text: multidomain MCI
+      level: multidomain MCI
+      quoted:
+      - 28
+      p: 1.0
+    adas_70:
+      text: '13'
+      level: '13'
+      quoted:
+      - 31
+      p: 1.0
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: '80'
+      quoted:
+      - 17
+      p: 1.0
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 0.97
+  GSM4658071:
+    disease:
+      text: mild cognitive impairment (MCI)
+      level: mild cognitive impairment (MCI)
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 25
+      p: 1.0
+    clinical_stage:
+      text: aMCI
+      level: aMCI
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 26
+      p: 1.0
+    adas_70:
+      text: '8'
+      level: '8'
+      quoted:
+      - 32
+      p: 1.0
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: '79'
+      quoted:
+      - 33
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 0.97

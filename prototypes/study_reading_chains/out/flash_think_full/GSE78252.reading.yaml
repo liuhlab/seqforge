@@ -1,0 +1,661 @@
+format: 1
+study: GSE78252
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM2070425
+    - GSM2070426
+    - GSM2070427
+    - GSM2070428
+    - GSM2070429
+    - GSM2070430
+    - GSM2070431
+    field: Sample_characteristics_ch1
+    quote: 'strain/line background: N2'
+  2:
+    record:
+    - GSM2070425
+    - GSM2070426
+    - GSM2070427
+    - GSM2070431
+    - GSM2070432
+    - GSM2070433
+    - GSM2070437
+    - GSM2070438
+    - GSM2070439
+    field: Sample_characteristics_ch1
+    quote: 'RNAi treatment: empty vector (EV)'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L4'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole worm lysate'
+  7:
+    record: GSM2070425
+    field: Sample_title
+    quote: N2 EV replicate 1
+  8:
+    record: GSM2070426
+    field: Sample_title
+    quote: N2 EV replicate 2
+  9:
+    record: GSM2070427
+    field: Sample_title
+    quote: N2 EV replicate 3
+  10:
+    record:
+    - GSM2070428
+    - GSM2070429
+    - GSM2070430
+    - GSM2070434
+    - GSM2070435
+    - GSM2070436
+    - GSM2070440
+    - GSM2070441
+    - GSM2070442
+    field: Sample_characteristics_ch1
+    quote: 'RNAi treatment: cco-1 + empty vector (EV)'
+  11:
+    record:
+    - GSM2070432
+    - GSM2070433
+    - GSM2070434
+    - GSM2070435
+    - GSM2070436
+    field: Sample_characteristics_ch1
+    quote: 'strain/line background: lin-65(n3441)'
+  12:
+    record:
+    - GSM2070437
+    - GSM2070438
+    - GSM2070439
+    - GSM2070440
+    - GSM2070441
+    - GSM2070442
+    field: Sample_characteristics_ch1
+    quote: 'strain/line background: met-2(ok2307)'
+  13:
+    record: GSE78252
+    field: Series_overall_design
+    quote: comparison of gene expression changes in response to cco-1 RNAi treatment in N2, lin-65(n3441)
+      and met-2(ok2307) populations of C. elegans L4 animals
+factors:
+  genotype:
+    levels:
+    - N2
+    - lin-65(n3441)
+    - met-2(ok2307)
+    baseline: N2
+    ordered: false
+    quoted:
+    - 13
+    p: 0.98
+  treatment:
+    levels:
+    - EV
+    - cco-1_RNAi
+    baseline: EV
+    ordered: false
+    quoted:
+    - 13
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: L4
+    quoted:
+    - 5
+    p: 1.0
+  tissue:
+    text: whole worm lysate
+    quoted:
+    - 6
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease or disease model described
+    p: 0.94
+  target:
+    na: RNA-Seq, no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no input or IgG background library
+    p: 1.0
+  sex:
+    unknown: no sample or paper statement of sex
+    p: 0.77
+  age:
+    unknown: no numeric age; only L4 stage
+    p: 0.73
+  cell_type:
+    na: whole worm lysate, not a cell type
+    p: 0.99
+  cell_line:
+    na: not a cultured cell line
+    p: 1.0
+  dose:
+    unknown: no numeric dose specified for RNAi feeding
+    p: 0.98
+  duration:
+    unknown: RNAi from hatch to L4; no numeric duration
+    p: 0.99
+  donor:
+    na: a pool of many individuals
+    p: 0.93
+samples:
+  GSM2070425:
+    genotype:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: empty vector (EV)
+      level: EV
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 1
+      p: 1.0
+    replicate:
+      text: replicate 1
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070426:
+    genotype:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: empty vector (EV)
+      level: EV
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 1
+      p: 1.0
+    replicate:
+      text: replicate 2
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070427:
+    genotype:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: empty vector (EV)
+      level: EV
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 1
+      p: 1.0
+    replicate:
+      text: replicate 3
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070428:
+    genotype:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 10
+      p: 0.94
+    strain:
+      text: N2
+      quoted:
+      - 1
+      p: 0.99
+    replicate:
+      text: replicate 1
+      quoted:
+      - 7
+      p: 0.88
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070429:
+    genotype:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 10
+      p: 0.92
+    strain:
+      text: N2
+      quoted:
+      - 1
+      p: 0.99
+    replicate:
+      text: replicate 2
+      quoted:
+      - 8
+      p: 0.92
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070430:
+    genotype:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 10
+      p: 0.89
+    strain:
+      text: N2
+      quoted:
+      - 1
+      p: 0.99
+    replicate:
+      text: replicate 3
+      quoted:
+      - 9
+      p: 0.89
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070431:
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.89
+    treatment:
+      text: empty vector (EV)
+      level: EV
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.53
+    replicate:
+      text: replicate 1
+      quoted:
+      - 7
+      p: 0.86
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070432:
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.96
+    treatment:
+      text: empty vector (EV)
+      level: EV
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.9
+    replicate:
+      text: replicate 2
+      quoted:
+      - 8
+      p: 0.82
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070433:
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.96
+    treatment:
+      text: empty vector (EV)
+      level: EV
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.87
+    replicate:
+      text: replicate 3
+      quoted:
+      - 9
+      p: 0.86
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070434:
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.99
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 10
+      p: 0.98
+    strain:
+      text: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.88
+    replicate:
+      text: replicate 1
+      quoted:
+      - 7
+      p: 0.88
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070435:
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.97
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 10
+      p: 0.97
+    strain:
+      text: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.9
+    replicate:
+      text: replicate 2
+      quoted:
+      - 8
+      p: 0.88
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070436:
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.96
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 10
+      p: 0.96
+    strain:
+      text: lin-65(n3441)
+      quoted:
+      - 11
+      p: 0.84
+    replicate:
+      text: replicate 3
+      quoted:
+      - 9
+      p: 0.87
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070437:
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: empty vector (EV)
+      level: EV
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: met-2(ok2307)
+      quoted:
+      - 12
+      p: 0.94
+    replicate:
+      text: replicate 1
+      quoted:
+      - 7
+      p: 0.87
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070438:
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: empty vector (EV)
+      level: EV
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: met-2(ok2307)
+      quoted:
+      - 12
+      p: 0.95
+    replicate:
+      text: replicate 2
+      quoted:
+      - 8
+      p: 0.8
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070439:
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 12
+      p: 0.98
+    treatment:
+      text: empty vector (EV)
+      level: EV
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: met-2(ok2307)
+      quoted:
+      - 12
+      p: 0.9
+    replicate:
+      text: replicate 3
+      quoted:
+      - 9
+      p: 0.89
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070440:
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 10
+      p: 0.99
+    strain:
+      text: met-2(ok2307)
+      quoted:
+      - 12
+      p: 0.91
+    replicate:
+      text: replicate 1
+      quoted:
+      - 7
+      p: 0.9
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070441:
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 12
+      p: 0.98
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 10
+      p: 0.97
+    strain:
+      text: met-2(ok2307)
+      quoted:
+      - 12
+      p: 0.92
+    replicate:
+      text: replicate 2
+      quoted:
+      - 8
+      p: 0.86
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2070442:
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 12
+      p: 0.97
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 10
+      p: 0.98
+    strain:
+      text: met-2(ok2307)
+      quoted:
+      - 12
+      p: 0.89
+    replicate:
+      text: replicate 3
+      quoted:
+      - 9
+      p: 0.91
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null

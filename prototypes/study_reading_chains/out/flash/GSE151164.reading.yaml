@@ -1,0 +1,567 @@
+format: 1
+study: GSE151164
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM4567615
+    - GSM4567616
+    - GSM4567617
+    - GSM4567618
+    - GSM4567619
+    - GSM4567620
+    field: Sample_characteristics_ch1
+    quote: 'genotype: WT'
+  2:
+    record:
+    - GSM4567615
+    - GSM4567616
+    - GSM4567617
+    - GSM4567621
+    - GSM4567622
+    - GSM4567623
+    field: Sample_characteristics_ch1
+    quote: 'treatment: non-heat-shock'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage/tissue: Whole animal L4 stage'
+  6:
+    record:
+    - GSM4567615
+    - GSM4567616
+    - GSM4567617
+    - GSM4567618
+    - GSM4567619
+    - GSM4567620
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  7:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: preheated water bath at 33 °C for 30 minutes
+  8:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: left them at room temperature (20 °C) for 30 minutes
+  9:
+    record: GSM4567615
+    field: Sample_title
+    quote: N2_NoHS_rep1
+  10:
+    record: GSM4567616
+    field: Sample_title
+    quote: N2_NoHS_rep2
+  11:
+    record: GSM4567617
+    field: Sample_title
+    quote: N2_NoHS_rep3
+  12:
+    record:
+    - GSM4567618
+    - GSM4567619
+    - GSM4567620
+    - GSM4567624
+    - GSM4567625
+    - GSM4567626
+    field: Sample_characteristics_ch1
+    quote: 'treatment: heat shock'
+  13:
+    record:
+    - GSM4567621
+    - GSM4567622
+    - GSM4567623
+    - GSM4567624
+    - GSM4567625
+    - GSM4567626
+    field: Sample_characteristics_ch1
+    quote: 'genotype: affl-2(sy975)'
+  14:
+    record:
+    - GSM4567621
+    - GSM4567622
+    - GSM4567623
+    - GSM4567624
+    - GSM4567625
+    - GSM4567626
+    field: Sample_characteristics_ch1
+    quote: 'strain: PS8060'
+  15:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: placed them in a preheated water bath at 33 °C for 30 minutes
+factors:
+  genotype:
+    levels:
+    - WT
+    - affl-2(sy975)
+    baseline: WT
+    ordered: false
+    inferred: wild-type N2 compared with affl-2 mutant
+    p: 0.99
+  treatment:
+    levels:
+    - non-heat-shock
+    - heat shock
+    baseline: non-heat-shock
+    ordered: false
+    quoted:
+    - 15
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: Whole animal L4 stage
+    quoted:
+    - 5
+    p: 1.0
+  tissue:
+    text: Whole animal L4 stage
+    quoted:
+    - 5
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease stated; affl-2 is a genetic model
+    p: 0.96
+  duration:
+    text: 30 minutes
+    value: 30
+    unit: minutes
+    quoted:
+    - 7
+    p: 0.72
+  target:
+    na: RNA-seq, no pull-down
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  sex:
+    unknown: not stated in records
+    p: 0.8
+  age:
+    unknown: age not given, only L4 stage
+    p: 0.57
+  cell_type:
+    na: whole animal, not a cell type
+    p: 0.99
+  cell_line:
+    na: whole animals, no cell line
+    p: 1.0
+  dose:
+    unknown: no dose; heat is a temperature not a dose
+    p: 0.86
+  donor:
+    na: a pool of many individuals
+    p: 0.99
+samples:
+  GSM4567615:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non-heat-shock
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 1.0
+    temperature:
+      text: 20 °C
+      quoted:
+      - 8
+      p: 0.97
+    replicate:
+      text: rep1
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567616:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non-heat-shock
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 1.0
+    temperature:
+      text: 20 °C
+      quoted:
+      - 8
+      p: 0.96
+    replicate:
+      text: rep2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567617:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non-heat-shock
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 1.0
+    temperature:
+      text: 20 °C
+      quoted:
+      - 8
+      p: 0.97
+    replicate:
+      text: rep3
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567618:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat shock
+      quoted:
+      - 12
+      p: 0.95
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 1.0
+    temperature:
+      text: 33 °C
+      quoted:
+      - 7
+      p: 0.97
+    replicate:
+      text: rep1
+      quoted:
+      - 9
+      p: 0.82
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567619:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat shock
+      quoted:
+      - 12
+      p: 0.81
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 1.0
+    temperature:
+      text: 33 °C
+      quoted:
+      - 7
+      p: 0.86
+    replicate:
+      text: rep2
+      quoted:
+      - 10
+      p: 0.75
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567620:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat shock
+      quoted:
+      - 12
+      p: 0.9
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 1.0
+    temperature:
+      text: 33 °C
+      quoted:
+      - 7
+      p: 0.93
+    replicate:
+      text: rep3
+      quoted:
+      - 11
+      p: 0.94
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567621:
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non-heat-shock
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 14
+      p: 0.97
+    temperature:
+      text: 20 °C
+      quoted:
+      - 8
+      p: 0.97
+    replicate:
+      text: rep1
+      quoted:
+      - 9
+      p: 0.86
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567622:
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 13
+      p: 0.98
+    treatment:
+      text: non-heat-shock
+      level: non-heat-shock
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 14
+      p: 0.96
+    temperature:
+      text: 20 °C
+      quoted:
+      - 8
+      p: 0.97
+    replicate:
+      text: rep2
+      quoted:
+      - 10
+      p: 0.81
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567623:
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non-heat-shock
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 14
+      p: 0.97
+    temperature:
+      text: 20 °C
+      quoted:
+      - 8
+      p: 0.96
+    replicate:
+      text: rep3
+      quoted:
+      - 11
+      p: 0.77
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567624:
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat shock
+      quoted:
+      - 12
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 14
+      p: 0.97
+    temperature:
+      text: 33 °C
+      quoted:
+      - 7
+      p: 0.99
+    replicate:
+      text: rep1
+      quoted:
+      - 9
+      p: 0.87
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567625:
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 13
+      p: 0.99
+    treatment:
+      text: heat shock
+      level: heat shock
+      quoted:
+      - 12
+      p: 0.98
+    strain:
+      text: PS8060
+      quoted:
+      - 14
+      p: 0.96
+    temperature:
+      text: 33 °C
+      quoted:
+      - 7
+      p: 0.92
+    replicate:
+      text: rep2
+      quoted:
+      - 10
+      p: 0.79
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4567626:
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 13
+      p: 0.99
+    treatment:
+      text: heat shock
+      level: heat shock
+      quoted:
+      - 12
+      p: 0.99
+    strain:
+      text: PS8060
+      quoted:
+      - 14
+      p: 0.96
+    temperature:
+      text: 33 °C
+      quoted:
+      - 7
+      p: 0.96
+    replicate:
+      text: rep3
+      quoted:
+      - 11
+      p: 0.8
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

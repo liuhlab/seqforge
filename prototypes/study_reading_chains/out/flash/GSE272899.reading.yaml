@@ -1,0 +1,423 @@
+format: 1
+study: GSE272899
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: old mice were defined as 21 to 24 months old
+  2:
+    record:
+    - GSM8414372
+    - GSM8414373
+    - GSM8414375
+    - GSM8414376
+    - GSM8414377
+    field: Sample_characteristics_ch1
+    quote: 'genotype: LysMcre/cre'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: ATAC-seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Mice were naturally aged to appropriate ages
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Visceral white adipose tissue'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Sorted adipose tissue macrophages'
+  8:
+    record: GSM8414372
+    field: Sample_title
+    quote: ATM_Old_ctrl_1
+  9:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: intraperitoneally injected with 0.1mg/kg LPS 4 hours prior to the endpoint
+  10:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Young mice were defined as 4 months old and old mice were defined as 21 to 24 months old
+  11:
+    record: GSM8414374
+    field: Sample_characteristics_ch1
+    quote: 'genotype: GDF3 fl/fl'
+  12:
+    record:
+    - GSM8414375
+    - GSM8414376
+    - GSM8414377
+    field: Sample_characteristics_ch1
+    quote: 'genotype: LysMcre/cre; GDF3 fl/fl'
+  13:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Young mice were defined as 4 months old
+  14:
+    record:
+    - GSM8414378
+    - GSM8414379
+    - GSM8414380
+    field: Sample_characteristics_ch1
+    quote: 'genotype: GDF3 fl/-'
+factors:
+  age:
+    levels:
+    - young
+    - old
+    baseline: young
+    ordered: false
+    inferred: young vs old mice compared
+    p: 0.99
+  genotype:
+    levels:
+    - LysMcre
+    - GDF3_fl_fl
+    - mKO
+    - GDF3_fl_minus
+    baseline: GDF3_fl_fl
+    ordered: false
+    inferred: control vs myeloid Gdf3 deletion
+    p: 0.95
+shared:
+  assay:
+    text: ATAC-seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: Adult
+    inferred: young and old adult mice
+    see:
+    - 5
+    p: 0.99
+  tissue:
+    text: Visceral white adipose tissue
+    quoted:
+    - 6
+    p: 1.0
+  cell_type:
+    text: Sorted adipose tissue macrophages
+    quoted:
+    - 7
+    p: 1.0
+  treatment:
+    text: LPS
+    term: CHEBI:16412
+    quoted:
+    - 9
+    p: 0.89
+  dose:
+    text: 0.1mg/kg
+    value: 0.1
+    unit: mg/kg
+    quoted:
+    - 9
+    p: 0.95
+  duration:
+    text: 4 hours
+    value: 4
+    unit: hour
+    quoted:
+    - 9
+    p: 0.7
+  age_definition:
+    text: Young mice were defined as 4 months old and old mice were defined as 21 to 24 months old
+    quoted:
+    - 10
+    p: 1.0
+  target:
+    na: ATAC-seq has no pull-down
+    p: 1.0
+  control_type:
+    na: no background-control libraries sequenced
+    p: 0.99
+  sex:
+    unknown: sex not stated in records or paper
+    p: 0.99
+  cell_line:
+    na: primary sorted cells, not a line
+    p: 1.0
+  strain:
+    unknown: strain not stated in records or paper
+    p: 0.99
+samples:
+  GSM8414372:
+    age:
+      text: Old
+      value: &id001
+      - 21
+      - 24
+      unit: month
+      level: old
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: LysMcre/cre
+      level: LysMcre
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Healthy
+      inferred: no disease stated; control animals
+      see:
+      - 8
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM8414373:
+    age:
+      text: Old
+      value: *id001
+      unit: month
+      level: old
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: LysMcre/cre
+      level: LysMcre
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Healthy
+      inferred: no disease stated; control animals
+      see:
+      - 8
+      p: 0.78
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM8414374:
+    age:
+      text: Old
+      value: *id001
+      unit: month
+      level: old
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: GDF3 fl/fl
+      level: GDF3_fl_fl
+      quoted:
+      - 11
+      p: 1.0
+    disease:
+      text: Healthy
+      inferred: no disease stated; control animals
+      see:
+      - 8
+      p: 0.77
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM8414375:
+    age:
+      text: Old
+      value: *id001
+      unit: month
+      level: old
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: LysMcre/cre; GDF3 fl/fl
+      level: mKO
+      quoted:
+      - 12
+      p: 1.0
+    disease:
+      unknown: what was read does not say its disease
+      p: 0.53
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM8414376:
+    age:
+      text: Old
+      value: *id001
+      unit: month
+      level: old
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: LysMcre/cre; GDF3 fl/fl
+      level: mKO
+      quoted:
+      - 12
+      p: 1.0
+    disease:
+      unknown: what was read does not say its disease
+      p: 0.53
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM8414377:
+    age:
+      text: Old
+      value: *id001
+      unit: month
+      level: old
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: LysMcre/cre; GDF3 fl/fl
+      level: mKO
+      quoted:
+      - 12
+      p: 1.0
+    disease:
+      text: Healthy
+      inferred: no disease stated; control animals
+      see:
+      - 8
+      p: 0.51
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM8414378:
+    age:
+      text: Young
+      value: 4
+      unit: month
+      level: young
+      quoted:
+      - 13
+      p: 1.0
+    genotype:
+      text: GDF3 fl/-
+      level: GDF3_fl_minus
+      quoted:
+      - 14
+      p: 1.0
+    disease:
+      text: Healthy
+      inferred: no disease stated; control animals
+      see:
+      - 8
+      p: 0.82
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM8414379:
+    age:
+      text: Young
+      value: 4
+      unit: month
+      level: young
+      quoted:
+      - 13
+      p: 1.0
+    genotype:
+      text: GDF3 fl/-
+      level: GDF3_fl_minus
+      quoted:
+      - 14
+      p: 1.0
+    disease:
+      text: Healthy
+      inferred: no disease stated; control animals
+      see:
+      - 8
+      p: 0.76
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.92
+  GSM8414380:
+    age:
+      text: Young
+      value: 4
+      unit: month
+      level: young
+      quoted:
+      - 13
+      p: 1.0
+    genotype:
+      text: GDF3 fl/-
+      level: GDF3_fl_minus
+      quoted:
+      - 14
+      p: 1.0
+    disease:
+      text: Healthy
+      inferred: no disease stated; control animals
+      see:
+      - 8
+      p: 0.82
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.92

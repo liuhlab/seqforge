@@ -1,0 +1,1192 @@
+{
+ "study": "GSE100021",
+ "chain": "flash",
+ "read_full": false,
+ "n_samples": 8,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "treatment",
+   "levels": [
+    "IGF1_adenovector",
+    "DsRed_adenovector"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.03,
+   "baseline": "L1",
+   "p_baseline": 0.99,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 1.0,
+   "p_ordered": 0.03,
+   "writer_baseline": "DsRed_adenovector",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.61,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.62,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.76,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.75,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.54,
+   "shared": false
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM2668015": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I",
+    "IGF1_adenovector"
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D_IGF1_16",
+    null
+   ]
+  },
+  "GSM2668016": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I",
+    "IGF1_adenovector"
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D_IGF1_24",
+    null
+   ]
+  },
+  "GSM2668017": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I",
+    "IGF1_adenovector"
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D_IGF1_27",
+    null
+   ]
+  },
+  "GSM2668018": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I",
+    "IGF1_adenovector"
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D_IGF1_29",
+    null
+   ]
+  },
+  "GSM2668019": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Rat intracerebroventricularly injected with an adenovector with empty vector DsRed",
+    "DsRed_adenovector"
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D_DsRed_7",
+    null
+   ]
+  },
+  "GSM2668020": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Rat intracerebroventricularly injected with an adenovector with empty vector DsRed",
+    "DsRed_adenovector"
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D_DsRed_12",
+    null
+   ]
+  },
+  "GSM2668021": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Rat intracerebroventricularly injected with an adenovector with empty vector DsRed",
+    "DsRed_adenovector"
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D_DsRed_22",
+    null
+   ]
+  },
+  "GSM2668022": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Rat intracerebroventricularly injected with an adenovector with empty vector DsRed",
+    "DsRed_adenovector"
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D_DsRed_25",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "treatment": {
+   "levels": [
+    "IGF1_adenovector",
+    "DsRed_adenovector"
+   ],
+   "baseline": "DsRed_adenovector",
+   "ordered": false,
+   "quoted": [
+    9
+   ],
+   "p": 0.99
+  }
+ },
+ "n_passages": 9,
+ "n_shared": 15,
+ "n_row_claims": 24,
+ "lists_summary": {
+  "factors": 1,
+  "factors_kept": 1,
+  "labels_with_values": 7,
+  "extra_labels": 0,
+  "writer_gaps": [
+   {
+    "kind": "baseline_as_control",
+    "note": "DsRed placebo group is a comparison baseline, not a background control library"
+   },
+   {
+    "kind": "duration_without_number",
+    "note": "injection-to-harvest interval not stated"
+   },
+   {
+    "kind": "dose_per_unit",
+    "note": "vector dose not given"
+   }
+  ],
+  "donor_kind_writer": "one_each",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM2668015",
+   "field": "Sample_description",
+   "exact": true,
+   "quote_len": 79,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM2668019",
+   "field": "Sample_description",
+   "exact": true,
+   "quote_len": 82,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "named",
+   "source": "GSE100021",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 135,
+   "backs_p": 0.96
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 27,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Rat hippocampus",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "Rat intracerebroventricularly injected with an adenovector with empty vector DsRed",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.07,
+  "untreated_or_vehicle": 0.97,
+  "several_compounds": 0.06,
+  "route_or_side": 0.99,
+  "dose_per_unit": 0.22,
+  "duration_without_number": 0.06,
+  "time_from_event": 0.33,
+  "pooled_material": 0.04,
+  "held_constant": 0.93,
+  "batch": 0.07,
+  "sequencer": 0.03,
+  "vector": 0.98,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.17,
+  "single_cell": 0.01,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "one_each",
+  1.0
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.00130935,
+   "seconds": 5.695,
+   "tokens_in": 2997,
+   "tokens_out": 1433
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000167202,
+   "seconds": 0.406,
+   "tokens_in": 3981
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.3076e-05,
+   "seconds": 0.636,
+   "tokens_in": 1978
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.3076e-05,
+   "seconds": 0.78,
+   "tokens_in": 1978
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.3076e-05,
+   "seconds": 0.527,
+   "tokens_in": 1978
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.3076e-05,
+   "seconds": 0.528,
+   "tokens_in": 1978
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.3076e-05,
+   "seconds": 0.477,
+   "tokens_in": 1978
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.3076e-05,
+   "seconds": 0.635,
+   "tokens_in": 1978
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.295e-05,
+   "seconds": 0.71,
+   "tokens_in": 1975
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.3076e-05,
+   "seconds": 0.527,
+   "tokens_in": 1978
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.3076e-05,
+   "seconds": 0.778,
+   "tokens_in": 1978
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2992e-05,
+   "seconds": 0.777,
+   "tokens_in": 1976
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.295e-05,
+   "seconds": 0.776,
+   "tokens_in": 1975
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2992e-05,
+   "seconds": 0.661,
+   "tokens_in": 1976
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2992e-05,
+   "seconds": 0.721,
+   "tokens_in": 1976
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2992e-05,
+   "seconds": 0.723,
+   "tokens_in": 1976
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2992e-05,
+   "seconds": 0.624,
+   "tokens_in": 1976
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2992e-05,
+   "seconds": 0.575,
+   "tokens_in": 1976
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00012264,
+   "seconds": 0.149,
+   "tokens_in": 2920
+  }
+ ],
+ "seconds": 0.18,
+ "ending": "settled",
+ "variant": "flash"
+}

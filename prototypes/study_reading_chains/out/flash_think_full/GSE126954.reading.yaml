@@ -1,0 +1,639 @@
+format: 1
+study: GSE126954
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record: GSM3618670
+    field: Sample_title
+    quote: UW synchronized 300 min post bleach
+  2:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: embryo'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  5:
+    paper: pmid:31488706
+    section: Body
+    quote: from the fertilized egg to an adult hermaphrodite with 959 somatic cells
+  6:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_source_name_ch1
+    quote: C. elegans embryos
+  7:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_description
+    quote: 10X sc-RNA-seq with cells from dissociated C. elegans embryos
+  8:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: carrying an integrated Punc-120::mCherry gene in a wild type background was used
+  9:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    field: Sample_characteristics_ch1
+    quote: 'strain: VC2010, derived from N2'
+  10:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_growth_protocol_ch1
+    quote: treated with 0.5mg/ml chitinase at room temperature until the shells were dissolved (30-40
+      minutes at room temperature (~22 degrees C))
+  11:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_growth_protocol_ch1
+    quote: treated with 0.5mg/ml chitinase at room temperature
+  12:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_growth_protocol_ch1
+    quote: (30-40 minutes at room temperature (~22 degrees C))
+  13:
+    record: GSM3618671
+    field: Sample_title
+    quote: UW synchronized 400 min post bleach
+  14:
+    record: GSM3618672
+    field: Sample_title
+    quote: UW synchronized 500 min post bleach batch 1
+  15:
+    record: GSM3618673
+    field: Sample_title
+    quote: UW synchronized 500 min post bleach batch 2
+  16:
+    record: GSM3618674
+    field: Sample_title
+    quote: UPenn mixed embryo batch r17
+  17:
+    record:
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  18:
+    record: GSM3618675
+    field: Sample_title
+    quote: UPenn mixed embryo batch b01
+  19:
+    record: GSM3618676
+    field: Sample_title
+    quote: UPenn mixed embryo batch b02
+  20:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L2'
+  21:
+    record: GSM4318946
+    field: Sample_source_name_ch1
+    quote: whole c.elegans (L2 stage)
+  22:
+    record: GSM4318946
+    field: Sample_description
+    quote: sciRNAseq with c.elegans cells (during sorting, polyploid c.elegans cells were exlcuded)
+  23:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: 'strain: C. elegans strain (RW12139 stIs11435(unc-120::H1-Wcherry;unc-119(+));unc-119(tm4063))
+      carrying an integrated Punc-120::mCherry gene in a wild type background was used'
+  24:
+    record: GSM4318946
+    field: Sample_extract_protocol_ch1
+    quote: L2 stage worms were disscociated with SDS-DTT solution and pronase to generate single cell
+      suspension.
+  25:
+    paper: pmid:31488706
+    section: Single-cell RNA-seq of C. elegans embryos
+    quote: We assayed loosely synchronized embryos enriched for pre-terminal cells as well as embryos
+      that had been allowed to develop for ~300, ~400, and ~500 minutes after the first cleavage of the
+      fertilized egg.
+  26:
+    paper: pmid:31488706
+    section: Bifurcating cell fates and multilineage priming
+    quote: expressed in a neuron type but not its sister in the embryo and 2) expressed in the same neuron
+      type at the L2 stage
+factors:
+  age:
+    levels:
+    - mixed
+    - 300_min
+    - 400_min
+    - 500_min
+    baseline: null
+    ordered: true
+    quoted:
+    - 25
+    p: 0.92
+  development_stage:
+    levels:
+    - embryo
+    - L2
+    baseline: null
+    ordered: false
+    inferred: Embryo atlas plus L2-stage re-analysis for terminal selectors.
+    see:
+    - 26
+    p: 0.5
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 4
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 5
+    p: 0.92
+  disease:
+    text: healthy
+    inferred: No disease model; normal C. elegans developmental atlas.
+    p: 0.98
+  dose:
+    text: 0.5mg/ml
+    value: 0.5
+    unit: mg/ml
+    quoted:
+    - 11
+    p: 0.56
+  duration:
+    text: 30-40 minutes
+    value:
+    - 30
+    - 40
+    unit: minute
+    quoted:
+    - 12
+    p: 0.52
+  target:
+    na: No pull-down or enrichment target; transcriptomic RNA-Seq.
+    p: 1.0
+  control_type:
+    na: No background-control libraries; all are RNA-Seq samples.
+    p: 1.0
+  cell_line:
+    na: Whole C. elegans samples; no cultured cell line.
+    p: 0.98
+  donor:
+    na: a pool of many individuals
+    p: 0.94
+samples:
+  GSM3618670:
+    age:
+      text: UW synchronized 300 min post bleach
+      value: 300
+      unit: minute
+      level: 300_min
+      quoted:
+      - 1
+      p: 1.0
+    development_stage:
+      text: 'developmental stage: embryo'
+      level: embryo
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      quoted:
+      - 7
+      p: 0.99
+    genotype:
+      text: carrying an integrated Punc-120::mCherry gene in a wild type background
+      quoted:
+      - 8
+      p: 0.93
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: chitinase
+      quoted:
+      - 10
+      p: 1.0
+    time_post_bleach:
+      text: 300 min post bleach
+      quoted:
+      - 1
+      p: 1.0
+    batch:
+      unknown: what was read does not say its batch
+      p: 0.87
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618671:
+    age:
+      text: UW synchronized 400 min post bleach
+      value: 400
+      unit: minute
+      level: 400_min
+      quoted:
+      - 13
+      p: 0.99
+    development_stage:
+      text: 'developmental stage: embryo'
+      level: embryo
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      quoted:
+      - 7
+      p: 0.99
+    genotype:
+      text: carrying an integrated Punc-120::mCherry gene in a wild type background
+      quoted:
+      - 8
+      p: 0.96
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: chitinase
+      quoted:
+      - 10
+      p: 1.0
+    time_post_bleach:
+      text: 400 min post bleach
+      quoted:
+      - 13
+      p: 1.0
+    batch:
+      unknown: what was read does not say its batch
+      p: 0.9
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618672:
+    age:
+      text: UW synchronized 500 min post bleach batch 1
+      value: 500
+      unit: minute
+      level: 500_min
+      quoted:
+      - 14
+      p: 0.99
+    development_stage:
+      text: 'developmental stage: embryo'
+      level: embryo
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      quoted:
+      - 7
+      p: 0.99
+    genotype:
+      text: carrying an integrated Punc-120::mCherry gene in a wild type background
+      quoted:
+      - 8
+      p: 0.95
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: chitinase
+      quoted:
+      - 10
+      p: 1.0
+    time_post_bleach:
+      text: 500 min post bleach
+      quoted:
+      - 14
+      p: 1.0
+    batch:
+      text: batch 1
+      quoted:
+      - 14
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618673:
+    age:
+      text: UW synchronized 500 min post bleach batch 1
+      value: 500
+      unit: minute
+      level: 500_min
+      quoted:
+      - 14
+      p: 0.8
+    development_stage:
+      text: 'developmental stage: embryo'
+      level: embryo
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      quoted:
+      - 7
+      p: 0.97
+    genotype:
+      text: carrying an integrated Punc-120::mCherry gene in a wild type background
+      quoted:
+      - 8
+      p: 0.92
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: chitinase
+      quoted:
+      - 10
+      p: 1.0
+    time_post_bleach:
+      text: 500 min post bleach
+      quoted:
+      - 14
+      p: 0.99
+    batch:
+      text: batch 2
+      quoted:
+      - 15
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618674:
+    age:
+      text: UPenn mixed embryo batch r17
+      level: mixed
+      quoted:
+      - 16
+      p: 0.98
+    development_stage:
+      text: 'developmental stage: embryo'
+      level: embryo
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      quoted:
+      - 7
+      p: 0.99
+    genotype:
+      unknown: what was read does not say its genotype
+      p: 0.49
+    strain:
+      text: N2
+      quoted:
+      - 17
+      p: 0.95
+    treatment:
+      text: chitinase
+      quoted:
+      - 10
+      p: 1.0
+    time_post_bleach:
+      na: it does not apply to this sample
+      p: 0.67
+    batch:
+      text: r17
+      quoted:
+      - 16
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618675:
+    age:
+      unknown: the record of this sample does not say its age
+      p: 0.41
+    development_stage:
+      text: 'developmental stage: embryo'
+      level: embryo
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      quoted:
+      - 7
+      p: 0.99
+    genotype:
+      unknown: what was read does not say its genotype
+      p: 0.52
+    strain:
+      text: N2
+      quoted:
+      - 17
+      p: 0.96
+    treatment:
+      text: chitinase
+      quoted:
+      - 10
+      p: 1.0
+    time_post_bleach:
+      na: it does not apply to this sample
+      p: 0.71
+    batch:
+      text: b01
+      quoted:
+      - 18
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618676:
+    age:
+      unknown: the record of this sample does not say its age
+      p: 0.55
+    development_stage:
+      text: 'developmental stage: embryo'
+      level: embryo
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      quoted:
+      - 7
+      p: 0.99
+    genotype:
+      unknown: what was read does not say its genotype
+      p: 0.55
+    strain:
+      text: N2
+      quoted:
+      - 17
+      p: 0.96
+    treatment:
+      text: chitinase
+      quoted:
+      - 10
+      p: 1.0
+    time_post_bleach:
+      na: it does not apply to this sample
+      p: 0.67
+    batch:
+      text: b02
+      quoted:
+      - 19
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4318946:
+    age:
+      unknown: the record of this sample does not say its age
+      p: 0.46
+    development_stage:
+      text: 'developmental stage: L2'
+      level: L2
+      quoted:
+      - 20
+      p: 0.99
+    tissue:
+      text: whole c.elegans (L2 stage)
+      quoted:
+      - 21
+      p: 0.97
+    cell_type:
+      text: c.elegans cells (during sorting, polyploid c.elegans cells were exlcuded)
+      quoted:
+      - 22
+      p: 0.98
+    genotype:
+      text: carrying an integrated Punc-120::mCherry gene in a wild type background
+      quoted:
+      - 8
+      p: 1.0
+    strain:
+      text: RW12139
+      quoted:
+      - 23
+      p: 0.96
+    treatment:
+      text: SDS-DTT solution and pronase
+      quoted:
+      - 24
+      p: 0.98
+    time_post_bleach:
+      na: it does not apply to this sample
+      p: 0.52
+    batch:
+      unknown: what was read does not say its batch
+      p: 0.79
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null

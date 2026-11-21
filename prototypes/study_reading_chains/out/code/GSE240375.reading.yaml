@@ -1,0 +1,229 @@
+format: 1
+study: GSE240375
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM7697100
+    - GSM7697101
+    - GSM7697102
+    - GSM7697106
+    - GSM7697107
+    field: Sample_characteristics_ch1
+    quote: 'age: young'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Kidney'
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: whole tissue'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: none'
+  7:
+    record:
+    - GSM7697103
+    - GSM7697104
+    - GSM7697105
+    - GSM7697108
+    - GSM7697109
+    field: Sample_characteristics_ch1
+    quote: 'age: aged'
+factors:
+  age:
+    levels:
+    - young
+    - aged
+    baseline: young
+    ordered: false
+    inferred: the characteristic "age" varies between samples
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  tissue:
+    text: Kidney
+    term: UBERON:0002113
+    quoted:
+    - 4
+    p: 1.0
+  cell_type:
+    text: whole tissue
+    quoted:
+    - 5
+    p: 0.79
+  treatment:
+    text: none
+    quoted:
+    - 6
+    p: 0.86
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.98
+  development_stage:
+    unknown: nothing read says it
+    p: 0.79
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    na: does not apply to these samples
+    p: 0.6
+  genotype:
+    unknown: nothing read says it
+    p: 0.93
+  strain:
+    unknown: nothing read says it
+    p: 1.0
+  dose:
+    na: no treatment
+    p: 1.0
+  duration:
+    na: no treatment
+    p: 1.0
+  donor:
+    unknown: nothing read says which individual a library came from
+    p: 0.36
+samples:
+  GSM7697100:
+    age:
+      text: young
+      level: young
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7697101:
+    age:
+      text: young
+      level: young
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7697102:
+    age:
+      text: young
+      level: young
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7697103:
+    age:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7697104:
+    age:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7697105:
+    age:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7697106:
+    age:
+      text: young
+      level: young
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7697107:
+    age:
+      text: young
+      level: young
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7697108:
+    age:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7697109:
+    age:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null

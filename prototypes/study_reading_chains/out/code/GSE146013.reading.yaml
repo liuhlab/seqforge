@@ -1,0 +1,678 @@
+format: 1
+study: GSE146013
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM4351989
+    - GSM4351990
+    - GSM4351991
+    - GSM4351992
+    - GSM4351993
+    - GSM4351994
+    - GSM4351995
+    - GSM4351996
+    - GSM4351997
+    - GSM4351998
+    - GSM4351999
+    - GSM4352000
+    field: Sample_characteristics_ch1
+    quote: 'age: postnatal day 200'
+  2:
+    record:
+    - GSM4351989
+    - GSM4351990
+    - GSM4351991
+    - GSM4351992
+    - GSM4351993
+    - GSM4351994
+    - GSM4351995
+    field: Sample_characteristics_ch1
+    quote: 'Stage: clinical (control)'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: miRNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: Cervical spinal cord
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: Tg501'
+  7:
+    record:
+    - GSM4351996
+    - GSM4351997
+    - GSM4351998
+    - GSM4351999
+    - GSM4352000
+    field: Sample_characteristics_ch1
+    quote: 'Stage: clinical (prion-inoculated), 150 days post inoculation'
+  8:
+    record:
+    - GSM4352001
+    - GSM4352002
+    - GSM4352003
+    - GSM4352004
+    - GSM4352005
+    - GSM4352006
+    - GSM4352007
+    - GSM4352008
+    - GSM4352009
+    - GSM4352010
+    - GSM4352011
+    - GSM4352012
+    field: Sample_characteristics_ch1
+    quote: 'age: postnatal day 100'
+  9:
+    record:
+    - GSM4352001
+    - GSM4352002
+    - GSM4352003
+    - GSM4352004
+    - GSM4352005
+    - GSM4352006
+    field: Sample_characteristics_ch1
+    quote: 'Stage: preclinical (control)'
+  10:
+    record:
+    - GSM4352007
+    - GSM4352008
+    - GSM4352009
+    - GSM4352010
+    - GSM4352011
+    - GSM4352012
+    field: Sample_characteristics_ch1
+    quote: 'Stage: preclinical (prion-inoculated), 150 days post inoculation'
+factors:
+  age:
+    levels:
+    - postnatal day 200
+    - postnatal day 100
+    baseline: null
+    ordered: true
+    inferred: the characteristic "age" varies between samples
+    p: 0.71
+  stage:
+    levels:
+    - clinical (control)
+    - clinical (prion-inoculated), 150 days post inoculation
+    - preclinical (control)
+    - preclinical (prion-inoculated), 150 days post inoculation
+    baseline: null
+    ordered: true
+    inferred: the characteristic "Stage" varies between samples
+    p: 0.98
+shared:
+  assay:
+    text: miRNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: Cervical spinal cord
+    term: UBERON:0002726
+    quoted:
+    - 5
+    p: 1.0
+  strain:
+    text: Tg501
+    quoted:
+    - 6
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.99
+  development_stage:
+    unknown: nothing read says it
+    p: 0.75
+  cell_type:
+    na: whole tissue with no cell type isolated
+    p: 0.97
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    unknown: nothing read says it
+    p: 0.75
+  genotype:
+    unknown: nothing read says it
+    p: 0.77
+  treatment:
+    unknown: nothing read says it
+    p: 0.81
+  dose:
+    unknown: nothing read says it
+    p: 0.99
+  duration:
+    unknown: nothing read says it
+    p: 0.8
+samples:
+  GSM4351989:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (control)
+      level: clinical (control)
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351990:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (control)
+      level: clinical (control)
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351991:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (control)
+      level: clinical (control)
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351992:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (control)
+      level: clinical (control)
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351993:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (control)
+      level: clinical (control)
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351994:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (control)
+      level: clinical (control)
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351995:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (control)
+      level: clinical (control)
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351996:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (prion-inoculated), 150 days post inoculation
+      level: clinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351997:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (prion-inoculated), 150 days post inoculation
+      level: clinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351998:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (prion-inoculated), 150 days post inoculation
+      level: clinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4351999:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (prion-inoculated), 150 days post inoculation
+      level: clinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352000:
+    age:
+      text: postnatal day 200
+      level: postnatal day 200
+      quoted:
+      - 1
+      p: 1.0
+    stage:
+      text: clinical (prion-inoculated), 150 days post inoculation
+      level: clinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352001:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (control)
+      level: preclinical (control)
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352002:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (control)
+      level: preclinical (control)
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352003:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (control)
+      level: preclinical (control)
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352004:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (control)
+      level: preclinical (control)
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D16
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352005:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (control)
+      level: preclinical (control)
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D17
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352006:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (control)
+      level: preclinical (control)
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D18
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352007:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (prion-inoculated), 150 days post inoculation
+      level: preclinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D19
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352008:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (prion-inoculated), 150 days post inoculation
+      level: preclinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D20
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352009:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (prion-inoculated), 150 days post inoculation
+      level: preclinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D21
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352010:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (prion-inoculated), 150 days post inoculation
+      level: preclinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D22
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352011:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (prion-inoculated), 150 days post inoculation
+      level: preclinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B23
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D23
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4352012:
+    age:
+      text: postnatal day 100
+      level: postnatal day 100
+      quoted:
+      - 8
+      p: 1.0
+    stage:
+      text: preclinical (prion-inoculated), 150 days post inoculation
+      level: preclinical (prion-inoculated), 150 days post inoculation
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B24
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D24
+      inferred: each sample is from its own individual
+      p: 1.0

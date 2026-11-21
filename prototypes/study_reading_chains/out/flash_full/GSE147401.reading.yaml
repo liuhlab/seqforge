@@ -1,0 +1,1914 @@
+format: 1
+study: GSE147401
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  2:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430034
+    - GSM4430035
+    - GSM4430042
+    - GSM4430043
+    - GSM4430046
+    - GSM4430047
+    field: Sample_characteristics_ch1
+    quote: 'antibody: H3K27me3'
+  3:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430038
+    - GSM4430039
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wild-type'
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Stage: Young adult'
+  6:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Isolated germ nuclei'
+  7:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430038
+    - GSM4430039
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  8:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_growth_protocol_ch1
+    quote: L1s were grown until young adult at 20˚C
+  9:
+    record: GSM4430030
+    field: Sample_title
+    quote: ChIP-seq wild-type H3K27me3 rep 1
+  10:
+    record: GSM4430031
+    field: Sample_title
+    quote: ChIP-seq wild-type H3K27me3 rep 2
+  11:
+    record:
+    - GSM4430032
+    - GSM4430033
+    - GSM4430036
+    - GSM4430037
+    - GSM4430044
+    - GSM4430045
+    - GSM4430048
+    - GSM4430049
+    field: Sample_characteristics_ch1
+    quote: 'antibody: H3K36me3'
+  12:
+    record:
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430040
+    - GSM4430041
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'genotype: oef-1(vr25)'
+  13:
+    record:
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430040
+    - GSM4430041
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'strain: YL585'
+  14:
+    record:
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'antibody: none'
+  15:
+    record:
+    - GSM4430038
+    - GSM4430039
+    field: Sample_description
+    quote: A fraction of the input total chromatin that was used for H3K27me3 or H3K36me3 ChIP on wild
+      type
+  16:
+    record:
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'genotype: glp-4(bn2)'
+  17:
+    record:
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Whole animal'
+  18:
+    record:
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430050
+    - GSM4430051
+    field: Sample_characteristics_ch1
+    quote: 'strain: SS104'
+  19:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_growth_protocol_ch1
+    quote: L1s were grown until young adulthood at 25˚C
+  20:
+    record:
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'genotype: glp-4(bn2); oef-1(vr25)'
+  21:
+    record:
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'strain: YL679'
+  22:
+    record:
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  23:
+    record:
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Dissected gonads'
+  24:
+    record: GSM4430056
+    field: Sample_title
+    quote: N2 RNA-seq rep 3
+  25:
+    record: GSE147401
+    field: Series_overall_design
+    quote: performed in duplicate for two histone modifications on four genotypes
+factors:
+  assay:
+    levels:
+    - chip_seq
+    - rna_seq
+    baseline: null
+    ordered: false
+    inferred: ChIP-seq and RNA-seq libraries compared
+    p: 0.88
+  target:
+    levels:
+    - h3k27me3
+    - h3k36me3
+    - none
+    baseline: null
+    ordered: false
+    inferred: antibody field distinguishes marks and none
+    p: 0.97
+  genotype:
+    levels:
+    - wild_type
+    - oef_1_vr25
+    - glp_4_bn2
+    - glp_4_oef_1
+    baseline: wild_type
+    ordered: false
+    quoted:
+    - 25
+    p: 0.98
+shared:
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: Young adult
+    quoted:
+    - 5
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease stated
+    p: 0.91
+  sex:
+    unknown: hermaphrodite implied but no record states sex
+    p: 0.81
+  age:
+    unknown: stage young adult stated; no age given
+    p: 0.76
+  cell_type:
+    unknown: no cell type recorded; germ nuclei only
+    p: 0.63
+  cell_line:
+    na: in vivo worms, no cell line
+    p: 1.0
+  treatment:
+    na: no treatment applied; genotypes compared
+    p: 0.74
+  dose:
+    na: no treatment dose
+    p: 0.74
+  duration:
+    na: no treatment duration
+    p: 0.52
+samples:
+  GSM4430030:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: h3k27me3
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.9
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: Jev judged these libraries made from one preparation
+      p: 0.64
+    donor:
+      id: D_N2
+      inferred: Jev picked the individual from the listed names
+      p: 0.9
+  GSM4430031:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: h3k27me3
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.86
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.98
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_N2
+      inferred: Jev picked the individual from the listed names
+      p: 0.89
+  GSM4430032:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: h3k36me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.89
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.98
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.93
+    biosample:
+      id: B1
+      inferred: Jev judged these libraries made from one preparation
+      p: 0.51
+    donor:
+      id: D_N2
+      inferred: Jev picked the individual from the listed names
+      p: 0.9
+  GSM4430033:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: h3k36me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.88
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.97
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.86
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_N2
+      inferred: Jev picked the individual from the listed names
+      p: 0.91
+  GSM4430034:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: h3k27me3
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: oef-1(vr25)
+      level: oef_1_vr25
+      quoted:
+      - 12
+      p: 0.98
+    control_type:
+      na: a library that is not a background control
+      p: 0.87
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 13
+      p: 0.99
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.98
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.97
+    biosample:
+      id: B4
+      inferred: Jev judged these libraries made from one preparation
+      p: 0.51
+    donor:
+      id: D_YL585
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM4430035:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: h3k27me3
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: oef-1(vr25)
+      level: oef_1_vr25
+      quoted:
+      - 12
+      p: 0.96
+    control_type:
+      na: a library that is not a background control
+      p: 0.84
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 13
+      p: 0.98
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.98
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.98
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL585
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM4430036:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: h3k36me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: oef-1(vr25)
+      level: oef_1_vr25
+      quoted:
+      - 12
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.9
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 13
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.98
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL585
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM4430037:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: h3k36me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: oef-1(vr25)
+      level: oef_1_vr25
+      quoted:
+      - 12
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.93
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 13
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.99
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL585
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM4430038:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.99
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 15
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.98
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.96
+    biosample:
+      id: B1
+      inferred: Jev judged these libraries made from one preparation
+      p: 0.64
+    donor:
+      id: D_N2
+      inferred: Jev picked the individual from the listed names
+      p: 0.89
+  GSM4430039:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.97
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 15
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.98
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_N2
+      inferred: Jev picked the individual from the listed names
+      p: 0.88
+  GSM4430040:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 1.0
+    genotype:
+      text: oef-1(vr25)
+      level: oef_1_vr25
+      quoted:
+      - 12
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 15
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 13
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B4
+      inferred: Jev judged these libraries made from one preparation
+      p: 0.51
+    donor:
+      id: D_YL585
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM4430041:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 1.0
+    genotype:
+      text: oef-1(vr25)
+      level: oef_1_vr25
+      quoted:
+      - 12
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 15
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 13
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.98
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL585
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM4430042:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: h3k27me3
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: glp-4(bn2)
+      level: glp_4_bn2
+      quoted:
+      - 16
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.92
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.84
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_SS104
+      inferred: Jev picked the individual from the listed names
+      p: 0.91
+  GSM4430043:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: h3k27me3
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: glp-4(bn2)
+      level: glp_4_bn2
+      quoted:
+      - 16
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.93
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.82
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.98
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_SS104
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM4430044:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: h3k36me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: glp-4(bn2)
+      level: glp_4_bn2
+      quoted:
+      - 16
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.9
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.89
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_SS104
+      inferred: Jev picked the individual from the listed names
+      p: 0.93
+  GSM4430045:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: h3k36me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: glp-4(bn2)
+      level: glp_4_bn2
+      quoted:
+      - 16
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.93
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.88
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.98
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_SS104
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM4430046:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: h3k27me3
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp_4_oef_1
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.9
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.81
+    strain:
+      text: YL679
+      quoted:
+      - 21
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL679
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM4430047:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: h3k27me3
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp_4_oef_1
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.92
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.86
+    strain:
+      text: YL679
+      quoted:
+      - 21
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.98
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL679
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM4430048:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: h3k36me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp_4_oef_1
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.91
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.87
+    strain:
+      text: YL679
+      quoted:
+      - 21
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL679
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM4430049:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: h3k36me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp_4_oef_1
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.92
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.84
+    strain:
+      text: YL679
+      quoted:
+      - 21
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.99
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL679
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM4430050:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.98
+    genotype:
+      text: glp-4(bn2)
+      level: glp_4_bn2
+      quoted:
+      - 16
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 15
+      p: 1.0
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.93
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_SS104
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM4430051:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.99
+    genotype:
+      text: glp-4(bn2)
+      level: glp_4_bn2
+      quoted:
+      - 16
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 15
+      p: 1.0
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.95
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.99
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_SS104
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM4430052:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.99
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp_4_oef_1
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 15
+      p: 1.0
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.94
+    strain:
+      text: YL679
+      quoted:
+      - 21
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL679
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM4430053:
+    assay:
+      text: ChIP-Seq
+      level: chip_seq
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.99
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp_4_oef_1
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 15
+      p: 1.0
+    tissue:
+      text: Whole animal
+      quoted:
+      - 17
+      p: 0.96
+    strain:
+      text: YL679
+      quoted:
+      - 21
+      p: 1.0
+    growth_temperature:
+      text: 25˚C
+      inferred: growth protocol for glp-4 strains
+      see:
+      - 19
+      p: 0.99
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL679
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM4430054:
+    assay:
+      text: RNA-Seq
+      level: rna_seq
+      quoted:
+      - 22
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.69
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 23
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.96
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_N2
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM4430055:
+    assay:
+      text: RNA-Seq
+      level: rna_seq
+      quoted:
+      - 22
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.7
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.99
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 23
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.99
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.85
+    biosample:
+      id: B23
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_N2
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM4430056:
+    assay:
+      text: RNA-Seq
+      level: rna_seq
+      quoted:
+      - 22
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.76
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 23
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.98
+    replicate:
+      text: rep 3
+      quoted:
+      - 24
+      p: 1.0
+    biosample:
+      id: B24
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_N2
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM4430057:
+    assay:
+      text: RNA-Seq
+      level: rna_seq
+      quoted:
+      - 22
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.77
+    genotype:
+      text: oef-1(vr25)
+      level: oef_1_vr25
+      quoted:
+      - 12
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 23
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 13
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 9
+      p: 0.95
+    biosample:
+      id: B25
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL585
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4430058:
+    assay:
+      text: RNA-Seq
+      level: rna_seq
+      quoted:
+      - 22
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.78
+    genotype:
+      text: oef-1(vr25)
+      level: oef_1_vr25
+      quoted:
+      - 12
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 23
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 13
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.99
+    replicate:
+      text: rep 2
+      quoted:
+      - 10
+      p: 0.95
+    biosample:
+      id: B26
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL585
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4430059:
+    assay:
+      text: RNA-Seq
+      level: rna_seq
+      quoted:
+      - 22
+      p: 1.0
+    target:
+      text: none
+      level: none
+      quoted:
+      - 14
+      p: 0.74
+    genotype:
+      text: oef-1(vr25)
+      level: oef_1_vr25
+      quoted:
+      - 12
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 23
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 13
+      p: 1.0
+    growth_temperature:
+      text: 20˚C
+      quoted:
+      - 8
+      p: 0.97
+    replicate:
+      text: rep 3
+      quoted:
+      - 24
+      p: 0.91
+    biosample:
+      id: B27
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_YL585
+      inferred: Jev picked the individual from the listed names
+      p: 0.98

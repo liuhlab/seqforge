@@ -1,0 +1,693 @@
+format: 1
+study: GSE302826
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM9111824
+    - GSM9111825
+    - GSM9111826
+    - GSM9111830
+    - GSM9111831
+    - GSM9111832
+    - GSM9111833
+    - GSM9111834
+    - GSM9111835
+    field: Sample_characteristics_ch1
+    quote: 'genotype: ApoE3/3'
+  2:
+    record:
+    - GSM9111824
+    - GSM9111825
+    - GSM9111826
+    - GSM9111827
+    - GSM9111828
+    - GSM9111829
+    field: Sample_characteristics_ch1
+    quote: 'cell line: BIONi037-A'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+  5:
+    record:
+    - GSM9111824
+    - GSM9111825
+    - GSM9111826
+    - GSM9111827
+    - GSM9111828
+    - GSM9111829
+    field: Sample_characteristics_ch1
+    quote: 'cell type: iPSC-derived astrocytes'
+  6:
+    record:
+    - GSM9111827
+    - GSM9111828
+    - GSM9111829
+    - GSM9111836
+    - GSM9111837
+    - GSM9111838
+    - GSM9111839
+    - GSM9111840
+    - GSM9111841
+    field: Sample_characteristics_ch1
+    quote: 'genotype: ApoE4/4'
+  7:
+    record:
+    - GSM9111827
+    - GSM9111828
+    - GSM9111829
+    field: Sample_characteristics_ch1
+    quote: 'cell line: BIONi037-A4'
+  8:
+    record:
+    - GSM9111830
+    - GSM9111831
+    - GSM9111832
+    - GSM9111833
+    - GSM9111834
+    - GSM9111835
+    - GSM9111836
+    - GSM9111837
+    - GSM9111838
+    - GSM9111839
+    - GSM9111840
+    - GSM9111841
+    field: Sample_characteristics_ch1
+    quote: 'cell line: KOLF2.1J'
+  9:
+    record: GSM9111830
+    field: Sample_title
+    quote: KOLF2.1J ApoE3/3 +FBS R1
+  10:
+    record:
+    - GSM9111830
+    - GSM9111831
+    - GSM9111832
+    - GSM9111833
+    - GSM9111834
+    - GSM9111835
+    - GSM9111836
+    - GSM9111837
+    - GSM9111838
+    - GSM9111839
+    - GSM9111840
+    - GSM9111841
+    field: Sample_characteristics_ch1
+    quote: 'cell type: iAstrocytes'
+  11:
+    record: GSM9111833
+    field: Sample_title
+    quote: KOLF2.1J ApoE3/3 -FBS R1
+  12:
+    record:
+    - GSM9111836
+    - GSM9111837
+    - GSM9111838
+    - GSM9111839
+    - GSM9111840
+    - GSM9111841
+    field: Sample_characteristics_ch1
+    quote: 'cell line: KOLF2.1J C156R hom3'
+factors:
+  genotype:
+    levels:
+    - ApoE3/3
+    - ApoE4/4
+    baseline: ApoE3/3
+    ordered: false
+    quoted:
+    - 1
+    p: 0.98
+  cell_line:
+    levels:
+    - BIONi037-A
+    - BIONi037-A4
+    - KOLF2.1J
+    - KOLF2.1J C156R hom3
+    baseline: BIONi037-A
+    ordered: false
+    inferred: Cell lines used
+    see:
+    - 2
+    p: 0.77
+  treatment:
+    levels:
+    - +FBS
+    - -FBS
+    baseline: +FBS
+    ordered: false
+    quoted:
+    - 9
+    p: 0.96
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 4
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: No disease stated; isogenic comparison
+    p: 0.83
+  target:
+    na: No pull-down enrichment
+    p: 1.0
+  control_type:
+    na: No background-control libraries
+    p: 1.0
+  sex:
+    unknown: Sex not stated
+    p: 0.8
+  age:
+    na: Age not stated
+    p: 0.72
+  development_stage:
+    na: Stage not stated
+    p: 0.7
+  tissue:
+    na: Cell culture, no tissue
+    p: 0.8
+  strain:
+    na: Strain not stated
+    p: 0.99
+  dose:
+    na: No dose reported
+    p: 0.71
+  duration:
+    unknown: Duration not stated
+    p: 0.69
+  donor:
+    na: a cell line or culture, no single individual
+    p: 0.98
+samples:
+  GSM9111824:
+    genotype:
+      text: ApoE3/3
+      level: ApoE3/3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: BIONi037-A
+      level: BIONi037-A
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      unknown: the record of this sample does not say its treatment
+      p: 0.74
+    cell_type:
+      text: iPSC-derived astrocytes
+      quoted:
+      - 5
+      p: 0.99
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111825:
+    genotype:
+      text: ApoE3/3
+      level: ApoE3/3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: BIONi037-A
+      level: BIONi037-A
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      unknown: the record of this sample does not say its treatment
+      p: 0.63
+    cell_type:
+      text: iPSC-derived astrocytes
+      quoted:
+      - 5
+      p: 0.99
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111826:
+    genotype:
+      text: ApoE3/3
+      level: ApoE3/3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: BIONi037-A
+      level: BIONi037-A
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      unknown: the record of this sample does not say its treatment
+      p: 0.74
+    cell_type:
+      text: iPSC-derived astrocytes
+      quoted:
+      - 5
+      p: 0.99
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111827:
+    genotype:
+      text: ApoE4/4
+      level: ApoE4/4
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      text: BIONi037-A4
+      level: BIONi037-A4
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      unknown: the record of this sample does not say its treatment
+      p: 0.75
+    cell_type:
+      text: iPSC-derived astrocytes
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111828:
+    genotype:
+      text: ApoE4/4
+      level: ApoE4/4
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      text: BIONi037-A4
+      level: BIONi037-A4
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      unknown: the record of this sample does not say its treatment
+      p: 0.74
+    cell_type:
+      text: iPSC-derived astrocytes
+      quoted:
+      - 5
+      p: 0.99
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111829:
+    genotype:
+      text: ApoE4/4
+      level: ApoE4/4
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      text: BIONi037-A4
+      level: BIONi037-A4
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      unknown: the record of this sample does not say its treatment
+      p: 0.72
+    cell_type:
+      text: iPSC-derived astrocytes
+      quoted:
+      - 5
+      p: 0.99
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111830:
+    genotype:
+      text: ApoE3/3
+      level: ApoE3/3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      term: CVCL_B5P3
+      level: KOLF2.1J
+      quoted:
+      - 8
+      p: 1.0
+    treatment:
+      text: +FBS
+      level: +FBS
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.92
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111831:
+    genotype:
+      text: ApoE3/3
+      level: ApoE3/3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      term: CVCL_B5P3
+      level: KOLF2.1J
+      quoted:
+      - 8
+      p: 1.0
+    treatment:
+      text: +FBS
+      level: +FBS
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.96
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111832:
+    genotype:
+      text: ApoE3/3
+      level: ApoE3/3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      term: CVCL_B5P3
+      level: KOLF2.1J
+      quoted:
+      - 8
+      p: 1.0
+    treatment:
+      text: +FBS
+      level: +FBS
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.96
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111833:
+    genotype:
+      text: ApoE3/3
+      level: ApoE3/3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      term: CVCL_B5P3
+      level: KOLF2.1J
+      quoted:
+      - 8
+      p: 1.0
+    treatment:
+      text: -FBS
+      level: -FBS
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.93
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111834:
+    genotype:
+      text: ApoE3/3
+      level: ApoE3/3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      term: CVCL_B5P3
+      level: KOLF2.1J
+      quoted:
+      - 8
+      p: 1.0
+    treatment:
+      text: -FBS
+      level: -FBS
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.96
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111835:
+    genotype:
+      text: ApoE3/3
+      level: ApoE3/3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      term: CVCL_B5P3
+      level: KOLF2.1J
+      quoted:
+      - 8
+      p: 1.0
+    treatment:
+      text: -FBS
+      level: -FBS
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.96
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111836:
+    genotype:
+      text: ApoE4/4
+      level: ApoE4/4
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J C156R hom3
+      quoted:
+      - 12
+      p: 0.99
+    treatment:
+      text: +FBS
+      level: +FBS
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.97
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111837:
+    genotype:
+      text: ApoE4/4
+      level: ApoE4/4
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J C156R hom3
+      quoted:
+      - 12
+      p: 0.99
+    treatment:
+      text: +FBS
+      level: +FBS
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.98
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111838:
+    genotype:
+      text: ApoE4/4
+      level: ApoE4/4
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J C156R hom3
+      quoted:
+      - 12
+      p: 0.99
+    treatment:
+      text: +FBS
+      level: +FBS
+      quoted:
+      - 9
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.97
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111839:
+    genotype:
+      text: ApoE4/4
+      level: ApoE4/4
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J C156R hom3
+      quoted:
+      - 12
+      p: 0.99
+    treatment:
+      text: -FBS
+      level: -FBS
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.96
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111840:
+    genotype:
+      text: ApoE4/4
+      level: ApoE4/4
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J C156R hom3
+      quoted:
+      - 12
+      p: 0.99
+    treatment:
+      text: -FBS
+      level: -FBS
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.97
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9111841:
+    genotype:
+      text: ApoE4/4
+      level: ApoE4/4
+      quoted:
+      - 6
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J C156R hom3
+      quoted:
+      - 12
+      p: 0.99
+    treatment:
+      text: -FBS
+      level: -FBS
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: iAstrocytes
+      quoted:
+      - 10
+      p: 0.97
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null

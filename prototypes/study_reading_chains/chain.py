@@ -644,7 +644,10 @@ def run_study(gid, chain, meters, read_full=False, pool=None):
     ctl = [g for g in sample_ids if (picks1[g].get("lab_control_type") or (None,))[0]
            not in (None, "na", "unknown")]
     pairs = set()
-    lvl_keys = [k for k in q1 if k.startswith("lvl")]
+    # A pull-down and its control differ in target and control type by design: match on the
+    # other factors only.
+    lvl_keys = [k for k in q1 if k.startswith("lvl") and lists["_factors_kept"][int(k[3:])]["label"]
+                not in ("target", "control_type", "assay")]
     for c in ctl:
         for g in sample_ids:
             if g != c and g not in ctl and all(picks1[g][k][0] == picks1[c][k][0] for k in lvl_keys):
@@ -663,7 +666,9 @@ def run_study(gid, chain, meters, read_full=False, pool=None):
                               "from the same piece of material, such as one chromatin preparation "
                               "that gave a pull-down and its input? Answer no unless a text says or "
                               "clearly implies they share a preparation."}
-    ba = calls.jev("back_0", "Checking quoted passages of one study's records and paper against "
+    import hashlib
+    bkey = hashlib.sha1(json.dumps(back_q, sort_keys=True).encode()).hexdigest()[:10]
+    ba = calls.jev(f"back_{bkey}", "Checking quoted passages of one study's records and paper against "
                    "claims about its samples.\n\n" + study_desc(m)[:40000], back_q) if back_q else {}
     # D. ontology picks, and the "none" probe
     taxid = None

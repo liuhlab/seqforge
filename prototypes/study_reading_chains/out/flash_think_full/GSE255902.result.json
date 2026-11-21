@@ -1,0 +1,3409 @@
+{
+ "study": "GSE255902",
+ "chain": "flash_think",
+ "read_full": true,
+ "n_samples": 22,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "4R",
+    "4R_P301S"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.05,
+   "baseline": "L0",
+   "p_baseline": 0.86,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.87,
+   "p_ordered": 0.22,
+   "writer_baseline": "4R",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "vehicle",
+    "K18"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.04,
+   "baseline": "L0",
+   "p_baseline": 0.96,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.94,
+   "p_ordered": 0.6,
+   "writer_baseline": "vehicle",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "dose",
+   "levels": [
+    "dose_1_5",
+    "dose_3"
+   ],
+   "p_designed": 0.86,
+   "p_designed_neg": 0.27,
+   "baseline": "L0",
+   "p_baseline": 0.74,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.6,
+   "p_ordered": 0.94,
+   "writer_baseline": "dose_1_5",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 0.75,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "na",
+   "p": 0.7,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "na",
+   "p": 0.69,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.66,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.8,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.59,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "factor:dose",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM8082417": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM8082418": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM8082419": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM8082420": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM8082421": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM8082422": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM8082423": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM8082424": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM8082425": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM8082426": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R",
+    "4R"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM8082427": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM8082428": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM8082429": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM8082430": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM8082431": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM8082432": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  },
+  "GSM8082433": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ]
+  },
+  "GSM8082434": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ]
+  },
+  "GSM8082435": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "bulk RNA-seq",
+    null
+   ],
+   "age": [
+    "D43",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B19",
+    null
+   ]
+  },
+  "GSM8082452": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "Vehicle",
+    "vehicle"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "scRNA-seq",
+    null
+   ],
+   "age": [
+    "D39",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B20",
+    null
+   ]
+  },
+  "GSM8082453": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "K18 - 1.5ug",
+    "dose_1_5"
+   ],
+   "assay": [
+    "scRNA-seq",
+    null
+   ],
+   "age": [
+    "D39",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B21",
+    null
+   ]
+  },
+  "GSM8082454": {
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived neurons",
+    null
+   ],
+   "cell_line": [
+    "WTC11",
+    null
+   ],
+   "disease": [
+    "4R tauopathy model",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "4R_P301S",
+    "4R_P301S"
+   ],
+   "treatment": [
+    "K18",
+    "K18"
+   ],
+   "dose": [
+    "K18 - 3ug",
+    "dose_3"
+   ],
+   "assay": [
+    "scRNA-seq",
+    null
+   ],
+   "age": [
+    "D39",
+    null
+   ],
+   "duration": [
+    "35 days",
+    null
+   ],
+   "biosample": [
+    "B22",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "4R",
+    "4R_P301S"
+   ],
+   "baseline": "4R",
+   "ordered": false,
+   "quoted": [
+    15
+   ],
+   "p": 0.98
+  },
+  "treatment": {
+   "levels": [
+    "vehicle",
+    "K18"
+   ],
+   "baseline": "vehicle",
+   "ordered": true,
+   "quoted": [
+    16
+   ],
+   "p": 0.97
+  },
+  "dose": {
+   "levels": [
+    "dose_1_5",
+    "dose_3"
+   ],
+   "baseline": "dose_1_5",
+   "ordered": true,
+   "quoted": [
+    17
+   ],
+   "p": 0.86
+  }
+ },
+ "n_passages": 17,
+ "n_shared": 11,
+ "n_row_claims": 154,
+ "lists_summary": {
+  "factors": 3,
+  "factors_kept": 3,
+  "labels_with_values": 7,
+  "extra_labels": 0,
+  "writer_gaps": [
+   {
+    "kind": "sources_disagree",
+    "note": "P301S genotype written 4R_P301S in bulk samples and 4R-P301S in scRNA samples."
+   },
+   {
+    "kind": "untreated_or_vehicle",
+    "note": "Bulk untreated baseline is Vehicle; scRNA untreated baseline is control."
+   },
+   {
+    "kind": "dose_per_unit",
+    "note": "scRNA dose fields say K18 - 1.5ug/3ug; paper reports μg/ml concentrations."
+   },
+   {
+    "kind": "factor_over_part",
+    "note": "Dose factor only applies to K18-treated samples, not vehicle/control."
+   },
+   {
+    "kind": "term_missing",
+    "note": "GEO cell line field repeats iPSC-derived neurons; WTC11 line name comes from paper."
+   },
+   {
+    "kind": "baseline_as_control",
+    "note": "Vehicle/control are untreated baselines, not input or IgG control libraries."
+   },
+   {
+    "kind": "group_smaller_than_study",
+    "note": "scRNA groups have n=1; bulk groups n=4-5."
+   },
+   {
+    "kind": "other",
+    "note": "Duration is known for bulk K18 (D8-D43); scRNA seeding day not stated."
+   },
+   {
+    "kind": "series_membership",
+    "note": "22 samples span GSE255902 bulk and GSE255904 scRNA."
+   }
+  ],
+  "donor_kind_writer": "cell_line",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM8082417",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM8082427",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "named",
+   "source": "GSE255902",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 95,
+   "backs_p": 0.96
+  },
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM8082417",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM8082422",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "named",
+   "source": "GSE255902",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 41,
+   "backs_p": 0.97
+  },
+  {
+   "key": "dose/L0",
+   "status": "named",
+   "source": "GSM8082453",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.98
+  },
+  {
+   "key": "dose/L1",
+   "status": "named",
+   "source": "GSM8082454",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.98
+  },
+  {
+   "key": "dose/_factor",
+   "status": "named",
+   "source": "pmid:38582079",
+   "field": "RESULTS > Modeling seeding-induced Tau inclusions in 4R-P301S neurons",
+   "exact": true,
+   "quote_len": 172,
+   "backs_p": 0.89
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSE255902",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 82,
+   "backs_p": 0.98
+  },
+  {
+   "key": "assay/v1",
+   "status": "named",
+   "source": "GSE255904",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 79,
+   "backs_p": 0.97
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "source": "GSM8082417",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 8,
+   "backs_p": 0.98
+  },
+  {
+   "key": "age/v1",
+   "status": "named",
+   "source": "GSM8082452",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 8,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_line/v0",
+   "status": "named",
+   "source": "pmid:38582079",
+   "field": "STAR★Methods > EXPERIMENTAL MODEL AND STUDY PARTICIPANT DETAILS > Cell cultures",
+   "exact": true,
+   "quote_len": 85,
+   "backs_p": 0.88
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "GSE255902",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 82,
+   "backs_p": 0.96
+  },
+  {
+   "key": "duration/v0",
+   "status": "named",
+   "source": "pmid:38582079",
+   "field": "STAR★Methods > METHOD DETAILS > Bulk RNA-sequencing",
+   "exact": true,
+   "quote_len": 209,
+   "backs_p": 0.94
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_line",
+   "text": "WTC11",
+   "vocab": "cellosaurus",
+   "candidates": [
+    {
+     "id": "CVCL_VM47",
+     "label": "WTC11 NLS-eGFP",
+     "exact": false
+    },
+    {
+     "id": "CVCL_VM46",
+     "label": "WTC11 HOPX-NLS-eGFP",
+     "exact": false
+    },
+    {
+     "id": "CVCL_E1HU",
+     "label": "WTC11 AAVS1-NEUROG2 SYNJ1-KO",
+     "exact": false
+    },
+    {
+     "id": "CVCL_E4G4",
+     "label": "UCSFi001-A-78",
+     "exact": false
+    },
+    {
+     "id": "CVCL_E6IL",
+     "label": "UCSFi001-A-79",
+     "exact": false
+    },
+    {
+     "id": "CVCL_UD15",
+     "label": "WTC-mEGFP-MYL7-cl3",
+     "exact": false
+    },
+    {
+     "id": "CVCL_Y803",
+     "label": "GM25256",
+     "exact": false
+    },
+    {
+     "id": "CVCL_C7XJ",
+     "label": "Pre-i3Neuron NGN2 iPSC clone 1",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.51
+  },
+  {
+   "label": "cell_type",
+   "text": "iPSC-derived neurons",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "4R tauopathy model",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "K18",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "Vehicle",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.73,
+  "untreated_or_vehicle": 0.99,
+  "several_compounds": 0.08,
+  "route_or_side": 0.06,
+  "dose_per_unit": 0.49,
+  "duration_without_number": 0.07,
+  "time_from_event": 0.52,
+  "pooled_material": 0.23,
+  "held_constant": 0.9,
+  "batch": 0.17,
+  "sequencer": 0.12,
+  "vector": 0.69,
+  "one_control_many_materials": 0.06,
+  "baseline_as_control": 0.15,
+  "single_cell": 0.54,
+  "mixed_assays": 0.16
+ },
+ "donor_kind": [
+  "cell_line",
+  0.97
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.016002168,
+   "seconds": 105.114,
+   "tokens_in": 30756,
+   "tokens_out": 20612
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000347928,
+   "seconds": 0.356,
+   "tokens_in": 8284
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.253,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.293,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.292,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.3,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.24,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.308,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.273,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.311,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.306,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1476e-05,
+   "seconds": 0.265,
+   "tokens_in": 2178
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.441,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.303,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.264,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.231,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.208,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.336,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.368,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.295,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.214,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1728e-05,
+   "seconds": 0.357,
+   "tokens_in": 2184
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.295,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.327,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.285,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.31,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.267,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.223,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.319,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.254,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.244,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.1896e-05,
+   "seconds": 0.261,
+   "tokens_in": 2188
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2148e-05,
+   "seconds": 0.199,
+   "tokens_in": 2194
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2148e-05,
+   "seconds": 0.298,
+   "tokens_in": 2194
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2148e-05,
+   "seconds": 0.331,
+   "tokens_in": 2194
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2148e-05,
+   "seconds": 0.279,
+   "tokens_in": 2194
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2148e-05,
+   "seconds": 0.283,
+   "tokens_in": 2194
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2148e-05,
+   "seconds": 0.287,
+   "tokens_in": 2194
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2148e-05,
+   "seconds": 0.277,
+   "tokens_in": 2194
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.24e-05,
+   "seconds": 0.243,
+   "tokens_in": 2200
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.24e-05,
+   "seconds": 0.268,
+   "tokens_in": 2200
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2148e-05,
+   "seconds": 0.372,
+   "tokens_in": 2194
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2736e-05,
+   "seconds": 0.292,
+   "tokens_in": 2208
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.2736e-05,
+   "seconds": 0.33,
+   "tokens_in": 2208
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.265199999999999e-05,
+   "seconds": 0.346,
+   "tokens_in": 2206
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.265199999999999e-05,
+   "seconds": 0.33,
+   "tokens_in": 2206
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000321426,
+   "seconds": 0.243,
+   "tokens_in": 7653
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 3.7968e-05,
+   "seconds": 0.304,
+   "tokens_in": 904
+  }
+ ],
+ "seconds": 0.32,
+ "ending": "settled",
+ "variant": "flash_think_full"
+}

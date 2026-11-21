@@ -1,0 +1,1506 @@
+{
+ "study": "GSE241718",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 8,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "age",
+   "levels": [
+    "2_months",
+    "24_months"
+   ],
+   "p_designed": 0.88,
+   "p_designed_neg": 0.05,
+   "baseline": "L0",
+   "p_baseline": 0.86,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.93,
+   "p_ordered": 0.76,
+   "writer_baseline": "2_months",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "tissue",
+   "levels": [
+    "SAT",
+    "VAT"
+   ],
+   "p_designed": 0.96,
+   "p_designed_neg": 0.06,
+   "baseline": "no_reference",
+   "p_baseline": 0.93,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.9,
+   "p_ordered": 0.6,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.55,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "na",
+   "p": 0.75,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.83,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.85,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "unknown",
+   "p": 0.41,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "unknown",
+   "p": 0.41,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time",
+   "mark": "quoted",
+   "p": 0.66,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time",
+   "mark": "quoted",
+   "p": 0.68,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time",
+   "mark": "quoted",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time",
+   "mark": "quoted",
+   "p": 0.66,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time",
+   "mark": "quoted",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time",
+   "mark": "quoted",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "factor:age",
+   "mark": "quoted",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "factor:tissue",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM7720368": {
+   "assay": [
+    "single-nucleus RNA-seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "cell_type": [
+    "Adipocytes",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "2 months",
+    "2_months"
+   ],
+   "tissue": [
+    "VAT",
+    "VAT"
+   ],
+   "time": [
+    "2022-04-02",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ]
+  },
+  "GSM7720369": {
+   "assay": [
+    "single-nucleus RNA-seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "cell_type": [
+    "Adipocytes",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "2 months",
+    "2_months"
+   ],
+   "tissue": [
+    "VAT",
+    "VAT"
+   ],
+   "time": [
+    "2022-04-02",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ]
+  },
+  "GSM7734325": {
+   "assay": [
+    "single-nucleus RNA-seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "cell_type": [
+    "Adipocytes",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "2 months",
+    "2_months"
+   ],
+   "tissue": [
+    "SAT",
+    "SAT"
+   ],
+   "time": [
+    "4/2/2022",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D_FGG1_2M",
+    null
+   ]
+  },
+  "GSM7734326": {
+   "assay": [
+    "single-nucleus RNA-seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "cell_type": [
+    "Adipocytes",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "2 months",
+    "2_months"
+   ],
+   "tissue": [
+    "SAT",
+    "SAT"
+   ],
+   "time": [
+    "4/2/2022",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D_FGG3_2M",
+    null
+   ]
+  },
+  "GSM7734327": {
+   "assay": [
+    "single-nucleus RNA-seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "cell_type": [
+    "Adipocytes",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "24 months",
+    "24_months"
+   ],
+   "tissue": [
+    "SAT",
+    "SAT"
+   ],
+   "time": [
+    "4/2/2022",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D_FGG1_24M",
+    null
+   ]
+  },
+  "GSM7734328": {
+   "assay": [
+    "single-nucleus RNA-seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "cell_type": [
+    "Adipocytes",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "24 months",
+    "24_months"
+   ],
+   "tissue": [
+    "SAT",
+    "SAT"
+   ],
+   "time": [
+    "4/2/2022",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D_FGG2_24M",
+    null
+   ]
+  },
+  "GSM7734329": {
+   "assay": [
+    "single-nucleus RNA-seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "cell_type": [
+    "Adipocytes",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "24 months",
+    "24_months"
+   ],
+   "tissue": [
+    "VAT",
+    "VAT"
+   ],
+   "time": [
+    "4/2/2022",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D_XX1_24M",
+    null
+   ]
+  },
+  "GSM7734330": {
+   "assay": [
+    "single-nucleus RNA-seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "cell_type": [
+    "Adipocytes",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "24 months",
+    "24_months"
+   ],
+   "tissue": [
+    "VAT",
+    "VAT"
+   ],
+   "time": [
+    "4/2/2022",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D_XX2_24M",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "age": {
+   "levels": [
+    "2_months",
+    "24_months"
+   ],
+   "baseline": "2_months",
+   "ordered": true,
+   "quoted": [
+    12
+   ],
+   "p": 0.88
+  },
+  "tissue": {
+   "levels": [
+    "SAT",
+    "VAT"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "quoted": [
+    13
+   ],
+   "p": 0.96
+  }
+ },
+ "n_passages": 13,
+ "n_shared": 14,
+ "n_row_claims": 40,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 5,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "sources_disagree",
+    "note": "Overall design says 26 months; every aged sample record says 24 months"
+   },
+   {
+    "kind": "sequencer",
+    "note": "Description says 10x Genomics; protocol says GEXSCOPE kit and HiSeq X10; two records list NovaSeq 6000"
+   },
+   {
+    "kind": "series_membership",
+    "note": "Eight samples split across two series, GSE241718 and GSE241275, with identical design"
+   },
+   {
+    "kind": "other",
+    "note": "Sample time field written as 2022-04-02 and 4/2/2022"
+   },
+   {
+    "kind": "held_constant",
+    "note": "All samples labeled Adipocytes though whole adipose tissue was sequenced"
+   }
+  ],
+  "donor_kind_writer": "one_each",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM7734325",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM7734327",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/_factor",
+   "status": "named",
+   "source": "GSE241718",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 101,
+   "backs_p": 0.96
+  },
+  {
+   "key": "tissue/L0",
+   "status": "named",
+   "source": "GSM7734325",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/L1",
+   "status": "named",
+   "source": "GSM7734329",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/_factor",
+   "status": "named",
+   "source": "GSE241718",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 77,
+   "backs_p": 0.89
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSE241718",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 79,
+   "backs_p": 0.98
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "GSE241718",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "GSM7734325",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSE241718",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.97
+  },
+  {
+   "key": "time/v0",
+   "status": "named",
+   "source": "GSM7720368",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time/v1",
+   "status": "named",
+   "source": "GSM7734325",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "Adipocytes",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": [
+    {
+     "id": "CL:0020083",
+     "label": "bone marrow adipocyte",
+     "exact": false
+    },
+    {
+     "id": "CL:1000309",
+     "label": "epicardial adipocyte",
+     "exact": false
+    },
+    {
+     "id": "CL:1000311",
+     "label": "adipocyte of epicardial fat of left ventricle",
+     "exact": false
+    },
+    {
+     "id": "CL:0002617",
+     "label": "adipocyte of breast",
+     "exact": false
+    },
+    {
+     "id": "CL:0001070",
+     "label": "beige adipocyte",
+     "exact": false
+    },
+    {
+     "id": "CL:0000136",
+     "label": "adipocyte",
+     "exact": false
+    },
+    {
+     "id": "CL:0002615",
+     "label": "adipocyte of omentum tissue",
+     "exact": false
+    },
+    {
+     "id": "CL:0002616",
+     "label": "perirenal adipocyte",
+     "exact": false
+    }
+   ],
+   "pick": "CL:0000136",
+   "p": 0.96,
+   "probe_pick": "none",
+   "probe_p": 0.83
+  },
+  {
+   "label": "tissue",
+   "text": "SAT",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0036167",
+     "label": "Sattler's layer",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0013399",
+     "label": "blood vessel layer of choroid",
+     "exact": false
+    },
+    {
+     "id": "UBERON:8440028",
+     "label": "Perihypoglossal nuclei",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:39418",
+     "label": "straight-chain saturated fatty acid",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:26607",
+     "label": "saturated fatty acid",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:58954",
+     "label": "straight-chain saturated fatty acid anion",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:58953",
+     "label": "saturated fatty acid anion",
+     "exact": false
+    },
+    {
+     "id": "CL:0000514",
+     "label": "smooth muscle myoblast",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.98
+  },
+  {
+   "label": "tissue",
+   "text": "VAT",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0003719",
+     "label": "Pacinian corpuscle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004913",
+     "label": "hepatopancreatic ampulla",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004915",
+     "label": "sphincter of hepatopancreatic ampulla",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0012271",
+     "label": "major duodenal papilla",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.99
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.94,
+  "untreated_or_vehicle": 0.41,
+  "several_compounds": 0.09,
+  "route_or_side": 0.1,
+  "dose_per_unit": 0.11,
+  "duration_without_number": 0.08,
+  "time_from_event": 0.49,
+  "pooled_material": 0.6,
+  "held_constant": 0.92,
+  "batch": 0.45,
+  "sequencer": 0.82,
+  "vector": 0.03,
+  "one_control_many_materials": 0.06,
+  "baseline_as_control": 0.1,
+  "single_cell": 0.93,
+  "mixed_assays": 0.04
+ },
+ "donor_kind": [
+  "cannot_tell",
+  0.41
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.003843006,
+   "seconds": 26.617,
+   "tokens_in": 4245,
+   "tokens_out": 5626
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000236964,
+   "seconds": 0.36,
+   "tokens_in": 5642
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8452e-05,
+   "seconds": 0.259,
+   "tokens_in": 2106
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8452e-05,
+   "seconds": 0.251,
+   "tokens_in": 2106
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8242e-05,
+   "seconds": 0.263,
+   "tokens_in": 2101
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8452e-05,
+   "seconds": 0.295,
+   "tokens_in": 2106
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8452e-05,
+   "seconds": 0.238,
+   "tokens_in": 2106
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8242e-05,
+   "seconds": 0.393,
+   "tokens_in": 2101
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8326e-05,
+   "seconds": 0.348,
+   "tokens_in": 2103
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8242e-05,
+   "seconds": 0.343,
+   "tokens_in": 2101
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8326e-05,
+   "seconds": 0.378,
+   "tokens_in": 2103
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8326e-05,
+   "seconds": 0.292,
+   "tokens_in": 2103
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8326e-05,
+   "seconds": 0.343,
+   "tokens_in": 2103
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8242e-05,
+   "seconds": 0.34,
+   "tokens_in": 2101
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8284e-05,
+   "seconds": 0.337,
+   "tokens_in": 2102
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8284e-05,
+   "seconds": 0.228,
+   "tokens_in": 2102
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8284e-05,
+   "seconds": 0.305,
+   "tokens_in": 2102
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.8284e-05,
+   "seconds": 0.321,
+   "tokens_in": 2102
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000193284,
+   "seconds": 0.169,
+   "tokens_in": 4602
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 4.8342e-05,
+   "seconds": 0.325,
+   "tokens_in": 1151
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 3.0449999999999998e-05,
+   "seconds": 0.214,
+   "tokens_in": 725
+  }
+ ],
+ "seconds": 0.35,
+ "ending": "settled",
+ "variant": "flash_think"
+}

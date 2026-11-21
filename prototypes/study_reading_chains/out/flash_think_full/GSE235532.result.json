@@ -1,0 +1,3717 @@
+{
+ "study": "GSE235532",
+ "chain": "flash_think",
+ "read_full": true,
+ "n_samples": 24,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "age",
+   "levels": [
+    "3_day",
+    "40_day"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.04,
+   "baseline": "L0",
+   "p_baseline": 0.73,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.81,
+   "p_ordered": 0.87,
+   "writer_baseline": "3_day",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "genotype",
+   "levels": [
+    "w1118",
+    "LKRSDHMB01942"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.04,
+   "baseline": "L0",
+   "p_baseline": 0.96,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.99,
+   "p_ordered": 0.61,
+   "writer_baseline": "w1118",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "target",
+   "levels": [
+    "H3K27me3",
+    "H3R17me2"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.23,
+   "baseline": "no_reference",
+   "p_baseline": 0.95,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.92,
+   "p_ordered": 0.93,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.85,
+   "shared": true
+  },
+  {
+   "label": "collection_time",
+   "mark": "quoted",
+   "p": 0.85,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.96,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.8,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.9,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.84,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.8,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.77,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.76,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.75,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:target",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM7504787": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM7504788": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM7504789": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM7504790": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM7504791": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM7504792": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM7504793": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM7504794": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM7504795": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "H3K27me3",
+    "H3K27me3"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM7504796": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "H3K27me3",
+    "H3K27me3"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM7504797": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "H3K27me3",
+    "H3K27me3"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM7504798": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "H3K27me3",
+    "H3K27me3"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM7504799": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "H3K27me3",
+    "H3K27me3"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM7504800": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "H3K27me3",
+    "H3K27me3"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM7504801": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "H3K27me3",
+    "H3K27me3"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM7504802": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "H3K27me3",
+    "H3K27me3"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  },
+  "GSM7504803": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "H3R17me2",
+    "H3R17me2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ]
+  },
+  "GSM7504804": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "H3R17me2",
+    "H3R17me2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ]
+  },
+  "GSM7504805": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "H3R17me2",
+    "H3R17me2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B19",
+    null
+   ]
+  },
+  "GSM7504806": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "3 day",
+    "3_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "H3R17me2",
+    "H3R17me2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B20",
+    null
+   ]
+  },
+  "GSM7504807": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "H3R17me2",
+    "H3R17me2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B21",
+    null
+   ]
+  },
+  "GSM7504808": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "LKRSDHMB01942 mutant",
+    "LKRSDHMB01942"
+   ],
+   "target": [
+    "H3R17me2",
+    "H3R17me2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B22",
+    null
+   ]
+  },
+  "GSM7504809": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "H3R17me2",
+    "H3R17me2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B23",
+    null
+   ]
+  },
+  "GSM7504810": {
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "species": [
+    "Drosophila melanogaster",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "head",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "w1118",
+    null
+   ],
+   "collection_time": [
+    "ZT8",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "40 day",
+    "40_day"
+   ],
+   "genotype": [
+    "w1118",
+    "w1118"
+   ],
+   "target": [
+    "H3R17me2",
+    "H3R17me2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B24",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "age": {
+   "levels": [
+    "3_day",
+    "40_day"
+   ],
+   "baseline": "3_day",
+   "ordered": true,
+   "quoted": [
+    15
+   ],
+   "p": 0.99
+  },
+  "genotype": {
+   "levels": [
+    "w1118",
+    "LKRSDHMB01942"
+   ],
+   "baseline": "w1118",
+   "ordered": true,
+   "quoted": [
+    15
+   ],
+   "p": 0.98
+  },
+  "target": {
+   "levels": [
+    "H3K27me3",
+    "H3R17me2"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "quoted": [
+    16
+   ],
+   "p": 0.98
+  }
+ },
+ "n_passages": 16,
+ "n_shared": 14,
+ "n_row_claims": 120,
+ "lists_summary": {
+  "factors": 3,
+  "factors_kept": 3,
+  "labels_with_values": 8,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "series_membership",
+    "note": "Paper reports RNA-seq and other assays; GSE235532 has only 24 ChIP-seq samples."
+   },
+   {
+    "kind": "pooled_material",
+    "note": "Each ChIP-seq sample pools 25 fly heads, not individual donors."
+   },
+   {
+    "kind": "factor_over_part",
+    "note": "Target factor applies to pull-down libraries; input samples are background controls."
+   },
+   {
+    "kind": "one_control_many_materials",
+    "note": "One input control per condition/replicate may serve both histone-mark ChIPs."
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM7504787",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM7504791",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/_factor",
+   "status": "named",
+   "source": "GSE235532",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 123,
+   "backs_p": 0.96
+  },
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM7504789",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM7504787",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 30,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "named",
+   "source": "GSE235532",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 123,
+   "backs_p": 0.96
+  },
+  {
+   "key": "target/L0",
+   "status": "named",
+   "source": "GSM7504795",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "target/L1",
+   "status": "named",
+   "source": "GSM7504803",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "target/_factor",
+   "status": "named",
+   "source": "GSE235532",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.88
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 8,
+   "backs_p": 0.99
+  },
+  {
+   "key": "control_type/v0",
+   "status": "named",
+   "source": "GSM7504787",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.97
+  },
+  {
+   "key": "control_type/v1",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_growth_protocol_ch1",
+   "exact": true,
+   "quote_len": 62,
+   "backs_p": 0.97
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "pmid:38637528",
+   "field": "Results > The expression of LKRSDH in both neurons and glial cells is necessary for maintaining circadian rhythm in aged flies",
+   "exact": true,
+   "quote_len": 68,
+   "backs_p": 0.79
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM7504787",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "pmid:38637528",
+   "field": "Methods > Fly stocks",
+   "exact": true,
+   "quote_len": 76,
+   "backs_p": 0.61
+  },
+  {
+   "key": "collection_time/v0",
+   "status": "named",
+   "source": "pmid:38637528",
+   "field": "Methods > RNA-seq, ChIP seq and data analysis",
+   "exact": true,
+   "quote_len": 150,
+   "backs_p": 0.97
+  }
+ ],
+ "pairs": [
+  {
+   "a": "GSM7504787",
+   "b": "GSM7504795",
+   "p": 0.4
+  },
+  {
+   "a": "GSM7504787",
+   "b": "GSM7504796",
+   "p": 0.29
+  },
+  {
+   "a": "GSM7504787",
+   "b": "GSM7504803",
+   "p": 0.46
+  },
+  {
+   "a": "GSM7504787",
+   "b": "GSM7504804",
+   "p": 0.25
+  },
+  {
+   "a": "GSM7504788",
+   "b": "GSM7504795",
+   "p": 0.29
+  },
+  {
+   "a": "GSM7504788",
+   "b": "GSM7504796",
+   "p": 0.32
+  },
+  {
+   "a": "GSM7504788",
+   "b": "GSM7504803",
+   "p": 0.28
+  },
+  {
+   "a": "GSM7504788",
+   "b": "GSM7504804",
+   "p": 0.34
+  },
+  {
+   "a": "GSM7504789",
+   "b": "GSM7504797",
+   "p": 0.28
+  },
+  {
+   "a": "GSM7504789",
+   "b": "GSM7504798",
+   "p": 0.14
+  },
+  {
+   "a": "GSM7504789",
+   "b": "GSM7504805",
+   "p": 0.3
+  },
+  {
+   "a": "GSM7504789",
+   "b": "GSM7504806",
+   "p": 0.14
+  },
+  {
+   "a": "GSM7504790",
+   "b": "GSM7504797",
+   "p": 0.19
+  },
+  {
+   "a": "GSM7504790",
+   "b": "GSM7504798",
+   "p": 0.3
+  },
+  {
+   "a": "GSM7504790",
+   "b": "GSM7504805",
+   "p": 0.18
+  },
+  {
+   "a": "GSM7504790",
+   "b": "GSM7504806",
+   "p": 0.28
+  },
+  {
+   "a": "GSM7504791",
+   "b": "GSM7504799",
+   "p": 0.47
+  },
+  {
+   "a": "GSM7504791",
+   "b": "GSM7504800",
+   "p": 0.18
+  },
+  {
+   "a": "GSM7504791",
+   "b": "GSM7504807",
+   "p": 0.42
+  },
+  {
+   "a": "GSM7504791",
+   "b": "GSM7504808",
+   "p": 0.22
+  },
+  {
+   "a": "GSM7504792",
+   "b": "GSM7504799",
+   "p": 0.25
+  },
+  {
+   "a": "GSM7504792",
+   "b": "GSM7504800",
+   "p": 0.34
+  },
+  {
+   "a": "GSM7504792",
+   "b": "GSM7504807",
+   "p": 0.25
+  },
+  {
+   "a": "GSM7504792",
+   "b": "GSM7504808",
+   "p": 0.36
+  },
+  {
+   "a": "GSM7504793",
+   "b": "GSM7504801",
+   "p": 0.3
+  },
+  {
+   "a": "GSM7504793",
+   "b": "GSM7504802",
+   "p": 0.11
+  },
+  {
+   "a": "GSM7504793",
+   "b": "GSM7504809",
+   "p": 0.27
+  },
+  {
+   "a": "GSM7504793",
+   "b": "GSM7504810",
+   "p": 0.15
+  },
+  {
+   "a": "GSM7504794",
+   "b": "GSM7504801",
+   "p": 0.17
+  },
+  {
+   "a": "GSM7504794",
+   "b": "GSM7504802",
+   "p": 0.3
+  },
+  {
+   "a": "GSM7504794",
+   "b": "GSM7504809",
+   "p": 0.19
+  },
+  {
+   "a": "GSM7504794",
+   "b": "GSM7504810",
+   "p": 0.25
+  },
+  {
+   "a": "GSM7504795",
+   "b": "GSM7504803",
+   "p": 0.24
+  },
+  {
+   "a": "GSM7504796",
+   "b": "GSM7504804",
+   "p": 0.22
+  },
+  {
+   "a": "GSM7504797",
+   "b": "GSM7504805",
+   "p": 0.16
+  },
+  {
+   "a": "GSM7504798",
+   "b": "GSM7504806",
+   "p": 0.14
+  },
+  {
+   "a": "GSM7504799",
+   "b": "GSM7504807",
+   "p": 0.21
+  },
+  {
+   "a": "GSM7504800",
+   "b": "GSM7504808",
+   "p": 0.18
+  },
+  {
+   "a": "GSM7504801",
+   "b": "GSM7504809",
+   "p": 0.15
+  },
+  {
+   "a": "GSM7504802",
+   "b": "GSM7504810",
+   "p": 0.14
+  }
+ ],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "adult",
+   "vocab": [
+    "fbdv"
+   ],
+   "candidates": [
+    {
+     "id": "FBdv:00005370",
+     "label": "adult stage A1",
+     "exact": false
+    },
+    {
+     "id": "FBdv:00006012",
+     "label": "adult stage A3",
+     "exact": false
+    },
+    {
+     "id": "FBdv:00005371",
+     "label": "adult stage A2",
+     "exact": false
+    },
+    {
+     "id": "FBdv:00006011",
+     "label": "pharate adult stage",
+     "exact": false
+    },
+    {
+     "id": "FBdv:00007025",
+     "label": "immature adult stage",
+     "exact": false
+    },
+    {
+     "id": "FBdv:00005361",
+     "label": "pharate adult stage P12",
+     "exact": false
+    },
+    {
+     "id": "FBdv:00005366",
+     "label": "pharate adult stage P15",
+     "exact": false
+    },
+    {
+     "id": "FBdv:00007014",
+     "label": "adult age in days",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.46
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "head",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0000033",
+     "label": "head",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0003566",
+     "label": "head connective tissue",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0002200",
+     "label": "vasculature of head",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003457",
+     "label": "head bone",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0006904",
+     "label": "head mesenchyme from mesoderm",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0002376",
+     "label": "cranial muscle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0006767",
+     "label": "head of femur",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0001084",
+     "label": "skin of head",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0000033",
+   "p": 0.97,
+   "probe_pick": "none",
+   "probe_p": 0.86
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.15,
+  "untreated_or_vehicle": 0.57,
+  "several_compounds": 0.35,
+  "route_or_side": 0.15,
+  "dose_per_unit": 0.1,
+  "duration_without_number": 0.12,
+  "time_from_event": 0.5,
+  "pooled_material": 0.95,
+  "held_constant": 0.96,
+  "batch": 0.14,
+  "sequencer": 0.03,
+  "vector": 0.14,
+  "one_control_many_materials": 0.33,
+  "baseline_as_control": 0.03,
+  "single_cell": 0.01,
+  "mixed_assays": 0.24
+ },
+ "donor_kind": [
+  "pool",
+  0.98
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.015087449999999999,
+   "seconds": 95.322,
+   "tokens_in": 25419,
+   "tokens_out": 18791
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000276822,
+   "seconds": 0.35,
+   "tokens_in": 6591
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108108,
+   "seconds": 0.371,
+   "tokens_in": 2574
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108108,
+   "seconds": 0.371,
+   "tokens_in": 2574
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107814,
+   "seconds": 0.372,
+   "tokens_in": 2567
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107814,
+   "seconds": 0.399,
+   "tokens_in": 2567
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108108,
+   "seconds": 0.4,
+   "tokens_in": 2574
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108108,
+   "seconds": 0.373,
+   "tokens_in": 2574
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107814,
+   "seconds": 0.365,
+   "tokens_in": 2567
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107814,
+   "seconds": 0.346,
+   "tokens_in": 2567
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108234,
+   "seconds": 0.339,
+   "tokens_in": 2577
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108234,
+   "seconds": 0.321,
+   "tokens_in": 2577
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108234,
+   "seconds": 0.318,
+   "tokens_in": 2577
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108234,
+   "seconds": 0.315,
+   "tokens_in": 2577
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010794,
+   "seconds": 0.314,
+   "tokens_in": 2570
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010794,
+   "seconds": 0.289,
+   "tokens_in": 2570
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108654,
+   "seconds": 0.268,
+   "tokens_in": 2587
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010794,
+   "seconds": 0.314,
+   "tokens_in": 2570
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108654,
+   "seconds": 0.263,
+   "tokens_in": 2587
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010794,
+   "seconds": 0.336,
+   "tokens_in": 2570
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108654,
+   "seconds": 0.294,
+   "tokens_in": 2587
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010836,
+   "seconds": 0.268,
+   "tokens_in": 2580
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010836,
+   "seconds": 0.264,
+   "tokens_in": 2580
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108654,
+   "seconds": 0.264,
+   "tokens_in": 2587
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010836,
+   "seconds": 0.354,
+   "tokens_in": 2580
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010836,
+   "seconds": 0.262,
+   "tokens_in": 2580
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010878,
+   "seconds": 0.264,
+   "tokens_in": 2590
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010878,
+   "seconds": 0.26,
+   "tokens_in": 2590
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010878,
+   "seconds": 0.27,
+   "tokens_in": 2590
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010848599999999999,
+   "seconds": 0.232,
+   "tokens_in": 2583
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010878,
+   "seconds": 0.26,
+   "tokens_in": 2590
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010848599999999999,
+   "seconds": 0.285,
+   "tokens_in": 2583
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010848599999999999,
+   "seconds": 0.331,
+   "tokens_in": 2583
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108654,
+   "seconds": 0.298,
+   "tokens_in": 2587
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108654,
+   "seconds": 0.297,
+   "tokens_in": 2587
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108654,
+   "seconds": 0.26,
+   "tokens_in": 2587
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010848599999999999,
+   "seconds": 0.278,
+   "tokens_in": 2583
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108654,
+   "seconds": 0.363,
+   "tokens_in": 2587
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010836,
+   "seconds": 0.243,
+   "tokens_in": 2580
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010836,
+   "seconds": 0.26,
+   "tokens_in": 2580
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010836,
+   "seconds": 0.239,
+   "tokens_in": 2580
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010836,
+   "seconds": 0.256,
+   "tokens_in": 2580
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010878,
+   "seconds": 0.256,
+   "tokens_in": 2590
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010878,
+   "seconds": 0.256,
+   "tokens_in": 2590
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010878,
+   "seconds": 0.222,
+   "tokens_in": 2590
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010878,
+   "seconds": 0.26,
+   "tokens_in": 2590
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010848599999999999,
+   "seconds": 0.264,
+   "tokens_in": 2583
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010848599999999999,
+   "seconds": 0.227,
+   "tokens_in": 2583
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010848599999999999,
+   "seconds": 0.253,
+   "tokens_in": 2583
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010848599999999999,
+   "seconds": 0.353,
+   "tokens_in": 2583
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000414834,
+   "seconds": 0.383,
+   "tokens_in": 9877
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 4.7964e-05,
+   "seconds": 0.275,
+   "tokens_in": 1142
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 3.6414e-05,
+   "seconds": 0.247,
+   "tokens_in": 867
+  }
+ ],
+ "seconds": 0.44,
+ "ending": "settled",
+ "variant": "flash_think_full"
+}

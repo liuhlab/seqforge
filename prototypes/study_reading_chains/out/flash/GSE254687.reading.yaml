@@ -1,0 +1,1307 @@
+format: 1
+study: GSE254687
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM8048782
+    - GSM8048783
+    - GSM8048784
+    - GSM8048785
+    - GSM8048786
+    - GSM8048787
+    - GSM8048788
+    - GSM8048789
+    - GSM8048790
+    - GSM8048791
+    field: Sample_characteristics_ch1
+    quote: 'genotype: KO'
+  2:
+    record:
+    - GSM8048782
+    - GSM8048783
+    - GSM8048784
+    - GSM8048785
+    - GSM8048786
+    - GSM8048792
+    - GSM8048793
+    - GSM8048794
+    - GSM8048795
+    - GSM8048796
+    - GSM8085924
+    - GSM8085925
+    field: Sample_characteristics_ch1
+    quote: 'treatment: LPS'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record:
+    - GSM8048782
+    - GSM8048783
+    - GSM8048784
+    - GSM8048785
+    - GSM8048786
+    - GSM8048787
+    - GSM8048788
+    - GSM8048789
+    - GSM8048790
+    - GSM8048791
+    - GSM8048792
+    - GSM8048793
+    - GSM8048794
+    - GSM8048795
+    - GSM8048796
+    - GSM8048797
+    - GSM8048798
+    - GSM8048799
+    - GSM8048800
+    field: Sample_treatment_protocol_ch1
+    quote: Male 3-4 months old DJ-1 KO and WT littermates were treated with 4ug/g body weight of LPS
+  6:
+    record:
+    - GSM8048782
+    - GSM8048783
+    - GSM8048784
+    - GSM8048785
+    - GSM8048786
+    - GSM8048787
+    - GSM8048788
+    - GSM8048789
+    - GSM8048790
+    - GSM8048791
+    - GSM8048792
+    - GSM8048793
+    - GSM8048794
+    - GSM8048795
+    - GSM8048796
+    - GSM8048797
+    - GSM8048798
+    - GSM8048799
+    - GSM8048800
+    field: Sample_treatment_protocol_ch1
+    quote: Male 3-4 months old DJ-1 KO and WT littermates
+  7:
+    record:
+    - GSM8048782
+    - GSM8048783
+    - GSM8048784
+    - GSM8048785
+    - GSM8048786
+    - GSM8048787
+    - GSM8048788
+    - GSM8048789
+    - GSM8048790
+    - GSM8048791
+    - GSM8048792
+    - GSM8048793
+    - GSM8048794
+    - GSM8048795
+    - GSM8048796
+    - GSM8048797
+    - GSM8048798
+    - GSM8048799
+    - GSM8048800
+    field: Sample_characteristics_ch1
+    quote: 'tissue: CD11b enrichment of cells from whole brain'
+  8:
+    record:
+    - GSM8048782
+    - GSM8048783
+    - GSM8048784
+    - GSM8048785
+    - GSM8048786
+    - GSM8048787
+    - GSM8048788
+    - GSM8048789
+    - GSM8048790
+    - GSM8048791
+    - GSM8048792
+    - GSM8048793
+    - GSM8048794
+    - GSM8048795
+    - GSM8048796
+    - GSM8048797
+    - GSM8048798
+    - GSM8048799
+    - GSM8048800
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Primary Microglia'
+  9:
+    record:
+    - GSM8048782
+    - GSM8048783
+    - GSM8048784
+    - GSM8048785
+    - GSM8048786
+    - GSM8048787
+    - GSM8048788
+    - GSM8048789
+    - GSM8048790
+    - GSM8048791
+    - GSM8048792
+    - GSM8048793
+    - GSM8048794
+    - GSM8048795
+    - GSM8048796
+    - GSM8048797
+    - GSM8048798
+    - GSM8048799
+    - GSM8048800
+    field: Sample_treatment_protocol_ch1
+    quote: treated with 4ug/g body weight of LPS
+  10:
+    record:
+    - GSM8048782
+    - GSM8048783
+    - GSM8048784
+    - GSM8048785
+    - GSM8048786
+    - GSM8048787
+    - GSM8048788
+    - GSM8048789
+    - GSM8048790
+    - GSM8048791
+    - GSM8048792
+    - GSM8048793
+    - GSM8048794
+    - GSM8048795
+    - GSM8048796
+    - GSM8048797
+    - GSM8048798
+    - GSM8048799
+    - GSM8048800
+    field: Sample_treatment_protocol_ch1
+    quote: or saline vehicle for 6h before anesthesia
+  11:
+    record: GSE256105
+    field: Series_overall_design
+    quote: 'One condition: LPS 24h in PARK7/DJ-1 KO'
+  12:
+    record:
+    - GSM8048787
+    - GSM8048788
+    - GSM8048789
+    - GSM8048790
+    - GSM8048791
+    - GSM8048797
+    - GSM8048798
+    - GSM8048799
+    - GSM8048800
+    field: Sample_characteristics_ch1
+    quote: 'treatment: PBS'
+  13:
+    record:
+    - GSM8048792
+    - GSM8048793
+    - GSM8048794
+    - GSM8048795
+    - GSM8048796
+    - GSM8048797
+    - GSM8048798
+    - GSM8048799
+    - GSM8048800
+    field: Sample_characteristics_ch1
+    quote: 'genotype: WT'
+  14:
+    record:
+    - GSM8085924
+    - GSM8085925
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Brain'
+  15:
+    record:
+    - GSM8085924
+    - GSM8085925
+    field: Sample_characteristics_ch1
+    quote: 'cell type: microglia'
+factors:
+  genotype:
+    levels:
+    - KO
+    - WT
+    baseline: WT
+    ordered: false
+    inferred: PARK7/DJ-1 knock-out versus wildtype littermates compared
+    p: 0.98
+  treatment:
+    levels:
+    - LPS
+    - PBS
+    baseline: PBS
+    ordered: false
+    inferred: LPS i.p. versus saline vehicle
+    p: 0.97
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  sex:
+    text: Male 3-4 months old DJ-1 KO and WT littermates
+    quoted:
+    - 5
+    p: 0.51
+  age:
+    text: 3-4 months old
+    value:
+    - 3
+    - 4
+    unit: month
+    quoted:
+    - 6
+    p: 0.93
+  development_stage:
+    text: 3-4 months old
+    quoted:
+    - 6
+    p: 0.98
+  target:
+    na: RNA-Seq with no pull-down
+    p: 1.0
+  control_type:
+    na: no input or IgG control libraries
+    p: 1.0
+  cell_line:
+    na: primary cells, not cultured lines
+    p: 1.0
+  disease:
+    unknown: no disease term stated in records
+    p: 0.55
+  strain:
+    unknown: mouse strain not named in read text
+    p: 1.0
+samples:
+  GSM8048782:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.89
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.96
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.94
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.64
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048783:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.9
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.96
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.98
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.68
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048784:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.89
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.96
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.9
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.69
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048785:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.84
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.96
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.93
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.68
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048786:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.89
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.97
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.97
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.66
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048787:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: PBS
+      level: PBS
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.87
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.96
+    dose:
+      na: no treatment
+      p: 0.64
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.49
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.41
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048788:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: PBS
+      level: PBS
+      quoted:
+      - 12
+      p: 0.99
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.91
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.56
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.56
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.39
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048789:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: PBS
+      level: PBS
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.89
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.54
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.47
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.38
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048790:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: PBS
+      level: PBS
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.86
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.55
+    duration:
+      na: no treatment
+      p: 0.48
+    hours_after_lps_at_harvest:
+      na: it does not apply to this sample
+      p: 0.36
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048791:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: PBS
+      level: PBS
+      quoted:
+      - 12
+      p: 0.99
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.89
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.5
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.5
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.37
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048792:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.9
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.98
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.95
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.63
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048793:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.88
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.97
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.98
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.58
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048794:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.92
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.98
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.93
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.59
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048795:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.88
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.97
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.92
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.64
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048796:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.9
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.98
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 1.0
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.96
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.64
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048797:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: PBS
+      level: PBS
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.9
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.53
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.56
+    hours_after_lps_at_harvest:
+      na: it does not apply to this sample
+      p: 0.4
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D16
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048798:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: PBS
+      level: PBS
+      quoted:
+      - 12
+      p: 0.99
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.86
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.5
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.64
+    hours_after_lps_at_harvest:
+      na: it does not apply to this sample
+      p: 0.44
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D17
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048799:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: PBS
+      level: PBS
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.87
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.42
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.53
+    hours_after_lps_at_harvest:
+      na: it does not apply to this sample
+      p: 0.42
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D18
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8048800:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: PBS
+      level: PBS
+      quoted:
+      - 12
+      p: 0.99
+    tissue:
+      text: CD11b enrichment of cells from whole brain
+      quoted:
+      - 7
+      p: 0.86
+    cell_type:
+      text: Primary Microglia
+      quoted:
+      - 8
+      p: 0.97
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 0.41
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.53
+    hours_after_lps_at_harvest:
+      na: it does not apply to this sample
+      p: 0.37
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D19
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8085924:
+    genotype:
+      text: KO
+      level: KO
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: Brain
+      term: UBERON:0000955
+      quoted:
+      - 14
+      p: 0.9
+    cell_type:
+      text: microglia
+      term: CL:0000129
+      quoted:
+      - 15
+      p: 0.92
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 0.97
+    duration:
+      text: for 6h
+      value: 6
+      unit: hour
+      quoted:
+      - 10
+      p: 0.58
+    hours_after_lps_at_harvest:
+      text: LPS 24h
+      quoted:
+      - 11
+      p: 0.78
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D20
+      inferred: each sample is from its own individual
+      p: 0.6
+  GSM8085925:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: LPS
+      term: CHEBI:16412
+      level: LPS
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: Brain
+      term: UBERON:0000955
+      quoted:
+      - 14
+      p: 0.92
+    cell_type:
+      text: microglia
+      term: CL:0000129
+      quoted:
+      - 15
+      p: 0.94
+    dose:
+      text: 4ug/g body weight
+      value: 4
+      unit: ug/g
+      quoted:
+      - 9
+      p: 0.93
+    duration:
+      unknown: what was read does not say its duration
+      p: 0.53
+    hours_after_lps_at_harvest:
+      unknown: what was read does not say its hours after lps at harvest
+      p: 0.57
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D21
+      inferred: each sample is from its own individual
+      p: 0.6

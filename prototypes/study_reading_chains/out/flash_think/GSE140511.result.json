@@ -1,0 +1,3401 @@
+{
+ "study": "GSE140511",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 20,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "age",
+   "levels": [
+    "15_months",
+    "7_months"
+   ],
+   "p_designed": 0.88,
+   "p_designed_neg": 0.5,
+   "baseline": "no_reference",
+   "p_baseline": 0.45,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.41,
+   "p_ordered": 0.74,
+   "writer_baseline": null,
+   "writer_ordered": true,
+   "designed_disagree": true,
+   "baseline_disagree": true,
+   "kept": true
+  },
+  {
+   "label": "genotype",
+   "levels": [
+    "wt",
+    "trem2_ko",
+    "5xfad",
+    "trem2_ko_5xfad"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.04,
+   "baseline": "L0",
+   "p_baseline": 0.96,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.94,
+   "p_ordered": 0.27,
+   "writer_baseline": "wt",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "brain_region",
+   "levels": [
+    "cortex",
+    "hippocampus"
+   ],
+   "p_designed": 0.86,
+   "p_designed_neg": 0.74,
+   "baseline": "no_reference",
+   "p_baseline": 0.52,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.59,
+   "p_ordered": 0.14,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": true,
+   "baseline_disagree": true,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [
+  "factor age: plain and negated asks disagree",
+  "factor age: baseline differs when options are reversed",
+  "factor brain_region: plain and negated asks disagree",
+  "factor brain_region: baseline differs when options are reversed"
+ ],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "unknown",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.89,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "unknown",
+   "p": 0.5,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "unknown",
+   "p": 0.66,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "unknown",
+   "p": 0.58,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "unknown",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "unknown",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "brain_region",
+   "mark": "unknown",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "library_chemistry",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sequencer",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:age",
+   "mark": "inferred",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:brain_region",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM4160643": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "15 months",
+    "15_months"
+   ],
+   "genotype": [
+    "wt",
+    "wt"
+   ],
+   "brain_region": [
+    "Cor",
+    "cortex"
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 3’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina HiSeq 4000",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM4160644": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "15 months",
+    "15_months"
+   ],
+   "genotype": [
+    "Trem2-/-",
+    "trem2_ko"
+   ],
+   "brain_region": [
+    "Cor",
+    "cortex"
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 3’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina HiSeq 4000",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM4160645": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "15 months",
+    "15_months"
+   ],
+   "genotype": [
+    "5XFAD",
+    "5xfad"
+   ],
+   "brain_region": [
+    "Cor",
+    "cortex"
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 3’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina HiSeq 4000",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM4160646": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "15 months",
+    "15_months"
+   ],
+   "genotype": [
+    "Trem2-/- 5XFAD",
+    "trem2_ko_5xfad"
+   ],
+   "brain_region": [
+    "Cor",
+    "cortex"
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 3’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina HiSeq 4000",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM4160647": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "15 months",
+    "15_months"
+   ],
+   "genotype": [
+    "wt",
+    "wt"
+   ],
+   "brain_region": [
+    "Hip",
+    "hippocampus"
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 3’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina HiSeq 4000",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM4160648": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "15 months",
+    "15_months"
+   ],
+   "genotype": [
+    "Trem2-/-",
+    "trem2_ko"
+   ],
+   "brain_region": [
+    "Hip",
+    "hippocampus"
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 3’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina HiSeq 4000",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM4160649": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "15 months",
+    "15_months"
+   ],
+   "genotype": [
+    "5XFAD",
+    "5xfad"
+   ],
+   "brain_region": [
+    "Hip",
+    "hippocampus"
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 3’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina HiSeq 4000",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM4160650": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "15 months",
+    "15_months"
+   ],
+   "genotype": [
+    "Trem2-/- 5XFAD",
+    "trem2_ko_5xfad"
+   ],
+   "brain_region": [
+    "Hip",
+    "hippocampus"
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 3’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina HiSeq 4000",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM4173504": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "wt",
+    "wt"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM4173505": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "wt",
+    "wt"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM4173506": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "wt",
+    "wt"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM4173507": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "Trem2-/-",
+    "trem2_ko"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM4173508": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "Trem2-/-",
+    "trem2_ko"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM4173509": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "Trem2-/-",
+    "trem2_ko"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM4173510": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "5XFAD",
+    "5xfad"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM4173511": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "5XFAD",
+    "5xfad"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  },
+  "GSM4173512": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "5XFAD",
+    "5xfad"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ]
+  },
+  "GSM4173513": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "Trem2-/- 5XFAD",
+    "trem2_ko_5xfad"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ]
+  },
+  "GSM4173514": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "Trem2-/- 5XFAD",
+    "trem2_ko_5xfad"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B19",
+    null
+   ]
+  },
+  "GSM4173515": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "nuclei of brain",
+    null
+   ],
+   "strain": [
+    "B6",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "7 months",
+    "7_months"
+   ],
+   "genotype": [
+    "Trem2-/- 5XFAD",
+    "trem2_ko_5xfad"
+   ],
+   "brain_region": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease (5XFAD)",
+    null
+   ],
+   "library_chemistry": [
+    "Chromium Single Cell 5’ Reagent Kits",
+    null
+   ],
+   "sequencer": [
+    "Illumina NovaSeq 6000",
+    null
+   ],
+   "biosample": [
+    "B20",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "age": {
+   "levels": [
+    "15_months",
+    "7_months"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "inferred": "two subseries aged 7 or 15 months",
+   "p": 0.88
+  },
+  "genotype": {
+   "levels": [
+    "wt",
+    "trem2_ko",
+    "5xfad",
+    "trem2_ko_5xfad"
+   ],
+   "baseline": "wt",
+   "ordered": false,
+   "quoted": [
+    19
+   ],
+   "p": 0.98
+  },
+  "brain_region": {
+   "levels": [
+    "cortex",
+    "hippocampus"
+   ],
+   "baseline": null,
+   "ordered": false,
+   "quoted": [
+    20
+   ],
+   "p": 0.86
+  }
+ },
+ "n_passages": 20,
+ "n_shared": 14,
+ "n_row_claims": 140,
+ "lists_summary": {
+  "factors": 3,
+  "factors_kept": 3,
+  "labels_with_values": 5,
+  "extra_labels": 3,
+  "writer_gaps": [
+   {
+    "kind": "factor_over_part",
+    "note": "cortex/hippocampus coded only in 15-month titles; 7-month samples carry no region"
+   },
+   {
+    "kind": "pooled_material",
+    "note": "3 mice per genotype pooled into one 15-month library; paper says so"
+   },
+   {
+    "kind": "batch",
+    "note": "age cohorts confounded with 3' vs 5' chemistry and HiSeq vs NovaSeq"
+   },
+   {
+    "kind": "term_missing",
+    "note": "no sex and no development-stage term anywhere in records or paper"
+   },
+   {
+    "kind": "series_membership",
+    "note": "every sample listed under both a subseries and parent GSE140511"
+   },
+   {
+    "kind": "other",
+    "note": "series title advertises human AD samples but all 20 sequenced records are mouse"
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM4160643",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM4173504",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/_factor",
+   "status": "not_found",
+   "paper": false,
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM4160643",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM4160644",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L2",
+   "status": "named",
+   "source": "GSM4160645",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L3",
+   "status": "named",
+   "source": "GSM4160646",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 30,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "named",
+   "source": "GSE140399",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 115,
+   "backs_p": 0.65
+  },
+  {
+   "key": "brain_region/L0",
+   "status": "named",
+   "source": "GSM4160643",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 6,
+   "backs_p": 0.74
+  },
+  {
+   "key": "brain_region/L1",
+   "status": "named",
+   "source": "GSM4160647",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 6,
+   "backs_p": 0.79
+  },
+  {
+   "key": "brain_region/_factor",
+   "status": "named",
+   "source": "GSM4160649",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.62
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "GSM4160643",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 51,
+   "backs_p": 0.75
+  },
+  {
+   "key": "disease/v1",
+   "status": "named",
+   "source": "GSM4160645",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 47,
+   "backs_p": 0.91
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "library_chemistry/v0",
+   "status": "named",
+   "source": "GSM4160643",
+   "field": "Sample_extract_protocol_ch1",
+   "exact": true,
+   "quote_len": 200,
+   "backs_p": 0.99
+  },
+  {
+   "key": "library_chemistry/v1",
+   "status": "named",
+   "source": "GSM4173504",
+   "field": "Sample_extract_protocol_ch1",
+   "exact": true,
+   "quote_len": 200,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sequencer/v0",
+   "status": "named",
+   "source": "GSM4160643",
+   "field": "Sample_instrument_model",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sequencer/v1",
+   "status": "named",
+   "source": "GSM4173504",
+   "field": "Sample_instrument_model",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "disease",
+   "text": "Alzheimer's disease (5XFAD)",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "wild type",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": [
+    {
+     "id": "MONDO:0018018",
+     "label": "wild type ATTR amyloidosis",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0019440",
+     "label": "wild type ABeta2M amyloidosis",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0956965",
+     "label": "medulloblastoma SHH activated and TP53 wild-type",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0858939",
+     "label": "diffuse pediatric-type high-grade glioma, H3-wildtype and IDH-wildtype",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 1.0
+  },
+  {
+   "label": "tissue",
+   "text": "nuclei of brain",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0002308",
+     "label": "nucleus of brain",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.57
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.27,
+  "untreated_or_vehicle": 0.64,
+  "several_compounds": 0.17,
+  "route_or_side": 0.89,
+  "dose_per_unit": 0.1,
+  "duration_without_number": 0.15,
+  "time_from_event": 0.42,
+  "pooled_material": 0.91,
+  "held_constant": 0.89,
+  "batch": 0.5,
+  "sequencer": 0.98,
+  "vector": 0.03,
+  "one_control_many_materials": 0.06,
+  "baseline_as_control": 0.14,
+  "single_cell": 0.97,
+  "mixed_assays": 0.1
+ },
+ "donor_kind": [
+  "shared",
+  0.5
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.005558106,
+   "seconds": 31.441,
+   "tokens_in": 12187,
+   "tokens_out": 6499
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000635838,
+   "seconds": 0.322,
+   "tokens_in": 15139
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107142,
+   "seconds": 0.294,
+   "tokens_in": 2551
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107142,
+   "seconds": 0.299,
+   "tokens_in": 2551
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107394,
+   "seconds": 0.252,
+   "tokens_in": 2557
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107394,
+   "seconds": 0.294,
+   "tokens_in": 2557
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010752,
+   "seconds": 0.298,
+   "tokens_in": 2560
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010752,
+   "seconds": 0.243,
+   "tokens_in": 2560
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010794,
+   "seconds": 0.26,
+   "tokens_in": 2570
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010794,
+   "seconds": 0.295,
+   "tokens_in": 2570
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107142,
+   "seconds": 0.259,
+   "tokens_in": 2551
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107142,
+   "seconds": 0.256,
+   "tokens_in": 2551
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107394,
+   "seconds": 0.267,
+   "tokens_in": 2557
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107394,
+   "seconds": 0.303,
+   "tokens_in": 2557
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010752,
+   "seconds": 0.248,
+   "tokens_in": 2560
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010752,
+   "seconds": 0.309,
+   "tokens_in": 2560
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010794,
+   "seconds": 0.283,
+   "tokens_in": 2570
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010794,
+   "seconds": 0.283,
+   "tokens_in": 2570
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000106974,
+   "seconds": 0.241,
+   "tokens_in": 2547
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000106974,
+   "seconds": 0.307,
+   "tokens_in": 2547
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000106974,
+   "seconds": 0.255,
+   "tokens_in": 2547
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000106974,
+   "seconds": 0.253,
+   "tokens_in": 2547
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000106974,
+   "seconds": 0.226,
+   "tokens_in": 2547
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000106974,
+   "seconds": 0.228,
+   "tokens_in": 2547
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010722599999999999,
+   "seconds": 0.361,
+   "tokens_in": 2553
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010722599999999999,
+   "seconds": 0.323,
+   "tokens_in": 2553
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010722599999999999,
+   "seconds": 0.259,
+   "tokens_in": 2553
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010722599999999999,
+   "seconds": 0.309,
+   "tokens_in": 2553
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010722599999999999,
+   "seconds": 0.283,
+   "tokens_in": 2553
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010722599999999999,
+   "seconds": 0.264,
+   "tokens_in": 2553
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107352,
+   "seconds": 0.24,
+   "tokens_in": 2556
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107352,
+   "seconds": 0.321,
+   "tokens_in": 2556
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107352,
+   "seconds": 0.267,
+   "tokens_in": 2556
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107352,
+   "seconds": 0.209,
+   "tokens_in": 2556
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107352,
+   "seconds": 0.221,
+   "tokens_in": 2556
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107352,
+   "seconds": 0.224,
+   "tokens_in": 2556
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107772,
+   "seconds": 0.343,
+   "tokens_in": 2566
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107772,
+   "seconds": 0.273,
+   "tokens_in": 2566
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107772,
+   "seconds": 0.269,
+   "tokens_in": 2566
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107772,
+   "seconds": 0.224,
+   "tokens_in": 2566
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107772,
+   "seconds": 0.243,
+   "tokens_in": 2566
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000107772,
+   "seconds": 0.264,
+   "tokens_in": 2566
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.0005920739999999999,
+   "seconds": 0.19,
+   "tokens_in": 14097
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 3.696e-05,
+   "seconds": 0.183,
+   "tokens_in": 880
+  }
+ ],
+ "seconds": 0.27,
+ "ending": "unsettled",
+ "variant": "flash_think"
+}

@@ -1,0 +1,257 @@
+format: 1
+study: GSE114951
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM3160728
+    - GSM3160729
+    - GSM3160730
+    - GSM4964731
+    - GSM4964732
+    - GSM4964733
+    field: Sample_characteristics_ch1
+    quote: 'genotype/variation: WT'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L4'
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Whole body'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain/background: N2'
+  7:
+    record:
+    - GSM3160731
+    - GSM3160732
+    - GSM3160733
+    field: Sample_characteristics_ch1
+    quote: 'genotype/variation: atfs-1 (null)'
+  8:
+    record:
+    - GSM4964734
+    - GSM4964735
+    - GSM4964736
+    field: Sample_characteristics_ch1
+    quote: 'genotype/variation: atfs-1 (et18)'
+factors:
+  genotype:
+    levels:
+    - WT
+    - atfs-1 (null)
+    - atfs-1 (et18)
+    baseline: WT
+    ordered: false
+    inferred: the characteristic "genotype/variation" varies between samples
+    p: 0.98
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  development_stage:
+    text: L4
+    quoted:
+    - 4
+    p: 0.84
+  tissue:
+    text: Whole body
+    quoted:
+    - 5
+    p: 1.0
+  strain:
+    text: N2
+    quoted:
+    - 6
+    p: 0.99
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.87
+  age:
+    unknown: nothing read says it
+    p: 0.7
+  cell_type:
+    na: whole tissue with no cell type isolated
+    p: 1.0
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    na: does not apply to these samples
+    p: 0.84
+  treatment:
+    na: no treatment applied
+    p: 0.99
+  dose:
+    na: no treatment
+    p: 1.0
+  duration:
+    na: no treatment
+    p: 0.99
+  donor:
+    na: a pool of many individuals
+    p: 0.81
+samples:
+  GSM3160728:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3160729:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3160730:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3160731:
+    genotype:
+      text: atfs-1 (null)
+      level: atfs-1 (null)
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3160732:
+    genotype:
+      text: atfs-1 (null)
+      level: atfs-1 (null)
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3160733:
+    genotype:
+      text: atfs-1 (null)
+      level: atfs-1 (null)
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4964731:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4964732:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4964733:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4964734:
+    genotype:
+      text: atfs-1 (et18)
+      level: atfs-1 (et18)
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4964735:
+    genotype:
+      text: atfs-1 (et18)
+      level: atfs-1 (et18)
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4964736:
+    genotype:
+      text: atfs-1 (et18)
+      level: atfs-1 (et18)
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

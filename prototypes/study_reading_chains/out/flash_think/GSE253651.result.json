@@ -1,0 +1,2907 @@
+{
+ "study": "GSE253651",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 18,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "group",
+   "levels": [
+    "control",
+    "hfd",
+    "aged"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.05,
+   "baseline": "L0",
+   "p_baseline": 0.89,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.97,
+   "p_ordered": 0.54,
+   "writer_baseline": "control",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "ccr2_subset",
+   "levels": [
+    "negative",
+    "positive"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.5,
+   "baseline": "no_reference",
+   "p_baseline": 0.62,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.53,
+   "p_ordered": 0.2,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": true,
+   "baseline_disagree": true,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [
+  "factor ccr2_subset: plain and negated asks disagree",
+  "factor ccr2_subset: baseline differs when options are reversed"
+ ],
+ "disagree": [
+  [
+   "GSM8024587",
+   "lab_age",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM8024591",
+   "lab_age",
+   "v0",
+   "unknown"
+  ],
+  [
+   "GSM8024596",
+   "lab_treatment",
+   "na",
+   "v0"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.7,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "unknown",
+   "p": 0.51,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.8,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.96,
+   "shared": true
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.77,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.53,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.73,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.5,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.49,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.5,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.54,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.58,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.42,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "group",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "ccr2_subset",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.58,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "factor:group",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:ccr2_subset",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM8024581": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "control",
+    "control"
+   ],
+   "ccr2_subset": [
+    "CCR2_NEGATIVE",
+    "negative"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM8024582": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "control",
+    "control"
+   ],
+   "ccr2_subset": [
+    "CCR2_NEGATIVE",
+    "negative"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM8024583": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "control",
+    "control"
+   ],
+   "ccr2_subset": [
+    "CCR2_NEGATIVE",
+    "negative"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM8024584": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "control",
+    "control"
+   ],
+   "ccr2_subset": [
+    "CCR2_POSITIVE",
+    "positive"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM8024585": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "control",
+    "control"
+   ],
+   "ccr2_subset": [
+    "CCR2_POSITIVE",
+    "positive"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM8024586": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "control",
+    "control"
+   ],
+   "ccr2_subset": [
+    "CCR2_POSITIVE",
+    "positive"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM8024587": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "high-fat diet",
+    "hfd"
+   ],
+   "ccr2_subset": [
+    "CCR2_NEGATIVE",
+    "negative"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "high-fat diet",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM8024588": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "high-fat diet",
+    "hfd"
+   ],
+   "ccr2_subset": [
+    "CCR2_NEGATIVE",
+    "negative"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "high-fat diet",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM8024589": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "high-fat diet",
+    "hfd"
+   ],
+   "ccr2_subset": [
+    "CCR2_NEGATIVE",
+    "negative"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "high-fat diet",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  },
+  "GSM8024590": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "high-fat diet",
+    "hfd"
+   ],
+   "ccr2_subset": [
+    "CCR2_POSITIVE",
+    "positive"
+   ],
+   "age": [
+    "aged mice (20 months old)",
+    null
+   ],
+   "treatment": [
+    "high-fat diet",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D10",
+    null
+   ]
+  },
+  "GSM8024591": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "high-fat diet",
+    "hfd"
+   ],
+   "ccr2_subset": [
+    "CCR2_POSITIVE",
+    "positive"
+   ],
+   "age": [
+    "aged mice (20 months old)",
+    null
+   ],
+   "treatment": [
+    "high-fat diet",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D11",
+    null
+   ]
+  },
+  "GSM8024592": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "high-fat diet",
+    "hfd"
+   ],
+   "ccr2_subset": [
+    "CCR2_POSITIVE",
+    "positive"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "high-fat diet",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D12",
+    null
+   ]
+  },
+  "GSM8024593": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "aged",
+    "aged"
+   ],
+   "ccr2_subset": [
+    "CCR2_NEGATIVE",
+    "negative"
+   ],
+   "age": [
+    "aged mice (20 months old)",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D13",
+    null
+   ]
+  },
+  "GSM8024594": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "aged",
+    "aged"
+   ],
+   "ccr2_subset": [
+    "CCR2_NEGATIVE",
+    "negative"
+   ],
+   "age": [
+    "aged mice (20 months old)",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D14",
+    null
+   ]
+  },
+  "GSM8024595": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "aged",
+    "aged"
+   ],
+   "ccr2_subset": [
+    "CCR2_NEGATIVE",
+    "negative"
+   ],
+   "age": [
+    "aged mice (20 months old)",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D15",
+    null
+   ]
+  },
+  "GSM8024596": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "aged",
+    "aged"
+   ],
+   "ccr2_subset": [
+    "CCR2_POSITIVE",
+    "positive"
+   ],
+   "age": [
+    "aged mice (20 months old)",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D16",
+    null
+   ]
+  },
+  "GSM8024597": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "aged",
+    "aged"
+   ],
+   "ccr2_subset": [
+    "CCR2_POSITIVE",
+    "positive"
+   ],
+   "age": [
+    "aged mice (20 months old)",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ],
+   "donor": [
+    "D17",
+    null
+   ]
+  },
+  "GSM8024598": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "heart",
+    null
+   ],
+   "cell_type": [
+    "macrophages",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "group": [
+    "aged",
+    "aged"
+   ],
+   "ccr2_subset": [
+    "CCR2_POSITIVE",
+    "positive"
+   ],
+   "age": [
+    "aged mice (20 months old)",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ],
+   "donor": [
+    "D18",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "group": {
+   "levels": [
+    "control",
+    "hfd",
+    "aged"
+   ],
+   "baseline": "control",
+   "ordered": true,
+   "quoted": [
+    11
+   ],
+   "p": 0.98
+  },
+  "ccr2_subset": {
+   "levels": [
+    "negative",
+    "positive"
+   ],
+   "baseline": null,
+   "ordered": false,
+   "quoted": [
+    12
+   ],
+   "p": 0.97
+  }
+ },
+ "n_passages": 12,
+ "n_shared": 14,
+ "n_row_claims": 108,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 6,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "crossed_not_fully",
+    "note": "diet and aging not crossed; no aged high-fat-diet group"
+   },
+   {
+    "kind": "factor_over_part",
+    "note": "age 20 months stated only for aged group"
+   },
+   {
+    "kind": "term_missing",
+    "note": "strain, sex, and development stage absent from records"
+   },
+   {
+    "kind": "duration_without_number",
+    "note": "high-fat diet feeding duration not reported"
+   },
+   {
+    "kind": "untreated_or_vehicle",
+    "note": "control diet not described; group only called control"
+   }
+  ],
+  "donor_kind_writer": "one_each",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "group/L0",
+   "status": "named",
+   "source": "GSM8024581",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "group/L1",
+   "status": "named",
+   "source": "GSM8024587",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "group/L2",
+   "status": "named",
+   "source": "GSM8024593",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "group/_factor",
+   "status": "named",
+   "source": "GSE253651",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 87,
+   "backs_p": 0.92
+  },
+  {
+   "key": "ccr2_subset/L0",
+   "status": "named",
+   "source": "GSM8024581",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.98
+  },
+  {
+   "key": "ccr2_subset/L1",
+   "status": "named",
+   "source": "GSM8024584",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.98
+  },
+  {
+   "key": "ccr2_subset/_factor",
+   "status": "named",
+   "source": "pmid:38763956",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 80,
+   "backs_p": 0.92
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "source": "pmid:38763956",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 25,
+   "backs_p": 0.97
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "source": "GSM8024587",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "macrophages",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": [
+    {
+     "id": "CL:0000861",
+     "label": "elicited macrophage",
+     "exact": false
+    },
+    {
+     "id": "CL:0000863",
+     "label": "M1 macrophage",
+     "exact": false
+    },
+    {
+     "id": "CL:0000890",
+     "label": "M2 macrophage",
+     "exact": false
+    },
+    {
+     "id": "CL:0000864",
+     "label": "tissue-resident macrophage",
+     "exact": false
+    },
+    {
+     "id": "CL:0009038",
+     "label": "colon macrophage",
+     "exact": false
+    },
+    {
+     "id": "CL:1001603",
+     "label": "lung macrophage",
+     "exact": false
+    },
+    {
+     "id": "CL:0000878",
+     "label": "central nervous system macrophage",
+     "exact": false
+    },
+    {
+     "id": "CL:0000583",
+     "label": "alveolar macrophage",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.48
+  },
+  {
+   "label": "tissue",
+   "text": "heart",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0000948",
+     "label": "heart",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0015230",
+     "label": "dorsal vessel heart",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0015228",
+     "label": "circulatory organ",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0007100",
+     "label": "primary circulatory organ",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0003452",
+     "label": "trabecula carnea cardiac muscle tissue",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004784",
+     "label": "heart ventricle wall",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0001133",
+     "label": "cardiac muscle tissue",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003610",
+     "label": "heart elastic tissue",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0000948",
+   "p": 0.99,
+   "probe_pick": "UBERON:0007100",
+   "probe_p": 0.38
+  },
+  {
+   "label": "treatment",
+   "text": "high-fat diet",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.18,
+  "untreated_or_vehicle": 0.9,
+  "several_compounds": 0.06,
+  "route_or_side": 0.16,
+  "dose_per_unit": 0.15,
+  "duration_without_number": 0.07,
+  "time_from_event": 0.27,
+  "pooled_material": 0.21,
+  "held_constant": 0.93,
+  "batch": 0.08,
+  "sequencer": 0.04,
+  "vector": 0.02,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.14,
+  "single_cell": 0.36,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "one_each",
+  0.71
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.0068875559999999995,
+   "seconds": 59.98,
+   "tokens_in": 3554,
+   "tokens_out": 10873
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000205758,
+   "seconds": 0.331,
+   "tokens_in": 4899
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.357,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.293,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.295,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.295,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.303,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.294,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.236,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.313,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.258,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.25,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.25,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7704e-05,
+   "seconds": 0.303,
+   "tokens_in": 1612
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7872e-05,
+   "seconds": 0.277,
+   "tokens_in": 1616
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7872e-05,
+   "seconds": 0.296,
+   "tokens_in": 1616
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7872e-05,
+   "seconds": 0.253,
+   "tokens_in": 1616
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7872e-05,
+   "seconds": 0.253,
+   "tokens_in": 1616
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7872e-05,
+   "seconds": 0.259,
+   "tokens_in": 1616
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.782999999999999e-05,
+   "seconds": 0.273,
+   "tokens_in": 1615
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7872e-05,
+   "seconds": 0.328,
+   "tokens_in": 1616
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.782999999999999e-05,
+   "seconds": 0.262,
+   "tokens_in": 1615
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.782999999999999e-05,
+   "seconds": 0.227,
+   "tokens_in": 1615
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.782999999999999e-05,
+   "seconds": 0.282,
+   "tokens_in": 1615
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.782999999999999e-05,
+   "seconds": 0.27,
+   "tokens_in": 1615
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.275,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.782999999999999e-05,
+   "seconds": 0.254,
+   "tokens_in": 1615
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.263,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.25,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.247,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.257,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.279,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.392,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.233,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.294,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.322,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.297,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.7746e-05,
+   "seconds": 0.272,
+   "tokens_in": 1613
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000155358,
+   "seconds": 0.225,
+   "tokens_in": 3699
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 3.8556e-05,
+   "seconds": 0.399,
+   "tokens_in": 918
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 2.751e-05,
+   "seconds": 0.209,
+   "tokens_in": 655
+  }
+ ],
+ "seconds": 0.26,
+ "ending": "unsettled",
+ "variant": "flash_think"
+}

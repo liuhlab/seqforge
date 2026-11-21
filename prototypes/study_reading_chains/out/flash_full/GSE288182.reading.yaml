@@ -1,0 +1,576 @@
+format: 1
+study: GSE288182
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM8760787
+    - GSM8760788
+    - GSM8760789
+    field: Sample_characteristics_ch1
+    quote: 'genotype: WT'
+  2:
+    record:
+    - GSM8760787
+    - GSM8760788
+    - GSM8760789
+    - GSM8760790
+    - GSM8760791
+    - GSM8760792
+    field: Sample_characteristics_ch1
+    quote: 'treatment: mock'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: Bisulfite-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: Male APP/PS1 and wild-type (WT) mice were housed under a 12-h light/dark cycle
+  6:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: For late-stage APP/PS1 mice, injections were initiated at 6 months of age
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: brain'
+  8:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: AAV-OSK or AAV-Mock (2 µl per side) was stereotaxically injected into the bilateral hippocampus
+  9:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: For the early-stage APP/PS1 mice, injections were initiated at 4 months of age and repeated
+      one month later
+  10:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: behavioral testing was conducted, and brain samples were collected at 6 months
+  11:
+    record:
+    - GSM8760790
+    - GSM8760791
+    - GSM8760792
+    - GSM8760793
+    - GSM8760794
+    - GSM8760795
+    field: Sample_characteristics_ch1
+    quote: 'genotype: APP/PS1'
+  12:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)
+  13:
+    record:
+    - GSM8760793
+    - GSM8760794
+    - GSM8760795
+    field: Sample_characteristics_ch1
+    quote: 'treatment: OSK-treatment'
+  14:
+    paper: pmid:42210397
+    section: Results > OSK ameliorates neuropathology in early-stage APP/PS1 mice
+    quote: which was markedly reduced after two months of OSK expression
+  15:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: APP/PS1 mice and WT mice were intracerebrally injected into the bilateral hippocampus with
+      adeno-associated virus to induce the expression of Oct4, Sox2, and Klf4 (AAV-OSK) in brain tissue.
+factors:
+  genotype:
+    levels:
+    - WT
+    - APP/PS1
+    baseline: WT
+    ordered: false
+    inferred: WT versus APP/PS1 transgenic mice compared
+    p: 0.98
+  treatment:
+    levels:
+    - mock
+    - OSK
+    baseline: mock
+    ordered: false
+    inferred: AAV-OSK versus AAV-Mock hippocampal injection
+    see:
+    - 15
+    p: 0.99
+shared:
+  assay:
+    text: Bisulfite-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  sex:
+    text: Male APP/PS1 and wild-type (WT) mice
+    quoted:
+    - 5
+    p: 0.86
+  development_stage:
+    text: adult
+    quoted:
+    - 6
+    p: 0.75
+  tissue:
+    text: brain
+    term: UBERON:0000955
+    quoted:
+    - 7
+    p: 1.0
+  dose:
+    text: AAV-OSK or AAV-Mock (2 µl per side)
+    value: 2
+    unit: microliter
+    quoted:
+    - 8
+    p: 0.75
+  harvest_time_after_injection:
+    text: brain samples were collected at 6 months
+    quoted:
+    - 10
+    p: 0.77
+  target:
+    na: bisulfite sequencing has no pull-down
+    p: 1.0
+  control_type:
+    na: no input or IgG background libraries
+    p: 0.99
+  cell_type:
+    na: bulk brain tissue, not a sorted cell type
+    p: 0.97
+  cell_line:
+    na: tissue taken from animals, no cell line
+    p: 1.0
+samples:
+  GSM8760787:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      unknown: sample records give no age; early vs late cohort not stated per sample
+      p: 0.85
+    disease:
+      text: healthy
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.62
+    duration:
+      na: no treatment
+      p: 0.88
+    injection_regimen:
+      text: injections were initiated at 4 months of age and repeated one month later
+      quoted:
+      - 9
+      p: 0.56
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.67
+  GSM8760788:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      unknown: sample records give no age; early vs late cohort not stated per sample
+      p: 0.85
+    disease:
+      text: healthy
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.66
+    duration:
+      na: no treatment
+      p: 0.84
+    injection_regimen:
+      na: it does not apply to this sample
+      p: 0.37
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.67
+  GSM8760789:
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      unknown: sample records give no age; early vs late cohort not stated per sample
+      p: 0.86
+    disease:
+      text: healthy
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.62
+    duration:
+      na: no treatment
+      p: 0.86
+    injection_regimen:
+      text: injections were initiated at 4 months of age and repeated one month later
+      quoted:
+      - 9
+      p: 0.48
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.67
+  GSM8760790:
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 11
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 2
+      p: 0.99
+    age:
+      text: For the early-stage APP/PS1 mice, injections were initiated at 4 months of age
+      value: 4
+      unit: month
+      quoted:
+      - 9
+      p: 0.56
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)
+      quoted:
+      - 12
+      p: 0.99
+    duration:
+      na: no treatment
+      p: 0.74
+    injection_regimen:
+      text: injections were initiated at 4 months of age and repeated one month later
+      quoted:
+      - 9
+      p: 0.74
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.67
+  GSM8760791:
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 11
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: For the early-stage APP/PS1 mice, injections were initiated at 4 months of age
+      value: 4
+      unit: month
+      quoted:
+      - 9
+      p: 0.57
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)
+      quoted:
+      - 12
+      p: 0.99
+    duration:
+      na: no treatment
+      p: 0.75
+    injection_regimen:
+      text: injections were initiated at 4 months of age and repeated one month later
+      quoted:
+      - 9
+      p: 0.79
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.67
+  GSM8760792:
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 11
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: For the early-stage APP/PS1 mice, injections were initiated at 4 months of age
+      value: 4
+      unit: month
+      quoted:
+      - 9
+      p: 0.59
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)
+      quoted:
+      - 12
+      p: 0.99
+    duration:
+      na: no treatment
+      p: 0.8
+    injection_regimen:
+      text: injections were initiated at 4 months of age and repeated one month later
+      quoted:
+      - 9
+      p: 0.76
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.67
+  GSM8760793:
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 11
+      p: 1.0
+    treatment:
+      text: OSK-treatment
+      level: OSK
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: For the early-stage APP/PS1 mice, injections were initiated at 4 months of age
+      value: 4
+      unit: month
+      quoted:
+      - 9
+      p: 0.62
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 11
+      p: 0.99
+    strain:
+      text: APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)
+      quoted:
+      - 12
+      p: 0.99
+    duration:
+      text: two months of OSK expression
+      value: 2
+      unit: month
+      quoted:
+      - 14
+      p: 0.88
+    injection_regimen:
+      text: injections were initiated at 4 months of age and repeated one month later
+      quoted:
+      - 9
+      p: 0.81
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.67
+  GSM8760794:
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 11
+      p: 1.0
+    treatment:
+      text: OSK-treatment
+      level: OSK
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: For the early-stage APP/PS1 mice, injections were initiated at 4 months of age
+      value: 4
+      unit: month
+      quoted:
+      - 9
+      p: 0.65
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 11
+      p: 0.99
+    strain:
+      text: APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)
+      quoted:
+      - 12
+      p: 0.99
+    duration:
+      text: two months of OSK expression
+      value: 2
+      unit: month
+      quoted:
+      - 14
+      p: 0.9
+    injection_regimen:
+      text: injections were initiated at 4 months of age and repeated one month later
+      quoted:
+      - 9
+      p: 0.8
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.67
+  GSM8760795:
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 11
+      p: 1.0
+    treatment:
+      text: OSK-treatment
+      level: OSK
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: For the early-stage APP/PS1 mice, injections were initiated at 4 months of age
+      value: 4
+      unit: month
+      quoted:
+      - 9
+      p: 0.62
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 11
+      p: 0.99
+    strain:
+      text: APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)
+      quoted:
+      - 12
+      p: 0.99
+    duration:
+      text: two months of OSK expression
+      value: 2
+      unit: month
+      quoted:
+      - 14
+      p: 0.9
+    injection_regimen:
+      text: injections were initiated at 4 months of age and repeated one month later
+      quoted:
+      - 9
+      p: 0.77
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.67

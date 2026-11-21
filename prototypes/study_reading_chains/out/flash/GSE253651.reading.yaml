@@ -1,0 +1,670 @@
+format: 1
+study: GSE253651
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM8024581
+    - GSM8024582
+    - GSM8024583
+    - GSM8024584
+    - GSM8024585
+    - GSM8024586
+    field: Sample_characteristics_ch1
+    quote: 'group: control'
+  2:
+    record: GSM8024581
+    field: Sample_title
+    quote: Ctrl_CCR2_NEGATIVE_1
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: heart'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: macrophages'
+  7:
+    record: GSM8024584
+    field: Sample_title
+    quote: Ctrl_CCR2_POSITIVE_1
+  8:
+    record:
+    - GSM8024587
+    - GSM8024588
+    - GSM8024589
+    - GSM8024590
+    - GSM8024591
+    - GSM8024592
+    field: Sample_characteristics_ch1
+    quote: 'group: high-fat diet'
+  9:
+    record:
+    - GSM8024593
+    - GSM8024594
+    - GSM8024595
+    - GSM8024596
+    - GSM8024597
+    - GSM8024598
+    field: Sample_characteristics_ch1
+    quote: 'group: aged'
+  10:
+    paper: pmid:38763956
+    section: abstract
+    quote: aged mice (20 months old)
+  11:
+    record: GSE253651
+    field: Series_overall_design
+    quote: CRM were sorted from the hearts of control, aged or high-fat diet fed mice
+factors:
+  group:
+    levels:
+    - control
+    - high-fat diet
+    - aged
+    baseline: control
+    ordered: false
+    quoted:
+    - 11
+    p: 0.98
+  ccr2_status:
+    levels:
+    - negative
+    - positive
+    baseline: null
+    ordered: false
+    quoted:
+    - 2
+    p: 0.97
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: heart
+    term: UBERON:0000948
+    quoted:
+    - 5
+    p: 1.0
+  cell_type:
+    text: macrophages
+    quoted:
+    - 6
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease stated
+    p: 0.87
+  target:
+    na: RNA-Seq with no pull-down
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  sex:
+    unknown: sex not stated
+    p: 0.98
+  development_stage:
+    unknown: stage not stated for all groups
+    p: 0.72
+  cell_line:
+    na: primary cells from mice
+    p: 1.0
+  genotype:
+    unknown: genotype not stated
+    p: 0.87
+  strain:
+    unknown: strain not stated
+    p: 1.0
+  dose:
+    unknown: dose not stated
+    p: 0.84
+  duration:
+    unknown: duration not stated
+    p: 0.96
+samples:
+  GSM8024581:
+    group:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    ccr2_status:
+      text: CCR2_NEGATIVE
+      level: negative
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      unknown: what was read does not say its age
+      p: 0.75
+    treatment:
+      na: no treatment applied
+      p: 0.69
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024582:
+    group:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    ccr2_status:
+      text: CCR2_NEGATIVE
+      level: negative
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      unknown: what was read does not say its age
+      p: 0.8
+    treatment:
+      na: no treatment applied
+      p: 0.8
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024583:
+    group:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    ccr2_status:
+      text: CCR2_NEGATIVE
+      level: negative
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      unknown: what was read does not say its age
+      p: 0.81
+    treatment:
+      na: no treatment applied
+      p: 0.82
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024584:
+    group:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    ccr2_status:
+      text: CCR2_POSITIVE
+      level: positive
+      quoted:
+      - 7
+      p: 1.0
+    age:
+      unknown: what was read does not say its age
+      p: 0.64
+    treatment:
+      na: no treatment applied
+      p: 0.66
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024585:
+    group:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    ccr2_status:
+      text: CCR2_POSITIVE
+      level: positive
+      quoted:
+      - 7
+      p: 0.99
+    age:
+      unknown: what was read does not say its age
+      p: 0.76
+    treatment:
+      na: no treatment applied
+      p: 0.81
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024586:
+    group:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    ccr2_status:
+      text: CCR2_POSITIVE
+      level: positive
+      quoted:
+      - 7
+      p: 1.0
+    age:
+      unknown: what was read does not say its age
+      p: 0.79
+    treatment:
+      na: no treatment applied
+      p: 0.88
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024587:
+    group:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    ccr2_status:
+      text: CCR2_NEGATIVE
+      level: negative
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      unknown: what was read does not say its age
+      p: 0.77
+    treatment:
+      text: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024588:
+    group:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    ccr2_status:
+      text: CCR2_NEGATIVE
+      level: negative
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      unknown: what was read does not say its age
+      p: 0.86
+    treatment:
+      text: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024589:
+    group:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    ccr2_status:
+      text: CCR2_NEGATIVE
+      level: negative
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      unknown: what was read does not say its age
+      p: 0.8
+    treatment:
+      text: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024590:
+    group:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 8
+      p: 0.98
+    ccr2_status:
+      text: CCR2_POSITIVE
+      level: positive
+      quoted:
+      - 7
+      p: 0.99
+    age:
+      unknown: what was read does not say its age
+      p: 0.7
+    treatment:
+      text: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024591:
+    group:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 8
+      p: 0.99
+    ccr2_status:
+      text: CCR2_POSITIVE
+      level: positive
+      quoted:
+      - 7
+      p: 0.99
+    age:
+      unknown: what was read does not say its age
+      p: 0.81
+    treatment:
+      text: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024592:
+    group:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    ccr2_status:
+      text: CCR2_POSITIVE
+      level: positive
+      quoted:
+      - 7
+      p: 0.99
+    age:
+      unknown: what was read does not say its age
+      p: 0.74
+    treatment:
+      text: high-fat diet
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024593:
+    group:
+      text: aged
+      level: aged
+      quoted:
+      - 9
+      p: 1.0
+    ccr2_status:
+      text: CCR2_NEGATIVE
+      level: negative
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 20 months old
+      value: 20
+      unit: month
+      quoted:
+      - 10
+      p: 0.95
+    treatment:
+      na: no treatment applied
+      p: 0.54
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024594:
+    group:
+      text: aged
+      level: aged
+      quoted:
+      - 9
+      p: 1.0
+    ccr2_status:
+      text: CCR2_NEGATIVE
+      level: negative
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 20 months old
+      value: 20
+      unit: month
+      quoted:
+      - 10
+      p: 0.95
+    treatment:
+      na: no treatment applied
+      p: 0.53
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024595:
+    group:
+      text: aged
+      level: aged
+      quoted:
+      - 9
+      p: 1.0
+    ccr2_status:
+      text: CCR2_NEGATIVE
+      level: negative
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 20 months old
+      value: 20
+      unit: month
+      quoted:
+      - 10
+      p: 0.96
+    treatment:
+      na: no treatment applied
+      p: 0.65
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024596:
+    group:
+      text: aged
+      level: aged
+      quoted:
+      - 9
+      p: 0.97
+    ccr2_status:
+      text: CCR2_POSITIVE
+      level: positive
+      quoted:
+      - 7
+      p: 0.99
+    age:
+      text: 20 months old
+      value: 20
+      unit: month
+      quoted:
+      - 10
+      p: 0.95
+    treatment:
+      na: no treatment applied
+      p: 0.5
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D16
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024597:
+    group:
+      text: aged
+      level: aged
+      quoted:
+      - 9
+      p: 1.0
+    ccr2_status:
+      text: CCR2_POSITIVE
+      level: positive
+      quoted:
+      - 7
+      p: 1.0
+    age:
+      text: 20 months old
+      value: 20
+      unit: month
+      quoted:
+      - 10
+      p: 0.95
+    treatment:
+      na: no treatment applied
+      p: 0.58
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D17
+      inferred: each sample is from its own individual
+      p: 0.74
+  GSM8024598:
+    group:
+      text: aged
+      level: aged
+      quoted:
+      - 9
+      p: 1.0
+    ccr2_status:
+      text: CCR2_POSITIVE
+      level: positive
+      quoted:
+      - 7
+      p: 1.0
+    age:
+      text: 20 months old
+      value: 20
+      unit: month
+      quoted:
+      - 10
+      p: 0.94
+    treatment:
+      na: no treatment applied
+      p: 0.55
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D18
+      inferred: each sample is from its own individual
+      p: 0.74

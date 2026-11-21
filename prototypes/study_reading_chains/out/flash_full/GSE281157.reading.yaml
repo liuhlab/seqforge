@@ -1,0 +1,367 @@
+format: 1
+study: GSE281157
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM8611902
+    - GSM8611903
+    - GSM8611904
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wild type (N2)'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: GSE281157
+    field: Series_summary
+    quote: Arrested L1s were collected 16 hr post hypochlorite treatment (about 4 hr of starvation).
+  5:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Approximately 20,000 starved L1s were collected at 16 hr after hypochlorite treatment
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole worm'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C'
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C
+  9:
+    record: GSM8611902
+    field: Sample_title
+    quote: wild type rep A
+  10:
+    record: GSM8611903
+    field: Sample_title
+    quote: wild type rep B
+  11:
+    record: GSM8611904
+    field: Sample_title
+    quote: wild type rep C
+  12:
+    record:
+    - GSM8611905
+    - GSM8611906
+    - GSM8611907
+    - GSM8611911
+    - GSM8611912
+    - GSM8611913
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-16(mu86)'
+  13:
+    record:
+    - GSM8611908
+    - GSM8611909
+    - GSM8611910
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-18(ok480)'
+  14:
+    record:
+    - GSM8611911
+    - GSM8611912
+    - GSM8611913
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-16(mu86); daf-18(ok480)'
+  15:
+    record: GSE281157
+    field: Series_overall_design
+    quote: Three biological replicates were performed for each of wild type N2, daf-16(mu86), daf-18(ok480)
+      and daf-16(mu86); daf-18(ok480).
+factors:
+  genotype:
+    levels:
+    - wild_type
+    - daf_16
+    - daf_18
+    - daf_16_daf_18
+    baseline: wild_type
+    ordered: false
+    quoted:
+    - 15
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  age:
+    text: 16 hr after hypochlorite treatment
+    value: 16
+    unit: hour
+    quoted:
+    - 4
+    p: 0.98
+  development_stage:
+    text: starved L1
+    quoted:
+    - 5
+    p: 0.99
+  tissue:
+    text: whole worm
+    quoted:
+    - 6
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease described; genetic mutants only
+    p: 0.99
+  treatment:
+    text: Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C
+    quoted:
+    - 7
+    p: 1.0
+  duration:
+    text: about 4 hours
+    value: 4
+    unit: hour
+    quoted:
+    - 8
+    p: 0.99
+  hours_after_hypochlorite:
+    text: 16 hr post hypochlorite treatment
+    quoted:
+    - 4
+    p: 0.95
+  target:
+    na: RNA-Seq has no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no input or IgG libraries among samples
+    p: 1.0
+  sex:
+    unknown: hermaphrodite implied but never stated in records
+    p: 0.58
+  cell_type:
+    na: whole-worm bulk RNA-seq, no cell type
+    p: 0.99
+  cell_line:
+    na: in vivo worms, no cell line
+    p: 1.0
+  strain:
+    unknown: strain background N2 only given for wild type
+    p: 0.96
+  dose:
+    unknown: 0.1% EtOH concentration only, no dose unit of treatment
+    p: 0.63
+  donor:
+    na: a pool of many individuals
+    p: 0.99
+samples:
+  GSM8611902:
+    genotype:
+      text: wild type (N2)
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    biological_replicate:
+      text: rep A
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611903:
+    genotype:
+      text: wild type (N2)
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    biological_replicate:
+      text: rep B
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611904:
+    genotype:
+      text: wild type (N2)
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    biological_replicate:
+      text: rep C
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611905:
+    genotype:
+      text: daf-16(mu86)
+      level: daf_16
+      quoted:
+      - 12
+      p: 1.0
+    biological_replicate:
+      text: rep A
+      quoted:
+      - 9
+      p: 0.98
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611906:
+    genotype:
+      text: daf-16(mu86)
+      level: daf_16
+      quoted:
+      - 12
+      p: 0.91
+    biological_replicate:
+      text: rep B
+      quoted:
+      - 10
+      p: 0.91
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611907:
+    genotype:
+      text: daf-16(mu86)
+      level: daf_16
+      quoted:
+      - 12
+      p: 0.93
+    biological_replicate:
+      text: rep C
+      quoted:
+      - 11
+      p: 0.93
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611908:
+    genotype:
+      text: daf-18(ok480)
+      level: daf_18
+      quoted:
+      - 13
+      p: 1.0
+    biological_replicate:
+      text: rep A
+      quoted:
+      - 9
+      p: 0.98
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611909:
+    genotype:
+      text: daf-18(ok480)
+      level: daf_18
+      quoted:
+      - 13
+      p: 0.94
+    biological_replicate:
+      text: rep B
+      quoted:
+      - 10
+      p: 0.9
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611910:
+    genotype:
+      text: daf-18(ok480)
+      level: daf_18
+      quoted:
+      - 13
+      p: 0.9
+    biological_replicate:
+      text: rep C
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611911:
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf_16_daf_18
+      quoted:
+      - 14
+      p: 0.99
+    biological_replicate:
+      text: rep A
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611912:
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf_16_daf_18
+      quoted:
+      - 14
+      p: 0.98
+    biological_replicate:
+      text: rep B
+      quoted:
+      - 10
+      p: 0.92
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611913:
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf_16_daf_18
+      quoted:
+      - 14
+      p: 0.98
+    biological_replicate:
+      text: rep C
+      quoted:
+      - 11
+      p: 0.96
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

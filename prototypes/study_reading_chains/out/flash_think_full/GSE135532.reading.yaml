@@ -1,0 +1,394 @@
+format: 1
+study: GSE135532
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM4013824
+    - GSM4013825
+    - GSM4013826
+    - GSM4013827
+    field: Sample_characteristics_ch1
+    quote: 'diet: chow'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Six-week-old, male C57BL/6 mice were obtained from Charles Rivers Laboratory
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: heart - ventricles'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: C57BL/6'
+  7:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: for a period of six months
+  8:
+    record:
+    - GSM4013828
+    - GSM4013829
+    - GSM4013830
+    - GSM4013831
+    field: Sample_characteristics_ch1
+    quote: 'diet: NIA'
+  9:
+    record:
+    - GSM4013832
+    - GSM4013833
+    - GSM4013834
+    - GSM4013835
+    field: Sample_characteristics_ch1
+    quote: 'diet: UW'
+  10:
+    record:
+    - GSM4013836
+    - GSM4013837
+    - GSM4013838
+    - GSM4013839
+    field: Sample_characteristics_ch1
+    quote: 'diet: mNIA'
+  11:
+    record: GSE135532
+    field: Series_overall_design
+    quote: 4 cohorts of mice were administered NIA, UW, chow or modified- NIA diet for a period of 6 months.
+factors:
+  treatment:
+    levels:
+    - chow
+    - NIA
+    - UW
+    - mNIA
+    baseline: NIA
+    ordered: false
+    quoted:
+    - 11
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  sex:
+    text: male
+    term: male
+    quoted:
+    - 4
+    p: 1.0
+  age:
+    text: 7.5 months
+    value: 7.5
+    unit: months
+    inferred: Six-week-old at diet start plus six-month feeding.
+    see:
+    - 4
+    p: 0.97
+  development_stage:
+    text: adult
+    inferred: Six-week-old mice plus six months; adult at harvest.
+    p: 0.99
+  tissue:
+    text: heart - ventricles
+    quoted:
+    - 5
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: No disease or model stated; normal mice.
+    p: 0.95
+  strain:
+    text: C57BL/6
+    quoted:
+    - 6
+    p: 1.0
+  duration:
+    text: 6 months
+    value: 6
+    unit: months
+    quoted:
+    - 7
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down target.
+    p: 0.99
+  control_type:
+    na: No input or IgG background libraries; all RNA-Seq.
+    p: 1.0
+  cell_type:
+    na: Bulk ventricular myocardium; no cell type specified.
+    p: 0.98
+  cell_line:
+    na: Mouse tissue, not a cultured cell line.
+    p: 1.0
+  genotype:
+    unknown: No genotype given; C57BL/6 is recorded as strain.
+    p: 0.67
+  dose:
+    unknown: Diet was provided ad libitum; no administered dose.
+    p: 0.68
+samples:
+  GSM4013824:
+    treatment:
+      text: chow
+      level: chow
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC1
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM4013825:
+    treatment:
+      text: chow
+      level: chow
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC2
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM4013826:
+    treatment:
+      text: chow
+      level: chow
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC3
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM4013827:
+    treatment:
+      text: chow
+      level: chow
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CC4
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM4013828:
+    treatment:
+      text: NIA
+      level: NIA
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_MNC1
+      inferred: Jev picked the individual from the listed names
+      p: 0.93
+  GSM4013829:
+    treatment:
+      text: NIA
+      level: NIA
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_MNC2
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM4013830:
+    treatment:
+      text: NIA
+      level: NIA
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_MNC3
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM4013831:
+    treatment:
+      text: NIA
+      level: NIA
+      quoted:
+      - 8
+      p: 0.99
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_MNC4
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM4013832:
+    treatment:
+      text: UW
+      level: UW
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_NC1
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM4013833:
+    treatment:
+      text: UW
+      level: UW
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_NC2
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM4013834:
+    treatment:
+      text: UW
+      level: UW
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_NC3
+      inferred: Jev picked the individual from the listed names
+      p: 0.93
+  GSM4013835:
+    treatment:
+      text: UW
+      level: UW
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_NC4
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM4013836:
+    treatment:
+      text: mNIA
+      level: mNIA
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_UC1
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM4013837:
+    treatment:
+      text: mNIA
+      level: mNIA
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_UC3
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM4013838:
+    treatment:
+      text: mNIA
+      level: mNIA
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_UC5
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM4013839:
+    treatment:
+      text: mNIA
+      level: mNIA
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_UC6
+      inferred: Jev picked the individual from the listed names
+      p: 0.94

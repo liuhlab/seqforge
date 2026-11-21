@@ -1,0 +1,311 @@
+format: 1
+study: GSE126954
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: embryo'
+  2:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_source_name_ch1
+    quote: C. elegans embryos
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  5:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    field: Sample_characteristics_ch1
+    quote: 'strain: VC2010, derived from N2'
+  6:
+    record:
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  7:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L2'
+  8:
+    record: GSM4318946
+    field: Sample_source_name_ch1
+    quote: whole c.elegans (L2 stage)
+  9:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: 'strain: C. elegans strain (RW12139 stIs11435(unc-120::H1-Wcherry;unc-119(+));unc-119(tm4063))
+      carrying an integrated Punc-120::mCherry gene in a wild type background was used'
+factors:
+  development_stage:
+    levels:
+    - embryo
+    - L2
+    baseline: null
+    ordered: true
+    inferred: the characteristic "developmental stage" varies between samples
+    p: 0.63
+  tissue:
+    levels:
+    - C. elegans embryos
+    - whole c.elegans (L2 stage)
+    baseline: whole c.elegans (L2 stage)
+    ordered: true
+    inferred: the characteristic "source name" varies between samples
+    p: 0.56
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 4
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    na: does not apply to these samples
+    p: 0.57
+  age:
+    unknown: nothing read says it
+    p: 0.76
+  cell_type:
+    unknown: nothing read says it
+    p: 0.73
+  cell_line:
+    na: tissue taken from an animal
+    p: 0.98
+  disease:
+    na: does not apply to these samples
+    p: 0.94
+  genotype:
+    unknown: nothing read says it
+    p: 0.79
+  treatment:
+    na: no treatment applied
+    p: 0.65
+  dose:
+    na: no treatment
+    p: 0.86
+  duration:
+    na: no treatment
+    p: 0.69
+  donor:
+    na: a pool of many individuals
+    p: 0.93
+samples:
+  GSM3618670:
+    development_stage:
+      text: embryo
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      level: C. elegans embryos
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618671:
+    development_stage:
+      text: embryo
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      level: C. elegans embryos
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618672:
+    development_stage:
+      text: embryo
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      level: C. elegans embryos
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618673:
+    development_stage:
+      text: embryo
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      level: C. elegans embryos
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618674:
+    development_stage:
+      text: embryo
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      level: C. elegans embryos
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 0.96
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618675:
+    development_stage:
+      text: embryo
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      level: C. elegans embryos
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 0.97
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618676:
+    development_stage:
+      text: embryo
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      level: C. elegans embryos
+      quoted:
+      - 2
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 0.97
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4318946:
+    development_stage:
+      text: L2
+      level: L2
+      quoted:
+      - 7
+      p: 1.0
+    tissue:
+      text: whole c.elegans (L2 stage)
+      level: whole c.elegans (L2 stage)
+      quoted:
+      - 8
+      p: 0.99
+    strain:
+      text: C. elegans strain (RW12139 stIs11435(unc-120::H1-Wcherry;unc-119(+));unc-119(tm4063)) carrying
+        an integrated Punc-120::mCherry gene in a wild type background was used
+      quoted:
+      - 9
+      p: 0.98
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null

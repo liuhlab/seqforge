@@ -1,0 +1,1713 @@
+{
+ "study": "GSE274290",
+ "chain": "flash_think",
+ "read_full": true,
+ "n_samples": 7,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "rna_i",
+   "levels": [
+    "vector_control",
+    "elt1_rnai"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.05,
+   "baseline": "L0",
+   "p_baseline": 0.98,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 1.0,
+   "p_ordered": 0.06,
+   "writer_baseline": "vector_control",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [
+  [
+   "GSM8446966",
+   "lab_development_stage",
+   "unknown",
+   "v0"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.89,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.86,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.67,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "rna_i",
+   "mark": "unknown",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biological_replicate",
+   "mark": "unknown",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "rna_i",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biological_replicate",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "rna_i",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biological_replicate",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "rna_i",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biological_replicate",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "rna_i",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.54,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biological_replicate",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "rna_i",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biological_replicate",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "rna_i",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biological_replicate",
+   "mark": "quoted",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:rna_i",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM8446960": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "rna_i": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "scRNA-seq",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "germline",
+    null
+   ],
+   "cell_type": [
+    "germ cell",
+    null
+   ],
+   "genotype": [
+    "gfp::tev::flag::prg-1",
+    null
+   ],
+   "strain": [
+    "gfp::tev::flag::prg-1",
+    null
+   ],
+   "treatment": [
+    "L4 worm after synchronization",
+    null
+   ],
+   "biological_replicate": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM8446961": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "rna_i": [
+    "with vector RNAi control",
+    "vector_control"
+   ],
+   "assay": [
+    "smRNA-seq",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "whole worms",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "with vector RNAi control",
+    null
+   ],
+   "biological_replicate": [
+    "bio rep1",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM8446962": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "rna_i": [
+    "with vector RNAi control",
+    "vector_control"
+   ],
+   "assay": [
+    "smRNA-seq",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "whole worms",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "with vector RNAi control",
+    null
+   ],
+   "biological_replicate": [
+    "bio rep2",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM8446963": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "rna_i": [
+    "with vector RNAi control",
+    "vector_control"
+   ],
+   "assay": [
+    "smRNA-seq",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "whole worms",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "with vector RNAi control",
+    null
+   ],
+   "biological_replicate": [
+    "bio rep3",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM8446964": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "rna_i": [
+    "with elt-1 RNAi",
+    "elt1_rnai"
+   ],
+   "assay": [
+    "smRNA-seq",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "whole worms",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "with elt-1 RNAi",
+    null
+   ],
+   "biological_replicate": [
+    "bio rep1",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM8446965": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "rna_i": [
+    "with elt-1 RNAi",
+    "elt1_rnai"
+   ],
+   "assay": [
+    "smRNA-seq",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "whole worms",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "with elt-1 RNAi",
+    null
+   ],
+   "biological_replicate": [
+    "bio rep2",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM8446966": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "rna_i": [
+    "with elt-1 RNAi",
+    "elt1_rnai"
+   ],
+   "assay": [
+    "smRNA-seq",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "whole worms",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "with elt-1 RNAi",
+    null
+   ],
+   "biological_replicate": [
+    "bio rep3",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "rna_i": {
+   "levels": [
+    "vector_control",
+    "elt1_rnai"
+   ],
+   "baseline": "vector_control",
+   "ordered": false,
+   "quoted": [
+    17
+   ],
+   "p": 0.97
+  }
+ },
+ "n_passages": 17,
+ "n_shared": 10,
+ "n_row_claims": 70,
+ "lists_summary": {
+  "factors": 1,
+  "factors_kept": 1,
+  "labels_with_values": 10,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "factor_over_part",
+    "note": "RNAi treatment factor covers six smRNA-seq samples; scRNA-seq sample is outside it."
+   },
+   {
+    "kind": "baseline_as_control",
+    "note": "Vector RNAi control is a baseline comparison, not an input/IgG control_type library."
+   },
+   {
+    "kind": "series_membership",
+    "note": "Seven samples span GSE274290 scRNA-seq and GSE274291 smRNA-seq with different designs."
+   },
+   {
+    "kind": "pooled_material",
+    "note": "Whole-worm and sorted germ-cell samples are pools; no individual donor IDs are given."
+   },
+   {
+    "kind": "sources_disagree",
+    "note": "Sample_instrument_model says Illumina NovaSeq 6000; small-RNA protocol says multiple Illumina platforms."
+   },
+   {
+    "kind": "other",
+    "note": "Cell_type is germ cell for scRNA; whole-worm smRNA samples have no cell type."
+   },
+   {
+    "kind": "other",
+    "note": "smRNA sample records do not state development stage; paper implies L4."
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "rna_i/L0",
+   "status": "named",
+   "source": "GSM8446961",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.97
+  },
+  {
+   "key": "rna_i/L1",
+   "status": "named",
+   "source": "GSM8446964",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 26,
+   "backs_p": 0.99
+  },
+  {
+   "key": "rna_i/_factor",
+   "status": "named",
+   "source": "GSE274291",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 96,
+   "backs_p": 0.89
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSE274290",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 111,
+   "backs_p": 0.98
+  },
+  {
+   "key": "assay/v1",
+   "status": "named",
+   "source": "GSE274291",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 111,
+   "backs_p": 0.97
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "pmid:40097379",
+   "field": "Introduction",
+   "exact": true,
+   "quote_len": 48,
+   "backs_p": 0.77
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "GSM8446960",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 33,
+   "backs_p": 0.98
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM8446960",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v1",
+   "status": "named",
+   "source": "GSM8446961",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "GSM8446960",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "source": "GSM8446961",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/v1",
+   "status": "named",
+   "source": "GSM8446960",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM8446961",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v1",
+   "status": "named",
+   "source": "GSM8446960",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "source": "GSM8446960",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 40,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/v1",
+   "status": "named",
+   "source": "GSM8446961",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v2",
+   "status": "named",
+   "source": "GSM8446964",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 26,
+   "backs_p": 0.99
+  },
+  {
+   "key": "biological_replicate/v0",
+   "status": "named",
+   "source": "GSM8446961",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.98
+  },
+  {
+   "key": "biological_replicate/v1",
+   "status": "named",
+   "source": "GSM8446962",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.98
+  },
+  {
+   "key": "biological_replicate/v2",
+   "status": "named",
+   "source": "GSM8446963",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.98
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "germ cell",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": [
+    {
+     "id": "CL:0000586",
+     "label": "germ cell",
+     "exact": true
+    },
+    {
+     "id": "CL:0000015",
+     "label": "male germ cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0000670",
+     "label": "primordial germ cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0000039",
+     "label": "germ line cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0000021",
+     "label": "female germ cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0002238",
+     "label": "male gonocyte",
+     "exact": false
+    },
+    {
+     "id": "CL:0000844",
+     "label": "germinal center B cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0009062",
+     "label": "germinal center T cell",
+     "exact": false
+    }
+   ],
+   "pick": "CL:0000586",
+   "p": 0.96,
+   "probe_pick": "CL:0000039",
+   "probe_p": 0.6
+  },
+  {
+   "label": "development_stage",
+   "text": "L4",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": [
+    {
+     "id": "WBls:0000082",
+     "label": "Brugia L4",
+     "exact": true
+    },
+    {
+     "id": "WBls:0000039",
+     "label": "L4-adult lethargus Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000040",
+     "label": "L4-adult molt Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000050",
+     "label": "L4-adult ecdysis Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000064",
+     "label": "1-day post-L4 adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000065",
+     "label": "2-days post-L4 adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000066",
+     "label": "3-days post-L4 adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000067",
+     "label": "4-days post-L4 adult hermaphrodite Ce",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.58
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "germline",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "WBbt:0005784",
+     "label": "germ line",
+     "exact": true
+    },
+    {
+     "id": "WBbt:0006849",
+     "label": "germline precursor cell",
+     "exact": false
+    },
+    {
+     "id": "WBbt:0008448",
+     "label": "germline blastomere",
+     "exact": false
+    },
+    {
+     "id": "WBbt:0005785",
+     "label": "somatic gonad",
+     "exact": false
+    },
+    {
+     "id": "GO:0002562",
+     "label": "somatic diversification of immune receptors via germline recombination within a single locus",
+     "exact": false
+    },
+    {
+     "id": "GO:0098728",
+     "label": "germline stem cell asymmetric division",
+     "exact": false
+    },
+    {
+     "id": "CL:0000014",
+     "label": "germ line stem cell",
+     "exact": false
+    }
+   ],
+   "pick": "WBbt:0005784",
+   "p": 0.96,
+   "probe_pick": "none",
+   "probe_p": 0.65
+  },
+  {
+   "label": "tissue",
+   "text": "whole worms",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "L4 worm after synchronization",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "with elt-1 RNAi",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "with vector RNAi control",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.24,
+  "untreated_or_vehicle": 0.96,
+  "several_compounds": 0.09,
+  "route_or_side": 0.14,
+  "dose_per_unit": 0.14,
+  "duration_without_number": 0.08,
+  "time_from_event": 0.3,
+  "pooled_material": 0.96,
+  "held_constant": 0.81,
+  "batch": 0.23,
+  "sequencer": 0.24,
+  "vector": 0.35,
+  "one_control_many_materials": 0.08,
+  "baseline_as_control": 0.15,
+  "single_cell": 0.76,
+  "mixed_assays": 0.96
+ },
+ "donor_kind": [
+  "pool",
+  0.92
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.014345724,
+   "seconds": 114.951,
+   "tokens_in": 17922,
+   "tokens_out": 20558
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000232344,
+   "seconds": 0.26,
+   "tokens_in": 5532
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114156,
+   "seconds": 0.255,
+   "tokens_in": 2718
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108948,
+   "seconds": 0.256,
+   "tokens_in": 2594
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000108948,
+   "seconds": 0.293,
+   "tokens_in": 2594
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114156,
+   "seconds": 0.303,
+   "tokens_in": 2718
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114156,
+   "seconds": 0.289,
+   "tokens_in": 2718
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114156,
+   "seconds": 0.232,
+   "tokens_in": 2718
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114156,
+   "seconds": 0.282,
+   "tokens_in": 2718
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114156,
+   "seconds": 0.266,
+   "tokens_in": 2718
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114282,
+   "seconds": 0.282,
+   "tokens_in": 2721
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114282,
+   "seconds": 0.291,
+   "tokens_in": 2721
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114282,
+   "seconds": 0.281,
+   "tokens_in": 2721
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114282,
+   "seconds": 0.262,
+   "tokens_in": 2721
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114282,
+   "seconds": 0.292,
+   "tokens_in": 2721
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000114282,
+   "seconds": 0.239,
+   "tokens_in": 2721
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00024024,
+   "seconds": 0.284,
+   "tokens_in": 5720
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 6.0648e-05,
+   "seconds": 0.274,
+   "tokens_in": 1444
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 4.7208e-05,
+   "seconds": 0.367,
+   "tokens_in": 1124
+  }
+ ],
+ "seconds": 0.34,
+ "ending": "settled",
+ "variant": "flash_think_full"
+}

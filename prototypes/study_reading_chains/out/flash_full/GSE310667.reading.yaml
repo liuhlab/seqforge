@@ -1,0 +1,575 @@
+format: 1
+study: GSE310667
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record: GSM9305641
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Command interneurons'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: GSM9305641
+    field: Sample_title
+    quote: Command interneurons, L1 stage hermaphrodite Caenorhabditis elegans, 5929
+  5:
+    record: GSM9305641
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (12-16 hph)'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wt'
+  7:
+    record: GSM9305641
+    field: Sample_characteristics_ch1
+    quote: 'strain: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]'
+  8:
+    record:
+    - GSM9305641
+    - GSM9305642
+    - GSM9305643
+    - GSM9305644
+    - GSM9305645
+    - GSM9305646
+    - GSM9305647
+    - GSM9305648
+    - GSM9305650
+    - GSM9305651
+    - GSM9305652
+    - GSM9305653
+    - GSM9305654
+    - GSM9305655
+    - GSM9305656
+    field: Sample_characteristics_ch1
+    quote: 'cell status: Live'
+  9:
+    record: GSM9305642
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Sensory neurons'
+  10:
+    record:
+    - GSM9305643
+    - GSM9305644
+    field: Sample_characteristics_ch1
+    quote: 'tissue: All neurons'
+  11:
+    record: GSM9305645
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons (RIR, RIH, RIP, etc.)'
+  12:
+    record: GSM9305646
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Glutametergic neurons'
+  13:
+    record:
+    - GSM9305647
+    - GSM9305649
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons (pharyngeal neurons, SAB, DA)'
+  14:
+    record: GSM9305648
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)'
+  15:
+    record: GSM9305650
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)'
+  16:
+    record:
+    - GSM9305651
+    - GSM9305652
+    - GSM9305653
+    - GSM9305654
+    field: Sample_characteristics_ch1
+    quote: 'tissue: P-lineage progenitors and neurons'
+  17:
+    record:
+    - GSM9305655
+    - GSM9305656
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons (SAA)'
+  18:
+    record: GSE310667
+    field: Series_overall_design
+    quote: Neurons were isolated from L1 stage hermaphrodite Caenorhabditis elegans using Fluroescence-activated
+      cell sorting (FACS) and analyzed using scRNA-seq.
+factors:
+  cell_type:
+    levels:
+    - command_interneurons
+    - sensory_neurons
+    - all_neurons
+    - unc86_neurons
+    - glutamatergic_neurons
+    - ceh34_unc4_neurons
+    - mec3_unc47_nlp13_ceh10_neurons
+    - unc4c_ceh2_acr2_neurons
+    - p_lineage_progenitors
+    - flp7_neurons
+    baseline: null
+    ordered: false
+    inferred: Ten distinct FACS-sorted neuronal populations profiled
+    see:
+    - 18
+    p: 0.97
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 4
+    p: 0.98
+  age:
+    text: L1 (12-16 hph)
+    value:
+    - 12
+    - 16
+    unit: hour
+    quoted:
+    - 5
+    p: 0.59
+  development_stage:
+    text: L1 (12-16 hph)
+    quoted:
+    - 5
+    p: 0.72
+  genotype:
+    text: wt
+    quoted:
+    - 6
+    p: 0.99
+  target:
+    na: no pull-down; FACS-sorted cells only
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  cell_line:
+    na: whole animals, no cell line
+    p: 1.0
+  disease:
+    na: no disease model described
+    p: 0.92
+  treatment:
+    na: no treatment applied
+    p: 0.79
+  dose:
+    na: no treatment applied
+    p: 0.98
+  duration:
+    na: no treatment applied
+    p: 1.0
+  donor:
+    na: a pool of many individuals
+    p: 0.88
+samples:
+  GSM9305641:
+    cell_type:
+      text: 'tissue: Command interneurons'
+      level: command_interneurons
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: Command interneurons
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 1.0
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305642:
+    cell_type:
+      text: 'tissue: Sensory neurons'
+      level: sensory_neurons
+      quoted:
+      - 9
+      p: 1.0
+    tissue:
+      text: Command interneurons
+      quoted:
+      - 1
+      p: 0.53
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.58
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.96
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305643:
+    cell_type:
+      text: 'tissue: All neurons'
+      level: all_neurons
+      quoted:
+      - 10
+      p: 0.96
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.56
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.56
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.96
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305644:
+    cell_type:
+      text: 'tissue: All neurons'
+      level: all_neurons
+      quoted:
+      - 10
+      p: 0.98
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.48
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.63
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305645:
+    cell_type:
+      text: 'tissue: Subgroups of neurons (RIR, RIH, RIP, etc.)'
+      level: unc86_neurons
+      quoted:
+      - 11
+      p: 0.98
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.6
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.56
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305646:
+    cell_type:
+      text: 'tissue: Glutametergic neurons'
+      level: glutamatergic_neurons
+      quoted:
+      - 12
+      p: 0.99
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.52
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.61
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305647:
+    cell_type:
+      text: 'tissue: Subgroups of neurons (pharyngeal neurons, SAB, DA)'
+      level: ceh34_unc4_neurons
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.56
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.5
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.99
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305648:
+    cell_type:
+      text: 'tissue: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)'
+      level: mec3_unc47_nlp13_ceh10_neurons
+      quoted:
+      - 14
+      p: 1.0
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.6
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.57
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.96
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305649:
+    cell_type:
+      text: 'tissue: Subgroups of neurons (pharyngeal neurons, SAB, DA)'
+      level: ceh34_unc4_neurons
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.63
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.53
+    cell_status:
+      unknown: what was read does not say its cell status
+      p: 0.7
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305650:
+    cell_type:
+      text: 'tissue: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)'
+      level: unc4c_ceh2_acr2_neurons
+      quoted:
+      - 15
+      p: 1.0
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.62
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.62
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.96
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305651:
+    cell_type:
+      text: 'tissue: P-lineage progenitors and neurons'
+      level: p_lineage_progenitors
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.57
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.55
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305652:
+    cell_type:
+      text: 'tissue: P-lineage progenitors and neurons'
+      level: p_lineage_progenitors
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.56
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.53
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.96
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305653:
+    cell_type:
+      text: 'tissue: P-lineage progenitors and neurons'
+      level: p_lineage_progenitors
+      quoted:
+      - 16
+      p: 0.99
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.51
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.58
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305654:
+    cell_type:
+      text: 'tissue: P-lineage progenitors and neurons'
+      level: p_lineage_progenitors
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.54
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.6
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.98
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305655:
+    cell_type:
+      text: 'tissue: Subgroups of neurons (SAA)'
+      level: flp7_neurons
+      quoted:
+      - 17
+      p: 1.0
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.59
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.53
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.97
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305656:
+    cell_type:
+      text: 'tissue: Subgroups of neurons (SAA)'
+      level: flp7_neurons
+      quoted:
+      - 17
+      p: 1.0
+    tissue:
+      unknown: what was read does not say its tissue
+      p: 0.61
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      quoted:
+      - 7
+      p: 0.55
+    cell_status:
+      text: Live
+      quoted:
+      - 8
+      p: 0.95
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null

@@ -1,0 +1,22 @@
+{
+ "study": "GSE106105",
+ "chain": "flash",
+ "read_full": false,
+ "n_samples": 11,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "ending": "refused",
+ "reason": "the writer's answer is not a JSON object",
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.001070106,
+   "seconds": 5.62,
+   "tokens_in": 3079,
+   "tokens_out": 1296
+  }
+ ],
+ "seconds": 0.0012500286102294922,
+ "variant": "flash"
+}

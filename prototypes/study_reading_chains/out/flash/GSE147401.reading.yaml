@@ -1,0 +1,1704 @@
+format: 1
+study: GSE147401
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430038
+    - GSM4430039
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wild-type'
+  2:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430034
+    - GSM4430035
+    - GSM4430042
+    - GSM4430043
+    - GSM4430046
+    - GSM4430047
+    field: Sample_characteristics_ch1
+    quote: 'antibody: H3K27me3'
+  3:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Stage: Young adult'
+  6:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Isolated germ nuclei'
+  7:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430038
+    - GSM4430039
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  8:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_treatment_protocol_ch1
+    quote: worms were crosslinked in 2% formaldehyde in M9 buffer for 28 minutes rotating at room temperature
+  9:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_growth_protocol_ch1
+    quote: For wild-type and oef-1(vr25) strains, L1s were grown until young adult at 20˚C
+  10:
+    record:
+    - GSM4430032
+    - GSM4430033
+    - GSM4430036
+    - GSM4430037
+    - GSM4430044
+    - GSM4430045
+    - GSM4430048
+    - GSM4430049
+    field: Sample_characteristics_ch1
+    quote: 'antibody: H3K36me3'
+  11:
+    record:
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430040
+    - GSM4430041
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'genotype: oef-1(vr25)'
+  12:
+    record:
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430040
+    - GSM4430041
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'strain: YL585'
+  13:
+    record:
+    - GSM4430038
+    - GSM4430039
+    field: Sample_description
+    quote: A fraction of the input total chromatin that was used for H3K27me3 or H3K36me3 ChIP on wild
+      type
+  14:
+    record:
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'genotype: glp-4(bn2)'
+  15:
+    record:
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Whole animal'
+  16:
+    record:
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430050
+    - GSM4430051
+    field: Sample_characteristics_ch1
+    quote: 'strain: SS104'
+  17:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_growth_protocol_ch1
+    quote: For glp-4 and glp-4; oef-1 strains, L1s were grown until young adulthood at 25˚C
+  18:
+    record:
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'genotype: glp-4(bn2); oef-1(vr25)'
+  19:
+    record:
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'strain: YL679'
+  20:
+    record:
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  21:
+    record:
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Dissected gonads'
+  22:
+    record:
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_treatment_protocol_ch1
+    quote: Young adult worms were dissected to release gonads and cut at the spermatheca in M9 with levamisole
+      and Tween 20
+factors:
+  genotype:
+    levels:
+    - wild_type
+    - oef1_vr25
+    - glp4_bn2
+    - glp4_oef1
+    baseline: wild_type
+    ordered: false
+    inferred: four genotypes compared for histone marks and RNA
+    p: 0.98
+  target:
+    levels:
+    - H3K27me3
+    - H3K36me3
+    baseline: null
+    ordered: false
+    inferred: two histone marks pulled down in ChIP-seq
+    p: 0.96
+shared:
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: Young adult
+    quoted:
+    - 5
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease model mentioned
+    p: 0.92
+  sex:
+    unknown: hermaphrodite implied by strain but not stated per sample
+    p: 0.81
+  age:
+    unknown: no age with number and unit given
+    p: 0.71
+  cell_type:
+    unknown: germ cells implied but no cell type field
+    p: 0.66
+  cell_line:
+    na: whole animals, no cell line used
+    p: 1.0
+  dose:
+    na: no dose applied to animals
+    p: 0.65
+  duration:
+    na: no treatment duration applied
+    p: 0.51
+  donor:
+    na: a pool of many individuals
+    p: 0.94
+samples:
+  GSM4430030:
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.77
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.97
+    biosample:
+      id: B1
+      inferred: Jev judged these libraries made from one preparation
+      p: 0.54
+  GSM4430031:
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.8
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.96
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430032:
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: H3K36me3
+      quoted:
+      - 10
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.77
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.97
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430033:
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: H3K36me3
+      quoted:
+      - 10
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.84
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.97
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430034:
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 11
+      p: 0.99
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.73
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 12
+      p: 0.99
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.96
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430035:
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 11
+      p: 0.99
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.78
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 12
+      p: 0.99
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.97
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430036:
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 11
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: H3K36me3
+      quoted:
+      - 10
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.82
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.98
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430037:
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 11
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: H3K36me3
+      quoted:
+      - 10
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.77
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.98
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430038:
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.73
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.97
+    biosample:
+      id: B1
+      inferred: Jev judged these libraries made from one preparation
+      p: 0.54
+  GSM4430039:
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.75
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.97
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430040:
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 11
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.65
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.98
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430041:
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 11
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.58
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.98
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430042:
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      quoted:
+      - 14
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.81
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.84
+    strain:
+      text: SS104
+      quoted:
+      - 16
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.97
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430043:
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      quoted:
+      - 14
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.8
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.83
+    strain:
+      text: SS104
+      quoted:
+      - 16
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.96
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430044:
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      quoted:
+      - 14
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: H3K36me3
+      quoted:
+      - 10
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.86
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.9
+    strain:
+      text: SS104
+      quoted:
+      - 16
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.95
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430045:
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      quoted:
+      - 14
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: H3K36me3
+      quoted:
+      - 10
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.81
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.88
+    strain:
+      text: SS104
+      quoted:
+      - 16
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.96
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430046:
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 18
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.82
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.74
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.97
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430047:
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 18
+      p: 1.0
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.86
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.74
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.96
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430048:
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 18
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: H3K36me3
+      quoted:
+      - 10
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.75
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.78
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.97
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430049:
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 18
+      p: 1.0
+    target:
+      text: H3K36me3
+      level: H3K36me3
+      quoted:
+      - 10
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.81
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.82
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.97
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430050:
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      quoted:
+      - 14
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.63
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.96
+    strain:
+      text: SS104
+      quoted:
+      - 16
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.98
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430051:
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      quoted:
+      - 14
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.61
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.94
+    strain:
+      text: SS104
+      quoted:
+      - 16
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.96
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430052:
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 18
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.67
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.94
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.97
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430053:
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 18
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.67
+    assay:
+      text: ChIP-Seq
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 13
+      p: 1.0
+    tissue:
+      text: Whole animal
+      quoted:
+      - 15
+      p: 0.91
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    treatment:
+      text: crosslinked in 2% formaldehyde
+      quoted:
+      - 8
+      p: 1.0
+    temperature:
+      text: 25˚C
+      quoted:
+      - 17
+      p: 0.96
+    biosample:
+      id: B23
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430054:
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.9
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: dissected in M9 with levamisole and Tween 20
+      quoted:
+      - 22
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.94
+    biosample:
+      id: B24
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430055:
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.91
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: dissected in M9 with levamisole and Tween 20
+      quoted:
+      - 22
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.93
+    biosample:
+      id: B25
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430056:
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 1
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.88
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: dissected in M9 with levamisole and Tween 20
+      quoted:
+      - 22
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.93
+    biosample:
+      id: B26
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430057:
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 11
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.86
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: dissected in M9 with levamisole and Tween 20
+      quoted:
+      - 22
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.96
+    biosample:
+      id: B27
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430058:
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 11
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.9
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: dissected in M9 with levamisole and Tween 20
+      quoted:
+      - 22
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.95
+    biosample:
+      id: B28
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4430059:
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 11
+      p: 1.0
+    target:
+      na: target does not apply to this sample
+      p: 0.91
+    assay:
+      text: RNA-Seq
+      quoted:
+      - 20
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 12
+      p: 1.0
+    treatment:
+      text: dissected in M9 with levamisole and Tween 20
+      quoted:
+      - 22
+      p: 1.0
+    temperature:
+      text: 20˚C
+      quoted:
+      - 9
+      p: 0.95
+    biosample:
+      id: B29
+      inferred: no text says this library shares its material with another
+      p: null

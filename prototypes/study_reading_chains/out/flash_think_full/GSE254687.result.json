@@ -1,0 +1,4418 @@
+{
+ "study": "GSE254687",
+ "chain": "flash_think",
+ "read_full": true,
+ "n_samples": 21,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "KO",
+    "WT"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.04,
+   "baseline": "L1",
+   "p_baseline": 0.98,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 0.99,
+   "p_ordered": 0.05,
+   "writer_baseline": "WT",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "LPS",
+    "PBS"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.04,
+   "baseline": "L1",
+   "p_baseline": 0.71,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 0.69,
+   "p_ordered": 0.28,
+   "writer_baseline": "PBS",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "time_after_injection",
+   "levels": [
+    "6h",
+    "24h"
+   ],
+   "p_designed": 0.57,
+   "p_designed_neg": 0.15,
+   "baseline": "no_reference",
+   "p_baseline": 0.52,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.57,
+   "p_ordered": 0.79,
+   "writer_baseline": null,
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [
+  [
+   "GSM8048787",
+   "lab_dose",
+   "v0",
+   "na"
+  ],
+  [
+   "GSM8048788",
+   "lab_dose",
+   "na",
+   "v0"
+  ],
+  [
+   "GSM8085925",
+   "lab_sex",
+   "v1",
+   "v0"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "route",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.94,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.82,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.82,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.82,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.82,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.49,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.59,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.58,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.58,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.61,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.8,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.48,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.48,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.82,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.46,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "quoted",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_after_injection",
+   "mark": "unknown",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.5,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "isolation_method",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "factor:time_after_injection",
+   "mark": "quoted",
+   "p": 0.57,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM8048782": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM8048783": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM8048784": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM8048785": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM8048786": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM8048787": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM8048788": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM8048789": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM8048790": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  },
+  "GSM8048791": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D10",
+    null
+   ]
+  },
+  "GSM8048792": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D11",
+    null
+   ]
+  },
+  "GSM8048793": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D12",
+    null
+   ]
+  },
+  "GSM8048794": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D13",
+    null
+   ]
+  },
+  "GSM8048795": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D14",
+    null
+   ]
+  },
+  "GSM8048796": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D15",
+    null
+   ]
+  },
+  "GSM8048797": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D16",
+    null
+   ]
+  },
+  "GSM8048798": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ],
+   "donor": [
+    "D17",
+    null
+   ]
+  },
+  "GSM8048799": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ],
+   "donor": [
+    "D18",
+    null
+   ]
+  },
+  "GSM8048800": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "PBS",
+    "PBS"
+   ],
+   "time_after_injection": [
+    "6h",
+    "6h"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "tissue": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "cell_type": [
+    "Primary Microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "CD11b enrichment of cells from whole brain",
+    null
+   ],
+   "biosample": [
+    "B19",
+    null
+   ],
+   "donor": [
+    "D19",
+    null
+   ]
+  },
+  "GSM8085924": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "KO",
+    "KO"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "24h",
+    "24h"
+   ],
+   "assay": [
+    "Single cell RNA seq using Dropseq - 3' bead based enrichment technique",
+    null
+   ],
+   "sex": [
+    "1 female and 1 male",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "cell_type": [
+    "microglia",
+    null
+   ],
+   "disease": [
+    "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "FACS‐sorted CD11b+CD45int cells were collected in pre‐cooled HBSS and 0.5% BSA",
+    null
+   ],
+   "biosample": [
+    "B20",
+    null
+   ],
+   "donor": [
+    "D20",
+    null
+   ]
+  },
+  "GSM8085925": {
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "age": [
+    "3- and 4-month",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "strain": [
+    "C57BL/6NCrl",
+    null
+   ],
+   "route": [
+    "i.p.",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "LPS",
+    "LPS"
+   ],
+   "time_after_injection": [
+    "<unknown>",
+    null
+   ],
+   "assay": [
+    "Single cell RNA seq using Dropseq - 3' bead based enrichment technique",
+    null
+   ],
+   "sex": [
+    "1 female and 1 male",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "cell_type": [
+    "microglia",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "4ug/g body weight",
+    null
+   ],
+   "isolation_method": [
+    "FACS‐sorted CD11b+CD45int cells were collected in pre‐cooled HBSS and 0.5% BSA",
+    null
+   ],
+   "biosample": [
+    "B21",
+    null
+   ],
+   "donor": [
+    "D21",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "KO",
+    "WT"
+   ],
+   "baseline": "WT",
+   "ordered": false,
+   "quoted": [
+    24
+   ],
+   "p": 0.98
+  },
+  "treatment": {
+   "levels": [
+    "LPS",
+    "PBS"
+   ],
+   "baseline": "PBS",
+   "ordered": false,
+   "inferred": "LPS vs PBS vehicle",
+   "p": 0.97
+  },
+  "time_after_injection": {
+   "levels": [
+    "6h",
+    "24h"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "quoted": [
+    25
+   ],
+   "p": 0.57
+  }
+ },
+ "n_passages": 25,
+ "n_shared": 9,
+ "n_row_claims": 252,
+ "lists_summary": {
+  "factors": 3,
+  "factors_kept": 3,
+  "labels_with_values": 10,
+  "extra_labels": 3,
+  "writer_gaps": [
+   {
+    "kind": "time_from_event",
+    "note": "6/24 h are post-injection harvest times, not treatment durations."
+   },
+   {
+    "kind": "crossed_not_fully",
+    "note": "24 h only LPS scRNA; 6 h bulk has LPS and PBS."
+   },
+   {
+    "kind": "pooled_material",
+    "note": "Each scRNA library pools 2 mice (1 female, 1 male)."
+   },
+   {
+    "kind": "baseline_as_control",
+    "note": "PBS is vehicle baseline, not a control_type library."
+   },
+   {
+    "kind": "group_smaller_than_study",
+    "note": "WT PBS has 4 mice; other bulk groups 5."
+   },
+   {
+    "kind": "batch",
+    "note": "Bulk and scRNA differ in assay and sequencer; not batch-controlled."
+   }
+  ],
+  "donor_kind_writer": "unknown",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM8048792",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "same_source_other_field",
+   "source": "pmid:39014482",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 55,
+   "backs_p": 0.93
+  },
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM8048787",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "time_after_injection/L0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.98
+  },
+  {
+   "key": "time_after_injection/L1",
+   "status": "named",
+   "source": "GSE256105",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.98
+  },
+  {
+   "key": "time_after_injection/_factor",
+   "status": "same_source_other_field",
+   "source": "pmid:39014482",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 55,
+   "backs_p": 0.86
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "assay/v1",
+   "status": "named",
+   "source": "GSM8085924",
+   "field": "Sample_extract_protocol_ch1",
+   "exact": true,
+   "quote_len": 70,
+   "backs_p": 0.84
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 46,
+   "backs_p": 0.97
+  },
+  {
+   "key": "sex/v1",
+   "status": "named",
+   "source": "GSE256105",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 42,
+   "backs_p": 0.98
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "source": "pmid:39014482",
+   "field": "Materials and methods > Mice",
+   "exact": true,
+   "quote_len": 131,
+   "backs_p": 0.94
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "pmid:39014482",
+   "field": "Discussion",
+   "exact": true,
+   "quote_len": 58,
+   "backs_p": 0.82
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 50,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v1",
+   "status": "named",
+   "source": "GSM8085924",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.91
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v1",
+   "status": "named",
+   "source": "GSM8085924",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.96
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "pmid:39014482",
+   "field": "Discussion",
+   "exact": true,
+   "quote_len": 46,
+   "backs_p": 0.61
+  },
+  {
+   "key": "disease/v1",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "pmid:39014482",
+   "field": "Materials and methods > Mice",
+   "exact": true,
+   "quote_len": 79,
+   "backs_p": 0.63
+  },
+  {
+   "key": "dose/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 37,
+   "backs_p": 0.99
+  },
+  {
+   "key": "isolation_method/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 42,
+   "backs_p": 0.99
+  },
+  {
+   "key": "isolation_method/v1",
+   "status": "named",
+   "source": "GSM8085924",
+   "field": "Sample_extract_protocol_ch1",
+   "exact": true,
+   "quote_len": 78,
+   "backs_p": 0.94
+  },
+  {
+   "key": "route/v0",
+   "status": "named",
+   "source": "GSM8048782",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 4,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "Primary Microglia",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "microglia",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": [
+    {
+     "id": "CL:0000129",
+     "label": "microglial cell",
+     "exact": true
+    },
+    {
+     "id": "CL:4307132",
+     "label": "microglial cell (Mmus)",
+     "exact": false
+    },
+    {
+     "id": "CL:0002629",
+     "label": "mature microglial cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0002628",
+     "label": "immature microglial cell",
+     "exact": false
+    },
+    {
+     "id": "GO:0014008",
+     "label": "positive regulation of microglia differentiation",
+     "exact": false
+    },
+    {
+     "id": "GO:0014007",
+     "label": "negative regulation of microglia differentiation",
+     "exact": false
+    },
+    {
+     "id": "GO:0014004",
+     "label": "microglia differentiation",
+     "exact": false
+    },
+    {
+     "id": "GO:0014006",
+     "label": "regulation of microglia differentiation",
+     "exact": false
+    }
+   ],
+   "pick": "CL:0000129",
+   "p": 0.93,
+   "probe_pick": "CL:0002629",
+   "probe_p": 0.54
+  },
+  {
+   "label": "development_stage",
+   "text": "adult",
+   "vocab": [
+    "mmusdv"
+   ],
+   "candidates": [
+    {
+     "id": "MmusDv:0000134",
+     "label": "late adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000136",
+     "label": "prime adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000153",
+     "label": "young adult stage",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.5
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "prodromal model of PD, the PARK7/DJ-1 KO mouse",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Brain",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0000955",
+     "label": "brain",
+     "exact": true
+    },
+    {
+     "id": "UBERON:6110636",
+     "label": "insect adult cerebral ganglion",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0002616",
+     "label": "regional part of brain",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003528",
+     "label": "brain gray matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003544",
+     "label": "brain white matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0013150",
+     "label": "future brain vesicle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014891",
+     "label": "brainstem white matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003547",
+     "label": "brain meninx",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0000955",
+   "p": 1.0,
+   "probe_pick": "none",
+   "probe_p": 0.6
+  },
+  {
+   "label": "tissue",
+   "text": "CD11b enrichment of cells from whole brain",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "LPS",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:89981",
+     "label": "LPS with O-antigen",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:16412",
+     "label": "lipopolysaccharide",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:52603",
+     "label": "1-acyl-sn-glycero-3-phosphoserine",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:136358",
+     "label": "beta-D-Gal-(1->4)-(1S)-D-GaloNAc-(1->4,6)-alpha-D-GalN-(1->4)-[alpha-LD-Hep-(1->2)-alpha-DD-Hep-(1->2)]-alpha-D-GalA-(1->3)-[alpha-LD-Hep-(1->7)]-alpha-LD-Hep6PEtn-(1->3)-[beta-D-Glc-(1->4)]-alpha-LD-Hep-(1->5)-[alpha-Kdo-(2->4)][beta-L-Arap4N-(1->8)]-alpha-Kdo",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:89983",
+     "label": "LPS core",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:134650",
+     "label": "alpha-D-Glc-(1->4)-alpha-D-GalNAc-(1->2)-alpha-DD-Hep-(1->6)-alpha-D-GlcNGly-(1->4)-[alpha-LD-Hep-(1->2)-alpha-DD-Hep-(1->2)]-alpha-D-GalA-(1->3)-[alpha-LD-Hep-(1->7)]-alpha-LD-Hep6PEtn-(1->3)-[beta-D-Glc-(1->4)]-alpha-LD-Hep-(1->5)-[alpha-Kdo-(2->4)][beta-L-Arap4N-(1->8)]-alpha-Kdo",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:136237",
+     "label": "alpha-L-Fuc3NHb-(1->4)-alpha-D-Gal-(1->6)-beta-D-Glc-(1->3)-alpha-D-GalN6PEtn-(1->4)-[alpha-LD-Hep-(1->2)-alpha-DD-Hep-(1->2)]-alpha-D-GalA-(1->3)-[alpha-LD-Hep-(1->7)]-alpha-LD-Hep6PEtn-(1->3)-[beta-D-Glc-(1->4)]-alpha-LD-Hep-(1->5)-[alpha-Kdo-(2->4)][beta-L-Arap4N-(1->8)]-alpha-Kdo",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:156248",
+     "label": "E. coli strain O157 LPS core oligosaccharide R1",
+     "exact": false
+    }
+   ],
+   "pick": "CHEBI:16412",
+   "p": 0.97,
+   "probe_pick": "CHEBI:89981",
+   "probe_p": 0.42
+  },
+  {
+   "label": "treatment",
+   "text": "PBS",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:63080",
+     "label": "1-O-(6-acetamido-6-deoxy-alpha-D-galactosyl)-N-[(15Z)-tetracos-15-enoyl]phytosphingosine",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:757915",
+     "label": "abx-196",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:194150",
+     "label": "polybutylene succinate adipate",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:495150",
+     "label": "1-O-(alpha-D-galactopyranosyl)-N-tetracosanyl-2-aminononane-1,3,4-triol",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:527437",
+     "label": "1-O-(alpha-D-galactopyranosyl)-N-octanoylphytosphingosine",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:83272",
+     "label": "1-O-(alpha-D-galactosyl)-N-[(15Z)-tetracos-15-enoyl]phytosphingosine",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:83702",
+     "label": "1,2-di-O-stearoyl-3-S-{2-[(2-{beta-D-Glcp-(1->4)-[beta-D-Glcp-(1->4)-beta-D-Glcp-(1->6)]-beta-D-GlcpNAc-1-O-yl}ethyl)amino]-2-oxoethyl}monothioglycerol",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.95
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.64,
+  "untreated_or_vehicle": 0.98,
+  "several_compounds": 0.07,
+  "route_or_side": 0.98,
+  "dose_per_unit": 0.9,
+  "duration_without_number": 0.09,
+  "time_from_event": 0.69,
+  "pooled_material": 0.58,
+  "held_constant": 0.87,
+  "batch": 0.32,
+  "sequencer": 0.98,
+  "vector": 0.05,
+  "one_control_many_materials": 0.07,
+  "baseline_as_control": 0.13,
+  "single_cell": 0.61,
+  "mixed_assays": 0.1
+ },
+ "donor_kind": [
+  "one_each",
+  0.63
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.016379321999999998,
+   "seconds": 109.128,
+   "tokens_in": 33363,
+   "tokens_out": 22345
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000666666,
+   "seconds": 0.304,
+   "tokens_in": 15873
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.375,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.421,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.373,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.374,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.375,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.374,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.231,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.328,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.327,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.327,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.328,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.327,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.287,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.325,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.349,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.348,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.348,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.352,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.33,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.247,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.366,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.414,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.367,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.333,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.29,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.29,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.217,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.326,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.317,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141624,
+   "seconds": 0.325,
+   "tokens_in": 3372
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.26,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.239,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.345,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.39,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.512,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.375,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.358,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000141582,
+   "seconds": 0.345,
+   "tokens_in": 3371
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013146,
+   "seconds": 0.332,
+   "tokens_in": 3130
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013146,
+   "seconds": 0.364,
+   "tokens_in": 3130
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013146,
+   "seconds": 0.313,
+   "tokens_in": 3130
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013146,
+   "seconds": 0.312,
+   "tokens_in": 3130
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000548856,
+   "seconds": 0.255,
+   "tokens_in": 13068
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 0.00010101,
+   "seconds": 0.209,
+   "tokens_in": 2405
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 7.643999999999999e-05,
+   "seconds": 0.315,
+   "tokens_in": 1820
+  }
+ ],
+ "seconds": 0.36,
+ "ending": "settled",
+ "variant": "flash_think_full"
+}

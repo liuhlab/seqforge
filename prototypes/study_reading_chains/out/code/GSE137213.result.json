@@ -1,0 +1,2541 @@
+{
+ "study": "GSE137213",
+ "chain": "code",
+ "read_full": false,
+ "n_samples": 19,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "treatment",
+   "levels": [
+    "standard environment",
+    "enhanced environment"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 0.87,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.92,
+   "p_ordered": 0.05,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "genotype",
+   "levels": [
+    "wild type",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 0.94,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.91,
+   "p_ordered": 0.04,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.96,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "unknown",
+   "p": 0.74,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.74,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM4073075": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "standard environment",
+    "standard environment"
+   ],
+   "genotype": [
+    "wild type",
+    "wild type"
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM4073076": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "standard environment",
+    "standard environment"
+   ],
+   "genotype": [
+    "wild type",
+    "wild type"
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM4073077": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "standard environment",
+    "standard environment"
+   ],
+   "genotype": [
+    "wild type",
+    "wild type"
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM4073078": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "standard environment",
+    "standard environment"
+   ],
+   "genotype": [
+    "wild type",
+    "wild type"
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM4073079": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "standard environment",
+    "standard environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM4073080": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "standard environment",
+    "standard environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM4073081": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "standard environment",
+    "standard environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM4073082": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "standard environment",
+    "standard environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM4073083": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "standard environment",
+    "standard environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  },
+  "GSM4073084": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "wild type",
+    "wild type"
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D10",
+    null
+   ]
+  },
+  "GSM4073085": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "wild type",
+    "wild type"
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D11",
+    null
+   ]
+  },
+  "GSM4073086": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "wild type",
+    "wild type"
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D12",
+    null
+   ]
+  },
+  "GSM4073087": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "wild type",
+    "wild type"
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D13",
+    null
+   ]
+  },
+  "GSM4073088": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "wild type",
+    "wild type"
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D14",
+    null
+   ]
+  },
+  "GSM4073089": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D15",
+    null
+   ]
+  },
+  "GSM4073090": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D16",
+    null
+   ]
+  },
+  "GSM4073091": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B17",
+    null
+   ],
+   "donor": [
+    "D17",
+    null
+   ]
+  },
+  "GSM4073092": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B18",
+    null
+   ],
+   "donor": [
+    "D18",
+    null
+   ]
+  },
+  "GSM4073093": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "colon",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "enhanced environment",
+    "enhanced environment"
+   ],
+   "genotype": [
+    "transgenic mouse model overexpressing the complete human SNCA genes modeling familial and sporadic forms of Parkinson's disease",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "biosample": [
+    "B19",
+    null
+   ],
+   "donor": [
+    "D19",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "treatment": {
+   "levels": [
+    "standard environment",
+    "enhanced environment"
+   ],
+   "baseline": "standard environment",
+   "ordered": false,
+   "inferred": "the characteristic \"condition\" varies between samples",
+   "p": 0.98
+  },
+  "genotype": {
+   "levels": [
+    "wild type",
+    "transgenic mouse model overexpressing the complete human SNC"
+   ],
+   "baseline": "wild type",
+   "ordered": false,
+   "inferred": "the characteristic \"genotype/variation\" varies between samples",
+   "p": 0.98
+  }
+ },
+ "n_passages": 7,
+ "n_shared": 14,
+ "n_row_claims": 76,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 3,
+  "extra_labels": 0,
+  "writer_gaps": [],
+  "donor_kind_writer": null,
+  "keymap": {
+   "tissue": {
+    "label": "tissue",
+    "p": 1.0
+   },
+   "condition": {
+    "label": "treatment",
+    "p": 0.86
+   },
+   "genotype/variation": {
+    "label": "genotype",
+    "p": 0.98
+   },
+   "source name": {
+    "label": "tissue",
+    "p": 0.99
+   }
+  }
+ },
+ "quotes": [
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM4073075",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM4073084",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.97
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM4073075",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM4073079",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 147,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM4073075",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM4073075",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM4073075",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "tissue",
+   "text": "colon",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0001155",
+     "label": "colon",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0004990",
+     "label": "mucosa of ascending colon",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004991",
+     "label": "mucosa of transverse colon",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004992",
+     "label": "mucosa of descending colon",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0004993",
+     "label": "mucosa of sigmoid colon",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0000317",
+     "label": "colonic mucosa",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003335",
+     "label": "serosa of colon",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0012489",
+     "label": "muscle layer of colon",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0001155",
+   "p": 0.98,
+   "probe_pick": "none",
+   "probe_p": 0.55
+  },
+  {
+   "label": "treatment",
+   "text": "enhanced environment",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "standard environment",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.39,
+  "untreated_or_vehicle": 0.5,
+  "several_compounds": 0.06,
+  "route_or_side": 0.13,
+  "dose_per_unit": 0.12,
+  "duration_without_number": 0.1,
+  "time_from_event": 0.21,
+  "pooled_material": 0.08,
+  "held_constant": 0.9,
+  "batch": 0.46,
+  "sequencer": 0.04,
+  "vector": 0.28,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.09,
+  "single_cell": 0.01,
+  "mixed_assays": 0.18
+ },
+ "donor_kind": [
+  "one_each",
+  0.91
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "jev",
+   "step": "keymap",
+   "cost": 0.000235494,
+   "seconds": 0.226,
+   "tokens_in": 5607
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.00023830799999999998,
+   "seconds": 0.523,
+   "tokens_in": 5674
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.265,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.259,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.293,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.292,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.309,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.26,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.274,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.312,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.295,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.215,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.279,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.302,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.242,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.251,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.275,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.279,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.266,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.253,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.378,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.251,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.227,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.304,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.25,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.31,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.262,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.324,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.274,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.6364e-05,
+   "seconds": 0.262,
+   "tokens_in": 1342
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.327,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.293,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.27,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.264,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.277,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.318,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.216,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.257,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.288,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.733e-05,
+   "seconds": 0.277,
+   "tokens_in": 1365
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00016417799999999999,
+   "seconds": 0.189,
+   "tokens_in": 3909
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 2.8644e-05,
+   "seconds": 0.269,
+   "tokens_in": 682
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 2.772e-05,
+   "seconds": 0.25,
+   "tokens_in": 660
+  }
+ ],
+ "seconds": 0.28,
+ "ending": "settled",
+ "variant": "code"
+}

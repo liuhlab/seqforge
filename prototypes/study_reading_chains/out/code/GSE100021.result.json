@@ -1,0 +1,1057 @@
+{
+ "study": "GSE100021",
+ "chain": "code",
+ "read_full": false,
+ "n_samples": 8,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.61,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.96,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "na",
+   "p": 0.61,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.63,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "unknown",
+   "p": 0.87,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  }
+ ],
+ "values": {
+  "GSM2668015": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM2668016": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM2668017": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM2668018": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM2668019": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM2668020": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM2668021": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM2668022": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Rattus norvegicus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "age": [
+    "28-months",
+    null
+   ],
+   "tissue": [
+    "Rat hippocampus",
+    null
+   ],
+   "strain": [
+    "Sprague-Dawley rats",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  }
+ },
+ "factor_out": {},
+ "n_passages": 6,
+ "n_shared": 16,
+ "n_row_claims": 16,
+ "lists_summary": {
+  "factors": 0,
+  "factors_kept": 0,
+  "labels_with_values": 6,
+  "extra_labels": 0,
+  "writer_gaps": [],
+  "donor_kind_writer": null,
+  "keymap": {
+   "strain": {
+    "label": "strain",
+    "p": 1.0
+   },
+   "Sex": {
+    "label": "sex",
+    "p": 1.0
+   },
+   "age": {
+    "label": "age",
+    "p": 1.0
+   },
+   "source name": {
+    "label": "tissue",
+    "p": 1.0
+   }
+  }
+ },
+ "quotes": [
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM2668015",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM2668015",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "GSM2668015",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "source": "GSM2668015",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM2668015",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM2668015",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 27,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "tissue",
+   "text": "Rat hippocampus",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.06,
+  "untreated_or_vehicle": 0.97,
+  "several_compounds": 0.05,
+  "route_or_side": 0.99,
+  "dose_per_unit": 0.22,
+  "duration_without_number": 0.06,
+  "time_from_event": 0.29,
+  "pooled_material": 0.03,
+  "held_constant": 0.92,
+  "batch": 0.06,
+  "sequencer": 0.03,
+  "vector": 0.98,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.15,
+  "single_cell": 0.01,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "one_each",
+  1.0
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "jev",
+   "step": "keymap",
+   "cost": 0.000163674,
+   "seconds": 0.274,
+   "tokens_in": 3897
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000153888,
+   "seconds": 0.828,
+   "tokens_in": 3664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8296e-05,
+   "seconds": 0.521,
+   "tokens_in": 1388
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8296e-05,
+   "seconds": 0.241,
+   "tokens_in": 1388
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8296e-05,
+   "seconds": 0.485,
+   "tokens_in": 1388
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8296e-05,
+   "seconds": 0.484,
+   "tokens_in": 1388
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8296e-05,
+   "seconds": 0.293,
+   "tokens_in": 1388
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8296e-05,
+   "seconds": 0.537,
+   "tokens_in": 1388
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8296e-05,
+   "seconds": 0.575,
+   "tokens_in": 1388
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8296e-05,
+   "seconds": 0.583,
+   "tokens_in": 1388
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.817e-05,
+   "seconds": 0.333,
+   "tokens_in": 1385
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8212e-05,
+   "seconds": 0.557,
+   "tokens_in": 1386
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8212e-05,
+   "seconds": 0.334,
+   "tokens_in": 1386
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.817e-05,
+   "seconds": 0.291,
+   "tokens_in": 1385
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8212e-05,
+   "seconds": 0.523,
+   "tokens_in": 1386
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8212e-05,
+   "seconds": 0.555,
+   "tokens_in": 1386
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8212e-05,
+   "seconds": 0.516,
+   "tokens_in": 1386
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 5.8212e-05,
+   "seconds": 0.617,
+   "tokens_in": 1386
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00011193,
+   "seconds": 0.159,
+   "tokens_in": 2665
+  }
+ ],
+ "seconds": 0.18,
+ "ending": "settled",
+ "variant": "code"
+}

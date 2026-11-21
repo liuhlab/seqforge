@@ -1,0 +1,605 @@
+format: 1
+study: GSE196554
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record: GSM5889068
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 20'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+  4:
+    record:
+    - GSM5889068
+    - GSM5889071
+    - GSM5889072
+    - GSM5889076
+    - GSM5889077
+    - GSM5889078
+    field: Sample_characteristics_ch1
+    quote: 'subject gender: male'
+  5:
+    paper: pmid:37192223
+    section: Discussion
+    quote: we performed extended transcriptomic analyses of isolated human muscle stem cells across a
+      range of adult ages
+  6:
+    record: GSM5889068
+    field: Sample_title
+    quote: Vastus Lateralis 20M
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: muscle stem cell'
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'subject status: healthy donor'
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: untreated'
+  10:
+    paper: pmid:37192223
+    section: Results > Decreased transcriptional heterogeneity in Hu-MuSCs during aging
+    quote: 'Samples were distributed in 3 age groups: young [<30 y.o.], adult [35–66 y.o.] and aged [>70
+      y.o.].'
+  11:
+    record: GSM5889069
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 21'
+  12:
+    record:
+    - GSM5889069
+    - GSM5889070
+    - GSM5889073
+    - GSM5889074
+    - GSM5889075
+    - GSM5889079
+    field: Sample_characteristics_ch1
+    quote: 'subject gender: female'
+  13:
+    record: GSM5889069
+    field: Sample_title
+    quote: Pectoralis Major 21F
+  14:
+    record: GSM5889070
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 40'
+  15:
+    record: GSM5889071
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 52'
+  16:
+    record: GSM5889072
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 55'
+  17:
+    record: GSM5889073
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 56'
+  18:
+    record: GSM5889073
+    field: Sample_title
+    quote: Rectus Abdominis 56F
+  19:
+    record: GSM5889074
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 57'
+  20:
+    record: GSM5889075
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 59'
+  21:
+    record: GSM5889076
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 66'
+  22:
+    record: GSM5889077
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 73'
+  23:
+    record: GSM5889078
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 83'
+  24:
+    record: GSM5889079
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 87'
+  25:
+    record: GSM5889079
+    field: Sample_title
+    quote: Gastrocnemius 87F
+  26:
+    paper: pmid:37192223
+    section: abstract
+    quote: we sequenced additional satellite cells from new healthy donors and performed extended transcriptomic
+      analyses with regard to aging
+factors:
+  age:
+    levels:
+    - 20y
+    - 21y
+    - 40y
+    - 52y
+    - 55y
+    - 56y
+    - 57y
+    - 59y
+    - 66y
+    - 73y
+    - 83y
+    - 87y
+    baseline: null
+    ordered: true
+    quoted:
+    - 26
+    p: 0.94
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 3
+    p: 1.0
+  development_stage:
+    text: adult
+    term: HsapDv:0000258
+    quoted:
+    - 5
+    p: 0.99
+  cell_type:
+    text: muscle stem cell
+    quoted:
+    - 7
+    p: 1.0
+  disease:
+    text: healthy donor
+    quoted:
+    - 8
+    p: 1.0
+  treatment:
+    text: untreated
+    quoted:
+    - 9
+    p: 0.93
+  target:
+    na: no pull-down; single-cell RNA sequencing only
+    p: 1.0
+  control_type:
+    na: no input or IgG control libraries in series
+    p: 1.0
+  cell_line:
+    na: primary satellite cells from fresh human biopsies
+    p: 0.53
+  genotype:
+    unknown: no genotype stated for any donor
+    p: 0.81
+  strain:
+    na: human donors; strain not applicable
+    p: 1.0
+  dose:
+    na: no treatment applied to any sample
+    p: 1.0
+  duration:
+    na: no treatment applied to any sample
+    p: 1.0
+samples:
+  GSM5889068:
+    age:
+      text: 'subject age: 20'
+      value: 20
+      unit: year
+      level: 20y
+      quoted:
+      - 1
+      p: 1.0
+    sex:
+      text: 'subject gender: male'
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: Vastus Lateralis
+      term: UBERON:0001379
+      quoted:
+      - 6
+      p: 1.0
+    age_group:
+      text: young [<30 y.o.]
+      inferred: paper grouping, thresholds from Results
+      see:
+      - 10
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_427_Vastus
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM5889069:
+    age:
+      text: 'subject age: 21'
+      value: 21
+      unit: year
+      level: 21y
+      quoted:
+      - 11
+      p: 1.0
+    sex:
+      text: 'subject gender: female'
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: Pectoralis Major
+      quoted:
+      - 13
+      p: 1.0
+    age_group:
+      text: young [<30 y.o.]
+      inferred: paper grouping, thresholds from Results
+      see:
+      - 10
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_394-Pectoralis21F
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889070:
+    age:
+      text: 'subject age: 40'
+      value: 40
+      unit: year
+      level: 40y
+      quoted:
+      - 14
+      p: 1.0
+    sex:
+      text: 'subject gender: female'
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: Pectoralis Major
+      quoted:
+      - 13
+      p: 1.0
+    age_group:
+      text: adult [35–66 y.o.]
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_395-Pectoralis40F
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889071:
+    age:
+      text: 'subject age: 52'
+      value: 52
+      unit: year
+      level: 52y
+      quoted:
+      - 15
+      p: 1.0
+    sex:
+      text: 'subject gender: male'
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: Vastus Lateralis
+      term: UBERON:0001379
+      quoted:
+      - 6
+      p: 1.0
+    age_group:
+      text: adult [35–66 y.o.]
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_430_Vastus_52M
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889072:
+    age:
+      text: 'subject age: 55'
+      value: 55
+      unit: year
+      level: 55y
+      quoted:
+      - 16
+      p: 1.0
+    sex:
+      text: 'subject gender: male'
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: Vastus Lateralis
+      term: UBERON:0001379
+      quoted:
+      - 6
+      p: 1.0
+    age_group:
+      text: adult [35–66 y.o.]
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_429_Vastus_analysis
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889073:
+    age:
+      text: 'subject age: 56'
+      value: 56
+      unit: year
+      level: 56y
+      quoted:
+      - 17
+      p: 1.0
+    sex:
+      text: 'subject gender: female'
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: Rectus Abdominis
+      term: UBERON:0002382
+      quoted:
+      - 18
+      p: 1.0
+    age_group:
+      text: adult [35–66 y.o.]
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_391-Rectus56F_2
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889074:
+    age:
+      text: 'subject age: 57'
+      value: 57
+      unit: year
+      level: 57y
+      quoted:
+      - 19
+      p: 1.0
+    sex:
+      text: 'subject gender: female'
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: Vastus Lateralis
+      term: UBERON:0001379
+      quoted:
+      - 6
+      p: 1.0
+    age_group:
+      text: adult [35–66 y.o.]
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_431_Vastus_57F
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889075:
+    age:
+      text: 'subject age: 59'
+      value: 59
+      unit: year
+      level: 59y
+      quoted:
+      - 20
+      p: 1.0
+    sex:
+      text: 'subject gender: female'
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: Rectus Abdominis
+      term: UBERON:0002382
+      quoted:
+      - 18
+      p: 1.0
+    age_group:
+      text: adult [35–66 y.o.]
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_392-RectusAM
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM5889076:
+    age:
+      text: 'subject age: 66'
+      value: 66
+      unit: year
+      level: 66y
+      quoted:
+      - 21
+      p: 1.0
+    sex:
+      text: 'subject gender: male'
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: Vastus Lateralis
+      term: UBERON:0001379
+      quoted:
+      - 6
+      p: 1.0
+    age_group:
+      text: adult [35–66 y.o.]
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_416-Vastus
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889077:
+    age:
+      text: 'subject age: 73'
+      value: 73
+      unit: year
+      level: 73y
+      quoted:
+      - 22
+      p: 1.0
+    sex:
+      text: 'subject gender: male'
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: Vastus Lateralis
+      term: UBERON:0001379
+      quoted:
+      - 6
+      p: 1.0
+    age_group:
+      text: aged [>70 y.o.]
+      inferred: paper grouping, thresholds from Results
+      see:
+      - 10
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_428_Vastus
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889078:
+    age:
+      text: 'subject age: 83'
+      value: 83
+      unit: year
+      level: 83y
+      quoted:
+      - 23
+      p: 1.0
+    sex:
+      text: 'subject gender: male'
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: Vastus Lateralis
+      term: UBERON:0001379
+      quoted:
+      - 6
+      p: 1.0
+    age_group:
+      text: aged [>70 y.o.]
+      inferred: paper grouping, thresholds from Results
+      see:
+      - 10
+      p: 0.99
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_423_Vastus83M
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889079:
+    age:
+      text: 'subject age: 87'
+      value: 87
+      unit: year
+      level: 87y
+      quoted:
+      - 24
+      p: 1.0
+    sex:
+      text: 'subject gender: female'
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: Gastrocnemius
+      term: UBERON:0001388
+      quoted:
+      - 25
+      p: 1.0
+    age_group:
+      text: aged [>70 y.o.]
+      inferred: paper grouping, thresholds from Results
+      see:
+      - 10
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_458_Gastroc_87F
+      inferred: Jev picked the individual from the listed names
+      p: 1.0

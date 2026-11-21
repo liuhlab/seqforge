@@ -1,0 +1,7 @@
+study: GSE182981
+refused: the format check rejected the answer
+problems:
+- field: factors.treatment.levels
+  reason: no sample is at the level HGD-1
+- field: factors.treatment.levels
+  reason: no sample is at the level HGD-5

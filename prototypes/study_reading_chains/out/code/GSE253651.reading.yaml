@@ -1,0 +1,393 @@
+format: 1
+study: GSE253651
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM8024581
+    - GSM8024582
+    - GSM8024583
+    - GSM8024584
+    - GSM8024585
+    - GSM8024586
+    field: Sample_characteristics_ch1
+    quote: 'group: control'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: heart'
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: macrophages'
+  6:
+    record:
+    - GSM8024587
+    - GSM8024588
+    - GSM8024589
+    - GSM8024590
+    - GSM8024591
+    - GSM8024592
+    field: Sample_characteristics_ch1
+    quote: 'group: high-fat diet'
+  7:
+    record:
+    - GSM8024593
+    - GSM8024594
+    - GSM8024595
+    - GSM8024596
+    - GSM8024597
+    - GSM8024598
+    field: Sample_characteristics_ch1
+    quote: 'group: aged'
+factors:
+  treatment:
+    levels:
+    - control
+    - high-fat diet
+    - aged
+    baseline: control
+    ordered: false
+    inferred: the characteristic "group" varies between samples
+    p: 0.98
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  tissue:
+    text: heart
+    term: UBERON:0000948
+    quoted:
+    - 4
+    p: 1.0
+  cell_type:
+    text: macrophages
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.99
+  age:
+    unknown: nothing read says it
+    p: 0.8
+  development_stage:
+    unknown: nothing read says it
+    p: 0.63
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    unknown: nothing read says it
+    p: 0.54
+  genotype:
+    unknown: nothing read says it
+    p: 0.84
+  strain:
+    unknown: nothing read says it
+    p: 1.0
+  dose:
+    unknown: nothing read says it
+    p: 0.8
+  duration:
+    unknown: nothing read says it
+    p: 0.96
+samples:
+  GSM8024581:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024582:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024583:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024584:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024585:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024586:
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024587:
+    treatment:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024588:
+    treatment:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024589:
+    treatment:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024590:
+    treatment:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024591:
+    treatment:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024592:
+    treatment:
+      text: high-fat diet
+      level: high-fat diet
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024593:
+    treatment:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024594:
+    treatment:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024595:
+    treatment:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024596:
+    treatment:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D16
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024597:
+    treatment:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D17
+      inferred: each sample is from its own individual
+      p: 0.72
+  GSM8024598:
+    treatment:
+      text: aged
+      level: aged
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D18
+      inferred: each sample is from its own individual
+      p: 0.72

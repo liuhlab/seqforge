@@ -1,0 +1,1031 @@
+format: 1
+study: GSE255902
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: 4R'
+  2:
+    record:
+    - GSM8082417
+    - GSM8082418
+    - GSM8082419
+    - GSM8082420
+    - GSM8082421
+    - GSM8082427
+    - GSM8082428
+    - GSM8082429
+    - GSM8082430
+    - GSM8082431
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Vehicle'
+  3:
+    record: GSE255902
+    field: Series_title
+    quote: Human iPSC 4R tauopathy model uncovers modifiers of tau propagation [bulk RNA-seq]
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+  5:
+    record:
+    - GSM8082417
+    - GSM8082418
+    - GSM8082419
+    - GSM8082420
+    - GSM8082421
+    - GSM8082422
+    - GSM8082423
+    - GSM8082424
+    - GSM8082425
+    - GSM8082426
+    - GSM8082427
+    - GSM8082428
+    - GSM8082429
+    - GSM8082430
+    - GSM8082431
+    - GSM8082432
+    - GSM8082433
+    - GSM8082434
+    - GSM8082435
+    field: Sample_characteristics_ch1
+    quote: 'age: D43'
+  6:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: iPSC-derived neurons
+  7:
+    paper: pmid:38582079
+    section: STAR★Methods > EXPERIMENTAL MODEL AND STUDY PARTICIPANT DETAILS > Cell cultures
+    quote: integrated into the AAVS1 locus of WTC11 cells with a wild-type genetic background70.
+  8:
+    record:
+    - GSM8082422
+    - GSM8082423
+    - GSM8082424
+    - GSM8082425
+    - GSM8082426
+    - GSM8082432
+    - GSM8082433
+    - GSM8082434
+    - GSM8082435
+    - GSM8082453
+    - GSM8082454
+    field: Sample_characteristics_ch1
+    quote: 'treatment: K18'
+  9:
+    paper: pmid:38582079
+    section: STAR★Methods > METHOD DETAILS > Bulk RNA-sequencing
+    quote: 4R and 4R-P301S iPSCs were differentiated into neurons on 12-well tissue culture plates, and
+      half of the samples were seeded with 1.5 μg/ml K18 on D8 as described. Neurons were maintained and
+      collected on D43.
+  10:
+    record:
+    - GSM8082427
+    - GSM8082428
+    - GSM8082429
+    - GSM8082430
+    - GSM8082431
+    - GSM8082432
+    - GSM8082433
+    - GSM8082434
+    - GSM8082435
+    field: Sample_characteristics_ch1
+    quote: 'genotype: 4R_P301S'
+  11:
+    record: GSE255904
+    field: Series_title
+    quote: Human iPSC 4R tauopathy model uncovers modifiers of tau propagation [scRNA-seq]
+  12:
+    record:
+    - GSM8082452
+    - GSM8082453
+    - GSM8082454
+    field: Sample_characteristics_ch1
+    quote: 'age: D39'
+  13:
+    record: GSM8082453
+    field: Sample_characteristics_ch1
+    quote: 'treatment: K18 - 1.5ug'
+  14:
+    record: GSM8082454
+    field: Sample_characteristics_ch1
+    quote: 'treatment: K18 - 3ug'
+  15:
+    record: GSE255902
+    field: Series_summary
+    quote: to express 4R Tau and 4R Tau carrying the P301S MAPT mutation when differentiated into neurons.
+  16:
+    record: GSE255902
+    field: Series_overall_design
+    quote: with and without K18-Tau fibril treatment
+  17:
+    paper: pmid:38582079
+    section: RESULTS > Modeling seeding-induced Tau inclusions in 4R-P301S neurons
+    quote: Increasing Tau fibrils from 1.5 μg/ml to 3.0 μg/ml resulted in a modest increase in Tau inclusions,
+      either at Day 21 (Figure S2G, S2H) or 42 (Figure S2I, S2J) post-seeding.
+factors:
+  genotype:
+    levels:
+    - 4R
+    - 4R_P301S
+    baseline: 4R
+    ordered: false
+    quoted:
+    - 15
+    p: 0.98
+  treatment:
+    levels:
+    - vehicle
+    - K18
+    baseline: vehicle
+    ordered: true
+    quoted:
+    - 16
+    p: 0.97
+  dose:
+    levels:
+    - dose_1_5
+    - dose_3
+    baseline: dose_1_5
+    ordered: true
+    quoted:
+    - 17
+    p: 0.86
+shared:
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 4
+    p: 1.0
+  cell_type:
+    text: iPSC-derived neurons
+    quoted:
+    - 6
+    p: 1.0
+  cell_line:
+    text: WTC11
+    quoted:
+    - 7
+    p: 0.75
+  disease:
+    text: 4R tauopathy model
+    quoted:
+    - 3
+    p: 0.95
+  target:
+    na: No pull-down; RNA-seq libraries have no target.
+    p: 1.0
+  control_type:
+    na: No input or IgG libraries; Vehicle/control are baselines.
+    p: 1.0
+  sex:
+    unknown: GEO records do not state sex; paper describes mice and human donors.
+    p: 0.88
+  development_stage:
+    na: In vitro iPSC-derived neurons have no organism life stage.
+    p: 0.7
+  tissue:
+    na: In vitro iPSC-derived neurons, no tissue or organ.
+    p: 0.69
+  strain:
+    na: Human iPSC cell line, not a mouse or microbial strain.
+    p: 0.99
+  donor:
+    na: a cell line or culture, no single individual
+    p: 0.97
+samples:
+  GSM8082417:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.91
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.89
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082418:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.9
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.89
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082419:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.94
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.89
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082420:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.92
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.91
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082421:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.9
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.89
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082422:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      unknown: the record of this sample does not say its dose
+      p: 0.97
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.71
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082423:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 0.99
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      unknown: the record of this sample does not say its dose
+      p: 0.97
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.66
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082424:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      unknown: the record of this sample does not say its dose
+      p: 0.86
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.68
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082425:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      unknown: the record of this sample does not say its dose
+      p: 0.95
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.6
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082426:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 0.99
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      unknown: the record of this sample does not say its dose
+      p: 0.96
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.65
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082427:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.91
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.89
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082428:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.9
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.91
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082429:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.91
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.89
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082430:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.94
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.9
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082431:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      na: dose does not apply to this sample
+      p: 0.91
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.91
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082432:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      unknown: the record of this sample does not say its dose
+      p: 0.95
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 0.98
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.67
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082433:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      unknown: the record of this sample does not say its dose
+      p: 0.97
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 0.99
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.7
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082434:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      unknown: the record of this sample does not say its dose
+      p: 0.79
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 0.99
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.7
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082435:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      unknown: the record of this sample does not say its dose
+      p: 0.96
+    assay:
+      text: bulk RNA-seq
+      quoted:
+      - 3
+      p: 0.99
+    age:
+      text: D43
+      value: 43
+      unit: day
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.65
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082452:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 0.96
+    treatment:
+      text: Vehicle
+      level: vehicle
+      quoted:
+      - 2
+      p: 0.6
+    dose:
+      na: dose does not apply to this sample
+      p: 0.8
+    assay:
+      text: scRNA-seq
+      quoted:
+      - 11
+      p: 0.79
+    age:
+      text: D39
+      value: 39
+      unit: day
+      quoted:
+      - 12
+      p: 0.98
+    duration:
+      na: no treatment
+      p: 0.86
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082453:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 0.99
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      text: K18 - 1.5ug
+      value: 1.5
+      unit: ug
+      level: dose_1_5
+      quoted:
+      - 13
+      p: 1.0
+    assay:
+      text: scRNA-seq
+      quoted:
+      - 11
+      p: 0.74
+    age:
+      text: D39
+      value: 39
+      unit: day
+      quoted:
+      - 12
+      p: 0.99
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.59
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082454:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 10
+      p: 0.98
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      text: K18 - 3ug
+      value: 3
+      unit: ug
+      level: dose_3
+      quoted:
+      - 14
+      p: 1.0
+    assay:
+      text: scRNA-seq
+      quoted:
+      - 11
+      p: 0.84
+    age:
+      text: D39
+      value: 39
+      unit: day
+      quoted:
+      - 12
+      p: 0.99
+    duration:
+      text: 35 days
+      value: 35
+      unit: day
+      quoted:
+      - 9
+      p: 0.52
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null

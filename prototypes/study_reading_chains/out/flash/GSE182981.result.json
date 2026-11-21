@@ -1,0 +1,2482 @@
+{
+ "study": "GSE182981",
+ "chain": "flash",
+ "read_full": false,
+ "n_samples": 18,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "treatment",
+   "levels": [
+    "ND",
+    "HGD-1",
+    "HGD-5"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 0.95,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.98,
+   "p_ordered": 0.85,
+   "writer_baseline": "ND",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.8,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "na",
+   "p": 0.51,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.96,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.82,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "growth_condition_detail",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM5548060": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 (normal diet, ND)",
+    "ND"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 (normal diet, ND)",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM5548061": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    "HGD-1"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM5548062": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    "HGD-5"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM5548063": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 (normal diet, ND)",
+    "ND"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 (normal diet, ND)",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM5548064": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    "HGD-1"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM5548065": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    "HGD-5"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM5548066": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 (normal diet, ND)",
+    "ND"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 (normal diet, ND)",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM5548067": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    "HGD-1"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM5548068": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    "HGD-5"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM5548069": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 (normal diet, ND)",
+    "ND"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 (normal diet, ND)",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM5548070": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    "HGD-1"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM5548071": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    "HGD-5"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM5548072": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 (normal diet, ND)",
+    "ND"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 (normal diet, ND)",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM5548073": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    "HGD-1"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM5548074": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    "HGD-5"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM5548075": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 (normal diet, ND)",
+    "ND"
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 (normal diet, ND)",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  },
+  "GSM5548076": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    "HGD-1"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ]
+  },
+  "GSM5548077": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "development_stage": [
+    "day 8 of adulthood (D8)",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "genotype": [
+    "wild type N2",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    "HGD-5"
+   ],
+   "dose": [
+    "2% glucose",
+    null
+   ],
+   "growth_condition_detail": [
+    "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "treatment": {
+   "levels": [
+    "ND",
+    "HGD-1",
+    "HGD-5"
+   ],
+   "baseline": "ND",
+   "ordered": true,
+   "quoted": [
+    11
+   ],
+   "p": 0.99
+  }
+ },
+ "n_passages": 11,
+ "n_shared": 15,
+ "n_row_claims": 72,
+ "lists_summary": {
+  "factors": 1,
+  "factors_kept": 1,
+  "labels_with_values": 8,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "pooled_material",
+    "note": "each sample is a pool of ~2000 synchronised worms"
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM5548060",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 50,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM5548061",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 96,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L2",
+   "status": "named",
+   "source": "GSM5548062",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 96,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "named",
+   "source": "GSE182981",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 167,
+   "backs_p": 0.96
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "GSE182981",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 50,
+   "backs_p": 0.08
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 27,
+   "backs_p": 0.97
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "dose/v0",
+   "status": "named",
+   "source": "GSM5548061",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 51,
+   "backs_p": 0.99
+  },
+  {
+   "key": "growth_condition_detail/v0",
+   "status": "named",
+   "source": "GSM5548060",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 50,
+   "backs_p": 0.99
+  },
+  {
+   "key": "growth_condition_detail/v1",
+   "status": "named",
+   "source": "GSM5548061",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 96,
+   "backs_p": 0.99
+  },
+  {
+   "key": "growth_condition_detail/v2",
+   "status": "named",
+   "source": "GSM5548062",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 96,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "day 8 of adulthood (D8)",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "UV-killed OP50 (normal diet, ND)",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.29,
+  "untreated_or_vehicle": 0.93,
+  "several_compounds": 0.23,
+  "route_or_side": 0.28,
+  "dose_per_unit": 0.2,
+  "duration_without_number": 0.45,
+  "time_from_event": 0.75,
+  "pooled_material": 0.97,
+  "held_constant": 0.96,
+  "batch": 0.07,
+  "sequencer": 0.03,
+  "vector": 0.03,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.1,
+  "single_cell": 0.02,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "pool",
+  1.0
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.001618806,
+   "seconds": 6.638,
+   "tokens_in": 4441,
+   "tokens_out": 1870
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000230538,
+   "seconds": 0.28,
+   "tokens_in": 5489
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011276999999999999,
+   "seconds": 0.247,
+   "tokens_in": 2685
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000112056,
+   "seconds": 0.285,
+   "tokens_in": 2668
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011276999999999999,
+   "seconds": 0.262,
+   "tokens_in": 2685
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011276999999999999,
+   "seconds": 0.293,
+   "tokens_in": 2685
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011276999999999999,
+   "seconds": 0.256,
+   "tokens_in": 2685
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000112056,
+   "seconds": 0.257,
+   "tokens_in": 2668
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.331,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.373,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.262,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.322,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.321,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.262,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.489,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.295,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.293,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.254,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.264,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.24,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.304,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.345,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.283,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.267,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.35,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.264,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.526,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.246,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.351,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.309,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.262,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.258,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.315,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111636,
+   "seconds": 0.264,
+   "tokens_in": 2658
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.283,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.252,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.255,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000111888,
+   "seconds": 0.367,
+   "tokens_in": 2664
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00021445199999999999,
+   "seconds": 0.2,
+   "tokens_in": 5106
+  }
+ ],
+ "seconds": 0.28,
+ "ending": "settled",
+ "variant": "flash"
+}

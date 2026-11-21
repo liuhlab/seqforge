@@ -1,0 +1,1907 @@
+{
+ "study": "GSE126954",
+ "chain": "flash_think",
+ "read_full": true,
+ "n_samples": 8,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "age",
+   "levels": [
+    "mixed",
+    "300_min",
+    "400_min",
+    "500_min"
+   ],
+   "p_designed": 0.92,
+   "p_designed_neg": 0.24,
+   "baseline": "no_reference",
+   "p_baseline": 0.83,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.84,
+   "p_ordered": 0.95,
+   "writer_baseline": null,
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "development_stage",
+   "levels": [
+    "embryo",
+    "L2"
+   ],
+   "p_designed": 0.5,
+   "p_designed_neg": 0.36,
+   "baseline": "no_reference",
+   "p_baseline": 0.72,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.67,
+   "p_ordered": 0.47,
+   "writer_baseline": "embryo",
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [
+  "3 sample levels differ when options are reversed"
+ ],
+ "disagree": [
+  [
+   "GSM3618674",
+   "lab_time_post_bleach",
+   "na",
+   "unknown"
+  ],
+  [
+   "GSM3618675",
+   "lvl0",
+   "unknown",
+   "L0"
+  ],
+  [
+   "GSM3618675",
+   "lab_time_post_bleach",
+   "na",
+   "unknown"
+  ],
+  [
+   "GSM3618676",
+   "lvl0",
+   "unknown",
+   "L0"
+  ],
+  [
+   "GSM4318946",
+   "lvl0",
+   "unknown",
+   "L2"
+  ],
+  [
+   "GSM4318946",
+   "lab_time_post_bleach",
+   "na",
+   "unknown"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.56,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.52,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.94,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_post_bleach",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "unknown",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_post_bleach",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "unknown",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_post_bleach",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.8,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_post_bleach",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.49,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_post_bleach",
+   "mark": "na",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.41,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_post_bleach",
+   "mark": "na",
+   "p": 0.71,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.55,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.55,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_post_bleach",
+   "mark": "na",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.46,
+   "shared": false
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "time_post_bleach",
+   "mark": "na",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "unknown",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:age",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "factor:development_stage",
+   "mark": "inferred",
+   "p": 0.5,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM3618670": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "0.5mg/ml",
+    null
+   ],
+   "duration": [
+    "30-40 minutes",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "UW synchronized 300 min post bleach",
+    "300_min"
+   ],
+   "development_stage": [
+    "developmental stage: embryo",
+    "embryo"
+   ],
+   "tissue": [
+    "C. elegans embryos",
+    null
+   ],
+   "cell_type": [
+    "cells from dissociated C. elegans embryos",
+    null
+   ],
+   "genotype": [
+    "carrying an integrated Punc-120::mCherry gene in a wild type background",
+    null
+   ],
+   "strain": [
+    "VC2010, derived from N2",
+    null
+   ],
+   "treatment": [
+    "chitinase",
+    null
+   ],
+   "time_post_bleach": [
+    "300 min post bleach",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM3618671": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "0.5mg/ml",
+    null
+   ],
+   "duration": [
+    "30-40 minutes",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "UW synchronized 400 min post bleach",
+    "400_min"
+   ],
+   "development_stage": [
+    "developmental stage: embryo",
+    "embryo"
+   ],
+   "tissue": [
+    "C. elegans embryos",
+    null
+   ],
+   "cell_type": [
+    "cells from dissociated C. elegans embryos",
+    null
+   ],
+   "genotype": [
+    "carrying an integrated Punc-120::mCherry gene in a wild type background",
+    null
+   ],
+   "strain": [
+    "VC2010, derived from N2",
+    null
+   ],
+   "treatment": [
+    "chitinase",
+    null
+   ],
+   "time_post_bleach": [
+    "400 min post bleach",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM3618672": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "0.5mg/ml",
+    null
+   ],
+   "duration": [
+    "30-40 minutes",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "UW synchronized 500 min post bleach batch 1",
+    "500_min"
+   ],
+   "development_stage": [
+    "developmental stage: embryo",
+    "embryo"
+   ],
+   "tissue": [
+    "C. elegans embryos",
+    null
+   ],
+   "cell_type": [
+    "cells from dissociated C. elegans embryos",
+    null
+   ],
+   "genotype": [
+    "carrying an integrated Punc-120::mCherry gene in a wild type background",
+    null
+   ],
+   "strain": [
+    "VC2010, derived from N2",
+    null
+   ],
+   "treatment": [
+    "chitinase",
+    null
+   ],
+   "time_post_bleach": [
+    "500 min post bleach",
+    null
+   ],
+   "batch": [
+    "batch 1",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM3618673": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "0.5mg/ml",
+    null
+   ],
+   "duration": [
+    "30-40 minutes",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "UW synchronized 500 min post bleach batch 1",
+    "500_min"
+   ],
+   "development_stage": [
+    "developmental stage: embryo",
+    "embryo"
+   ],
+   "tissue": [
+    "C. elegans embryos",
+    null
+   ],
+   "cell_type": [
+    "cells from dissociated C. elegans embryos",
+    null
+   ],
+   "genotype": [
+    "carrying an integrated Punc-120::mCherry gene in a wild type background",
+    null
+   ],
+   "strain": [
+    "VC2010, derived from N2",
+    null
+   ],
+   "treatment": [
+    "chitinase",
+    null
+   ],
+   "time_post_bleach": [
+    "500 min post bleach",
+    null
+   ],
+   "batch": [
+    "batch 2",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM3618674": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "0.5mg/ml",
+    null
+   ],
+   "duration": [
+    "30-40 minutes",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "UPenn mixed embryo batch r17",
+    "mixed"
+   ],
+   "development_stage": [
+    "developmental stage: embryo",
+    "embryo"
+   ],
+   "tissue": [
+    "C. elegans embryos",
+    null
+   ],
+   "cell_type": [
+    "cells from dissociated C. elegans embryos",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "chitinase",
+    null
+   ],
+   "time_post_bleach": [
+    "<na>",
+    null
+   ],
+   "batch": [
+    "r17",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM3618675": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "0.5mg/ml",
+    null
+   ],
+   "duration": [
+    "30-40 minutes",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "developmental stage: embryo",
+    "embryo"
+   ],
+   "tissue": [
+    "C. elegans embryos",
+    null
+   ],
+   "cell_type": [
+    "cells from dissociated C. elegans embryos",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "chitinase",
+    null
+   ],
+   "time_post_bleach": [
+    "<na>",
+    null
+   ],
+   "batch": [
+    "b01",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM3618676": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "0.5mg/ml",
+    null
+   ],
+   "duration": [
+    "30-40 minutes",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "developmental stage: embryo",
+    "embryo"
+   ],
+   "tissue": [
+    "C. elegans embryos",
+    null
+   ],
+   "cell_type": [
+    "cells from dissociated C. elegans embryos",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "chitinase",
+    null
+   ],
+   "time_post_bleach": [
+    "<na>",
+    null
+   ],
+   "batch": [
+    "b02",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM4318946": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "dose": [
+    "0.5mg/ml",
+    null
+   ],
+   "duration": [
+    "30-40 minutes",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "developmental stage: L2",
+    "L2"
+   ],
+   "tissue": [
+    "whole c.elegans (L2 stage)",
+    null
+   ],
+   "cell_type": [
+    "c.elegans cells (during sorting, polyploid c.elegans cells were exlcuded)",
+    null
+   ],
+   "genotype": [
+    "carrying an integrated Punc-120::mCherry gene in a wild type background",
+    null
+   ],
+   "strain": [
+    "RW12139",
+    null
+   ],
+   "treatment": [
+    "SDS-DTT solution and pronase",
+    null
+   ],
+   "time_post_bleach": [
+    "<na>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "age": {
+   "levels": [
+    "mixed",
+    "300_min",
+    "400_min",
+    "500_min"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "quoted": [
+    25
+   ],
+   "p": 0.92
+  },
+  "development_stage": {
+   "levels": [
+    "embryo",
+    "L2"
+   ],
+   "baseline": null,
+   "ordered": false,
+   "inferred": "Embryo atlas plus L2-stage re-analysis for terminal selectors.",
+   "see": [
+    26
+   ],
+   "p": 0.5
+  }
+ },
+ "n_passages": 26,
+ "n_shared": 10,
+ "n_row_claims": 80,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 11,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "sources_disagree",
+    "note": "Sample titles say minutes post bleach; paper says minutes after first cleavage."
+   },
+   {
+    "kind": "series_membership",
+    "note": "GSM4318946 is re-analysis duplicate of GSM2599701 from GSE98561."
+   },
+   {
+    "kind": "batch",
+    "note": "UW vs UPenn sources and 500-min batch 1/2; batch not in core labels."
+   },
+   {
+    "kind": "factor_over_part",
+    "note": "Age/embryo time applies to embryo samples; L2 is a separate stage."
+   },
+   {
+    "kind": "pooled_material",
+    "note": "Embryos and L2 worms pooled before single-cell dissociation; no individual donors."
+   },
+   {
+    "kind": "several_compounds",
+    "note": "L2 dissociation uses SDS-DTT solution plus pronase."
+   },
+   {
+    "kind": "duration_without_number",
+    "note": "L2 synchronization uses two cycles of bleaching without a duration."
+   },
+   {
+    "kind": "dose_per_unit",
+    "note": "Chitinase dose is a concentration (0.5 mg/ml), not total amount per sample."
+   },
+   {
+    "kind": "term_missing",
+    "note": "Dose/duration given only for chitinase; L2 dissociation lacks both."
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM3618674",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.71
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.97
+  },
+  {
+   "key": "age/L2",
+   "status": "named",
+   "source": "GSM3618671",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.98
+  },
+  {
+   "key": "age/L3",
+   "status": "named",
+   "source": "GSM3618672",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 43,
+   "backs_p": 0.96
+  },
+  {
+   "key": "age/_factor",
+   "status": "same_source_other_field",
+   "source": "pmid:31488706",
+   "field": "Single-cell RNA-seq of C. elegans embryos",
+   "exact": true,
+   "quote_len": 204,
+   "backs_p": 0.93
+  },
+  {
+   "key": "development_stage/L0",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 27,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/L1",
+   "status": "named",
+   "source": "GSM4318946",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/_factor",
+   "status": "same_source_other_field",
+   "source": "pmid:31488706",
+   "field": "Bifurcating cell fates and multilineage priming",
+   "exact": true,
+   "quote_len": 116,
+   "backs_p": 0.33
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "same_source_other_field",
+   "source": "pmid:31488706",
+   "field": "Body",
+   "exact": true,
+   "quote_len": 72,
+   "backs_p": 0.77
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v1",
+   "status": "named",
+   "source": "GSM4318946",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 26,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_description",
+   "exact": true,
+   "quote_len": 61,
+   "backs_p": 0.9
+  },
+  {
+   "key": "cell_type/v1",
+   "status": "named",
+   "source": "GSM4318946",
+   "field": "Sample_description",
+   "exact": true,
+   "quote_len": 88,
+   "backs_p": 0.62
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "source": "GSM4318946",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 80,
+   "backs_p": 0.97
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v1",
+   "status": "named",
+   "source": "GSM3618674",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v2",
+   "status": "named",
+   "source": "GSM4318946",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 174,
+   "backs_p": 0.93
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_growth_protocol_ch1",
+   "exact": true,
+   "quote_len": 135,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v1",
+   "status": "named",
+   "source": "GSM4318946",
+   "field": "Sample_extract_protocol_ch1",
+   "exact": true,
+   "quote_len": 102,
+   "backs_p": 0.98
+  },
+  {
+   "key": "dose/v0",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_growth_protocol_ch1",
+   "exact": true,
+   "quote_len": 51,
+   "backs_p": 0.99
+  },
+  {
+   "key": "duration/v0",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_growth_protocol_ch1",
+   "exact": true,
+   "quote_len": 51,
+   "backs_p": 0.98
+  },
+  {
+   "key": "time_post_bleach/v0",
+   "status": "named",
+   "source": "GSM3618670",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.98
+  },
+  {
+   "key": "time_post_bleach/v1",
+   "status": "named",
+   "source": "GSM3618671",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.98
+  },
+  {
+   "key": "time_post_bleach/v2",
+   "status": "named",
+   "source": "GSM3618672",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 43,
+   "backs_p": 0.98
+  },
+  {
+   "key": "batch/v0",
+   "status": "named",
+   "source": "GSM3618672",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 43,
+   "backs_p": 0.97
+  },
+  {
+   "key": "batch/v1",
+   "status": "named",
+   "source": "GSM3618673",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 43,
+   "backs_p": 0.97
+  },
+  {
+   "key": "batch/v2",
+   "status": "named",
+   "source": "GSM3618674",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.97
+  },
+  {
+   "key": "batch/v3",
+   "status": "named",
+   "source": "GSM3618675",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.98
+  },
+  {
+   "key": "batch/v4",
+   "status": "named",
+   "source": "GSM3618676",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.98
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "c.elegans cells (during sorting, polyploid c.elegans cells were exlcuded)",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "cells from dissociated C. elegans embryos",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "development_stage",
+   "text": "developmental stage: L2",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "development_stage",
+   "text": "developmental stage: embryo",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "C. elegans embryos",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "whole c.elegans (L2 stage)",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "SDS-DTT solution and pronase",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "chitinase",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.71,
+  "untreated_or_vehicle": 0.5,
+  "several_compounds": 0.87,
+  "route_or_side": 0.06,
+  "dose_per_unit": 0.1,
+  "duration_without_number": 0.61,
+  "time_from_event": 0.78,
+  "pooled_material": 0.81,
+  "held_constant": 0.82,
+  "batch": 0.91,
+  "sequencer": 0.12,
+  "vector": 0.31,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.06,
+  "single_cell": 0.95,
+  "mixed_assays": 0.04
+ },
+ "donor_kind": [
+  "pool",
+  0.94
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.019565448,
+   "seconds": 163.25,
+   "tokens_in": 13828,
+   "tokens_out": 30626
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000309162,
+   "seconds": 0.355,
+   "tokens_in": 7361
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149856,
+   "seconds": 0.329,
+   "tokens_in": 3568
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149856,
+   "seconds": 0.281,
+   "tokens_in": 3568
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149856,
+   "seconds": 0.282,
+   "tokens_in": 3568
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149982,
+   "seconds": 0.327,
+   "tokens_in": 3571
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149856,
+   "seconds": 0.282,
+   "tokens_in": 3568
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149982,
+   "seconds": 0.327,
+   "tokens_in": 3571
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149982,
+   "seconds": 0.248,
+   "tokens_in": 3571
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149982,
+   "seconds": 0.261,
+   "tokens_in": 3571
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149478,
+   "seconds": 0.297,
+   "tokens_in": 3559
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149478,
+   "seconds": 0.348,
+   "tokens_in": 3559
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149478,
+   "seconds": 0.339,
+   "tokens_in": 3559
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149478,
+   "seconds": 0.302,
+   "tokens_in": 3559
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149478,
+   "seconds": 0.257,
+   "tokens_in": 3559
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000149478,
+   "seconds": 0.271,
+   "tokens_in": 3559
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000155064,
+   "seconds": 0.272,
+   "tokens_in": 3692
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000155064,
+   "seconds": 0.406,
+   "tokens_in": 3692
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000345156,
+   "seconds": 0.491,
+   "tokens_in": 8218
+  }
+ ],
+ "seconds": 0.55,
+ "ending": "unsettled",
+ "variant": "flash_think_full"
+}

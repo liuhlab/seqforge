@@ -1,0 +1,529 @@
+format: 1
+study: GSE129928
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM3728255
+    - GSM3728256
+    - GSM3728257
+    - GSM3728262
+    - GSM3728263
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  2:
+    record: GSM3728255
+    field: Sample_title
+    quote: transgen_expt_1_N2_earlygen
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  4:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: 10ul of H3K9me2 antibody (ab1220, Abcam)
+  5:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: 1/20th of sample volume was taken for input controls.
+  6:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Stage: mixed'
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole animal'
+  9:
+    record: GSM3728256
+    field: Sample_title
+    quote: transgen_expt_1_N2_midgen
+  10:
+    record: GSM3728257
+    field: Sample_title
+    quote: transgen_expt_1_N2_lategen
+  11:
+    record:
+    - GSM3728258
+    - GSM3728259
+    - GSM3728260
+    field: Sample_characteristics_ch1
+    quote: 'strain: wdr-5 (ok1417)'
+  12:
+    record:
+    - GSM3728261
+    - GSM3728266
+    field: Sample_characteristics_ch1
+    quote: 'strain: mixed'
+  13:
+    record: GSM3728262
+    field: Sample_title
+    quote: transgen_expt_2_N2_earlygen
+  14:
+    record:
+    - GSM3728264
+    - GSM3728265
+    field: Sample_characteristics_ch1
+    quote: 'strain: jhdm-1 (ok2364)'
+  15:
+    record: GSE129928
+    field: Series_overall_design
+    quote: H3K9me2 ChIP-seq in early-, mid-, and late-gen wild-type and wdr-5 mutant populations and in
+      early- and mid-gen wild-type and jhdm-1 mutant populations.
+factors:
+  genotype:
+    levels:
+    - N2
+    - wdr-5
+    - jhdm-1
+    baseline: N2
+    ordered: true
+    quoted:
+    - 15
+    p: 0.98
+  generation:
+    levels:
+    - earlygen
+    - midgen
+    - lategen
+    baseline: earlygen
+    ordered: true
+    quoted:
+    - 15
+    p: 0.97
+shared:
+  assay:
+    text: ChIP-Seq
+    quoted:
+    - 3
+    p: 1.0
+  control_type:
+    text: input
+    quoted:
+    - 5
+    p: 0.82
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 6
+    p: 1.0
+  development_stage:
+    text: mixed
+    quoted:
+    - 7
+    p: 1.0
+  tissue:
+    text: whole animal
+    quoted:
+    - 8
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: No disease or disease model described.
+    p: 0.95
+  sex:
+    unknown: No sex field; samples are mixed-stage whole animals.
+    p: 0.74
+  age:
+    unknown: Mixed-stage populations; no age number or unit given.
+    p: 0.61
+  cell_type:
+    na: Whole-animal mixed-stage populations; no cell type specified.
+    p: 0.99
+  cell_line:
+    na: Whole-animal samples, not cultured cell lines.
+    p: 1.0
+  treatment:
+    na: No drug, diet, vector, infection, or procedure described for samples.
+    p: 0.87
+  dose:
+    na: No treatment described.
+    p: 0.91
+  duration:
+    na: No treatment described.
+    p: 0.62
+  donor:
+    na: a pool of many individuals
+    p: 0.99
+samples:
+  GSM3728255:
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    generation:
+      text: earlygen
+      level: earlygen
+      quoted:
+      - 2
+      p: 1.0
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: 'strain: N2'
+      quoted:
+      - 1
+      p: 1.0
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728256:
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    generation:
+      text: midgen
+      level: midgen
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: 'strain: N2'
+      quoted:
+      - 1
+      p: 1.0
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728257:
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    generation:
+      text: lategen
+      level: lategen
+      quoted:
+      - 10
+      p: 1.0
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: 'strain: N2'
+      quoted:
+      - 1
+      p: 1.0
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728258:
+    genotype:
+      text: 'strain: wdr-5 (ok1417)'
+      level: wdr-5
+      quoted:
+      - 11
+      p: 1.0
+    generation:
+      text: earlygen
+      level: earlygen
+      quoted:
+      - 2
+      p: 1.0
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: 'strain: wdr-5 (ok1417)'
+      quoted:
+      - 11
+      p: 0.99
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728259:
+    genotype:
+      text: 'strain: wdr-5 (ok1417)'
+      level: wdr-5
+      quoted:
+      - 11
+      p: 0.99
+    generation:
+      text: midgen
+      level: midgen
+      quoted:
+      - 9
+      p: 0.99
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 0.96
+    strain:
+      text: 'strain: wdr-5 (ok1417)'
+      quoted:
+      - 11
+      p: 0.95
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 2
+      p: 0.99
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728260:
+    genotype:
+      text: 'strain: wdr-5 (ok1417)'
+      level: wdr-5
+      quoted:
+      - 11
+      p: 1.0
+    generation:
+      text: lategen
+      level: lategen
+      quoted:
+      - 10
+      p: 0.99
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 0.99
+    strain:
+      text: 'strain: wdr-5 (ok1417)'
+      quoted:
+      - 11
+      p: 0.97
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 2
+      p: 0.99
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728261:
+    genotype:
+      unknown: the record of this sample does not say its genotype
+      p: 0.8
+    generation:
+      unknown: the record of this sample does not say its generation
+      p: 0.88
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.91
+    strain:
+      text: 'strain: mixed'
+      quoted:
+      - 12
+      p: 0.96
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 2
+      p: 0.99
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728262:
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    generation:
+      text: earlygen
+      level: earlygen
+      quoted:
+      - 2
+      p: 1.0
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 0.97
+    strain:
+      text: 'strain: N2'
+      quoted:
+      - 1
+      p: 0.99
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 13
+      p: 0.91
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728263:
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 1
+      p: 1.0
+    generation:
+      text: midgen
+      level: midgen
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 0.95
+    strain:
+      text: 'strain: N2'
+      quoted:
+      - 1
+      p: 0.99
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 13
+      p: 0.84
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728264:
+    genotype:
+      text: 'strain: jhdm-1 (ok2364)'
+      level: jhdm-1
+      quoted:
+      - 14
+      p: 1.0
+    generation:
+      text: earlygen
+      level: earlygen
+      quoted:
+      - 2
+      p: 0.97
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 0.96
+    strain:
+      text: 'strain: jhdm-1 (ok2364)'
+      quoted:
+      - 14
+      p: 0.99
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 13
+      p: 0.94
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728265:
+    genotype:
+      text: 'strain: jhdm-1 (ok2364)'
+      level: jhdm-1
+      quoted:
+      - 14
+      p: 1.0
+    generation:
+      text: midgen
+      level: midgen
+      quoted:
+      - 9
+      p: 0.99
+    target:
+      text: H3K9me2
+      quoted:
+      - 4
+      p: 0.95
+    strain:
+      text: 'strain: jhdm-1 (ok2364)'
+      quoted:
+      - 14
+      p: 0.98
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 13
+      p: 0.9
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728266:
+    genotype:
+      unknown: the record of this sample does not say its genotype
+      p: 0.82
+    generation:
+      unknown: the record of this sample does not say its generation
+      p: 0.67
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.84
+    strain:
+      text: 'strain: mixed'
+      quoted:
+      - 12
+      p: 0.96
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 13
+      p: 0.92
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

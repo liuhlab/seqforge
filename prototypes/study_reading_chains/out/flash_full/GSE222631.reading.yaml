@@ -1,0 +1,668 @@
+format: 1
+study: GSE222631
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  2:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Sex: female'
+  3:
+    record:
+    - GSM6927992
+    - GSM6927994
+    - GSM6927996
+    - GSM6927998
+    - GSM6928000
+    - GSM6928002
+    - GSM6928004
+    - GSM6928006
+    - GSM6928008
+    - GSM6928010
+    - GSM6928012
+    - GSM6928014
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Perisynaptic Schwann cell'
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: S100B-GFP;NG2-dsRed'
+  5:
+    record: GSE222631
+    field: Series_overall_design
+    quote: collected from hindlimbs muscles of female young adult (4-5 months) and aged (23-24 months)
+  6:
+    record:
+    - GSM6927993
+    - GSM6927995
+    - GSM6927997
+    - GSM6927999
+    - GSM6928001
+    - GSM6928003
+    - GSM6928005
+    - GSM6928007
+    - GSM6928009
+    - GSM6928011
+    - GSM6928013
+    - GSM6928015
+    field: Sample_characteristics_ch1
+    quote: 'tissue: other Schwann cell'
+factors:
+  cell_type:
+    levels:
+    - PSC
+    - SC
+    baseline: null
+    ordered: true
+    inferred: perisynaptic vs other Schwann cells FACS-isolated
+    p: 0.99
+  age:
+    levels:
+    - young_adult
+    - old
+    baseline: young_adult
+    ordered: false
+    inferred: young adult compared with aged mice
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    inferred: library strategy
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 1
+    p: 1.0
+  sex:
+    text: female
+    term: female
+    quoted:
+    - 2
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease stated
+    p: 0.96
+  genotype:
+    text: S100B-GFP;NG2-dsRed
+    quoted:
+    - 4
+    p: 1.0
+  muscle:
+    text: hindlimbs muscles
+    quoted:
+    - 5
+    p: 0.97
+  target:
+    na: RNA-Seq, no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no background-control libraries; young is a baseline
+    p: 1.0
+  development_stage:
+    unknown: adult ages given, no stage term recorded
+    p: 0.54
+  cell_line:
+    na: primary cells from mice, not a cell line
+    p: 1.0
+  strain:
+    unknown: transgenic names given, no strain recorded
+    p: 0.99
+  treatment:
+    na: no treatment applied
+    p: 0.89
+  dose:
+    na: no treatment
+    p: 0.99
+  duration:
+    na: no treatment
+    p: 0.99
+  donor:
+    unknown: nothing read says which individual a library came from
+    p: 0.4
+samples:
+  GSM6927992:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: &id001
+      - 23
+      - 24
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6927993:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6927994:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6927995:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 0.99
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6927996:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6927997:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 0.99
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6927998:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6927999:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928000:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928001:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 0.99
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928002:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928003:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 23-24 months
+      value: *id001
+      unit: month
+      level: old
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928004:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: &id002
+      - 4
+      - 5
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928005:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928006:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928007:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928008:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928009:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 0.98
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928010:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928011:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 0.98
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928012:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928013:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928014:
+    cell_type:
+      text: Perisynaptic Schwann cell
+      level: PSC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: Perisynaptic Schwann cell
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B23
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6928015:
+    cell_type:
+      text: other Schwann cell
+      level: SC
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    age:
+      text: 4-5 months
+      value: *id002
+      unit: month
+      level: young_adult
+      inferred: picked by Jev from the values listed for this study
+      p: 1.0
+    tissue:
+      text: other Schwann cell
+      quoted:
+      - 6
+      p: 0.98
+    biosample:
+      id: B24
+      inferred: no text says this library shares its material with another
+      p: null

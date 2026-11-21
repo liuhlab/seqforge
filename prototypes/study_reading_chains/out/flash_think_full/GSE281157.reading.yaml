@@ -1,0 +1,369 @@
+format: 1
+study: GSE281157
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM8611902
+    - GSM8611903
+    - GSM8611904
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wild type (N2)'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C'
+  5:
+    record: GSE281157
+    field: Series_summary
+    quote: After hatching, those embryos entered L1 arrest.
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole worm'
+  7:
+    paper: pmid:40199585
+    section: Materials and Methods > Strains used in this study
+    quote: WT N2 is from the Sternberg Lab collection.
+  8:
+    record: GSE281157
+    field: Series_summary
+    quote: Arrested L1s were collected 16 hr post hypochlorite treatment (about 4 hr of starvation).
+  9:
+    record:
+    - GSM8611905
+    - GSM8611906
+    - GSM8611907
+    - GSM8611911
+    - GSM8611912
+    - GSM8611913
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-16(mu86)'
+  10:
+    paper: pmid:40199585
+    section: Materials and Methods > Strains used in this study
+    quote: CF1038 daf-16(mu86) I
+  11:
+    record:
+    - GSM8611908
+    - GSM8611909
+    - GSM8611910
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-18(ok480)'
+  12:
+    paper: pmid:40199585
+    section: Materials and Methods > Strains used in this study
+    quote: IC166 daf-18(ok480) IV
+  13:
+    record:
+    - GSM8611911
+    - GSM8611912
+    - GSM8611913
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-16(mu86); daf-18(ok480)'
+  14:
+    paper: pmid:40199585
+    section: Materials and Methods > Strains generated in this study
+    quote: LRB378 daf-16(mu86) I; daf-18(ok480) IV.
+  15:
+    record: GSE281157
+    field: Series_title
+    quote: mRNA-seq analysis of Caenorhabditis elegans wild type N2, daf-16(mu86), daf-18(ok480) and daf-16(mu86);
+      daf-18(ok480) starved L1 larvae
+factors:
+  genotype:
+    levels:
+    - wt
+    - daf16
+    - daf18
+    - daf16_daf18
+    baseline: wt
+    ordered: false
+    quoted:
+    - 15
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  age:
+    text: about 4 hours
+    value: 4
+    unit: hour
+    inferred: L1 larvae about 4 h after hatching
+    see:
+    - 4
+    p: 1.0
+  development_stage:
+    text: L1
+    quoted:
+    - 5
+    p: 1.0
+  tissue:
+    text: whole worm
+    quoted:
+    - 6
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease stated for worm samples
+    p: 1.0
+  treatment:
+    text: Starved in virgin S-basal with 0.1% EtOH
+    quoted:
+    - 4
+    p: 1.0
+  dose:
+    text: 0.1% EtOH
+    value: 0.1
+    unit: percent
+    quoted:
+    - 4
+    p: 1.0
+  duration:
+    text: about 4 hours
+    value: 4
+    unit: hour
+    quoted:
+    - 4
+    p: 1.0
+  time_after_hypochlorite_treatment:
+    text: 16 hr post hypochlorite treatment
+    quoted:
+    - 8
+    p: 0.99
+  target:
+    na: RNA-Seq has no pull-down target
+    p: 1.0
+  control_type:
+    na: no input or IgG control libraries
+    p: 1.0
+  sex:
+    unknown: no sex field; C. elegans sex not stated
+    p: 0.65
+  cell_type:
+    na: bulk whole-worm RNA; no cell type
+    p: 0.99
+  cell_line:
+    na: whole animal, not cultured cells
+    p: 1.0
+  donor:
+    na: a pool of many individuals
+    p: 0.99
+samples:
+  GSM8611902:
+    genotype:
+      text: wild type (N2)
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611903:
+    genotype:
+      text: wild type (N2)
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611904:
+    genotype:
+      text: wild type (N2)
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611905:
+    genotype:
+      text: daf-16(mu86)
+      level: daf16
+      quoted:
+      - 9
+      p: 1.0
+    strain:
+      text: CF1038
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611906:
+    genotype:
+      text: daf-16(mu86)
+      level: daf16
+      quoted:
+      - 9
+      p: 1.0
+    strain:
+      text: CF1038
+      quoted:
+      - 10
+      p: 0.98
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611907:
+    genotype:
+      text: daf-16(mu86)
+      level: daf16
+      quoted:
+      - 9
+      p: 1.0
+    strain:
+      text: CF1038
+      quoted:
+      - 10
+      p: 0.98
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611908:
+    genotype:
+      text: daf-18(ok480)
+      level: daf18
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: IC166
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611909:
+    genotype:
+      text: daf-18(ok480)
+      level: daf18
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: IC166
+      quoted:
+      - 12
+      p: 0.99
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611910:
+    genotype:
+      text: daf-18(ok480)
+      level: daf18
+      quoted:
+      - 11
+      p: 1.0
+    strain:
+      text: IC166
+      quoted:
+      - 12
+      p: 0.97
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611911:
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf16_daf18
+      quoted:
+      - 13
+      p: 1.0
+    strain:
+      text: LRB378
+      quoted:
+      - 14
+      p: 0.99
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611912:
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf16_daf18
+      quoted:
+      - 13
+      p: 1.0
+    strain:
+      text: LRB378
+      quoted:
+      - 14
+      p: 0.99
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611913:
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf16_daf18
+      quoted:
+      - 13
+      p: 1.0
+    strain:
+      text: LRB378
+      quoted:
+      - 14
+      p: 0.97
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

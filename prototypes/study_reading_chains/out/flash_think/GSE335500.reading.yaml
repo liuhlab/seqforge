@@ -1,0 +1,507 @@
+format: 1
+study: GSE335500
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814713
+    - GSM9814715
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'cell type: APOE3'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Sex: male'
+  5:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814710
+    - GSM9814711
+    - GSM9814712
+    - GSM9814713
+    - GSM9814715
+    - GSM9814716
+    - GSM9814717
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'age: 7.5 months'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: cortex'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: AD'
+  8:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814715
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW2E33-3D11'
+  9:
+    record: GSM9814708
+    field: Sample_description
+    quote: engrafted with human iPSC-derived APOE3 astrocyte progenitors 6 months post-transplant (APP-64)
+  10:
+    record:
+    - GSM9814710
+    - GSM9814711
+    - GSM9814712
+    - GSM9814714
+    - GSM9814716
+    - GSM9814717
+    field: Sample_characteristics_ch1
+    quote: 'cell type: APOE4'
+  11:
+    record:
+    - GSM9814710
+    - GSM9814711
+    - GSM9814716
+    - GSM9814717
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW2E44-4B12'
+  12:
+    record:
+    - GSM9814712
+    - GSM9814714
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW3E44-F-2'
+  13:
+    record:
+    - GSM9814713
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW3E33-H-2'
+  14:
+    record: GSM9814714
+    field: Sample_characteristics_ch1
+    quote: 'age: 6 months'
+  15:
+    paper: pmid:42570239
+    section: abstract
+    quote: transplanting isogenic APOE3 or APOE4 human induced pluripotent stem cell-derived astrocyte
+      progenitors into neonatal AD mice
+factors:
+  apoe_variant:
+    levels:
+    - APOE3
+    - APOE4
+    baseline: null
+    ordered: false
+    quoted:
+    - 15
+    p: 0.98
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  sex:
+    text: male
+    term: male
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: adult
+    inferred: 6-7.5-month-old mice are adults
+    p: 0.96
+  tissue:
+    text: cortex
+    term: UBERON:0001851
+    quoted:
+    - 6
+    p: 1.0
+  disease:
+    text: AD
+    term: MONDO:0004975
+    quoted:
+    - 7
+    p: 1.0
+  genotype:
+    text: AD
+    quoted:
+    - 7
+    p: 1.0
+  months_post_transplant:
+    text: 6 months post-transplant
+    quoted:
+    - 9
+    p: 0.71
+  target:
+    na: RNA-Seq, no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no input or IgG control libraries
+    p: 1.0
+  cell_type:
+    na: bulk cortical tissue, mixed mouse and human cells; field holds APOE variant
+    p: 0.96
+  cell_line:
+    na: cortical tissue from mice, not a cultured cell line
+    p: 0.99
+  strain:
+    unknown: no strain or AD model name stated
+    p: 0.99
+  dose:
+    unknown: number of transplanted progenitors not stated
+    p: 0.6
+  duration:
+    unknown: 6 months is transplant-to-harvest time, not treatment duration
+    p: 0.53
+samples:
+  GSM9814708:
+    apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      text: TCW2E33-3D11
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-64
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM9814709:
+    apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E33-3D11
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-65
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM9814710:
+    apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-69
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM9814711:
+    apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-70
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM9814712:
+    apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      text: TCW3E44-F-2
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-73
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM9814713:
+    apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.96
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      text: TCW3E33-H-2
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-78
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM9814714:
+    apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: months
+      quoted:
+      - 14
+      p: 0.94
+    treatment:
+      text: TCW3E44-F-2
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-46
+      inferred: Jev picked the individual from the listed names
+      p: 0.91
+  GSM9814715:
+    apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.95
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E33-3D11
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-66
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM9814716:
+    apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-71
+      inferred: Jev picked the individual from the listed names
+      p: 0.94
+  GSM9814717:
+    apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-72
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM9814718:
+    apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.98
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      text: TCW3E33-H-2
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-76
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM9814719:
+    apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.97
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      text: TCW3E33-H-2
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-80
+      inferred: Jev picked the individual from the listed names
+      p: 0.95

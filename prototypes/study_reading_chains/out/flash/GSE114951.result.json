@@ -1,0 +1,1900 @@
+{
+ "study": "GSE114951",
+ "chain": "flash",
+ "read_full": false,
+ "n_samples": 12,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "WT",
+    "atfs-1_null",
+    "atfs-1_et18"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 1.0,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 1.0,
+   "p_ordered": 0.17,
+   "writer_baseline": "WT",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "batch",
+   "levels": [
+    "batch1",
+    "batch2"
+   ],
+   "p_designed": 0.39,
+   "p_designed_neg": 0.92,
+   "baseline": "L0",
+   "p_baseline": 0.58,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.61,
+   "p_ordered": 0.05,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": false
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [
+  [
+   "GSM3160729",
+   "lab_batch",
+   "unknown",
+   "v0"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": true
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.81,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.68,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.79,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "unknown",
+   "p": 0.47,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "unknown",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "unknown",
+   "p": 0.66,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "batch",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM3160728": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "batch": [
+    "batch1 samples without batch label",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM3160729": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM3160730": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "batch": [
+    "batch1 samples without batch label",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM3160731": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "atfs-1 (null)",
+    "atfs-1_null"
+   ],
+   "batch": [
+    "batch1 samples without batch label",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM3160732": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "atfs-1 (null)",
+    "atfs-1_null"
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM3160733": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "atfs-1 (null)",
+    "atfs-1_null"
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM4964731": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "batch": [
+    "batch2",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM4964732": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "batch": [
+    "batch2",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM4964733": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "batch": [
+    "batch2",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM4964734": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "atfs-1 (et18)",
+    "atfs-1_et18"
+   ],
+   "batch": [
+    "batch2",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM4964735": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "atfs-1 (et18)",
+    "atfs-1_et18"
+   ],
+   "batch": [
+    "batch2",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM4964736": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole body",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "treatment": [
+    "None.",
+    null
+   ],
+   "growth_temperature": [
+    "20c",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "atfs-1 (et18)",
+    "atfs-1_et18"
+   ],
+   "batch": [
+    "batch2",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "WT",
+    "atfs-1_null",
+    "atfs-1_et18"
+   ],
+   "baseline": "WT",
+   "ordered": false,
+   "quoted": [
+    13
+   ],
+   "p": 0.98
+  }
+ },
+ "n_passages": 13,
+ "n_shared": 17,
+ "n_row_claims": 36,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 1,
+  "labels_with_values": 7,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "factor_over_part",
+    "note": "batch2 label only on second set; atfs-1(null) only in batch1, et18 only in batch2"
+   },
+   {
+    "kind": "batch",
+    "note": "two experiments; genotype partly confounded with batch"
+   },
+   {
+    "kind": "term_missing",
+    "note": "sex not stated though C. elegans is hermaphroditic"
+   }
+  ],
+  "donor_kind_writer": "unknown",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM3160728",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM3160731",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 33,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L2",
+   "status": "named",
+   "source": "GSM4964734",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 33,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "named",
+   "source": "GSE114951",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 58,
+   "backs_p": 0.93
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "GSM3160728",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM3160728",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM3160728",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "source": "GSM3160728",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 5,
+   "backs_p": 0.99
+  },
+  {
+   "key": "growth_temperature/v0",
+   "status": "named",
+   "source": "GSM3160728",
+   "field": "Sample_growth_protocol_ch1",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.99
+  },
+  {
+   "key": "batch/v0",
+   "status": "named",
+   "source": "GSM3160728",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.5
+  },
+  {
+   "key": "batch/v1",
+   "status": "named",
+   "source": "GSM4964731",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.98
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "L4",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": [
+    {
+     "id": "WBls:0000082",
+     "label": "Brugia L4",
+     "exact": true
+    },
+    {
+     "id": "WBls:0000039",
+     "label": "L4-adult lethargus Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000040",
+     "label": "L4-adult molt Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000050",
+     "label": "L4-adult ecdysis Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000064",
+     "label": "1-day post-L4 adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000065",
+     "label": "2-days post-L4 adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000066",
+     "label": "3-days post-L4 adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000067",
+     "label": "4-days post-L4 adult hermaphrodite Ce",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.59
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Whole body",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0000468",
+     "label": "multicellular organism",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0013702",
+     "label": "body proper",
+     "exact": true
+    },
+    {
+     "id": "NBO:0000347",
+     "label": "gross motor coordination",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0013702",
+   "p": 0.47
+  },
+  {
+   "label": "treatment",
+   "text": "None.",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:85655",
+     "label": "(3E)-nonenoyl-CoA(4-)",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:85960",
+     "label": "(3E)-nonenoyl-CoA",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:76292",
+     "label": "trans-2-nonenoyl-CoA(4-)",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:76314",
+     "label": "trans-2-nonenoyl-CoA",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:133457",
+     "label": "(3E)-3-nonen-2-one",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:142592",
+     "label": "(E)-non-2-enal",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:142603",
+     "label": "(Z)-non-6-en-1-ol",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:142604",
+     "label": "(E)-non-2-en-1-ol",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 1.0
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.14,
+  "untreated_or_vehicle": 0.93,
+  "several_compounds": 0.03,
+  "route_or_side": 0.08,
+  "dose_per_unit": 0.11,
+  "duration_without_number": 0.17,
+  "time_from_event": 0.2,
+  "pooled_material": 0.77,
+  "held_constant": 0.95,
+  "batch": 0.91,
+  "sequencer": 0.06,
+  "vector": 0.09,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.09,
+  "single_cell": 0.01,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "pool",
+  0.79
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.001323606,
+   "seconds": 5.882,
+   "tokens_in": 4213,
+   "tokens_out": 1435
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000223398,
+   "seconds": 0.331,
+   "tokens_in": 5319
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2698e-05,
+   "seconds": 0.254,
+   "tokens_in": 1969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2698e-05,
+   "seconds": 0.204,
+   "tokens_in": 1969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2698e-05,
+   "seconds": 0.225,
+   "tokens_in": 1969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2698e-05,
+   "seconds": 0.247,
+   "tokens_in": 1969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2698e-05,
+   "seconds": 0.294,
+   "tokens_in": 1969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.2698e-05,
+   "seconds": 0.305,
+   "tokens_in": 1969
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.303399999999999e-05,
+   "seconds": 0.252,
+   "tokens_in": 1977
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.303399999999999e-05,
+   "seconds": 0.311,
+   "tokens_in": 1977
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.303399999999999e-05,
+   "seconds": 0.204,
+   "tokens_in": 1977
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.303399999999999e-05,
+   "seconds": 0.253,
+   "tokens_in": 1977
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.303399999999999e-05,
+   "seconds": 0.194,
+   "tokens_in": 1977
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.303399999999999e-05,
+   "seconds": 0.26,
+   "tokens_in": 1977
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1312e-05,
+   "seconds": 0.257,
+   "tokens_in": 1936
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1312e-05,
+   "seconds": 0.27,
+   "tokens_in": 1936
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1312e-05,
+   "seconds": 0.22,
+   "tokens_in": 1936
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1312e-05,
+   "seconds": 0.285,
+   "tokens_in": 1936
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1312e-05,
+   "seconds": 0.268,
+   "tokens_in": 1936
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1312e-05,
+   "seconds": 0.219,
+   "tokens_in": 1936
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1942e-05,
+   "seconds": 0.27,
+   "tokens_in": 1951
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1942e-05,
+   "seconds": 0.308,
+   "tokens_in": 1951
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1942e-05,
+   "seconds": 0.351,
+   "tokens_in": 1951
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1942e-05,
+   "seconds": 0.256,
+   "tokens_in": 1951
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1942e-05,
+   "seconds": 0.306,
+   "tokens_in": 1951
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1942e-05,
+   "seconds": 0.271,
+   "tokens_in": 1951
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000177492,
+   "seconds": 0.194,
+   "tokens_in": 4226
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 4.9896e-05,
+   "seconds": 0.208,
+   "tokens_in": 1188
+  }
+ ],
+ "seconds": 0.24,
+ "ending": "settled",
+ "variant": "flash"
+}

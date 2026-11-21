@@ -1,0 +1,342 @@
+format: 1
+study: GSE288106
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  2:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+  3:
+    record:
+    - GSM8759021
+    - GSM8759023
+    - GSM8759025
+    - GSM8759026
+    - GSM8759029
+    - GSM8759030
+    - GSM8759032
+    - GSM8759035
+    - GSM8759036
+    field: Sample_characteristics_ch1
+    quote: 'Sex: Male'
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Brain'
+  5:
+    record:
+    - GSM8759022
+    - GSM8759024
+    - GSM8759027
+    - GSM8759028
+    - GSM8759031
+    - GSM8759033
+    - GSM8759034
+    field: Sample_characteristics_ch1
+    quote: 'Sex: Female'
+factors: {}
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 1
+    p: 1.0
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 2
+    p: 1.0
+  tissue:
+    text: Brain
+    term: UBERON:0000955
+    quoted:
+    - 4
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  age:
+    unknown: nothing read says it
+    p: 0.98
+  development_stage:
+    unknown: nothing read says it
+    p: 0.66
+  cell_type:
+    unknown: nothing read says it
+    p: 0.82
+  cell_line:
+    na: tissue taken from an animal
+    p: 0.66
+  disease:
+    unknown: nothing read says it
+    p: 0.79
+  genotype:
+    unknown: nothing read says it
+    p: 0.85
+  strain:
+    na: a species with no strains, such as human
+    p: 1.0
+  treatment:
+    na: no treatment applied
+    p: 0.92
+  dose:
+    na: no treatment
+    p: 1.0
+  duration:
+    na: no treatment
+    p: 1.0
+samples:
+  GSM8759021:
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759022:
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759023:
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759024:
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759025:
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759026:
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759027:
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759028:
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759029:
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759030:
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759031:
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759032:
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759033:
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759034:
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 5
+      p: 0.99
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759035:
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 0.95
+  GSM8759036:
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 3
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D16
+      inferred: each sample is from its own individual
+      p: 0.95

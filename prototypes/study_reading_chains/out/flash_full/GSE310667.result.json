@@ -1,0 +1,2581 @@
+{
+ "study": "GSE310667",
+ "chain": "flash",
+ "read_full": true,
+ "n_samples": 16,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "cell_type",
+   "levels": [
+    "command_interneurons",
+    "sensory_neurons",
+    "all_neurons",
+    "unc86_neurons",
+    "glutamatergic_neurons",
+    "ceh34_unc4_neurons",
+    "mec3_unc47_nlp13_ceh10_neurons",
+    "unc4c_ceh2_acr2_neurons",
+    "p_lineage_progenitors",
+    "flp7_neurons"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.29,
+   "baseline": "no_reference",
+   "p_baseline": 0.56,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.66,
+   "p_ordered": 0.32,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [
+  [
+   "GSM9305643",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305644",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305645",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305646",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305647",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305647",
+   "lab_strain",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305648",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305649",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305650",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305651",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305652",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305653",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305654",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305655",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ],
+  [
+   "GSM9305656",
+   "lab_tissue",
+   "unknown",
+   "v0"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.59,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.72,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "na",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.79,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.53,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.58,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.48,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.52,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.61,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.5,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.53,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "unknown",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.55,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.53,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.58,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.54,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.59,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.53,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.61,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.55,
+   "shared": false
+  },
+  {
+   "label": "cell_status",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:cell_type",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM9305641": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Command interneurons",
+    "command_interneurons"
+   ],
+   "tissue": [
+    "Command interneurons",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM9305642": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Sensory neurons",
+    "sensory_neurons"
+   ],
+   "tissue": [
+    "Command interneurons",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM9305643": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: All neurons",
+    "all_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM9305644": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: All neurons",
+    "all_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM9305645": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Subgroups of neurons (RIR, RIH, RIP, etc.)",
+    "unc86_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM9305646": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Glutametergic neurons",
+    "glutamatergic_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM9305647": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Subgroups of neurons (pharyngeal neurons, SAB, DA)",
+    "ceh34_unc4_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM9305648": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)",
+    "mec3_unc47_nlp13_ceh10_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM9305649": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Subgroups of neurons (pharyngeal neurons, SAB, DA)",
+    "ceh34_unc4_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM9305650": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)",
+    "unc4c_ceh2_acr2_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM9305651": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: P-lineage progenitors and neurons",
+    "p_lineage_progenitors"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM9305652": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: P-lineage progenitors and neurons",
+    "p_lineage_progenitors"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM9305653": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: P-lineage progenitors and neurons",
+    "p_lineage_progenitors"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM9305654": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: P-lineage progenitors and neurons",
+    "p_lineage_progenitors"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM9305655": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Subgroups of neurons (SAA)",
+    "flp7_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM9305656": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "age": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "development_stage": [
+    "L1 (12-16 hph)",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "tissue: Subgroups of neurons (SAA)",
+    "flp7_neurons"
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "strain": [
+    "NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]",
+    null
+   ],
+   "cell_status": [
+    "Live",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "cell_type": {
+   "levels": [
+    "command_interneurons",
+    "sensory_neurons",
+    "all_neurons",
+    "unc86_neurons",
+    "glutamatergic_neurons",
+    "ceh34_unc4_neurons",
+    "mec3_unc47_nlp13_ceh10_neurons",
+    "unc4c_ceh2_acr2_neurons",
+    "p_lineage_progenitors",
+    "flp7_neurons"
+   ],
+   "baseline": null,
+   "ordered": false,
+   "inferred": "Ten distinct FACS-sorted neuronal populations profiled",
+   "see": [
+    18
+   ],
+   "p": 0.97
+  }
+ },
+ "n_passages": 18,
+ "n_shared": 14,
+ "n_row_claims": 80,
+ "lists_summary": {
+  "factors": 1,
+  "factors_kept": 1,
+  "labels_with_values": 8,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "pooled_material",
+    "note": "each sample pools thousands of cells from many worms; donor identity not tracked"
+   },
+   {
+    "kind": "factor_over_part",
+    "note": "age interval 21-24 hph samples labeled L1/L2 in two records"
+   },
+   {
+    "kind": "term_missing",
+    "note": "no cell type term; neuron populations recorded only in tissue field"
+   },
+   {
+    "kind": "other",
+    "note": "one preparation yielded live and fixed libraries listed together"
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "cell_type/L0",
+   "status": "named",
+   "source": "GSM9305641",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.97
+  },
+  {
+   "key": "cell_type/L1",
+   "status": "named",
+   "source": "GSM9305642",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_type/L2",
+   "status": "named",
+   "source": "GSM9305643",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.97
+  },
+  {
+   "key": "cell_type/L3",
+   "status": "named",
+   "source": "GSM9305645",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 50,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_type/L4",
+   "status": "named",
+   "source": "GSM9305646",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_type/L5",
+   "status": "named",
+   "source": "GSM9305647",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 58,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_type/L6",
+   "status": "named",
+   "source": "GSM9305648",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 68,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_type/L7",
+   "status": "named",
+   "source": "GSM9305650",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 55,
+   "backs_p": 0.96
+  },
+  {
+   "key": "cell_type/L8",
+   "status": "named",
+   "source": "GSM9305651",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 41,
+   "backs_p": 0.97
+  },
+  {
+   "key": "cell_type/L9",
+   "status": "named",
+   "source": "GSM9305655",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 34,
+   "backs_p": 0.96
+  },
+  {
+   "key": "cell_type/_factor",
+   "status": "named",
+   "source": "GSE310667",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 151,
+   "backs_p": 0.44
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "GSM9305641",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 73,
+   "backs_p": 0.97
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "source": "GSM9305641",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.98
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "GSM9305641",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM9305641",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "source": "GSM9305641",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM9305641",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 80,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_status/v0",
+   "status": "named",
+   "source": "GSM9305641",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [
+  {
+   "a": "GSM9305647",
+   "b": "GSM9305649",
+   "p": 0.06
+  }
+ ],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "tissue: All neurons",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "tissue: Command interneurons",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "tissue: Glutametergic neurons",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "tissue: P-lineage progenitors and neurons",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "tissue: Sensory neurons",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "tissue: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "tissue: Subgroups of neurons (RIR, RIH, RIP, etc.)",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "tissue: Subgroups of neurons (SAA)",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "tissue: Subgroups of neurons (pharyngeal neurons, SAB, DA)",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "tissue: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "development_stage",
+   "text": "L1 (12-16 hph)",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Command interneurons",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "WBbt:0007804",
+     "label": "command interneuron",
+     "exact": false
+    }
+   ],
+   "pick": "WBbt:0007804",
+   "p": 0.7
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.29,
+  "untreated_or_vehicle": 0.23,
+  "several_compounds": 0.63,
+  "route_or_side": 0.06,
+  "dose_per_unit": 0.09,
+  "duration_without_number": 0.09,
+  "time_from_event": 0.76,
+  "pooled_material": 0.84,
+  "held_constant": 0.76,
+  "batch": 0.28,
+  "sequencer": 0.04,
+  "vector": 0.45,
+  "one_control_many_materials": 0.07,
+  "baseline_as_control": 0.08,
+  "single_cell": 0.94,
+  "mixed_assays": 0.03
+ },
+ "donor_kind": [
+  "pool",
+  0.88
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.005030346,
+   "seconds": 9.177,
+   "tokens_in": 30099,
+   "tokens_out": 2239
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000328272,
+   "seconds": 0.299,
+   "tokens_in": 7816
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120918,
+   "seconds": 0.274,
+   "tokens_in": 2879
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120204,
+   "seconds": 0.238,
+   "tokens_in": 2862
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.264,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011995199999999999,
+   "seconds": 0.257,
+   "tokens_in": 2856
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120204,
+   "seconds": 0.28,
+   "tokens_in": 2862
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120918,
+   "seconds": 0.317,
+   "tokens_in": 2879
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120204,
+   "seconds": 0.252,
+   "tokens_in": 2862
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120204,
+   "seconds": 0.333,
+   "tokens_in": 2862
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012100199999999999,
+   "seconds": 0.307,
+   "tokens_in": 2881
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012100199999999999,
+   "seconds": 0.341,
+   "tokens_in": 2881
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120624,
+   "seconds": 0.331,
+   "tokens_in": 2872
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120624,
+   "seconds": 0.353,
+   "tokens_in": 2872
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012436199999999999,
+   "seconds": 0.236,
+   "tokens_in": 2961
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012436199999999999,
+   "seconds": 0.26,
+   "tokens_in": 2961
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126294,
+   "seconds": 0.269,
+   "tokens_in": 3007
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126294,
+   "seconds": 0.267,
+   "tokens_in": 3007
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124614,
+   "seconds": 0.251,
+   "tokens_in": 2967
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124614,
+   "seconds": 0.345,
+   "tokens_in": 2967
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124614,
+   "seconds": 0.286,
+   "tokens_in": 2967
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000124614,
+   "seconds": 0.256,
+   "tokens_in": 2967
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012222,
+   "seconds": 0.255,
+   "tokens_in": 2910
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012222,
+   "seconds": 0.309,
+   "tokens_in": 2910
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000122094,
+   "seconds": 0.284,
+   "tokens_in": 2907
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000122094,
+   "seconds": 0.376,
+   "tokens_in": 2907
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000121716,
+   "seconds": 0.288,
+   "tokens_in": 2898
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000121716,
+   "seconds": 0.299,
+   "tokens_in": 2898
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000121926,
+   "seconds": 0.272,
+   "tokens_in": 2903
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000121926,
+   "seconds": 0.353,
+   "tokens_in": 2903
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120456,
+   "seconds": 0.278,
+   "tokens_in": 2868
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120456,
+   "seconds": 0.295,
+   "tokens_in": 2868
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120456,
+   "seconds": 0.324,
+   "tokens_in": 2868
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120456,
+   "seconds": 0.356,
+   "tokens_in": 2868
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000304248,
+   "seconds": 0.193,
+   "tokens_in": 7244
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 4.1958e-05,
+   "seconds": 0.464,
+   "tokens_in": 999
+  }
+ ],
+ "seconds": 0.25,
+ "ending": "settled",
+ "variant": "flash_full"
+}

@@ -1,0 +1,648 @@
+format: 1
+study: GSE137213
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM4073075
+    - GSM4073076
+    - GSM4073077
+    - GSM4073078
+    - GSM4073084
+    - GSM4073085
+    - GSM4073086
+    - GSM4073087
+    - GSM4073088
+    field: Sample_characteristics_ch1
+    quote: 'genotype/variation: wild type'
+  2:
+    record:
+    - GSM4073075
+    - GSM4073076
+    - GSM4073077
+    - GSM4073078
+    - GSM4073079
+    - GSM4073080
+    - GSM4073081
+    - GSM4073082
+    - GSM4073083
+    field: Sample_characteristics_ch1
+    quote: 'condition: standard environment'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: colon'
+  6:
+    record:
+    - GSM4073079
+    - GSM4073080
+    - GSM4073081
+    - GSM4073082
+    - GSM4073083
+    - GSM4073089
+    - GSM4073090
+    - GSM4073091
+    - GSM4073092
+    - GSM4073093
+    field: Sample_characteristics_ch1
+    quote: 'genotype/variation: transgenic mouse model overexpressing the complete human SNCA genes modeling
+      familial and sporadic forms of Parkinson''s disease'
+  7:
+    record:
+    - GSM4073084
+    - GSM4073085
+    - GSM4073086
+    - GSM4073087
+    - GSM4073088
+    - GSM4073089
+    - GSM4073090
+    - GSM4073091
+    - GSM4073092
+    - GSM4073093
+    field: Sample_characteristics_ch1
+    quote: 'condition: enhanced environment'
+  8:
+    record: GSE137213
+    field: Series_overall_design
+    quote: Experimental setup consists of control and transgenic mice kept under standard environment
+      and enriched environment conditions, with replicates in each genotype and condition.
+factors:
+  genotype:
+    levels:
+    - wild type
+    - transgenic
+    baseline: wild type
+    ordered: false
+    inferred: wild-type vs SNCA-overexpressing transgenic mice
+    p: 0.99
+  condition:
+    levels:
+    - standard environment
+    - enhanced environment
+    baseline: standard environment
+    ordered: false
+    quoted:
+    - 8
+    p: 0.98
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: colon
+    term: UBERON:0001155
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    na: RNA-Seq, no pull-down enrichment
+    p: 0.99
+  control_type:
+    na: no input or IgG control libraries
+    p: 1.0
+  sex:
+    unknown: no sex stated in any record
+    p: 0.98
+  age:
+    unknown: no age stated in any record
+    p: 0.97
+  development_stage:
+    unknown: stage of life not stated
+    p: 0.96
+  cell_type:
+    na: bulk colon tissue, no cell type given
+    p: 0.96
+  cell_line:
+    na: animal tissue, no cell line
+    p: 1.0
+  strain:
+    unknown: background strain not stated
+    p: 1.0
+  treatment:
+    na: no agent applied; environment held as condition factor
+    p: 0.56
+  dose:
+    na: no treatment applied, so no dose
+    p: 0.73
+  duration:
+    unknown: no treatment applied, so no duration
+    p: 0.98
+samples:
+  GSM4073075:
+    genotype:
+      text: wild type
+      level: wild type
+      quoted:
+      - 1
+      p: 1.0
+    condition:
+      text: standard environment
+      level: standard environment
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: wild-type mice without the SNCA transgene
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT-1 SE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073076:
+    genotype:
+      text: wild type
+      level: wild type
+      quoted:
+      - 1
+      p: 1.0
+    condition:
+      text: standard environment
+      level: standard environment
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: wild-type mice without the SNCA transgene
+      p: 0.99
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT-2 SE
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM4073077:
+    genotype:
+      text: wild type
+      level: wild type
+      quoted:
+      - 1
+      p: 1.0
+    condition:
+      text: standard environment
+      level: standard environment
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: wild-type mice without the SNCA transgene
+      p: 0.98
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT-3 SE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073078:
+    genotype:
+      text: wild type
+      level: wild type
+      quoted:
+      - 1
+      p: 1.0
+    condition:
+      text: standard environment
+      level: standard environment
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: wild-type mice without the SNCA transgene
+      p: 0.99
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT-5 SE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073079:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: standard environment
+      level: standard environment
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 0.99
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-1 SE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073080:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: standard environment
+      level: standard environment
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-2 SE
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM4073081:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: standard environment
+      level: standard environment
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-3 SE
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM4073082:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: standard environment
+      level: standard environment
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 0.99
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-4 SE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073083:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: standard environment
+      level: standard environment
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-5 SE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073084:
+    genotype:
+      text: wild type
+      level: wild type
+      quoted:
+      - 1
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: wild-type mice without the SNCA transgene
+      p: 0.98
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT-1 EE
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM4073085:
+    genotype:
+      text: wild type
+      level: wild type
+      quoted:
+      - 1
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: wild-type mice without the SNCA transgene
+      p: 0.98
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT-2 EE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073086:
+    genotype:
+      text: wild type
+      level: wild type
+      quoted:
+      - 1
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: wild-type mice without the SNCA transgene
+      p: 0.98
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT-3 EE
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM4073087:
+    genotype:
+      text: wild type
+      level: wild type
+      quoted:
+      - 1
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: wild-type mice without the SNCA transgene
+      p: 0.98
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT-4 EE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073088:
+    genotype:
+      text: wild type
+      level: wild type
+      quoted:
+      - 1
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: healthy
+      inferred: wild-type mice without the SNCA transgene
+      p: 0.98
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT-5 EE
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM4073089:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-1 EE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073090:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-2 EE
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM4073091:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-3 EE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073092:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-4 EE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM4073093:
+    genotype:
+      text: transgenic mouse model overexpressing the complete human SNCA genes modeling familial and
+        sporadic forms of Parkinson's disease
+      level: transgenic
+      quoted:
+      - 6
+      p: 1.0
+    condition:
+      text: enhanced environment
+      level: enhanced environment
+      quoted:
+      - 7
+      p: 1.0
+    disease:
+      text: modeling familial and sporadic forms of Parkinson's disease
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Tg-5 EE
+      inferred: Jev picked the individual from the listed names
+      p: 0.99

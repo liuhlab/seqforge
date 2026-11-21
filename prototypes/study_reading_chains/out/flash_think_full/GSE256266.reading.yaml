@@ -1,0 +1,296 @@
+format: 1
+study: GSE256266
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM8092237
+    - GSM8092238
+    field: Sample_source_name_ch1
+    quote: 1 day old whole hermaphrodite worm
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: 1 day old
+  5:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: day 1 adult worms
+  6:
+    record:
+    - GSM8092237
+    - GSM8092238
+    field: Sample_characteristics_ch1
+    quote: whole hermaphrodite worm
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: glia
+  8:
+    paper: pmid:40527319
+    section: RESULTS > Glia lack canonical the DCV release protein UNC-31/CAPS
+    quote: in either healthy, aged, or ER-stressed adult animals
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: miR228-GFP
+  10:
+    paper: pmid:40527319
+    section: RESULTS > Computational and experimental annotation of glial cell types
+    quote: wild-type N2 hermaphrodites
+  11:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: none
+  12:
+    record:
+    - GSM8092237
+    - GSM8092239
+    field: Sample_title
+    quote: Rep1
+  13:
+    record:
+    - GSM8092238
+    - GSM8092240
+    field: Sample_title
+    quote: Rep2
+  14:
+    record:
+    - GSM8092239
+    - GSM8092240
+    field: Sample_source_name_ch1
+    quote: 1 day old whole male worm
+  15:
+    record:
+    - GSM8092239
+    - GSM8092240
+    field: Sample_characteristics_ch1
+    quote: whole male worm
+  16:
+    record:
+    - GSM8092239
+    - GSM8092240
+    field: Sample_characteristics_ch1
+    quote: miR228-GFP, Him5
+  17:
+    paper: pmid:40527319
+    section: 'STAR METHODS: > Method Details > Transgenesis methods'
+    quote: all male data was acquired in him-5 (e1490) mutant background
+  18:
+    record: GSE256266
+    field: Series_overall_design
+    quote: from hermaphrodite and male animals
+factors:
+  sex:
+    levels:
+    - hermaphrodite
+    - male
+    baseline: null
+    ordered: false
+    quoted:
+    - 18
+    p: 0.98
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  age:
+    text: 1 day old
+    value: 1
+    unit: day
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: adult
+    quoted:
+    - 5
+    p: 1.0
+  cell_type:
+    text: glia
+    term: CL:0000125
+    quoted:
+    - 7
+    p: 0.99
+  disease:
+    text: healthy
+    inferred: Paper refers to healthy adult animals.
+    see:
+    - 8
+    p: 0.99
+  treatment:
+    text: none
+    quoted:
+    - 11
+    p: 0.95
+  target:
+    na: RNA-Seq has no pull-down target
+    p: 1.0
+  control_type:
+    na: No background-control libraries; all are glial snRNA-seq
+    p: 1.0
+  cell_line:
+    na: Whole animals; GEO cell line is n/a
+    p: 1.0
+  dose:
+    na: No treatment applied
+    p: 1.0
+  duration:
+    na: No treatment applied
+    p: 0.99
+  donor:
+    na: a pool of many individuals
+    p: 0.99
+samples:
+  GSM8092237:
+    sex:
+      text: hermaphrodite
+      term: hermaphrodite
+      level: hermaphrodite
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: whole hermaphrodite worm
+      quoted:
+      - 6
+      p: 1.0
+    genotype:
+      text: miR228-GFP
+      quoted:
+      - 9
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 10
+      p: 0.97
+    replicate:
+      text: Rep1
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8092238:
+    sex:
+      text: hermaphrodite
+      term: hermaphrodite
+      level: hermaphrodite
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: whole hermaphrodite worm
+      quoted:
+      - 6
+      p: 1.0
+    genotype:
+      text: miR228-GFP
+      quoted:
+      - 9
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 10
+      p: 0.97
+    replicate:
+      text: Rep2
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8092239:
+    sex:
+      text: male
+      term: male
+      level: male
+      quoted:
+      - 14
+      p: 1.0
+    tissue:
+      text: whole male worm
+      quoted:
+      - 15
+      p: 1.0
+    genotype:
+      text: miR228-GFP, Him5
+      quoted:
+      - 16
+      p: 1.0
+    strain:
+      text: him-5
+      quoted:
+      - 17
+      p: 0.99
+    replicate:
+      text: Rep1
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8092240:
+    sex:
+      text: male
+      term: male
+      level: male
+      quoted:
+      - 14
+      p: 1.0
+    tissue:
+      text: whole male worm
+      quoted:
+      - 15
+      p: 1.0
+    genotype:
+      text: miR228-GFP, Him5
+      quoted:
+      - 16
+      p: 1.0
+    strain:
+      text: him-5
+      quoted:
+      - 17
+      p: 1.0
+    replicate:
+      text: Rep2
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null

@@ -1,0 +1,531 @@
+format: 1
+study: GSE335500
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814713
+    - GSM9814715
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'cell type: APOE3'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Sex: male'
+  5:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814710
+    - GSM9814711
+    - GSM9814712
+    - GSM9814713
+    - GSM9814715
+    - GSM9814716
+    - GSM9814717
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'age: 7.5 months'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: cortex'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell line: mouse cortical tissue'
+  8:
+    paper: pmid:42570239
+    section: abstract
+    quote: Astrocytes and APOE are strongly implicated in Alzheimer's disease (AD)
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: AD'
+  10:
+    paper: pmid:42570239
+    section: Results > APOE3 and APOE4 hAstrocytes distinctly shape microglial states and responses to
+      Aβ plaques
+    quote: P1-P4 mice (AppNL-G-FRag2−/−) were injected with either APOE3 or APOE4 hAstrocyte progenitor
+      cells.
+  11:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814715
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW2E33-3D11'
+  12:
+    paper: pmid:42570239
+    section: STAR★Methods > Method details > Transplantation of hiPSC-derived astrocyte progenitors
+    quote: approximately 200,000 cells were injected using Hamilton syringes into two locations within
+      the forebrain
+  13:
+    record: GSM9814708
+    field: Sample_description
+    quote: Bulk RNA-seq of mouse cortical tissue from AD chimeric mouse engrafted with human iPSC-derived
+      APOE3 astrocyte progenitors 6 months post-transplant (APP-64)
+  14:
+    record:
+    - GSM9814710
+    - GSM9814711
+    - GSM9814712
+    - GSM9814714
+    - GSM9814716
+    - GSM9814717
+    field: Sample_characteristics_ch1
+    quote: 'cell type: APOE4'
+  15:
+    record:
+    - GSM9814710
+    - GSM9814711
+    - GSM9814716
+    - GSM9814717
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW2E44-4B12'
+  16:
+    record:
+    - GSM9814712
+    - GSM9814714
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW3E44-F-2'
+  17:
+    record:
+    - GSM9814713
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW3E33-H-2'
+  18:
+    record: GSM9814714
+    field: Sample_characteristics_ch1
+    quote: 'age: 6 months'
+  19:
+    paper: pmid:42570239
+    section: abstract
+    quote: transplanting isogenic APOE3 or APOE4 human induced pluripotent stem cell-derived astrocyte
+      progenitors into neonatal AD mice.
+factors:
+  cell_type:
+    levels:
+    - APOE3
+    - APOE4
+    baseline: null
+    ordered: false
+    quoted:
+    - 19
+    p: 0.96
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  sex:
+    text: male
+    term: male
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: cortex
+    term: UBERON:0001851
+    quoted:
+    - 6
+    p: 1.0
+  cell_line:
+    text: mouse cortical tissue
+    quoted:
+    - 7
+    p: 0.97
+  disease:
+    text: Alzheimer's disease (AD)
+    quoted:
+    - 8
+    p: 1.0
+  genotype:
+    text: AD
+    quoted:
+    - 9
+    p: 1.0
+  strain:
+    text: AppNL-G-F Rag2−/−
+    quoted:
+    - 10
+    p: 0.9
+  dose:
+    text: approximately 200,000 cells
+    value: 200000
+    unit: cells
+    quoted:
+    - 12
+    p: 0.86
+  months_post_transplant:
+    text: 6 months post-transplant
+    quoted:
+    - 13
+    p: 0.87
+  target:
+    na: total RNA sequencing; no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no input or IgG libraries; all samples are engrafted cortex
+    p: 1.0
+  development_stage:
+    unknown: no record or paper states a developmental stage term
+    p: 0.54
+  duration:
+    unknown: single progenitor injection; no treatment duration reported
+    p: 0.59
+samples:
+  GSM9814708:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E33-3D11
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-64
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM9814709:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E33-3D11
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-65
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM9814710:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 14
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 15
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-69
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM9814711:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 14
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 15
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-70
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM9814712:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 14
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW3E44-F-2
+      quoted:
+      - 16
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-73
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM9814713:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW3E33-H-2
+      quoted:
+      - 17
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-78
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM9814714:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 14
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: months
+      quoted:
+      - 18
+      p: 0.97
+    treatment:
+      text: TCW3E44-F-2
+      quoted:
+      - 16
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-46
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM9814715:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E33-3D11
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-66
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM9814716:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 14
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 15
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-71
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM9814717:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 14
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 15
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-72
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM9814718:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW3E33-H-2
+      quoted:
+      - 17
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-76
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM9814719:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW3E33-H-2
+      quoted:
+      - 17
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_APP-80
+      inferred: Jev picked the individual from the listed names
+      p: 0.97

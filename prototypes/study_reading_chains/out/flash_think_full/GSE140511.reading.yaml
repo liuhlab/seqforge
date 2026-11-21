@@ -1,0 +1,1123 @@
+format: 1
+study: GSE140511
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM4160643
+    - GSM4160647
+    - GSM4173504
+    - GSM4173505
+    - GSM4173506
+    field: Sample_characteristics_ch1
+    quote: 'mouse genotype: wt'
+  2:
+    record:
+    - GSM4160643
+    - GSM4160644
+    - GSM4160645
+    - GSM4160646
+    - GSM4160647
+    - GSM4160648
+    - GSM4160649
+    - GSM4160650
+    field: Sample_characteristics_ch1
+    quote: 'age: 15 months'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    paper: pmid:31932797
+    section: Online Methods > Mice
+    quote: 3 male mice per genotype (WT, Trem2−/−, 5XFAD and Trem2−/− 5XFAD) were used.
+  6:
+    paper: pmid:31932797
+    section: Online Methods > Mice
+    quote: Animals used for snRNA-seq were sacrificed at 7 or 15 months of age.
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: nuclei of brain'
+  8:
+    record:
+    - GSM4160643
+    - GSM4160647
+    - GSM4173504
+    - GSM4173505
+    - GSM4173506
+    field: Sample_source_name_ch1
+    quote: Isolated single nuclei from brain of wild type mice
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: B6'
+  10:
+    record:
+    - GSM4160643
+    - GSM4160644
+    - GSM4160645
+    - GSM4160646
+    - GSM4160647
+    - GSM4160648
+    - GSM4160649
+    - GSM4160650
+    field: Sample_extract_protocol_ch1
+    quote: droplet-based 3’ end massively parallel single-cell RNA sequencing
+  11:
+    record:
+    - GSM4160643
+    - GSM4160644
+    - GSM4160645
+    - GSM4160646
+    - GSM4160647
+    - GSM4160648
+    - GSM4160649
+    - GSM4160650
+    field: Sample_instrument_model
+    quote: Illumina HiSeq 4000
+  12:
+    record: each_sample
+    field: Sample_molecule_ch1
+    quote: polyA RNA
+  13:
+    record:
+    - GSM4160644
+    - GSM4160646
+    - GSM4160648
+    - GSM4160650
+    - GSM4173507
+    - GSM4173508
+    - GSM4173509
+    - GSM4173513
+    - GSM4173514
+    - GSM4173515
+    field: Sample_characteristics_ch1
+    quote: 'mouse genotype: Trem2-/-'
+  14:
+    record:
+    - GSM4160645
+    - GSM4160649
+    - GSM4173510
+    - GSM4173511
+    - GSM4173512
+    field: Sample_characteristics_ch1
+    quote: 'mouse genotype: 5XFAD'
+  15:
+    paper: pmid:31932797
+    section: Results > snRNA-seq reveals a Trem2-dependent microgliosis at early stages of Aβ accumulation
+    quote: 5XFAD cortex
+  16:
+    paper: pmid:31932797
+    section: title
+    quote: Alzheimer's disease
+  17:
+    record:
+    - GSM4160646
+    - GSM4160650
+    - GSM4173513
+    - GSM4173514
+    - GSM4173515
+    field: Sample_characteristics_ch1
+    quote: 'mouse genotype: Trem2-/- 5XFAD'
+  18:
+    paper: pmid:31932797
+    section: Results > snRNA-seq reveals a Trem2-dependent microgliosis at early stages of Aβ accumulation
+    quote: the hippocampi
+  19:
+    record:
+    - GSM4173504
+    - GSM4173505
+    - GSM4173506
+    - GSM4173507
+    - GSM4173508
+    - GSM4173509
+    - GSM4173510
+    - GSM4173511
+    - GSM4173512
+    - GSM4173513
+    - GSM4173514
+    - GSM4173515
+    field: Sample_characteristics_ch1
+    quote: 'age: 7 months'
+  20:
+    record:
+    - GSM4173504
+    - GSM4173505
+    - GSM4173506
+    - GSM4173507
+    - GSM4173508
+    - GSM4173509
+    - GSM4173510
+    - GSM4173511
+    - GSM4173512
+    - GSM4173513
+    - GSM4173514
+    - GSM4173515
+    field: Sample_extract_protocol_ch1
+    quote: droplet-based 5’ end massively parallel single-cell RNA sequencing
+  21:
+    record:
+    - GSM4173504
+    - GSM4173505
+    - GSM4173506
+    - GSM4173507
+    - GSM4173508
+    - GSM4173509
+    - GSM4173510
+    - GSM4173511
+    - GSM4173512
+    - GSM4173513
+    - GSM4173514
+    - GSM4173515
+    field: Sample_instrument_model
+    quote: Illumina NovaSeq 6000
+  22:
+    paper: pmid:31932797
+    section: Results > snRNA-seq reveals a Trem2-dependent microgliosis at early stages of Aβ accumulation
+    quote: 7-month-old 5XFAD, Trem2-deficient 5XFAD (Trem2−/− 5XFAD), wild-type (WT), and Trem2−/− mice
+      (3 mice/genotype)
+  23:
+    paper: pmid:31932797
+    section: Results > snRNA-seq reveals a Trem2-dependent microgliosis at early stages of Aβ accumulation
+    quote: nuclei pooled from the cortices or the hippocampi of 3 mice per genotype
+factors:
+  genotype:
+    levels:
+    - wt
+    - Trem2_KO
+    - 5XFAD
+    - Trem2_KO_5XFAD
+    baseline: wt
+    ordered: false
+    quoted:
+    - 22
+    p: 0.98
+  age:
+    levels:
+    - 7mo
+    - 15mo
+    baseline: null
+    ordered: true
+    quoted:
+    - 6
+    p: 0.86
+  brain_region:
+    levels:
+    - cortex
+    - hippocampus
+    baseline: null
+    ordered: false
+    quoted:
+    - 23
+    p: 0.85
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  sex:
+    text: male
+    term: male
+    quoted:
+    - 5
+    p: 0.75
+  development_stage:
+    text: adult
+    quoted:
+    - 6
+    p: 0.99
+  tissue:
+    text: brain
+    term: UBERON:0000955
+    quoted:
+    - 7
+    p: 1.0
+  strain:
+    text: B6
+    quoted:
+    - 9
+    p: 1.0
+  molecule:
+    text: polyA RNA
+    quoted:
+    - 12
+    p: 1.0
+  target:
+    na: No pull-down or enrichment target; transcriptomic RNA-Seq.
+    p: 1.0
+  control_type:
+    na: No input or IgG background-control libraries.
+    p: 1.0
+  cell_type:
+    unknown: Mixed brain nuclei; no single cell type stated per sample.
+    p: 0.93
+  cell_line:
+    na: Brain tissue nuclei, not a cultured cell line.
+    p: 1.0
+  treatment:
+    na: No treatment applied; study uses genetic models and aging.
+    p: 0.88
+  dose:
+    na: No treatment dose; no treatment applied.
+    p: 0.98
+  duration:
+    na: No treatment duration; no treatment applied.
+    p: 0.96
+samples:
+  GSM4160643:
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 15 months
+      value: 15
+      unit: months
+      level: 15mo
+      quoted:
+      - 2
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.93
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.98
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 10
+      p: 1.0
+    sequencing_instrument:
+      text: Illumina HiSeq 4000
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      unknown: nothing read says which individual a library came from
+      p: 0.5
+  GSM4160644:
+    genotype:
+      text: Trem2-/-
+      level: Trem2_KO
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 15 months
+      value: 15
+      unit: months
+      level: 15mo
+      quoted:
+      - 2
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.91
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.52
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 10
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina HiSeq 4000
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      unknown: nothing read says which individual a library came from
+      p: 0.5
+  GSM4160645:
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 14
+      p: 0.96
+    age:
+      text: 15 months
+      value: 15
+      unit: months
+      level: 15mo
+      quoted:
+      - 2
+      p: 1.0
+    brain_region:
+      text: cortex
+      level: cortex
+      quoted:
+      - 15
+      p: 0.52
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.93
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 10
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina HiSeq 4000
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      unknown: nothing read says which individual a library came from
+      p: 0.5
+  GSM4160646:
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2_KO_5XFAD
+      quoted:
+      - 17
+      p: 1.0
+    age:
+      text: 15 months
+      value: 15
+      unit: months
+      level: 15mo
+      quoted:
+      - 2
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.86
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.98
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 10
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina HiSeq 4000
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      unknown: nothing read says which individual a library came from
+      p: 0.5
+  GSM4160647:
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 15 months
+      value: 15
+      unit: months
+      level: 15mo
+      quoted:
+      - 2
+      p: 1.0
+    brain_region:
+      text: hippocampi
+      level: hippocampus
+      quoted:
+      - 18
+      p: 0.65
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.97
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 10
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina HiSeq 4000
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      unknown: nothing read says which individual a library came from
+      p: 0.5
+  GSM4160648:
+    genotype:
+      text: Trem2-/-
+      level: Trem2_KO
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 15 months
+      value: 15
+      unit: months
+      level: 15mo
+      quoted:
+      - 2
+      p: 1.0
+    brain_region:
+      text: hippocampi
+      level: hippocampus
+      quoted:
+      - 18
+      p: 0.62
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.41
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 10
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina HiSeq 4000
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      unknown: nothing read says which individual a library came from
+      p: 0.5
+  GSM4160649:
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 14
+      p: 0.98
+    age:
+      text: 15 months
+      value: 15
+      unit: months
+      level: 15mo
+      quoted:
+      - 2
+      p: 1.0
+    brain_region:
+      text: hippocampi
+      level: hippocampus
+      quoted:
+      - 18
+      p: 0.91
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.94
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 10
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina HiSeq 4000
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      unknown: nothing read says which individual a library came from
+      p: 0.5
+  GSM4160650:
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2_KO_5XFAD
+      quoted:
+      - 17
+      p: 1.0
+    age:
+      text: 15 months
+      value: 15
+      unit: months
+      level: 15mo
+      quoted:
+      - 2
+      p: 1.0
+    brain_region:
+      text: hippocampi
+      level: hippocampus
+      quoted:
+      - 18
+      p: 0.77
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.98
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 10
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina HiSeq 4000
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      unknown: nothing read says which individual a library came from
+      p: 0.5
+  GSM4173504:
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.94
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.98
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.97
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.97
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT1
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM4173505:
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.92
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.98
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.96
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.98
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT2
+      inferred: Jev picked the individual from the listed names
+      p: 0.93
+  GSM4173506:
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.95
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.98
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.96
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.97
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT3
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM4173507:
+    genotype:
+      text: Trem2-/-
+      level: Trem2_KO
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.94
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.45
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.98
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.98
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Trem2_KO1
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM4173508:
+    genotype:
+      text: Trem2-/-
+      level: Trem2_KO
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.93
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.54
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.97
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.99
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Trem2_KO2
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM4173509:
+    genotype:
+      text: Trem2-/-
+      level: Trem2_KO
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.96
+    disease:
+      text: healthy
+      quoted:
+      - 8
+      p: 0.53
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.99
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Trem2_KO3
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM4173510:
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 14
+      p: 0.99
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.83
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.91
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.98
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.99
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT_5XFAD1
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM4173511:
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 14
+      p: 0.97
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.82
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.94
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.98
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.99
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT_5XFAD2
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM4173512:
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 14
+      p: 0.98
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.82
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.95
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.97
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.98
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_WT_5XFAD3
+      inferred: Jev picked the individual from the listed names
+      p: 0.93
+  GSM4173513:
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2_KO_5XFAD
+      quoted:
+      - 17
+      p: 1.0
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.89
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.97
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.99
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Trem2_KO_5XFAD1
+      inferred: Jev picked the individual from the listed names
+      p: 0.95
+  GSM4173514:
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2_KO_5XFAD
+      quoted:
+      - 17
+      p: 1.0
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.91
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.97
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.99
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Trem2_KO_5XFAD2
+      inferred: Jev picked the individual from the listed names
+      p: 0.93
+  GSM4173515:
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2_KO_5XFAD
+      quoted:
+      - 17
+      p: 1.0
+    age:
+      text: 7 months
+      value: 7
+      unit: months
+      level: 7mo
+      quoted:
+      - 19
+      p: 1.0
+    brain_region:
+      unknown: the record of this sample does not say its brain region
+      p: 0.91
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 16
+      p: 0.97
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 20
+      p: 0.99
+    sequencing_instrument:
+      text: Illumina NovaSeq 6000
+      quoted:
+      - 21
+      p: 0.99
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Trem2_KO_5XFAD3
+      inferred: Jev picked the individual from the listed names
+      p: 0.94

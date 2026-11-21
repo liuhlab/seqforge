@@ -1,0 +1,2723 @@
+{
+ "study": "GSE302826",
+ "chain": "flash",
+ "read_full": true,
+ "n_samples": 18,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "ApoE3/3",
+    "ApoE4/4"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.05,
+   "baseline": "L0",
+   "p_baseline": 0.94,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.96,
+   "p_ordered": 0.08,
+   "writer_baseline": "ApoE3/3",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "cell_line",
+   "levels": [
+    "BIONi037-A",
+    "BIONi037-A4",
+    "KOLF2.1J",
+    "KOLF2.1J C156R hom3"
+   ],
+   "p_designed": 0.77,
+   "p_designed_neg": 0.37,
+   "baseline": "L0",
+   "p_baseline": 0.56,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.6,
+   "p_ordered": 0.08,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "+FBS",
+    "-FBS"
+   ],
+   "p_designed": 0.96,
+   "p_designed_neg": 0.15,
+   "baseline": "L0",
+   "p_baseline": 0.6,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.62,
+   "p_ordered": 0.11,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.83,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.8,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "na",
+   "p": 0.72,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "na",
+   "p": 0.7,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "na",
+   "p": 0.8,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.71,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.69,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "unknown",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "unknown",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "unknown",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "unknown",
+   "p": 0.75,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "unknown",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "unknown",
+   "p": 0.72,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:cell_line",
+   "mark": "inferred",
+   "p": 0.77,
+   "shared": true
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM9111824": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE3/3",
+    "ApoE3/3"
+   ],
+   "cell_line": [
+    "BIONi037-A",
+    "BIONi037-A"
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived astrocytes",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM9111825": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE3/3",
+    "ApoE3/3"
+   ],
+   "cell_line": [
+    "BIONi037-A",
+    "BIONi037-A"
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived astrocytes",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM9111826": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE3/3",
+    "ApoE3/3"
+   ],
+   "cell_line": [
+    "BIONi037-A",
+    "BIONi037-A"
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived astrocytes",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM9111827": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE4/4",
+    "ApoE4/4"
+   ],
+   "cell_line": [
+    "BIONi037-A4",
+    "BIONi037-A4"
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived astrocytes",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM9111828": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE4/4",
+    "ApoE4/4"
+   ],
+   "cell_line": [
+    "BIONi037-A4",
+    "BIONi037-A4"
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived astrocytes",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM9111829": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE4/4",
+    "ApoE4/4"
+   ],
+   "cell_line": [
+    "BIONi037-A4",
+    "BIONi037-A4"
+   ],
+   "treatment": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "iPSC-derived astrocytes",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM9111830": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE3/3",
+    "ApoE3/3"
+   ],
+   "cell_line": [
+    "KOLF2.1J",
+    "KOLF2.1J"
+   ],
+   "treatment": [
+    "+FBS",
+    "+FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM9111831": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE3/3",
+    "ApoE3/3"
+   ],
+   "cell_line": [
+    "KOLF2.1J",
+    "KOLF2.1J"
+   ],
+   "treatment": [
+    "+FBS",
+    "+FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM9111832": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE3/3",
+    "ApoE3/3"
+   ],
+   "cell_line": [
+    "KOLF2.1J",
+    "KOLF2.1J"
+   ],
+   "treatment": [
+    "+FBS",
+    "+FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM9111833": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE3/3",
+    "ApoE3/3"
+   ],
+   "cell_line": [
+    "KOLF2.1J",
+    "KOLF2.1J"
+   ],
+   "treatment": [
+    "-FBS",
+    "-FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM9111834": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE3/3",
+    "ApoE3/3"
+   ],
+   "cell_line": [
+    "KOLF2.1J",
+    "KOLF2.1J"
+   ],
+   "treatment": [
+    "-FBS",
+    "-FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM9111835": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE3/3",
+    "ApoE3/3"
+   ],
+   "cell_line": [
+    "KOLF2.1J",
+    "KOLF2.1J"
+   ],
+   "treatment": [
+    "-FBS",
+    "-FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM9111836": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE4/4",
+    "ApoE4/4"
+   ],
+   "cell_line": [
+    "KOLF2.1J C156R hom3",
+    "KOLF2.1J C156R hom3"
+   ],
+   "treatment": [
+    "+FBS",
+    "+FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM9111837": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE4/4",
+    "ApoE4/4"
+   ],
+   "cell_line": [
+    "KOLF2.1J C156R hom3",
+    "KOLF2.1J C156R hom3"
+   ],
+   "treatment": [
+    "+FBS",
+    "+FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM9111838": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE4/4",
+    "ApoE4/4"
+   ],
+   "cell_line": [
+    "KOLF2.1J C156R hom3",
+    "KOLF2.1J C156R hom3"
+   ],
+   "treatment": [
+    "+FBS",
+    "+FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM9111839": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE4/4",
+    "ApoE4/4"
+   ],
+   "cell_line": [
+    "KOLF2.1J C156R hom3",
+    "KOLF2.1J C156R hom3"
+   ],
+   "treatment": [
+    "-FBS",
+    "-FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  },
+  "GSM9111840": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE4/4",
+    "ApoE4/4"
+   ],
+   "cell_line": [
+    "KOLF2.1J C156R hom3",
+    "KOLF2.1J C156R hom3"
+   ],
+   "treatment": [
+    "-FBS",
+    "-FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ]
+  },
+  "GSM9111841": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "ApoE4/4",
+    "ApoE4/4"
+   ],
+   "cell_line": [
+    "KOLF2.1J C156R hom3",
+    "KOLF2.1J C156R hom3"
+   ],
+   "treatment": [
+    "-FBS",
+    "-FBS"
+   ],
+   "cell_type": [
+    "iAstrocytes",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "ApoE3/3",
+    "ApoE4/4"
+   ],
+   "baseline": "ApoE3/3",
+   "ordered": false,
+   "quoted": [
+    1
+   ],
+   "p": 0.98
+  },
+  "cell_line": {
+   "levels": [
+    "BIONi037-A",
+    "BIONi037-A4",
+    "KOLF2.1J",
+    "KOLF2.1J C156R hom3"
+   ],
+   "baseline": "BIONi037-A",
+   "ordered": false,
+   "inferred": "Cell lines used",
+   "see": [
+    2
+   ],
+   "p": 0.77
+  },
+  "treatment": {
+   "levels": [
+    "+FBS",
+    "-FBS"
+   ],
+   "baseline": "+FBS",
+   "ordered": false,
+   "quoted": [
+    9
+   ],
+   "p": 0.96
+  }
+ },
+ "n_passages": 12,
+ "n_shared": 13,
+ "n_row_claims": 90,
+ "lists_summary": {
+  "factors": 3,
+  "factors_kept": 3,
+  "labels_with_values": 4,
+  "extra_labels": 0,
+  "writer_gaps": [],
+  "donor_kind_writer": "cell_line",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM9111824",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM9111827",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "named",
+   "source": "GSM9111824",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.6
+  },
+  {
+   "key": "cell_line/L0",
+   "status": "named",
+   "source": "GSM9111824",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_line/L1",
+   "status": "named",
+   "source": "GSM9111827",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_line/L2",
+   "status": "named",
+   "source": "GSM9111830",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_line/L3",
+   "status": "named",
+   "source": "GSM9111836",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 30,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_line/_factor",
+   "status": "named",
+   "source": "GSM9111824",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.49
+  },
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM9111830",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM9111833",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "named",
+   "source": "GSM9111830",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.81
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM9111824",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "GSM9111824",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 34,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v1",
+   "status": "named",
+   "source": "GSM9111830",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_line",
+   "text": "BIONi037-A",
+   "vocab": "cellosaurus",
+   "candidates": [
+    {
+     "id": "CVCL_II80",
+     "label": "BIONi037-A",
+     "exact": true
+    },
+    {
+     "id": "CVCL_RF91",
+     "label": "BIONi037-A-1",
+     "exact": false
+    },
+    {
+     "id": "CVCL_RF92",
+     "label": "BIONi037-A-2",
+     "exact": false
+    },
+    {
+     "id": "CVCL_RF93",
+     "label": "BIONi037-A-3",
+     "exact": false
+    },
+    {
+     "id": "CVCL_RF94",
+     "label": "BIONi037-A-4",
+     "exact": false
+    }
+   ],
+   "pick": "CVCL_II80",
+   "p": 0.75,
+   "probe_pick": "none",
+   "probe_p": 0.93
+  },
+  {
+   "label": "cell_line",
+   "text": "BIONi037-A4",
+   "vocab": "cellosaurus",
+   "candidates": []
+  },
+  {
+   "label": "cell_line",
+   "text": "KOLF2.1J",
+   "vocab": "cellosaurus",
+   "candidates": [
+    {
+     "id": "CVCL_B5P3",
+     "label": "KOLF2.1J",
+     "exact": true
+    },
+    {
+     "id": "CVCL_C7TY",
+     "label": "KOLF2.1J PPM1H KO",
+     "exact": false
+    },
+    {
+     "id": "CVCL_C8FQ",
+     "label": "KOLF2.1J TH-TdTomato",
+     "exact": false
+    },
+    {
+     "id": "CVCL_D1J6",
+     "label": "KOLF2.1J AAVS1-TREG3-NGN2",
+     "exact": false
+    },
+    {
+     "id": "CVCL_D1KS",
+     "label": "KOLF2.1J AAVS1-TREG3-NGN2 ATG12-/-",
+     "exact": false
+    },
+    {
+     "id": "CVCL_E3Y0",
+     "label": "KOLF2.1J AAVS1-TREG3-NGN2 CHMP2B-/-",
+     "exact": false
+    },
+    {
+     "id": "CVCL_E4NI",
+     "label": "KOLF2.1J ABCA7 24.2kbdel DEL/DEL",
+     "exact": false
+    },
+    {
+     "id": "CVCL_E4NJ",
+     "label": "KOLF2.1J ABCA7 E1679X REV/WT",
+     "exact": false
+    }
+   ],
+   "pick": "CVCL_B5P3",
+   "p": 0.82,
+   "probe_pick": "none",
+   "probe_p": 0.81
+  },
+  {
+   "label": "cell_line",
+   "text": "KOLF2.1J C156R hom3",
+   "vocab": "cellosaurus",
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "iAstrocytes",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "iPSC-derived astrocytes",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "+FBS",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:748884",
+     "label": "deferitazole",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:756716",
+     "label": "deferitazole magnesium",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 1.0
+  },
+  {
+   "label": "treatment",
+   "text": "-FBS",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:748884",
+     "label": "deferitazole",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:756716",
+     "label": "deferitazole magnesium",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 1.0
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.18,
+  "untreated_or_vehicle": 0.56,
+  "several_compounds": 0.14,
+  "route_or_side": 0.04,
+  "dose_per_unit": 0.16,
+  "duration_without_number": 0.07,
+  "time_from_event": 0.18,
+  "pooled_material": 0.11,
+  "held_constant": 0.91,
+  "batch": 0.93,
+  "sequencer": 0.05,
+  "vector": 0.28,
+  "one_control_many_materials": 0.06,
+  "baseline_as_control": 0.12,
+  "single_cell": 0.02,
+  "mixed_assays": 0.03
+ },
+ "donor_kind": [
+  "cell_line",
+  0.98
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.005094059999999999,
+   "seconds": 7.527,
+   "tokens_in": 30358,
+   "tokens_out": 2155
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000306474,
+   "seconds": 0.295,
+   "tokens_in": 7297
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.3836e-05,
+   "seconds": 0.309,
+   "tokens_in": 1758
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.3836e-05,
+   "seconds": 0.361,
+   "tokens_in": 1758
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.3836e-05,
+   "seconds": 0.317,
+   "tokens_in": 1758
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.3836e-05,
+   "seconds": 0.309,
+   "tokens_in": 1758
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.3836e-05,
+   "seconds": 0.308,
+   "tokens_in": 1758
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.3836e-05,
+   "seconds": 0.309,
+   "tokens_in": 1758
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4046e-05,
+   "seconds": 0.353,
+   "tokens_in": 1763
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4046e-05,
+   "seconds": 0.265,
+   "tokens_in": 1763
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4046e-05,
+   "seconds": 0.261,
+   "tokens_in": 1763
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4718e-05,
+   "seconds": 0.304,
+   "tokens_in": 1779
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4718e-05,
+   "seconds": 0.29,
+   "tokens_in": 1779
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4046e-05,
+   "seconds": 0.308,
+   "tokens_in": 1763
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4718e-05,
+   "seconds": 0.262,
+   "tokens_in": 1779
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4046e-05,
+   "seconds": 0.361,
+   "tokens_in": 1763
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4046e-05,
+   "seconds": 0.361,
+   "tokens_in": 1763
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4718e-05,
+   "seconds": 0.271,
+   "tokens_in": 1779
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4718e-05,
+   "seconds": 0.318,
+   "tokens_in": 1779
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4718e-05,
+   "seconds": 0.289,
+   "tokens_in": 1779
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4634e-05,
+   "seconds": 0.216,
+   "tokens_in": 1777
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4634e-05,
+   "seconds": 0.259,
+   "tokens_in": 1777
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4634e-05,
+   "seconds": 0.272,
+   "tokens_in": 1777
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4634e-05,
+   "seconds": 0.254,
+   "tokens_in": 1777
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4634e-05,
+   "seconds": 0.25,
+   "tokens_in": 1777
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.4634e-05,
+   "seconds": 0.271,
+   "tokens_in": 1777
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6272e-05,
+   "seconds": 0.264,
+   "tokens_in": 1816
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6272e-05,
+   "seconds": 0.284,
+   "tokens_in": 1816
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6272e-05,
+   "seconds": 0.267,
+   "tokens_in": 1816
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6272e-05,
+   "seconds": 0.274,
+   "tokens_in": 1816
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6272e-05,
+   "seconds": 0.301,
+   "tokens_in": 1816
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6272e-05,
+   "seconds": 0.268,
+   "tokens_in": 1816
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6188e-05,
+   "seconds": 0.229,
+   "tokens_in": 1814
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6188e-05,
+   "seconds": 0.337,
+   "tokens_in": 1814
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6188e-05,
+   "seconds": 0.304,
+   "tokens_in": 1814
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6188e-05,
+   "seconds": 0.246,
+   "tokens_in": 1814
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6188e-05,
+   "seconds": 0.23,
+   "tokens_in": 1814
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 7.6188e-05,
+   "seconds": 0.35,
+   "tokens_in": 1814
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000241458,
+   "seconds": 0.151,
+   "tokens_in": 5749
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 5.166e-05,
+   "seconds": 0.216,
+   "tokens_in": 1230
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 4.2125999999999996e-05,
+   "seconds": 0.293,
+   "tokens_in": 1003
+  }
+ ],
+ "seconds": 0.26,
+ "ending": "settled",
+ "variant": "flash_full"
+}

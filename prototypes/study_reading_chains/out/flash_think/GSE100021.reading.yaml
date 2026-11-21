@@ -1,0 +1,257 @@
+format: 1
+study: GSE100021
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM2668015
+    - GSM2668016
+    - GSM2668017
+    - GSM2668018
+    field: Sample_description
+    quote: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Rattus norvegicus
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Sex: female'
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'age: 28-months'
+  6:
+    paper: pmid:28645186
+    section: abstract
+    quote: differentially expressed in 28-month-old rats intracerebroventricularly injected with an adenovector
+      expressing rat IGF-I
+  7:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: Rat hippocampus
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: Sprague-Dawley rats'
+  9:
+    record:
+    - GSM2668019
+    - GSM2668020
+    - GSM2668021
+    - GSM2668022
+    field: Sample_description
+    quote: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+  10:
+    record: GSE100021
+    field: Series_overall_design
+    quote: Hippocampal RNA-Seq profiles of 28 months old rats intracerebroventricularly injected with
+      an adenovector expressing rat IGF-I was compared with placebo adenovector-injected counterparts
+      (4 samples each group)
+factors:
+  treatment:
+    levels:
+    - igf1_adenovector
+    - dsred_empty_vector
+    baseline: dsred_empty_vector
+    ordered: false
+    quoted:
+    - 10
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Rattus norvegicus
+    term: NCBITaxon:10116
+    quoted:
+    - 3
+    p: 1.0
+  sex:
+    text: 'Sex: female'
+    quoted:
+    - 4
+    p: 1.0
+  age:
+    text: 28-months
+    value: 28
+    unit: month
+    quoted:
+    - 5
+    p: 1.0
+  development_stage:
+    text: 28-month-old rats
+    quoted:
+    - 6
+    p: 1.0
+  tissue:
+    text: Rat hippocampus
+    quoted:
+    - 7
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: normal aging study; no disease or disease model stated
+    p: 0.98
+  strain:
+    text: 'strain: Sprague-Dawley rats'
+    quoted:
+    - 8
+    p: 1.0
+  target:
+    na: transcriptome sequencing with no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no input or IgG background library; DsRed is a treatment arm
+    p: 1.0
+  cell_type:
+    na: bulk hippocampal tissue, no cell type isolated
+    p: 0.95
+  cell_line:
+    na: in vivo rat tissue, not a cell line
+    p: 1.0
+  genotype:
+    unknown: only strain recorded; no genotype field in records
+    p: 0.62
+  dose:
+    unknown: vector amount or titer not stated in records
+    p: 1.0
+  duration:
+    unknown: no time between injection and euthanasia given
+    p: 1.0
+samples:
+  GSM2668015:
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+      level: igf1_adenovector
+      quoted:
+      - 1
+      p: 0.98
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_IGF1_16
+      inferred: Jev picked the individual from the listed names
+      p: 0.75
+  GSM2668016:
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+      level: igf1_adenovector
+      quoted:
+      - 1
+      p: 0.96
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_IGF1_24
+      inferred: Jev picked the individual from the listed names
+      p: 0.8
+  GSM2668017:
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+      level: igf1_adenovector
+      quoted:
+      - 1
+      p: 0.95
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_IGF1_27
+      inferred: Jev picked the individual from the listed names
+      p: 0.76
+  GSM2668018:
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+      level: igf1_adenovector
+      quoted:
+      - 1
+      p: 0.95
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_IGF1_29
+      inferred: Jev picked the individual from the listed names
+      p: 0.77
+  GSM2668019:
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+      level: dsred_empty_vector
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_DsRed_7
+      inferred: Jev picked the individual from the listed names
+      p: 0.56
+  GSM2668020:
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+      level: dsred_empty_vector
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_DsRed_12
+      inferred: Jev picked the individual from the listed names
+      p: 0.56
+  GSM2668021:
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+      level: dsred_empty_vector
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_DsRed_22
+      inferred: Jev picked the individual from the listed names
+      p: 0.62
+  GSM2668022:
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+      level: dsred_empty_vector
+      quoted:
+      - 9
+      p: 0.98
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_DsRed_25
+      inferred: Jev picked the individual from the listed names
+      p: 0.59

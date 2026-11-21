@@ -1,0 +1,259 @@
+format: 1
+study: GSE281157
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM8611902
+    - GSM8611903
+    - GSM8611904
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wild type (N2)'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole worm'
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C'
+  6:
+    record:
+    - GSM8611905
+    - GSM8611906
+    - GSM8611907
+    - GSM8611911
+    - GSM8611912
+    - GSM8611913
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-16(mu86)'
+  7:
+    record:
+    - GSM8611908
+    - GSM8611909
+    - GSM8611910
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-18(ok480)'
+  8:
+    record:
+    - GSM8611911
+    - GSM8611912
+    - GSM8611913
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-16(mu86); daf-18(ok480)'
+factors:
+  genotype:
+    levels:
+    - wild type (N2)
+    - daf-16(mu86)
+    - daf-18(ok480)
+    - daf-16(mu86); daf-18(ok480)
+    baseline: wild type (N2)
+    ordered: false
+    inferred: the characteristic "genotype" varies between samples
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  tissue:
+    text: whole worm
+    quoted:
+    - 4
+    p: 1.0
+  treatment:
+    text: Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.61
+  age:
+    unknown: nothing read says it
+    p: 0.62
+  development_stage:
+    unknown: nothing read says it
+    p: 0.69
+  cell_type:
+    na: whole tissue with no cell type isolated
+    p: 1.0
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    na: does not apply to these samples
+    p: 0.94
+  strain:
+    unknown: nothing read says it
+    p: 0.95
+  dose:
+    unknown: nothing read says it
+    p: 0.69
+  duration:
+    unknown: nothing read says it
+    p: 0.89
+  donor:
+    na: a pool of many individuals
+    p: 0.99
+samples:
+  GSM8611902:
+    genotype:
+      text: wild type (N2)
+      level: wild type (N2)
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611903:
+    genotype:
+      text: wild type (N2)
+      level: wild type (N2)
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611904:
+    genotype:
+      text: wild type (N2)
+      level: wild type (N2)
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611905:
+    genotype:
+      text: daf-16(mu86)
+      level: daf-16(mu86)
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611906:
+    genotype:
+      text: daf-16(mu86)
+      level: daf-16(mu86)
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611907:
+    genotype:
+      text: daf-16(mu86)
+      level: daf-16(mu86)
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611908:
+    genotype:
+      text: daf-18(ok480)
+      level: daf-18(ok480)
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611909:
+    genotype:
+      text: daf-18(ok480)
+      level: daf-18(ok480)
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611910:
+    genotype:
+      text: daf-18(ok480)
+      level: daf-18(ok480)
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611911:
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf-16(mu86); daf-18(ok480)
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611912:
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf-16(mu86); daf-18(ok480)
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8611913:
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf-16(mu86); daf-18(ok480)
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

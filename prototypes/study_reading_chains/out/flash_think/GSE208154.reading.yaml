@@ -1,0 +1,368 @@
+format: 1
+study: GSE208154
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record: GSM6338211
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 1, technical replicate 1
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: GSE208154
+    field: Series_overall_design
+    quote: over the course of their adult lifespan
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: all the tissues'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: all the cell types'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: gon-2(q388) I; muIs274 [eft-3p:del:unc-54 3''UTR + Cbr-unc-119(+)] II; daf-2(mu465[daf-2::AID]
+      III'
+  8:
+    record: GSE208154
+    field: Series_overall_design
+    quote: The dataset shared here was obtained with the strain CF4596
+  9:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: We chose to feed our population with killed OP50 to collect data during the geriatric period
+      of the end of their life.
+  10:
+    record: GSE208154
+    field: Series_overall_design
+    quote: grown at 25C
+  11:
+    record: GSM6338212
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 3, technical replicate 1
+  12:
+    record: GSM6338213
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 5, technical replicate 1
+  13:
+    record: GSM6338214
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 8, technical replicate 1
+  14:
+    record: GSM6338215
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 11, technical replicate 1
+  15:
+    record: GSM6338217
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 3, technical replicate 2
+  16:
+    record: GSM6338221
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 15, 1 technical replicate
+  17:
+    record: GSE208154
+    field: Series_overall_design
+    quote: selected six time points (days 1, 3, 5, 8, 11 and 15 of adulthood)
+factors:
+  age:
+    levels:
+    - day_1
+    - day_3
+    - day_5
+    - day_8
+    - day_11
+    - day_15
+    baseline: null
+    ordered: true
+    quoted:
+    - 17
+    p: 0.96
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 0.99
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  development_stage:
+    text: adult
+    term: WBls:0000041
+    quoted:
+    - 4
+    p: 0.99
+  tissue:
+    text: all the tissues
+    quoted:
+    - 5
+    p: 0.99
+  cell_type:
+    text: all the cell types
+    quoted:
+    - 6
+    p: 0.99
+  disease:
+    text: healthy
+    inferred: normal aging; no disease stated
+    p: 0.97
+  genotype:
+    text: gon-2(q388) I; muIs274 [eft-3p:del:unc-54 3'UTR + Cbr-unc-119(+)] II; daf-2(mu465[daf-2::AID]
+      III
+    quoted:
+    - 7
+    p: 1.0
+  strain:
+    text: CF4596
+    quoted:
+    - 8
+    p: 0.95
+  treatment:
+    text: killed OP50
+    quoted:
+    - 9
+    p: 0.97
+  temperature:
+    text: 25C
+    quoted:
+    - 10
+    p: 0.8
+  target:
+    na: no pull-down; single-cell RNA sequencing
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  sex:
+    unknown: no sex stated in records
+    p: 0.81
+  cell_line:
+    na: whole animals; record says N/A
+    p: 1.0
+  dose:
+    na: amount of killed OP50 per sample not stated
+    p: 0.86
+  duration:
+    na: diet duration not stated; adult age is time point
+    p: 0.72
+  donor:
+    na: a pool of many individuals
+    p: 0.93
+samples:
+  GSM6338211:
+    age:
+      text: day 1
+      value: 1
+      unit: day
+      level: day_1
+      quoted:
+      - 1
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338212:
+    age:
+      text: day 3
+      value: 3
+      unit: day
+      level: day_3
+      quoted:
+      - 11
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 1
+      p: 0.89
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338213:
+    age:
+      text: day 5
+      value: 5
+      unit: day
+      level: day_5
+      quoted:
+      - 12
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 1
+      p: 0.99
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338214:
+    age:
+      text: day 8
+      value: 8
+      unit: day
+      level: day_8
+      quoted:
+      - 13
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 1
+      p: 0.99
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338215:
+    age:
+      text: day 11
+      value: 11
+      unit: day
+      level: day_11
+      quoted:
+      - 14
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 1
+      p: 0.98
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338216:
+    age:
+      text: day 1
+      value: 1
+      unit: day
+      level: day_1
+      quoted:
+      - 1
+      p: 0.89
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 15
+      p: 0.64
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338217:
+    age:
+      text: day 3
+      value: 3
+      unit: day
+      level: day_3
+      quoted:
+      - 11
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 15
+      p: 0.95
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338218:
+    age:
+      text: day 5
+      value: 5
+      unit: day
+      level: day_5
+      quoted:
+      - 12
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 15
+      p: 0.8
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338219:
+    age:
+      text: day 8
+      value: 8
+      unit: day
+      level: day_8
+      quoted:
+      - 13
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 15
+      p: 0.77
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338220:
+    age:
+      text: day 11
+      value: 11
+      unit: day
+      level: day_11
+      quoted:
+      - 14
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 15
+      p: 0.66
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM6338221:
+    age:
+      text: day 15
+      value: 15
+      unit: day
+      level: day_15
+      quoted:
+      - 16
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 1
+      p: 0.76
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null

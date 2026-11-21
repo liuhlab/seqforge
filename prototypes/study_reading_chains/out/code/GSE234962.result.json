@@ -1,0 +1,871 @@
+{
+ "study": "GSE234962",
+ "chain": "code",
+ "read_full": false,
+ "n_samples": 4,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "strain",
+   "levels": [
+    "CZ631 juIs14 [ acr-2::GFP + lin-15(+)]",
+    "KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]"
+   ],
+   "p_designed": 0.77,
+   "p_designed_neg": 0.71,
+   "baseline": "no_reference",
+   "p_baseline": 0.92,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.92,
+   "p_ordered": 0.03,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": true,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "L1 arrest",
+    "L1 arrest + mesh synchronization"
+   ],
+   "p_designed": 0.46,
+   "p_designed_neg": 0.84,
+   "baseline": "no_reference",
+   "p_baseline": 0.79,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.82,
+   "p_ordered": 0.1,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": false
+  }
+ ],
+ "unsettled_reasons": [
+  "factor strain: plain and negated asks disagree"
+ ],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.7,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.86,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "unknown",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "na",
+   "p": 0.8,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.93,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:strain",
+   "mark": "inferred",
+   "p": 0.77,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM7486857": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "young adult",
+    null
+   ],
+   "tissue": [
+    "Motor neurons",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "CZ631 juIs14 [ acr-2::GFP + lin-15(+)]",
+    "CZ631 juIs14 [ acr-2::GFP + lin-15(+)]"
+   ],
+   "treatment": [
+    "L1 arrest",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM7486858": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "young adult",
+    null
+   ],
+   "tissue": [
+    "Motor neurons",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "CZ631 juIs14 [ acr-2::GFP + lin-15(+)]",
+    "CZ631 juIs14 [ acr-2::GFP + lin-15(+)]"
+   ],
+   "treatment": [
+    "L1 arrest",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM7486859": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "young adult",
+    null
+   ],
+   "tissue": [
+    "Motor neurons",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]",
+    "KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]"
+   ],
+   "treatment": [
+    "L1 arrest + mesh synchronization",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM7486860": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "young adult",
+    null
+   ],
+   "tissue": [
+    "Motor neurons",
+    null
+   ],
+   "genotype": [
+    "wt",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]",
+    "KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]"
+   ],
+   "treatment": [
+    "L1 arrest + mesh synchronization",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "strain": {
+   "levels": [
+    "CZ631 juIs14 [ acr-2::GFP + lin-15(+)]",
+    "KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]"
+   ],
+   "baseline": null,
+   "ordered": false,
+   "inferred": "the characteristic \"strain\" varies between samples",
+   "p": 0.77
+  }
+ },
+ "n_passages": 9,
+ "n_shared": 15,
+ "n_row_claims": 12,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 1,
+  "labels_with_values": 6,
+  "extra_labels": 0,
+  "writer_gaps": [],
+  "donor_kind_writer": null,
+  "keymap": {
+   "tissue": {
+    "label": "tissue",
+    "p": 0.97
+   },
+   "strain": {
+    "label": "strain",
+    "p": 1.0
+   },
+   "genotype": {
+    "label": "genotype",
+    "p": 1.0
+   },
+   "age": {
+    "label": "development_stage",
+    "p": 0.63
+   },
+   "synchronization protocol": {
+    "label": "treatment",
+    "p": 0.75
+   },
+   "source name": {
+    "label": "tissue",
+    "p": 0.62
+   }
+  }
+ },
+ "quotes": [
+  {
+   "key": "strain/L0",
+   "status": "named",
+   "source": "GSM7486857",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 46,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/L1",
+   "status": "named",
+   "source": "GSM7486859",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 48,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM7486857",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM7486857",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "GSM7486857",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM7486857",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "source": "GSM7486857",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "source": "GSM7486857",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 35,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/v1",
+   "status": "named",
+   "source": "GSM7486859",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 58,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "young adult",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": [
+    {
+     "id": "WBls:0000100",
+     "label": "Brugia young adult",
+     "exact": true
+    },
+    {
+     "id": "WBls:0000063",
+     "label": "newly molted young adult hermaphrodite Ce",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.5
+  },
+  {
+   "label": "tissue",
+   "text": "Motor neurons",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "WBbt:0008610",
+     "label": "head motor neuron",
+     "exact": false
+    },
+    {
+     "id": "WBbt:0003677",
+     "label": "pharyngeal motor neuron",
+     "exact": false
+    },
+    {
+     "id": "WBbt:0005409",
+     "label": "motor neuron",
+     "exact": false
+    },
+    {
+     "id": "WBbt:0003666",
+     "label": "NSM",
+     "exact": false
+    },
+    {
+     "id": "GO:1905484",
+     "label": "negative regulation of motor neuron migration",
+     "exact": false
+    },
+    {
+     "id": "GO:1905485",
+     "label": "positive regulation of motor neuron migration",
+     "exact": false
+    },
+    {
+     "id": "GO:0097476",
+     "label": "spinal cord motor neuron migration",
+     "exact": false
+    },
+    {
+     "id": "GO:0097049",
+     "label": "motor neuron apoptotic process",
+     "exact": false
+    }
+   ],
+   "pick": "WBbt:0005409",
+   "p": 0.93,
+   "probe_pick": "none",
+   "probe_p": 0.52
+  },
+  {
+   "label": "treatment",
+   "text": "L1 arrest",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "L1 arrest + mesh synchronization",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.93,
+  "untreated_or_vehicle": 0.33,
+  "several_compounds": 0.93,
+  "route_or_side": 0.15,
+  "dose_per_unit": 0.1,
+  "duration_without_number": 0.1,
+  "time_from_event": 0.21,
+  "pooled_material": 0.74,
+  "held_constant": 0.94,
+  "batch": 0.34,
+  "sequencer": 0.05,
+  "vector": 0.25,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.06,
+  "single_cell": 0.97,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "pool",
+  0.95
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "jev",
+   "step": "keymap",
+   "cost": 0.00018223799999999999,
+   "seconds": 0.68,
+   "tokens_in": 4339
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.00026350799999999997,
+   "seconds": 0.353,
+   "tokens_in": 6274
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5974e-05,
+   "seconds": 0.724,
+   "tokens_in": 2047
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6646e-05,
+   "seconds": 0.47,
+   "tokens_in": 2063
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5974e-05,
+   "seconds": 0.835,
+   "tokens_in": 2047
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6646e-05,
+   "seconds": 0.724,
+   "tokens_in": 2063
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5974e-05,
+   "seconds": 0.811,
+   "tokens_in": 2047
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5974e-05,
+   "seconds": 0.691,
+   "tokens_in": 2047
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6646e-05,
+   "seconds": 0.772,
+   "tokens_in": 2063
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.6646e-05,
+   "seconds": 0.772,
+   "tokens_in": 2063
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00019437599999999998,
+   "seconds": 0.154,
+   "tokens_in": 4628
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 3.8766e-05,
+   "seconds": 0.525,
+   "tokens_in": 923
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 3.3642e-05,
+   "seconds": 0.261,
+   "tokens_in": 801
+  }
+ ],
+ "seconds": 0.19,
+ "ending": "unsettled",
+ "variant": "code"
+}

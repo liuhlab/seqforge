@@ -1,0 +1,306 @@
+format: 1
+study: GSE241718
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM7720368
+    - GSM7720369
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'tissue: VAT'
+  2:
+    record:
+    - GSM7720368
+    - GSM7720369
+    - GSM7734325
+    - GSM7734326
+    field: Sample_characteristics_ch1
+    quote: 'age: 2 months'
+  3:
+    record: GSE241718
+    field: Series_summary
+    quote: single-nucleus RNA-seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: GSE241718
+    field: Series_overall_design
+    quote: female C57BL/6J mice
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Adipocytes'
+  7:
+    record: GSE241718
+    field: Series_overall_design
+    quote: C57BL/6J mice
+  8:
+    record:
+    - GSM7720368
+    - GSM7720369
+    field: Sample_characteristics_ch1
+    quote: 'time: 2022-04-02'
+  9:
+    record:
+    - GSM7734325
+    - GSM7734326
+    - GSM7734327
+    - GSM7734328
+    field: Sample_characteristics_ch1
+    quote: 'tissue: SAT'
+  10:
+    record:
+    - GSM7734327
+    - GSM7734328
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'age: 24 months'
+factors:
+  tissue:
+    levels:
+    - VAT
+    - SAT
+    baseline: null
+    ordered: true
+    inferred: Subcutaneous vs visceral adipose tissue
+    p: 0.97
+  age:
+    levels:
+    - 2 months
+    - 24 months
+    baseline: 2 months
+    ordered: true
+    inferred: Young vs aged mice
+    p: 0.84
+shared:
+  assay:
+    text: single-nucleus RNA-seq
+    quoted:
+    - 3
+    p: 0.97
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  sex:
+    text: female
+    term: female
+    quoted:
+    - 5
+    p: 0.95
+  development_stage:
+    text: adult
+    inferred: Aged mice are adults
+    p: 0.96
+  cell_type:
+    text: Adipocytes
+    term: CL:0000136
+    quoted:
+    - 6
+    p: 1.0
+  genotype:
+    text: wild-type
+    quoted:
+    - 7
+    p: 0.98
+  strain:
+    text: C57BL/6J
+    quoted:
+    - 7
+    p: 0.99
+  time:
+    text: '2022-04-02'
+    quoted:
+    - 8
+    p: 1.0
+  target:
+    na: No pull-down enrichment
+    p: 1.0
+  control_type:
+    na: No background-control libraries
+    p: 1.0
+  cell_line:
+    na: Tissue taken from animals
+    p: 1.0
+  disease:
+    na: Healthy aging, no disease model
+    p: 0.73
+  treatment:
+    na: No treatment applied
+    p: 0.84
+  dose:
+    na: No treatment
+    p: 0.99
+  duration:
+    na: No treatment
+    p: 0.98
+  donor:
+    unknown: nothing read says which individual a library came from
+    p: 0.37
+samples:
+  GSM7720368:
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 2 months
+      value: 2
+      unit: months
+      level: 2 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7720369:
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 2 months
+      value: 2
+      unit: months
+      level: 2 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734325:
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 2 months
+      value: 2
+      unit: months
+      level: 2 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734326:
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 2 months
+      value: 2
+      unit: months
+      level: 2 months
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734327:
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 24 months
+      value: 24
+      unit: months
+      level: 24 months
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734328:
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 24 months
+      value: 24
+      unit: months
+      level: 24 months
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734329:
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 24 months
+      value: 24
+      unit: months
+      level: 24 months
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734330:
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 24 months
+      value: 24
+      unit: months
+      level: 24 months
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null

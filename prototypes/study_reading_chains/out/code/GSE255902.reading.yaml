@@ -1,0 +1,679 @@
+format: 1
+study: GSE255902
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: 4R'
+  2:
+    record:
+    - GSM8082417
+    - GSM8082418
+    - GSM8082419
+    - GSM8082420
+    - GSM8082421
+    - GSM8082427
+    - GSM8082428
+    - GSM8082429
+    - GSM8082430
+    - GSM8082431
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Vehicle'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+  5:
+    record:
+    - GSM8082417
+    - GSM8082418
+    - GSM8082419
+    - GSM8082420
+    - GSM8082421
+    - GSM8082422
+    - GSM8082423
+    - GSM8082424
+    - GSM8082425
+    - GSM8082426
+    - GSM8082427
+    - GSM8082428
+    - GSM8082429
+    - GSM8082430
+    - GSM8082431
+    - GSM8082432
+    - GSM8082433
+    - GSM8082434
+    - GSM8082435
+    field: Sample_characteristics_ch1
+    quote: 'age: D43'
+  6:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: iPSC-derived neurons
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell line: iPSC-derived neurons'
+  8:
+    record:
+    - GSM8082422
+    - GSM8082423
+    - GSM8082424
+    - GSM8082425
+    - GSM8082426
+    - GSM8082432
+    - GSM8082433
+    - GSM8082434
+    - GSM8082435
+    - GSM8082453
+    - GSM8082454
+    field: Sample_characteristics_ch1
+    quote: 'treatment: K18'
+  9:
+    record:
+    - GSM8082427
+    - GSM8082428
+    - GSM8082429
+    - GSM8082430
+    - GSM8082431
+    - GSM8082432
+    - GSM8082433
+    - GSM8082434
+    - GSM8082435
+    field: Sample_characteristics_ch1
+    quote: 'genotype: 4R_P301S'
+  10:
+    record:
+    - GSM8082452
+    - GSM8082453
+    - GSM8082454
+    field: Sample_characteristics_ch1
+    quote: 'genotype: 4R-P301S'
+  11:
+    record: GSM8082452
+    field: Sample_characteristics_ch1
+    quote: 'treatment: control'
+  12:
+    record:
+    - GSM8082452
+    - GSM8082453
+    - GSM8082454
+    field: Sample_characteristics_ch1
+    quote: 'age: D39'
+  13:
+    record: GSM8082453
+    field: Sample_characteristics_ch1
+    quote: 'treatment: K18 - 1.5ug'
+  14:
+    record: GSM8082454
+    field: Sample_characteristics_ch1
+    quote: 'treatment: K18 - 3ug'
+factors:
+  genotype:
+    levels:
+    - 4R
+    - 4R_P301S
+    - 4R-P301S
+    baseline: 4R
+    ordered: false
+    inferred: the characteristic "genotype" varies between samples
+    p: 0.84
+  treatment:
+    levels:
+    - Vehicle
+    - K18
+    - control
+    - K18 - 1.5ug
+    - K18 - 3ug
+    baseline: Vehicle
+    ordered: true
+    inferred: the characteristic "treatment" varies between samples
+    p: 0.91
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 4
+    p: 1.0
+  cell_type:
+    text: iPSC-derived neurons
+    quoted:
+    - 6
+    p: 1.0
+  cell_line:
+    text: iPSC-derived neurons
+    quoted:
+    - 7
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.84
+  development_stage:
+    na: does not apply to these samples
+    p: 0.67
+  tissue:
+    na: does not apply to these samples
+    p: 0.66
+  disease:
+    unknown: nothing read says it
+    p: 0.66
+  strain:
+    na: a species with no strains, such as human
+    p: 0.99
+  dose:
+    unknown: nothing read says it
+    p: 0.97
+  duration:
+    unknown: nothing read says it
+    p: 1.0
+  donor:
+    na: a cell line or culture, no single individual
+    p: 0.97
+samples:
+  GSM8082417:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082418:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082419:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082420:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082421:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082422:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082423:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082424:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 0.99
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082425:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 0.99
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082426:
+    genotype:
+      text: 4R
+      level: 4R
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082427:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082428:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082429:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082430:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082431:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: Vehicle
+      level: Vehicle
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082432:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082433:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082434:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082435:
+    genotype:
+      text: 4R_P301S
+      level: 4R_P301S
+      quoted:
+      - 9
+      p: 1.0
+    treatment:
+      text: K18
+      level: K18
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: D43
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082452:
+    genotype:
+      text: 4R-P301S
+      level: 4R-P301S
+      quoted:
+      - 10
+      p: 0.99
+    treatment:
+      text: control
+      level: control
+      quoted:
+      - 11
+      p: 1.0
+    age:
+      text: D39
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082453:
+    genotype:
+      text: 4R-P301S
+      level: 4R-P301S
+      quoted:
+      - 10
+      p: 0.99
+    treatment:
+      text: K18 - 1.5ug
+      level: K18 - 1.5ug
+      quoted:
+      - 13
+      p: 1.0
+    age:
+      text: D39
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM8082454:
+    genotype:
+      text: 4R-P301S
+      level: 4R-P301S
+      quoted:
+      - 10
+      p: 0.99
+    treatment:
+      text: K18 - 3ug
+      level: K18 - 3ug
+      quoted:
+      - 14
+      p: 1.0
+    age:
+      text: D39
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null

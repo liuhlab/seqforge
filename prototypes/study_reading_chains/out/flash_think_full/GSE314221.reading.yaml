@@ -1,0 +1,623 @@
+format: 1
+study: GSE314221
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM9386380
+    - GSM9386381
+    - GSM9386382
+    - GSM9386383
+    - GSM9386388
+    - GSM9386389
+    - GSM9386390
+    - GSM9386391
+    field: Sample_characteristics_ch1
+    quote: 'genotype: CETP transgenic'
+  2:
+    record:
+    - GSM9386380
+    - GSM9386381
+    - GSM9386382
+    - GSM9386383
+    - GSM9386384
+    - GSM9386385
+    - GSM9386386
+    - GSM9386387
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Evacetrapib'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    paper: pmid:42547584
+    section: Results > Expression of genes involved in blood vessel remodeling is altered by CETP inhibition
+    quote: comparing evacetrapib- and vehicle-treated groups of CETP-expressing female mice
+  6:
+    paper: pmid:42547584
+    section: Results > Evacetrapib maintains memory in CETPtg and APPtg/CETPtg mice
+    quote: Mice were assessed at 21 weeks of age
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: brain'
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: bulk'
+  9:
+    record: GSE314221
+    field: Series_title
+    quote: Reducing CETP activity prevents memory decline in an Alzheimer’s disease mouse model.
+  10:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell line: C57/bl6 background'
+  11:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: 30 mg/kg evacetrapib or vehicle for 11 weeks
+  12:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'batch: 1% (w/w) cholesterol diet'
+  13:
+    record:
+    - GSM9386384
+    - GSM9386385
+    - GSM9386386
+    - GSM9386387
+    - GSM9386392
+    - GSM9386393
+    - GSM9386394
+    - GSM9386395
+    field: Sample_characteristics_ch1
+    quote: 'genotype: APPxCETP double transgenic'
+  14:
+    record:
+    - GSM9386388
+    - GSM9386389
+    - GSM9386390
+    - GSM9386391
+    - GSM9386392
+    - GSM9386393
+    - GSM9386394
+    - GSM9386395
+    field: Sample_characteristics_ch1
+    quote: 'treatment: vehicle'
+  15:
+    record: GSE314221
+    field: Series_overall_design
+    quote: genotype CETP transgenic or APP/CETP transgenix
+  16:
+    record: GSE314221
+    field: Series_overall_design
+    quote: treatment vehicle or evacetrapib
+factors:
+  genotype:
+    levels:
+    - CETP_transgenic
+    - APP_CETP_double_transgenic
+    baseline: CETP_transgenic
+    ordered: false
+    quoted:
+    - 15
+    p: 0.98
+  treatment:
+    levels:
+    - evacetrapib
+    - vehicle
+    baseline: vehicle
+    ordered: false
+    quoted:
+    - 16
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  sex:
+    text: female
+    term: female
+    quoted:
+    - 5
+    p: 0.81
+  age:
+    text: 21 weeks
+    value: 21
+    unit: week
+    quoted:
+    - 6
+    p: 0.82
+  tissue:
+    text: brain
+    term: UBERON:0000955
+    quoted:
+    - 7
+    p: 1.0
+  cell_type:
+    text: bulk
+    quoted:
+    - 8
+    p: 0.99
+  disease:
+    text: Alzheimer's disease
+    term: MONDO:0004975
+    quoted:
+    - 9
+    p: 0.75
+  strain:
+    text: C57/bl6 background
+    quoted:
+    - 10
+    p: 1.0
+  duration:
+    text: 11 weeks
+    value: 11
+    unit: week
+    quoted:
+    - 11
+    p: 0.78
+  diet:
+    text: 1% (w/w) cholesterol diet
+    quoted:
+    - 12
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down target
+    p: 1.0
+  control_type:
+    na: No input/IgG libraries; vehicle is treatment baseline
+    p: 1.0
+  development_stage:
+    unknown: Stage not stated; 21 weeks of age only
+    p: 0.95
+  cell_line:
+    na: Brain tissue from mice; no cultured cell line
+    p: 0.98
+samples:
+  GSM9386380:
+    genotype:
+      text: CETP transgenic
+      level: CETP_transgenic
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Evacetrapib
+      term: CHEBI:188637
+      level: evacetrapib
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      text: 30 mg/kg
+      value: 30
+      unit: mg/kg
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386381:
+    genotype:
+      text: CETP transgenic
+      level: CETP_transgenic
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Evacetrapib
+      term: CHEBI:188637
+      level: evacetrapib
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      text: 30 mg/kg
+      value: 30
+      unit: mg/kg
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386382:
+    genotype:
+      text: CETP transgenic
+      level: CETP_transgenic
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Evacetrapib
+      term: CHEBI:188637
+      level: evacetrapib
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      text: 30 mg/kg
+      value: 30
+      unit: mg/kg
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386383:
+    genotype:
+      text: CETP transgenic
+      level: CETP_transgenic
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Evacetrapib
+      term: CHEBI:188637
+      level: evacetrapib
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      text: 30 mg/kg
+      value: 30
+      unit: mg/kg
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386384:
+    genotype:
+      text: APPxCETP double transgenic
+      level: APP_CETP_double_transgenic
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: Evacetrapib
+      term: CHEBI:188637
+      level: evacetrapib
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      text: 30 mg/kg
+      value: 30
+      unit: mg/kg
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386385:
+    genotype:
+      text: APPxCETP double transgenic
+      level: APP_CETP_double_transgenic
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: Evacetrapib
+      term: CHEBI:188637
+      level: evacetrapib
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      text: 30 mg/kg
+      value: 30
+      unit: mg/kg
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386386:
+    genotype:
+      text: APPxCETP double transgenic
+      level: APP_CETP_double_transgenic
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: Evacetrapib
+      term: CHEBI:188637
+      level: evacetrapib
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      text: 30 mg/kg
+      value: 30
+      unit: mg/kg
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386387:
+    genotype:
+      text: APPxCETP double transgenic
+      level: APP_CETP_double_transgenic
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: Evacetrapib
+      term: CHEBI:188637
+      level: evacetrapib
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      text: 30 mg/kg
+      value: 30
+      unit: mg/kg
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386388:
+    genotype:
+      text: CETP transgenic
+      level: CETP_transgenic
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: vehicle
+      level: vehicle
+      quoted:
+      - 14
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.61
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386389:
+    genotype:
+      text: CETP transgenic
+      level: CETP_transgenic
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: vehicle
+      level: vehicle
+      quoted:
+      - 14
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.64
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386390:
+    genotype:
+      text: CETP transgenic
+      level: CETP_transgenic
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: vehicle
+      level: vehicle
+      quoted:
+      - 14
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.54
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386391:
+    genotype:
+      text: CETP transgenic
+      level: CETP_transgenic
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: vehicle
+      level: vehicle
+      quoted:
+      - 14
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.57
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386392:
+    genotype:
+      text: APPxCETP double transgenic
+      level: APP_CETP_double_transgenic
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: vehicle
+      level: vehicle
+      quoted:
+      - 14
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.53
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386393:
+    genotype:
+      text: APPxCETP double transgenic
+      level: APP_CETP_double_transgenic
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: vehicle
+      level: vehicle
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.57
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386394:
+    genotype:
+      text: APPxCETP double transgenic
+      level: APP_CETP_double_transgenic
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: vehicle
+      level: vehicle
+      quoted:
+      - 14
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.54
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 0.8
+  GSM9386395:
+    genotype:
+      text: APPxCETP double transgenic
+      level: APP_CETP_double_transgenic
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: vehicle
+      level: vehicle
+      quoted:
+      - 14
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.65
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D16
+      inferred: each sample is from its own individual
+      p: 0.8

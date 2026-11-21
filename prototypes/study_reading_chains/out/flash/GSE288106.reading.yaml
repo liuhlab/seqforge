@@ -1,0 +1,666 @@
+format: 1
+study: GSE288106
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record: GSE288106
+    field: Series_overall_design
+    quote: 5 healthy controls
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+  4:
+    record:
+    - GSM8759021
+    - GSM8759023
+    - GSM8759025
+    - GSM8759026
+    - GSM8759029
+    - GSM8759030
+    - GSM8759032
+    - GSM8759035
+    - GSM8759036
+    field: Sample_characteristics_ch1
+    quote: 'Sex: Male'
+  5:
+    record: GSE288106
+    field: Series_overall_design
+    quote: age of death
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Brain'
+  7:
+    record:
+    - GSM8759021
+    - GSM8759030
+    - GSM8759031
+    - GSM8759032
+    - GSM8759033
+    - GSM8759034
+    - GSM8759035
+    - GSM8759036
+    field: Sample_description
+    quote: 'Library name: Sample 1'
+  8:
+    record:
+    - GSM8759022
+    - GSM8759024
+    - GSM8759027
+    - GSM8759028
+    - GSM8759031
+    - GSM8759033
+    - GSM8759034
+    field: Sample_characteristics_ch1
+    quote: 'Sex: Female'
+  9:
+    record: GSM8759022
+    field: Sample_description
+    quote: 'Library name: Sample 2'
+  10:
+    record: GSM8759023
+    field: Sample_description
+    quote: 'Library name: Sample 3'
+  11:
+    record: GSM8759024
+    field: Sample_description
+    quote: 'Library name: Sample 4'
+  12:
+    record: GSE288106
+    field: Series_overall_design
+    quote: 3 TDPA-C9
+  13:
+    record: GSM8759025
+    field: Sample_description
+    quote: 'Library name: Sample 5'
+  14:
+    record: GSM8759026
+    field: Sample_description
+    quote: 'Library name: Sample 6'
+  15:
+    record: GSE288106
+    field: Series_overall_design
+    quote: 3 FTLD-TDPA
+  16:
+    record: GSM8759027
+    field: Sample_description
+    quote: 'Library name: Sample 7'
+  17:
+    record: GSM8759028
+    field: Sample_description
+    quote: 'Library name: Sample 8'
+  18:
+    record: GSM8759029
+    field: Sample_description
+    quote: 'Library name: Sample 9'
+  19:
+    record: GSM8759030
+    field: Sample_description
+    quote: 'Library name: Sample 10'
+  20:
+    record: GSM8759031
+    field: Sample_description
+    quote: 'Library name: Sample 11'
+  21:
+    record: GSM8759032
+    field: Sample_description
+    quote: 'Library name: Sample 12'
+  22:
+    record: GSM8759033
+    field: Sample_description
+    quote: 'Library name: Sample 13'
+  23:
+    record: GSM8759034
+    field: Sample_description
+    quote: 'Library name: Sample 14'
+  24:
+    record: GSM8759035
+    field: Sample_description
+    quote: 'Library name: Sample 15'
+  25:
+    record: GSM8759036
+    field: Sample_description
+    quote: 'Library name: Sample 16'
+factors:
+  disease:
+    levels:
+    - control
+    - FTLD-TDPA
+    - FTLD-TDPA_C9orf72
+    - FTLD-TDPC
+    baseline: control
+    ordered: false
+    inferred: 'four groups compared: controls and three FTLD-TDP subtypes'
+    p: 0.97
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 3
+    p: 1.0
+  development_stage:
+    text: adult
+    term: HsapDv:0000258
+    inferred: adult brain tissue from deceased donors
+    see:
+    - 5
+    p: 0.85
+  tissue:
+    text: Brain
+    term: UBERON:0000955
+    quoted:
+    - 6
+    p: 1.0
+  target:
+    na: no pull-down enrichment; single-nucleus RNA sequencing
+    p: 1.0
+  control_type:
+    na: no background-control libraries; controls are healthy baseline
+    p: 1.0
+  age:
+    unknown: no age field given in records
+    p: 0.98
+  cell_type:
+    unknown: single nuclei from brain tissue; no cell type specified
+    p: 0.84
+  cell_line:
+    na: tissue taken from human donors, not a cell line
+    p: 0.66
+  strain:
+    na: human samples, not a model organism strain
+    p: 1.0
+  treatment:
+    na: no treatment applied; post-mortem tissue
+    p: 0.93
+  dose:
+    na: no treatment applied
+    p: 1.0
+  duration:
+    na: no treatment applied
+    p: 1.0
+samples:
+  GSM8759021:
+    disease:
+      text: healthy controls
+      level: control
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 1
+      p: 0.97
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      na: it does not apply to this sample
+      p: 0.59
+    library_name:
+      text: Sample 1
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CTRL1
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM8759022:
+    disease:
+      text: TDPC
+      level: FTLD-TDPC
+      inferred: picked by Jev from the values listed for this study
+      p: 0.97
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 8
+      p: 0.97
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.79
+    library_name:
+      text: Sample 2
+      quoted:
+      - 9
+      p: 0.99
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_TDPC1
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM8759023:
+    disease:
+      text: TDPC
+      level: FTLD-TDPC
+      inferred: picked by Jev from the values listed for this study
+      p: 0.98
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.74
+    library_name:
+      text: Sample 3
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_TDPC2
+      inferred: Jev picked the individual from the listed names
+      p: 0.69
+  GSM8759024:
+    disease:
+      text: healthy controls
+      level: control
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 1
+      p: 0.79
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 8
+      p: 0.98
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.51
+    library_name:
+      text: Sample 4
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CTRL2
+      inferred: Jev picked the individual from the listed names
+      p: 0.97
+  GSM8759025:
+    disease:
+      text: TDPA-C9
+      level: FTLD-TDPA_C9orf72
+      quoted:
+      - 12
+      p: 0.85
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: C9orf72
+      quoted:
+      - 12
+      p: 0.9
+    library_name:
+      text: Sample 5
+      quoted:
+      - 13
+      p: 0.99
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_C9 TDPA1
+      inferred: Jev picked the individual from the listed names
+      p: 0.83
+  GSM8759026:
+    disease:
+      unknown: the record of this sample does not say its disease
+      p: 0.7
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.84
+    library_name:
+      text: Sample 6
+      quoted:
+      - 14
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_TDPA1
+      inferred: Jev picked the individual from the listed names
+      p: 0.87
+  GSM8759027:
+    disease:
+      text: FTLD-TDPA
+      level: FTLD-TDPA
+      quoted:
+      - 15
+      p: 0.51
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 8
+      p: 0.98
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.81
+    library_name:
+      text: Sample 7
+      quoted:
+      - 16
+      p: 0.99
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_TDPA2
+      inferred: Jev picked the individual from the listed names
+      p: 0.87
+  GSM8759028:
+    disease:
+      text: TDPC
+      level: FTLD-TDPC
+      inferred: picked by Jev from the values listed for this study
+      p: 0.94
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 8
+      p: 0.96
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.78
+    library_name:
+      text: Sample 8
+      quoted:
+      - 17
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_TDPC3
+      inferred: Jev picked the individual from the listed names
+      p: 0.79
+  GSM8759029:
+    disease:
+      text: TDPA-C9
+      level: FTLD-TDPA_C9orf72
+      quoted:
+      - 12
+      p: 0.92
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 4
+      p: 0.99
+    genotype:
+      text: C9orf72
+      quoted:
+      - 12
+      p: 0.93
+    library_name:
+      text: Sample 9
+      quoted:
+      - 18
+      p: 0.99
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_C9 TDPA2
+      inferred: Jev picked the individual from the listed names
+      p: 0.81
+  GSM8759030:
+    disease:
+      text: TDPC
+      level: FTLD-TDPC
+      inferred: picked by Jev from the values listed for this study
+      p: 0.96
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.73
+    library_name:
+      text: Sample 10
+      quoted:
+      - 19
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_TDPC4
+      inferred: Jev picked the individual from the listed names
+      p: 0.85
+  GSM8759031:
+    disease:
+      text: TDPC
+      level: FTLD-TDPC
+      inferred: picked by Jev from the values listed for this study
+      p: 0.97
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 8
+      p: 0.98
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.7
+    library_name:
+      text: Sample 11
+      quoted:
+      - 20
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_TDPC5
+      inferred: Jev picked the individual from the listed names
+      p: 0.67
+  GSM8759032:
+    disease:
+      text: FTLD-TDPA
+      level: FTLD-TDPA
+      quoted:
+      - 15
+      p: 0.51
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 4
+      p: 0.99
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.79
+    library_name:
+      text: Sample 12
+      quoted:
+      - 21
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_TDPA3
+      inferred: Jev picked the individual from the listed names
+      p: 0.83
+  GSM8759033:
+    disease:
+      text: healthy controls
+      level: control
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 1
+      p: 0.82
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 8
+      p: 0.99
+    genotype:
+      na: it does not apply to this sample
+      p: 0.52
+    library_name:
+      text: Sample 13
+      quoted:
+      - 22
+      p: 0.99
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CTRL3
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM8759034:
+    disease:
+      text: TDPA-C9
+      level: FTLD-TDPA_C9orf72
+      quoted:
+      - 12
+      p: 0.95
+    sex:
+      text: Female
+      term: female
+      quoted:
+      - 8
+      p: 0.98
+    genotype:
+      text: C9orf72
+      quoted:
+      - 12
+      p: 0.96
+    library_name:
+      text: Sample 14
+      quoted:
+      - 23
+      p: 1.0
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_C9 TDPA3
+      inferred: Jev picked the individual from the listed names
+      p: 0.89
+  GSM8759035:
+    disease:
+      text: healthy controls
+      level: control
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 1
+      p: 0.86
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      unknown: no genotype field for other samples
+      p: 0.52
+    library_name:
+      text: Sample 15
+      quoted:
+      - 24
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CTRL4
+      inferred: Jev picked the individual from the listed names
+      p: 0.98
+  GSM8759036:
+    disease:
+      text: healthy controls
+      level: control
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 1
+      p: 0.91
+    sex:
+      text: Male
+      term: male
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      na: it does not apply to this sample
+      p: 0.49
+    library_name:
+      text: Sample 16
+      quoted:
+      - 25
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_CTRL5
+      inferred: Jev picked the individual from the listed names
+      p: 0.95

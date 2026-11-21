@@ -1,0 +1,490 @@
+format: 1
+study: GSE335500
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814713
+    - GSM9814715
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'cell type: APOE3'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Sex: male'
+  5:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814710
+    - GSM9814711
+    - GSM9814712
+    - GSM9814713
+    - GSM9814715
+    - GSM9814716
+    - GSM9814717
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'age: 7.5 months'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: cortex'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell line: mouse cortical tissue'
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: AD'
+  9:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814715
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW2E33-3D11'
+  10:
+    record:
+    - GSM9814710
+    - GSM9814711
+    - GSM9814712
+    - GSM9814714
+    - GSM9814716
+    - GSM9814717
+    field: Sample_characteristics_ch1
+    quote: 'cell type: APOE4'
+  11:
+    record:
+    - GSM9814710
+    - GSM9814711
+    - GSM9814716
+    - GSM9814717
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW2E44-4B12'
+  12:
+    record:
+    - GSM9814712
+    - GSM9814714
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW3E44-F-2'
+  13:
+    record:
+    - GSM9814713
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW3E33-H-2'
+  14:
+    record: GSM9814714
+    field: Sample_characteristics_ch1
+    quote: 'age: 6 months'
+factors:
+  cell_type:
+    levels:
+    - APOE3
+    - APOE4
+    baseline: null
+    ordered: false
+    inferred: the characteristic "cell type" varies between samples
+    p: 0.97
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  sex:
+    text: male
+    term: male
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: cortex
+    term: UBERON:0001851
+    quoted:
+    - 6
+    p: 1.0
+  cell_line:
+    text: mouse cortical tissue
+    quoted:
+    - 7
+    p: 0.95
+  genotype:
+    text: AD
+    quoted:
+    - 8
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  development_stage:
+    na: does not apply to these samples
+    p: 0.53
+  disease:
+    unknown: nothing read says it
+    p: 0.75
+  strain:
+    unknown: nothing read says it
+    p: 0.99
+  dose:
+    unknown: nothing read says it
+    p: 0.55
+  duration:
+    unknown: nothing read says it
+    p: 0.56
+samples:
+  GSM9814708:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E33-3D11
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814709:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E33-3D11
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814710:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814711:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814712:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW3E44-F-2
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814713:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW3E33-H-2
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814714:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      quoted:
+      - 14
+      p: 0.97
+    treatment:
+      text: TCW3E44-F-2
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814715:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E33-3D11
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814716:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814717:
+    cell_type:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW2E44-4B12
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814718:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW3E33-H-2
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM9814719:
+    cell_type:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 1
+      p: 0.99
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: month
+      quoted:
+      - 5
+      p: 0.99
+    treatment:
+      text: TCW3E33-H-2
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 1.0

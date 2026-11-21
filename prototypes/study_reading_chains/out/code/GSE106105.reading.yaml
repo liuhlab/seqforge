@@ -1,0 +1,523 @@
+format: 1
+study: GSE106105
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record: GSM2829781
+    field: Sample_characteristics_ch1
+    quote: 'genotype: tubulinGeneSwitch x w1118'
+  2:
+    record:
+    - GSM2829781
+    - GSM2829782
+    - GSM2829783
+    - GSM2829784
+    - GSM2829785
+    - GSM2829786
+    - GSM2829787
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: Adult'
+  3:
+    record:
+    - GSM2829781
+    - GSM2829782
+    - GSM2829783
+    - GSM2829784
+    - GSM2829786
+    - GSM2829788
+    - GSM2829790
+    field: Sample_characteristics_ch1
+    quote: 'treatment: RU486'
+  4:
+    record:
+    - GSM2829781
+    - GSM2829782
+    - GSM2829783
+    field: Sample_source_name_ch1
+    quote: Thorax
+  5:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  6:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Drosophila melanogaster
+  7:
+    record: GSM2829782
+    field: Sample_characteristics_ch1
+    quote: 'genotype: tubulinGeneSwitch x ND75 RNAi'
+  8:
+    record: GSM2829783
+    field: Sample_characteristics_ch1
+    quote: 'genotype: tubulinGeneSwitch x UAS-dOTC'
+  9:
+    record:
+    - GSM2829784
+    - GSM2829785
+    - GSM2829788
+    - GSM2829789
+    field: Sample_characteristics_ch1
+    quote: 'genotype: DaGeneSwitch x UAS-dOTC'
+  10:
+    record:
+    - GSM2829784
+    - GSM2829785
+    - GSM2829786
+    - GSM2829787
+    - GSM2829788
+    - GSM2829789
+    - GSM2829790
+    - GSM2829791
+    field: Sample_source_name_ch1
+    quote: Fat body
+  11:
+    record:
+    - GSM2829785
+    - GSM2829787
+    - GSM2829789
+    - GSM2829791
+    field: Sample_characteristics_ch1
+    quote: 'treatment: none'
+  12:
+    record:
+    - GSM2829786
+    - GSM2829787
+    - GSM2829790
+    - GSM2829791
+    field: Sample_characteristics_ch1
+    quote: 'genotype: PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC'
+  13:
+    record:
+    - GSM2829788
+    - GSM2829789
+    - GSM2829790
+    - GSM2829791
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L3 larvae'
+factors:
+  genotype:
+    levels:
+    - tubulinGeneSwitch x w1118
+    - tubulinGeneSwitch x ND75 RNAi
+    - tubulinGeneSwitch x UAS-dOTC
+    - DaGeneSwitch x UAS-dOTC
+    - PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC
+    baseline: tubulinGeneSwitch x w1118
+    ordered: false
+    inferred: the characteristic "genotype" varies between samples
+    p: 0.97
+  development_stage:
+    levels:
+    - Adult
+    - L3 larvae
+    baseline: null
+    ordered: true
+    inferred: the characteristic "developmental stage" varies between samples
+    p: 0.97
+  treatment:
+    levels:
+    - RU486
+    - none
+    baseline: none
+    ordered: false
+    inferred: the characteristic "treatment" varies between samples
+    p: 0.98
+  tissue:
+    levels:
+    - Thorax
+    - Fat body
+    baseline: Thorax
+    ordered: false
+    inferred: the characteristic "source name" varies between samples
+    p: 0.97
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 5
+    p: 1.0
+  species:
+    text: Drosophila melanogaster
+    term: NCBITaxon:7227
+    quoted:
+    - 6
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.97
+  age:
+    unknown: nothing read says it
+    p: 0.89
+  cell_type:
+    na: whole tissue with no cell type isolated
+    p: 0.92
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    na: does not apply to these samples
+    p: 0.78
+  strain:
+    unknown: nothing read says it
+    p: 0.98
+  dose:
+    unknown: nothing read says it
+    p: 0.99
+  duration:
+    unknown: nothing read says it
+    p: 0.99
+  donor:
+    na: a pool of many individuals
+    p: 0.57
+samples:
+  GSM2829781:
+    genotype:
+      text: tubulinGeneSwitch x w1118
+      level: tubulinGeneSwitch x w1118
+      quoted:
+      - 1
+      p: 1.0
+    development_stage:
+      text: Adult
+      level: Adult
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: RU486
+      term: CHEBI:50692
+      level: RU486
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: Thorax
+      level: Thorax
+      quoted:
+      - 4
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829782:
+    genotype:
+      text: tubulinGeneSwitch x ND75 RNAi
+      level: tubulinGeneSwitch x ND75 RNAi
+      quoted:
+      - 7
+      p: 1.0
+    development_stage:
+      text: Adult
+      level: Adult
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: RU486
+      term: CHEBI:50692
+      level: RU486
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: Thorax
+      level: Thorax
+      quoted:
+      - 4
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829783:
+    genotype:
+      text: tubulinGeneSwitch x UAS-dOTC
+      level: tubulinGeneSwitch x UAS-dOTC
+      quoted:
+      - 8
+      p: 1.0
+    development_stage:
+      text: Adult
+      level: Adult
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: RU486
+      term: CHEBI:50692
+      level: RU486
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: Thorax
+      level: Thorax
+      quoted:
+      - 4
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829784:
+    genotype:
+      text: DaGeneSwitch x UAS-dOTC
+      level: DaGeneSwitch x UAS-dOTC
+      quoted:
+      - 9
+      p: 1.0
+    development_stage:
+      text: Adult
+      level: Adult
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: RU486
+      term: CHEBI:50692
+      level: RU486
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: Fat body
+      term: UBERON:0003917
+      level: Fat body
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829785:
+    genotype:
+      text: DaGeneSwitch x UAS-dOTC
+      level: DaGeneSwitch x UAS-dOTC
+      quoted:
+      - 9
+      p: 1.0
+    development_stage:
+      text: Adult
+      level: Adult
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: none
+      level: none
+      quoted:
+      - 11
+      p: 1.0
+    tissue:
+      text: Fat body
+      term: UBERON:0003917
+      level: Fat body
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829786:
+    genotype:
+      text: PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC
+      level: PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC
+      quoted:
+      - 12
+      p: 1.0
+    development_stage:
+      text: Adult
+      level: Adult
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: RU486
+      term: CHEBI:50692
+      level: RU486
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: Fat body
+      term: UBERON:0003917
+      level: Fat body
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829787:
+    genotype:
+      text: PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC
+      level: PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC
+      quoted:
+      - 12
+      p: 1.0
+    development_stage:
+      text: Adult
+      level: Adult
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: none
+      level: none
+      quoted:
+      - 11
+      p: 1.0
+    tissue:
+      text: Fat body
+      term: UBERON:0003917
+      level: Fat body
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829788:
+    genotype:
+      text: DaGeneSwitch x UAS-dOTC
+      level: DaGeneSwitch x UAS-dOTC
+      quoted:
+      - 9
+      p: 1.0
+    development_stage:
+      text: L3 larvae
+      term: FBdv:00005339
+      level: L3 larvae
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: RU486
+      term: CHEBI:50692
+      level: RU486
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: Fat body
+      term: UBERON:0003917
+      level: Fat body
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829789:
+    genotype:
+      text: DaGeneSwitch x UAS-dOTC
+      level: DaGeneSwitch x UAS-dOTC
+      quoted:
+      - 9
+      p: 1.0
+    development_stage:
+      text: L3 larvae
+      term: FBdv:00005339
+      level: L3 larvae
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: none
+      level: none
+      quoted:
+      - 11
+      p: 1.0
+    tissue:
+      text: Fat body
+      term: UBERON:0003917
+      level: Fat body
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829790:
+    genotype:
+      text: PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC
+      level: PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC
+      quoted:
+      - 12
+      p: 1.0
+    development_stage:
+      text: L3 larvae
+      term: FBdv:00005339
+      level: L3 larvae
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: RU486
+      term: CHEBI:50692
+      level: RU486
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: Fat body
+      term: UBERON:0003917
+      level: Fat body
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM2829791:
+    genotype:
+      text: PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC
+      level: PGAM5 null, DaGeneSwitch x PGAM5 null, UAS-dOTC
+      quoted:
+      - 12
+      p: 1.0
+    development_stage:
+      text: L3 larvae
+      term: FBdv:00005339
+      level: L3 larvae
+      quoted:
+      - 13
+      p: 1.0
+    treatment:
+      text: none
+      level: none
+      quoted:
+      - 11
+      p: 1.0
+    tissue:
+      text: Fat body
+      term: UBERON:0003917
+      level: Fat body
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null

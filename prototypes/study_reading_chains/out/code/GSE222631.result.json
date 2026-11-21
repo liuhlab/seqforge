@@ -1,0 +1,2988 @@
+{
+ "study": "GSE222631",
+ "chain": "code",
+ "read_full": false,
+ "n_samples": 24,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "cell_type",
+   "levels": [
+    "Perisynaptic Schwann cell",
+    "other Schwann cell"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.12,
+   "baseline": "no_reference",
+   "p_baseline": 0.43,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 0.41,
+   "p_ordered": 0.61,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": true,
+   "kept": true
+  },
+  {
+   "label": "age",
+   "levels": [
+    "23-24 months",
+    "4-5 months"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.04,
+   "baseline": "L1",
+   "p_baseline": 0.9,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 0.98,
+   "p_ordered": 0.67,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "cell_type",
+   "levels": [
+    "Perisynaptic Schwann cell",
+    "other Schwann cell"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.11,
+   "baseline": "no_reference",
+   "p_baseline": 0.48,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 0.4,
+   "p_ordered": 0.59,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": true,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [
+  "factor cell_type: baseline differs when options are reversed"
+ ],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.55,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "na",
+   "p": 0.7,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.9,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "unknown",
+   "p": 0.43,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:cell_type",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:age",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM6927992": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM6927993": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM6927994": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM6927995": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM6927996": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM6927997": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM6927998": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM6927999": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM6928000": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM6928001": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM6928002": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM6928003": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "23-24 months",
+    "23-24 months"
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM6928004": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM6928005": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM6928006": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM6928007": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  },
+  "GSM6928008": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B17",
+    null
+   ]
+  },
+  "GSM6928009": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B18",
+    null
+   ]
+  },
+  "GSM6928010": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B19",
+    null
+   ]
+  },
+  "GSM6928011": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B20",
+    null
+   ]
+  },
+  "GSM6928012": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B21",
+    null
+   ]
+  },
+  "GSM6928013": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B22",
+    null
+   ]
+  },
+  "GSM6928014": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "Perisynaptic Schwann cell",
+    "Perisynaptic Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B23",
+    null
+   ]
+  },
+  "GSM6928015": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "female",
+    null
+   ],
+   "genotype": [
+    "S100B-GFP;NG2-dsRed",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "tissue": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "other Schwann cell",
+    "other Schwann cell"
+   ],
+   "age": [
+    "4-5 months",
+    "4-5 months"
+   ],
+   "biosample": [
+    "B24",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "cell_type": {
+   "levels": [
+    "Perisynaptic Schwann cell",
+    "other Schwann cell"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "inferred": "the characteristic \"tissue\" varies between samples",
+   "p": 0.98
+  },
+  "age": {
+   "levels": [
+    "23-24 months",
+    "4-5 months"
+   ],
+   "baseline": "4-5 months",
+   "ordered": true,
+   "inferred": "the characteristic \"age\" varies between samples",
+   "p": 0.98
+  }
+ },
+ "n_passages": 8,
+ "n_shared": 15,
+ "n_row_claims": 72,
+ "lists_summary": {
+  "factors": 3,
+  "factors_kept": 2,
+  "labels_with_values": 4,
+  "extra_labels": 0,
+  "writer_gaps": [],
+  "donor_kind_writer": null,
+  "keymap": {
+   "tissue": {
+    "label": "cell_type",
+    "p": 0.6
+   },
+   "Sex": {
+    "label": "sex",
+    "p": 1.0
+   },
+   "genotype": {
+    "label": "genotype",
+    "p": 0.99
+   },
+   "age": {
+    "label": "age",
+    "p": 1.0
+   },
+   "source name": {
+    "label": "cell_type",
+    "p": 0.95
+   }
+  }
+ },
+ "quotes": [
+  {
+   "key": "cell_type/L0",
+   "status": "named",
+   "source": "GSM6927992",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 33,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/L1",
+   "status": "named",
+   "source": "GSM6927993",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 26,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM6927992",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM6928004",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM6927992",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM6927992",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "GSM6927992",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "source": "GSM6927992",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 29,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "Perisynaptic Schwann cell",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": [
+    {
+     "id": "CL:0000692",
+     "label": "terminal Schwann cell",
+     "exact": true
+    }
+   ],
+   "pick": "none",
+   "p": 0.59
+  },
+  {
+   "label": "cell_type",
+   "text": "other Schwann cell",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": [
+    {
+     "id": "CL:0002377",
+     "label": "immature Schwann cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0002375",
+     "label": "Schwann cell precursor",
+     "exact": false
+    },
+    {
+     "id": "CL:0002573",
+     "label": "Schwann cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0000692",
+     "label": "terminal Schwann cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0002376",
+     "label": "non-myelinating Schwann cell",
+     "exact": false
+    },
+    {
+     "id": "CL:0000218",
+     "label": "myelinating Schwann cell",
+     "exact": false
+    },
+    {
+     "id": "GO:0014040",
+     "label": "positive regulation of Schwann cell differentiation",
+     "exact": false
+    },
+    {
+     "id": "GO:0014039",
+     "label": "negative regulation of Schwann cell differentiation",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.61
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.23,
+  "untreated_or_vehicle": 0.39,
+  "several_compounds": 0.04,
+  "route_or_side": 0.31,
+  "dose_per_unit": 0.11,
+  "duration_without_number": 0.05,
+  "time_from_event": 0.43,
+  "pooled_material": 0.35,
+  "held_constant": 0.74,
+  "batch": 0.1,
+  "sequencer": 0.03,
+  "vector": 0.05,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.09,
+  "single_cell": 0.08,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "cannot_tell",
+  0.43
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "jev",
+   "step": "keymap",
+   "cost": 0.000316764,
+   "seconds": 0.285,
+   "tokens_in": 7542
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000297654,
+   "seconds": 0.339,
+   "tokens_in": 7087
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 1.578,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 1.505,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 1.578,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 1.628,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 1.349,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 1.503,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.565,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.489,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 0.488,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 0.382,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.363,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.418,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 0.576,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 0.599,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.526,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.547,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 0.598,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 0.64,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.297,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.304,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 0.388,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1866e-05,
+   "seconds": 0.302,
+   "tokens_in": 1473
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.349,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.153e-05,
+   "seconds": 0.293,
+   "tokens_in": 1465
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.281,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.275,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.23,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.271,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.331,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.259,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.259,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.262,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.301,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.282,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.335,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.261,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.284,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.389,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.517,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.344,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.288,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.288,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.335,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.433,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.336,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.471,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1698e-05,
+   "seconds": 0.472,
+   "tokens_in": 1469
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 6.1362e-05,
+   "seconds": 0.781,
+   "tokens_in": 1461
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000213402,
+   "seconds": 0.21,
+   "tokens_in": 5081
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 3.4272e-05,
+   "seconds": 0.202,
+   "tokens_in": 816
+  }
+ ],
+ "seconds": 0.31,
+ "ending": "unsettled",
+ "variant": "code"
+}

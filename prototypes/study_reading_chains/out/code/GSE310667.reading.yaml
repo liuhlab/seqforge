@@ -1,0 +1,945 @@
+format: 1
+study: GSE310667
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record: GSM9305641
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Command interneurons'
+  2:
+    record: GSM9305641
+    field: Sample_characteristics_ch1
+    quote: 'strain: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]'
+  3:
+    record: GSM9305641
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (12-16 hph)'
+  4:
+    record:
+    - GSM9305641
+    - GSM9305642
+    - GSM9305643
+    - GSM9305644
+    - GSM9305645
+    - GSM9305646
+    - GSM9305647
+    - GSM9305648
+    - GSM9305650
+    - GSM9305651
+    - GSM9305652
+    - GSM9305653
+    - GSM9305654
+    - GSM9305655
+    - GSM9305656
+    field: Sample_characteristics_ch1
+    quote: 'cell status: Live'
+  5:
+    record: GSM9305641
+    field: Sample_source_name_ch1
+    quote: Command interneurons
+  6:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  7:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wt'
+  9:
+    record: GSM9305642
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Sensory neurons'
+  10:
+    record: GSM9305642
+    field: Sample_characteristics_ch1
+    quote: 'strain: PS9221 syIs764[Ptax-4::GFP, Pocr-2::GFP]'
+  11:
+    record: GSM9305642
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (14-16 hph)'
+  12:
+    record: GSM9305642
+    field: Sample_source_name_ch1
+    quote: Sensory neurons
+  13:
+    record:
+    - GSM9305643
+    - GSM9305644
+    field: Sample_characteristics_ch1
+    quote: 'tissue: All neurons'
+  14:
+    record:
+    - GSM9305643
+    - GSM9305644
+    field: Sample_characteristics_ch1
+    quote: 'strain: OH10689 otIs355[rab-3(prom-1)::2xNLS-tagRFP]'
+  15:
+    record:
+    - GSM9305643
+    - GSM9305644
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (11.5-14.5 hph)'
+  16:
+    record:
+    - GSM9305643
+    - GSM9305644
+    field: Sample_source_name_ch1
+    quote: All neurons
+  17:
+    record: GSM9305645
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons (RIR, RIH, RIP, etc.)'
+  18:
+    record: GSM9305645
+    field: Sample_characteristics_ch1
+    quote: 'strain: kyIs262 [unc-86::myr-GFP + odr-1::RFP]'
+  19:
+    record:
+    - GSM9305645
+    - GSM9305646
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (12-15 hph)'
+  20:
+    record: GSM9305645
+    field: Sample_source_name_ch1
+    quote: Subgroups of neurons (RIR, RIH, RIP, etc.)
+  21:
+    record: GSM9305646
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Glutametergic neurons'
+  22:
+    record: GSM9305646
+    field: Sample_characteristics_ch1
+    quote: 'strain: OH9625 otIs292 [eat-4::mCherry + rol-6(su1006)]'
+  23:
+    record: GSM9305646
+    field: Sample_source_name_ch1
+    quote: Glutametergic neurons
+  24:
+    record:
+    - GSM9305647
+    - GSM9305649
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons (pharyngeal neurons, SAB, DA)'
+  25:
+    record:
+    - GSM9305647
+    - GSM9305649
+    field: Sample_characteristics_ch1
+    quote: 'strain: NC3583 stIs10447 [ceh-34p::HIS-24::mCherry + unc-119(+)]; evIs111 [F25B3.3::GFP +
+      dpy-20(+)] + NC2957 wdIs90[unc-4c::GFP]; ufIs26[unc-4::mCherry]'
+  26:
+    record:
+    - GSM9305647
+    - GSM9305649
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (14-17 hph)'
+  27:
+    record:
+    - GSM9305647
+    - GSM9305649
+    field: Sample_source_name_ch1
+    quote: Subgroups of neurons (pharyngeal neurons, SAB, DA)
+  28:
+    record: GSM9305648
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)'
+  29:
+    record: GSM9305648
+    field: Sample_characteristics_ch1
+    quote: 'strain: OH16003 otIs742[nlp-13::GFP + lin-15(+)] + EG1285 lin-15B&lin-15A(n765) oxIs12[unc-47::GFP
+      + lin-15(+)] X + ZM5488 hpIs202 [ceh-10::GFP + lin-15(+)] + uIs152[mec-3::RFP]'
+  30:
+    record: GSM9305648
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (13.5-17 hph)'
+  31:
+    record: GSM9305648
+    field: Sample_source_name_ch1
+    quote: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)
+  32:
+    record: GSM9305649
+    field: Sample_characteristics_ch1
+    quote: 'cell status: Methanol-fixed after sorting'
+  33:
+    record: GSM9305650
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)'
+  34:
+    record: GSM9305650
+    field: Sample_characteristics_ch1
+    quote: 'strain: CZ631 juIs14[acr-2::GFP + lin-15(+)] + NC3523 wdIs90[unc-4c::GFP + ceh-22::GFP] +
+      PS3504 syIs54[ceh-2::GFP + unc-119(+)] II; unc-119(ed4)'
+  35:
+    record: GSM9305650
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (13-17 hph)'
+  36:
+    record: GSM9305650
+    field: Sample_source_name_ch1
+    quote: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)
+  37:
+    record:
+    - GSM9305651
+    - GSM9305652
+    - GSM9305653
+    - GSM9305654
+    field: Sample_characteristics_ch1
+    quote: 'tissue: P-lineage progenitors and neurons'
+  38:
+    record:
+    - GSM9305651
+    - GSM9305652
+    field: Sample_characteristics_ch1
+    quote: 'strain: UD381 ycIs11[phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato, odr-1::gfp]'
+  39:
+    record: GSM9305651
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (15.5-18.5 hph)'
+  40:
+    record:
+    - GSM9305651
+    - GSM9305652
+    - GSM9305653
+    - GSM9305654
+    field: Sample_source_name_ch1
+    quote: P-lineage progenitors and neurons
+  41:
+    record:
+    - GSM9305652
+    - GSM9305654
+    field: Sample_characteristics_ch1
+    quote: 'age: L1/L2 (21-24 hph)'
+  42:
+    record:
+    - GSM9305653
+    - GSM9305654
+    field: Sample_characteristics_ch1
+    quote: 'strain: UD381 [phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato, odr-1::gfp]'
+  43:
+    record: GSM9305653
+    field: Sample_characteristics_ch1
+    quote: 'age: L1(11-14 hph)'
+  44:
+    record:
+    - GSM9305655
+    - GSM9305656
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Subgroups of neurons (SAA)'
+  45:
+    record:
+    - GSM9305655
+    - GSM9305656
+    field: Sample_characteristics_ch1
+    quote: 'strain: NY2066 ynIs66 [flp-7p::GFP]'
+  46:
+    record:
+    - GSM9305655
+    - GSM9305656
+    field: Sample_characteristics_ch1
+    quote: 'age: L1 (14 to 17 hph)'
+  47:
+    record:
+    - GSM9305655
+    - GSM9305656
+    field: Sample_source_name_ch1
+    quote: Subgroups of neurons (SAA)
+factors:
+  tissue:
+    levels:
+    - Command interneurons
+    - Sensory neurons
+    - All neurons
+    - Subgroups of neurons (RIR, RIH, RIP, etc.)
+    - Glutametergic neurons
+    - Subgroups of neurons (pharyngeal neurons, SAB, DA)
+    - Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)
+    - Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)
+    - P-lineage progenitors and neurons
+    - Subgroups of neurons (SAA)
+    baseline: Sensory neurons
+    ordered: false
+    inferred: the characteristic "tissue" varies between samples
+    p: 0.97
+  strain:
+    levels:
+    - 'NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 '
+    - PS9221 syIs764[Ptax-4::GFP, Pocr-2::GFP]
+    - OH10689 otIs355[rab-3(prom-1)::2xNLS-tagRFP]
+    - kyIs262 [unc-86::myr-GFP + odr-1::RFP]
+    - OH9625 otIs292 [eat-4::mCherry + rol-6(su1006)]
+    - NC3583 stIs10447 [ceh-34p::HIS-24::mCherry + unc-119(+)]; ev
+    - OH16003 otIs742[nlp-13::GFP + lin-15(+)] + EG1285 lin-15B&li
+    - 'CZ631 juIs14[acr-2::GFP + lin-15(+)] + NC3523 wdIs90[unc-4c:'
+    - UD381 ycIs11[phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato
+    - UD381 [phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato, odr-
+    - NY2066 ynIs66 [flp-7p::GFP]
+    baseline: null
+    ordered: true
+    inferred: the characteristic "strain" varies between samples
+    p: 0.85
+  age:
+    levels:
+    - L1 (12-16 hph)
+    - L1 (14-16 hph)
+    - L1 (11.5-14.5 hph)
+    - L1 (12-15 hph)
+    - L1 (14-17 hph)
+    - L1 (13.5-17 hph)
+    - L1 (13-17 hph)
+    - L1 (15.5-18.5 hph)
+    - L1/L2 (21-24 hph)
+    - L1(11-14 hph)
+    - L1 (14 to 17 hph)
+    baseline: L1 (14-16 hph)
+    ordered: true
+    inferred: the characteristic "age" varies between samples
+    p: 0.84
+  cell_status:
+    levels:
+    - Live
+    - Methanol-fixed after sorting
+    baseline: null
+    ordered: false
+    inferred: the characteristic "cell status" varies between samples
+    p: 0.82
+  cell_type:
+    levels:
+    - Command interneurons
+    - Sensory neurons
+    - All neurons
+    - Subgroups of neurons (RIR, RIH, RIP, etc.)
+    - Glutametergic neurons
+    - Subgroups of neurons (pharyngeal neurons, SAB, DA)
+    - Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)
+    - Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)
+    - P-lineage progenitors and neurons
+    - Subgroups of neurons (SAA)
+    baseline: null
+    ordered: false
+    inferred: the characteristic "source name" varies between samples
+    p: 0.97
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 6
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 7
+    p: 1.0
+  genotype:
+    text: wt
+    quoted:
+    - 8
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  sex:
+    unknown: nothing read says it
+    p: 0.85
+  development_stage:
+    unknown: nothing read says it
+    p: 0.74
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    na: does not apply to these samples
+    p: 0.91
+  treatment:
+    na: no treatment applied
+    p: 0.81
+  dose:
+    na: no treatment
+    p: 0.98
+  duration:
+    na: no treatment
+    p: 0.99
+  donor:
+    na: a pool of many individuals
+    p: 0.86
+samples:
+  GSM9305641:
+    tissue:
+      text: Command interneurons
+      level: Command interneurons
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 [glr-1::GFP]
+      level: 'NC3581 otIs708 [sra-11p::Scarlet + inx-6p18::tagRFP]; rhIs2 '
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: L1 (12-16 hph)
+      level: L1 (12-16 hph)
+      quoted:
+      - 3
+      p: 0.97
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Command interneurons
+      level: Command interneurons
+      quoted:
+      - 5
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305642:
+    tissue:
+      text: Sensory neurons
+      term: WBbt:0005759
+      level: Sensory neurons
+      quoted:
+      - 9
+      p: 1.0
+    strain:
+      text: PS9221 syIs764[Ptax-4::GFP, Pocr-2::GFP]
+      level: PS9221 syIs764[Ptax-4::GFP, Pocr-2::GFP]
+      quoted:
+      - 10
+      p: 1.0
+    age:
+      text: L1 (14-16 hph)
+      level: L1 (14-16 hph)
+      quoted:
+      - 11
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Sensory neurons
+      term: CL:0000101
+      level: Sensory neurons
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305643:
+    tissue:
+      text: All neurons
+      level: All neurons
+      quoted:
+      - 13
+      p: 1.0
+    strain:
+      text: OH10689 otIs355[rab-3(prom-1)::2xNLS-tagRFP]
+      level: OH10689 otIs355[rab-3(prom-1)::2xNLS-tagRFP]
+      quoted:
+      - 14
+      p: 1.0
+    age:
+      text: L1 (11.5-14.5 hph)
+      level: L1 (11.5-14.5 hph)
+      quoted:
+      - 15
+      p: 0.99
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: All neurons
+      level: All neurons
+      quoted:
+      - 16
+      p: 0.98
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305644:
+    tissue:
+      text: All neurons
+      level: All neurons
+      quoted:
+      - 13
+      p: 1.0
+    strain:
+      text: OH10689 otIs355[rab-3(prom-1)::2xNLS-tagRFP]
+      level: OH10689 otIs355[rab-3(prom-1)::2xNLS-tagRFP]
+      quoted:
+      - 14
+      p: 1.0
+    age:
+      text: L1 (11.5-14.5 hph)
+      level: L1 (11.5-14.5 hph)
+      quoted:
+      - 15
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: All neurons
+      level: All neurons
+      quoted:
+      - 16
+      p: 0.98
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305645:
+    tissue:
+      text: Subgroups of neurons (RIR, RIH, RIP, etc.)
+      level: Subgroups of neurons (RIR, RIH, RIP, etc.)
+      quoted:
+      - 17
+      p: 1.0
+    strain:
+      text: kyIs262 [unc-86::myr-GFP + odr-1::RFP]
+      level: kyIs262 [unc-86::myr-GFP + odr-1::RFP]
+      quoted:
+      - 18
+      p: 1.0
+    age:
+      text: L1 (12-15 hph)
+      level: L1 (12-15 hph)
+      quoted:
+      - 19
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Subgroups of neurons (RIR, RIH, RIP, etc.)
+      level: Subgroups of neurons (RIR, RIH, RIP, etc.)
+      quoted:
+      - 20
+      p: 0.99
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305646:
+    tissue:
+      text: Glutametergic neurons
+      level: Glutametergic neurons
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: OH9625 otIs292 [eat-4::mCherry + rol-6(su1006)]
+      level: OH9625 otIs292 [eat-4::mCherry + rol-6(su1006)]
+      quoted:
+      - 22
+      p: 1.0
+    age:
+      text: L1 (12-15 hph)
+      level: L1 (12-15 hph)
+      quoted:
+      - 19
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Glutametergic neurons
+      level: Glutametergic neurons
+      quoted:
+      - 23
+      p: 0.99
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305647:
+    tissue:
+      text: Subgroups of neurons (pharyngeal neurons, SAB, DA)
+      level: Subgroups of neurons (pharyngeal neurons, SAB, DA)
+      quoted:
+      - 24
+      p: 1.0
+    strain:
+      text: NC3583 stIs10447 [ceh-34p::HIS-24::mCherry + unc-119(+)]; evIs111 [F25B3.3::GFP + dpy-20(+)]
+        + NC2957 wdIs90[unc-4c::GFP]; ufIs26[unc-4::mCherry]
+      level: NC3583 stIs10447 [ceh-34p::HIS-24::mCherry + unc-119(+)]; ev
+      quoted:
+      - 25
+      p: 1.0
+    age:
+      text: L1 (14-17 hph)
+      level: L1 (14-17 hph)
+      quoted:
+      - 26
+      p: 0.96
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Subgroups of neurons (pharyngeal neurons, SAB, DA)
+      level: Subgroups of neurons (pharyngeal neurons, SAB, DA)
+      quoted:
+      - 27
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305648:
+    tissue:
+      text: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)
+      level: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)
+      quoted:
+      - 28
+      p: 1.0
+    strain:
+      text: OH16003 otIs742[nlp-13::GFP + lin-15(+)] + EG1285 lin-15B&lin-15A(n765) oxIs12[unc-47::GFP
+        + lin-15(+)] X + ZM5488 hpIs202 [ceh-10::GFP + lin-15(+)] + uIs152[mec-3::RFP]
+      level: OH16003 otIs742[nlp-13::GFP + lin-15(+)] + EG1285 lin-15B&li
+      quoted:
+      - 29
+      p: 1.0
+    age:
+      text: L1 (13.5-17 hph)
+      level: L1 (13.5-17 hph)
+      quoted:
+      - 30
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)
+      level: Subgroups of neurons(NSM, RIB, RID, CAN, PLM, ALM, FLP, PVT)
+      quoted:
+      - 31
+      p: 0.99
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305649:
+    tissue:
+      text: Subgroups of neurons (pharyngeal neurons, SAB, DA)
+      level: Subgroups of neurons (pharyngeal neurons, SAB, DA)
+      quoted:
+      - 24
+      p: 1.0
+    strain:
+      text: NC3583 stIs10447 [ceh-34p::HIS-24::mCherry + unc-119(+)]; evIs111 [F25B3.3::GFP + dpy-20(+)]
+        + NC2957 wdIs90[unc-4c::GFP]; ufIs26[unc-4::mCherry]
+      level: NC3583 stIs10447 [ceh-34p::HIS-24::mCherry + unc-119(+)]; ev
+      quoted:
+      - 25
+      p: 1.0
+    age:
+      text: L1 (14-17 hph)
+      level: L1 (14-17 hph)
+      quoted:
+      - 26
+      p: 0.96
+    cell_status:
+      text: Methanol-fixed after sorting
+      level: Methanol-fixed after sorting
+      quoted:
+      - 32
+      p: 1.0
+    cell_type:
+      text: Subgroups of neurons (pharyngeal neurons, SAB, DA)
+      level: Subgroups of neurons (pharyngeal neurons, SAB, DA)
+      quoted:
+      - 27
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305650:
+    tissue:
+      text: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)
+      level: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)
+      quoted:
+      - 33
+      p: 1.0
+    strain:
+      text: CZ631 juIs14[acr-2::GFP + lin-15(+)] + NC3523 wdIs90[unc-4c::GFP + ceh-22::GFP] + PS3504 syIs54[ceh-2::GFP
+        + unc-119(+)] II; unc-119(ed4)
+      level: 'CZ631 juIs14[acr-2::GFP + lin-15(+)] + NC3523 wdIs90[unc-4c:'
+      quoted:
+      - 34
+      p: 1.0
+    age:
+      text: L1 (13-17 hph)
+      level: L1 (13-17 hph)
+      quoted:
+      - 35
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)
+      level: Subgroups of neurons (DA, DB, SAB, I3, M3, NSM)
+      quoted:
+      - 36
+      p: 0.99
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305651:
+    tissue:
+      text: P-lineage progenitors and neurons
+      level: P-lineage progenitors and neurons
+      quoted:
+      - 37
+      p: 1.0
+    strain:
+      text: UD381 ycIs11[phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato, odr-1::gfp]
+      level: UD381 ycIs11[phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato
+      quoted:
+      - 38
+      p: 0.99
+    age:
+      text: L1 (15.5-18.5 hph)
+      level: L1 (15.5-18.5 hph)
+      quoted:
+      - 39
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: P-lineage progenitors and neurons
+      level: P-lineage progenitors and neurons
+      quoted:
+      - 40
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305652:
+    tissue:
+      text: P-lineage progenitors and neurons
+      level: P-lineage progenitors and neurons
+      quoted:
+      - 37
+      p: 1.0
+    strain:
+      text: UD381 ycIs11[phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato, odr-1::gfp]
+      level: UD381 ycIs11[phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato
+      quoted:
+      - 38
+      p: 0.98
+    age:
+      text: L1/L2 (21-24 hph)
+      level: L1/L2 (21-24 hph)
+      quoted:
+      - 41
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: P-lineage progenitors and neurons
+      level: P-lineage progenitors and neurons
+      quoted:
+      - 40
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305653:
+    tissue:
+      text: P-lineage progenitors and neurons
+      level: P-lineage progenitors and neurons
+      quoted:
+      - 37
+      p: 1.0
+    strain:
+      text: UD381 [phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato, odr-1::gfp]
+      level: UD381 [phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato, odr-
+      quoted:
+      - 42
+      p: 0.97
+    age:
+      text: L1(11-14 hph)
+      level: L1(11-14 hph)
+      quoted:
+      - 43
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: P-lineage progenitors and neurons
+      level: P-lineage progenitors and neurons
+      quoted:
+      - 40
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305654:
+    tissue:
+      text: P-lineage progenitors and neurons
+      level: P-lineage progenitors and neurons
+      quoted:
+      - 37
+      p: 1.0
+    strain:
+      text: UD381 [phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato, odr-1::gfp]
+      level: UD381 [phlh-3::vab-10abd::venus, phlh-3::nls::tdTomato, odr-
+      quoted:
+      - 42
+      p: 0.93
+    age:
+      text: L1/L2 (21-24 hph)
+      level: L1/L2 (21-24 hph)
+      quoted:
+      - 41
+      p: 1.0
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: P-lineage progenitors and neurons
+      level: P-lineage progenitors and neurons
+      quoted:
+      - 40
+      p: 1.0
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305655:
+    tissue:
+      text: Subgroups of neurons (SAA)
+      level: Subgroups of neurons (SAA)
+      quoted:
+      - 44
+      p: 1.0
+    strain:
+      text: NY2066 ynIs66 [flp-7p::GFP]
+      level: NY2066 ynIs66 [flp-7p::GFP]
+      quoted:
+      - 45
+      p: 1.0
+    age:
+      text: L1 (14 to 17 hph)
+      level: L1 (14 to 17 hph)
+      quoted:
+      - 46
+      p: 0.86
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Subgroups of neurons (SAA)
+      level: Subgroups of neurons (SAA)
+      quoted:
+      - 47
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM9305656:
+    tissue:
+      text: Subgroups of neurons (SAA)
+      level: Subgroups of neurons (SAA)
+      quoted:
+      - 44
+      p: 1.0
+    strain:
+      text: NY2066 ynIs66 [flp-7p::GFP]
+      level: NY2066 ynIs66 [flp-7p::GFP]
+      quoted:
+      - 45
+      p: 1.0
+    age:
+      text: L1 (14 to 17 hph)
+      level: L1 (14 to 17 hph)
+      quoted:
+      - 46
+      p: 0.88
+    cell_status:
+      text: Live
+      level: Live
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Subgroups of neurons (SAA)
+      level: Subgroups of neurons (SAA)
+      quoted:
+      - 47
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null

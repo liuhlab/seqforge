@@ -1,0 +1,2417 @@
+{
+ "study": "GSE135532",
+ "chain": "flash",
+ "read_full": false,
+ "n_samples": 16,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "diet",
+   "levels": [
+    "chow",
+    "NIA",
+    "UW",
+    "mNIA"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.02,
+   "baseline": "L1",
+   "p_baseline": 0.66,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 0.76,
+   "p_ordered": 0.16,
+   "writer_baseline": "NIA",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "starting_age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.73,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.64,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.67,
+   "shared": true
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "diet",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "factor:diet",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM4013824": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "chow",
+    "chow"
+   ],
+   "treatment": [
+    "standard rodent chow",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM4013825": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "chow",
+    "chow"
+   ],
+   "treatment": [
+    "standard rodent chow",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM4013826": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "chow",
+    "chow"
+   ],
+   "treatment": [
+    "standard rodent chow",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM4013827": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "chow",
+    "chow"
+   ],
+   "treatment": [
+    "standard rodent chow",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM4013828": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "NIA",
+    "NIA"
+   ],
+   "treatment": [
+    "NIA primate diet",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM4013829": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "NIA",
+    "NIA"
+   ],
+   "treatment": [
+    "NIA primate diet",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM4013830": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "NIA",
+    "NIA"
+   ],
+   "treatment": [
+    "NIA primate diet",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM4013831": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "NIA",
+    "NIA"
+   ],
+   "treatment": [
+    "NIA primate diet",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM4013832": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "UW",
+    "UW"
+   ],
+   "treatment": [
+    "UW primate diet",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  },
+  "GSM4013833": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "UW",
+    "UW"
+   ],
+   "treatment": [
+    "UW primate diet",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D10",
+    null
+   ]
+  },
+  "GSM4013834": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "UW",
+    "UW"
+   ],
+   "treatment": [
+    "UW primate diet",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D11",
+    null
+   ]
+  },
+  "GSM4013835": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "UW",
+    "UW"
+   ],
+   "treatment": [
+    "UW primate diet",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D12",
+    null
+   ]
+  },
+  "GSM4013836": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "mNIA",
+    "mNIA"
+   ],
+   "treatment": [
+    "modified NIA diet",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D13",
+    null
+   ]
+  },
+  "GSM4013837": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "mNIA",
+    "mNIA"
+   ],
+   "treatment": [
+    "modified NIA diet",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D14",
+    null
+   ]
+  },
+  "GSM4013838": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "mNIA",
+    "mNIA"
+   ],
+   "treatment": [
+    "modified NIA diet",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D15",
+    null
+   ]
+  },
+  "GSM4013839": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "age": [
+    "Six-week-old",
+    null
+   ],
+   "tissue": [
+    "heart - ventricles",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "C57BL/6",
+    null
+   ],
+   "duration": [
+    "six months",
+    null
+   ],
+   "starting_age": [
+    "Six-week-old",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "diet": [
+    "mNIA",
+    "mNIA"
+   ],
+   "treatment": [
+    "modified NIA diet",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D16",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "diet": {
+   "levels": [
+    "chow",
+    "NIA",
+    "UW",
+    "mNIA"
+   ],
+   "baseline": "NIA",
+   "ordered": false,
+   "quoted": [
+    15
+   ],
+   "p": 0.99
+  }
+ },
+ "n_passages": 15,
+ "n_shared": 16,
+ "n_row_claims": 64,
+ "lists_summary": {
+  "factors": 1,
+  "factors_kept": 1,
+  "labels_with_values": 9,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "held_constant",
+    "note": "sex, age, strain held constant across all samples"
+   },
+   {
+    "kind": "term_missing",
+    "note": "no development stage term for mice"
+   }
+  ],
+  "donor_kind_writer": "one_each",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "diet/L0",
+   "status": "named",
+   "source": "GSM4013824",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "diet/L1",
+   "status": "named",
+   "source": "GSM4013828",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.99
+  },
+  {
+   "key": "diet/L2",
+   "status": "named",
+   "source": "GSM4013832",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 8,
+   "backs_p": 0.99
+  },
+  {
+   "key": "diet/L3",
+   "status": "named",
+   "source": "GSM4013836",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "diet/_factor",
+   "status": "named",
+   "source": "GSE135532",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 97,
+   "backs_p": 0.98
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM4013824",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 26,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 47,
+   "backs_p": 0.82
+  },
+  {
+   "key": "treatment/v1",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 67,
+   "backs_p": 0.81
+  },
+  {
+   "key": "treatment/v2",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 99,
+   "backs_p": 0.87
+  },
+  {
+   "key": "treatment/v3",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 76,
+   "backs_p": 0.91
+  },
+  {
+   "key": "duration/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 26,
+   "backs_p": 0.99
+  },
+  {
+   "key": "starting_age/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "heart - ventricles",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0004784",
+     "label": "heart ventricle wall",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0006283",
+     "label": "future cardiac ventricle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0001081",
+     "label": "endocardium of ventricle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0002082",
+     "label": "cardiac ventricle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0035837",
+     "label": "apical region of heart ventricle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0002084",
+     "label": "heart left ventricle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0005337",
+     "label": "outflow tract of ventricle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0002080",
+     "label": "heart right ventricle",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0002082",
+   "p": 0.55,
+   "probe_pick": "none",
+   "probe_p": 0.49
+  },
+  {
+   "label": "treatment",
+   "text": "NIA primate diet",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "UW primate diet",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "modified NIA diet",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "standard rodent chow",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.35,
+  "untreated_or_vehicle": 0.59,
+  "several_compounds": 0.2,
+  "route_or_side": 0.89,
+  "dose_per_unit": 0.15,
+  "duration_without_number": 0.07,
+  "time_from_event": 0.18,
+  "pooled_material": 0.04,
+  "held_constant": 0.93,
+  "batch": 0.13,
+  "sequencer": 0.13,
+  "vector": 0.01,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.07,
+  "single_cell": 0.01,
+  "mixed_assays": 0.01
+ },
+ "donor_kind": [
+  "one_each",
+  1.0
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.001222056,
+   "seconds": 5.353,
+   "tokens_in": 3872,
+   "tokens_out": 1351
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000198828,
+   "seconds": 0.261,
+   "tokens_in": 4734
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.259,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.303,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.249,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.258,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.292,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.248,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.266,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.347,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010332,
+   "seconds": 0.291,
+   "tokens_in": 2460
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010332,
+   "seconds": 0.29,
+   "tokens_in": 2460
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010332,
+   "seconds": 0.205,
+   "tokens_in": 2460
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010332,
+   "seconds": 0.267,
+   "tokens_in": 2460
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010332,
+   "seconds": 0.25,
+   "tokens_in": 2460
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010332,
+   "seconds": 0.261,
+   "tokens_in": 2460
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010332,
+   "seconds": 0.326,
+   "tokens_in": 2460
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.307,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.33,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010332,
+   "seconds": 0.325,
+   "tokens_in": 2460
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.283,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.308,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.373,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.266,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.527,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000103194,
+   "seconds": 0.207,
+   "tokens_in": 2457
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010336199999999999,
+   "seconds": 0.267,
+   "tokens_in": 2461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010336199999999999,
+   "seconds": 0.204,
+   "tokens_in": 2461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010336199999999999,
+   "seconds": 0.295,
+   "tokens_in": 2461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010336199999999999,
+   "seconds": 0.309,
+   "tokens_in": 2461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010336199999999999,
+   "seconds": 0.25,
+   "tokens_in": 2461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010336199999999999,
+   "seconds": 0.22,
+   "tokens_in": 2461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010336199999999999,
+   "seconds": 0.25,
+   "tokens_in": 2461
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00010336199999999999,
+   "seconds": 0.248,
+   "tokens_in": 2461
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000185682,
+   "seconds": 0.17,
+   "tokens_in": 4421
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 3.5826e-05,
+   "seconds": 0.703,
+   "tokens_in": 853
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 3.4733999999999996e-05,
+   "seconds": 0.248,
+   "tokens_in": 827
+  }
+ ],
+ "seconds": 0.24,
+ "ending": "settled",
+ "variant": "flash"
+}

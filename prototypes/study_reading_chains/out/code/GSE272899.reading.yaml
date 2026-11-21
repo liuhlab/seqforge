@@ -1,0 +1,331 @@
+format: 1
+study: GSE272899
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM8414372
+    - GSM8414373
+    - GSM8414375
+    - GSM8414376
+    - GSM8414377
+    field: Sample_characteristics_ch1
+    quote: 'genotype: LysMcre/cre'
+  2:
+    record:
+    - GSM8414372
+    - GSM8414373
+    - GSM8414374
+    - GSM8414375
+    - GSM8414376
+    - GSM8414377
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Old'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: ATAC-seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Visceral white adipose tissue'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Sorted adipose tissue macrophages'
+  7:
+    record: GSM8414374
+    field: Sample_characteristics_ch1
+    quote: 'genotype: GDF3 fl/fl'
+  8:
+    record:
+    - GSM8414375
+    - GSM8414376
+    - GSM8414377
+    field: Sample_characteristics_ch1
+    quote: 'genotype: LysMcre/cre; GDF3 fl/fl'
+  9:
+    record:
+    - GSM8414378
+    - GSM8414379
+    - GSM8414380
+    field: Sample_characteristics_ch1
+    quote: 'genotype: GDF3 fl/-'
+  10:
+    record:
+    - GSM8414378
+    - GSM8414379
+    - GSM8414380
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Young'
+factors:
+  genotype:
+    levels:
+    - LysMcre/cre
+    - GDF3 fl/fl
+    - LysMcre/cre; GDF3 fl/fl
+    - GDF3 fl/-
+    baseline: LysMcre/cre
+    ordered: false
+    inferred: the characteristic "genotype" varies between samples
+    p: 0.94
+  age:
+    levels:
+    - Old
+    - Young
+    baseline: Young
+    ordered: false
+    inferred: the characteristic "treatment" varies between samples
+    p: 0.98
+shared:
+  assay:
+    text: ATAC-seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: Visceral white adipose tissue
+    quoted:
+    - 5
+    p: 1.0
+  cell_type:
+    text: Sorted adipose tissue macrophages
+    quoted:
+    - 6
+    p: 1.0
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 0.98
+  sex:
+    unknown: nothing read says it
+    p: 0.99
+  development_stage:
+    na: does not apply to these samples
+    p: 0.52
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    unknown: nothing read says it
+    p: 0.57
+  strain:
+    unknown: nothing read says it
+    p: 0.99
+  treatment:
+    unknown: nothing read says it
+    p: 0.72
+  dose:
+    unknown: nothing read says it
+    p: 0.79
+  duration:
+    unknown: nothing read says it
+    p: 0.65
+samples:
+  GSM8414372:
+    genotype:
+      text: LysMcre/cre
+      level: LysMcre/cre
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: Old
+      level: Old
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.86
+  GSM8414373:
+    genotype:
+      text: LysMcre/cre
+      level: LysMcre/cre
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: Old
+      level: Old
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.86
+  GSM8414374:
+    genotype:
+      text: GDF3 fl/fl
+      level: GDF3 fl/fl
+      quoted:
+      - 7
+      p: 1.0
+    age:
+      text: Old
+      level: Old
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.86
+  GSM8414375:
+    genotype:
+      text: LysMcre/cre; GDF3 fl/fl
+      level: LysMcre/cre; GDF3 fl/fl
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: Old
+      level: Old
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.86
+  GSM8414376:
+    genotype:
+      text: LysMcre/cre; GDF3 fl/fl
+      level: LysMcre/cre; GDF3 fl/fl
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: Old
+      level: Old
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.86
+  GSM8414377:
+    genotype:
+      text: LysMcre/cre; GDF3 fl/fl
+      level: LysMcre/cre; GDF3 fl/fl
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: Old
+      level: Old
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.86
+  GSM8414378:
+    genotype:
+      text: GDF3 fl/-
+      level: GDF3 fl/-
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: Young
+      level: Young
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.86
+  GSM8414379:
+    genotype:
+      text: GDF3 fl/-
+      level: GDF3 fl/-
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: Young
+      level: Young
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.86
+  GSM8414380:
+    genotype:
+      text: GDF3 fl/-
+      level: GDF3 fl/-
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: Young
+      level: Young
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.86

@@ -1,0 +1,3631 @@
+{
+ "study": "GSE117724",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 20,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "wild_type",
+    "tm2590",
+    "ums12",
+    "vl648"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.05,
+   "baseline": "L0",
+   "p_baseline": 0.84,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.95,
+   "p_ordered": 0.06,
+   "writer_baseline": "wild_type",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "DMSO",
+    "R24"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 0.98,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.99,
+   "p_ordered": 0.07,
+   "writer_baseline": "DMSO",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [
+  [
+   "GSM3307369",
+   "lab_control_type",
+   "na",
+   "v0"
+  ],
+  [
+   "GSM3398125",
+   "lab_control_type",
+   "na",
+   "v0"
+  ],
+  [
+   "GSM3398126",
+   "lab_control_type",
+   "na",
+   "v0"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.58,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.81,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.77,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.69,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.9,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.82,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "na",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "inferred",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "unknown",
+   "p": 0.46,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "chip_antibody",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "inferred",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM3307357": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep1",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM3307358": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep2",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM3307359": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep3",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM3307360": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep1",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM3307361": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep2",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM3307362": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep3",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM3307363": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(tm2590)",
+    "tm2590"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep1",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM3307364": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(tm2590)",
+    "tm2590"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep2",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM3307365": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(tm2590)",
+    "tm2590"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep3",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM3307366": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(tm2590)",
+    "tm2590"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep1",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM3307367": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(tm2590)",
+    "tm2590"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep2",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM3307368": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(tm2590)",
+    "tm2590"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep3",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  },
+  "GSM3307369": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(ums12)",
+    "ums12"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep1",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ]
+  },
+  "GSM3307370": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(ums12)",
+    "ums12"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep2",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ]
+  },
+  "GSM3307371": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(ums12)",
+    "ums12"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep3",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ]
+  },
+  "GSM3307372": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(ums12)",
+    "ums12"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep1",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ]
+  },
+  "GSM3307373": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(ums12)",
+    "ums12"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep2",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ]
+  },
+  "GSM3307374": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "nhr-86(ums12)",
+    "ums12"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "<na>",
+    null
+   ],
+   "replicate": [
+    "rep3",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ]
+  },
+  "GSM3398125": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "VL648 unc-119(ed3); wwIs22 [Pnhr-86::nhr-86ORF::GFP unc-119(+)]",
+    "vl648"
+   ],
+   "treatment": [
+    "DMSO",
+    "DMSO"
+   ],
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "target": [
+    "NHR-86",
+    null
+   ],
+   "strain": [
+    "VL648",
+    null
+   ],
+   "dose": [
+    "1% final concentration",
+    null
+   ],
+   "chip_antibody": [
+    "anti-GFP antibody (Roche Cat#11814460001, Lot#19958500)",
+    null
+   ],
+   "replicate": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B19",
+    null
+   ]
+  },
+  "GSM3398126": {
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "L4",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "duration": [
+    "overnight",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "VL648 unc-119(ed3); wwIs22 [Pnhr-86::nhr-86ORF::GFP unc-119(+)]",
+    "vl648"
+   ],
+   "treatment": [
+    "R24",
+    "R24"
+   ],
+   "assay": [
+    "ChIP-Seq",
+    null
+   ],
+   "target": [
+    "NHR-86",
+    null
+   ],
+   "strain": [
+    "VL648",
+    null
+   ],
+   "dose": [
+    "70 μM R24",
+    null
+   ],
+   "chip_antibody": [
+    "anti-GFP antibody (Roche Cat#11814460001, Lot#19958500)",
+    null
+   ],
+   "replicate": [
+    "na",
+    null
+   ],
+   "biosample": [
+    "B20",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "wild_type",
+    "tm2590",
+    "ums12",
+    "vl648"
+   ],
+   "baseline": "wild_type",
+   "ordered": false,
+   "inferred": "wild-type and nhr-86 mutant RNA-seq; VL648 ChIP",
+   "p": 0.97
+  },
+  "treatment": {
+   "levels": [
+    "DMSO",
+    "R24"
+   ],
+   "baseline": "DMSO",
+   "ordered": false,
+   "quoted": [
+    21
+   ],
+   "p": 0.98
+  }
+ },
+ "n_passages": 21,
+ "n_shared": 11,
+ "n_row_claims": 180,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 10,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "duration_without_number",
+    "note": "treatment applied overnight; no numeric duration recorded"
+   },
+   {
+    "kind": "pooled_material",
+    "note": "each sample is a synchronized population of whole animals, not single individuals"
+   },
+   {
+    "kind": "crossed_not_fully",
+    "note": "RNA-seq has wild-type and nhr-86 mutants; ChIP-seq has only VL648 transgenic"
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM3307357",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM3307363",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L2",
+   "status": "named",
+   "source": "GSM3307369",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L3",
+   "status": "named",
+   "source": "GSM3398125",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 73,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM3307357",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM3307360",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "named",
+   "source": "GSE117700",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 138,
+   "backs_p": 0.93
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM3307357",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "assay/v1",
+   "status": "named",
+   "source": "GSM3398125",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 8,
+   "backs_p": 0.99
+  },
+  {
+   "key": "target/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "target/v1",
+   "status": "named",
+   "source": "GSE117719",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 128,
+   "backs_p": 0.98
+  },
+  {
+   "key": "control_type/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM3307357",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v1",
+   "status": "named",
+   "source": "GSM3398125",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "dose/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 80,
+   "backs_p": 0.97
+  },
+  {
+   "key": "dose/v1",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 80,
+   "backs_p": 0.24
+  },
+  {
+   "key": "duration/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.99
+  },
+  {
+   "key": "chip_antibody/v0",
+   "status": "named",
+   "source": "GSM3398125",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 70,
+   "backs_p": 0.99
+  },
+  {
+   "key": "chip_antibody/v1",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "replicate/v0",
+   "status": "named",
+   "source": "GSM3307357",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.98
+  },
+  {
+   "key": "replicate/v1",
+   "status": "named",
+   "source": "GSM3307358",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.98
+  },
+  {
+   "key": "replicate/v2",
+   "status": "named",
+   "source": "GSM3307359",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "replicate/v3",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "L4",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": [
+    {
+     "id": "WBls:0000082",
+     "label": "Brugia L4",
+     "exact": true
+    },
+    {
+     "id": "WBls:0000039",
+     "label": "L4-adult lethargus Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000040",
+     "label": "L4-adult molt Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000050",
+     "label": "L4-adult ecdysis Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000064",
+     "label": "1-day post-L4 adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000065",
+     "label": "2-days post-L4 adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000066",
+     "label": "3-days post-L4 adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000067",
+     "label": "4-days post-L4 adult hermaphrodite Ce",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.61
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Whole animal",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "DMSO",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:28262",
+     "label": "dimethyl sulfoxide",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:193041",
+     "label": "dimethyl sulfoxide-d6",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:49123",
+     "label": "dimethyl sulfoxide reductase",
+     "exact": false
+    },
+    {
+     "id": "CHEBI:75991",
+     "label": "trametinib dimethyl sulfoxide",
+     "exact": false
+    }
+   ],
+   "pick": "CHEBI:28262",
+   "p": 0.97,
+   "probe_pick": "none",
+   "probe_p": 0.84
+  },
+  {
+   "label": "treatment",
+   "text": "R24",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:79310",
+     "label": "R24",
+     "exact": true
+    },
+    {
+     "id": "CHEBI:195198",
+     "label": "calmidazolium chloride",
+     "exact": false
+    }
+   ],
+   "pick": "CHEBI:79310",
+   "p": 0.51,
+   "probe_pick": "none",
+   "probe_p": 0.9
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.27,
+  "untreated_or_vehicle": 0.99,
+  "several_compounds": 0.12,
+  "route_or_side": 0.17,
+  "dose_per_unit": 0.34,
+  "duration_without_number": 0.98,
+  "time_from_event": 0.21,
+  "pooled_material": 0.82,
+  "held_constant": 0.93,
+  "batch": 0.13,
+  "sequencer": 0.06,
+  "vector": 0.51,
+  "one_control_many_materials": 0.12,
+  "baseline_as_control": 0.73,
+  "single_cell": 0.01,
+  "mixed_assays": 0.99
+ },
+ "donor_kind": [
+  "pool",
+  0.9
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.009808505999999998,
+   "seconds": 71.759,
+   "tokens_in": 10995,
+   "tokens_out": 13881
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000538524,
+   "seconds": 0.337,
+   "tokens_in": 12822
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.249,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.366,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.367,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.413,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.246,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.366,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.317,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.248,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.258,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.298,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.36,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.372,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000134862,
+   "seconds": 0.319,
+   "tokens_in": 3211
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.324,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.324,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.315,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.496,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.336,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.406,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.354,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.371,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.307,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.303,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136038,
+   "seconds": 0.299,
+   "tokens_in": 3239
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.368,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.289,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.267,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.293,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.268,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.259,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.261,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.348,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.205,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.214,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.288,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000135912,
+   "seconds": 0.257,
+   "tokens_in": 3236
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000145572,
+   "seconds": 0.27,
+   "tokens_in": 3466
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000145572,
+   "seconds": 0.308,
+   "tokens_in": 3466
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000145572,
+   "seconds": 0.268,
+   "tokens_in": 3466
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000145572,
+   "seconds": 0.248,
+   "tokens_in": 3466
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000538314,
+   "seconds": 0.166,
+   "tokens_in": 12817
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 5.6658e-05,
+   "seconds": 0.225,
+   "tokens_in": 1349
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 4.3218e-05,
+   "seconds": 0.287,
+   "tokens_in": 1029
+  }
+ ],
+ "seconds": 0.25,
+ "ending": "settled",
+ "variant": "flash_think"
+}

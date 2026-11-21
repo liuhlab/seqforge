@@ -1,0 +1,2576 @@
+{
+ "study": "GSE132886",
+ "chain": "code",
+ "read_full": false,
+ "n_samples": 21,
+ "dropped_samples": 0,
+ "has_full_text": false,
+ "factors": [
+  {
+   "label": "age",
+   "levels": [
+    "5 weeks",
+    "8 weeks",
+    "60-75 weeks (old)",
+    "79 weeks"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.04,
+   "baseline": "no_reference",
+   "p_baseline": 0.46,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.46,
+   "p_ordered": 0.98,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "age",
+   "levels": [
+    "5 weeks of age WT mouse, uterus",
+    "8 weeks of age WT mouse, uterus",
+    "60-75 weeks of age WT mouse, uterus",
+    "79 weeks of age WT mouse, uterus"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.03,
+   "baseline": "no_reference",
+   "p_baseline": 0.39,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.45,
+   "p_ordered": 0.98,
+   "writer_baseline": null,
+   "writer_ordered": null,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.94,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.62,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "na",
+   "p": 0.82,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.52,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.51,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.56,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "factor:age",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM3895616": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "5 weeks",
+    "5 weeks"
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM3895617": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "5 weeks",
+    "5 weeks"
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM3895618": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "8 weeks",
+    "8 weeks"
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM3895619": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "8 weeks",
+    "8 weeks"
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM3895620": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "60-75 weeks (old)",
+    "60-75 weeks (old)"
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM3895621": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "60-75 weeks (old)",
+    "60-75 weeks (old)"
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM4512964": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "5 weeks",
+    "5 weeks"
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM4512965": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "5 weeks",
+    "5 weeks"
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM4512966": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "5 weeks",
+    "5 weeks"
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  },
+  "GSM4512967": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "5 weeks",
+    "5 weeks"
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D10",
+    null
+   ]
+  },
+  "GSM4512968": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "5 weeks",
+    "5 weeks"
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D11",
+    null
+   ]
+  },
+  "GSM4512969": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "8 weeks",
+    "8 weeks"
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D12",
+    null
+   ]
+  },
+  "GSM4512970": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "8 weeks",
+    "8 weeks"
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D13",
+    null
+   ]
+  },
+  "GSM4512971": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "8 weeks",
+    "8 weeks"
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D14",
+    null
+   ]
+  },
+  "GSM4512972": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "8 weeks",
+    "8 weeks"
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D15",
+    null
+   ]
+  },
+  "GSM4512973": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "8 weeks",
+    "8 weeks"
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D16",
+    null
+   ]
+  },
+  "GSM4512974": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "79 weeks",
+    "79 weeks"
+   ],
+   "biosample": [
+    "B17",
+    null
+   ],
+   "donor": [
+    "D17",
+    null
+   ]
+  },
+  "GSM4512975": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "79 weeks",
+    "79 weeks"
+   ],
+   "biosample": [
+    "B18",
+    null
+   ],
+   "donor": [
+    "D18",
+    null
+   ]
+  },
+  "GSM4512976": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "79 weeks",
+    "79 weeks"
+   ],
+   "biosample": [
+    "B19",
+    null
+   ],
+   "donor": [
+    "D19",
+    null
+   ]
+  },
+  "GSM4512977": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "79 weeks",
+    "79 weeks"
+   ],
+   "biosample": [
+    "B20",
+    null
+   ],
+   "donor": [
+    "D20",
+    null
+   ]
+  },
+  "GSM4512978": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "whole uterus",
+    null
+   ],
+   "genotype": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "C57BL/6J",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "disease": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "79 weeks",
+    "79 weeks"
+   ],
+   "biosample": [
+    "B21",
+    null
+   ],
+   "donor": [
+    "D21",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "age": {
+   "levels": [
+    "5 weeks",
+    "8 weeks",
+    "60-75 weeks (old)",
+    "79 weeks"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "inferred": "the characteristic \"age\" varies between samples",
+   "p": 0.98
+  }
+ },
+ "n_passages": 9,
+ "n_shared": 15,
+ "n_row_claims": 63,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 1,
+  "labels_with_values": 5,
+  "extra_labels": 0,
+  "writer_gaps": [],
+  "donor_kind_writer": null,
+  "keymap": {
+   "strain": {
+    "label": "strain",
+    "p": 1.0
+   },
+   "genotype": {
+    "label": "genotype",
+    "p": 1.0
+   },
+   "age": {
+    "label": "age",
+    "p": 1.0
+   },
+   "tissue": {
+    "label": "tissue",
+    "p": 1.0
+   },
+   "source name": {
+    "label": "age",
+    "p": 0.72
+   }
+  }
+ },
+ "quotes": [
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM3895616",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM3895618",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L2",
+   "status": "named",
+   "source": "GSM3895620",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L3",
+   "status": "named",
+   "source": "GSM4512974",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM3895616",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM3895616",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM3895616",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "source": "GSM3895616",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM3895616",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "tissue",
+   "text": "whole uterus",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.55,
+  "untreated_or_vehicle": 0.48,
+  "several_compounds": 0.11,
+  "route_or_side": 0.97,
+  "dose_per_unit": 0.6,
+  "duration_without_number": 0.12,
+  "time_from_event": 0.65,
+  "pooled_material": 0.07,
+  "held_constant": 0.88,
+  "batch": 0.65,
+  "sequencer": 0.99,
+  "vector": 0.02,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.07,
+  "single_cell": 0.02,
+  "mixed_assays": 0.03
+ },
+ "donor_kind": [
+  "one_each",
+  0.95
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "jev",
+   "step": "keymap",
+   "cost": 0.00029778,
+   "seconds": 0.298,
+   "tokens_in": 7090
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000313236,
+   "seconds": 0.272,
+   "tokens_in": 7458
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.286,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.312,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.33,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.283,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.329,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.256,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.279,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.33,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1774e-05,
+   "seconds": 0.257,
+   "tokens_in": 1947
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1774e-05,
+   "seconds": 0.236,
+   "tokens_in": 1947
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1774e-05,
+   "seconds": 0.278,
+   "tokens_in": 1947
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1774e-05,
+   "seconds": 0.276,
+   "tokens_in": 1947
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.237,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.247,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.27,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.214,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.281,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.212,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.231,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.355,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.33,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.288,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.293,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.307,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.218,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.234,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.268,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.255,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.234,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.216,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.325,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.309,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.1564e-05,
+   "seconds": 0.32,
+   "tokens_in": 1942
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.273,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.262,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.275,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.264,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.27,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.268,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.297,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.347,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.148e-05,
+   "seconds": 0.221,
+   "tokens_in": 1940
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00023163,
+   "seconds": 0.206,
+   "tokens_in": 5515
+  }
+ ],
+ "seconds": 0.26,
+ "ending": "settled",
+ "variant": "code"
+}

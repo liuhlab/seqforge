@@ -1,0 +1,1810 @@
+{
+ "study": "GSE281157",
+ "chain": "flash_think",
+ "read_full": true,
+ "n_samples": 12,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "wt",
+    "daf16",
+    "daf18",
+    "daf16_daf18"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 0.85,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.92,
+   "p_ordered": 0.07,
+   "writer_baseline": "wt",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "time_after_hypochlorite_treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.65,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM8611902": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type (N2)",
+    "wt"
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM8611903": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type (N2)",
+    "wt"
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM8611904": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "wild type (N2)",
+    "wt"
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM8611905": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86)",
+    "daf16"
+   ],
+   "strain": [
+    "CF1038",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM8611906": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86)",
+    "daf16"
+   ],
+   "strain": [
+    "CF1038",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM8611907": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86)",
+    "daf16"
+   ],
+   "strain": [
+    "CF1038",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM8611908": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-18(ok480)",
+    "daf18"
+   ],
+   "strain": [
+    "IC166",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM8611909": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-18(ok480)",
+    "daf18"
+   ],
+   "strain": [
+    "IC166",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM8611910": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-18(ok480)",
+    "daf18"
+   ],
+   "strain": [
+    "IC166",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM8611911": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86); daf-18(ok480)",
+    "daf16_daf18"
+   ],
+   "strain": [
+    "LRB378",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM8611912": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86); daf-18(ok480)",
+    "daf16_daf18"
+   ],
+   "strain": [
+    "LRB378",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM8611913": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "age": [
+    "about 4 hours",
+    null
+   ],
+   "development_stage": [
+    "L1",
+    null
+   ],
+   "tissue": [
+    "whole worm",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "treatment": [
+    "Starved in virgin S-basal with 0.1% EtOH",
+    null
+   ],
+   "dose": [
+    "0.1% EtOH",
+    null
+   ],
+   "duration": [
+    "about 4 hours",
+    null
+   ],
+   "time_after_hypochlorite_treatment": [
+    "16 hr post hypochlorite treatment",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-16(mu86); daf-18(ok480)",
+    "daf16_daf18"
+   ],
+   "strain": [
+    "LRB378",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "wt",
+    "daf16",
+    "daf18",
+    "daf16_daf18"
+   ],
+   "baseline": "wt",
+   "ordered": false,
+   "quoted": [
+    15
+   ],
+   "p": 0.99
+  }
+ },
+ "n_passages": 15,
+ "n_shared": 16,
+ "n_row_claims": 36,
+ "lists_summary": {
+  "factors": 1,
+  "factors_kept": 1,
+  "labels_with_values": 10,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "pooled_material",
+    "note": "Each sample pools ~20,000 L1s, so individual variation is not represented."
+   },
+   {
+    "kind": "time_from_event",
+    "note": "16 hr is after hypochlorite treatment; ~4 hr is starvation duration."
+   },
+   {
+    "kind": "baseline_as_control",
+    "note": "Wild-type N2 is the comparison baseline, not an input/IgG control."
+   },
+   {
+    "kind": "term_missing",
+    "note": "GEO lacks sex; cell type/cell line not applicable for whole worms."
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM8611902",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM8611905",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L2",
+   "status": "named",
+   "source": "GSM8611908",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L3",
+   "status": "named",
+   "source": "GSM8611911",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 37,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "named",
+   "source": "GSE281157",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 135,
+   "backs_p": 0.98
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 78,
+   "backs_p": 0.18
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "GSE281157",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 48,
+   "backs_p": 0.98
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "pmid:40199585",
+   "field": "Materials and Methods > Strains used in this study",
+   "exact": true,
+   "quote_len": 43,
+   "backs_p": 0.84
+  },
+  {
+   "key": "strain/v1",
+   "status": "named",
+   "source": "pmid:40199585",
+   "field": "Materials and Methods > Strains used in this study",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.7
+  },
+  {
+   "key": "strain/v2",
+   "status": "named",
+   "source": "pmid:40199585",
+   "field": "Materials and Methods > Strains used in this study",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.75
+  },
+  {
+   "key": "strain/v3",
+   "status": "named",
+   "source": "pmid:40199585",
+   "field": "Materials and Methods > Strains generated in this study",
+   "exact": true,
+   "quote_len": 40,
+   "backs_p": 0.67
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 78,
+   "backs_p": 0.99
+  },
+  {
+   "key": "dose/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 78,
+   "backs_p": 0.98
+  },
+  {
+   "key": "duration/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 78,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_after_hypochlorite_treatment/v0",
+   "status": "named",
+   "source": "GSE281157",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 89,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "L1",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": [
+    {
+     "id": "WBls:0000079",
+     "label": "Brugia L1",
+     "exact": true
+    },
+    {
+     "id": "WBls:0000025",
+     "label": "L1-L2 lethargus Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000042",
+     "label": "L1-L2 ecdysis Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000044",
+     "label": "L1-L2d lethargus Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000045",
+     "label": "L1-L2d ecdysis Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000026",
+     "label": "L1-L2 molt Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000043",
+     "label": "L1-L2d molt Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000793",
+     "label": "Strongyloides post free-living L1",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.8
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "whole worm",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "Starved in virgin S-basal with 0.1% EtOH",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.66,
+  "untreated_or_vehicle": 0.43,
+  "several_compounds": 0.24,
+  "route_or_side": 0.08,
+  "dose_per_unit": 0.13,
+  "duration_without_number": 0.14,
+  "time_from_event": 0.86,
+  "pooled_material": 0.93,
+  "held_constant": 0.98,
+  "batch": 0.09,
+  "sequencer": 0.02,
+  "vector": 0.03,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.15,
+  "single_cell": 0.02,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "pool",
+  0.99
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.012738570000000001,
+   "seconds": 79.865,
+   "tokens_in": 29103,
+   "tokens_out": 14896
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000192864,
+   "seconds": 0.294,
+   "tokens_in": 4592
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126714,
+   "seconds": 0.268,
+   "tokens_in": 3017
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126714,
+   "seconds": 0.257,
+   "tokens_in": 3017
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126714,
+   "seconds": 0.261,
+   "tokens_in": 3017
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126714,
+   "seconds": 0.355,
+   "tokens_in": 3017
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126714,
+   "seconds": 0.265,
+   "tokens_in": 3017
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126714,
+   "seconds": 0.267,
+   "tokens_in": 3017
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126882,
+   "seconds": 0.259,
+   "tokens_in": 3021
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126882,
+   "seconds": 0.304,
+   "tokens_in": 3021
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126882,
+   "seconds": 0.252,
+   "tokens_in": 3021
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126882,
+   "seconds": 0.252,
+   "tokens_in": 3021
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126882,
+   "seconds": 0.362,
+   "tokens_in": 3021
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126882,
+   "seconds": 0.267,
+   "tokens_in": 3021
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126924,
+   "seconds": 0.274,
+   "tokens_in": 3022
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126924,
+   "seconds": 0.347,
+   "tokens_in": 3022
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126924,
+   "seconds": 0.335,
+   "tokens_in": 3022
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126924,
+   "seconds": 0.257,
+   "tokens_in": 3022
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126924,
+   "seconds": 0.348,
+   "tokens_in": 3022
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000126924,
+   "seconds": 0.308,
+   "tokens_in": 3022
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012747,
+   "seconds": 0.263,
+   "tokens_in": 3035
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012747,
+   "seconds": 0.295,
+   "tokens_in": 3035
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012747,
+   "seconds": 0.416,
+   "tokens_in": 3035
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012747,
+   "seconds": 0.365,
+   "tokens_in": 3035
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012747,
+   "seconds": 0.317,
+   "tokens_in": 3035
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012747,
+   "seconds": 0.288,
+   "tokens_in": 3035
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000194292,
+   "seconds": 0.323,
+   "tokens_in": 4626
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 4.3638e-05,
+   "seconds": 0.187,
+   "tokens_in": 1039
+  }
+ ],
+ "seconds": 0.4,
+ "ending": "settled",
+ "variant": "flash_think_full"
+}

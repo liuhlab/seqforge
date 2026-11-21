@@ -1,0 +1,446 @@
+format: 1
+study: GSE126954
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record: GSM3618670
+    field: Sample_title
+    quote: UW synchronized 300 min post bleach
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_source_name_ch1
+    quote: C. elegans embryos
+  5:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_description
+    quote: 10X sc-RNA-seq with cells from dissociated C. elegans embryos
+  6:
+    record:
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  7:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    field: Sample_characteristics_ch1
+    quote: 'strain: VC2010, derived from N2'
+  8:
+    record: GSM3618671
+    field: Sample_title
+    quote: UW synchronized 400 min post bleach
+  9:
+    record: GSM3618672
+    field: Sample_title
+    quote: UW synchronized 500 min post bleach batch 1
+  10:
+    record: GSM3618673
+    field: Sample_title
+    quote: UW synchronized 500 min post bleach batch 2
+  11:
+    record: GSM3618674
+    field: Sample_title
+    quote: UPenn mixed embryo batch r17
+  12:
+    record: GSM3618675
+    field: Sample_title
+    quote: UPenn mixed embryo batch b01
+  13:
+    record: GSM3618676
+    field: Sample_title
+    quote: UPenn mixed embryo batch b02
+  14:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L2'
+  15:
+    record: GSM4318946
+    field: Sample_source_name_ch1
+    quote: whole c.elegans (L2 stage)
+  16:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: carrying an integrated Punc-120::mCherry gene in a wild type background was used
+  17:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: 'strain: C. elegans strain (RW12139 stIs11435(unc-120::H1-Wcherry;unc-119(+));unc-119(tm4063))
+      carrying an integrated Punc-120::mCherry gene in a wild type background was used'
+factors:
+  developmental_stage:
+    levels:
+    - embryo_300min
+    - embryo_400min
+    - embryo_500min
+    - mixed_embryo
+    - L2
+    baseline: null
+    ordered: true
+    inferred: Embryo ages synchronized at 300/400/500 min plus mixed and L2
+    see:
+    - 5
+    p: 0.86
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  cell_type:
+    text: dissociated cells
+    quoted:
+    - 5
+    p: 0.78
+  disease:
+    text: healthy
+    inferred: No disease mentioned
+    p: 0.96
+  treatment:
+    text: none
+    inferred: No treatment applied
+    p: 0.85
+  target:
+    na: No pull-down; polyA RNA capture only
+    p: 1.0
+  control_type:
+    na: No background-control libraries sequenced
+    p: 1.0
+  sex:
+    na: Hermaphroditic species, sex not recorded per sample
+    p: 0.61
+  age:
+    unknown: Titles give minutes post bleach, not an age with unit
+    p: 0.8
+  development_stage:
+    unknown: nothing read says it
+    p: 0.58
+  cell_line:
+    na: Primary cells from animals, no cell line
+    p: 0.97
+  dose:
+    na: No treatment applied
+    p: 0.85
+  duration:
+    na: No treatment applied
+    p: 0.68
+  donor:
+    na: a pool of many individuals
+    p: 0.92
+samples:
+  GSM3618670:
+    developmental_stage:
+      text: UW synchronized 300 min post bleach
+      level: embryo_300min
+      quoted:
+      - 1
+      p: 0.97
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: N2 background
+      quoted:
+      - 6
+      p: 0.95
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 7
+      p: 1.0
+    minutes_post_bleach:
+      text: 300 min post bleach
+      quoted:
+      - 1
+      p: 1.0
+    batch:
+      unknown: what was read does not say its batch
+      p: 0.85
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618671:
+    developmental_stage:
+      text: UW synchronized 400 min post bleach
+      level: embryo_400min
+      quoted:
+      - 8
+      p: 0.98
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: N2 background
+      quoted:
+      - 6
+      p: 0.9
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 7
+      p: 1.0
+    minutes_post_bleach:
+      text: 400 min post bleach
+      quoted:
+      - 8
+      p: 1.0
+    batch:
+      unknown: what was read does not say its batch
+      p: 0.86
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618672:
+    developmental_stage:
+      text: UW synchronized 500 min post bleach batch 1
+      level: embryo_500min
+      quoted:
+      - 9
+      p: 0.98
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: N2 background
+      quoted:
+      - 6
+      p: 0.93
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 7
+      p: 1.0
+    minutes_post_bleach:
+      text: 500 min post bleach
+      quoted:
+      - 9
+      p: 1.0
+    batch:
+      text: batch 1
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618673:
+    developmental_stage:
+      text: UW synchronized 500 min post bleach batch 1
+      level: embryo_500min
+      quoted:
+      - 9
+      p: 0.69
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: N2 background
+      quoted:
+      - 6
+      p: 0.85
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 7
+      p: 1.0
+    minutes_post_bleach:
+      text: 500 min post bleach
+      quoted:
+      - 9
+      p: 0.97
+    batch:
+      text: batch 2
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618674:
+    developmental_stage:
+      text: UPenn mixed embryo batch r17
+      level: mixed_embryo
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 11
+      p: 0.95
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: N2 background
+      quoted:
+      - 6
+      p: 0.99
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 0.98
+    minutes_post_bleach:
+      na: it does not apply to this sample
+      p: 0.65
+    batch:
+      text: r17
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618675:
+    developmental_stage:
+      text: UPenn mixed embryo batch r17
+      level: mixed_embryo
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 11
+      p: 0.55
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: N2 background
+      quoted:
+      - 6
+      p: 0.98
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 0.97
+    minutes_post_bleach:
+      na: it does not apply to this sample
+      p: 0.54
+    batch:
+      text: b01
+      quoted:
+      - 12
+      p: 0.97
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3618676:
+    developmental_stage:
+      text: UPenn mixed embryo batch r17
+      level: mixed_embryo
+      inferred: picked by Jev from the values listed for this study
+      see:
+      - 11
+      p: 0.57
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: N2 background
+      quoted:
+      - 6
+      p: 0.99
+    strain:
+      text: N2
+      quoted:
+      - 6
+      p: 0.97
+    minutes_post_bleach:
+      na: it does not apply to this sample
+      p: 0.59
+    batch:
+      text: b02
+      quoted:
+      - 13
+      p: 0.98
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM4318946:
+    developmental_stage:
+      text: L2
+      level: L2
+      quoted:
+      - 14
+      p: 0.78
+    tissue:
+      text: whole c.elegans (L2 stage)
+      quoted:
+      - 15
+      p: 0.97
+    genotype:
+      text: transgene
+      quoted:
+      - 16
+      p: 0.87
+    strain:
+      text: C. elegans strain (RW12139 stIs11435(unc-120::H1-Wcherry;unc-119(+));unc-119(tm4063)) carrying
+        an integrated Punc-120::mCherry gene in a wild type background was used
+      quoted:
+      - 17
+      p: 0.98
+    minutes_post_bleach:
+      na: it does not apply to this sample
+      p: 0.82
+    batch:
+      unknown: what was read does not say its batch
+      p: 0.73
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null

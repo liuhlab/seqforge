@@ -1,0 +1,679 @@
+format: 1
+study: GSE175410
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM5333067
+    - GSM5333068
+    - GSM5333069
+    - GSM5333070
+    - GSM5333071
+    field: Sample_characteristics_ch1
+    quote: 'age: 4mo'
+  2:
+    record:
+    - GSM5333067
+    - GSM5333068
+    - GSM5333069
+    - GSM5333070
+    - GSM5333071
+    - GSM5333072
+    - GSM5333073
+    - GSM5333074
+    - GSM5333075
+    - GSM5333076
+    field: Sample_characteristics_ch1
+    quote: 'group: Sedentary'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: Bisulfite-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: tibialis anterior
+  6:
+    record:
+    - GSM5333072
+    - GSM5333073
+    - GSM5333074
+    - GSM5333075
+    - GSM5333076
+    - GSM5333077
+    - GSM5333078
+    - GSM5333079
+    - GSM5333080
+    - GSM5333081
+    field: Sample_characteristics_ch1
+    quote: 'age: 24mo'
+  7:
+    record:
+    - GSM5333077
+    - GSM5333078
+    - GSM5333079
+    - GSM5333080
+    - GSM5333081
+    field: Sample_characteristics_ch1
+    quote: 'group: Exercise'
+  8:
+    paper: pmid:34932867
+    section: abstract
+    quote: old mice that PoWeR-trained for eight weeks
+  9:
+    paper: pmid:34932867
+    section: abstract
+    quote: voluntary murine endurance/resistance exercise training (progressive weighted wheel running,
+      PoWeR)
+  10:
+    paper: pmid:34932867
+    section: abstract
+    quote: Late-life PoWeR from 22-24 months of age
+  11:
+    record: GSE175410
+    field: Series_overall_design
+    quote: 5 young sedentary mice, 5 24 month old sedentary mice, and 5 aged mice exercise trained from
+      22-24 months
+  12:
+    record: GSE175410
+    field: Series_overall_design
+    quote: 5 aged mice exercise trained from 22-24 months
+factors:
+  age:
+    levels:
+    - 4mo
+    - 24mo
+    baseline: 24mo
+    ordered: true
+    quoted:
+    - 11
+    p: 0.97
+  treatment:
+    levels:
+    - sedentary
+    - exercise
+    baseline: sedentary
+    ordered: false
+    quoted:
+    - 12
+    p: 0.98
+shared:
+  assay:
+    text: Bisulfite-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: tibialis anterior
+    quoted:
+    - 5
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease or model stated in records
+    p: 0.93
+  target:
+    na: bisulfite sequencing; no antibody pull-down
+    p: 1.0
+  control_type:
+    na: no input or IgG control libraries sequenced
+    p: 1.0
+  sex:
+    unknown: records state no sex for the mice
+    p: 0.99
+  development_stage:
+    unknown: records give only 4mo and 24mo ages, no stage term
+    p: 0.56
+  cell_type:
+    na: whole tissue, not cultured cells
+    p: 0.96
+  cell_line:
+    na: whole tissue, no cell line
+    p: 1.0
+  genotype:
+    unknown: no genotype stated in records or paper text
+    p: 0.91
+  strain:
+    unknown: no strain stated in records or paper text
+    p: 1.0
+  dose:
+    unknown: exercise procedure, no dose administered
+    p: 0.92
+samples:
+  GSM5333067:
+    age:
+      text: 4mo
+      value: 4
+      unit: month
+      level: 4mo
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.94
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.82
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.76
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Young Sedentary 1
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM5333068:
+    age:
+      text: 4mo
+      value: 4
+      unit: month
+      level: 4mo
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.94
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.82
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.78
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Young Sedentary 2
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM5333069:
+    age:
+      text: 4mo
+      value: 4
+      unit: month
+      level: 4mo
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.94
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.86
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.83
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Young Sedentary 3
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5333070:
+    age:
+      text: 4mo
+      value: 4
+      unit: month
+      level: 4mo
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.94
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.85
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.82
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Young Sedentary 4
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5333071:
+    age:
+      text: 4mo
+      value: 4
+      unit: month
+      level: 4mo
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.94
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.79
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.81
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Young Sedentary 5
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5333072:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.91
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.84
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.78
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Sedentary 1
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM5333073:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.93
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.86
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.82
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Sedentary 2
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM5333074:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.93
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.83
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.79
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Sedentary 3
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM5333075:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.92
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.82
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.8
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Sedentary 4
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5333076:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Sedentary
+      level: sedentary
+      quoted:
+      - 2
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.91
+    exercise_regimen:
+      na: it does not apply to this sample
+      p: 0.8
+    exercise_start_age:
+      na: it does not apply to this sample
+      p: 0.8
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Sedentary 5
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5333077:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Exercise
+      level: exercise
+      quoted:
+      - 7
+      p: 0.99
+    duration:
+      text: eight weeks
+      value: 8
+      unit: week
+      quoted:
+      - 8
+      p: 0.84
+    exercise_regimen:
+      text: progressive weighted wheel running (PoWeR)
+      quoted:
+      - 9
+      p: 1.0
+    exercise_start_age:
+      text: 22-24 months
+      quoted:
+      - 10
+      p: 0.97
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Exercise 1
+      inferred: Jev picked the individual from the listed names
+      p: 0.92
+  GSM5333078:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Exercise
+      level: exercise
+      quoted:
+      - 7
+      p: 0.99
+    duration:
+      text: eight weeks
+      value: 8
+      unit: week
+      quoted:
+      - 8
+      p: 0.84
+    exercise_regimen:
+      text: progressive weighted wheel running (PoWeR)
+      quoted:
+      - 9
+      p: 1.0
+    exercise_start_age:
+      text: 22-24 months
+      quoted:
+      - 10
+      p: 0.97
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Exercise 2
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM5333079:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Exercise
+      level: exercise
+      quoted:
+      - 7
+      p: 0.99
+    duration:
+      text: eight weeks
+      value: 8
+      unit: week
+      quoted:
+      - 8
+      p: 0.86
+    exercise_regimen:
+      text: progressive weighted wheel running (PoWeR)
+      quoted:
+      - 9
+      p: 1.0
+    exercise_start_age:
+      text: 22-24 months
+      quoted:
+      - 10
+      p: 0.98
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Exercise 3
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM5333080:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Exercise
+      level: exercise
+      quoted:
+      - 7
+      p: 0.97
+    duration:
+      text: eight weeks
+      value: 8
+      unit: week
+      quoted:
+      - 8
+      p: 0.75
+    exercise_regimen:
+      text: progressive weighted wheel running (PoWeR)
+      quoted:
+      - 9
+      p: 0.99
+    exercise_start_age:
+      text: 22-24 months
+      quoted:
+      - 10
+      p: 0.96
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Exercise 4
+      inferred: Jev picked the individual from the listed names
+      p: 0.96
+  GSM5333081:
+    age:
+      text: 24mo
+      value: 24
+      unit: month
+      level: 24mo
+      quoted:
+      - 6
+      p: 1.0
+    treatment:
+      text: Exercise
+      level: exercise
+      quoted:
+      - 7
+      p: 0.98
+    duration:
+      text: eight weeks
+      value: 8
+      unit: week
+      quoted:
+      - 8
+      p: 0.74
+    exercise_regimen:
+      text: progressive weighted wheel running (PoWeR)
+      quoted:
+      - 9
+      p: 0.99
+    exercise_start_age:
+      text: 22-24 months
+      quoted:
+      - 10
+      p: 0.95
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_Old Exercise 5
+      inferred: Jev picked the individual from the listed names
+      p: 0.96

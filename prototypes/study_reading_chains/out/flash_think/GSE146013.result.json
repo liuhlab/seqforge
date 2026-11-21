@@ -1,0 +1,3980 @@
+{
+ "study": "GSE146013",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 24,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "treatment",
+   "levels": [
+    "prion_inoculated",
+    "non_inoculated_control"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.04,
+   "baseline": "L1",
+   "p_baseline": 0.98,
+   "baseline_rev": "L1",
+   "p_baseline_rev": 0.99,
+   "p_ordered": 0.69,
+   "writer_baseline": "non_inoculated_control",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "disease_stage",
+   "levels": [
+    "preclinical",
+    "clinical"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.05,
+   "baseline": "no_reference",
+   "p_baseline": 0.7,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.51,
+   "p_ordered": 0.86,
+   "writer_baseline": null,
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [
+  [
+   "GSM4352004",
+   "lab_inoculation_age",
+   "v0",
+   "na"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "inoculation_age",
+   "mark": "quoted",
+   "p": 0.52,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.73,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.82,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.82,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.49,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.75,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.45,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.63,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "na",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_post_inoculation",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:disease_stage",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM4351989": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D_CC1_16214_AGTCAA",
+    null
+   ]
+  },
+  "GSM4351990": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D_CC2_16214_AGTTCC",
+    null
+   ]
+  },
+  "GSM4351991": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D_CC3_16214_ATGTCA",
+    null
+   ]
+  },
+  "GSM4351992": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D_CC4_16214_CCGTCC",
+    null
+   ]
+  },
+  "GSM4351993": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D_CC5_16214_GTAGAG",
+    null
+   ]
+  },
+  "GSM4351994": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D_CC6_16214_GTCCGC",
+    null
+   ]
+  },
+  "GSM4351995": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D_CC7_16214_GTGAAA",
+    null
+   ]
+  },
+  "GSM4351996": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D_CIN1_16214_GTGGCC",
+    null
+   ]
+  },
+  "GSM4351997": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D_CIN2_16214_GTTTCG",
+    null
+   ]
+  },
+  "GSM4351998": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D_CIN3_16214_CGTACG",
+    null
+   ]
+  },
+  "GSM4351999": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D_CIN4_16214_CAGGCG",
+    null
+   ]
+  },
+  "GSM4352000": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "clinical stage (CC, clinical control,CIN; clinical inoculated)",
+    "clinical"
+   ],
+   "age": [
+    "postnatal day 200",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D_CIN5_16214_CATGGC",
+    null
+   ]
+  },
+  "GSM4352001": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D_PC1_16214_ATCACG",
+    null
+   ]
+  },
+  "GSM4352002": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D_PC2_16214_CGATGT",
+    null
+   ]
+  },
+  "GSM4352003": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D_PC3_16214_TTAGGC",
+    null
+   ]
+  },
+  "GSM4352004": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D_PC4_16214_TGACCA",
+    null
+   ]
+  },
+  "GSM4352005": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ],
+   "donor": [
+    "D_PC5_16214_ACAGTG",
+    null
+   ]
+  },
+  "GSM4352006": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "Non-inoculated age-matched Tg501 animals were used as controls.",
+    "non_inoculated_control"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "time_post_inoculation": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ],
+   "donor": [
+    "D_PC6_16214_GCCAAT",
+    null
+   ]
+  },
+  "GSM4352007": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B19",
+    null
+   ],
+   "donor": [
+    "D_PIN1_16214_CAGATC",
+    null
+   ]
+  },
+  "GSM4352008": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B20",
+    null
+   ],
+   "donor": [
+    "D_PIN2_16214_ACTTGA",
+    null
+   ]
+  },
+  "GSM4352009": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B21",
+    null
+   ],
+   "donor": [
+    "D_PIN3_16214_GATCAG",
+    null
+   ]
+  },
+  "GSM4352010": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B22",
+    null
+   ],
+   "donor": [
+    "D_PIN4_16214_TAGCTT",
+    null
+   ]
+  },
+  "GSM4352011": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B23",
+    null
+   ],
+   "donor": [
+    "D_PIN5_16214_GGCTAC",
+    null
+   ]
+  },
+  "GSM4352012": {
+   "assay": [
+    "miRNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "tissue": [
+    "Cervical spinal cord",
+    null
+   ],
+   "genotype": [
+    "transgene encoding the goat prion protein (PRNP)",
+    null
+   ],
+   "strain": [
+    "Tg501",
+    null
+   ],
+   "inoculation_age": [
+    "50 days of age",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "treatment": [
+    "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+    "prion_inoculated"
+   ],
+   "disease_stage": [
+    "preclinical stage (PC, preclinical control; PIN, preclinical inoculated)",
+    "preclinical"
+   ],
+   "age": [
+    "postnatal day 100",
+    null
+   ],
+   "disease": [
+    "prion disease",
+    null
+   ],
+   "time_post_inoculation": [
+    "150 days post inoculation",
+    null
+   ],
+   "biosample": [
+    "B24",
+    null
+   ],
+   "donor": [
+    "D_PIN6_16214_CTTGTA",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "treatment": {
+   "levels": [
+    "prion_inoculated",
+    "non_inoculated_control"
+   ],
+   "baseline": "non_inoculated_control",
+   "ordered": true,
+   "quoted": [
+    14
+   ],
+   "p": 0.98
+  },
+  "disease_stage": {
+   "levels": [
+    "preclinical",
+    "clinical"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "quoted": [
+    15
+   ],
+   "p": 0.98
+  }
+ },
+ "n_passages": 15,
+ "n_shared": 14,
+ "n_row_claims": 168,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 7,
+  "extra_labels": 3,
+  "writer_gaps": [
+   {
+    "kind": "baseline_as_control",
+    "note": "Non-inoculated mice are called controls but are a biological baseline, not input/IgG library controls."
+   },
+   {
+    "kind": "sources_disagree",
+    "note": "Preclinical samples state 150 days post inoculation despite age 100 and inoculation at 50 days."
+   },
+   {
+    "kind": "time_from_event",
+    "note": "150 days post inoculation is time from inoculation, not treatment duration; kept as extra label."
+   },
+   {
+    "kind": "crossed_not_fully",
+    "note": "Treatment and disease stage are unbalanced: clinical has 7 controls, 5 inoculated."
+   },
+   {
+    "kind": "other",
+    "note": "Age and disease stage are perfectly confounded: 100 days preclinical, 200 days clinical."
+   },
+   {
+    "kind": "term_missing",
+    "note": "Sex and life stage are not stated; 'clinical/preclinical' is a study-specific disease stage."
+   }
+  ],
+  "donor_kind_writer": "one_each",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 102,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 63,
+   "backs_p": 0.89
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 166,
+   "backs_p": 0.89
+  },
+  {
+   "key": "disease_stage/L0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 86,
+   "backs_p": 0.9
+  },
+  {
+   "key": "disease_stage/L1",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 62,
+   "backs_p": 0.65
+  },
+  {
+   "key": "disease_stage/_factor",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 170,
+   "backs_p": 0.91
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM4351989",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "source": "GSM4352001",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v1",
+   "status": "named",
+   "source": "GSM4351989",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_source_name_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "GSE146013",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 54,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v1",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 63,
+   "backs_p": 0.27
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "source": "pmid:32549330",
+   "field": "abstract",
+   "exact": true,
+   "quote_len": 48,
+   "backs_p": 0.98
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM4351989",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.98
+  },
+  {
+   "key": "inoculation_age/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 102,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_post_inoculation/v0",
+   "status": "named",
+   "source": "GSM4352007",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 64,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "prion disease",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": [
+    {
+     "id": "MONDO:0005429",
+     "label": "prion disease",
+     "exact": true
+    },
+    {
+     "id": "MONDO:0018926",
+     "label": "human prion disease",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0035562",
+     "label": "acquired human prion disease",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0017233",
+     "label": "familial Alzheimer-like prion disease",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0700108",
+     "label": "prion disease, non-human animal",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011299",
+     "label": "Huntington disease-like 1",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011513",
+     "label": "Alzheimer disease, familial early-onset, with coexisting amyloid and prion pathology",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0007656",
+     "label": "Gerstmann-Straussler-Scheinker syndrome",
+     "exact": false
+    }
+   ],
+   "pick": "MONDO:0005429",
+   "p": 0.91,
+   "probe_pick": "MONDO:0700108",
+   "probe_p": 0.73
+  },
+  {
+   "label": "tissue",
+   "text": "Cervical spinal cord",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0002726",
+     "label": "cervical spinal cord",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0005841",
+     "label": "cervical spinal cord dorsal column",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014620",
+     "label": "cervical spinal cord dorsal horn",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014621",
+     "label": "cervical spinal cord ventral horn",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014619",
+     "label": "cervical spinal cord lateral horn",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014634",
+     "label": "ventral nerve root of cervical spinal cord",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014635",
+     "label": "dorsal nerve root of cervical spinal cord",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014623",
+     "label": "substantia gelatinosa of cervical spinal cord dorsal horn",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0002726",
+   "p": 0.98,
+   "probe_pick": "none",
+   "probe_p": 0.82
+  },
+  {
+   "label": "treatment",
+   "text": "Non-inoculated age-matched Tg501 animals were used as controls.",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "intracerebrally inoculated with caprine scrapie strain (Goat-Sc S2)",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.75,
+  "untreated_or_vehicle": 0.97,
+  "several_compounds": 0.05,
+  "route_or_side": 0.97,
+  "dose_per_unit": 0.22,
+  "duration_without_number": 0.51,
+  "time_from_event": 0.96,
+  "pooled_material": 0.04,
+  "held_constant": 0.91,
+  "batch": 0.1,
+  "sequencer": 0.03,
+  "vector": 0.14,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.1,
+  "single_cell": 0.01,
+  "mixed_assays": 0.03
+ },
+ "donor_kind": [
+  "one_each",
+  1.0
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.011657106,
+   "seconds": 96.296,
+   "tokens_in": 4883,
+   "tokens_out": 18490
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000279216,
+   "seconds": 0.238,
+   "tokens_in": 6648
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.385,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.354,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.368,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.341,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.312,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.256,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136542,
+   "seconds": 0.272,
+   "tokens_in": 3251
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136542,
+   "seconds": 0.248,
+   "tokens_in": 3251
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.252,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.366,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.312,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.213,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.343,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013649999999999998,
+   "seconds": 0.294,
+   "tokens_in": 3250
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013712999999999998,
+   "seconds": 0.333,
+   "tokens_in": 3265
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013712999999999998,
+   "seconds": 0.279,
+   "tokens_in": 3265
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137172,
+   "seconds": 0.285,
+   "tokens_in": 3266
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137172,
+   "seconds": 0.258,
+   "tokens_in": 3266
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137172,
+   "seconds": 0.325,
+   "tokens_in": 3266
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137172,
+   "seconds": 0.291,
+   "tokens_in": 3266
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137172,
+   "seconds": 0.279,
+   "tokens_in": 3266
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137172,
+   "seconds": 0.281,
+   "tokens_in": 3266
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013712999999999998,
+   "seconds": 0.274,
+   "tokens_in": 3265
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00013712999999999998,
+   "seconds": 0.324,
+   "tokens_in": 3265
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136584,
+   "seconds": 0.304,
+   "tokens_in": 3252
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136584,
+   "seconds": 0.284,
+   "tokens_in": 3252
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136626,
+   "seconds": 0.283,
+   "tokens_in": 3253
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136626,
+   "seconds": 0.25,
+   "tokens_in": 3253
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136584,
+   "seconds": 0.249,
+   "tokens_in": 3252
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136584,
+   "seconds": 0.367,
+   "tokens_in": 3252
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136626,
+   "seconds": 0.265,
+   "tokens_in": 3253
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136626,
+   "seconds": 0.283,
+   "tokens_in": 3253
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136584,
+   "seconds": 0.247,
+   "tokens_in": 3252
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136584,
+   "seconds": 0.389,
+   "tokens_in": 3252
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136584,
+   "seconds": 0.34,
+   "tokens_in": 3252
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000136584,
+   "seconds": 0.279,
+   "tokens_in": 3252
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137256,
+   "seconds": 0.264,
+   "tokens_in": 3268
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137256,
+   "seconds": 0.226,
+   "tokens_in": 3268
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137214,
+   "seconds": 0.255,
+   "tokens_in": 3267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137214,
+   "seconds": 0.244,
+   "tokens_in": 3267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137256,
+   "seconds": 0.205,
+   "tokens_in": 3268
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137256,
+   "seconds": 0.263,
+   "tokens_in": 3268
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137214,
+   "seconds": 0.245,
+   "tokens_in": 3267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137214,
+   "seconds": 0.252,
+   "tokens_in": 3267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137256,
+   "seconds": 0.266,
+   "tokens_in": 3268
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137256,
+   "seconds": 0.336,
+   "tokens_in": 3268
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137256,
+   "seconds": 0.271,
+   "tokens_in": 3268
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000137256,
+   "seconds": 0.247,
+   "tokens_in": 3268
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000250656,
+   "seconds": 0.168,
+   "tokens_in": 5968
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 5.3423999999999995e-05,
+   "seconds": 0.245,
+   "tokens_in": 1272
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 5.1365999999999996e-05,
+   "seconds": 0.264,
+   "tokens_in": 1223
+  }
+ ],
+ "seconds": 0.25,
+ "ending": "settled",
+ "variant": "flash_think"
+}

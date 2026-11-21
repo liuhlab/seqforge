@@ -1,0 +1,391 @@
+format: 1
+study: GSE275435
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM8476925
+    - GSM8476926
+    - GSM8476927
+    field: Sample_characteristics_ch1
+    quote: 'genotype: WT'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record: GSE275435
+    field: Series_overall_design
+    quote: Kcnip3 KO and 5xFAD/Kcnip3 KO adult animals
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: hippocampus'
+  6:
+    record: GSE275435
+    field: Series_overall_design
+    quote: control (WT)
+  7:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: these samples are the opposite hemisphere of the ones used for the proteomics analyses
+  8:
+    record:
+    - GSM8476928
+    - GSM8476929
+    - GSM8476930
+    - GSM8476934
+    - GSM8476935
+    - GSM8476936
+    field: Sample_characteristics_ch1
+    quote: 'genotype: Kcnip3 KO'
+  9:
+    record:
+    - GSM8476931
+    - GSM8476932
+    - GSM8476933
+    field: Sample_characteristics_ch1
+    quote: 'genotype: 5xFAD'
+  10:
+    paper: pmid:40537787
+    section: title
+    quote: the 5XFAD mouse model of Alzheimer's disease
+  11:
+    record:
+    - GSM8476934
+    - GSM8476935
+    - GSM8476936
+    field: Sample_characteristics_ch1
+    quote: 'genotype: Kcnip3 KO/5xFAD'
+  12:
+    record: GSE275435
+    field: Series_overall_design
+    quote: RNA-seq from hippocampus samples derived from control (WT) 5xFAD, Kcnip3 KO and 5xFAD/Kcnip3
+      KO adult animals
+factors:
+  genotype:
+    levels:
+    - wt
+    - kcnip3_ko
+    - 5xfad
+    - kcnip3_ko_5xfad
+    baseline: wt
+    ordered: false
+    quoted:
+    - 12
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  development_stage:
+    text: adult
+    quoted:
+    - 4
+    p: 0.96
+  tissue:
+    text: hippocampus
+    quoted:
+    - 5
+    p: 1.0
+  hemisphere:
+    text: opposite hemisphere of the ones used for the proteomics analyses
+    quoted:
+    - 7
+    p: 1.0
+  target:
+    na: expression profiling, no pull-down or enrichment
+    p: 1.0
+  control_type:
+    na: no input or IgG background libraries in series
+    p: 1.0
+  sex:
+    unknown: no sample record or paper sentence gives sex
+    p: 0.98
+  age:
+    unknown: only 'adult' stated; no number of weeks or months
+    p: 0.98
+  cell_type:
+    na: whole hippocampal tissue, no cells isolated
+    p: 0.98
+  cell_line:
+    na: in vivo tissue, no cell line used
+    p: 1.0
+  strain:
+    unknown: genetic background of 5XFAD and Kcnip3 KO lines unstated
+    p: 0.99
+  treatment:
+    na: no drug, diet or procedure applied; genotypes only
+    p: 0.89
+  dose:
+    na: no treatment given, so no dose
+    p: 0.97
+  duration:
+    na: no treatment given, so no duration
+    p: 0.87
+samples:
+  GSM8476925:
+    genotype:
+      text: WT
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: healthy
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476926:
+    genotype:
+      text: WT
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: healthy
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476927:
+    genotype:
+      text: WT
+      level: wt
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: healthy
+      quoted:
+      - 6
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476928:
+    genotype:
+      text: Kcnip3 KO
+      level: kcnip3_ko
+      quoted:
+      - 8
+      p: 1.0
+    disease:
+      text: healthy
+      quoted:
+      - 6
+      p: 0.55
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476929:
+    genotype:
+      text: Kcnip3 KO
+      level: kcnip3_ko
+      quoted:
+      - 8
+      p: 1.0
+    disease:
+      text: healthy
+      quoted:
+      - 6
+      p: 0.49
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476930:
+    genotype:
+      text: Kcnip3 KO
+      level: kcnip3_ko
+      quoted:
+      - 8
+      p: 1.0
+    disease:
+      text: healthy
+      quoted:
+      - 6
+      p: 0.57
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476931:
+    genotype:
+      text: 5xFAD
+      level: 5xfad
+      quoted:
+      - 9
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476932:
+    genotype:
+      text: 5xFAD
+      level: 5xfad
+      quoted:
+      - 9
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476933:
+    genotype:
+      text: 5xFAD
+      level: 5xfad
+      quoted:
+      - 9
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476934:
+    genotype:
+      text: Kcnip3 KO/5xFAD
+      level: kcnip3_ko_5xfad
+      quoted:
+      - 11
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476935:
+    genotype:
+      text: Kcnip3 KO/5xFAD
+      level: kcnip3_ko_5xfad
+      quoted:
+      - 11
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 0.91
+  GSM8476936:
+    genotype:
+      text: Kcnip3 KO/5xFAD
+      level: kcnip3_ko_5xfad
+      quoted:
+      - 11
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 0.91

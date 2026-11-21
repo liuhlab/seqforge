@@ -1,0 +1,444 @@
+format: 1
+study: GSE196554
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM5889068
+    - GSM5889071
+    - GSM5889072
+    - GSM5889076
+    - GSM5889077
+    - GSM5889078
+    field: Sample_characteristics_ch1
+    quote: 'subject gender: male'
+  2:
+    record: GSM5889068
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 20'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: muscle stem cell'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'subject status: healthy donor'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: untreated'
+  8:
+    record:
+    - GSM5889069
+    - GSM5889070
+    - GSM5889073
+    - GSM5889074
+    - GSM5889075
+    - GSM5889079
+    field: Sample_characteristics_ch1
+    quote: 'subject gender: female'
+  9:
+    record: GSM5889069
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 21'
+  10:
+    record: GSM5889070
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 40'
+  11:
+    record: GSM5889071
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 52'
+  12:
+    record: GSM5889072
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 55'
+  13:
+    record: GSM5889073
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 56'
+  14:
+    record: GSM5889074
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 57'
+  15:
+    record: GSM5889075
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 59'
+  16:
+    record: GSM5889076
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 66'
+  17:
+    record: GSM5889077
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 73'
+  18:
+    record: GSM5889078
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 83'
+  19:
+    record: GSM5889079
+    field: Sample_characteristics_ch1
+    quote: 'subject age: 87'
+factors:
+  sex:
+    levels:
+    - male
+    - female
+    baseline: null
+    ordered: false
+    inferred: the characteristic "subject gender" varies between samples
+    p: 0.65
+  age:
+    levels:
+    - '20'
+    - '21'
+    - '40'
+    - '52'
+    - '55'
+    - '56'
+    - '57'
+    - '59'
+    - '66'
+    - '73'
+    - '83'
+    - '87'
+    baseline: null
+    ordered: true
+    inferred: the characteristic "subject age" varies between samples
+    p: 0.92
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 4
+    p: 1.0
+  cell_type:
+    text: muscle stem cell
+    quoted:
+    - 5
+    p: 1.0
+  disease:
+    text: healthy donor
+    quoted:
+    - 6
+    p: 1.0
+  treatment:
+    text: untreated
+    quoted:
+    - 7
+    p: 0.96
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 1.0
+  control_type:
+    na: a library that is not a background control
+    p: 1.0
+  development_stage:
+    na: does not apply to these samples
+    p: 0.51
+  tissue:
+    unknown: nothing read says it
+    p: 0.82
+  cell_line:
+    na: tissue taken from an animal
+    p: 0.6
+  genotype:
+    unknown: nothing read says it
+    p: 0.81
+  strain:
+    na: a species with no strains, such as human
+    p: 1.0
+  dose:
+    na: no treatment
+    p: 1.0
+  duration:
+    na: no treatment
+    p: 1.0
+samples:
+  GSM5889068:
+    sex:
+      text: male
+      term: male
+      level: male
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: '20'
+      level: '20'
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_427_Vastus
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM5889069:
+    sex:
+      text: female
+      term: female
+      level: female
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: '21'
+      level: '21'
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_394-Pectoralis21F
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889070:
+    sex:
+      text: female
+      term: female
+      level: female
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: '40'
+      level: '40'
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_395-Pectoralis40F
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889071:
+    sex:
+      text: male
+      term: male
+      level: male
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: '52'
+      level: '52'
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_430_Vastus_52M
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889072:
+    sex:
+      text: male
+      term: male
+      level: male
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: '55'
+      level: '55'
+      quoted:
+      - 12
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_429_Vastus_analysis
+      inferred: Jev picked the individual from the listed names
+      p: 0.99
+  GSM5889073:
+    sex:
+      text: female
+      term: female
+      level: female
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: '56'
+      level: '56'
+      quoted:
+      - 13
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_391-Rectus56F_2
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889074:
+    sex:
+      text: female
+      term: female
+      level: female
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: '57'
+      level: '57'
+      quoted:
+      - 14
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_431_Vastus_57F
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889075:
+    sex:
+      text: female
+      term: female
+      level: female
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: '59'
+      level: '59'
+      quoted:
+      - 15
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_392-RectusAM
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889076:
+    sex:
+      text: male
+      term: male
+      level: male
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: '66'
+      level: '66'
+      quoted:
+      - 16
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_416-Vastus
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889077:
+    sex:
+      text: male
+      term: male
+      level: male
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: '73'
+      level: '73'
+      quoted:
+      - 17
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_428_Vastus
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889078:
+    sex:
+      text: male
+      term: male
+      level: male
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: '83'
+      level: '83'
+      quoted:
+      - 18
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_423_Vastus83M
+      inferred: Jev picked the individual from the listed names
+      p: 1.0
+  GSM5889079:
+    sex:
+      text: female
+      term: female
+      level: female
+      quoted:
+      - 8
+      p: 1.0
+    age:
+      text: '87'
+      level: '87'
+      quoted:
+      - 19
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D_458_Gastroc_87F
+      inferred: Jev picked the individual from the listed names
+      p: 1.0

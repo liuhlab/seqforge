@@ -1,0 +1,322 @@
+format: 1
+study: GSE241718
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: DeepSeek Flash wrote the lists from the records and the full text; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM7720368
+    - GSM7720369
+    - GSM7734325
+    - GSM7734326
+    field: Sample_characteristics_ch1
+    quote: 'age: 2 months'
+  2:
+    record:
+    - GSM7720368
+    - GSM7720369
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'tissue: VAT'
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  5:
+    paper: pmid:38997312
+    section: Materials and methods > Nuclei isolation sorting from WAT (SAT and VAT)
+    quote: WAT, including both SAT and VAT was isolated from female C57BL/6J mice
+  6:
+    paper: pmid:38997312
+    section: Results > Single-nucleus RNA sequencing uncovers the full spectrum of cell types in mouse
+      SAT and VAT
+    quote: young (2-month-old) and aged (26-month-old) female C57BL/6 J mice
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Adipocytes'
+  8:
+    paper: pmid:38997312
+    section: Materials and methods > Mice
+    quote: excluding any disease effects
+  9:
+    paper: pmid:38997312
+    section: Materials and methods > Mice
+    quote: C57BL/6J mice were fed a sterile, full-nutrition pellet feed
+  10:
+    record:
+    - GSM7720368
+    - GSM7720369
+    field: Sample_characteristics_ch1
+    quote: 'time: 2022-04-02'
+  11:
+    record:
+    - GSM7734325
+    - GSM7734326
+    - GSM7734327
+    - GSM7734328
+    field: Sample_characteristics_ch1
+    quote: 'tissue: SAT'
+  12:
+    record:
+    - GSM7734327
+    - GSM7734328
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'age: 24 months'
+factors:
+  age:
+    levels:
+    - 2m
+    - 24m
+    baseline: 2m
+    ordered: true
+    quoted:
+    - 12
+    p: 0.86
+  tissue:
+    levels:
+    - SAT
+    - VAT
+    baseline: null
+    ordered: true
+    inferred: subcutaneous versus visceral fat depots
+    p: 0.97
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 3
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 4
+    p: 1.0
+  sex:
+    text: female
+    term: female
+    quoted:
+    - 5
+    p: 0.93
+  development_stage:
+    text: adult
+    inferred: postnatal adult mice
+    see:
+    - 6
+    p: 0.97
+  cell_type:
+    text: Adipocytes
+    term: CL:0000136
+    quoted:
+    - 7
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: SPF, no disease
+    see:
+    - 8
+    p: 0.96
+  genotype:
+    text: wild type
+    quoted:
+    - 9
+    p: 0.97
+  strain:
+    text: C57BL/6J
+    quoted:
+    - 9
+    p: 0.97
+  sample_collection_date:
+    text: '2022-04-02'
+    quoted:
+    - 10
+    p: 0.53
+  target:
+    na: no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  cell_line:
+    na: primary tissue, no cell line
+    p: 1.0
+  treatment:
+    na: no treatment applied
+    p: 0.85
+  dose:
+    na: no treatment
+    p: 0.99
+  duration:
+    na: no treatment
+    p: 0.98
+  donor:
+    unknown: nothing read says which individual a library came from
+    p: 0.43
+samples:
+  GSM7720368:
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: 2m
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7720369:
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: 2m
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734325:
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: 2m
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734326:
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: 2m
+      quoted:
+      - 1
+      p: 1.0
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734327:
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: 24m
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734328:
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: 24m
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: SAT
+      level: SAT
+      quoted:
+      - 11
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734329:
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: 24m
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7734330:
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: 24m
+      quoted:
+      - 12
+      p: 1.0
+    tissue:
+      text: VAT
+      level: VAT
+      quoted:
+      - 2
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null

@@ -1,0 +1,393 @@
+format: 1
+study: GSE135532
+models:
+  reading: deepseek/deepseek-flash (thinking)
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM4013824
+    - GSM4013825
+    - GSM4013826
+    - GSM4013827
+    field: Sample_characteristics_ch1
+    quote: 'diet: chow'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+  4:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Six-week-old, male C57BL/6 mice
+  5:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: heart - ventricles
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: C57BL/6'
+  7:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: for a period of six months.
+  8:
+    record:
+    - GSM4013828
+    - GSM4013829
+    - GSM4013830
+    - GSM4013831
+    field: Sample_characteristics_ch1
+    quote: 'diet: NIA'
+  9:
+    record:
+    - GSM4013832
+    - GSM4013833
+    - GSM4013834
+    - GSM4013835
+    field: Sample_characteristics_ch1
+    quote: 'diet: UW'
+  10:
+    record:
+    - GSM4013836
+    - GSM4013837
+    - GSM4013838
+    - GSM4013839
+    field: Sample_characteristics_ch1
+    quote: 'diet: mNIA'
+  11:
+    paper: pmid:31415241
+    section: abstract
+    quote: mice fed a UW or a modified NIA diet with increased sucrose and fat developed greater cardiac
+      fibrosis compared with mice fed the NIA diet
+factors:
+  treatment:
+    levels:
+    - chow
+    - NIA
+    - UW
+    - mNIA
+    baseline: NIA
+    ordered: false
+    quoted:
+    - 11
+    p: 0.99
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 3
+    p: 1.0
+  sex:
+    text: male
+    term: male
+    quoted:
+    - 4
+    p: 1.0
+  age:
+    text: Six-week-old
+    value: 6
+    unit: week
+    quoted:
+    - 4
+    p: 0.99
+  development_stage:
+    text: adult
+    inferred: six-week-old mice are post-weaning
+    p: 0.98
+  tissue:
+    text: heart - ventricles
+    quoted:
+    - 5
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease model stated
+    p: 0.98
+  strain:
+    text: C57BL/6
+    quoted:
+    - 6
+    p: 1.0
+  duration:
+    text: six months
+    value: 6
+    unit: month
+    quoted:
+    - 7
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down target
+    p: 0.99
+  control_type:
+    na: RNA-Seq has no background-control library
+    p: 1.0
+  cell_type:
+    na: bulk heart ventricle tissue; no cell type
+    p: 0.98
+  cell_line:
+    na: animal tissue, not a cell line
+    p: 1.0
+  genotype:
+    unknown: no genotype stated beyond strain
+    p: 0.6
+  dose:
+    unknown: diet amount not stated; unrestricted access
+    p: 0.71
+samples:
+  GSM4013824:
+    treatment:
+      text: 'diet: chow'
+      level: chow
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D1
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013825:
+    treatment:
+      text: 'diet: chow'
+      level: chow
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D2
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013826:
+    treatment:
+      text: 'diet: chow'
+      level: chow
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D3
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013827:
+    treatment:
+      text: 'diet: chow'
+      level: chow
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D4
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013828:
+    treatment:
+      text: 'diet: NIA'
+      level: NIA
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D5
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013829:
+    treatment:
+      text: 'diet: NIA'
+      level: NIA
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D6
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013830:
+    treatment:
+      text: 'diet: NIA'
+      level: NIA
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D7
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013831:
+    treatment:
+      text: 'diet: NIA'
+      level: NIA
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D8
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013832:
+    treatment:
+      text: 'diet: UW'
+      level: UW
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D9
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013833:
+    treatment:
+      text: 'diet: UW'
+      level: UW
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D10
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013834:
+    treatment:
+      text: 'diet: UW'
+      level: UW
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D11
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013835:
+    treatment:
+      text: 'diet: UW'
+      level: UW
+      quoted:
+      - 9
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D12
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013836:
+    treatment:
+      text: 'diet: mNIA'
+      level: mNIA
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D13
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013837:
+    treatment:
+      text: 'diet: mNIA'
+      level: mNIA
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D14
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013838:
+    treatment:
+      text: 'diet: mNIA'
+      level: mNIA
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D15
+      inferred: each sample is from its own individual
+      p: 1.0
+  GSM4013839:
+    treatment:
+      text: 'diet: mNIA'
+      level: mNIA
+      quoted:
+      - 10
+      p: 1.0
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+    donor:
+      id: D16
+      inferred: each sample is from its own individual
+      p: 1.0

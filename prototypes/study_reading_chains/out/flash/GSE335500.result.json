@@ -1,0 +1,2038 @@
+{
+ "study": "GSE335500",
+ "chain": "flash",
+ "read_full": false,
+ "n_samples": 12,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "cell_type",
+   "levels": [
+    "APOE3",
+    "APOE4"
+   ],
+   "p_designed": 0.94,
+   "p_designed_neg": 0.07,
+   "baseline": "no_reference",
+   "p_baseline": 0.71,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.62,
+   "p_ordered": 0.04,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "months_post_transplant",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "unknown",
+   "p": 0.58,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "unknown",
+   "p": 0.52,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "factor:cell_type",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM9814708": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE3",
+    "APOE3"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW2E33-3D11",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D_TCW2E33-3D11",
+    null
+   ]
+  },
+  "GSM9814709": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE3",
+    "APOE3"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW2E33-3D11",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D_TCW2E33-3D11",
+    null
+   ]
+  },
+  "GSM9814710": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE4",
+    "APOE4"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW2E44-4B12",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D_TCW2E44-4B12",
+    null
+   ]
+  },
+  "GSM9814711": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE4",
+    "APOE4"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW2E44-4B12",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D_TCW2E44-4B12",
+    null
+   ]
+  },
+  "GSM9814712": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE4",
+    "APOE4"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW3E44-F-2",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D_TCW3E44-F-2",
+    null
+   ]
+  },
+  "GSM9814713": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE3",
+    "APOE3"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW3E33-H-2",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D_TCW3E33-H-2",
+    null
+   ]
+  },
+  "GSM9814714": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE4",
+    "APOE4"
+   ],
+   "age": [
+    "6 months",
+    null
+   ],
+   "treatment": [
+    "TCW3E44-F-2",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D_TCW3E44-F-2",
+    null
+   ]
+  },
+  "GSM9814715": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE3",
+    "APOE3"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW2E33-3D11",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D_TCW2E33-3D11",
+    null
+   ]
+  },
+  "GSM9814716": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE4",
+    "APOE4"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW2E44-4B12",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D_TCW2E44-4B12",
+    null
+   ]
+  },
+  "GSM9814717": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE4",
+    "APOE4"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW2E44-4B12",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D_TCW2E44-4B12",
+    null
+   ]
+  },
+  "GSM9814718": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE3",
+    "APOE3"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW3E33-H-2",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D_TCW3E33-H-2",
+    null
+   ]
+  },
+  "GSM9814719": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "male",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "cortex",
+    null
+   ],
+   "cell_line": [
+    "mouse cortical tissue",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "genotype": [
+    "AD",
+    null
+   ],
+   "months_post_transplant": [
+    "6 months post-transplant",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "dose": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "APOE3",
+    "APOE3"
+   ],
+   "age": [
+    "7.5 months",
+    null
+   ],
+   "treatment": [
+    "TCW3E33-H-2",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D_TCW3E33-H-2",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "cell_type": {
+   "levels": [
+    "APOE3",
+    "APOE4"
+   ],
+   "baseline": null,
+   "ordered": false,
+   "quoted": [
+    16
+   ],
+   "p": 0.94
+  }
+ },
+ "n_passages": 16,
+ "n_shared": 14,
+ "n_row_claims": 60,
+ "lists_summary": {
+  "factors": 1,
+  "factors_kept": 1,
+  "labels_with_values": 10,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "held_constant",
+    "note": "sex, genotype, tissue constant across all samples"
+   },
+   {
+    "kind": "other",
+    "note": "cell type records APOE variant, not astrocyte identity"
+   }
+  ],
+  "donor_kind_writer": "shared",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "cell_type/L0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.98
+  },
+  {
+   "key": "cell_type/L1",
+   "status": "named",
+   "source": "GSM9814710",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.97
+  },
+  {
+   "key": "cell_type/_factor",
+   "status": "named",
+   "source": "GSE335500",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 37,
+   "backs_p": 0.9
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/v1",
+   "status": "named",
+   "source": "GSM9814714",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.97
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_line/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 32,
+   "backs_p": 0.98
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.93
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/v1",
+   "status": "named",
+   "source": "GSM9814710",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 23,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/v2",
+   "status": "named",
+   "source": "GSM9814712",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.98
+  },
+  {
+   "key": "treatment/v3",
+   "status": "named",
+   "source": "GSM9814713",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "months_post_transplant/v0",
+   "status": "named",
+   "source": "GSM9814708",
+   "field": "Sample_description",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_line",
+   "text": "mouse cortical tissue",
+   "vocab": "cellosaurus",
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "APOE3",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "cell_type",
+   "text": "APOE4",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "development_stage",
+   "text": "adult",
+   "vocab": [
+    "mmusdv"
+   ],
+   "candidates": [
+    {
+     "id": "MmusDv:0000134",
+     "label": "late adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000136",
+     "label": "prime adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000153",
+     "label": "young adult stage",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.57
+  },
+  {
+   "label": "disease",
+   "text": "Alzheimer's disease",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": [
+    {
+     "id": "MONDO:0004975",
+     "label": "Alzheimer disease",
+     "exact": true
+    },
+    {
+     "id": "MONDO:0011913",
+     "label": "Alzheimer disease 3",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0007089",
+     "label": "Alzheimer disease 2",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011743",
+     "label": "Alzheimer disease 4",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0014265",
+     "label": "Alzheimer disease 18",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0014316",
+     "label": "Alzheimer disease 19",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011401",
+     "label": "Alzheimer disease without neurofibrillary tangles",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011647",
+     "label": "Alzheimer disease 7",
+     "exact": false
+    }
+   ],
+   "pick": "MONDO:0004975",
+   "p": 0.96,
+   "probe_pick": "none",
+   "probe_p": 0.62
+  },
+  {
+   "label": "tissue",
+   "text": "cortex",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0001851",
+     "label": "cortex",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0002713",
+     "label": "circular sulcus of insula",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014277",
+     "label": "piriform cortex layer 1",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0016634",
+     "label": "premotor cortex",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014280",
+     "label": "piriform cortex layer 2",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0023928",
+     "label": "postrhinal cortex of rodent of Burwell et al 1995",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0001235",
+     "label": "adrenal cortex",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0002077",
+     "label": "cortex of hair",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0001851",
+   "p": 0.96,
+   "probe_pick": "none",
+   "probe_p": 0.66
+  },
+  {
+   "label": "treatment",
+   "text": "TCW2E33-3D11",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "TCW2E44-4B12",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "TCW3E33-H-2",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "TCW3E44-F-2",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.91,
+  "untreated_or_vehicle": 0.12,
+  "several_compounds": 0.12,
+  "route_or_side": 0.39,
+  "dose_per_unit": 0.14,
+  "duration_without_number": 0.08,
+  "time_from_event": 0.84,
+  "pooled_material": 0.05,
+  "held_constant": 0.91,
+  "batch": 0.45,
+  "sequencer": 0.03,
+  "vector": 0.29,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.07,
+  "single_cell": 0.02,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "one_each",
+  0.99
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.0016780559999999998,
+   "seconds": 6.318,
+   "tokens_in": 4732,
+   "tokens_out": 1896
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000237342,
+   "seconds": 0.269,
+   "tokens_in": 5651
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.301,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.284,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.307,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.25,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.237,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.222,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.267,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.301,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119238,
+   "seconds": 0.301,
+   "tokens_in": 2839
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119238,
+   "seconds": 0.301,
+   "tokens_in": 2839
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119238,
+   "seconds": 0.287,
+   "tokens_in": 2839
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119238,
+   "seconds": 0.303,
+   "tokens_in": 2839
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011915399999999999,
+   "seconds": 0.371,
+   "tokens_in": 2837
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00011915399999999999,
+   "seconds": 0.265,
+   "tokens_in": 2837
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.251,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.251,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.313,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.367,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.236,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119322,
+   "seconds": 0.2,
+   "tokens_in": 2841
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119238,
+   "seconds": 0.263,
+   "tokens_in": 2839
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119238,
+   "seconds": 0.25,
+   "tokens_in": 2839
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119238,
+   "seconds": 0.24,
+   "tokens_in": 2839
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119238,
+   "seconds": 0.353,
+   "tokens_in": 2839
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000233646,
+   "seconds": 0.136,
+   "tokens_in": 5563
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 5.0316e-05,
+   "seconds": 0.277,
+   "tokens_in": 1198
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 4.3386e-05,
+   "seconds": 0.231,
+   "tokens_in": 1033
+  }
+ ],
+ "seconds": 0.21,
+ "ending": "settled",
+ "variant": "flash"
+}

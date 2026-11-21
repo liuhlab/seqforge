@@ -1,0 +1,197 @@
+format: 1
+study: GSE234962
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM7486857
+    - GSM7486858
+    field: Sample_characteristics_ch1
+    quote: 'strain: CZ631 juIs14 [ acr-2::GFP + lin-15(+)]'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'age: young adult'
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Motor neurons'
+  6:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: Motor neurons
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wt'
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'synchronization protocol: L1 arrest'
+  9:
+    record:
+    - GSM7486859
+    - GSM7486860
+    field: Sample_characteristics_ch1
+    quote: 'strain: KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]'
+  10:
+    record:
+    - GSM7486859
+    - GSM7486860
+    field: Sample_characteristics_ch1
+    quote: 'synchronization protocol: L1 arrest + mesh synchronization'
+factors:
+  strain:
+    levels:
+    - CZ631
+    - KRA257
+    baseline: null
+    ordered: false
+    inferred: two fluorescent marker strains used to isolate MNs
+    p: 0.83
+shared:
+  assay:
+    text: RNA-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  age:
+    text: young adult
+    quoted:
+    - 4
+    p: 1.0
+  development_stage:
+    text: young adult
+    quoted:
+    - 4
+    p: 1.0
+  tissue:
+    text: Motor neurons
+    term: WBbt:0005409
+    quoted:
+    - 5
+    p: 1.0
+  cell_type:
+    text: Motor neurons
+    term: CL:0000100
+    quoted:
+    - 6
+    p: 1.0
+  genotype:
+    text: wt
+    quoted:
+    - 7
+    p: 1.0
+  target:
+    na: single-cell RNA-Seq, no pull-down
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  sex:
+    unknown: hermaphrodite expected but no record states it
+    p: 0.69
+  cell_line:
+    na: primary cells from whole animals
+    p: 1.0
+  disease:
+    na: no disease model described
+    p: 0.82
+  treatment:
+    na: no treatment applied to animals
+    p: 0.75
+  dose:
+    na: no treatment given
+    p: 0.98
+  duration:
+    na: no treatment given
+    p: 0.95
+  donor:
+    na: a pool of many individuals
+    p: 0.95
+samples:
+  GSM7486857:
+    strain:
+      text: CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
+      level: CZ631
+      quoted:
+      - 1
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7486858:
+    strain:
+      text: CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
+      level: CZ631
+      quoted:
+      - 1
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7486859:
+    strain:
+      text: KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]
+      level: KRA257
+      quoted:
+      - 9
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest + mesh synchronization
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7486860:
+    strain:
+      text: KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]
+      level: KRA257
+      quoted:
+      - 9
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest + mesh synchronization
+      quoted:
+      - 10
+      p: 0.99
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null

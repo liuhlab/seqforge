@@ -1,0 +1,5633 @@
+{
+ "study": "GSE147401",
+ "chain": "flash",
+ "read_full": true,
+ "n_samples": 30,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "assay",
+   "levels": [
+    "chip_seq",
+    "rna_seq"
+   ],
+   "p_designed": 0.88,
+   "p_designed_neg": 0.49,
+   "baseline": "no_reference",
+   "p_baseline": 0.59,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.65,
+   "p_ordered": 0.12,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "target",
+   "levels": [
+    "h3k27me3",
+    "h3k36me3",
+    "none"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.51,
+   "baseline": "no_reference",
+   "p_baseline": 0.56,
+   "baseline_rev": "no_reference",
+   "p_baseline_rev": 0.49,
+   "p_ordered": 0.08,
+   "writer_baseline": null,
+   "writer_ordered": false,
+   "designed_disagree": true,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "genotype",
+   "levels": [
+    "wild_type",
+    "oef_1_vr25",
+    "glp_4_bn2",
+    "glp_4_oef_1"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.04,
+   "baseline": "L0",
+   "p_baseline": 0.98,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.99,
+   "p_ordered": 0.11,
+   "writer_baseline": "wild_type",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [
+  "factor target: plain and negated asks disagree"
+ ],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.81,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.76,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "unknown",
+   "p": 0.63,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.74,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.74,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.52,
+   "shared": true
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": 0.64,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": 0.51,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.82,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.69,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.76,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.92,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.77,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.78,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "target",
+   "mark": "quoted",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "growth_temperature",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "replicate",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "factor:assay",
+   "mark": "inferred",
+   "p": 0.88,
+   "shared": true
+  },
+  {
+   "label": "factor:target",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM4430030": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K27me3",
+    "h3k27me3"
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D_N2",
+    null
+   ]
+  },
+  "GSM4430031": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K27me3",
+    "h3k27me3"
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D_N2",
+    null
+   ]
+  },
+  "GSM4430032": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K36me3",
+    "h3k36me3"
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D_N2",
+    null
+   ]
+  },
+  "GSM4430033": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K36me3",
+    "h3k36me3"
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D_N2",
+    null
+   ]
+  },
+  "GSM4430034": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K27me3",
+    "h3k27me3"
+   ],
+   "genotype": [
+    "oef-1(vr25)",
+    "oef_1_vr25"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "YL585",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D_YL585",
+    null
+   ]
+  },
+  "GSM4430035": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K27me3",
+    "h3k27me3"
+   ],
+   "genotype": [
+    "oef-1(vr25)",
+    "oef_1_vr25"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "YL585",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D_YL585",
+    null
+   ]
+  },
+  "GSM4430036": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K36me3",
+    "h3k36me3"
+   ],
+   "genotype": [
+    "oef-1(vr25)",
+    "oef_1_vr25"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "YL585",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D_YL585",
+    null
+   ]
+  },
+  "GSM4430037": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K36me3",
+    "h3k36me3"
+   ],
+   "genotype": [
+    "oef-1(vr25)",
+    "oef_1_vr25"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "YL585",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D_YL585",
+    null
+   ]
+  },
+  "GSM4430038": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D_N2",
+    null
+   ]
+  },
+  "GSM4430039": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D_N2",
+    null
+   ]
+  },
+  "GSM4430040": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "oef-1(vr25)",
+    "oef_1_vr25"
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "YL585",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D_YL585",
+    null
+   ]
+  },
+  "GSM4430041": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "oef-1(vr25)",
+    "oef_1_vr25"
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "tissue": [
+    "Isolated germ nuclei",
+    null
+   ],
+   "strain": [
+    "YL585",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D_YL585",
+    null
+   ]
+  },
+  "GSM4430042": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K27me3",
+    "h3k27me3"
+   ],
+   "genotype": [
+    "glp-4(bn2)",
+    "glp_4_bn2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "SS104",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D_SS104",
+    null
+   ]
+  },
+  "GSM4430043": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K27me3",
+    "h3k27me3"
+   ],
+   "genotype": [
+    "glp-4(bn2)",
+    "glp_4_bn2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "SS104",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D_SS104",
+    null
+   ]
+  },
+  "GSM4430044": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K36me3",
+    "h3k36me3"
+   ],
+   "genotype": [
+    "glp-4(bn2)",
+    "glp_4_bn2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "SS104",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D_SS104",
+    null
+   ]
+  },
+  "GSM4430045": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K36me3",
+    "h3k36me3"
+   ],
+   "genotype": [
+    "glp-4(bn2)",
+    "glp_4_bn2"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "SS104",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D_SS104",
+    null
+   ]
+  },
+  "GSM4430046": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K27me3",
+    "h3k27me3"
+   ],
+   "genotype": [
+    "glp-4(bn2); oef-1(vr25)",
+    "glp_4_oef_1"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "YL679",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D_YL679",
+    null
+   ]
+  },
+  "GSM4430047": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K27me3",
+    "h3k27me3"
+   ],
+   "genotype": [
+    "glp-4(bn2); oef-1(vr25)",
+    "glp_4_oef_1"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "YL679",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D_YL679",
+    null
+   ]
+  },
+  "GSM4430048": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K36me3",
+    "h3k36me3"
+   ],
+   "genotype": [
+    "glp-4(bn2); oef-1(vr25)",
+    "glp_4_oef_1"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "YL679",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D_YL679",
+    null
+   ]
+  },
+  "GSM4430049": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "H3K36me3",
+    "h3k36me3"
+   ],
+   "genotype": [
+    "glp-4(bn2); oef-1(vr25)",
+    "glp_4_oef_1"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "YL679",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B17",
+    null
+   ],
+   "donor": [
+    "D_YL679",
+    null
+   ]
+  },
+  "GSM4430050": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "glp-4(bn2)",
+    "glp_4_bn2"
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "SS104",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B18",
+    null
+   ],
+   "donor": [
+    "D_SS104",
+    null
+   ]
+  },
+  "GSM4430051": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "glp-4(bn2)",
+    "glp_4_bn2"
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "SS104",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B19",
+    null
+   ],
+   "donor": [
+    "D_SS104",
+    null
+   ]
+  },
+  "GSM4430052": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "glp-4(bn2); oef-1(vr25)",
+    "glp_4_oef_1"
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "YL679",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B20",
+    null
+   ],
+   "donor": [
+    "D_YL679",
+    null
+   ]
+  },
+  "GSM4430053": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "ChIP-Seq",
+    "chip_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "glp-4(bn2); oef-1(vr25)",
+    "glp_4_oef_1"
+   ],
+   "control_type": [
+    "input",
+    null
+   ],
+   "tissue": [
+    "Whole animal",
+    null
+   ],
+   "strain": [
+    "YL679",
+    null
+   ],
+   "growth_temperature": [
+    "25˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B21",
+    null
+   ],
+   "donor": [
+    "D_YL679",
+    null
+   ]
+  },
+  "GSM4430054": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "RNA-Seq",
+    "rna_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Dissected gonads",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B22",
+    null
+   ],
+   "donor": [
+    "D_N2",
+    null
+   ]
+  },
+  "GSM4430055": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "RNA-Seq",
+    "rna_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Dissected gonads",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B23",
+    null
+   ],
+   "donor": [
+    "D_N2",
+    null
+   ]
+  },
+  "GSM4430056": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "RNA-Seq",
+    "rna_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "wild-type",
+    "wild_type"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Dissected gonads",
+    null
+   ],
+   "strain": [
+    "N2",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 3",
+    null
+   ],
+   "biosample": [
+    "B24",
+    null
+   ],
+   "donor": [
+    "D_N2",
+    null
+   ]
+  },
+  "GSM4430057": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "RNA-Seq",
+    "rna_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "oef-1(vr25)",
+    "oef_1_vr25"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Dissected gonads",
+    null
+   ],
+   "strain": [
+    "YL585",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 1",
+    null
+   ],
+   "biosample": [
+    "B25",
+    null
+   ],
+   "donor": [
+    "D_YL585",
+    null
+   ]
+  },
+  "GSM4430058": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "RNA-Seq",
+    "rna_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "oef-1(vr25)",
+    "oef_1_vr25"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Dissected gonads",
+    null
+   ],
+   "strain": [
+    "YL585",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 2",
+    null
+   ],
+   "biosample": [
+    "B26",
+    null
+   ],
+   "donor": [
+    "D_YL585",
+    null
+   ]
+  },
+  "GSM4430059": {
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "development_stage": [
+    "Young adult",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "assay": [
+    "RNA-Seq",
+    "rna_seq"
+   ],
+   "target": [
+    "none",
+    "none"
+   ],
+   "genotype": [
+    "oef-1(vr25)",
+    "oef_1_vr25"
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "tissue": [
+    "Dissected gonads",
+    null
+   ],
+   "strain": [
+    "YL585",
+    null
+   ],
+   "growth_temperature": [
+    "20˚C",
+    null
+   ],
+   "replicate": [
+    "rep 3",
+    null
+   ],
+   "biosample": [
+    "B27",
+    null
+   ],
+   "donor": [
+    "D_YL585",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "assay": {
+   "levels": [
+    "chip_seq",
+    "rna_seq"
+   ],
+   "baseline": null,
+   "ordered": false,
+   "inferred": "ChIP-seq and RNA-seq libraries compared",
+   "p": 0.88
+  },
+  "target": {
+   "levels": [
+    "h3k27me3",
+    "h3k36me3",
+    "none"
+   ],
+   "baseline": null,
+   "ordered": false,
+   "inferred": "antibody field distinguishes marks and none",
+   "p": 0.97
+  },
+  "genotype": {
+   "levels": [
+    "wild_type",
+    "oef_1_vr25",
+    "glp_4_bn2",
+    "glp_4_oef_1"
+   ],
+   "baseline": "wild_type",
+   "ordered": false,
+   "quoted": [
+    25
+   ],
+   "p": 0.98
+  }
+ },
+ "n_passages": 25,
+ "n_shared": 10,
+ "n_row_claims": 300,
+ "lists_summary": {
+  "factors": 3,
+  "factors_kept": 3,
+  "labels_with_values": 6,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "baseline_as_control",
+    "note": "input listed as antibody none; wild-type is baseline not control"
+   },
+   {
+    "kind": "crossed_not_fully",
+    "note": "target x genotype not complete; RNA-seq only two genotypes"
+   },
+   {
+    "kind": "held_constant",
+    "note": "all samples Illumina HiSeq 2500 per record"
+   },
+   {
+    "kind": "group_smaller_than_study",
+    "note": "glp-4 genotypes only ChIP-seq, not RNA-seq"
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "assay/L0",
+   "status": "named",
+   "source": "GSM4430030",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 8,
+   "backs_p": 0.99
+  },
+  {
+   "key": "assay/L1",
+   "status": "named",
+   "source": "GSM4430054",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.87
+  },
+  {
+   "key": "assay/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "target/L0",
+   "status": "named",
+   "source": "GSM4430030",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "target/L1",
+   "status": "named",
+   "source": "GSM4430032",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "target/L2",
+   "status": "named",
+   "source": "GSM4430038",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.98
+  },
+  {
+   "key": "target/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM4430030",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM4430034",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 21,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L2",
+   "status": "named",
+   "source": "GSM4430042",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L3",
+   "status": "named",
+   "source": "GSM4430046",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 33,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "named",
+   "source": "GSE147401",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 70,
+   "backs_p": 0.96
+  },
+  {
+   "key": "control_type/v0",
+   "status": "named",
+   "source": "GSM4430038",
+   "field": "Sample_description",
+   "exact": true,
+   "quote_len": 96,
+   "backs_p": 0.98
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "GSM4430030",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM4430030",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 28,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v1",
+   "status": "named",
+   "source": "GSM4430042",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v2",
+   "status": "named",
+   "source": "GSM4430054",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.87
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM4430030",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 10,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v1",
+   "status": "named",
+   "source": "GSM4430034",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v2",
+   "status": "named",
+   "source": "GSM4430042",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v3",
+   "status": "named",
+   "source": "GSM4430046",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "growth_temperature/v0",
+   "status": "named",
+   "source": "GSM4430030",
+   "field": "Sample_growth_protocol_ch1",
+   "exact": true,
+   "quote_len": 40,
+   "backs_p": 0.97
+  },
+  {
+   "key": "growth_temperature/v1",
+   "status": "named",
+   "source": "GSM4430030",
+   "field": "Sample_growth_protocol_ch1",
+   "exact": true,
+   "quote_len": 44,
+   "backs_p": 0.27
+  },
+  {
+   "key": "replicate/v0",
+   "status": "named",
+   "source": "GSM4430030",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 33,
+   "backs_p": 0.99
+  },
+  {
+   "key": "replicate/v1",
+   "status": "named",
+   "source": "GSM4430031",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 33,
+   "backs_p": 0.99
+  },
+  {
+   "key": "replicate/v2",
+   "status": "named",
+   "source": "GSM4430056",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 16,
+   "backs_p": 0.79
+  }
+ ],
+ "pairs": [
+  {
+   "a": "GSM4430030",
+   "b": "GSM4430031",
+   "p": 0.08
+  },
+  {
+   "a": "GSM4430030",
+   "b": "GSM4430032",
+   "p": 0.22
+  },
+  {
+   "a": "GSM4430030",
+   "b": "GSM4430033",
+   "p": 0.18
+  },
+  {
+   "a": "GSM4430030",
+   "b": "GSM4430038",
+   "p": 0.64
+  },
+  {
+   "a": "GSM4430030",
+   "b": "GSM4430039",
+   "p": 0.32
+  },
+  {
+   "a": "GSM4430031",
+   "b": "GSM4430032",
+   "p": 0.19
+  },
+  {
+   "a": "GSM4430031",
+   "b": "GSM4430033",
+   "p": 0.23
+  },
+  {
+   "a": "GSM4430031",
+   "b": "GSM4430038",
+   "p": 0.45
+  },
+  {
+   "a": "GSM4430031",
+   "b": "GSM4430039",
+   "p": 0.39
+  },
+  {
+   "a": "GSM4430032",
+   "b": "GSM4430033",
+   "p": 0.08
+  },
+  {
+   "a": "GSM4430032",
+   "b": "GSM4430038",
+   "p": 0.51
+  },
+  {
+   "a": "GSM4430032",
+   "b": "GSM4430039",
+   "p": 0.29
+  },
+  {
+   "a": "GSM4430033",
+   "b": "GSM4430038",
+   "p": 0.4
+  },
+  {
+   "a": "GSM4430033",
+   "b": "GSM4430039",
+   "p": 0.34
+  },
+  {
+   "a": "GSM4430034",
+   "b": "GSM4430035",
+   "p": 0.07
+  },
+  {
+   "a": "GSM4430034",
+   "b": "GSM4430036",
+   "p": 0.22
+  },
+  {
+   "a": "GSM4430034",
+   "b": "GSM4430037",
+   "p": 0.2
+  },
+  {
+   "a": "GSM4430034",
+   "b": "GSM4430040",
+   "p": 0.51
+  },
+  {
+   "a": "GSM4430034",
+   "b": "GSM4430041",
+   "p": 0.3
+  },
+  {
+   "a": "GSM4430035",
+   "b": "GSM4430036",
+   "p": 0.21
+  },
+  {
+   "a": "GSM4430035",
+   "b": "GSM4430037",
+   "p": 0.2
+  },
+  {
+   "a": "GSM4430035",
+   "b": "GSM4430040",
+   "p": 0.33
+  },
+  {
+   "a": "GSM4430035",
+   "b": "GSM4430041",
+   "p": 0.41
+  },
+  {
+   "a": "GSM4430036",
+   "b": "GSM4430037",
+   "p": 0.07
+  },
+  {
+   "a": "GSM4430036",
+   "b": "GSM4430040",
+   "p": 0.44
+  },
+  {
+   "a": "GSM4430036",
+   "b": "GSM4430041",
+   "p": 0.33
+  },
+  {
+   "a": "GSM4430037",
+   "b": "GSM4430040",
+   "p": 0.35
+  },
+  {
+   "a": "GSM4430037",
+   "b": "GSM4430041",
+   "p": 0.38
+  },
+  {
+   "a": "GSM4430038",
+   "b": "GSM4430039",
+   "p": 0.24
+  },
+  {
+   "a": "GSM4430038",
+   "b": "GSM4430054",
+   "p": 0.04
+  },
+  {
+   "a": "GSM4430038",
+   "b": "GSM4430055",
+   "p": 0.05
+  },
+  {
+   "a": "GSM4430038",
+   "b": "GSM4430056",
+   "p": 0.04
+  },
+  {
+   "a": "GSM4430039",
+   "b": "GSM4430054",
+   "p": 0.04
+  },
+  {
+   "a": "GSM4430039",
+   "b": "GSM4430055",
+   "p": 0.05
+  },
+  {
+   "a": "GSM4430039",
+   "b": "GSM4430056",
+   "p": 0.05
+  },
+  {
+   "a": "GSM4430040",
+   "b": "GSM4430041",
+   "p": 0.2
+  },
+  {
+   "a": "GSM4430040",
+   "b": "GSM4430057",
+   "p": 0.05
+  },
+  {
+   "a": "GSM4430040",
+   "b": "GSM4430058",
+   "p": 0.04
+  },
+  {
+   "a": "GSM4430040",
+   "b": "GSM4430059",
+   "p": 0.04
+  },
+  {
+   "a": "GSM4430041",
+   "b": "GSM4430057",
+   "p": 0.05
+  },
+  {
+   "a": "GSM4430041",
+   "b": "GSM4430058",
+   "p": 0.04
+  },
+  {
+   "a": "GSM4430041",
+   "b": "GSM4430059",
+   "p": 0.05
+  },
+  {
+   "a": "GSM4430042",
+   "b": "GSM4430043",
+   "p": 0.06
+  },
+  {
+   "a": "GSM4430042",
+   "b": "GSM4430044",
+   "p": 0.12
+  },
+  {
+   "a": "GSM4430042",
+   "b": "GSM4430045",
+   "p": 0.15
+  },
+  {
+   "a": "GSM4430042",
+   "b": "GSM4430050",
+   "p": 0.25
+  },
+  {
+   "a": "GSM4430042",
+   "b": "GSM4430051",
+   "p": 0.2
+  },
+  {
+   "a": "GSM4430043",
+   "b": "GSM4430044",
+   "p": 0.15
+  },
+  {
+   "a": "GSM4430043",
+   "b": "GSM4430045",
+   "p": 0.15
+  },
+  {
+   "a": "GSM4430043",
+   "b": "GSM4430050",
+   "p": 0.22
+  },
+  {
+   "a": "GSM4430043",
+   "b": "GSM4430051",
+   "p": 0.2
+  },
+  {
+   "a": "GSM4430044",
+   "b": "GSM4430045",
+   "p": 0.05
+  },
+  {
+   "a": "GSM4430044",
+   "b": "GSM4430050",
+   "p": 0.29
+  },
+  {
+   "a": "GSM4430044",
+   "b": "GSM4430051",
+   "p": 0.22
+  },
+  {
+   "a": "GSM4430045",
+   "b": "GSM4430050",
+   "p": 0.21
+  },
+  {
+   "a": "GSM4430045",
+   "b": "GSM4430051",
+   "p": 0.22
+  },
+  {
+   "a": "GSM4430046",
+   "b": "GSM4430047",
+   "p": 0.06
+  },
+  {
+   "a": "GSM4430046",
+   "b": "GSM4430048",
+   "p": 0.15
+  },
+  {
+   "a": "GSM4430046",
+   "b": "GSM4430049",
+   "p": 0.11
+  },
+  {
+   "a": "GSM4430046",
+   "b": "GSM4430052",
+   "p": 0.32
+  },
+  {
+   "a": "GSM4430046",
+   "b": "GSM4430053",
+   "p": 0.28
+  },
+  {
+   "a": "GSM4430047",
+   "b": "GSM4430048",
+   "p": 0.1
+  },
+  {
+   "a": "GSM4430047",
+   "b": "GSM4430049",
+   "p": 0.11
+  },
+  {
+   "a": "GSM4430047",
+   "b": "GSM4430052",
+   "p": 0.3
+  },
+  {
+   "a": "GSM4430047",
+   "b": "GSM4430053",
+   "p": 0.32
+  },
+  {
+   "a": "GSM4430048",
+   "b": "GSM4430049",
+   "p": 0.06
+  },
+  {
+   "a": "GSM4430048",
+   "b": "GSM4430052",
+   "p": 0.32
+  },
+  {
+   "a": "GSM4430048",
+   "b": "GSM4430053",
+   "p": 0.29
+  },
+  {
+   "a": "GSM4430049",
+   "b": "GSM4430052",
+   "p": 0.35
+  },
+  {
+   "a": "GSM4430049",
+   "b": "GSM4430053",
+   "p": 0.27
+  },
+  {
+   "a": "GSM4430050",
+   "b": "GSM4430051",
+   "p": 0.23
+  },
+  {
+   "a": "GSM4430052",
+   "b": "GSM4430053",
+   "p": 0.28
+  }
+ ],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "Young adult",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": [
+    {
+     "id": "WBls:0000100",
+     "label": "Brugia young adult",
+     "exact": true
+    },
+    {
+     "id": "WBls:0000063",
+     "label": "newly molted young adult hermaphrodite Ce",
+     "exact": false
+    }
+   ],
+   "pick": "WBls:0000063",
+   "p": 0.5,
+   "probe_pick": "none",
+   "probe_p": 0.96
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Dissected gonads",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Isolated germ nuclei",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Whole animal",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.67,
+  "untreated_or_vehicle": 0.68,
+  "several_compounds": 0.55,
+  "route_or_side": 0.13,
+  "dose_per_unit": 0.14,
+  "duration_without_number": 0.93,
+  "time_from_event": 0.32,
+  "pooled_material": 0.9,
+  "held_constant": 0.83,
+  "batch": 0.22,
+  "sequencer": 0.2,
+  "vector": 0.06,
+  "one_control_many_materials": 0.41,
+  "baseline_as_control": 0.04,
+  "single_cell": 0.05,
+  "mixed_assays": 0.99
+ },
+ "donor_kind": [
+  "pool",
+  0.97
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.0037141559999999997,
+   "seconds": 10.883,
+   "tokens_in": 29490,
+   "tokens_out": 3020
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.0008366819999999999,
+   "seconds": 0.376,
+   "tokens_in": 19921
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012784799999999999,
+   "seconds": 0.275,
+   "tokens_in": 3044
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012784799999999999,
+   "seconds": 0.284,
+   "tokens_in": 3044
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012784799999999999,
+   "seconds": 0.275,
+   "tokens_in": 3044
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012784799999999999,
+   "seconds": 0.327,
+   "tokens_in": 3044
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012784799999999999,
+   "seconds": 0.335,
+   "tokens_in": 3044
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012784799999999999,
+   "seconds": 0.244,
+   "tokens_in": 3044
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012784799999999999,
+   "seconds": 0.246,
+   "tokens_in": 3044
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012784799999999999,
+   "seconds": 0.253,
+   "tokens_in": 3044
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.302,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.222,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.259,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.267,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000128982,
+   "seconds": 0.256,
+   "tokens_in": 3071
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000128982,
+   "seconds": 0.289,
+   "tokens_in": 3071
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000128982,
+   "seconds": 0.22,
+   "tokens_in": 3071
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000127932,
+   "seconds": 0.251,
+   "tokens_in": 3046
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000128982,
+   "seconds": 0.305,
+   "tokens_in": 3071
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000127932,
+   "seconds": 0.272,
+   "tokens_in": 3046
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000127932,
+   "seconds": 0.349,
+   "tokens_in": 3046
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000127932,
+   "seconds": 0.265,
+   "tokens_in": 3046
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000129024,
+   "seconds": 0.272,
+   "tokens_in": 3072
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000129024,
+   "seconds": 0.278,
+   "tokens_in": 3072
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000129024,
+   "seconds": 0.224,
+   "tokens_in": 3072
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000129024,
+   "seconds": 0.407,
+   "tokens_in": 3072
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.366,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.507,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.543,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.45,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.517,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.366,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.363,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012873,
+   "seconds": 0.241,
+   "tokens_in": 3065
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012978,
+   "seconds": 0.262,
+   "tokens_in": 3090
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012978,
+   "seconds": 0.253,
+   "tokens_in": 3090
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012978,
+   "seconds": 0.305,
+   "tokens_in": 3090
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012978,
+   "seconds": 0.213,
+   "tokens_in": 3090
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012978,
+   "seconds": 0.204,
+   "tokens_in": 3090
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012978,
+   "seconds": 0.23,
+   "tokens_in": 3090
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012978,
+   "seconds": 0.259,
+   "tokens_in": 3090
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.00012978,
+   "seconds": 0.261,
+   "tokens_in": 3090
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000128856,
+   "seconds": 0.316,
+   "tokens_in": 3068
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000128856,
+   "seconds": 0.316,
+   "tokens_in": 3068
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000128856,
+   "seconds": 0.313,
+   "tokens_in": 3068
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000128856,
+   "seconds": 0.309,
+   "tokens_in": 3068
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000129906,
+   "seconds": 0.264,
+   "tokens_in": 3093
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000129906,
+   "seconds": 0.407,
+   "tokens_in": 3093
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000129906,
+   "seconds": 0.244,
+   "tokens_in": 3093
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000129906,
+   "seconds": 0.278,
+   "tokens_in": 3093
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.292,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.263,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.293,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.274,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.275,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.276,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120498,
+   "seconds": 0.272,
+   "tokens_in": 2869
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120498,
+   "seconds": 0.255,
+   "tokens_in": 2869
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120498,
+   "seconds": 0.376,
+   "tokens_in": 2869
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120498,
+   "seconds": 0.249,
+   "tokens_in": 2869
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120498,
+   "seconds": 0.263,
+   "tokens_in": 2869
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000120498,
+   "seconds": 0.228,
+   "tokens_in": 2869
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000904974,
+   "seconds": 0.457,
+   "tokens_in": 21547
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 3.7212e-05,
+   "seconds": 0.225,
+   "tokens_in": 886
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 3.591e-05,
+   "seconds": 0.226,
+   "tokens_in": 855
+  }
+ ],
+ "seconds": 0.58,
+ "ending": "unsettled",
+ "variant": "flash_full"
+}

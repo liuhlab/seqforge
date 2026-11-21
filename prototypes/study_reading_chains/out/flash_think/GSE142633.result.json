@@ -1,0 +1,2112 @@
+{
+ "study": "GSE142633",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 13,
+ "dropped_samples": 0,
+ "has_full_text": false,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "WT",
+    "5XFAD"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.04,
+   "baseline": "L0",
+   "p_baseline": 0.98,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.99,
+   "p_ordered": 0.72,
+   "writer_baseline": "WT",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "age",
+   "levels": [
+    "6M",
+    "11M"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.16,
+   "baseline": "no_reference",
+   "p_baseline": 0.52,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.52,
+   "p_ordered": 0.94,
+   "writer_baseline": null,
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": true,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [
+  "factor age: baseline differs when options are reversed"
+ ],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "unknown",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.87,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 0.9,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.84,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.89,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.93,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "factor:age",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM4233218": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "age": [
+    "6 months",
+    "6M"
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "B6SJLF1/J",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D_806",
+    null
+   ]
+  },
+  "GSM4233219": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "age": [
+    "6 months",
+    "6M"
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "B6SJLF1/J",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D_807",
+    null
+   ]
+  },
+  "GSM4233220": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "age": [
+    "6 months",
+    "6M"
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "B6SJLF1/J",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D_817",
+    null
+   ]
+  },
+  "GSM4233221": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "age": [
+    "6 months",
+    "6M"
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "B6SJLF1/J",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D_819",
+    null
+   ]
+  },
+  "GSM4233222": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "5XFAD",
+    "5XFAD"
+   ],
+   "age": [
+    "6 months",
+    "6M"
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "5XFAD",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D_967",
+    null
+   ]
+  },
+  "GSM4233223": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "5XFAD",
+    "5XFAD"
+   ],
+   "age": [
+    "6 months",
+    "6M"
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "5XFAD",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D_968",
+    null
+   ]
+  },
+  "GSM4233224": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "5XFAD",
+    "5XFAD"
+   ],
+   "age": [
+    "6 months",
+    "6M"
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "5XFAD",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D_970",
+    null
+   ]
+  },
+  "GSM4233225": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "age": [
+    "11 months",
+    "11M"
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "B6SJLF1/J",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D_178",
+    null
+   ]
+  },
+  "GSM4233226": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "age": [
+    "11 months",
+    "11M"
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "B6SJLF1/J",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D_772",
+    null
+   ]
+  },
+  "GSM4233227": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "age": [
+    "11 months",
+    "11M"
+   ],
+   "disease": [
+    "wild type",
+    null
+   ],
+   "strain": [
+    "B6SJLF1/J",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D_774",
+    null
+   ]
+  },
+  "GSM4233228": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "5XFAD",
+    "5XFAD"
+   ],
+   "age": [
+    "11 months",
+    "11M"
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "5XFAD",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D_180",
+    null
+   ]
+  },
+  "GSM4233229": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "5XFAD",
+    "5XFAD"
+   ],
+   "age": [
+    "11 months",
+    "11M"
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "5XFAD",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D_183",
+    null
+   ]
+  },
+  "GSM4233230": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "Frontal cortex of brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "sex": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "5XFAD",
+    "5XFAD"
+   ],
+   "age": [
+    "11 months",
+    "11M"
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "5XFAD",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D_795",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "WT",
+    "5XFAD"
+   ],
+   "baseline": "WT",
+   "ordered": true,
+   "quoted": [
+    7
+   ],
+   "p": 0.99
+  },
+  "age": {
+   "levels": [
+    "6M",
+    "11M"
+   ],
+   "baseline": null,
+   "ordered": true,
+   "quoted": [
+    5
+   ],
+   "p": 0.98
+  }
+ },
+ "n_passages": 10,
+ "n_shared": 12,
+ "n_row_claims": 78,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 6,
+  "extra_labels": 0,
+  "writer_gaps": [
+   {
+    "kind": "crossed_not_fully",
+    "note": "Genotype-by-age cells have 4, 3, 3, 3 samples, not balanced."
+   },
+   {
+    "kind": "group_smaller_than_study",
+    "note": "Summary describes miRNA ASO treatment; no ASO-treated sequenced samples."
+   }
+  ],
+  "donor_kind_writer": "one_each",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM4233218",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.97
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM4233222",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "named",
+   "source": "GSE142633",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 94,
+   "backs_p": 0.95
+  },
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM4233218",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM4233225",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 14,
+   "backs_p": 0.99
+  },
+  {
+   "key": "age/_factor",
+   "status": "named",
+   "source": "GSE142633",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 81,
+   "backs_p": 0.89
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "GSE142633",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 81,
+   "backs_p": 0.62
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "GSE142633",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 94,
+   "backs_p": 0.95
+  },
+  {
+   "key": "disease/v1",
+   "status": "named",
+   "source": "GSE142633",
+   "field": "Series_title",
+   "exact": true,
+   "quote_len": 94,
+   "backs_p": 0.09
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "GSM4233218",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "strain/v1",
+   "status": "named",
+   "source": "GSM4233222",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "adult",
+   "vocab": [
+    "mmusdv"
+   ],
+   "candidates": [
+    {
+     "id": "MmusDv:0000134",
+     "label": "late adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000136",
+     "label": "prime adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000153",
+     "label": "young adult stage",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.61
+  },
+  {
+   "label": "disease",
+   "text": "Alzheimer's disease",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": [
+    {
+     "id": "MONDO:0004975",
+     "label": "Alzheimer disease",
+     "exact": true
+    },
+    {
+     "id": "MONDO:0011913",
+     "label": "Alzheimer disease 3",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0007089",
+     "label": "Alzheimer disease 2",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011743",
+     "label": "Alzheimer disease 4",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0014265",
+     "label": "Alzheimer disease 18",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0014316",
+     "label": "Alzheimer disease 19",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011401",
+     "label": "Alzheimer disease without neurofibrillary tangles",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011647",
+     "label": "Alzheimer disease 7",
+     "exact": false
+    }
+   ],
+   "pick": "MONDO:0004975",
+   "p": 0.96,
+   "probe_pick": "none",
+   "probe_p": 0.61
+  },
+  {
+   "label": "disease",
+   "text": "wild type",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": [
+    {
+     "id": "MONDO:0018018",
+     "label": "wild type ATTR amyloidosis",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0019440",
+     "label": "wild type ABeta2M amyloidosis",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0956965",
+     "label": "medulloblastoma SHH activated and TP53 wild-type",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0858939",
+     "label": "diffuse pediatric-type high-grade glioma, H3-wildtype and IDH-wildtype",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.99
+  },
+  {
+   "label": "tissue",
+   "text": "Frontal cortex of brain",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.1,
+  "untreated_or_vehicle": 0.37,
+  "several_compounds": 0.05,
+  "route_or_side": 0.97,
+  "dose_per_unit": 0.19,
+  "duration_without_number": 0.05,
+  "time_from_event": 0.48,
+  "pooled_material": 0.06,
+  "held_constant": 0.93,
+  "batch": 0.06,
+  "sequencer": 0.02,
+  "vector": 0.16,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.1,
+  "single_cell": 0.02,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "one_each",
+  0.83
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.009123455999999999,
+   "seconds": 73.189,
+   "tokens_in": 3192,
+   "tokens_out": 14690
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000184254,
+   "seconds": 0.255,
+   "tokens_in": 4387
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5596e-05,
+   "seconds": 0.516,
+   "tokens_in": 2038
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5596e-05,
+   "seconds": 0.541,
+   "tokens_in": 2038
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5596e-05,
+   "seconds": 0.563,
+   "tokens_in": 2038
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5596e-05,
+   "seconds": 0.617,
+   "tokens_in": 2038
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5596e-05,
+   "seconds": 0.515,
+   "tokens_in": 2038
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5596e-05,
+   "seconds": 0.505,
+   "tokens_in": 2038
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5596e-05,
+   "seconds": 0.252,
+   "tokens_in": 2038
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5596e-05,
+   "seconds": 0.248,
+   "tokens_in": 2038
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5512e-05,
+   "seconds": 0.261,
+   "tokens_in": 2036
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5512e-05,
+   "seconds": 0.268,
+   "tokens_in": 2036
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5512e-05,
+   "seconds": 0.286,
+   "tokens_in": 2036
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5512e-05,
+   "seconds": 0.244,
+   "tokens_in": 2036
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5512e-05,
+   "seconds": 0.27,
+   "tokens_in": 2036
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5512e-05,
+   "seconds": 0.31,
+   "tokens_in": 2036
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5722e-05,
+   "seconds": 0.251,
+   "tokens_in": 2041
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5722e-05,
+   "seconds": 0.266,
+   "tokens_in": 2041
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5722e-05,
+   "seconds": 0.315,
+   "tokens_in": 2041
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5722e-05,
+   "seconds": 0.228,
+   "tokens_in": 2041
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5722e-05,
+   "seconds": 0.282,
+   "tokens_in": 2041
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5722e-05,
+   "seconds": 0.262,
+   "tokens_in": 2041
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5638e-05,
+   "seconds": 0.269,
+   "tokens_in": 2039
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5638e-05,
+   "seconds": 0.265,
+   "tokens_in": 2039
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5638e-05,
+   "seconds": 0.265,
+   "tokens_in": 2039
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5638e-05,
+   "seconds": 0.225,
+   "tokens_in": 2039
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5638e-05,
+   "seconds": 0.297,
+   "tokens_in": 2039
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 8.5638e-05,
+   "seconds": 0.285,
+   "tokens_in": 2039
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00014674799999999998,
+   "seconds": 0.17,
+   "tokens_in": 3494
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 4.5318e-05,
+   "seconds": 0.254,
+   "tokens_in": 1079
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 3.2046e-05,
+   "seconds": 0.252,
+   "tokens_in": 763
+  }
+ ],
+ "seconds": 0.23,
+ "ending": "unsettled",
+ "variant": "flash_think"
+}

@@ -1,0 +1,1928 @@
+{
+ "study": "GSE288182",
+ "chain": "flash",
+ "read_full": true,
+ "n_samples": 9,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "WT",
+    "APP/PS1"
+   ],
+   "p_designed": 0.98,
+   "p_designed_neg": 0.11,
+   "baseline": "L0",
+   "p_baseline": 0.75,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.81,
+   "p_ordered": 0.09,
+   "writer_baseline": "WT",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "treatment",
+   "levels": [
+    "mock",
+    "OSK"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.03,
+   "baseline": "L0",
+   "p_baseline": 0.87,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.83,
+   "p_ordered": 0.05,
+   "writer_baseline": "mock",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [
+  [
+   "GSM8760788",
+   "lab_injection_regimen",
+   "na",
+   "v0"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.75,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "quoted",
+   "p": 0.75,
+   "shared": true
+  },
+  {
+   "label": "harvest_time_after_injection",
+   "mark": "quoted",
+   "p": 0.77,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "na",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "injection_regimen",
+   "mark": "quoted",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.66,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "injection_regimen",
+   "mark": "na",
+   "p": 0.37,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "unknown",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "injection_regimen",
+   "mark": "quoted",
+   "p": 0.48,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.56,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "injection_regimen",
+   "mark": "quoted",
+   "p": 0.74,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.75,
+   "shared": false
+  },
+  {
+   "label": "injection_regimen",
+   "mark": "quoted",
+   "p": 0.79,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.59,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.8,
+   "shared": false
+  },
+  {
+   "label": "injection_regimen",
+   "mark": "quoted",
+   "p": 0.76,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "injection_regimen",
+   "mark": "quoted",
+   "p": 0.81,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.65,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "injection_regimen",
+   "mark": "quoted",
+   "p": 0.8,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.62,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "strain",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "duration",
+   "mark": "quoted",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "injection_regimen",
+   "mark": "quoted",
+   "p": 0.77,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.67,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "factor:treatment",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM8760787": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "Male APP/PS1 and wild-type (WT) mice",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain",
+    null
+   ],
+   "dose": [
+    "AAV-OSK or AAV-Mock (2 µl per side)",
+    null
+   ],
+   "harvest_time_after_injection": [
+    "brain samples were collected at 6 months",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "mock",
+    "mock"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "injection_regimen": [
+    "injections were initiated at 4 months of age and repeated one month later",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D1",
+    null
+   ]
+  },
+  "GSM8760788": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "Male APP/PS1 and wild-type (WT) mice",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain",
+    null
+   ],
+   "dose": [
+    "AAV-OSK or AAV-Mock (2 µl per side)",
+    null
+   ],
+   "harvest_time_after_injection": [
+    "brain samples were collected at 6 months",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "mock",
+    "mock"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "injection_regimen": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D2",
+    null
+   ]
+  },
+  "GSM8760789": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "Male APP/PS1 and wild-type (WT) mice",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain",
+    null
+   ],
+   "dose": [
+    "AAV-OSK or AAV-Mock (2 µl per side)",
+    null
+   ],
+   "harvest_time_after_injection": [
+    "brain samples were collected at 6 months",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "WT",
+    "WT"
+   ],
+   "treatment": [
+    "mock",
+    "mock"
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "<unknown>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "injection_regimen": [
+    "injections were initiated at 4 months of age and repeated one month later",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D3",
+    null
+   ]
+  },
+  "GSM8760790": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "Male APP/PS1 and wild-type (WT) mice",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain",
+    null
+   ],
+   "dose": [
+    "AAV-OSK or AAV-Mock (2 µl per side)",
+    null
+   ],
+   "harvest_time_after_injection": [
+    "brain samples were collected at 6 months",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "APP/PS1",
+    "APP/PS1"
+   ],
+   "treatment": [
+    "mock",
+    "mock"
+   ],
+   "age": [
+    "For the early-stage APP/PS1 mice, injections were initiated at 4 months of age",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "injection_regimen": [
+    "injections were initiated at 4 months of age and repeated one month later",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D4",
+    null
+   ]
+  },
+  "GSM8760791": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "Male APP/PS1 and wild-type (WT) mice",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain",
+    null
+   ],
+   "dose": [
+    "AAV-OSK or AAV-Mock (2 µl per side)",
+    null
+   ],
+   "harvest_time_after_injection": [
+    "brain samples were collected at 6 months",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "APP/PS1",
+    "APP/PS1"
+   ],
+   "treatment": [
+    "mock",
+    "mock"
+   ],
+   "age": [
+    "For the early-stage APP/PS1 mice, injections were initiated at 4 months of age",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "injection_regimen": [
+    "injections were initiated at 4 months of age and repeated one month later",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D5",
+    null
+   ]
+  },
+  "GSM8760792": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "Male APP/PS1 and wild-type (WT) mice",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain",
+    null
+   ],
+   "dose": [
+    "AAV-OSK or AAV-Mock (2 µl per side)",
+    null
+   ],
+   "harvest_time_after_injection": [
+    "brain samples were collected at 6 months",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "APP/PS1",
+    "APP/PS1"
+   ],
+   "treatment": [
+    "mock",
+    "mock"
+   ],
+   "age": [
+    "For the early-stage APP/PS1 mice, injections were initiated at 4 months of age",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "injection_regimen": [
+    "injections were initiated at 4 months of age and repeated one month later",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D6",
+    null
+   ]
+  },
+  "GSM8760793": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "Male APP/PS1 and wild-type (WT) mice",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain",
+    null
+   ],
+   "dose": [
+    "AAV-OSK or AAV-Mock (2 µl per side)",
+    null
+   ],
+   "harvest_time_after_injection": [
+    "brain samples were collected at 6 months",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "APP/PS1",
+    "APP/PS1"
+   ],
+   "treatment": [
+    "OSK-treatment",
+    "OSK"
+   ],
+   "age": [
+    "For the early-stage APP/PS1 mice, injections were initiated at 4 months of age",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)",
+    null
+   ],
+   "duration": [
+    "two months of OSK expression",
+    null
+   ],
+   "injection_regimen": [
+    "injections were initiated at 4 months of age and repeated one month later",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D7",
+    null
+   ]
+  },
+  "GSM8760794": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "Male APP/PS1 and wild-type (WT) mice",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain",
+    null
+   ],
+   "dose": [
+    "AAV-OSK or AAV-Mock (2 µl per side)",
+    null
+   ],
+   "harvest_time_after_injection": [
+    "brain samples were collected at 6 months",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "APP/PS1",
+    "APP/PS1"
+   ],
+   "treatment": [
+    "OSK-treatment",
+    "OSK"
+   ],
+   "age": [
+    "For the early-stage APP/PS1 mice, injections were initiated at 4 months of age",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)",
+    null
+   ],
+   "duration": [
+    "two months of OSK expression",
+    null
+   ],
+   "injection_regimen": [
+    "injections were initiated at 4 months of age and repeated one month later",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D8",
+    null
+   ]
+  },
+  "GSM8760795": {
+   "assay": [
+    "Bisulfite-Seq",
+    null
+   ],
+   "species": [
+    "Mus musculus",
+    null
+   ],
+   "sex": [
+    "Male APP/PS1 and wild-type (WT) mice",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "brain",
+    null
+   ],
+   "dose": [
+    "AAV-OSK or AAV-Mock (2 µl per side)",
+    null
+   ],
+   "harvest_time_after_injection": [
+    "brain samples were collected at 6 months",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "APP/PS1",
+    "APP/PS1"
+   ],
+   "treatment": [
+    "OSK-treatment",
+    "OSK"
+   ],
+   "age": [
+    "For the early-stage APP/PS1 mice, injections were initiated at 4 months of age",
+    null
+   ],
+   "disease": [
+    "Alzheimer's disease",
+    null
+   ],
+   "strain": [
+    "APPswe/PS1dE9 (APP/PS1) mice were obtained from Jackson Laboratory (Stock No. 034829-JAX)",
+    null
+   ],
+   "duration": [
+    "two months of OSK expression",
+    null
+   ],
+   "injection_regimen": [
+    "injections were initiated at 4 months of age and repeated one month later",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D9",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "WT",
+    "APP/PS1"
+   ],
+   "baseline": "WT",
+   "ordered": false,
+   "inferred": "WT versus APP/PS1 transgenic mice compared",
+   "p": 0.98
+  },
+  "treatment": {
+   "levels": [
+    "mock",
+    "OSK"
+   ],
+   "baseline": "mock",
+   "ordered": false,
+   "inferred": "AAV-OSK versus AAV-Mock hippocampal injection",
+   "see": [
+    15
+   ],
+   "p": 0.99
+  }
+ },
+ "n_passages": 15,
+ "n_shared": 11,
+ "n_row_claims": 81,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 10,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "term_missing",
+    "note": "GEO records lack age, sex, strain and cohort stage for the 9 samples"
+   },
+   {
+    "kind": "factor_over_part",
+    "note": "early- versus late-stage cohorts described in paper, not mapped to samples"
+   }
+  ],
+  "donor_kind_writer": "unknown",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM8760787",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM8760790",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "treatment/L0",
+   "status": "named",
+   "source": "GSM8760787",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 15,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/L1",
+   "status": "named",
+   "source": "GSM8760793",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 24,
+   "backs_p": 0.99
+  },
+  {
+   "key": "treatment/_factor",
+   "status": "named",
+   "source": "GSM8760787",
+   "field": "Sample_treatment_protocol_ch1",
+   "exact": true,
+   "quote_len": 189,
+   "backs_p": 0.31
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM8760787",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.98
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "pmid:42210397",
+   "field": "Methods > Animals and treatments",
+   "exact": true,
+   "quote_len": 78,
+   "backs_p": 0.92
+  },
+  {
+   "key": "age/v0",
+   "status": "named",
+   "source": "pmid:42210397",
+   "field": "Methods > Animals and treatments",
+   "exact": true,
+   "quote_len": 107,
+   "backs_p": 0.93
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "pmid:42210397",
+   "field": "Methods > Animals and treatments",
+   "exact": true,
+   "quote_len": 73,
+   "backs_p": 0.55
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "disease/v0",
+   "status": "named",
+   "source": "GSM8760787",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.66
+  },
+  {
+   "key": "disease/v1",
+   "status": "named",
+   "source": "GSM8760790",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 17,
+   "backs_p": 0.85
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "pmid:42210397",
+   "field": "Methods > Animals and treatments",
+   "exact": true,
+   "quote_len": 89,
+   "backs_p": 0.9
+  },
+  {
+   "key": "dose/v0",
+   "status": "named",
+   "source": "pmid:42210397",
+   "field": "Methods > Animals and treatments",
+   "exact": true,
+   "quote_len": 95,
+   "backs_p": 0.92
+  },
+  {
+   "key": "duration/v0",
+   "status": "named",
+   "source": "pmid:42210397",
+   "field": "Results > OSK ameliorates neuropathology in early-stage APP/PS1 mice",
+   "exact": true,
+   "quote_len": 61,
+   "backs_p": 0.86
+  },
+  {
+   "key": "injection_regimen/v0",
+   "status": "named",
+   "source": "pmid:42210397",
+   "field": "Methods > Animals and treatments",
+   "exact": true,
+   "quote_len": 107,
+   "backs_p": 0.84
+  },
+  {
+   "key": "harvest_time_after_injection/v0",
+   "status": "named",
+   "source": "pmid:42210397",
+   "field": "Methods > Animals and treatments",
+   "exact": true,
+   "quote_len": 78,
+   "backs_p": 0.83
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "development_stage",
+   "text": "adult",
+   "vocab": [
+    "mmusdv"
+   ],
+   "candidates": [
+    {
+     "id": "MmusDv:0000134",
+     "label": "late adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000136",
+     "label": "prime adult stage",
+     "exact": false
+    },
+    {
+     "id": "MmusDv:0000153",
+     "label": "young adult stage",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 0.57
+  },
+  {
+   "label": "disease",
+   "text": "Alzheimer's disease",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": [
+    {
+     "id": "MONDO:0004975",
+     "label": "Alzheimer disease",
+     "exact": true
+    },
+    {
+     "id": "MONDO:0011913",
+     "label": "Alzheimer disease 3",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0007089",
+     "label": "Alzheimer disease 2",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011743",
+     "label": "Alzheimer disease 4",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0014265",
+     "label": "Alzheimer disease 18",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0014316",
+     "label": "Alzheimer disease 19",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011401",
+     "label": "Alzheimer disease without neurofibrillary tangles",
+     "exact": false
+    },
+    {
+     "id": "MONDO:0011647",
+     "label": "Alzheimer disease 7",
+     "exact": false
+    }
+   ],
+   "pick": "MONDO:0004975",
+   "p": 0.98,
+   "probe_pick": "none",
+   "probe_p": 0.61
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "brain",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0000955",
+     "label": "brain",
+     "exact": true
+    },
+    {
+     "id": "UBERON:6110636",
+     "label": "insect adult cerebral ganglion",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0002616",
+     "label": "regional part of brain",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003528",
+     "label": "brain gray matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003544",
+     "label": "brain white matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0013150",
+     "label": "future brain vesicle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014891",
+     "label": "brainstem white matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003547",
+     "label": "brain meninx",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0000955",
+   "p": 0.99,
+   "probe_pick": "none",
+   "probe_p": 0.68
+  },
+  {
+   "label": "treatment",
+   "text": "OSK-treatment",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "mock",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": []
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.13,
+  "untreated_or_vehicle": 0.99,
+  "several_compounds": 0.11,
+  "route_or_side": 0.98,
+  "dose_per_unit": 0.32,
+  "duration_without_number": 0.06,
+  "time_from_event": 0.3,
+  "pooled_material": 0.23,
+  "held_constant": 0.96,
+  "batch": 0.11,
+  "sequencer": 0.02,
+  "vector": 0.97,
+  "one_control_many_materials": 0.05,
+  "baseline_as_control": 0.14,
+  "single_cell": 0.02,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "one_each",
+  0.67
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.003126966,
+   "seconds": 7.968,
+   "tokens_in": 16029,
+   "tokens_out": 1957
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000165102,
+   "seconds": 0.309,
+   "tokens_in": 3931
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.295,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.35,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.341,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.394,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.341,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119616,
+   "seconds": 0.285,
+   "tokens_in": 2848
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.0001197,
+   "seconds": 0.255,
+   "tokens_in": 2850
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.0001197,
+   "seconds": 0.294,
+   "tokens_in": 2850
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.0001197,
+   "seconds": 0.298,
+   "tokens_in": 2850
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.0001197,
+   "seconds": 0.257,
+   "tokens_in": 2850
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.0001197,
+   "seconds": 0.242,
+   "tokens_in": 2850
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.0001197,
+   "seconds": 0.305,
+   "tokens_in": 2850
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119868,
+   "seconds": 0.263,
+   "tokens_in": 2854
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119868,
+   "seconds": 0.282,
+   "tokens_in": 2854
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119868,
+   "seconds": 0.251,
+   "tokens_in": 2854
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119868,
+   "seconds": 0.266,
+   "tokens_in": 2854
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119868,
+   "seconds": 0.324,
+   "tokens_in": 2854
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 0.000119868,
+   "seconds": 0.314,
+   "tokens_in": 2854
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.00016464,
+   "seconds": 0.19,
+   "tokens_in": 3920
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 5.6028e-05,
+   "seconds": 0.268,
+   "tokens_in": 1334
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 4.9182e-05,
+   "seconds": 0.253,
+   "tokens_in": 1171
+  }
+ ],
+ "seconds": 0.24,
+ "ending": "settled",
+ "variant": "flash_full"
+}

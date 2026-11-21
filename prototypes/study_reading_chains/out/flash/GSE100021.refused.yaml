@@ -1,0 +1,3 @@
+study: GSE100021
+refused: 'crash: AttributeError("''tuple'' object has no attribute ''get''")'
+problems: null

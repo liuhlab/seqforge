@@ -1,0 +1,256 @@
+format: 1
+study: GSE129928
+models:
+  reading: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: Code drafted the lists from GEO's typed sample fields; Jev answered every closed question.
+passages:
+  1:
+    record:
+    - GSM3728255
+    - GSM3728256
+    - GSM3728257
+    - GSM3728262
+    - GSM3728263
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  2:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  3:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+  4:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Stage: mixed'
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole animal'
+  6:
+    record:
+    - GSM3728258
+    - GSM3728259
+    - GSM3728260
+    field: Sample_characteristics_ch1
+    quote: 'strain: wdr-5 (ok1417)'
+  7:
+    record:
+    - GSM3728261
+    - GSM3728266
+    field: Sample_characteristics_ch1
+    quote: 'strain: mixed'
+  8:
+    record:
+    - GSM3728264
+    - GSM3728265
+    field: Sample_characteristics_ch1
+    quote: 'strain: jhdm-1 (ok2364)'
+factors:
+  strain:
+    levels:
+    - N2
+    - wdr-5 (ok1417)
+    - mixed
+    - jhdm-1 (ok2364)
+    baseline: N2
+    ordered: false
+    inferred: the characteristic "strain" varies between samples
+    p: 0.88
+shared:
+  assay:
+    text: ChIP-Seq
+    quoted:
+    - 2
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 3
+    p: 1.0
+  development_stage:
+    text: mixed
+    quoted:
+    - 4
+    p: 0.58
+  tissue:
+    text: whole animal
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    unknown: nothing read says it
+    p: 0.68
+  control_type:
+    na: a library that is not a background control
+    p: 0.64
+  sex:
+    unknown: nothing read says it
+    p: 0.72
+  age:
+    unknown: nothing read says it
+    p: 0.63
+  cell_type:
+    na: whole tissue with no cell type isolated
+    p: 0.99
+  cell_line:
+    na: tissue taken from an animal
+    p: 1.0
+  disease:
+    na: does not apply to these samples
+    p: 0.9
+  genotype:
+    unknown: nothing read says it
+    p: 0.74
+  treatment:
+    na: no treatment applied
+    p: 0.87
+  dose:
+    na: no treatment
+    p: 0.86
+  duration:
+    na: no treatment
+    p: 0.66
+  donor:
+    na: a pool of many individuals
+    p: 0.99
+samples:
+  GSM3728255:
+    strain:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 0.99
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728256:
+    strain:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 0.99
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728257:
+    strain:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 0.99
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728258:
+    strain:
+      text: wdr-5 (ok1417)
+      level: wdr-5 (ok1417)
+      quoted:
+      - 6
+      p: 0.99
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728259:
+    strain:
+      text: wdr-5 (ok1417)
+      level: wdr-5 (ok1417)
+      quoted:
+      - 6
+      p: 0.98
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728260:
+    strain:
+      text: wdr-5 (ok1417)
+      level: wdr-5 (ok1417)
+      quoted:
+      - 6
+      p: 0.98
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728261:
+    strain:
+      text: mixed
+      level: mixed
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728262:
+    strain:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 0.97
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728263:
+    strain:
+      text: N2
+      level: N2
+      quoted:
+      - 1
+      p: 0.97
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728264:
+    strain:
+      text: jhdm-1 (ok2364)
+      level: jhdm-1 (ok2364)
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728265:
+    strain:
+      text: jhdm-1 (ok2364)
+      level: jhdm-1 (ok2364)
+      quoted:
+      - 8
+      p: 1.0
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM3728266:
+    strain:
+      text: mixed
+      level: mixed
+      quoted:
+      - 7
+      p: 1.0
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null

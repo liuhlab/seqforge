@@ -1,0 +1,2483 @@
+{
+ "study": "GSE288106",
+ "chain": "flash_think",
+ "read_full": false,
+ "n_samples": 16,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "disease",
+   "levels": [
+    "healthy_control",
+    "FTLD_TDP_A",
+    "FTLD_TDP_A_C9orf72",
+    "FTLD_TDP_C"
+   ],
+   "p_designed": 0.97,
+   "p_designed_neg": 0.09,
+   "baseline": "L0",
+   "p_baseline": 0.99,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 1.0,
+   "p_ordered": 0.05,
+   "writer_baseline": "healthy_control",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [
+  [
+   "GSM8759024",
+   "lab_genotype",
+   "na",
+   "unknown"
+  ],
+  [
+   "GSM8759026",
+   "lab_genotype",
+   "v1",
+   "unknown"
+  ],
+  [
+   "GSM8759027",
+   "lab_genotype",
+   "v1",
+   "unknown"
+  ]
+ ],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "age",
+   "mark": "unknown",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "unknown",
+   "p": 0.61,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "unknown",
+   "p": 0.86,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 0.69,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "na",
+   "p": 0.91,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "post_mortem_delay",
+   "mark": "unknown",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "batch",
+   "mark": "unknown",
+   "p": 0.9,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.87,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "na",
+   "p": 0.44,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.57,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.84,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.77,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.9,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.48,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.88,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.45,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.85,
+   "shared": false
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "unknown",
+   "p": 0.48,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "donor",
+   "mark": "inferred",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "factor:disease",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM8759021": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "healthy controls",
+    "healthy_control"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ],
+   "donor": [
+    "D_CTRL1",
+    null
+   ]
+  },
+  "GSM8759022": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "TDPC",
+    "FTLD_TDP_C"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "genotype": [
+    "sporadic FTLD-TDP",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ],
+   "donor": [
+    "D_TDPC1",
+    null
+   ]
+  },
+  "GSM8759023": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "TDPC",
+    "FTLD_TDP_C"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "genotype": [
+    "sporadic FTLD-TDP",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ],
+   "donor": [
+    "D_TDPC2",
+    null
+   ]
+  },
+  "GSM8759024": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "healthy controls",
+    "healthy_control"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "genotype": [
+    "<na>",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ],
+   "donor": [
+    "D_CTRL2",
+    null
+   ]
+  },
+  "GSM8759025": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "TDPA-C9",
+    "FTLD_TDP_A_C9orf72"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "genotype": [
+    "C9orf72",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ],
+   "donor": [
+    "D_C9 TDPA1",
+    null
+   ]
+  },
+  "GSM8759026": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "FTLD-TDPA",
+    "FTLD_TDP_A"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "genotype": [
+    "sporadic FTLD-TDP",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ],
+   "donor": [
+    "D_TDPA1",
+    null
+   ]
+  },
+  "GSM8759027": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "FTLD-TDPA",
+    "FTLD_TDP_A"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "genotype": [
+    "sporadic FTLD-TDP",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ],
+   "donor": [
+    "D_TDPA2",
+    null
+   ]
+  },
+  "GSM8759028": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "TDPC",
+    "FTLD_TDP_C"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "genotype": [
+    "sporadic FTLD-TDP",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ],
+   "donor": [
+    "D_TDPC3",
+    null
+   ]
+  },
+  "GSM8759029": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "TDPA-C9",
+    "FTLD_TDP_A_C9orf72"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "genotype": [
+    "C9orf72",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ],
+   "donor": [
+    "D_C9 TDPA2",
+    null
+   ]
+  },
+  "GSM8759030": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "TDPC",
+    "FTLD_TDP_C"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "genotype": [
+    "sporadic FTLD-TDP",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ],
+   "donor": [
+    "D_TDPC4",
+    null
+   ]
+  },
+  "GSM8759031": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "TDPC",
+    "FTLD_TDP_C"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "genotype": [
+    "sporadic FTLD-TDP",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ],
+   "donor": [
+    "D_TDPC5",
+    null
+   ]
+  },
+  "GSM8759032": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "FTLD-TDPA",
+    "FTLD_TDP_A"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "genotype": [
+    "sporadic FTLD-TDP",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ],
+   "donor": [
+    "D_TDPA3",
+    null
+   ]
+  },
+  "GSM8759033": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "healthy controls",
+    "healthy_control"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B13",
+    null
+   ],
+   "donor": [
+    "D_CTRL3",
+    null
+   ]
+  },
+  "GSM8759034": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "TDPA-C9",
+    "FTLD_TDP_A_C9orf72"
+   ],
+   "sex": [
+    "Female",
+    null
+   ],
+   "genotype": [
+    "C9orf72",
+    null
+   ],
+   "biosample": [
+    "B14",
+    null
+   ],
+   "donor": [
+    "D_C9 TDPA3",
+    null
+   ]
+  },
+  "GSM8759035": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "healthy controls",
+    "healthy_control"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B15",
+    null
+   ],
+   "donor": [
+    "D_CTRL4",
+    null
+   ]
+  },
+  "GSM8759036": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Homo sapiens",
+    null
+   ],
+   "tissue": [
+    "Brain",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "age": [
+    "<unknown>",
+    null
+   ],
+   "development_stage": [
+    "<unknown>",
+    null
+   ],
+   "cell_type": [
+    "<unknown>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "strain": [
+    "<na>",
+    null
+   ],
+   "treatment": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "post_mortem_delay": [
+    "<unknown>",
+    null
+   ],
+   "batch": [
+    "<unknown>",
+    null
+   ],
+   "disease": [
+    "healthy controls",
+    "healthy_control"
+   ],
+   "sex": [
+    "Male",
+    null
+   ],
+   "genotype": [
+    "<unknown>",
+    null
+   ],
+   "biosample": [
+    "B16",
+    null
+   ],
+   "donor": [
+    "D_CTRL5",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "disease": {
+   "levels": [
+    "healthy_control",
+    "FTLD_TDP_A",
+    "FTLD_TDP_A_C9orf72",
+    "FTLD_TDP_C"
+   ],
+   "baseline": "healthy_control",
+   "ordered": false,
+   "quoted": [
+    12
+   ],
+   "p": 0.97
+  }
+ },
+ "n_passages": 12,
+ "n_shared": 15,
+ "n_row_claims": 80,
+ "lists_summary": {
+  "factors": 1,
+  "factors_kept": 1,
+  "labels_with_values": 5,
+  "extra_labels": 2,
+  "writer_gaps": [
+   {
+    "kind": "term_missing",
+    "note": "No per-sample age, life stage, or cell type in records."
+   },
+   {
+    "kind": "baseline_as_control",
+    "note": "Healthy controls are baseline, not input/IgG controls."
+   },
+   {
+    "kind": "factor_over_part",
+    "note": "C9orf72 named only for C9 TDPA; control genotypes absent."
+   },
+   {
+    "kind": "batch",
+    "note": "Batch number used for normalisation but no batch IDs shown."
+   },
+   {
+    "kind": "time_from_event",
+    "note": "Post-mortem delay is covariate; no per-sample values."
+   },
+   {
+    "kind": "other",
+    "note": "GEO tissue field says Brain; design specifies frontal cortex grey matter."
+   }
+  ],
+  "donor_kind_writer": "one_each",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "disease/L0",
+   "status": "named",
+   "source": "GSE288106",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 18,
+   "backs_p": 0.26
+  },
+  {
+   "key": "disease/L1",
+   "status": "named",
+   "source": "GSE288106",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.96
+  },
+  {
+   "key": "disease/L2",
+   "status": "named",
+   "source": "GSE288106",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.88
+  },
+  {
+   "key": "disease/L3",
+   "status": "named",
+   "source": "GSE288106",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 6,
+   "backs_p": 0.94
+  },
+  {
+   "key": "disease/_factor",
+   "status": "named",
+   "source": "GSE288106",
+   "field": "Series_overall_design",
+   "exact": true,
+   "quote_len": 124,
+   "backs_p": 0.82
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 12,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "GSM8759021",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v1",
+   "status": "named",
+   "source": "GSM8759022",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 11,
+   "backs_p": 0.99
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "record": "each_sample",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 13,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/v0",
+   "status": "named",
+   "source": "GSE288106",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 31,
+   "backs_p": 0.9
+  },
+  {
+   "key": "genotype/v1",
+   "status": "named",
+   "source": "GSE288106",
+   "field": "Series_summary",
+   "exact": true,
+   "quote_len": 56,
+   "backs_p": 0.68
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "disease",
+   "text": "FTLD-TDPA",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "TDPA-C9",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "TDPC",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "disease",
+   "text": "healthy controls",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "Brain",
+   "vocab": [
+    "uberon"
+   ],
+   "candidates": [
+    {
+     "id": "UBERON:0000955",
+     "label": "brain",
+     "exact": true
+    },
+    {
+     "id": "UBERON:6110636",
+     "label": "insect adult cerebral ganglion",
+     "exact": true
+    },
+    {
+     "id": "UBERON:0002616",
+     "label": "regional part of brain",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003528",
+     "label": "brain gray matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003544",
+     "label": "brain white matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0013150",
+     "label": "future brain vesicle",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0014891",
+     "label": "brainstem white matter",
+     "exact": false
+    },
+    {
+     "id": "UBERON:0003547",
+     "label": "brain meninx",
+     "exact": false
+    }
+   ],
+   "pick": "UBERON:0000955",
+   "p": 0.99,
+   "probe_pick": "none",
+   "probe_p": 0.76
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.13,
+  "untreated_or_vehicle": 0.31,
+  "several_compounds": 0.28,
+  "route_or_side": 0.07,
+  "dose_per_unit": 0.11,
+  "duration_without_number": 0.07,
+  "time_from_event": 0.23,
+  "pooled_material": 0.12,
+  "held_constant": 0.92,
+  "batch": 0.2,
+  "sequencer": 0.04,
+  "vector": 0.03,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.09,
+  "single_cell": 0.95,
+  "mixed_assays": 0.02
+ },
+ "donor_kind": [
+  "one_each",
+  0.95
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.009027456,
+   "seconds": 74.252,
+   "tokens_in": 4276,
+   "tokens_out": 14259
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000240576,
+   "seconds": 0.38,
+   "tokens_in": 5728
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.364,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6726e-05,
+   "seconds": 0.369,
+   "tokens_in": 2303
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.308,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.308,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.368,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6726e-05,
+   "seconds": 0.305,
+   "tokens_in": 2303
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6726e-05,
+   "seconds": 0.289,
+   "tokens_in": 2303
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6852e-05,
+   "seconds": 0.256,
+   "tokens_in": 2306
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6726e-05,
+   "seconds": 0.272,
+   "tokens_in": 2303
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6852e-05,
+   "seconds": 0.303,
+   "tokens_in": 2306
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.254,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.247,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.285,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.317,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.304,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.267,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6852e-05,
+   "seconds": 0.314,
+   "tokens_in": 2306
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.681e-05,
+   "seconds": 0.278,
+   "tokens_in": 2305
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6852e-05,
+   "seconds": 0.31,
+   "tokens_in": 2306
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.681e-05,
+   "seconds": 0.252,
+   "tokens_in": 2305
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.681e-05,
+   "seconds": 0.297,
+   "tokens_in": 2305
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.681e-05,
+   "seconds": 0.297,
+   "tokens_in": 2305
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.681e-05,
+   "seconds": 0.272,
+   "tokens_in": 2305
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.681e-05,
+   "seconds": 0.271,
+   "tokens_in": 2305
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.265,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.243,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6894e-05,
+   "seconds": 0.302,
+   "tokens_in": 2307
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.324,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.285,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.328,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.6894e-05,
+   "seconds": 0.302,
+   "tokens_in": 2307
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.676799999999999e-05,
+   "seconds": 0.335,
+   "tokens_in": 2304
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000188202,
+   "seconds": 0.112,
+   "tokens_in": 4481
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 2.8811999999999998e-05,
+   "seconds": 0.274,
+   "tokens_in": 686
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 2.7887999999999998e-05,
+   "seconds": 0.544,
+   "tokens_in": 664
+  }
+ ],
+ "seconds": 0.16,
+ "ending": "settled",
+ "variant": "flash_think"
+}

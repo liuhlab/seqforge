@@ -1,0 +1,1902 @@
+{
+ "study": "GSE243994",
+ "chain": "flash",
+ "read_full": true,
+ "n_samples": 12,
+ "dropped_samples": 0,
+ "has_full_text": true,
+ "factors": [
+  {
+   "label": "genotype",
+   "levels": [
+    "daf_2_rf",
+    "daf_16_0_daf_2_rf"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.04,
+   "baseline": "L0",
+   "p_baseline": 0.81,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.89,
+   "p_ordered": 0.72,
+   "writer_baseline": "daf_2_rf",
+   "writer_ordered": false,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  },
+  {
+   "label": "age",
+   "levels": [
+    "day1",
+    "day7"
+   ],
+   "p_designed": 0.99,
+   "p_designed_neg": 0.08,
+   "baseline": "L0",
+   "p_baseline": 0.77,
+   "baseline_rev": "L0",
+   "p_baseline_rev": 0.82,
+   "p_ordered": 0.96,
+   "writer_baseline": null,
+   "writer_ordered": true,
+   "designed_disagree": false,
+   "baseline_disagree": false,
+   "kept": true
+  }
+ ],
+ "unsettled_reasons": [],
+ "disagree": [],
+ "claims": [
+  {
+   "label": "assay",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "species",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "sex",
+   "mark": "quoted",
+   "p": 0.92,
+   "shared": true
+  },
+  {
+   "label": "development_stage",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "tissue",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_type",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": true
+  },
+  {
+   "label": "disease",
+   "mark": "inferred",
+   "p": 0.95,
+   "shared": true
+  },
+  {
+   "label": "strain",
+   "mark": "inferred",
+   "p": 0.76,
+   "shared": true
+  },
+  {
+   "label": "treatment",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "target",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "control_type",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "cell_line",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "dose",
+   "mark": "na",
+   "p": 1.0,
+   "shared": true
+  },
+  {
+   "label": "duration",
+   "mark": "na",
+   "p": 0.98,
+   "shared": true
+  },
+  {
+   "label": "donor",
+   "mark": "na",
+   "p": 0.53,
+   "shared": true
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.7,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.6,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.95,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.83,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.8,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.91,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.86,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.99,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.98,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.97,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.94,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "genotype",
+   "mark": "quoted",
+   "p": 1.0,
+   "shared": false
+  },
+  {
+   "label": "age",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "time_point",
+   "mark": "quoted",
+   "p": 0.96,
+   "shared": false
+  },
+  {
+   "label": "biosample",
+   "mark": "inferred",
+   "p": null,
+   "shared": false
+  },
+  {
+   "label": "factor:genotype",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": true
+  },
+  {
+   "label": "factor:age",
+   "mark": "inferred",
+   "p": 0.99,
+   "shared": true
+  }
+ ],
+ "values": {
+  "GSM7804448": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-2(rf)",
+    "daf_2_rf"
+   ],
+   "age": [
+    "D1",
+    "day1"
+   ],
+   "time_point": [
+    "d1",
+    null
+   ],
+   "biosample": [
+    "B1",
+    null
+   ]
+  },
+  "GSM7804449": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-2(rf)",
+    "daf_2_rf"
+   ],
+   "age": [
+    "D1",
+    "day1"
+   ],
+   "time_point": [
+    "d1",
+    null
+   ],
+   "biosample": [
+    "B2",
+    null
+   ]
+  },
+  "GSM7804450": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-2(rf)",
+    "daf_2_rf"
+   ],
+   "age": [
+    "D1",
+    "day1"
+   ],
+   "time_point": [
+    "d1",
+    null
+   ],
+   "biosample": [
+    "B3",
+    null
+   ]
+  },
+  "GSM7804451": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf 16(-); daf 2(rf)",
+    "daf_16_0_daf_2_rf"
+   ],
+   "age": [
+    "D1",
+    "day1"
+   ],
+   "time_point": [
+    "d1",
+    null
+   ],
+   "biosample": [
+    "B4",
+    null
+   ]
+  },
+  "GSM7804452": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf 16(-); daf 2(rf)",
+    "daf_16_0_daf_2_rf"
+   ],
+   "age": [
+    "D1",
+    "day1"
+   ],
+   "time_point": [
+    "d1",
+    null
+   ],
+   "biosample": [
+    "B5",
+    null
+   ]
+  },
+  "GSM7804453": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf 16(-); daf 2(rf)",
+    "daf_16_0_daf_2_rf"
+   ],
+   "age": [
+    "D1",
+    "day1"
+   ],
+   "time_point": [
+    "d1",
+    null
+   ],
+   "biosample": [
+    "B6",
+    null
+   ]
+  },
+  "GSM7804454": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-2(rf)",
+    "daf_2_rf"
+   ],
+   "age": [
+    "D7",
+    "day7"
+   ],
+   "time_point": [
+    "d7",
+    null
+   ],
+   "biosample": [
+    "B7",
+    null
+   ]
+  },
+  "GSM7804455": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-2(rf)",
+    "daf_2_rf"
+   ],
+   "age": [
+    "D7",
+    "day7"
+   ],
+   "time_point": [
+    "d7",
+    null
+   ],
+   "biosample": [
+    "B8",
+    null
+   ]
+  },
+  "GSM7804456": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf-2(rf)",
+    "daf_2_rf"
+   ],
+   "age": [
+    "D7",
+    "day7"
+   ],
+   "time_point": [
+    "d7",
+    null
+   ],
+   "biosample": [
+    "B9",
+    null
+   ]
+  },
+  "GSM7804457": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf 16(-); daf 2(rf)",
+    "daf_16_0_daf_2_rf"
+   ],
+   "age": [
+    "D7",
+    "day7"
+   ],
+   "time_point": [
+    "d7",
+    null
+   ],
+   "biosample": [
+    "B10",
+    null
+   ]
+  },
+  "GSM7804458": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf 16(-); daf 2(rf)",
+    "daf_16_0_daf_2_rf"
+   ],
+   "age": [
+    "D7",
+    "day7"
+   ],
+   "time_point": [
+    "d7",
+    null
+   ],
+   "biosample": [
+    "B11",
+    null
+   ]
+  },
+  "GSM7804459": {
+   "assay": [
+    "RNA-Seq",
+    null
+   ],
+   "species": [
+    "Caenorhabditis elegans",
+    null
+   ],
+   "sex": [
+    "hermaphrodite",
+    null
+   ],
+   "development_stage": [
+    "adult",
+    null
+   ],
+   "tissue": [
+    "the proximal region of the somatic gonad (PSG) cells",
+    null
+   ],
+   "cell_type": [
+    "PSG cells",
+    null
+   ],
+   "disease": [
+    "healthy",
+    null
+   ],
+   "strain": [
+    "N2 wild type (Bristol)",
+    null
+   ],
+   "treatment": [
+    "untreated",
+    null
+   ],
+   "target": [
+    "<na>",
+    null
+   ],
+   "control_type": [
+    "<na>",
+    null
+   ],
+   "cell_line": [
+    "<na>",
+    null
+   ],
+   "dose": [
+    "<na>",
+    null
+   ],
+   "duration": [
+    "<na>",
+    null
+   ],
+   "donor": [
+    "<na>",
+    null
+   ],
+   "genotype": [
+    "daf 16(-); daf 2(rf)",
+    "daf_16_0_daf_2_rf"
+   ],
+   "age": [
+    "D7",
+    "day7"
+   ],
+   "time_point": [
+    "d7",
+    null
+   ],
+   "biosample": [
+    "B12",
+    null
+   ]
+  }
+ },
+ "factor_out": {
+  "genotype": {
+   "levels": [
+    "daf_2_rf",
+    "daf_16_0_daf_2_rf"
+   ],
+   "baseline": "daf_2_rf",
+   "ordered": true,
+   "inferred": "two genetic backgrounds compared",
+   "p": 0.99
+  },
+  "age": {
+   "levels": [
+    "day1",
+    "day7"
+   ],
+   "baseline": "day1",
+   "ordered": true,
+   "inferred": "day 1 vs day 7 of adulthood",
+   "p": 0.99
+  }
+ },
+ "n_passages": 12,
+ "n_shared": 15,
+ "n_row_claims": 48,
+ "lists_summary": {
+  "factors": 2,
+  "factors_kept": 2,
+  "labels_with_values": 9,
+  "extra_labels": 1,
+  "writer_gaps": [
+   {
+    "kind": "series_membership",
+    "note": "all samples share series; factor varies only genotype and day"
+   },
+   {
+    "kind": "term_missing",
+    "note": "sex not in GEO records; taken from paper text"
+   },
+   {
+    "kind": "pooled_material",
+    "note": "each replicate pools ~20,000 worms"
+   }
+  ],
+  "donor_kind_writer": "pool",
+  "keymap": null
+ },
+ "quotes": [
+  {
+   "key": "genotype/L0",
+   "status": "named",
+   "source": "GSM7804448",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 19,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/L1",
+   "status": "named",
+   "source": "GSM7804451",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 30,
+   "backs_p": 0.99
+  },
+  {
+   "key": "genotype/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "age/L0",
+   "status": "named",
+   "source": "GSM7804448",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.89
+  },
+  {
+   "key": "age/L1",
+   "status": "named",
+   "source": "GSM7804454",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.92
+  },
+  {
+   "key": "age/_factor",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "assay/v0",
+   "status": "named",
+   "source": "GSM7804448",
+   "field": "Sample_library_strategy",
+   "exact": true,
+   "quote_len": 7,
+   "backs_p": 0.99
+  },
+  {
+   "key": "species/v0",
+   "status": "named",
+   "source": "GSM7804448",
+   "field": "Sample_organism_ch1",
+   "exact": true,
+   "quote_len": 22,
+   "backs_p": 0.99
+  },
+  {
+   "key": "sex/v0",
+   "status": "named",
+   "source": "pmid:38851828",
+   "field": "Introduction",
+   "exact": true,
+   "quote_len": 71,
+   "backs_p": 0.83
+  },
+  {
+   "key": "development_stage/v0",
+   "status": "named",
+   "source": "pmid:38851828",
+   "field": "Results > RNA-seq transcriptional profiling to define the DAF-16/FOXO transcriptomes of isolated adult PSG cells",
+   "exact": true,
+   "quote_len": 41,
+   "backs_p": 0.98
+  },
+  {
+   "key": "tissue/v0",
+   "status": "named",
+   "source": "GSM7804448",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 60,
+   "backs_p": 0.99
+  },
+  {
+   "key": "cell_type/v0",
+   "status": "named",
+   "source": "pmid:38851828",
+   "field": "Results > RNA-seq transcriptional profiling to define the DAF-16/FOXO transcriptomes of isolated adult PSG cells",
+   "exact": true,
+   "quote_len": 82,
+   "backs_p": 0.95
+  },
+  {
+   "key": "disease/v0",
+   "status": "none",
+   "quote_len": 0,
+   "backs_p": null
+  },
+  {
+   "key": "strain/v0",
+   "status": "named",
+   "source": "pmid:38851828",
+   "field": "Methods > C. elegans strains and maintenance",
+   "exact": true,
+   "quote_len": 83,
+   "backs_p": 0.44
+  },
+  {
+   "key": "treatment/v0",
+   "status": "named",
+   "source": "GSM7804448",
+   "field": "Sample_characteristics_ch1",
+   "exact": true,
+   "quote_len": 20,
+   "backs_p": 0.99
+  },
+  {
+   "key": "time_point/v0",
+   "status": "named",
+   "source": "GSM7804448",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.97
+  },
+  {
+   "key": "time_point/v1",
+   "status": "named",
+   "source": "GSM7804454",
+   "field": "Sample_title",
+   "exact": true,
+   "quote_len": 9,
+   "backs_p": 0.98
+  }
+ ],
+ "pairs": [],
+ "ontology": [
+  {
+   "label": "cell_type",
+   "text": "PSG cells",
+   "vocab": [
+    "cl"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "development_stage",
+   "text": "adult",
+   "vocab": [
+    "wbls"
+   ],
+   "candidates": [
+    {
+     "id": "WBls:0000083",
+     "label": "Brugia adult",
+     "exact": true
+    },
+    {
+     "id": "WBls:0000710",
+     "label": "Platyhelminthes adult",
+     "exact": true
+    },
+    {
+     "id": "WBls:0000041",
+     "label": "adult Ce",
+     "exact": true
+    },
+    {
+     "id": "WBls:0000060",
+     "label": "reproductive stage adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000100",
+     "label": "Brugia young adult",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000058",
+     "label": "pre-reproductive stage adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000062",
+     "label": "post-reproductive stage adult hermaphrodite Ce",
+     "exact": false
+    },
+    {
+     "id": "WBls:0000039",
+     "label": "L4-adult lethargus Ce",
+     "exact": false
+    }
+   ],
+   "pick": "WBls:0000041",
+   "p": 0.68,
+   "probe_pick": "WBls:0000060",
+   "probe_p": 0.59
+  },
+  {
+   "label": "disease",
+   "text": "healthy",
+   "vocab": [
+    "mondo"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "tissue",
+   "text": "the proximal region of the somatic gonad (PSG) cells",
+   "vocab": [
+    "wbbt",
+    "uberon"
+   ],
+   "candidates": []
+  },
+  {
+   "label": "treatment",
+   "text": "untreated",
+   "vocab": [
+    "chebi"
+   ],
+   "candidates": [
+    {
+     "id": "CHEBI:59034",
+     "label": "alpha-D-Man-(1->6)-[alpha-D-Man-(1->3)]-[beta-D-Xyl-(1->2)]-beta-D-Man-(1->4)-beta-D-GlcNAc-(1->4)-[alpha-L-Fuc-(1->3)]-beta-D-GlcNAc",
+     "exact": false
+    }
+   ],
+   "pick": "none",
+   "p": 1.0
+  }
+ ],
+ "gap_probes": {
+  "sources_disagree": 0.1,
+  "untreated_or_vehicle": 0.98,
+  "several_compounds": 0.02,
+  "route_or_side": 0.17,
+  "dose_per_unit": 0.09,
+  "duration_without_number": 0.06,
+  "time_from_event": 0.74,
+  "pooled_material": 0.73,
+  "held_constant": 0.95,
+  "batch": 0.07,
+  "sequencer": 0.02,
+  "vector": 0.04,
+  "one_control_many_materials": 0.04,
+  "baseline_as_control": 0.13,
+  "single_cell": 0.04,
+  "mixed_assays": 0.01
+ },
+ "donor_kind": [
+  "pool",
+  0.53
+ ],
+ "problems": [],
+ "ledger": [
+  {
+   "model": "deepseek",
+   "step": "writer",
+   "cost": 0.002758218,
+   "seconds": 6.227,
+   "tokens_in": 16567,
+   "tokens_out": 1302
+  },
+  {
+   "model": "jev",
+   "step": "study",
+   "cost": 0.000188958,
+   "seconds": 0.357,
+   "tokens_in": 4499
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.314,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.272,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.266,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.267,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.266,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.289,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.277,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.247,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.281,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.27,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.274,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.23,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.283,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.25,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.254,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.269,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.228,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5214e-05,
+   "seconds": 0.268,
+   "tokens_in": 2267
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.313,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.27,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.268,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.344,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.227,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "sample",
+   "cost": 9.5634e-05,
+   "seconds": 0.309,
+   "tokens_in": 2277
+  },
+  {
+   "model": "jev",
+   "step": "back",
+   "cost": 0.000162414,
+   "seconds": 0.216,
+   "tokens_in": 3867
+  },
+  {
+   "model": "jev",
+   "step": "onto",
+   "cost": 4.1411999999999996e-05,
+   "seconds": 0.244,
+   "tokens_in": 986
+  },
+  {
+   "model": "jev",
+   "step": "ontoprobe",
+   "cost": 3.507e-05,
+   "seconds": 0.513,
+   "tokens_in": 835
+  }
+ ],
+ "seconds": 0.28,
+ "ending": "settled",
+ "variant": "flash_full"
+}

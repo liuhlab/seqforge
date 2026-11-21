@@ -1,0 +1,1145 @@
+format: 1
+study: GSE235532
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: DeepSeek Flash wrote the lists from the records and the abstracts; Jev answered every closed
+  question.
+passages:
+  1:
+    record:
+    - GSM7504787
+    - GSM7504788
+    - GSM7504789
+    - GSM7504790
+    - GSM7504791
+    - GSM7504792
+    - GSM7504793
+    - GSM7504794
+    field: Sample_characteristics_ch1
+    quote: 'ip target: input'
+  2:
+    record:
+    - GSM7504787
+    - GSM7504788
+    - GSM7504791
+    - GSM7504792
+    - GSM7504795
+    - GSM7504796
+    - GSM7504799
+    - GSM7504800
+    - GSM7504803
+    - GSM7504804
+    - GSM7504807
+    - GSM7504808
+    field: Sample_characteristics_ch1
+    quote: 'genotype: LKRSDHMB01942 mutant'
+  3:
+    record:
+    - GSM7504787
+    - GSM7504788
+    - GSM7504789
+    - GSM7504790
+    - GSM7504795
+    - GSM7504796
+    - GSM7504797
+    - GSM7504798
+    - GSM7504803
+    - GSM7504804
+    - GSM7504805
+    - GSM7504806
+    field: Sample_characteristics_ch1
+    quote: 'age: 3 day'
+  4:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  5:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Drosophila melanogaster
+  6:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: Mated males were collected and maintained at 20 flies per vial
+  7:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: Mated males were collected and maintained at 20 flies per vial at 25˚C
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: head'
+  9:
+    record:
+    - GSM7504789
+    - GSM7504790
+    - GSM7504793
+    - GSM7504794
+    - GSM7504797
+    - GSM7504798
+    - GSM7504801
+    - GSM7504802
+    - GSM7504805
+    - GSM7504806
+    - GSM7504809
+    - GSM7504810
+    field: Sample_characteristics_ch1
+    quote: 'genotype: w1118'
+  10:
+    record:
+    - GSM7504791
+    - GSM7504792
+    - GSM7504793
+    - GSM7504794
+    - GSM7504799
+    - GSM7504800
+    - GSM7504801
+    - GSM7504802
+    - GSM7504807
+    - GSM7504808
+    - GSM7504809
+    - GSM7504810
+    field: Sample_characteristics_ch1
+    quote: 'age: 40 day'
+  11:
+    record:
+    - GSM7504795
+    - GSM7504796
+    - GSM7504797
+    - GSM7504798
+    - GSM7504799
+    - GSM7504800
+    - GSM7504801
+    - GSM7504802
+    field: Sample_characteristics_ch1
+    quote: 'ip target: H3K27me3'
+  12:
+    record:
+    - GSM7504803
+    - GSM7504804
+    - GSM7504805
+    - GSM7504806
+    - GSM7504807
+    - GSM7504808
+    - GSM7504809
+    - GSM7504810
+    field: Sample_characteristics_ch1
+    quote: 'ip target: H3R17me2'
+  13:
+    record: GSE235532
+    field: Series_overall_design
+    quote: chromatin immunoprecipitation followed by sequencing (ChIP-seq) experiments targeting H3R17me2
+      and H3K27me3
+  14:
+    record: GSE235532
+    field: Series_overall_design
+    quote: 3-day-old w1118 control, 3-day-old LKRSDHMB01942 mutant
+  15:
+    record: GSE235532
+    field: Series_overall_design
+    quote: 3-day-old w1118 control, 3-day-old LKRSDHMB01942 mutant, 40-day-old w1118 control and 40-day-old
+      LKRSDHMB01942 mutant flies
+factors:
+  target:
+    levels:
+    - input
+    - H3K27me3
+    - H3R17me2
+    baseline: null
+    ordered: true
+    quoted:
+    - 13
+    p: 0.98
+  genotype:
+    levels:
+    - w1118
+    - LKRSDHMB01942 mutant
+    baseline: w1118
+    ordered: true
+    quoted:
+    - 14
+    p: 0.98
+  age:
+    levels:
+    - 3 day
+    - 40 day
+    baseline: 3 day
+    ordered: true
+    quoted:
+    - 15
+    p: 0.99
+shared:
+  assay:
+    text: ChIP-Seq
+    quoted:
+    - 4
+    p: 1.0
+  species:
+    text: Drosophila melanogaster
+    term: NCBITaxon:7227
+    quoted:
+    - 5
+    p: 1.0
+  sex:
+    text: Mated males
+    quoted:
+    - 6
+    p: 0.97
+  development_stage:
+    text: adult
+    quoted:
+    - 7
+    p: 0.96
+  tissue:
+    text: head
+    term: UBERON:0000033
+    quoted:
+    - 8
+    p: 1.0
+  disease:
+    text: healthy
+    inferred: no disease described
+    p: 0.9
+  cell_type:
+    na: tissue taken from whole flies
+    p: 0.96
+  cell_line:
+    na: in vivo flies, not cultured cells
+    p: 1.0
+  treatment:
+    na: no treatment applied
+    p: 0.8
+  dose:
+    na: no treatment applied
+    p: 0.92
+  duration:
+    na: no treatment applied
+    p: 0.83
+  donor:
+    na: a pool of many individuals
+    p: 0.98
+samples:
+  GSM7504787:
+    target:
+      text: input
+      level: input
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 0.52
+    ip_target:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B1
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504788:
+    target:
+      text: input
+      level: input
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.56
+    ip_target:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B2
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504789:
+    target:
+      text: input
+      level: input
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B3
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504790:
+    target:
+      text: input
+      level: input
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B4
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504791:
+    target:
+      text: input
+      level: input
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.53
+    ip_target:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B5
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504792:
+    target:
+      text: input
+      level: input
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 0.56
+    ip_target:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B6
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504793:
+    target:
+      text: input
+      level: input
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B7
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504794:
+    target:
+      text: input
+      level: input
+      quoted:
+      - 1
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: input
+      quoted:
+      - 1
+      p: 1.0
+    biosample:
+      id: B8
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504795:
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.85
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 0.57
+    ip_target:
+      text: H3K27me3
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B9
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504796:
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.83
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 0.51
+    ip_target:
+      text: H3K27me3
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B10
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504797:
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.69
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: H3K27me3
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B11
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504798:
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.76
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: H3K27me3
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B12
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504799:
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.8
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.51
+    ip_target:
+      text: H3K27me3
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B13
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504800:
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.83
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 0.52
+    ip_target:
+      text: H3K27me3
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B14
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504801:
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.66
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: H3K27me3
+      quoted:
+      - 11
+      p: 0.99
+    biosample:
+      id: B15
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504802:
+    target:
+      text: H3K27me3
+      level: H3K27me3
+      quoted:
+      - 11
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.77
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: H3K27me3
+      quoted:
+      - 11
+      p: 0.98
+    biosample:
+      id: B16
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504803:
+    target:
+      text: H3R17me2
+      level: H3R17me2
+      quoted:
+      - 12
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.89
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 0.59
+    ip_target:
+      text: H3R17me2
+      quoted:
+      - 12
+      p: 0.99
+    biosample:
+      id: B17
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504804:
+    target:
+      text: H3R17me2
+      level: H3R17me2
+      quoted:
+      - 12
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.9
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 0.54
+    ip_target:
+      text: H3R17me2
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B18
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504805:
+    target:
+      text: H3R17me2
+      level: H3R17me2
+      quoted:
+      - 12
+      p: 0.99
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.81
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: H3R17me2
+      quoted:
+      - 12
+      p: 0.99
+    biosample:
+      id: B19
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504806:
+    target:
+      text: H3R17me2
+      level: H3R17me2
+      quoted:
+      - 12
+      p: 0.99
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3 day
+      quoted:
+      - 3
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.83
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: H3R17me2
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B20
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504807:
+    target:
+      text: H3R17me2
+      level: H3R17me2
+      quoted:
+      - 12
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.83
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 0.51
+    ip_target:
+      text: H3R17me2
+      quoted:
+      - 12
+      p: 0.99
+    biosample:
+      id: B21
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504808:
+    target:
+      text: H3R17me2
+      level: H3R17me2
+      quoted:
+      - 12
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942 mutant
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.77
+    strain:
+      unknown: what was read does not say its strain
+      p: 0.57
+    ip_target:
+      text: H3R17me2
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B22
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504809:
+    target:
+      text: H3R17me2
+      level: H3R17me2
+      quoted:
+      - 12
+      p: 0.99
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.8
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: H3R17me2
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B23
+      inferred: no text says this library shares its material with another
+      p: null
+  GSM7504810:
+    target:
+      text: H3R17me2
+      level: H3R17me2
+      quoted:
+      - 12
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 9
+      p: 1.0
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40 day
+      quoted:
+      - 10
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.76
+    strain:
+      text: w1118
+      quoted:
+      - 9
+      p: 1.0
+    ip_target:
+      text: H3R17me2
+      quoted:
+      - 12
+      p: 0.98
+    biosample:
+      id: B24
+      inferred: no text says this library shares its material with another
+      p: null
