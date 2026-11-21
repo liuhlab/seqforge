@@ -25,9 +25,10 @@ means — that's exactly what seqforge recovers from the files themselves. The f
 including what to do when Claude stops and asks a question, is in
 [Compiling with Claude](tutorials/with-claude.md).
 
-One thing worth knowing up front: reading a paper or sample sheet uses a language model, so set an
-`ANTHROPIC_API_KEY` (or `DEEPSEEK_API_KEY`) in your environment. If you have no prose to read, you can
-skip that and stay fully offline.
+One thing worth knowing up front: reading a paper or sample sheet uses a language model, through the
+lab's model gateway. Open a tunnel to it and set `LABLLM_GATEWAY` to its local address
+([Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/) says how); you need no provider key. If you have no prose to read, you can skip that and stay
+fully offline.
 
 ## Running it yourself
 

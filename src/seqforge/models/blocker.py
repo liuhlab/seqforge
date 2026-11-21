@@ -55,11 +55,10 @@ class BlockerCode(StrEnum):
     #: hand-written dialect, where an ``attributes`` key would hand an unverifiable line the standing
     #: an archive's typed slot has — see ``recordset.py`` for why that is a refusal and not a warning.
     RECORD_SET_INVALID = "RECORD_SET_INVALID"
-    #: One run reached the ceiling on the tokens it may spend at the model seam, so the request that
-    #: would have followed was refused and the extraction is incomplete. A ceiling that only warned
-    #: would be a number nobody sets: the run it exists to stop is exactly the run whose warning
-    #: scrolls past at request 400 of 983.
-    TOKEN_CEILING_EXCEEDED = "TOKEN_CEILING_EXCEEDED"
+    #: Harvest's model calls stopped: the run's dollar ceiling was reached, the provider's balance
+    #: or cap is used up, the provider stayed unavailable, or the gateway could not be reached. The
+    #: extraction is incomplete, so nothing is written from it; the evidence names which stop.
+    MODEL_CALLS_STOPPED = "MODEL_CALLS_STOPPED"
 
 
 class BlockerSubject(BaseModel):

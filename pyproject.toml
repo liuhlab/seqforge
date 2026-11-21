@@ -39,11 +39,9 @@ dependencies = [
     "anndata>=0.10",     # the pilot's deliverable format
     "pysam>=0.22",       # BAM read/write for the plate-assay UMI path
     "gffutils>=0.13",    # reads the annotation database liulab-genome built
-    # The LLM clients are lazy-imported; `run --no-llm` drives the compiler without them.
-    "anthropic>=0.40",
-    "openai>=1.40",      # any OpenAI-compatible endpoint (DeepSeek, vLLM, Ollama, ...)
-    # The run engine and the lab gateway's client: `seqforge pass` runs a unit kind through it.
-    # On PyPI, so unlike the two lab packages below it can be a plain range here.
+    # The run engine and the lab gateway's client: `seqforge pass` runs a unit kind through it, and
+    # `harvest extract` makes every model call through it. On PyPI, so unlike the two lab packages
+    # below it can be a plain range here.
     "liulab-llms>=2026.11.2",
     # liulab-genome and liulab-data are absent on purpose: PyPI rejects metadata carrying a
     # `git+https` reference. They are declared in the pixi tables, which never fold into the wheel.
@@ -113,8 +111,6 @@ huggingface_hub = ">=0.25"
 pypdf = ">=4"
 openpyxl = ">=3.1"
 anndata = ">=0.10"
-anthropic = ">=0.40"
-openai = ">=1.40"
 pymupdf = ">=1.28.0,<2"
 pdfplumber = ">=0.11.10,<0.12"
 gffutils = ">=0.13"
@@ -398,7 +394,7 @@ select = [
 ]
 # E501: the formatter owns line length. UP046/UP047: keep classic Generic[T]/TypeVar, which has the
 # better-tested pydantic-v2 + mypy support. N818: an exception here names the condition it signals
-# (`CaseSkipped`, `CeilingExceeded`, `TermUnknown`), and several are control flow, not errors.
+# (`CaseSkipped`, `ExtractUnavailable`, `TermUnknown`), and several are control flow, not errors.
 # D401: a docstring here states what is true ("The records, as a GENERATOR …"), in the declarative
 # voice of the commit subjects, not the imperative. D400: a predicate's docstring asks its question
 # ("Did a budget stop the read?"), so the summary may end in `?`, which D415 accepts and D400 does

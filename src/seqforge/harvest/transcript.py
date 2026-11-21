@@ -1,9 +1,9 @@
 """Giving a transcript an address: the one reader and the one writer of the ``.jsonl`` form.
 
-:class:`~seqforge.harvest.meter.TokenMeter` records every :class:`~seqforge.harvest.meter.Exchange`
-and deliberately writes no file — a meter that also chose a path would be two things. This module is
-the other half. It is the only place the on-disk shape is spelled, and it spells it twice (write and
-read) so that nobody downstream has to re-derive the format from a writer.
+:class:`~seqforge.harvest.seam.ModelSeam` records every :class:`~seqforge.harvest.seam.Exchange`
+and writes no file. This module is the other half. It is the only place the on-disk shape is
+spelled, and it spells it twice (write and read) so that nobody downstream has to re-derive the
+format from a writer.
 
 **One prompt plus N (document, response) pairs**, which is what a transcript *is*: the system prompt
 is byte-identical across every request in a run — that is why prefix caching works at all — so a
@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .meter import Exchange, Transcript
+from .seam import Exchange, Transcript
 
 #: Beside ``usage.json``, which is where the cost ledger already lives: the ledger says what a run
 #: spent, this says what it spent it on.
@@ -65,13 +65,16 @@ def _exchange(row: dict[str, object]) -> Exchange:
     usage = row.get("usage")
     mode = row.get("mode")
     error = row.get("error")
+    cost = row.get("cost_usd", 0.0)
     return Exchange(
         prompt_sha256=str(row.get("prompt_sha256", "")),
         user=str(row.get("user", "")),
         text=str(row.get("text", "")),
-        usage={k: int(v) for k, v in usage.items()} if isinstance(usage, dict) else {},
+        usage=dict(usage) if isinstance(usage, dict) else {},
         mode=dict(mode) if isinstance(mode, dict) else {},
         model=str(row.get("model", "")),
+        cost_usd=float(cost) if isinstance(cost, int | float) else 0.0,
+        cached=row.get("cached") is True,
         error=None if error is None else str(error),
     )
 

@@ -9,10 +9,10 @@ Everything else in seqforge is a verifier. This module's entire job is to turn p
   which document we sent, so a fabricated or mistyped sha is not a failure mode we need to have.
 - **No verdicts.** The model never asserts that its own quote is real or supportive; ``verify`` owns
   both flags and fails closed.
-- **No trusted shape.** Whatever the provider returns is validated against the canonical Pydantic
-  model here. That is what makes the provider swappable (see :mod:`seqforge.harvest.providers`):
-  strict-schema providers and json-object providers differ in how *likely* a malformed batch is,
-  never in whether one could reach the manifest.
+- **No trusted shape.** Whatever the model returns is validated against the canonical Pydantic
+  model here. That is what makes the model swappable (the calls go through
+  :mod:`seqforge.harvest.seam`): strict-schema providers and json-object providers differ in how
+  *likely* a malformed batch is, never in whether one could reach the manifest.
 
 The wire schema is derived from ``AssertionDraft`` — never hand-maintained — so the
 contract cannot drift from ``models/``.
@@ -22,25 +22,19 @@ from __future__ import annotations
 
 import json
 import re
-import time
 from collections.abc import Sequence
-from dataclasses import dataclass, field, replace
-from typing import Any
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ValidationError
 
-from ..io.remote import _MAX_RETRIES, retry_delay
 from ..kb.schema import Spec
 from ..models.assertion import AssertionDraft, ExtractorProvenance, SourceSpan
 from .fields import describe_asked, fields_for
 from .normalize import NormalizedDoc
-from .providers import (
-    LLMProvider,
-    LLMResponse,
-    ProviderUnavailable,
-    resolve_provider,
-    schema_prompt,
-)
+
+if TYPE_CHECKING:
+    from .seam import ModelSeam
 
 #: Bump on ANY prompt change — it is folded into ExtractorProvenance so a harvest is reproducible and
 #: blamable, and evals treat a prompt edit as a code change.
@@ -155,7 +149,7 @@ DEFAULT_MAX_OUTPUT_TOKENS = 8000
 
 
 class ExtractUnavailable(RuntimeError):
-    """The LLM surface could not produce a usable batch (no provider, API error, or bad shape)."""
+    """The model's reply could not be used: no JSON, or no `drafts` array, or a lost document."""
 
 
 class ExtractionResult(BaseModel):
@@ -176,9 +170,14 @@ class ExtractionOutcome:
     extractor: ExtractorProvenance
     provider: str = ""
     model: str = ""
-    #: How the call was made — thinking/effort, max_tokens, response_format (see ``LLMResponse.mode``).
+    #: How the call was made: the model's settings and its output allowance.
     mode: dict[str, object] = field(default_factory=dict)
-    usage: dict[str, int] = field(default_factory=dict)
+    #: The provider's own usage record, as the gateway returned it.
+    usage: dict[str, Any] = field(default_factory=dict)
+    #: What the request cost in dollars, zero on a cache hit.
+    cost_usd: float = 0.0
+    #: Whether the gateway's cache answered the request.
+    cached: bool = False
     #: Individual drafts the model returned malformed (e.g. ``value: null``) — dropped, not fatal. Same
     #: shape as ``VerifyReport.rejected`` so a run can report both surfaces the same way.
     rejected: list[dict[str, object]] = field(default_factory=list)
@@ -193,15 +192,8 @@ class ExtractionOutcome:
         """Did the model answer this document at all? An empty batch is an answer; a failure is not."""
         return self.failure is None
 
-    @property
-    def cache_hit(self) -> bool:
-        """True iff the stable prefix was served from cache (0 across repeats => an invalidator)."""
-        return self.usage.get("cache_read_tokens", 0) > 0
-
     @classmethod
-    def unanswered(
-        cls, *, provider: str, model: str, detail: str, usage: dict[str, int] | None = None
-    ) -> ExtractionOutcome:
+    def unanswered(cls, *, provider: str, model: str, detail: str) -> ExtractionOutcome:
         """One document the provider never answered, as a result rather than as an exception.
 
         It still names who was asked, because "nothing came back" is a fact about an extractor and a
@@ -214,7 +206,6 @@ class ExtractionOutcome:
             ),
             provider=provider,
             model=model,
-            usage=dict(usage or {}),
             failure=detail,
         )
 
@@ -241,6 +232,34 @@ def build_kb_context(specs: dict[str, Spec]) -> str:
             f"  aliases: {aliases}",
         ]
     return "\n".join(lines)
+
+
+def schema_prompt(schema: dict[str, Any]) -> str:
+    """The json-mode contract: say 'json', show the schema, show an example (DeepSeek requires both).
+
+    Harmless on providers that enforce a strict schema, so extraction keeps ONE prompt across
+    providers — one ``prompt_version``, one thing for evals to compare.
+    """
+    example = {
+        "drafts": [
+            {
+                "field": "library.chemistry",
+                "value": "10x-3p-gex-v3",
+                "span": {
+                    "doc_sha256": "<echo the sha given below>",
+                    "quote": "Chromium Single Cell 3' v3",
+                    "context": None,
+                },
+                "llm_confidence": 0.95,
+            }
+        ]
+    }
+    return (
+        "Return a single json object matching this JSON Schema exactly:\n"
+        f"{json.dumps(schema, separators=(',', ':'))}\n\n"
+        "Example of a well-formed json response (an empty `drafts` list is valid and common):\n"
+        f"{json.dumps(example, indent=2)}\n"
+    )
 
 
 def build_system_prompt(specs: dict[str, Spec], schema: dict[str, Any]) -> str:
@@ -331,51 +350,11 @@ def llm_schema() -> dict[str, Any]:
     return ExtractionResult.model_json_schema()
 
 
-def _complete_with_retry(llm: LLMProvider, **call: Any) -> LLMResponse:
-    """One provider call, retried while the provider says the failure was transient.
-
-    `run` stops at the first refusal, so before this a single 429 mid-harvest exited the whole
-    headless run — and discarded every document already extracted, which had been paid for in tokens.
-    That is the same defect a 429 caused in the `records` stage, so this borrows that fix's policy
-    (`retry_delay`, `_MAX_RETRIES`) rather than inventing a second one.
-
-    **The provider classifies; this only obeys.** By the time a `ProviderUnavailable` arrives here the
-    SDK exception is gone and "no credential" is indistinguishable from "rate limited" — so a loop
-    that guessed would back off four times over a missing API key. It retries only what was *marked*
-    transient, and `retry_after` carries the pace: `"0"` for an empty body, which asks for nothing,
-    and the server's own `Retry-After` for a rate limit.
-
-    Usage accrues across attempts. A refused call still burned tokens, and the ledger is meant to say
-    what the calls cost rather than what the last one did.
-    """
-    spent: dict[str, int] = {}
-
-    def _bank(usage: dict[str, int]) -> None:
-        for key, val in usage.items():
-            spent[key] = spent.get(key, 0) + val
-
-    for attempt in range(_MAX_RETRIES + 1):
-        try:
-            response = llm.complete_json(**call)
-        except ProviderUnavailable as exc:
-            _bank(exc.usage)
-            if not exc.transient or attempt == _MAX_RETRIES:
-                # Terminal, or the budget is spent. Either way it fails loudly as `llm_unavailable`
-                # at exit 1 — bounded, never a spin.
-                raise ExtractUnavailable(str(exc)) from exc
-            time.sleep(retry_delay(exc.retry_after, attempt))
-            continue
-        _bank(response.usage)
-        return replace(response, usage=spent)
-    raise AssertionError("unreachable: the loop either returns or raises")  # pragma: no cover
-
-
 def extract_drafts(
     doc: NormalizedDoc,
     specs: dict[str, Spec],
     *,
-    provider: LLMProvider | None = None,
-    model: str | None = None,
+    seam: ModelSeam,
     fields: tuple[str, ...] | None = None,
     max_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
 ) -> ExtractionOutcome:
@@ -389,14 +368,7 @@ def extract_drafts(
     One document, one request: this is :func:`extract_batch` at width one, and that width is the one
     where the model's echoed ``doc_sha256`` is worthless as evidence and code overwrites it outright.
     """
-    return extract_batch(
-        [doc],
-        specs,
-        provider=provider,
-        model=model,
-        fields=fields,
-        max_tokens=max_tokens,
-    )[0]
+    return extract_batch([doc], specs, seam=seam, fields=fields, max_tokens=max_tokens)[0]
 
 
 def _parsed_drafts(text: str, provider_name: str) -> list[Any]:
@@ -463,8 +435,7 @@ def extract_batch(
     docs: Sequence[NormalizedDoc],
     specs: dict[str, Spec],
     *,
-    provider: LLMProvider | None = None,
-    model: str | None = None,
+    seam: ModelSeam,
     fields: tuple[str, ...] | None = None,
     max_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
 ) -> list[ExtractionOutcome]:
@@ -511,20 +482,15 @@ def extract_batch(
     if not docs:
         return []
     asked = fields if fields is not None else fields_for(docs[0].scope, docs[0].role)
-    try:
-        llm = provider if provider is not None else resolve_provider()
-    except ProviderUnavailable as exc:
-        raise ExtractUnavailable(str(exc)) from exc
-
-    chosen = model or llm.default_model()
     schema = llm_schema()
-    response = _complete_with_retry(
-        llm,
+    # Tagged with the document the request opens with, the one its cost is booked against below, so
+    # the gateway's record joins to the Ledger and the Transcript on the same document.
+    reply = seam.complete_json(
         system=build_system_prompt(specs, schema),
         user=_batch_user_content(docs, asked),
         schema=schema,
-        model=chosen,
         max_tokens=max_tokens,
+        tag=docs[0].doc_sha256,
     )
 
     # First index rather than the document itself: two members could in principle render identically,
@@ -537,7 +503,7 @@ def extract_batch(
 
     drafts: list[list[AssertionDraft]] = [[] for _ in docs]
     rejected: list[list[dict[str, object]]] = [[] for _ in docs]
-    for item in _parsed_drafts(response.text, llm.name):
+    for item in _parsed_drafts(reply.text, seam.name):
         try:
             draft = AssertionDraft.model_validate(item)
         except ValidationError as exc:
@@ -551,7 +517,7 @@ def extract_batch(
         index = 0 if len(docs) == 1 else home_of.get(draft.span.doc_sha256, -1)
         if index < 0:
             raise ExtractUnavailable(
-                f"{llm.name} returned a draft for document {draft.span.doc_sha256!r}, which is "
+                f"{seam.name} returned a draft for document {draft.span.doc_sha256!r}, which is "
                 f"none of the {len(docs)} documents this request carried"
             )
         drafts[index].append(_anchor(draft, docs[index]))
@@ -559,23 +525,26 @@ def extract_batch(
     extractor = ExtractorProvenance(
         # provenance records the provider too: the same prompt on a different model is a different
         # extractor, and evals must be able to tell those runs apart.
-        model_id=f"{llm.name}/{chosen}",
+        model_id=seam.model_id,
         prompt_version=EXTRACT_PROMPT_VERSION,
     )
+    mode = {**seam.mode, "max_output_tokens": max_tokens}
     return [
         ExtractionOutcome(
             drafts=drafts[i],
             extractor=extractor,
-            provider=llm.name,
-            model=chosen,
-            mode=response.mode,
+            provider=seam.name,
+            model=seam.model.name,
+            mode=mode,
             # Cost is a property of the REQUEST, and this batch was one. It is booked whole against
             # the document the request opens with — the one `document_sha256_in` reports for the
             # stored exchange, so the ledger and the transcript name the same document — and the
             # others carry nothing. Dividing it per document would print a number nobody was billed;
             # repeating it per document would make every consumer that sums the outcomes (the eval
             # harness does) report N times the real spend.
-            usage=response.usage if i == 0 else {},
+            usage=reply.usage if i == 0 else {},
+            cost_usd=reply.cost_usd if i == 0 else 0.0,
+            cached=reply.cached,
             rejected=rejected[i],
         )
         for i in range(len(docs))

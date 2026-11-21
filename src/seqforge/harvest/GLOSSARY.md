@@ -3,7 +3,8 @@
 Prose — the files you handed us and the archive records rendered as text — and the claims read out
 of it. This context covers `harvest/`: the model proposes here and nowhere else, code checks every
 claim against the bytes of the document it came from, and what a run spent at the model seam is
-itself part of the vocabulary.
+itself part of the vocabulary. The gateway, meter, cache and record are liulab-llms's words, defined
+in its `GLOSSARY.md`.
 
 Words every context shares — **Evidenced**, **Basis**, **Asserted**, **Declared** and the rest — are
 defined once in the repo-root `GLOSSARY-MAP.md`.
@@ -62,15 +63,16 @@ _Avoid_: proposal, raw assertion, candidate (a candidate is a scored technology)
 ### The model seam
 
 **Exchange**:
-One request and the response it got at the model seam, kept whole: system prompt, user text,
-returned text, usage, mode. The unit a **Transcript** is a list of, and the unit a call is counted
-in: a retry is its own exchange, because tokens were spent on it.
+One request harvest sent through its meter and what came back, as harvest saw it: system prompt,
+user text, returned text, usage, mode, cost. The unit a **Transcript** is a list of. Not
+liulab-llms's *exchange* (its `GLOSSARY.md`), which is one attempt at a provider: the gateway's
+retries are several of those under one of these, and a cache hit is one with no cost.
 _Avoid_: call, turn, message, completion, round-trip; a **Document** is what an exchange is *about*,
 not the exchange
 
 **Ceiling**:
-The most tokens one run may spend at the model seam, counted raw and approximate. It bounds what may
-be *spent* rather than what may be started, and it refuses rather than warns.
+The most dollars one harvest may spend, `--ceiling-usd`, one dollar unless told otherwise: the
+ceiling of the run's liulab-llms meter, which the gateway enforces. It refuses rather than warns.
 _Avoid_: limit, cap, quota, token budget, max tokens (that is one response's output bound); and
 never a **Budget**, which bounds one head in bytes and reads
 
@@ -95,6 +97,7 @@ _Avoid_: log, history, conversation, trace; `logs/usage.json` is the **Ledger** 
 spend was spent on
 
 **Ledger**:
-What one run spent at the model seam — per-document token and mode costs against the **Ceiling** —
-written to `logs/usage.json`. The numbers, where a **Transcript** is what they were spent on.
-_Avoid_: usage log, receipt, bill; the *meter* is what writes one, never the file
+What one run spent at the model seam, in dollars — the meter's counters and each document's cost
+and mode — written to `logs/usage.json`. The numbers, where a **Transcript** is what they were spent
+on.
+_Avoid_: usage log, receipt, bill; the *meter* is what counts, never the file

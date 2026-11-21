@@ -32,7 +32,7 @@ from ..pipeline import CompiledPipeline
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..workspace import logs_dir, readable, records_dir, state_dir
 from ._common import _auto_cpus, _load_manifest
-from .harvest import PdfBackendChoice, _harvest_extract_pipeline
+from .harvest import DEFAULT_CEILING_USD, PdfBackendChoice, _harvest_extract_pipeline
 from .manifest import _fill_manifest_pipeline
 from .processing import _instructions_from
 from .root import app
@@ -136,9 +136,9 @@ def _run_finish(stages: dict[str, object], code: int) -> None:
     summary: dict[str, object] = {"ok": code == 0, "exit_code": code, "stages": stages}
     harvest = stages.get("harvest")
     if isinstance(harvest, dict) and isinstance(harvest.get("usage"), dict):
-        # The token cost of understanding the prose, surfaced at the top: the full per-document ledger
-        # is on disk (seqforge/logs/usage.json, where the ledger has always lived) and in the harvest
-        # stage; this is the total a reader wants. `n_calls` is real requests, retries included.
+        # The dollar cost of understanding the prose, surfaced at the top: the full per-document
+        # Ledger is on disk (seqforge/logs/usage.json) and in the harvest stage; this is the total a
+        # reader wants.
         summary["llm_usage"] = harvest["usage"]
     if code == 0:
         assays = stages.get("assays")
@@ -162,10 +162,11 @@ def _run_finish(stages: dict[str, object], code: int) -> None:
 def _harvest_halts_run(payload: dict[str, object] | str, code: int) -> bool:
     """Does a harvest result stop the one-pass, or is it surfaced and stepped past?
 
-    A **conflict** (two instructions disagreeing on a `processing.*` field), an unavailable provider
-    or a token ceiling reached halts `run` — the first decides a value nothing else can, the second
-    means the LLM stage could not run at all, and the third means it ran only partly and the manifest
-    would be built from an extraction that was cut off mid-way. A **rejected reference claim** does
+    A **conflict** (two instructions disagreeing on a `processing.*` field), an unusable reply or a
+    stop (ceiling reached, provider balance used up, provider unavailable, gateway unreachable)
+    halts `run` — the first decides a value nothing else can, the second means the LLM stage could
+    not finish, and the third means it ran only partly and the manifest would be built from an
+    extraction that was cut off mid-way. A **rejected reference claim** does
     not: it never entered `assertions.json`, so the
     manifest is built from the accepted claims and the bytes, and chemistry comes from bytes anyway. It
     is reported in the summary (`needs_review` + the `rejected` list), which is what we ask for — "not a
@@ -319,20 +320,20 @@ def run_cmd(
         False, "--no-llm", help="Skip the one LLM stage; fully deterministic. Ignores --doc."
     ),
     provider: str | None = typer.Option(
-        None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
+        None, "--provider", help="The provider the lab gateway sends to (default: deepseek)."
     ),
     model: str | None = typer.Option(
         None,
         "--model",
-        help="Override the extraction model (DeepSeek: deepseek-v4-pro is the default | "
-        "deepseek-flash).",
+        help="The provider's exact model name (default on deepseek: deepseek-v4-pro). Required "
+        "with any other --provider.",
     ),
-    ceiling: int = typer.Option(
-        0,
-        "--ceiling",
+    ceiling_usd: float = typer.Option(
+        DEFAULT_CEILING_USD,
+        "--ceiling-usd",
         min=0,
-        help="Refuse past N tokens spent at the model seam in the harvest stage (raw: cached input "
-        "and cache writes count too). Halts the run with exit 3. 0 = no ceiling.",
+        help="The most the harvest stage may spend, in dollars. Reaching it halts the run with "
+        "exit 3.",
     ),
     processing_id: str = typer.Option("default", "--id", help="Human slug for the recipe."),
     fastq_dir: Path | None = typer.Option(
@@ -385,7 +386,7 @@ def run_cmd(
     The genome is the one real decision and has no safe default: pass --assembly/--annotation, or state
     it in an --instruction document. Everything else is optional — no accession, no paper, and
     --no-llm each give a quieter, still-true manifest. `harvest extract` is the sole LLM touchpoint and
-    calls its own provider (DEEPSEEK_API_KEY / ANTHROPIC_API_KEY), which is why --no-llm exists.
+    calls the lab gateway at $LABLLM_GATEWAY, which is why --no-llm exists: it reaches no gateway.
     """
     from ..io.remote import RemoteError
     from ..recordset import RecordSetError
@@ -465,7 +466,7 @@ def run_cmd(
             records_path=records_file,
             provider=provider,
             model=model,
-            ceiling=ceiling,
+            ceiling_usd=ceiling_usd,
             verify=True,
             workspace=workspace,
             pdf_backend=pdf_backend.value,

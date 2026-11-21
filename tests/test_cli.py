@@ -17,6 +17,7 @@ import yaml
 from genome import GeneCategoryNotDeclaredError, NoGeneCategoriesError
 from typer.testing import CliRunner, Result
 
+import harvest_kit
 from conftest import (
     SrcTrees,
     StubStore,
@@ -766,7 +767,7 @@ def test_run_steps_past_a_rejected_reference_claim_but_halts_on_a_conflict() -> 
 
     A rejected reference claim (the pilot's "Single Cell 3' v3.1" prose the entailment could not tie to
     a KB id) never enters the manifest and the bytes decide chemistry, so it is surfaced, not fatal. A
-    conflict (instructions disagreeing) and an unavailable provider still stop the pass.
+    conflict (instructions disagreeing) and an unusable reply still stop the pass.
     """
     from seqforge.cli.run import _harvest_halts_run
 
@@ -776,7 +777,7 @@ def test_run_steps_past_a_rejected_reference_claim_but_halts_on_a_conflict() -> 
         is False
     )
     assert _harvest_halts_run({"conflicts": [{"field": "processing.genome.assembly"}]}, 4) is True
-    assert _harvest_halts_run({"error": "no_provider"}, 1) is True  # the LLM stage could not run
+    assert _harvest_halts_run({"error": "llm_unavailable"}, 1) is True  # the stage could not finish
     assert _harvest_halts_run("some string payload", 4) is True  # not a dict -> cannot clear it
 
 
@@ -1636,34 +1637,7 @@ def test_io_publish_package_refuses_rather_than_guessing_when_no_token_is_presen
     assert "--dry-run" in result.stderr
 
 
-# ---------- the token Ceiling on the verbs that reach a model ----------
-class _CountingProvider:
-    """A provider that always answers, and always costs the same. Enough to reach a ceiling."""
-
-    name = "counting"
-
-    def __init__(self, per_call: int = 1000) -> None:
-        self.per_call = per_call
-        self.n_calls = 0
-
-    def default_model(self) -> str:
-        return "counting-model-1"
-
-    def complete_json(self, **kwargs: object) -> object:
-        from seqforge.harvest import LLMResponse
-
-        self.n_calls += 1
-        return LLMResponse(text=json.dumps({"drafts": []}), usage={"input_tokens": self.per_call})
-
-
-#: A ceiling one request wide for the documents `_prose_docs_apart` writes. The meter reserves a
-#: request's estimated cost before issuing it, so what a ceiling buys is a number of REQUESTS, not a
-#: number of documents — and a test that pinned the ceiling to a wave of the pool would pass only
-#: while the pool stayed narrow. One of those documents is estimated at roughly 5.2k tokens, so the
-#: first request is admitted and every other one is refused however many the pool offered at once.
-_CEILING = 6000
-
-
+# ---------- the model seam: harvest's calls through one liulab-llms meter ----------
 def _prose_docs(tmp_path: Path, n: int) -> list[str]:
     """N one-line documents, which all receive the same ask and therefore travel in ONE request."""
     paths = []
@@ -1678,13 +1652,9 @@ def _prose_docs_apart(tmp_path: Path, n: int) -> list[str]:
     """N documents that cannot share a request, for the tests that are about a COUNT of requests.
 
     Same-ask documents batch, and one-line prose all receives the same ask — so a test about
-    exchanges, or about a ceiling refusing partway through a fan-out, would otherwise be a test of a
-    single request and its counts would all read 1. Past half the character budget no two documents
-    fit together, which restores one request per document without any test having to say so.
-
-    The distinction is deliberately a second helper rather than a wider `_prose_docs`: what
-    `usage.n_calls` reports when several documents DO share a request is itself a thing worth
-    pinning, and inflating every document would delete the only case that can show it.
+    exchanges, or about a stop partway through a fan-out, would otherwise be a test of a single
+    request and its counts would all read 1. Past half the character budget no two documents fit
+    together, which restores one request per document without any test having to say so.
     """
     from seqforge.harvest.plan import MAX_BATCH_CHARS
 
@@ -1699,89 +1669,187 @@ def _prose_docs_apart(tmp_path: Path, n: int) -> list[str]:
     return paths
 
 
-def test_harvest_extract_refuses_at_the_ceiling_with_a_blocker(
+def _no_gateway(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make building a gateway client fail the test: the command under test must not need one."""
+
+    def make_gateway() -> object:
+        raise AssertionError("a gateway client was built")
+
+    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", make_gateway)
+
+
+def _paired_reads(tmp_path: Path) -> list[str]:
+    """A tiny bulk pair for a `run` that stops at harvest, before a read is probed."""
+    spec = kb.load_spec("bulk-rnaseq")
+    reads = kb.generate_reads(spec, n=50, seed=0)
+    f1, f2 = tmp_path / "s_R1.fastq.gz", tmp_path / "s_R2.fastq.gz"
+    write_fastq_gz(f1, reads["R1"])
+    write_fastq_gz(f2, reads["R2"])
+    return [str(f1), str(f2)]
+
+
+def test_harvest_ledger_is_in_dollars_and_joins_each_call_to_its_document(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A ceiling that only warned would be a number nobody sets, so it is a refusal: exit 3 with a
-    `Blocker`, the same shape every other refusal in the compiler takes — never `llm_unavailable`
-    at exit 1, which says the endpoint failed when it answered every request it was given.
-
-    Six documents is deliberately more than one wave of a small pool: the refusal must not depend on
-    the fan-out serialising. They are written too long to share a request, so six documents really
-    are six requests — one request of this shape is estimated at roughly 5.2k tokens, so `_CEILING`
-    covers one of the six and the rest are refused however many the pool offered at once.
+    """One meter per harvest, labelled by the dataset, under a one-dollar ceiling by default; each
+    call tagged with the document its cost is booked against; the Ledger in dollars from the
+    meter's counters and each reply's cost. A second harvest over the same documents is answered
+    from the gateway's cache and costs nothing.
     """
-    import seqforge.harvest as harvest_pkg
+    fake = harvest_kit.install(monkeypatch)
+    argv = ["harvest", "extract", *_prose_docs_apart(tmp_path, 3), "-C", str(tmp_path)]
 
-    provider = _CountingProvider(per_call=1000)
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+    result = runner.invoke(app, argv)
+    assert result.exit_code == 0, result.stdout
+    paid = [e for e in fake.record if not e.cached]
+    assert len(paid) == 3
+    assert len({e.meter for e in paid}) == 1, "one meter per invocation"
+    assert {(e.label, e.ceiling_usd) for e in paid} == {("dataset", 1.0)}
 
+    ledger = json.loads((tmp_path / "seqforge" / "logs" / "usage.json").read_text())
+    totals = ledger["totals"]
+    assert totals["spent_usd"] == pytest.approx(sum(e.cost_usd for e in paid))
+    assert totals["spent_usd"] > 0
+    assert (totals["n_calls"], totals["n_documents"], totals["cache_hits"]) == (3, 3, 0)
+    by_document = {r["document"]["doc_sha256"]: r["cost_usd"] for r in ledger["calls"]}
+    assert by_document == {e.tag: pytest.approx(e.cost_usd) for e in paid}
+
+    again = runner.invoke(app, argv)
+    assert again.exit_code == 0, again.stdout
+    replayed = json.loads(again.stdout)["usage"]
+    assert (replayed["spent_usd"], replayed["cache_hits"]) == (0.0, 3)
+
+
+#: Each way harvest's calls can end early, as (the provider's behaviour, the option, the reason).
+_STOPS = {
+    "ceiling": (None, ["--ceiling-usd", "0.01"], "ceiling_reached"),
+    "balance": ("exhausted", [], "provider_exhausted"),
+    "provider down": ("unavailable", [], "provider_unavailable"),
+    "no gateway": ("refuse", [], "gateway_unreachable"),
+}
+
+
+@pytest.mark.parametrize("stop", [*_STOPS, "rejected"])
+def test_each_stop_ends_harvest_and_run_with_exit_3_and_its_reason(
+    stop: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The four stops end `harvest extract` and `run` with exit 3, the reason and a Blocker; a request
+    the provider rejects as malformed or unauthorized is a bug, and surfaces as an error."""
+    from labllm import ProviderExhausted, ProviderUnavailable, Rejected
+
+    behaviour, options, reason = _STOPS.get(stop, ("rejected", [], "rejected"))
+
+    def provider(form: dict[str, Any]) -> str:
+        if behaviour == "exhausted":
+            raise ProviderExhausted("the prepaid balance is used up")
+        if behaviour == "unavailable":
+            raise ProviderUnavailable("503 from the provider", status=503)
+        if behaviour == "rejected":
+            raise Rejected("401: the key is not authorized")
+        return harvest_kit.NOTHING
+
+    docs = _prose_docs(tmp_path, 2)
+    for argv in (
+        ["harvest", "extract", *docs, *options, "-C", str(tmp_path / "h")],
+        ["run", *_paired_reads(tmp_path), "--doc", docs[0], "--organism", "559292", "--offline",
+         *options, "-C", str(tmp_path / "r")],
+    ):  # fmt: skip
+        fake = harvest_kit.install(monkeypatch, provider)
+        if behaviour == "refuse":
+            fake.refuse_connections()
+        result = runner.invoke(app, argv)
+        if stop == "rejected":
+            assert result.exit_code == 1, result.output
+            continue
+        assert result.exit_code == 3, result.output
+        payload = json.loads(result.stdout)
+        harvested = payload if argv[0] == "harvest" else payload["stages"]["harvest"]
+        assert harvested["reason"] == reason
+        assert harvested["blockers"][0]["code"] == "MODEL_CALLS_STOPPED"
+        assert f"reason={reason}" in harvested["blockers"][0]["evidence"]
+        if stop != "ceiling":
+            assert {e.ceiling_usd for e in fake.record} <= {1.0}, "a dollar unless told otherwise"
+
+
+def test_harvest_writes_its_ledger_and_transcript_on_a_stop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A run that stopped mid-way is the one whose exchanges are most worth reading, and what it
+    spent up to the stop was really spent."""
+    from labllm import ProviderExhausted
+
+    from seqforge.harvest import read_transcript
+
+    answered: list[int] = []
+
+    def provider(form: dict[str, Any]) -> str:
+        if answered:
+            raise ProviderExhausted("the prepaid balance is used up")
+        answered.append(1)
+        return harvest_kit.NOTHING
+
+    fake = harvest_kit.install(monkeypatch, provider)
     result = runner.invoke(
-        app,
-        [
-            "harvest",
-            "extract",
-            *_prose_docs_apart(tmp_path, 6),
-            "--ceiling",
-            str(_CEILING),
-            "-C",
-            str(tmp_path),
-        ],
+        app, ["harvest", "extract", *_prose_docs_apart(tmp_path, 4), "-C", str(tmp_path)]
     )
-    assert result.exit_code == 3, result.stdout
+    assert result.exit_code == 3, result.output
     payload = json.loads(result.stdout)
-    assert payload["error"] == "token_ceiling_exceeded"
-    blocker = payload["blockers"][0]
-    assert blocker["code"] == "TOKEN_CEILING_EXCEEDED"
-    assert "--ceiling" in blocker["remedy"]
-    # The ledger is written anyway: the tokens up to the ceiling were really spent, and a reader
-    # asking "on what?" is exactly the reader a breach produces.
-    assert provider.n_calls >= 1, "a ceiling below one request's estimate would prove nothing here"
-    totals = json.loads((tmp_path / "seqforge" / "logs" / "usage.json").read_text())["totals"]
-    assert totals["n_calls"] == provider.n_calls
-    assert totals["input_tokens"] == 1000 * provider.n_calls
+    transcript = read_transcript(Path(payload["transcript_path"]))
+    assert transcript.n_exchanges == payload["usage"]["n_calls"]
+    assert [e.ok for e in transcript.exchanges].count(True) == 1
+    assert any((e.error or "").startswith("provider_exhausted") for e in transcript.exchanges)
+    ledger = json.loads(Path(payload["usage_path"]).read_text())["totals"]
+    assert ledger["spent_usd"] == pytest.approx(sum(e.cost_usd for e in fake.record))
+    assert ledger["spent_usd"] > 0
+
+
+@pytest.mark.parametrize("command", ["harvest --dry-run", "run --no-llm"])
+def test_a_dry_run_and_a_run_without_the_llm_reach_no_gateway(
+    command: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Neither spends a cent, so neither may need the gateway: they work with it down."""
+    _no_gateway(monkeypatch)
+    docs = _prose_docs(tmp_path, 2)
+    argv = (
+        ["harvest", "extract", *docs, "--dry-run", "-C", str(tmp_path)]
+        if command.startswith("harvest")
+        else ["run", *_paired_reads(tmp_path), "--doc", docs[0], "--organism", "559292",
+              "--offline", "--no-llm", "-C", str(tmp_path)]
+    )  # fmt: skip
+    result = runner.invoke(app, argv)
+    assert result.exception is None or isinstance(result.exception, SystemExit), result.output
+    assert result.exit_code in (0, 2), result.output  # `run` stops at the genome it was not given
 
 
 def test_harvest_usage_counts_requests_not_documents(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """`n_calls` was `len(documents)`, so every retry was free in the one place a reader looks. It
-    is the meter's count of real requests now, with the document count kept beside it.
+    """`n_calls` is the requests harvest sent, with the document count kept beside it.
 
     These three documents receive the same ask and travel in ONE request, which is what makes this
-    the case worth pinning: the two numbers now differ in the ordinary run rather than only after a
-    retry, so a reader who confuses them is wrong about the bill by the batching factor. Handing this
-    test documents too long to batch would put the two numbers back in agreement and delete the only
-    case that can tell them apart.
+    the case worth pinning: the two numbers differ in the ordinary run, so a reader who confuses
+    them is wrong about the bill by the batching factor.
     """
-    import seqforge.harvest as harvest_pkg
-
-    provider = _CountingProvider(per_call=7)
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+    fake = harvest_kit.install(monkeypatch)
 
     result = runner.invoke(
         app, ["harvest", "extract", *_prose_docs(tmp_path, 3), "-C", str(tmp_path)]
     )
     assert result.exit_code == 0, result.stdout
     usage = json.loads(result.stdout)["usage"]
-    assert usage["n_calls"] == 1
+    assert usage["n_calls"] == 1 == len(fake.record)
     assert usage["n_documents"] == 3
-    assert usage["input_tokens"] == 7, "one request's worth, not one per document"
+    assert usage["spent_usd"] == pytest.approx(fake.record[0].cost_usd), "one request's worth"
 
 
 def test_harvest_extract_writes_its_transcript_beside_the_ledger(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Nothing anywhere used to persist a prompt or a response: `usage.json` records the shape of
-    every call and no text, so "why did the model say that" became unanswerable the moment the
-    process exited. The transcript is a PATH on stdout and a file on disk — a thousand exchanges
-    cannot ride on a stream that is the result object.
-    """
-    import seqforge.harvest as harvest_pkg
+    """The transcript is a PATH on stdout and a file on disk — a thousand exchanges cannot ride on
+    a stream that is the result object."""
     from seqforge.harvest import read_transcript
 
-    provider = _CountingProvider(per_call=7)
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+    harvest_kit.install(monkeypatch)
 
     result = runner.invoke(
         app, ["harvest", "extract", *_prose_docs_apart(tmp_path, 3), "-C", str(tmp_path)]
@@ -1804,47 +1872,8 @@ def test_harvest_extract_writes_its_transcript_beside_the_ledger(
     assert len({e.user for e in transcript.exchanges}) == 3
 
 
-def test_harvest_extract_writes_the_transcript_of_a_run_it_refused(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """A run stopped at its ceiling is the one whose exchanges are most worth reading."""
-    import seqforge.harvest as harvest_pkg
-    from seqforge.harvest import read_transcript
-
-    provider = _CountingProvider(per_call=1000)
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
-
-    result = runner.invoke(
-        app,
-        [
-            "harvest",
-            "extract",
-            *_prose_docs_apart(tmp_path, 6),
-            "--ceiling",
-            str(_CEILING),
-            "-C",
-            str(tmp_path),
-        ],
-    )
-    assert result.exit_code == 3
-    transcript = read_transcript(Path(json.loads(result.stdout)["transcript_path"]))
-    assert provider.n_calls >= 1
-    assert transcript.n_exchanges == provider.n_calls
-
-
-def test_harvest_extract_dry_run_costs_nothing_and_needs_no_credential(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """ "What will this dataset cost" must be answerable before it is paid, and on a machine with no
-    key at all — so the plan is returned before a provider is even resolved."""
-    import seqforge.harvest as harvest_pkg
-    from seqforge.harvest import ProviderUnavailable
-
-    def _no_provider(_name: str | None = None) -> object:
-        raise ProviderUnavailable("no credential")
-
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", _no_provider)
-
+def test_harvest_extract_dry_run_prices_requests_not_documents(tmp_path: Path) -> None:
+    """ "What will this dataset cost" must be answerable before it is paid."""
     result = runner.invoke(
         app, ["harvest", "extract", *_prose_docs(tmp_path, 3), "--dry-run", "-C", str(tmp_path)]
     )
@@ -1872,31 +1901,13 @@ def test_harvest_extract_pays_once_for_a_document_handed_to_it_twice(
     per collider — reporting twice its drafts, twice its rejections and twice its usage. One ask is
     one document now, and the results come back positionally.
     """
-    import seqforge.harvest as harvest_pkg
-
-    class _OneDraftEach:
-        name = "one-draft"
-
-        def __init__(self) -> None:
-            self.n_calls = 0
-
-        def default_model(self) -> str:
-            return "one-draft-1"
-
-        def complete_json(self, **kwargs: object) -> object:
-            from seqforge.harvest import LLMResponse
-
-            self.n_calls += 1
-            draft = {
-                "field": "experiment.organism",
-                "value": "Caenorhabditis elegans",
-                "span": {"doc_sha256": "0" * 64, "quote": "Caenorhabditis elegans"},
-                "llm_confidence": 0.9,
-            }
-            return LLMResponse(text=json.dumps({"drafts": [draft]}), usage={"input_tokens": 100})
-
-    provider = _OneDraftEach()
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+    draft = {
+        "field": "experiment.organism",
+        "value": "Caenorhabditis elegans",
+        "span": {"doc_sha256": "0" * 64, "quote": "Caenorhabditis elegans"},
+        "llm_confidence": 0.9,
+    }
+    fake = harvest_kit.install(monkeypatch, harvest_kit.answering(json.dumps({"drafts": [draft]})))
 
     doc = tmp_path / "methods.txt"
     doc.write_text("Worms are Caenorhabditis elegans, maintained at 20 C.")
@@ -1906,10 +1917,10 @@ def test_harvest_extract_pays_once_for_a_document_handed_to_it_twice(
 
     assert result.exit_code == 0, result.stdout
     payload = json.loads(result.stdout)
-    assert provider.n_calls == 1, "three copies of one document are one question"
+    assert len(fake.record) == 1, "three copies of one document are one question"
     assert payload["usage"]["n_calls"] == 1
     assert payload["usage"]["n_documents"] == 1
-    assert payload["usage"]["input_tokens"] == 100, "counted once, not once per collider"
+    assert payload["usage"]["spent_usd"] == pytest.approx(fake.record[0].cost_usd), "counted once"
     assert payload["n_drafts"] == 1
     assert payload["n_accepted"] == 1
 
@@ -1924,11 +1935,9 @@ def test_harvest_extract_asks_a_samples_runs_once_between_them(
     READ — an alias is often the only place a WT-vs-mutant contrast is written — but a run belongs to
     exactly one sample, so they are one document, and it is the SAMPLE that document names.
     """
-    import seqforge.harvest as harvest_pkg
     from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
 
-    provider = _CountingProvider(per_call=7)
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+    harvest_kit.install(monkeypatch)
 
     records = ArchiveRecordSet(
         source="test",
@@ -2415,10 +2424,7 @@ def test_a_collapsed_members_bytes_and_subject_both_reach_disk(
     mechanism would be lossy at the next stage if `document_subjects` listed only what was paid for.
     Both are written, and the ask still costs one request (ADR-0031).
     """
-    import seqforge.harvest as harvest_pkg
-
-    provider = _CountingProvider(per_call=7)
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", lambda _name=None: provider)
+    fake = harvest_kit.install(monkeypatch)
     records_path = tmp_path / "records.json"
     records_path.write_text(_twin_records(3).model_dump_json())  # type: ignore[attr-defined]
 
@@ -2427,7 +2433,7 @@ def test_a_collapsed_members_bytes_and_subject_both_reach_disk(
     )
 
     assert result.exit_code == 0, result.stdout
-    assert provider.n_calls == 1, "three records, one ask"
+    assert len(fake.record) == 1, "three records, one ask"
     stored = json.loads((tmp_path / "seqforge" / "logs" / "assertions.json").read_text())
     placed = {(d["scope"], d["subject"]) for d in stored["document_subjects"]}
     assert placed == {("sample", "SAMN1"), ("sample", "SAMN22"), ("sample", "SAMN333")}
@@ -2506,18 +2512,13 @@ def test_a_record_set_with_no_prose_is_an_empty_extraction_and_not_a_crash(
     open that path rather than ask whether harvest had anything to say, so "no claims" and "no file"
     have to be the same thing on disk.
 
-    **Decided before a provider is resolved**, which is what the tripwire asserts: a records-only
-    compile on a machine with no credential must not fail on a credential it never needed, and a
-    stage that resolved first would exit 1 with `no_provider` instead of 0 with nothing to say.
+    **Decided before a gateway client is built**, which is what the tripwire asserts: a records-only
+    compile on a machine that cannot reach the gateway must not fail on a gateway it never needed,
+    and a stage that connected first would exit 3 with `gateway_unreachable` instead of 0.
     """
-    import seqforge.harvest as harvest_pkg
-    from seqforge.harvest import ProviderUnavailable
     from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, SubmittedFile
 
-    def _no_provider(_name: str | None = None) -> object:
-        raise ProviderUnavailable("no credential, and none should be wanted")
-
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", _no_provider)
+    _no_gateway(monkeypatch)
 
     if dialect == "user":
         records_path = tmp_path / "records.yaml"
@@ -2583,17 +2584,11 @@ def test_a_structure_only_records_compile_reaches_the_manifest_with_no_credentia
     down with it. The dataset the record set exists for could not be compiled unless its author
     happened to know to add `--no-llm`.
 
-    So this is driven WITHOUT `--no-llm`, with no provider reachable, and it must still reach
+    So this is driven WITHOUT `--no-llm`, with no gateway reachable, and it must still reach
     `manifest fill` and everything after it. And the fuse has to land: two runs the filenames kept
     apart compile into one `lib01`, with the warning that says the grouping was declared.
     """
-    import seqforge.harvest as harvest_pkg
-    from seqforge.harvest import ProviderUnavailable
-
-    def _no_provider(_name: str | None = None) -> object:
-        raise ProviderUnavailable("no credential, and none should be wanted")
-
-    monkeypatch.setattr(harvest_pkg, "resolve_provider", _no_provider)
+    _no_gateway(monkeypatch)
 
     spec = kb.load_spec("bulk-rnaseq")
     # A seed per batch: two runs of one library are two different sets of reads, and identical bytes

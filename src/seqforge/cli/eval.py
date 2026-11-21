@@ -3,18 +3,13 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import typer
 
+from .harvest import DEFAULT_CEILING_USD
 from .root import eval_app
-
-#: The corpus-wide backstop, in tokens, per case. Measured 2026-07-31: the largest benchmark case
-#: other than GSE126954 spends 122 K (in + out) and this clears it by 4x, while GSE126954's 3.47 M
-#: is stopped however it is counted. It ships ON rather than off, because the run this exists to
-#: stop is an unattended one — a ceiling nobody passes is a number nobody sets. `--ceiling 0`
-#: removes it; a genuinely larger dataset raises it.
-DEFAULT_EVAL_CEILING = 500_000
 
 
 @eval_app.command("list")
@@ -59,13 +54,6 @@ def eval_plan(
         min=1,
         help="Cases to plan at once. Default: usable cores, capped at 24. 1 forces sequential.",
     ),
-    ceiling: int = typer.Option(
-        DEFAULT_EVAL_CEILING,
-        "--ceiling",
-        min=0,
-        help="Name the cases whose estimated input alone already clears this per-case ceiling. "
-        "0 = do not check.",
-    ),
 ) -> None:
     """What an `--llm` run over this tier would ask, and cost — with nothing spent.
 
@@ -82,8 +70,7 @@ def eval_plan(
     run already pays. A case whose package is unreachable skips and is named, never costed at zero.
 
     Every token reported is an **input** token. Output is not estimated, because the model decides
-    how many claims a document supports; `--ceiling` is what bounds that half, and the estimate is
-    therefore a lower bound against it.
+    how many claims a document supports, so the estimate is a lower bound.
     """
     from ..evals import CaseError, load_cases, plan_cases
 
@@ -96,7 +83,7 @@ def eval_plan(
         typer.echo("no cases found", err=True)
         raise typer.Exit(2)
 
-    report = plan_cases(cases, trials=trials, ceiling=ceiling or None, jobs=jobs)
+    report = plan_cases(cases, trials=trials, jobs=jobs)
     typer.echo(json.dumps(report.model_dump(mode="json"), indent=2))
 
 
@@ -107,17 +94,19 @@ def eval_run(
         None, "--cases", help="Case root (default: evals/cases)."
     ),
     llm: bool = typer.Option(
-        False, "--llm/--no-llm", help="Run prose cases through harvest extract (costs tokens)."
+        False,
+        "--llm/--no-llm",
+        help="Run prose cases through harvest extract, through the lab gateway (costs money).",
     ),
     provider: str | None = typer.Option(
-        None, "--provider", help="anthropic | deepseek | openai-compatible (default: auto-detect)."
+        None, "--provider", help="The provider the lab gateway sends to (default: deepseek)."
     ),
     model: str | None = typer.Option(
         None,
         "--model",
-        help="Override the provider's default model — on DeepSeek that default is "
-        "deepseek-v4-pro; deepseek-flash is the other model it serves. Whichever ran is recorded "
-        "in the report's `extractor`, because a baseline does not transfer across models.",
+        help="The provider's exact model name (default on deepseek: deepseek-v4-pro). Whichever "
+        "ran is recorded in the report's `extractor`, because a baseline does not transfer across "
+        "models.",
     ),
     trials: int = typer.Option(
         1, "--trials", min=1, help="Re-run each prose case N times; extraction is nondeterministic."
@@ -130,13 +119,13 @@ def eval_run(
         help="Cases to run at once. Default: usable cores (CPU affinity aware), capped at 24. "
         "1 forces sequential.",
     ),
-    ceiling: int = typer.Option(
-        DEFAULT_EVAL_CEILING,
-        "--ceiling",
+    ceiling_usd: float = typer.Option(
+        DEFAULT_CEILING_USD,
+        "--ceiling-usd",
         min=0,
-        help="Refuse past N tokens at the model seam PER CASE (raw: cached input and cache writes "
-        "count too). A case that reaches it is blocked, not graded, and the run exits 3. "
-        "0 = no ceiling.",
+        help="The most each case may spend, in dollars. A case whose calls stop (this ceiling, "
+        "the provider's balance, the provider or the gateway down) is blocked, not graded, and "
+        "the run exits 3.",
     ),
     fail_under: float = typer.Option(
         1.0, "--fail-under", help="Exit 3 if field accuracy drops below this."
@@ -145,27 +134,30 @@ def eval_run(
 ) -> None:
     """Run the eval corpus and report its metrics.
 
-    `--no-llm` (the default) restricts to deterministic cases, so this runs in a CI with no API key;
+    `--no-llm` (the default) restricts to deterministic cases, so this runs in a CI with no gateway;
     prose cases skip rather than fail. Exit 3 if any false-accept occurs or accuracy drops below
     `--fail-under` — a false accept is never tolerable at any threshold, so it is not on a slider.
 
-    `--llm` inherits the provider's own default model rather than pinning one here — that is
-    `deepseek-v4-pro` on the DeepSeek preset, and this corpus is what settled it: pro was faster
-    *and* spent fewer output tokens than `deepseek-v4-flash`, so the cheap-end argument for flash
-    lost on its own terms (#188; the run is written up in `evals/README.md`). The report names
-    whichever ran, since the numbers are a claim about that extractor and not about the harness.
+    `--llm` calls harvest's default model unless told otherwise — `deepseek-v4-pro`, and this corpus
+    is what settled it: pro was faster *and* spent fewer output tokens than `deepseek-v4-flash`, so
+    the cheap-end argument for flash lost on its own terms (#188; the run is written up in
+    `evals/README.md`). The report names whichever ran, since the numbers are a claim about that
+    extractor and not about the harness.
 
-    `--ceiling` is the token backstop, per case, and it refuses rather than warns: a case that
-    reaches it is reported with a `Blocker` instead of a grade and the run exits 3. It costs nothing
-    under `--no-llm`, which spends no tokens at all.
+    Each case's calls go through one liulab-llms meter at `$LABLLM_GATEWAY`, under `--ceiling-usd`.
+    A case whose calls stop is reported with a `Blocker` instead of a grade and the run exits 3.
+    `--no-llm` reaches no gateway.
 
     It writes a run directory under `-C`: `report.json`, and one `transcripts/<case>.jsonl` per case
     that reached a model. **Stdout is unchanged in shape** and gains the paths, not the contents — a
     thousand-exchange transcript cannot ride on a stream that IS the result object. `seqforge eval
     report <that directory>` renders it.
     """
+    from labllm import GatewayUnreachable, Rejected
+
     from ..evals import CaseError, Grade, load_cases, run_cases
-    from ..harvest import ProviderUnavailable, resolve_provider
+    from ..harvest import harvest_model
+    from ..passes import gateway as gateway_module
     from ..workspace import EVAL_REPORT_FILENAME, eval_dir
 
     try:
@@ -177,24 +169,38 @@ def eval_run(
         typer.echo("no cases found", err=True)
         raise typer.Exit(2)
 
-    llm_provider = None
-    if llm:
-        try:
-            llm_provider = resolve_provider(provider)
-        except ProviderUnavailable as exc:
-            typer.echo(json.dumps({"error": "no_provider", "detail": str(exc)}, indent=2), err=True)
-            raise typer.Exit(1) from exc
+    if not math.isfinite(ceiling_usd) or ceiling_usd < 0:
+        typer.echo(f"--ceiling-usd must be a number of dollars, not {ceiling_usd}", err=True)
+        raise typer.Exit(2)
+    try:
+        chosen = harvest_model(provider, model)
+    except ValueError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2) from exc
 
-    report, runs = run_cases(
-        cases,
-        llm=llm,
-        provider=llm_provider,
-        model=model,
-        trials=trials,
-        jobs=jobs,
-        ceiling=ceiling,
-        workspace=workspace,
-    )
+    client = None
+    if llm:
+        # Built only for `--llm`, so `--no-llm` reaches no gateway.
+        try:
+            client = gateway_module.make_gateway()
+        except GatewayUnreachable as exc:
+            typer.echo(f"gateway_unreachable: {exc}", err=True)
+            raise typer.Exit(3) from exc
+    try:
+        report, runs = run_cases(
+            cases,
+            llm=llm,
+            gateway=client,
+            model=chosen,
+            trials=trials,
+            jobs=jobs,
+            ceiling_usd=ceiling_usd,
+            workspace=workspace,
+        )
+    except Rejected as exc:
+        # A request the gateway rejects as malformed or unauthorized is a bug, not a stop.
+        typer.echo(json.dumps({"error": "rejected", "detail": str(exc)}, indent=2), err=True)
+        raise typer.Exit(1) from exc
     rendered = json.dumps(report.model_dump(mode="json"), indent=2)
     # The same bytes to both, which is the point of the file: CI used to `tee` stdout into a path it
     # invented, so the artifact existed only as long as the shell line that made it. The verb owns
@@ -221,7 +227,7 @@ def eval_run(
         # which answered SIX of 141 documents where pro answered all but one. What the reader
         # actually needs is the extractor's name, so the coverage gap is attributable at all — and
         # `--jobs`, the one lever that is about this failure rather than about who ran.
-        ran = (report.extractor or {}).get("model") or "the provider's default model"
+        ran = (report.extractor or {}).get("model") or "harvest's default model"
         typer.echo(
             f"HARVEST PARTLY MEASURED: {int(coverage['documents_extracted']):,} of "
             f"{int(coverage['documents_planned']):,} planned documents were answered by {ran}, and "
@@ -237,9 +243,9 @@ def eval_run(
     blocked = [r for r in runs if r.blocker is not None]
     if blocked:
         typer.echo(
-            f"TOKEN CEILING reached in {len(blocked)} case(s): {[r.case_id for r in blocked]} — "
-            f"each stopped at --ceiling {ceiling:,} raw tokens and was not graded. Raise it, or "
-            f"read why the case costs that much before you do",
+            f"MODEL CALLS STOPPED in {len(blocked)} case(s): "
+            f"{[(r.case_id, r.skipped) for r in blocked]} — each was not graded. Each case's "
+            f"blocker names its remedy",
             err=True,
         )
         raise typer.Exit(3)

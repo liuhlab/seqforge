@@ -113,7 +113,7 @@ class ExtractionPlanReport(BaseModel):
     the exchange count (before retries) and ``estimated_input_tokens`` charges the stable system
     prefix once **per request** — which is what a fan-out over one-line archive records used to make
     expensive, and what batching same-ask documents buys back. Output tokens are not estimated: the
-    model decides how many claims a document supports, and the token Ceiling bounds that half.
+    model decides how many claims a document supports, and the dollar Ceiling bounds the whole.
 
     ``n_documents`` and ``n_requests`` are reported apart because they answer different questions —
     how much material was read, and how many times a model is reached. They were the same number

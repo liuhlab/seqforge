@@ -45,8 +45,8 @@ jobs:
           locked: true
       # `--no-llm`, and it stays that way: this tier grades chemistry-from-bytes and
       # sample-attributes-from-committed-records, both deterministic and key-free, so the job needs no
-      # API key and no provider secret is ever exposed to it. The LLM pass is a LOCAL exercise, run by
-      # a maintainer who has a key (`--llm --provider <p>`); CI must stay runnable by anyone with a
+      # gateway and no secret is ever exposed to it. The LLM pass is a LOCAL exercise, run by a
+      # maintainer with a tunnel to the lab gateway (`--llm`); CI must stay runnable by anyone with a
       # fork. `--cases evals/benchmark` selects the HF tier; each case pulls its package from HF.
       #
       # `-C report` and nothing else: the verb owns its run directory, writes `report.json` and any

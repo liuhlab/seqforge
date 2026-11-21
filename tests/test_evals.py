@@ -25,6 +25,7 @@ import pytest
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
+import harvest_kit
 from seqforge.cli import app
 from seqforge.evals import (
     Case,
@@ -44,7 +45,7 @@ from seqforge.evals import (
 )
 from seqforge.evals.case import SIM_RUN, Recipe
 from seqforge.evals.run import CaseRun, HarvestGrade, _fold_harvest, _merge_harvest
-from seqforge.harvest import EXTRACT_PROMPT_VERSION
+from seqforge.harvest import EXTRACT_PROMPT_VERSION, harvest_model
 from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 from seqforge.models.blocker import Blocker, BlockerCode, BlockerSubject
 from seqforge.models.conflict import Conflict, ConflictPosition
@@ -60,8 +61,8 @@ from seqforge.models.resolve import (
 )
 from seqforge.resolve import DatasetResolution, Hypothesis
 
-if TYPE_CHECKING:  # the stub providers below import it where they build one, as the real code does
-    from seqforge.harvest import LLMResponse
+if TYPE_CHECKING:
+    from labllm import Gateway
 
 # --------------------------------------------------------------------------------------------
 # synthetic resolve results — so grading is tested independently of the resolver being correct
@@ -1083,37 +1084,30 @@ def test_run_cases_fans_out_and_aggregates() -> None:
 
 
 # --------------------------------------------------------------------------------------------
-# the --llm path, driven offline by a stub provider
+# the --llm path, driven offline through a fake gateway
 #
-# These pin the *grading* of a model's behaviour without paying a provider or depending on one
+# These pin the *grading* of a model's behaviour without paying a gateway or depending on one
 # being reachable. A real model is asked to do this for real by `eval run --llm`; here we hand the
 # harness the exact outputs a good and a bad model would produce and assert it tells them apart.
 # --------------------------------------------------------------------------------------------
 
 
-class _StubProvider:
-    """Returns a canned drafts payload. Mirrors tests/test_extract.py's fake."""
+def _stub(drafts: list[dict[str, object]], poison: str | None = None) -> Gateway:
+    """A fake gateway whose model answers every request with ``drafts``.
 
-    name = "stub"
+    With ``poison``, a request whose text holds it gets a reply that is not JSON: a document whose
+    reply cannot be used, as DeepSeek's empty or invalid ``json_object`` replies were (#4). The shape
+    is the part worth copying: on `GSE234962` both aborts landed on `mmc2.txt`, a 1 KB supplementary
+    table the model quotes rows of, so the failure keys on the RESPONSE a document provokes.
+    """
+    from labllm.testing import FakeGateway
 
-    def __init__(self, drafts: list[dict[str, object]]) -> None:
-        self._payload = {"drafts": drafts}
+    def provider(form: dict[str, Any]) -> str:
+        if poison is not None and poison in form["messages"][-1]["content"]:
+            return "the model wandered off"
+        return json.dumps({"drafts": drafts})
 
-    def default_model(self) -> str:
-        return "stub-model-1"
-
-    def complete_json(self, **kwargs: object) -> LLMResponse:
-        import json as _json
-
-        from seqforge.harvest import LLMResponse
-
-        return LLMResponse(
-            text=_json.dumps(self._payload),
-            usage={"input_tokens": 100, "output_tokens": 20},
-            # A real adapter records HOW the call was made, and the eval path used to drop it while
-            # the CLI path kept it. A stub that returned no mode could not tell those two apart.
-            mode={"max_tokens": 8000, "response_format": "json_object"},
-        )
+    return FakeGateway(provider, prices=harvest_kit.PRICES).client(repo="seqforge")
 
 
 def _draft(fieldname: str, value: str, quote: str) -> dict[str, object]:
@@ -1135,24 +1129,26 @@ def test_report_names_the_extractor_that_produced_it() -> None:
 
     The DeepSeek preset serves two V4 models and defaults to the cheap one, so the same command over
     the same corpus can produce two different sets of numbers. `--model` is usually unset, which is
-    exactly the case that must not report `null`: the effective model is the provider's default.
+    exactly the case that must not report `null`: the effective model is harvest's default.
     """
     from seqforge.evals import run_cases
 
     case = _trap_case()
-    provider = _StubProvider(
+    gateway = _stub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
 
-    inherited, _ = run_cases([case], llm=True, provider=provider)
+    inherited, _ = run_cases([case], llm=True, gateway=gateway)
     assert inherited.extractor is not None
-    assert inherited.extractor["provider"] == "stub"
-    assert inherited.extractor["model"] == provider.default_model()  # the DEFAULT, not None
+    assert inherited.extractor["provider"] == "deepseek"
+    assert inherited.extractor["model"] == "deepseek-v4-pro"  # the DEFAULT, not None
     assert inherited.extractor["prompt_version"] == EXTRACT_PROMPT_VERSION
 
-    asked, _ = run_cases([case], llm=True, provider=provider, model="stub-model-pro")
+    asked, _ = run_cases(
+        [case], llm=True, gateway=gateway, model=harvest_model("deepseek", "deepseek-flash")
+    )
     assert asked.extractor is not None
-    assert asked.extractor["model"] == "stub-model-pro"
+    assert asked.extractor["model"] == "deepseek-flash"
 
     # `--no-llm` has no extractor at all, and says so rather than naming one that never ran.
     byte_only, _ = run_cases(
@@ -1165,10 +1161,10 @@ def test_report_names_the_extractor_that_produced_it() -> None:
 def test_llm_case_passes_when_the_model_behaves() -> None:
     """Extract the stated organism, stay silent on the unstated chemistry."""
     case = _trap_case()
-    provider = _StubProvider(
+    gateway = _stub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
-    run = run_case(case, llm=True, provider=provider)
+    run = run_case(case, llm=True, gateway=gateway)
     assert run.skipped is None
     assert run.grade.grade is Grade.CORRECT
     assert run.harvest is not None
@@ -1186,14 +1182,14 @@ def test_the_trap_fires_on_a_guess_that_happens_to_be_right() -> None:
     grade becoming CORRECT, the harness has started rewarding lucky guesses.
     """
     case = _trap_case()
-    provider = _StubProvider(
+    gateway = _stub(
         [
             _draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans"),
             # a REAL span from the document, pinned to a conclusion it does not support
             _draft("library.chemistry", "10x-3p-gex-v3", "droplet-based single-cell"),
         ]
     )
-    run = run_case(case, llm=True, provider=provider)
+    run = run_case(case, llm=True, gateway=gateway)
     assert run.harvest is not None
     # Either the span-verification tripwire rejects the claim (entailment fails), or it survives and the case
     # grades false_accept. Both are acceptable; silently passing is not.
@@ -1212,13 +1208,13 @@ def test_fabricated_quote_is_caught_by_the_tripwire_not_the_grader() -> None:
     what reason — the count says a net caught something and nothing whatever about what.
     """
     case = _trap_case()
-    provider = _StubProvider(
+    gateway = _stub(
         [
             _draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans"),
             _draft("library.chemistry", "10x-3p-gex-v3", "we used the Chromium Single Cell 3' v3"),
         ]
     )
-    run = run_case(case, llm=True, provider=provider)
+    run = run_case(case, llm=True, gateway=gateway)
     assert run.harvest is not None
     assert run.harvest.n_rejected >= 1
     assert "library.chemistry" not in {a.field for a in run.harvest.assertions}
@@ -1245,7 +1241,7 @@ def test_the_harvest_grade_keeps_the_quote_it_graded() -> None:
     run = run_case(
         _trap_case(),
         llm=True,
-        provider=_StubProvider(
+        gateway=_stub(
             [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
         ),
     )
@@ -1278,7 +1274,7 @@ def test_a_malformed_draft_reaches_the_grade_instead_of_the_floor() -> None:
     producers of a refusal now land in one list, and the reason tells them apart.
     """
     bad: dict[str, object] = {"field": "experiment.organism", "value": None, "span": {"quote": "x"}}
-    run = run_case(_trap_case(), llm=True, provider=_StubProvider([bad]))
+    run = run_case(_trap_case(), llm=True, gateway=_stub([bad]))
 
     assert run.harvest is not None
     (refused,) = run.harvest.rejected
@@ -1290,7 +1286,7 @@ def test_a_malformed_draft_reaches_the_grade_instead_of_the_floor() -> None:
 def test_under_extraction_is_graded_wrong_reason_not_correct() -> None:
     """A model that returns nothing is not correct just because it hallucinated nothing."""
     case = _trap_case()
-    run = run_case(case, llm=True, provider=_StubProvider([]))
+    run = run_case(case, llm=True, gateway=_stub([]))
     assert run.harvest is not None
     assert run.harvest.missing == ["experiment.organism"]
     assert run.grade.grade is Grade.WRONG_REASON
@@ -1299,13 +1295,13 @@ def test_under_extraction_is_graded_wrong_reason_not_correct() -> None:
 def test_harvest_hypothesis_steers_resolve() -> None:
     """The full stack: prose -> verified assertion -> hypothesis -> resolve agrees -> decide."""
     case = next(c for c in discover_cases() if c.id == "10x-v3-prose")
-    provider = _StubProvider(
+    gateway = _stub(
         [
             _draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans"),
             _draft("library.chemistry", "10x-3p-gex-v3", "Chromium Single Cell 3' v3 Reagent Kit"),
         ]
     )
-    run = run_case(case, llm=True, provider=provider)
+    run = run_case(case, llm=True, gateway=gateway)
     assert run.grade.grade is Grade.CORRECT
     assert run.harvest is not None
     assert sorted(run.harvest.matched) == ["experiment.organism", "library.chemistry"]
@@ -1326,9 +1322,9 @@ def _capture_hypotheses(monkeypatch: pytest.MonkeyPatch) -> list[Hypothesis | No
     return seen
 
 
-def _two_chemistry_provider() -> _StubProvider:
+def _two_chemistry_gateway() -> Gateway:
     """A model that names v3 and v2. Each draft verifies against exactly one of the two documents."""
-    return _StubProvider(
+    return _stub(
         [
             _draft("library.chemistry", "10x-3p-gex-v3", "Chromium Single Cell 3' v3 Reagent Kit"),
             _draft("library.chemistry", "10x-3p-gex-v2", "Chromium Single Cell 3' v2 Reagent Kit"),
@@ -1376,7 +1372,7 @@ def test_two_documents_naming_two_chemistries_steer_the_harness_with_nothing(
     """
     seen = _capture_hypotheses(monkeypatch)
     run_case(
-        _prose_case_plus_a_second_chemistry(tmp_path), llm=True, provider=_two_chemistry_provider()
+        _prose_case_plus_a_second_chemistry(tmp_path), llm=True, gateway=_two_chemistry_gateway()
     )
     assert seen == [None], "two accepted chemistry claims must steer nothing"
 
@@ -1393,7 +1389,7 @@ def test_a_harvest_that_agrees_on_nothing_leaves_the_recipes_hypothesis_standing
     """
     case = _prose_case_plus_a_second_chemistry(tmp_path, hypothesis="10x-3p-gex-v3")
     seen = _capture_hypotheses(monkeypatch)
-    run_case(case, llm=True, provider=_two_chemistry_provider())
+    run_case(case, llm=True, gateway=_two_chemistry_gateway())
     assert len(seen) == 1
     assert seen[0] is not None
     assert (seen[0].value, seen[0].id) == ("10x-3p-gex-v3", "recipe")
@@ -1494,7 +1490,7 @@ def _two_chemistry_case_over(data: Path, tmp_path: Path, monkeypatch: pytest.Mon
 
 
 def _harness_decisions(
-    case: Case, provider: _StubProvider | None, monkeypatch: pytest.MonkeyPatch
+    case: Case, gateway: Gateway | None, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[CaseRun, DatasetResolution, MetadataResolution]:
     """`run_case` in full, plus the two resolutions it reached: `(run, dataset resolve, metadata)`.
 
@@ -1504,7 +1500,7 @@ def _harness_decisions(
     because the dataset-level verdict is what the harness grades and what the front door renders;
     the run-by-run resolve underneath it is the same function on both paths and never diverged.
 
-    ``provider=None`` is a `--no-llm` run, for a case whose subject is the bytes and the filenames.
+    ``gateway=None`` is a `--no-llm` run, for a case whose subject is the bytes and the filenames.
     It costs one resolve rather than two: a caller that wants both the GRADE and the sample -> files
     map has to see the same pass produce them, or it is asserting over a second run of the compiler.
     """
@@ -1524,7 +1520,7 @@ def _harness_decisions(
 
     monkeypatch.setattr(run_module, "reduce_dataset", _reduce)
     monkeypatch.setattr(run_module, "resolve_metadata", _metadata)
-    run = run_case(case, llm=provider is not None, provider=provider)
+    run = run_case(case, llm=gateway is not None, gateway=gateway)
     return run, seen["resolve"], seen["metadata"]
 
 
@@ -1641,7 +1637,7 @@ def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
     did the manifest store" — on purpose, and it is why the harness keeps a per-field view the
     manifest has no room for. Do not "fix" that by asserting it here.
 
-    The stub provider is the same offline one the rest of this file drives the `--llm` path with:
+    The fake gateway is the same offline one the rest of this file drives the `--llm` path with:
     no key, no socket, and a canned payload standing in for the two documents' claims.
     """
     import yaml
@@ -1650,7 +1646,7 @@ def test_the_harness_and_manifest_fill_compile_one_case_into_one_manifest(
 
     data = _two_bulk_runs(tmp_path)
     case = _two_chemistry_case_over(data, tmp_path, monkeypatch)
-    run, out, metadata = _harness_decisions(case, _two_chemistry_provider(), monkeypatch)
+    run, out, metadata = _harness_decisions(case, _two_chemistry_gateway(), monkeypatch)
 
     assert run.skipped is None, run.skipped
     assert [r.run_id for r in out.runs.runs] == list(CONTRACT_RUNS), (
@@ -1880,27 +1876,9 @@ def test_a_starved_cell_leaves_the_manifest_whole_and_the_pipeline_short(
 # --------------------------------------------------------------------------------------------
 
 
-class _PoisonedProvider(_StubProvider):
-    """Answers every document except the one whose text holds ``poison``.
-
-    The real failure it stands in for is DeepSeek's empty/invalid ``json_object`` (#4), and the
-    shape is the part worth copying: on `GSE234962` both aborts landed on `mmc2.txt`, a 1 KB
-    supplementary table the model quotes rows of — so the failure keys on the length of the
-    RESPONSE a document provokes, not on the length of the document.
-    """
-
-    name = "poisoned"
-
-    def __init__(self, drafts: list[dict[str, object]], poison: str) -> None:
-        super().__init__(drafts)
-        self._poison = poison
-
-    def complete_json(self, **kwargs: object) -> LLMResponse:
-        if self._poison in str(kwargs["user"]):
-            from seqforge.harvest import LLMResponse
-
-            return LLMResponse(text="", usage={"input_tokens": 40})
-        return super().complete_json(**kwargs)
+def _poisoned(drafts: list[dict[str, object]], poison: str) -> Gateway:
+    """A fake gateway that answers every document except the one whose text holds ``poison``."""
+    return _stub(drafts, poison=poison)
 
 
 def _two_document_trap(tmp_path: Path) -> Case:
@@ -1921,7 +1899,7 @@ def test_a_case_whose_only_document_never_answered_grades_and_says_so() -> None:
     summary said nothing about any of them. Now the case grades what it can and the harvest grade
     carries the one word that qualifies the rest of it.
     """
-    run = run_case(_trap_case(), llm=True, provider=_PoisonedProvider([], "droplet"))
+    run = run_case(_trap_case(), llm=True, gateway=_poisoned([], "droplet"))
 
     assert run.skipped is None, "the deterministic half of the case still runs and still grades"
     assert run.grade.grade is Grade.CORRECT
@@ -1949,9 +1927,7 @@ def test_one_documents_abort_no_longer_takes_the_whole_case_down(tmp_path: Path)
     answered are still graded, and the one that did not is named.
     """
     good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    run = run_case(
-        _two_document_trap(tmp_path), llm=True, provider=_PoisonedProvider(good, "Table S1")
-    )
+    run = run_case(_two_document_trap(tmp_path), llm=True, gateway=_poisoned(good, "Table S1"))
 
     assert run.skipped is None
     assert run.harvest is not None
@@ -1976,7 +1952,7 @@ def test_a_negative_verdict_needs_every_document_a_positive_one_needs_one(tmp_pa
     nothing unsettles it.
     """
     silent = run_case(
-        _two_document_trap(tmp_path), llm=True, provider=_PoisonedProvider([], "droplet-based")
+        _two_document_trap(tmp_path), llm=True, gateway=_poisoned([], "droplet-based")
     )
     assert silent.harvest is not None
     assert silent.harvest.status == "partial", "the second document answered, and honestly said no"
@@ -1993,7 +1969,7 @@ def test_an_unchecked_assertion_poisons_no_rate_and_is_reported_instead() -> Non
     """
     from seqforge.evals import run_cases
 
-    report, _ = run_cases([_trap_case()], llm=True, provider=_PoisonedProvider([], "droplet"))
+    report, _ = run_cases([_trap_case()], llm=True, gateway=_poisoned([], "droplet"))
 
     assert report.field_accuracy == 1.0, "the byte half graded; the unchecked assertion did not"
     assert report.harvest is not None
@@ -2011,7 +1987,7 @@ def test_the_report_carries_the_plan_versus_issued_gap() -> None:
     from seqforge.evals import run_cases
 
     good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    report, _ = run_cases([_trap_case()], llm=True, provider=_StubProvider(good))
+    report, _ = run_cases([_trap_case()], llm=True, gateway=_stub(good))
 
     assert report.harvest is not None
     assert report.harvest["documents_planned"] == 1.0
@@ -2079,28 +2055,6 @@ def test_a_field_matched_in_one_trial_and_missed_in_another_is_still_unstable() 
     assert merged.unstable == ["experiment.organism"]
 
 
-class _FlakyProvider:
-    """Returns a different payload per call — a stand-in for real extraction nondeterminism."""
-
-    name = "flaky"
-
-    def __init__(self, payloads: list[list[dict[str, object]]]) -> None:
-        self._payloads = payloads
-        self.calls = 0
-
-    def default_model(self) -> str:
-        return "flaky-1"
-
-    def complete_json(self, **kwargs: object) -> LLMResponse:
-        import json as _json
-
-        from seqforge.harvest import LLMResponse
-
-        payload = self._payloads[min(self.calls, len(self._payloads) - 1)]
-        self.calls += 1
-        return LLMResponse(text=_json.dumps({"drafts": payload}), usage={})
-
-
 def test_stability_is_not_contaminated_by_folding_the_harvest_grade() -> None:
     """The 0.667-from-three-identical-trials bug, end to end.
 
@@ -2118,7 +2072,7 @@ def test_stability_is_not_contaminated_by_folding_the_harvest_grade() -> None:
             "experiment.samples.treatment", "maintained on NGM plates", "maintained on NGM plates"
         ),
     ]
-    run = run_case(_trap_case(), llm=True, provider=_StubProvider(bad), trials=3)
+    run = run_case(_trap_case(), llm=True, gateway=_stub(bad), trials=3)
     assert run.harvest is not None
     assert run.harvest.hallucinated == ["experiment.samples.treatment"]
     assert run.grade.grade is Grade.FALSE_ACCEPT
@@ -2130,47 +2084,16 @@ def test_stability_is_not_contaminated_by_folding_the_harvest_grade() -> None:
 def test_stability_is_one_when_every_trial_is_clean_and_nothing_folds() -> None:
     """Three clean trials: stability 1.0 — and the per-trial wiring that produced it.
 
-    The wiring half was a separate test making the IDENTICAL call (same case, same `_StubProvider`,
-    same `trials=3`) to assert a disjoint set of attributes off the same 0.5s run.
+    Every trial really runs, but each sends the request the first sent, so the gateway's cache
+    answers trials two and three with trial one's reply, at no cost.
     """
     good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    run = run_case(_trap_case(), llm=True, provider=_StubProvider(good), trials=3)
+    run = run_case(_trap_case(), llm=True, gateway=_stub(good), trials=3)
     assert run.grade.grade is Grade.CORRECT
     assert run.stability == 1.0
-    # every trial really ran, and each one's cost was counted
     assert run.trials == 3
     assert run.llm_calls == 3
-    assert run.usage["input_tokens"] == 300
-
-
-def test_stability_is_fractional_only_when_trials_genuinely_differ() -> None:
-    """A real 2-in-3 failure — the case this metric exists to report — and the failure SURVIVING.
-
-    Trials used to keep only the LAST harvest, so a hallucination on trial 1 vanished when trials 2-3
-    came back clean: precisely the illusion trials exist to dispel. That regression had its own test
-    on the same `_FlakyProvider([bad, good, good])` call, and it could only prove the point
-    CONDITIONALLY, because its bad draft ("heat shock", quoted from "single-cell RNA-seq") might die
-    at span-verification before ever reaching the fold. This one's bad draft quotes itself, so it
-    survives verify deterministically — one call, and the fact is unconditional.
-    """
-    good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    # `condition` is no longer an assertable field, so a draft naming it now dies at the allowlist
-    # and never reaches the fold this test is about. The trap moves to NCBI's `treatment`, which is
-    # what `condition` was trying to be and is what the case's forbidden_fields now names.
-    bad = [
-        *good,
-        _draft(
-            "experiment.samples.treatment", "maintained on NGM plates", "maintained on NGM plates"
-        ),
-    ]
-    provider = _FlakyProvider([bad, good, good])
-    run = run_case(_trap_case(), llm=True, provider=provider, trials=3)
-    assert provider.calls == 3
-    assert run.grade.grade is Grade.FALSE_ACCEPT, "one bad trial condemns the case"
-    assert run.stability == pytest.approx(2 / 3), "but stability reports it happened 1 time in 3"
-    # the trial-1 failure reached the grade rather than being forgotten because trial 3 was clean
-    assert run.harvest is not None
-    assert run.harvest.hallucinated == ["experiment.samples.treatment"]
+    assert run.usage["cache_hits"] == 2
 
 
 def _assertion(field_name: str, value: str, quote: str, sha: str = "d" * 64) -> Assertion:
@@ -2899,7 +2822,7 @@ def test_the_tier_plan_is_the_send_list_the_paid_run_would_use(tmp_path: Path) -
     assert row.estimated_input_tokens > row.n_chars // 4, "the system prefix is charged per request"
     assert row.skipped is None
 
-    run = run_case(case, llm=True, provider=_StubProvider([]))
+    run = run_case(case, llm=True, gateway=_stub([]))
     assert run.harvest is not None
     assert run.harvest.n_documents == row.n_documents
     assert run.llm_calls == row.n_requests, "the plan is the floor on what the run issues"
@@ -2992,15 +2915,8 @@ def test_a_case_the_plan_cannot_price_is_named_rather_than_costed_at_zero(
     assert skipped.estimated_input_tokens == 0
 
 
-def test_the_plan_prices_the_trials_it_is_asked_about_and_names_what_will_breach(
-    tmp_path: Path,
-) -> None:
-    """`--trials N` really does send the same list N times, so a plan that ignored it would lie.
-
-    The ceiling check is deliberately one-sided and named as such: it lists the cases whose estimated
-    INPUT alone already clears the bar. Output and cache-write tokens count against a Ceiling too and
-    neither is knowable before the model answers, so this can only ever be a lower bound.
-    """
+def test_the_plan_prices_the_trials_it_is_asked_about(tmp_path: Path) -> None:
+    """`--trials N` really does send the same list N times, so a plan that ignored it would lie."""
     from seqforge.evals import plan_cases
 
     case = _priceable_case(tmp_path)
@@ -3013,11 +2929,6 @@ def test_the_plan_prices_the_trials_it_is_asked_about_and_names_what_will_breach
     # Per-case rows stay per trial: a trial is the unit that repeats, so multiplying them too would
     # report the same tokens twice to anyone adding the column up.
     assert thrice.per_case[0].estimated_input_tokens == once.per_case[0].estimated_input_tokens
-
-    assert once.estimated_over_ceiling == []
-    tight = plan_cases([case], ceiling=1, jobs=1)
-    assert tight.ceiling == 1
-    assert tight.estimated_over_ceiling == [case.id]
 
 
 def test_eval_plan_is_a_verb_that_prices_a_tier_and_needs_no_credential(
@@ -3080,7 +2991,9 @@ def _fixture_exchange(sha: str, why: str, **over: Any) -> dict[str, Any]:
         + ("Worms were grown at 20 C <b>& harvested</b> </script> alert(1). " * 30)
         + "\n</document>",
         "text": '{"drafts": [{"field": "experiment.organism", "value": "Caenorhabditis elegans"}]}',
-        "usage": {"input_tokens": 4102, "output_tokens": 210},
+        "usage": {"prompt_tokens": 4102, "completion_tokens": 210},
+        "cost_usd": 0.0021,
+        "cached": False,
     }
     row.update(over)
     return row
@@ -3115,8 +3028,8 @@ def _render_fixture() -> dict[str, Any]:
             "seconds": 412.7,
             "wall_seconds": 61.3,
             "llm_calls": 9.0,
-            "input_tokens": 184213.0,
-            "output_tokens": 4210.0,
+            "spent_usd": 0.0941,
+            "first_cost_usd": 0.0941,
         },
         "per_case": [
             {
@@ -3159,7 +3072,7 @@ def _render_fixture() -> dict[str, Any]:
                 "missed_question": True,
                 "trials": 3,
                 "stability": 0.333,
-                "usage": {"input_tokens": 61000, "output_tokens": 1400},
+                "usage": {"spent_usd": 0.031, "first_cost_usd": 0.031, "cache_hits": 0.0},
                 "harvest": {
                     "matched": ["experiment.organism"],
                     "missing": ["experiment.project.title"],
@@ -3258,7 +3171,7 @@ def _render_fixture() -> dict[str, Any]:
                         "the request failed",
                         text="",
                         error="deepseek: 429 rate limited",
-                        usage={"input_tokens": 3980, "output_tokens": 0},
+                        cost_usd=0.0,
                     ),
                 ],
             },
@@ -3636,8 +3549,8 @@ PAGE_CLAIMS = [
         "nothing downstream would catch these", "unstable", "experiment.samples.dev_stage",
         "the safety net working, not a failure",
         "max_tokens 8000 · response_format json_object",
-        "188,423 tokens", "missed a question it had to ask",
-    ], (), id="the-report-surfaces-trials-harvest-and-the-token-bill"),
+        "$0.094 spent", "$0.031</b> spent", "missed a question it had to ask",
+    ], (), id="the-report-surfaces-trials-harvest-and-the-dollar-bill"),
     # `library.chemistry = "RNA-Seq"` is not a finding; *from this quote, at these offsets* is. The
     # grade used to flatten each Assertion to `field -> str(value)` on the way to the report, which
     # threw away the only part a reader can independently check. `verify` builds an Assertion only
@@ -3809,15 +3722,15 @@ def test_a_recorded_transcript_that_was_not_read_says_so_rather_than_reading_as_
     assert "and not read" in page
 
 
-def test_a_case_stopped_at_its_ceiling_still_shows_what_it_spent_the_tokens_on() -> None:
+def test_a_case_stopped_at_its_ceiling_still_shows_what_it_spent_the_money_on() -> None:
     """A blocked case reports as a skip, and a skip card carries no grade — but the exchanges up to
-    the breach were paid for, and "on what?" is the whole question a Ceiling breach produces."""
+    the stop were paid for, and "on what?" is the whole question a stop produces."""
     fixture = _render_fixture()
     blocked = fixture["per_case"][1]
-    blocked["skipped"] = "token ceiling: 500,000 tokens spent over 412 exchange(s)"
+    blocked["skipped"] = "ceiling_reached: the meter's $1.00 ceiling would be crossed"
     page = render_html(fixture, title="T", source=None)
 
-    assert "token ceiling" in page
+    assert "ceiling_reached" in page
     assert "Showing <b>2 of 412 exchanges</b>" in page, (
         "the spend is on the card, not only a number"
     )
@@ -4069,12 +3982,9 @@ def test_a_partly_measured_llm_run_reports_it_on_stderr_and_still_exits_zero(
     """
     from typer.testing import CliRunner
 
-    import seqforge.harvest as harvest_mod
     from seqforge.cli import app
 
-    monkeypatch.setattr(
-        harvest_mod, "resolve_provider", lambda *a, **k: _PoisonedProvider([], "droplet")
-    )
+    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: _poisoned([], "droplet"))
     result = CliRunner().invoke(
         app,
         ["eval", "run", "--llm", "--case", "chemistry-unstated-trap", "-C", str(tmp_path)],
@@ -4093,8 +4003,8 @@ def test_a_partly_measured_llm_run_reports_it_on_stderr_and_still_exits_zero(
     assert "chemistry-unstated-trap" in result.stderr
     # The remedy names the model that ran and prescribes no model at all. It used to advise `--model
     # deepseek-v4-pro` unconditionally — including on a run of pro, where the advice was to change
-    # nothing (#188). `stub-model-1` is this provider's default, resolved rather than echoed as null.
-    assert "answered by stub-model-1" in result.stderr
+    # nothing (#188). `deepseek-v4-pro` is harvest's default, resolved rather than echoed as null.
+    assert "answered by deepseek-v4-pro" in result.stderr
     assert "--model" not in result.stderr, "naming the extractor is not prescribing a replacement"
 
 
@@ -4183,132 +4093,41 @@ def test_the_job_default_reads_usable_cores_and_stays_capped() -> None:
 # --------------------------------------------------------------------------------------------
 
 
-class _RetryingProvider:
-    """Refuses transiently `n_refusals` times, then answers. Every attempt costs tokens."""
-
-    name = "retrying"
-
-    def __init__(self, n_refusals: int) -> None:
-        self._left = n_refusals
-        self.calls = 0
-
-    def default_model(self) -> str:
-        return "retrying-1"
-
-    def complete_json(self, **kwargs: object) -> LLMResponse:
-        import json as _json
-
-        from seqforge.harvest import LLMResponse, ProviderUnavailable
-
-        self.calls += 1
-        if self._left > 0:
-            self._left -= 1
-            raise ProviderUnavailable(
-                "429 rate limited",
-                transient=True,
-                retry_after="0",
-                usage={"input_tokens": 40},
-            )
-        return LLMResponse(text=_json.dumps({"drafts": []}), usage={"input_tokens": 100})
-
-
-def test_a_cases_call_count_is_requests_not_documents(monkeypatch: pytest.MonkeyPatch) -> None:
-    """One document, two requests: the first was rate-limited and cost tokens. The old count was
-    `len(docs)`, so the retry was invisible in the only number a cost review reads."""
-    monkeypatch.setattr(time, "sleep", lambda _s: None)
-    provider = _RetryingProvider(n_refusals=1)
-
-    run = run_case(_trap_case(), llm=True, provider=provider)
-
-    assert provider.calls == 2
-    assert run.harvest is not None
-    assert run.harvest.n_calls == 2, "the refused attempt is its own exchange"
-    assert run.harvest.n_documents == 1, "and the document count is kept beside it"
-    assert run.llm_calls == 2
-    assert run.usage["input_tokens"] == 140, "the 429's 40 plus the answered call's 100"
-
-
-class _ExpensiveStub(_StubProvider):
-    """A stub whose one answered request costs more than the ceiling can carry twice.
-
-    The meter reserves a request's ESTIMATE before issuing it, so a ceiling buys a number of
-    requests rather than a number of banked tokens — which means `ceiling=1` no longer produces a
-    breach to observe: it cannot cover the first request either, so nothing is issued, nothing is
-    banked, and there is no ledger. Making the SPEND large instead of the ceiling tiny keeps these
-    two tests about what they were always about — a case refused on what it already paid for.
-    """
-
-    def complete_json(self, **kwargs: object) -> LLMResponse:
-        from dataclasses import replace
-
-        return replace(super().complete_json(**kwargs), usage={"input_tokens": 100_000})
-
-
 def test_a_case_that_reaches_its_ceiling_is_blocked_not_graded() -> None:
-    """Per case, because a case is a dataset and the ceiling bounds a dataset — and the meter spans
-    the case's trials, so the second trial here is refused on what the first spent. It refuses: the
-    case carries a `Blocker` and scores nothing, rather than warning into a log nobody reads.
-
-    The request that would cross the ceiling is refused BEFORE it is issued, on its estimate: the
-    first trial is admitted and banks more than a second could fit under, so the second never
-    leaves. A breach is therefore reproducible rather than a race, and — unlike the accounting this
-    replaced — it does not depend on how many requests happened to be in flight.
-    """
-    provider = _ExpensiveStub(
+    """Per case, because a case is a dataset and the ceiling bounds a dataset. It refuses: the case
+    carries a `Blocker` and scores nothing, rather than warning into a log nobody reads. A ceiling
+    below one request's largest possible cost refuses that request before it is sent."""
+    gateway = _stub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
-    run = run_case(_trap_case(), llm=True, provider=provider, ceiling=50_000, trials=2)
+    run = run_case(_trap_case(), llm=True, gateway=gateway, ceiling_usd=0.01)
 
     assert run.blocker is not None
-    assert run.llm_calls == 1, "the first trial's request was issued; the second never left"
-    assert run.blocker.code is BlockerCode.TOKEN_CEILING_EXCEEDED
+    assert run.llm_calls == 1, "the refused request is still an exchange"
+    assert run.blocker.code is BlockerCode.MODEL_CALLS_STOPPED
     assert run.blocker.subject.ref == _trap_case().id, "the refusal names the dataset it is about"
     assert run.skipped is not None
-    assert "ceiling" in run.skipped
-    assert run.to_json()["blockers"][0]["code"] == "TOKEN_CEILING_EXCEEDED"
+    assert run.skipped.startswith("ceiling_reached")
+    assert run.to_json()["blockers"][0]["code"] == "MODEL_CALLS_STOPPED"
     # excluded from every rate: the case did not run, so it is neither a pass nor a failure
     assert build_report([run]).n_cases == 0
 
 
-def test_a_ceiling_high_enough_never_binds() -> None:
-    """A backstop is a number nothing normally touches; the default must not change any grade."""
-    provider = _StubProvider(
-        [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+def test_the_default_ceiling_never_binds_and_the_report_says_what_a_case_spent() -> None:
+    """A backstop is a number nothing normally touches; the default must not change any grade. And
+    what the case did spend reaches the report, in dollars."""
+    from labllm.testing import FakeGateway
+
+    drafts = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    fake = FakeGateway(
+        harvest_kit.answering(json.dumps({"drafts": drafts})), prices=harvest_kit.PRICES
     )
-    run = run_case(_trap_case(), llm=True, provider=provider, ceiling=500_000)
+    run = run_case(_trap_case(), llm=True, gateway=fake.client(repo="seqforge"))
     assert run.blocker is None
     assert run.skipped is None
-
-
-def test_the_report_carries_cache_write_tokens() -> None:
-    """The Anthropic normalizer produces it and every consumer but the on-disk ledger dropped it —
-    so a cache-heavy run's cost was reported short in the only place anybody reads it."""
-
-    class _CachingProvider:
-        name = "caching"
-
-        def default_model(self) -> str:
-            return "caching-1"
-
-        def complete_json(self, **kwargs: object) -> LLMResponse:
-            from seqforge.harvest import LLMResponse
-
-            return LLMResponse(
-                text=json.dumps({"drafts": []}),
-                usage={
-                    "input_tokens": 1500,
-                    "output_tokens": 60,
-                    "cache_read_tokens": 1000,
-                    "cache_write_tokens": 200,
-                },
-            )
-
-    run = run_case(_trap_case(), llm=True, provider=_CachingProvider())
+    assert {e.ceiling_usd for e in fake.record} == {1.0}
     cost = build_report([run]).cost
-    assert cost["cache_write_tokens"] == 200.0
-    assert cost["cache_read_tokens"] == 1000.0
-    # ...on the same accumulation the plain counters ride, so they are read off the same run.
-    assert cost["input_tokens"] == 1500.0
+    assert cost["spent_usd"] == pytest.approx(sum(e.cost_usd for e in fake.record))
     assert cost["llm_calls"] == 1.0
 
 
@@ -4329,10 +4148,10 @@ def test_eval_run_writes_a_run_directory_and_stdout_gains_the_paths(tmp_path: Pa
     from seqforge.workspace import eval_dir
 
     case = _trap_case()
-    provider = _StubProvider(
+    gateway = _stub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
-    report, _ = run_cases([case], llm=True, provider=provider, workspace=tmp_path)
+    report, _ = run_cases([case], llm=True, gateway=gateway, workspace=tmp_path)
 
     run_dir = eval_dir(tmp_path)
     assert report.run_dir == str(run_dir)
@@ -4349,10 +4168,10 @@ def test_a_run_with_nowhere_to_write_holds_no_transcript(tmp_path: Path) -> None
     when there is a directory to write it into."""
     from seqforge.evals import run_cases
 
-    provider = _StubProvider(
+    gateway = _stub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
-    report, runs = run_cases([_trap_case()], llm=True, provider=provider)
+    report, runs = run_cases([_trap_case()], llm=True, gateway=gateway)
 
     assert report.run_dir is None
     assert runs[0].transcript is None
@@ -4361,20 +4180,15 @@ def test_a_run_with_nowhere_to_write_holds_no_transcript(tmp_path: Path) -> None
 
 def test_a_case_stopped_at_its_ceiling_still_names_its_transcript(tmp_path: Path) -> None:
     """A skip short-circuits `to_json`, and a blocked case is reported as a skip — but the exchanges
-    up to the breach were paid for, and "on what?" is exactly the question a breach produces."""
+    up to the stop are worth reading, and "on what?" is exactly the question a stop produces."""
     from seqforge.harvest import read_transcript
     from seqforge.workspace import eval_dir
 
-    provider = _ExpensiveStub(
+    gateway = _stub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
     run = run_case(
-        _trap_case(),
-        llm=True,
-        provider=provider,
-        ceiling=50_000,
-        trials=2,
-        workspace=eval_dir(tmp_path),
+        _trap_case(), llm=True, gateway=gateway, ceiling_usd=0.01, workspace=eval_dir(tmp_path)
     )
 
     assert run.blocker is not None
@@ -4424,10 +4238,10 @@ def test_the_page_joins_a_real_run_to_the_exchanges_it_paid_for(tmp_path: Path) 
     from seqforge.evals.report import attach_transcripts
     from seqforge.workspace import eval_dir
 
-    provider = _StubProvider(
+    gateway = _stub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
-    report, _ = run_cases([_trap_case()], llm=True, provider=provider, workspace=tmp_path)
+    report, _ = run_cases([_trap_case()], llm=True, gateway=gateway, workspace=tmp_path)
 
     payload = attach_transcripts(report.model_dump(mode="json"), eval_dir(tmp_path))
     row = payload["per_case"][0]
@@ -4458,10 +4272,10 @@ def test_the_transcript_flag_chooses_how_many_exchanges_the_page_carries(
     from seqforge.evals import run_cases
     from seqforge.workspace import eval_dir
 
-    provider = _StubProvider(
+    gateway = _stub(
         [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
     )
-    report, _ = run_cases([_trap_case()], llm=True, provider=provider, workspace=tmp_path)
+    report, _ = run_cases([_trap_case()], llm=True, gateway=gateway, workspace=tmp_path)
     run_dir = eval_dir(tmp_path)
     # what `eval run` writes beside the transcripts it just produced
     (run_dir / "report.json").write_text(json.dumps(report.model_dump(mode="json")))
@@ -4547,8 +4361,9 @@ def test_the_eval_path_fans_a_collapsed_claim_exactly_as_the_shipped_path_does()
     """
     import dataclasses
 
+    from labllm.testing import FakeGateway
+
     from seqforge.evals.run import _run_harvest
-    from seqforge.harvest import TokenMeter
     from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
 
     twins = ArchiveRecordSet(
@@ -4564,11 +4379,12 @@ def test_the_eval_path_fans_a_collapsed_claim_exactly_as_the_shipped_path_does()
         ],
     )
     case = dataclasses.replace(_trap_case(), records=twins, metadata_docs=[])
-    provider = _StubProvider([_draft("experiment.samples.age", "day3", "day3")])
-
-    _grade, _usage, accepted, subjects = _run_harvest(
-        case, [], meter=TokenMeter(provider), model=None
+    drafts = [_draft("experiment.samples.age", "day3", "day3")]
+    fake = FakeGateway(
+        harvest_kit.answering(json.dumps({"drafts": drafts})), prices=harvest_kit.PRICES
     )
+
+    _grade, accepted, subjects = _run_harvest(case, [], seam=harvest_kit.seam_over(fake))
 
     ages = [a for a in accepted if a.field == "experiment.samples.age"]
     assert len(ages) == 2, "one document was sent; the claim holds of both records' bytes"

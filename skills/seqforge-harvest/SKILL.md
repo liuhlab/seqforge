@@ -20,27 +20,31 @@ seqforge harvest verify DRAFTS                # -> the span-verification tripwir
 ```
 
 **Run `--dry-run` first on anything with `--records`.** It renders every document and prints the plan
-— `n_documents`, `n_requests`, and the estimated input tokens — while reaching no model and needing no
-credential. A dataset's cost used to be a property nobody computed until it had been paid: one
+— `n_documents`, `n_requests`, and the estimated input tokens — while reaching no gateway. A dataset's cost used to be a property nobody computed until it had been paid: one
 benchmark series billed 983 calls, 92% of them one-line run aliases. Each archive record is a
 document, except that a sample's *runs* are one document between them (a run belongs to exactly one
 sample, so its alias still declares that sample).
 
 **`n_requests` is the number to read as the cost, not `n_documents`.** Documents that receive the
 same ask travel in one request, so the stable prefix is paid once for the group rather than once
-each — which is most of the bill on a fan-out over one-line records. `--ceiling N` is the backstop
-underneath, and it bounds what the run may *spend*: a request's estimate is reserved before it is
-issued, so the one the budget cannot cover is refused un-issued at exit 3 rather than warning. A
-ceiling below one request's estimate refuses at the gate having issued nothing.
+each — which is most of the bill on a fan-out over one-line records. `--ceiling-usd` (default one
+dollar) is the backstop underneath: the gateway refuses a request that could cross it, and harvest
+stops at exit 3 with the reason. A rerun replays every answered request from the gateway's cache at
+no cost, so after a stop at the ceiling, rerun with a higher one.
+
+Every call goes through the lab gateway at `LABLLM_GATEWAY` (a tunnel's local address), under one
+meter labelled by the dataset; the gateway holds the provider keys, so this machine needs none.
+Exit 3 means the calls stopped — `reason` is `ceiling_reached`, `provider_exhausted`,
+`provider_unavailable` or `gateway_unreachable`, and the Blocker's remedy says what to do.
 
 `extract` writes `seqforge/logs/transcript.jsonl` beside `usage.json` — the ledger says what the run
-spent, the transcript says what it spent it on. Stdout carries the path, never the exchanges.
+spent, in dollars, the transcript says what it spent it on. Stdout carries the paths, never the
+exchanges.
 
-Providers: `--provider anthropic|deepseek|openai-compatible`, `--model ...`. Auto-detects
-`DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` and **refuses rather than guessing** when neither is set.
-DeepSeek serves two models: `deepseek-v4-pro` (the default) and `deepseek-flash`. Pro is the
-default because the benchmark measured it there — faster, and fewer output tokens (#188). The choice
-moves cost, never correctness: R2 re-greps every quote after.
+The model: `--provider` (default `deepseek`) and `--model`, the provider's exact model name
+(default `deepseek-v4-pro`; any other provider needs `--model`). Pro is the default because the
+benchmark measured it there — faster, and fewer output tokens (#188). The choice moves cost, never
+correctness: code re-greps every quote after.
 
 ## Document ROLE: only a file you hand us may steer the pipeline
 
