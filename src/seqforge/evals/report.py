@@ -414,8 +414,9 @@ class ExchangeView:
     model: str
     error: str | None
     why: str
-    #: What the request cost in dollars, zero on a cache hit.
-    cost_usd: float
+    #: What the request cost in dollars, zero on a cache hit; ``None`` in a report written before
+    #: harvest's calls were priced in dollars, which recorded tokens instead.
+    cost_usd: float | None
 
 
 @dataclass(frozen=True)
@@ -650,7 +651,7 @@ def _exchange_view(raw: dict[str, Any]) -> ExchangeView:
         model=str(raw.get("model", "")),
         error=(str(raw["error"]) if raw.get("error") else None),
         why=str(raw.get("why", "")),
-        cost_usd=float(raw.get("cost_usd", 0.0) or 0.0),
+        cost_usd=float(raw["cost_usd"]) if raw.get("cost_usd") is not None else None,
     )
 
 
@@ -977,11 +978,9 @@ def _exchange_block(case: CaseView) -> str:
     cards = []
     for x in case.exchanges:
         source = case.harvest.source_of(x.doc_sha256) if case.harvest else (x.doc_sha256 or "?")
-        head = (
-            f'<code class="path">{esc(source)}</code>'
-            f'<span class="hv-note">{esc(x.why)}</span>'
-            f'<span class="hv-note tabular-nums">{_dollars(x.cost_usd)}</span>'
-        )
+        head = f'<code class="path">{esc(source)}</code><span class="hv-note">{esc(x.why)}</span>'
+        if x.cost_usd is not None:
+            head += f'<span class="hv-note tabular-nums">{_dollars(x.cost_usd)}</span>'
         if x.error:
             head += f'<span class="chip chip-diff">{esc(x.error)}</span>'
         cards.append(
@@ -1239,7 +1238,9 @@ def _tiles(report: dict[str, Any], cases: list[CaseView], false_accepts: list[Ca
 
     work = float(cost.get("seconds", 0.0) or 0.0)
     wall = cost.get("wall_seconds")
-    spent = float(cost.get("spent_usd", 0.0) or 0.0)
+    # Absent from a report written before harvest's calls were priced in dollars: those runs counted
+    # tokens, and reading the absence as zero would say they were free.
+    spent = cost.get("spent_usd")
     calls = float(cost.get("llm_calls", 0) or 0)
 
     tiles = [
@@ -1296,7 +1297,13 @@ def _tiles(report: dict[str, Any], cases: list[CaseView], false_accepts: list[Ca
         _tile(
             "exchanges",
             _count(calls),
-            f"{_dollars(spent)} spent" if calls else "none — this tier is deterministic",
+            (
+                "none — this tier is deterministic"
+                if not calls
+                else "dollar cost not recorded"
+                if spent is None
+                else f"{_dollars(float(spent))} spent"
+            ),
         )
     )
     # Only on a run that harvested. A `--no-llm` run has no stage to report coverage of, and a tile

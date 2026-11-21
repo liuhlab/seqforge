@@ -3717,6 +3717,21 @@ def test_a_recorded_transcript_that_was_not_read_says_so_rather_than_reading_as_
     assert "and not read" in page
 
 
+def test_a_report_from_before_dollar_pricing_does_not_read_as_free() -> None:
+    """A saved report from when harvest counted tokens carries no dollar figures. Rendering it again
+    must say the cost was not recorded, never `$0.000`, which would call those runs free."""
+    fixture = _render_fixture()
+    for key in ("spent_usd", "first_cost_usd"):
+        del fixture["cost"][key]
+    for row in fixture["per_case"]:
+        for exchange in row.get("exchanges", []):
+            exchange.pop("cost_usd", None)
+    page = render_html(fixture, title="T", source=None)
+
+    assert "dollar cost not recorded" in page
+    assert "$0.000" not in page
+
+
 def test_a_case_stopped_at_its_ceiling_still_shows_what_it_spent_the_money_on() -> None:
     """A blocked case reports as a skip, and a skip card carries no grade — but the exchanges up to
     the stop were paid for, and "on what?" is the whole question a stop produces."""
