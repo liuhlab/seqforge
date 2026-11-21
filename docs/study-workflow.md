@@ -17,9 +17,8 @@ The chain is built and checked on the **standard set**, a fixed list of 50 small
 those 50, both files sit in the study's folder, `evals/standard-set/<ID>/`. `<ID>` is the Series
 the study was picked by, such as `GSE100021`.
 
-The work is planned in stages, and two steps are not built yet. Stage 5 builds the reader, and
-stage 6 runs the whole chain once with no person involved. Each of those steps already has its
-name, its input and its output below.
+The work is planned in stages, and one step is not built yet: stage 6 runs the whole chain once
+with no person involved. That step already has its name, its input and its output below.
 
 ## The steps in order
 
@@ -27,7 +26,7 @@ name, its input and its output below.
 | --- | --- | --- | --- | --- | --- |
 | 1 | Bound the study | `seqforge pass start study-bounds`, then `seqforge study write-bounds` | The records linked to the study, and its papers' abstracts | `bounds.yaml` | Built |
 | 2 | Check the bounds | `seqforge study check-bounds <file>` | One `bounds.yaml` | No file. It prints whether the file is accepted | Built |
-| 3 | Read the study | Command not named yet | The study's `bounds.yaml`, its records and its papers | `reading.yaml` | Not built yet. Stage 5 builds it |
+| 3 | Read the study | `seqforge pass start study-reading`, then `seqforge study write-reading` | The study's `bounds.yaml`, its records, and its papers in full or by their abstracts | `reading.yaml` | Built |
 | 4 | Check the reading | `seqforge study check-reading <file>` | One `reading.yaml` | No file. It prints whether the file is accepted | Built |
 | 5 | Derive the relations | `seqforge study relations <reading.yaml>` | One `reading.yaml` | No file. It prints the relations | Built |
 | 6 | Run the chain unattended | Command not named yet | About 2,000 GEO Series | For each study, a `bounds.yaml` and a `reading.yaml`, or the reason the study stopped | Not built yet. Stage 6 builds it |
@@ -117,24 +116,70 @@ and 2 for a file that it cannot read.
 
 The check asks only whether the file is in the current format. It does not judge whether the
 bounds are right. The bounding job never writes a file that the check rejects: it ends the study
-refused. What the reader does with a rejected file, stage 5 decides.
+refused. The reader reads each study's bounds file as it is.
 
 ## 3. Read the study
 
-**Not built yet.** Stage 5 builds this step, and its command is not named yet.
+The reader writes one study's **study reading**: what each sequenced sample is, and which labels
+the study varied. It runs a pass of the `study-reading` kind, one study per unit, and keeps each
+answer in the pass's task folder. With no `--keys` file, the pass runs the 50 studies of the
+standard set.
 
-The reader writes one study's reading from three inputs: the study's `bounds.yaml`, the records of
-the Series in those bounds, and the study's papers. It writes one `reading.yaml`.
+```bash
+seqforge pass start study-reading --ceiling-usd 2 --units-at-once 2
+seqforge study write-reading --out evals/standard-set --name job-reading.yaml
+```
 
-A reading has one row per sample. The row says which biosample and which donor the sample came
-from, which assay was run, and what the library targets or which kind of control library it is. It
-also holds general attributes such as species and tissue. The reading names the study's
-**factors**, the labels that the study varied on purpose, such as a treatment. Each statement in
-the file is a claim. A claim says how it is backed, for example by a passage quoted from a record
-or a paper, and it carries a probability.
+With `--units-at-once 2`, at most eight model requests are in flight at once.
 
-Until the reader exists, the only readings are worked examples for a few studies of the standard
-set. A model wrote each of them.
+**What it reads.** The reader reads the study's own `bounds.yaml`, and liulab-data from
+`LABDATA_STORE` and `LABDATA_PAPERS`: the records of the Series that the bounds keep, the sequenced
+samples of those Series, and the bounds' papers. It reads a paper's full text where the paper store
+holds one, and the abstract where it does not. Only a sequenced sample gets a row, so a microarray
+sample is left out. The reader never reads a supplementary file of GEO or of a paper. A label that
+only such a file gives is `unknown`.
+
+**How it decides.** Two models and code share the work:
+
+1. A writing model, DeepSeek Flash with thinking on, reads the records and the papers. It lists the
+   **factors**, which are the labels that the study varied on purpose, with their levels. It also
+   lists every value that each label takes, each with a quote. It does not say which sample has
+   which value. An answer that cannot be used is asked for once more.
+2. Jev, a model that answers closed questions with a probability, answers every closed question. It
+   says whether each factor was varied on purpose, which level is the baseline, and whether the
+   levels are in order. Then, for each sample, it picks the sample's level on each factor and its
+   value on each label from the lists. Some questions are asked twice: plain and negated, or with
+   the options in order and reversed.
+3. Code looks for every quote in its record, character for character, or in its paper once each
+   run of white space is one space. Jev judges whether each found passage backs its claim, or says
+   otherwise. A claim is `quoted` only from a found passage that backs it. Otherwise it is
+   `inferred`.
+4. Code writes the reading and runs the format check. It drops a level of a factor that no sample
+   is at.
+
+**Assay guides.** An **assay guide** is a short text that the reader adds to the writer's
+instructions and to Jev's questions for a study whose records name its assay. Only pull-down
+assays have one: ChIP-seq, CUT&RUN and CUT&Tag. It says that the target is a label and never a
+factor. It also asks the writer to tie each control library to its pull-down libraries by the words
+that tie them, such as a replicate number in the sample titles. Jev checks each tie. Libraries that
+are tied share one `biosample` id.
+
+**Ontology ids.** The species id comes from the record's own taxonomy id, and `healthy` is
+`PATO:0000461`. Every other id comes from an ontology search, and Jev picks one of its candidates
+or none. A term is written only when Jev is sure of its pick. The ontologies are liulab-data's, and
+until its search is plugged in, the reader searches nothing. So a reading's only ids are the
+species ids and `healthy`, and its `ontology_snapshot` says that no ontology was searched.
+
+**What it writes.** `seqforge study write-reading --out <folder>` writes each study's answer as
+`<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file.
+For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
+study ends in one of three ways:
+
+| Ending | When | File |
+| --- | --- | --- |
+| Settled | Jev's two answers agree on every question asked twice | Written |
+| Unsettled | Jev's two answers disagree on whether a factor was varied on purpose, on its baseline, or on any sample's level | Written, with each probability |
+| Refused | The writer's answer cannot be used after one retry, or the reading fails the format check | None. `write-reading` prints the reason |
 
 ## 4. Check the reading
 

@@ -32,3 +32,18 @@ _Avoid_: Assertion (harvest's span-verified claim read out of prose), fact
 **Passage**:
 One quote in a study file with where it was read, numbered once per file.
 _Avoid_: Quote (harvest's), span, excerpt
+
+**Study reading**:
+What each sequenced sample of one study is, and which labels the study varied, each statement a
+claim. One per study.
+_Avoid_: annotation, curation, sample metadata
+
+**Factor**:
+A label the study varied on purpose between its samples, such as a treatment or an age, with the
+levels it took and the level the others are compared with.
+_Avoid_: variable, condition, covariate
+
+**Assay guide**:
+A short text the reader adds to its instructions for a study of one kind of assay, written only
+where the general instructions fail that assay.
+_Avoid_: prompt, template

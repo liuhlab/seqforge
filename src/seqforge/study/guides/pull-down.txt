@@ -1,0 +1,23 @@
+Assay guide: pull-down assays (ChIP-seq, ChIP-exo, CUT&RUN, CUT&Tag)
+
+In a pull-down assay, an antibody enriches the chromatin bound by one protein or one histone mark.
+A control library, such as an input or an IgG library, measures the background.
+
+- The target is a label, never a factor. Write each mark or protein the study pulls down as a
+  value of target, with its quote. Never list target as a factor, even when the study pulls down
+  several marks. Never list IgG, input or "none" as a value of target.
+- control_type names background-control libraries only, in the source's words, such as input,
+  IgG or a no-antibody library. A mock-treated sample is a baseline, not a control, and a
+  spike-in is not a control library. With no control library, control_type has no values, its
+  gap is na, and ties stays empty.
+- Under ties, list which control goes with which pull-downs. A tie names one control library and
+  the pull-down libraries made from the same material, such as one chromatin preparation or one
+  batch of cells or nuclei. Quote one unbroken run of words that the same field of the control's
+  record and of every one of those pull-downs' records holds, such as "liver rep1" in the titles
+  "input liver rep1" and "H3K4me3 liver rep1". When the target splits the shared words, quote the
+  piece that carries the replicate, such as "_rep1" in "liver_H3K4me3_rep1" and
+  "liver_input_rep1". Otherwise quote a sentence that says this control and these pull-downs came
+  from the same material.
+- When one control serves pull-downs made from different material, such as a pooled input or one
+  IgG for all conditions, tie it only to the pull-downs made from its own material, or to none.
+  List a tie only when such words exist. Never pair libraries by a guess.
