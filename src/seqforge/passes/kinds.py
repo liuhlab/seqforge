@@ -58,7 +58,7 @@ class Kind:
 KINDS: dict[str, Kind] = {}
 
 #: The module that registers each of seqforge's own kinds when it is imported, by the kind's name.
-KIND_MODULES: dict[str, str] = {"standard-set-bounds": "seqforge.standard_set.draft"}
+KIND_MODULES: dict[str, str] = {"study-bounds": "seqforge.study.bounding"}
 
 
 def register(kind: Kind) -> Kind:

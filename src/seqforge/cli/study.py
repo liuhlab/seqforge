@@ -1,9 +1,10 @@
-"""`seqforge study`: the format checks of a study's files, and what a valid reading implies.
+"""`seqforge study`: a study's files, written from the bounding pass, checked, and read.
 
-``check-bounds`` and ``check-reading`` each say whether one file is in the current format, and what
-is wrong with it when it is not. ``relations`` checks a reading the same way, then prints the
-relations between its samples. Each reads the one file and nothing else: no store, no network, no
-model. None writes a file.
+``write-bounds`` writes each study's bounds file from the bounding pass's answers, as
+``seqforge pass start study-bounds`` left them in its task. ``check-bounds`` and ``check-reading``
+each say whether one file is in the current format, and what is wrong with it when it is not.
+``relations`` checks a reading the same way, then prints the relations between its samples. The
+checks read the one file and nothing else: no store, no network, no model, and they write no file.
 """
 
 from __future__ import annotations
@@ -36,6 +37,46 @@ def _verdict(file: Path, accepted: int, problems: list[dict[str, str]], **more: 
     """Print the one JSON object every command here prints, and exit 0 if valid, 3 if rejected."""
     said = {"file": str(file), "format": accepted, "valid": not problems, "problems": problems}
     _emit(_StageOut({**said, **more}, 3 if problems else 0))
+
+
+@study_app.command("write-bounds")
+def study_write_bounds(
+    out: Path = typer.Option(
+        ..., "--out", help="The folder of study folders, such as evals/standard-set."
+    ),
+    name: str = typer.Option(
+        "bounds.yaml",
+        "--name",
+        help="The file's name in each study's folder; job-bounds.yaml for the standard set.",
+    ),
+    task: Path | None = typer.Option(
+        None,
+        "--task",
+        help="The bounding pass's task folder. Default: seqforge/passes/<kind>/ here.",
+    ),
+    reviews: Path | None = typer.Option(
+        None, "--reviews", envvar="SEQFORGE_REVIEWS", help="A local clone of the review repo."
+    ),
+) -> None:
+    """Write ``<out>/<ID>/<name>`` from the bounding pass's answers, for each study that has none.
+
+    A refused study gets no file; the JSON gives its reason. A file already there is never
+    overwritten. It reads the task only, so it works with the gateway down. Exit 0 with one object
+    per study; 2 for no task or no review clone; 3 when a running pass holds the task.
+    """
+    from ..study.bounding import KIND_NAME, write_bounds
+    from ._kind_task import KindTask, for_kind
+
+    def run(setup: KindTask) -> _StageOut:
+        from ..passes.status import read_only_kind
+
+        setup.require_task()
+        with setup.read() as opened:
+            done = write_bounds(opened, read_only_kind(KIND_NAME), out, name)
+        said: dict[str, object] = {"kind": KIND_NAME, "task": str(setup.folder), "out": str(out)}
+        return _StageOut({**said, "studies": done}, 0)
+
+    _emit(for_kind(KIND_NAME, task=task, reviews=reviews, body=run))
 
 
 @study_app.command("check-bounds")

@@ -1,7 +1,7 @@
 """The test kit of `seqforge pass` and `seqforge review`, imported by `test_passes.py` alone.
 
-No production kind is registered until bounding exists, so the pass and review commands are
-exercised on the run engine's test-only kind: one writer role that writes a text in capitals, over
+The pass and review commands are exercised on the run engine's test-only kind, apart from any
+production kind: one writer role that writes a text in capitals, over
 fixture texts, behind liulab-llms's fake gateway. The review repo is :class:`FakeGitHub`, in memory.
 It lives here and not in ``conftest.py`` so that no other test session imports liulab-llms.
 """
