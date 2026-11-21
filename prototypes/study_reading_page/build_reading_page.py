@@ -127,6 +127,7 @@ def evidence(
         "note": None if mark == "quoted" else getattr(claim, mark, None),
         "quoted": claim.quoted or [],
         "see": claim.see or [],
+        "against": claim.against or [],
         "p": claim.p,
         "dis": dis,
     }

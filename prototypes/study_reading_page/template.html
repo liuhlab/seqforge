@@ -166,6 +166,7 @@ html.ev-open{scroll-padding-bottom:46vh}
 #ev-body .how b{color:var(--mark)}
 #ev-body blockquote{margin:8px 0 0;padding:6px 12px;border-left:4px solid var(--in);background:var(--bg);border-radius:0 6px 6px 0}
 #ev-body blockquote.see{border-left-color:var(--worked)}
+#ev-body blockquote.against{border-left-color:var(--low)}
 #ev-body cite{display:block;font:normal 12.5px system-ui,sans-serif;color:var(--muted);margin-top:3px}
 #ev-body .lowline{color:var(--low);font-weight:700}
 #ev-body .dis{background:var(--differ-bg)}
@@ -276,6 +277,10 @@ html.ev-open{scroll-padding-bottom:46vh}
     if (claim.see.length){
       body.appendChild(el('p', 'who', 'It rests on:'));
       quotes(body, study, claim.see, 'see');
+    }
+    if (claim.against.length){
+      body.appendChild(el('p', 'who', 'Says otherwise:'));
+      quotes(body, study, claim.against, 'against');
     }
     claim.dis.forEach(function(n){
       var d = study.dis[n], box = el('div', 'dis'), list = el('dl');
