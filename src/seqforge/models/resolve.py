@@ -15,7 +15,7 @@ from .base import Accession, Basis, ChemistryId, Rung, Sha256, Uri
 from .blocker import Blocker, ValidationWarning
 from .conflict import Conflict, ConflictPosition, Decidable
 from .dataset import ArchiveProject
-from .evidenced import EvidencedStr, EvidencedTaxid
+from .evidenced import EvidencedTaxid
 from .processing import RuntimeEnv
 
 
@@ -89,21 +89,15 @@ class ResolveResult(BaseModel):
 
 
 class ResolvedSample(BaseModel):
-    """One biological sample, the files that carry it, and what we know about it.
+    """One biological sample and the files that carry it.
 
     ``sample_id`` always exists and is always code's: it is the archive's sample accession when a
     record was joined, and the run grouping otherwise. There is no path on which a language model
-    names a sample — that is the whole reason a per-record document works.
-
-    ``attributes`` is keyed by an NCBI harmonized attribute name (``strain``, ``tissue``,
-    ``dev_stage``). Open-keyed rather than a fixed set of typed fields, because the key space is
-    NCBI's 960 and mirroring 960 names into pydantic fields is the hand-maintained contract this repo
-    keeps getting bitten by. Enforcement lives in the validator, against the shipped vocabulary.
+    names a sample.
     """
 
     sample_id: str
     accession: Accession | None = None
-    attributes: dict[str, EvidencedStr] = Field(default_factory=dict)
     #: The files carrying this sample, by content hash. ``fill`` turns these into manifest URIs; the
     #: resolver does not know what a URI is and should not.
     file_shas: list[Sha256] = Field(default_factory=list)
@@ -112,13 +106,10 @@ class ResolvedSample(BaseModel):
 class MetadataResolution(BaseModel):
     """The output of the metadata resolver — the sibling of ``resolve score``, over records not bytes.
 
-    Same discipline and the same shape of answer, because it has the same ways of being wrong: it
-    emits evidenced values, and can refuse with a ``Blocker`` (a record whose runs do not match the
-    files on disk). A sample-attribute *disagreement* is different from a refusal: the resolver decides
-    it — a stronger authority wins, equal authorities leave the field null — so it is a non-blocking
-    ``warning``, not something that stops the dataset compiling. A dataset with no archive record and
-    no prose resolves to samples-with-no-facts, which is a real answer and the honest one — most
-    sequencing data has never had an accession.
+    Same discipline, because it has the same ways of being wrong: it can refuse with a ``Blocker`` (a
+    record whose runs do not match the files on disk). A dataset with no archive record resolves to
+    samples grouped by filename, which is a real answer and the honest one — most sequencing data has
+    never had an accession.
     """
 
     samples: list[ResolvedSample] = Field(default_factory=list)
@@ -127,8 +118,8 @@ class MetadataResolution(BaseModel):
     #: caller must supply it — never a default, because a wrong taxid aligns cleanly against the wrong
     #: genome and nothing downstream ever asks again.
     organism: EvidencedTaxid | None = None
-    #: Non-blocking notes on sample attributes the resolver decided under disagreement (precedence, or
-    #: null when it could not pick). Surfaced so the resolution is never silent; they never block.
+    #: Non-blocking notes on the join: a submitted file whose size disagrees with the archive's, or a
+    #: hand-written record set fusing runs the filenames would have kept apart. They never block.
     warnings: list[ValidationWarning] = Field(default_factory=list)
     blockers: list[Blocker] = Field(default_factory=list)
 

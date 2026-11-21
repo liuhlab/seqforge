@@ -1,16 +1,8 @@
-"""NCBI's harmonized BioSample attribute vocabulary — the key space for a sample fact.
+"""NCBI's harmonized BioSample attribute vocabulary — the names a record's attributes are read under.
 
-A sample fact needs a key, and the key cannot be ours. ``condition`` was — we invented it, no archive
-uses it, and it is exactly the slot a language model filed worm husbandry into on the pilot, because
-a field named "condition" will accept anything you can call a condition. NCBI already solved this:
-960 curated attribute names, each with a definition, a display name, and the synonyms real submitters
-actually type. This module is that list, and nothing else decides what a sample attribute may be
-called.
-
-**Ask a subset, enforce the whole list.** :mod:`seqforge.harvest.fields` picks the handful of
-attributes worth spending prompt tokens on; ``SampleGroup`` validates every key against all 960. The
-two are deliberately different sizes — asking for 960 fields would be absurd, and permitting only the
-handful we ask for would throw away an attribute a record genuinely declares.
+A submitter types an attribute under whatever name they like; NCBI's 960 curated names, each with a
+definition, a display name and the synonyms real submitters actually type, are what the archive
+transcriber harmonizes them to (:func:`harmonize`). This module is that list.
 
 *A correction worth recording, because the obvious design is wrong.* Every BioSample record declares
 a **package** (the pilot's is ``Model.organism.animal.1.0``), and each of NCBI's attributes lists the
@@ -44,7 +36,7 @@ _DATA = Path(__file__).parent / "biosample" / "attributes.json"
 class BioSampleAttribute:
     """One of NCBI's harmonized attributes: the name, what it means, and what people call it."""
 
-    #: The harmonized name — the key a ``SampleGroup`` attribute is stored under.
+    #: The harmonized name — what a record attribute is read under.
     name: str
     #: NCBI's human-facing label, e.g. ``dev_stage`` -> "development stage".
     display: str

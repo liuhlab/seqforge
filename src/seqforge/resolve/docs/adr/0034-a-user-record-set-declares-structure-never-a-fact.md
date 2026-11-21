@@ -9,3 +9,6 @@ nothing in the tree reads an experiment level, and a lab that does know its geno
 a README and harvests them, which keeps the span. Fusing runs the filenames would have separated is
 a `Warning` and not a `Blocker`: refusing the feature's primary use case on first run teaches
 callers to route around exit codes.
+
+**Status.** Amended 2026-11-21 — `_basis_for` left with the sample attributes; the structure-only
+rule stands.

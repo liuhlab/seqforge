@@ -48,15 +48,14 @@ probing bytes — it lives in `processing new`.
 ## An accession is fetched, not decoration
 
 `--accession PRJNA1027859` pulls the project, sample, experiment and run records and joins them to the
-files. **That is where per-sample metadata comes from** — `strain`, `tissue`, `sex`, `dev_stage` live
-on the BioSample record, and until 2026-07-16 they were fetched by no code at all, which is why every
-sample in the pilot's manifest said `tissue: null` under a paper that says "neurons".
+files, so each file lands in the sample the archive says it belongs to. What each sample *was*
+(strain, tissue, treatment) is not compiled into the manifest; a study reading holds it.
 
 `--organism` becomes optional when you pass one: the record declares the taxid. A flag still beats the
 record — a human typing a taxid is asserting it now, having looked.
 
 **No accession is fine and is the common case.** Most sequencing data never had one. You get samples
-grouped by run, no facts attached, exit 0. What is *not* fine is an accession that cannot be fetched:
+grouped by run, exit 0. What is *not* fine is an accession that cannot be fetched:
 that exits 3. You asked for those facts, and a manifest is content-addressed and never rewritten, so
 quietly omitting them would bake the omission in. `--offline` with `--accession` reads only the
 lab's labdata store, and refuses a deposit the store lacks for the same reason; fetch once with
@@ -67,23 +66,12 @@ say two runs are one library — `_S1` and `_S3` on one flowcell compile as two 
 exit 0 — so for in-house data with no accession, `seqforge records new <fastq dir>` drafts a record
 set (one sample per run: a no-op until you edit it, and it comments the pairs it will not decide) and
 `seqforge records validate` says what the edited file declares. It declares **structure only** —
-`level`, `id`, `parent`, `filenames` — and an attribute typed there is refused at parse. A fact about
-a sample goes in a README that `seqforge harvest` reads, because it has to arrive with a span.
+`level`, `id`, `parent`, `filenames` — and an attribute typed there is refused at parse.
 
 **`--assertions` is how prose reaches the manifest.** Without it the model might as well not have run:
 `harvest extract` writes `seqforge/assertions.json` and nothing read it. Pass
-`harvest extract --records` too, and each archive record becomes its own document — which is how a
-claim gets to name a sample.
-
-## Sample attributes are NCBI's vocabulary, not ours
-
-`experiment.samples[].attributes` is keyed by an **NCBI harmonized BioSample attribute name** — one of
-960, with NCBI's definitions (`seqforge io attributes` lists them; `seqforge io attributes <name>`
-explains one). The validator refuses anything else.
-
-There is no `condition`. It was ours, no archive defines it, and a field named "condition" accepts
-anything you can call a condition — a model duly filed routine worm husbandry into it. Use NCBI's
-`treatment` / `genotype` / `disease`.
+`harvest extract --records` too, and each experiment record's protocol paragraph becomes its own
+document, asked for the chemistry.
 
 ## One decision, one confidence
 
@@ -92,9 +80,9 @@ anything you can call a condition — a model duly filed routine worm husbandry 
 `read_layout` is the KB's structure filled in with measured lengths, `files[].read_id` is the other
 half of the same joint optimization. They used to each carry a copy of the same number.
 
-`confidence: null` is legal and informative: it means nothing was judged. A `strain: CQ758` copied out
+`confidence: null` is legal and informative: it means nothing was judged. An organism taxid copied out
 of a BioSample record is a transcription, not a judgement — `basis: asserted` plus the record
-accession in `evidence` already says everything true about how we know it.
+accessions in `evidence` already says everything true about how we know it.
 
 ## basis means different things in the two files
 

@@ -48,9 +48,9 @@ pixi run -- seqforge resolve score reads/*.fastq.gz
 pixi run -- seqforge io records PRJNA1027859
 
 # 4. write down what the data IS  (immutable, content-addressed)
-#    --accession fetches the records and joins them to your files: that is where
-#    per-sample strain/tissue/sex/dev_stage come from. Without one you still get a
-#    manifest -- samples grouped by run, no facts attached. Most data has no accession.
+#    --accession fetches the records and joins them to your files, so each file
+#    lands in its archive sample. Without one you still get a manifest -- samples
+#    grouped by run. Most data has no accession.
 pixi run -- seqforge manifest fill reads/*.fastq.gz --accession PRJNA1027859
 pixi run -- seqforge manifest validate seqforge/manifest.yaml
 

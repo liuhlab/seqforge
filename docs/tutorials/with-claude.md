@@ -49,8 +49,9 @@ You don't have to give it all three inputs. The files alone are enough:
 > Compile the FASTQ files in `./reads` with seqforge, against the hg38 genome with the GENCODE
 > annotation.
 
-The accession and the paper each make the answer richer — per-sample strain, tissue, sex, developmental
-stage — but plenty of data never had either, and that's a normal, fully supported case.
+The accession and the paper each make the answer richer — the archive's own sample for each file, the
+organism, a hint about the kit — but plenty of data never had either, and that's a normal, fully
+supported case.
 
 ## The one thing you have to decide
 

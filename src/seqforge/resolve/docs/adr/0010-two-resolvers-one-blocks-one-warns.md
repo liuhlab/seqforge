@@ -8,3 +8,6 @@ stronger basis wins, equal authorities that disagree leave the attribute null â€
 `Warning`. Code does not get to break a tie between equals, and the metadata resolver is handed a
 `FileIdentity` rather than an `Observation`, so no probe signal can reach it and re-decide the
 library.
+
+**Status.** Amended 2026-11-21 â€” the metadata resolver no longer decides sample attributes; it
+warns only about the join, such as a submitted file whose size disagrees with the archive's.

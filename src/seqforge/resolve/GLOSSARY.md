@@ -1,7 +1,7 @@
 # Resolve
 
 Two resolvers over one dataset: the byte resolver decides what the **Library** is from bytes alone,
-and the metadata resolver decides which **Sample** each file came from, from records and prose. This
+and the metadata resolver decides which **Sample** each file came from, from records. This
 context names the things they identify and the machinery of deciding.
 
 Words every context shares — **Evidenced**, **Basis**, **Observed**, **Conflict** and the rest — are
@@ -59,8 +59,7 @@ FASTQ
 
 **Record set**:
 The records handed to the metadata resolver, at whatever levels they were declared, with `source`
-naming who declared them. A `source: user` set carries structure only and **no attributes**, which
-is what keeps `asserted` meaning *"an archive's typed slot"*.
+naming who declared them. A `source: user` set carries structure only and **no attributes**.
 _Avoid_: records file, sample sheet (a bcl2fastq artefact), manifest — a record set is an *input* to
 the dataset manifest and never one of the two artifacts
 

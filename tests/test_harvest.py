@@ -140,9 +140,9 @@ def test_a_multi_sheet_xlsx_renders_every_sheet_not_just_the_first(tmp_path: Pat
     design.title = "Experimental design"
     design.append(["note", "single-cell RNA-seq, two conditions"])
     samples = wb.create_sheet("Sample metadata")
-    samples.append(["sample_id", "strain", "genotype"])
-    samples.append(["GSM001", "N2", "wild-type"])
-    samples.append(["GSM002", "CB1370", "daf-2 mutant"])
+    samples.append(["sample_id", "organism", "genotype"])
+    samples.append(["GSM001", "Caenorhabditis elegans", "wild-type"])
+    samples.append(["GSM002", "Caenorhabditis elegans", "daf-2 mutant"])
     xlsx = tmp_path / "supplementary_tables.xlsx"
     wb.save(xlsx)
 
@@ -151,14 +151,13 @@ def test_a_multi_sheet_xlsx_renders_every_sheet_not_just_the_first(tmp_path: Pat
     assert "Sheet: Experimental design" in nd.text
     assert "Sheet: Sample metadata" in nd.text
     # ...and a value that exists ONLY on the second sheet made it through (the whole point).
-    assert "CB1370" in nd.text
     assert "daf-2 mutant" in nd.text
 
     # a quote of a second-sheet cell greps back and entails its value — the round-trip works.
     draft = AssertionDraft(
-        field="experiment.samples.genotype",
-        value="wild-type",
-        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="N2 | wild-type"),
+        field="experiment.organism",
+        value="Caenorhabditis elegans",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="GSM001 | Caenorhabditis elegans"),
         llm_confidence=0.9,
     )
     assert verify_drafts([draft], [nd], extractor=EXTRACTOR).n_accepted == 1
@@ -182,8 +181,8 @@ def test_a_dirty_xlsx_transcribes_faithfully_without_cleaning(tmp_path: Path) ->
         ["Supplementary Table S3. Sample metadata"]
     )  # a title/preamble row, not a header
     samples.append([])  # a blank spacer row
-    samples.append(["sample_id", "strain", "treatment"])
-    samples.append(["GSM001", "N2", "heat shock\n34C for 2h"])  # a multi-line cell
+    samples.append(["sample_id", "strain", "input"])
+    samples.append(["GSM001", "N2", "single-nucleus\nsuspension, 34C"])  # a multi-line cell
 
     xlsx = tmp_path / "dirty.xlsx"
     wb.save(xlsx)
@@ -192,11 +191,11 @@ def test_a_dirty_xlsx_transcribes_faithfully_without_cleaning(tmp_path: Path) ->
     assert "Sheet: Legend" in nd.text
     assert "Sheet: Table S3" in nd.text
     # the multi-line cell collapsed to one contiguous run, so the row stayed one line and greps back
-    assert "heat shock 34C for 2h" in nd.text
+    assert "single-nucleus suspension, 34C" in nd.text
     draft = AssertionDraft(
-        field="experiment.samples.treatment",
-        value="heat shock",
-        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="N2 | heat shock 34C for 2h"),
+        field="library.prep_type",
+        value="single-nucleus",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="N2 | single-nucleus suspension, 34C"),
         llm_confidence=0.8,
     )
     assert verify_drafts([draft], [nd], extractor=EXTRACTOR).n_accepted == 1
@@ -293,8 +292,6 @@ def test_entailment_is_vacuous_when_the_value_is_copied_out_of_the_quote() -> No
     quote = f"Caenorhabditis elegans were {husbandry}."
     # A true statement, correctly quoted, filed under a field it does not belong in — and entails()
     # cannot tell. It would say yes to any field name at all:
-    assert entails(quote, "experiment.samples.condition", husbandry)
-    assert entails(quote, "experiment.samples.tissue", husbandry)
     assert entails(quote, "totally.made.up.field", husbandry)
     assert not entails(
         "The organism was Homo sapiens.", "experiment.organism", "Caenorhabditis elegans"
@@ -529,7 +526,7 @@ def test_surface_forms_dispatch_is_exact_match_not_a_substring_test() -> None:
 
     assert len(surface_forms("library.chemistry", "10x-3p-gex-v3")) > 1  # KB aliases attach
     assert surface_forms("processing.assay_override", "10x-3p-gex-v3") == ["10x-3p-gex-v3"]
-    assert surface_forms("experiment.samples.tissue", "neurons") == ["neurons"]
+    assert surface_forms("experiment.organism", "Mus musculus") == ["Mus musculus"]
     # quantification has NO alias source, on purpose: STARsolo's own spelling is the only form, so an
     # alias table could only loosen the one check that is not vacuous.
     assert surface_forms("processing.quantification", "GeneFull") == ["GeneFull"]
@@ -662,16 +659,16 @@ def test_a_pdf_table_is_spliced_into_the_canonical_text_and_a_cell_verifies(
     supplying the table, so the test does not depend on pdfplumber's heuristics on a synthetic PDF."""
     monkeypatch.setattr(
         "seqforge.harvest.normalize._pdf_tables",
-        lambda _p: {1: ["Sample | Genotype\n\nSRR1 | daf-2(e1370)"]},
+        lambda _p: {1: ["Sample | Organism\n\nSRR1 | Caenorhabditis elegans"]},
     )
-    pdf = _pdf(tmp_path, ["Methods. Per-sample genotypes are given in Table 1."])
+    pdf = _pdf(tmp_path, ["Methods. Per-sample organisms are given in Table 1."])
     nd = normalize_document(pdf, pdf_backend="pypdf")
     assert "Table (page 1):" in nd.text
-    assert "SRR1 | daf-2(e1370)" in nd.text  # the row survived normalize_text intact
+    assert "SRR1 | Caenorhabditis elegans" in nd.text  # the row survived normalize_text intact
     draft = AssertionDraft(
-        field="experiment.samples.genotype",
-        value="daf-2(e1370)",
-        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="SRR1 | daf-2(e1370)"),
+        field="experiment.organism",
+        value="Caenorhabditis elegans",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="SRR1 | Caenorhabditis elegans"),
         llm_confidence=0.9,
     )
     assert verify_drafts([draft], [nd], extractor=EXTRACTOR).n_accepted == 1
@@ -739,12 +736,12 @@ def test_verify_keeps_a_chemistry_draft_whose_value_names_a_node(tmp_path: Path)
 
 
 def test_the_kb_node_check_is_only_asked_of_the_chemistry_field(tmp_path: Path) -> None:
-    """Every other field's vocabulary is its own; a strain is not a chemistry and owes the KB nothing."""
-    nd = _doc(tmp_path, "Worms of strain RNA-Seq-1 were grown at 20C.")
+    """Every other field's vocabulary is its own; a prep is not a chemistry and owes the KB nothing."""
+    nd = _doc(tmp_path, "Libraries were single-nucleus RNA-Seq-1 preparations.")
     draft = AssertionDraft(
-        field="experiment.samples.strain",
-        value="RNA-Seq-1",
-        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="strain RNA-Seq-1"),
+        field="library.prep_type",
+        value="single-nucleus RNA-Seq-1",
+        span=SourceSpan(doc_sha256=nd.doc_sha256, quote="single-nucleus RNA-Seq-1"),
         llm_confidence=0.9,
     )
     report = verify_drafts([draft], [nd], extractor=EXTRACTOR)
@@ -832,16 +829,18 @@ def test_a_quote_reaching_past_the_typed_column_is_still_prose() -> None:
     """
     from seqforge.harvest import normalize_record
 
-    doc = normalize_record(_experiment_record())
+    doc = normalize_record(
+        _experiment_record(title="GSM1: Chromium Single Cell 3' v3; Mus musculus; RNA-Seq")
+    )
     part = AssertionDraft(
-        field="experiment.samples.treatment",
-        value="MC38 tumor 3 weeks",
-        span=SourceSpan(doc_sha256=doc.doc_sha256, quote="MC38 tumor 3 weeks"),
+        field="library.chemistry",
+        value="10x-3p-gex-v3",
+        span=SourceSpan(doc_sha256=doc.doc_sha256, quote="Chromium Single Cell 3' v3"),
         llm_confidence=0.9,
     )
     whole = AssertionDraft(
-        field="experiment.samples.treatment",
-        value="MC38 tumor 3 weeks",
+        field="library.chemistry",
+        value="10x-3p-gex-v3",
         span=SourceSpan(doc_sha256=doc.doc_sha256, quote=doc.text.splitlines()[-1]),
         llm_confidence=0.9,
     )
@@ -864,35 +863,6 @@ def test_a_document_that_came_from_no_record_carries_no_marks(tmp_path: Path) ->
         llm_confidence=0.9,
     )
     assert verify_drafts([draft], [nd], extractor=EXTRACTOR).n_accepted == 1
-
-
-def test_a_collapsed_run_document_marks_the_columns_its_members_typed() -> None:
-    """The runs of one sample become one document, and the marks have to survive the concatenation.
-
-    Offsets are computed against the joined canonical text, so a mark found in the second run's
-    rendering must point into the joined string rather than into that run's own.
-    """
-    from seqforge.harvest import plan_extraction
-    from seqforge.models.records import ArchiveRecordSet
-
-    runs = [
-        ArchiveRecord(
-            level="run",
-            accession=f"SRR{i}",
-            parent="SAMN1",
-            attributes=[RecordAttribute(name="library_strategy", value="RNA-Seq")],
-            free_text=[FreeText(label="run_alias", text=f"MC38 tumor 3 weeks rep{i}; RNA-Seq")],
-        )
-        for i in (1, 2)
-    ]
-    records = ArchiveRecordSet(
-        source="fixture",
-        query="PRJNA1",
-        records=[ArchiveRecord(level="sample", accession="SAMN1"), *runs],
-    )
-    doc = next(d for d in plan_extraction(records=records).documents if d.scope == "run")
-    assert [doc.text[d.start : d.end] for d in doc.declared] == ["RNA-Seq", "RNA-Seq"]
-    assert len({d.start for d in doc.declared}) == 2, "each occurrence has its own offset"
 
 
 # ---------- the invariant: what a group of near-identical records shares, at TOKEN granularity ----

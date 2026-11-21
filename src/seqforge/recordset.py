@@ -87,8 +87,7 @@ _USER_LEVELS = ("run", "sample")
 #:
 #: ``free_text`` used to sit here beside ``attributes`` and no longer does, and the line between them
 #: is the line between a slot and a sentence. An ``attributes`` entry reaches ``asserted`` by being
-#: typed — ``_positions_for`` copies a record's typed slot straight into a position, so a value put
-#: there is believed because of WHERE it was written. Prose reaches nothing by being written: it
+#: typed — a record's typed slot is believed because of WHERE it was written. Prose reaches nothing by being written: it
 #: becomes a document, and a claim only leaves it carrying a quote that greps back and a value that
 #: quote entails. That is the same bar a README clears, and a README is the path the refusal here has
 #: always pointed at — same author, same morning, same freedom to edit it afterwards. What changes by

@@ -414,10 +414,10 @@ def _samples(n: int) -> MetadataResolution:
 def test_a_sample_count_is_gradeable_where_no_sample_attribute_exists() -> None:
     """`experiment.n_samples` — the only sample claim a record-less dataset can make.
 
-    Every other `experiment.samples.*` path reads `attributes`, which comes from records and prose.
-    A deposit with neither has none, so those paths return the empty list at two samples and at four
-    alike — which is exactly how #263 shipped a four-lane library compiled as four quarter-depth
-    samples past a green corpus. The count is the field that can tell them apart.
+    A deposit with no record has no organism or project to grade either, so without the count a
+    two-sample and a four-sample compile grade alike — which is exactly how #263 shipped a four-lane
+    library compiled as four quarter-depth samples past a green corpus. The count is the field that
+    can tell them apart.
     """
     expected = {"outcome": "decide", "fields": {"experiment.n_samples": 2}}
     args = ("t", Expected.model_validate(expected), _result(), 0, LABELS)
@@ -2057,19 +2057,19 @@ def test_stability_is_not_contaminated_by_folding_the_harvest_grade() -> None:
     this pins produced a *fractional* stability by mutating one element of the trials list after the
     fact — a number that looked like real nondeterminism and was pure aliasing.
     """
-    bad = [
-        _draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans"),
-        # The real 2026.7.1 regression, in the vocabulary that replaced ours: DeepSeek filed
-        # standard worm husbandry as an experimental condition. `condition` was our invention and is
-        # gone; NCBI's `treatment` is the field that inherits the trap, and it inherits NCBI's
-        # definition with it, which is the point.
-        _draft(
-            "experiment.samples.treatment", "maintained on NGM plates", "maintained on NGM plates"
-        ),
-    ]
-    run = run_case(_trap_case(), llm=True, gateway=_stub(bad), trials=3)
+    import dataclasses
+
+    trap = _trap_case()
+    # A field the prose really states, declared forbidden here so that every trial's claim of it is
+    # a hallucination by the case's own lights: what is under test is the stability arithmetic.
+    forbidding = trap.expected.model_copy(
+        update={"forbidden_fields": [*trap.expected.forbidden_fields, "experiment.organism"]}
+    )
+    case = dataclasses.replace(trap, expected=forbidding)
+    bad = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
+    run = run_case(case, llm=True, gateway=_stub(bad), trials=3)
     assert run.harvest is not None
-    assert run.harvest.hallucinated == ["experiment.samples.treatment"]
+    assert run.harvest.hallucinated == ["experiment.organism"]
     assert run.grade.grade is Grade.FALSE_ACCEPT
     assert run.stability == 0.0, (
         "all three trials failed identically; stability is 0, not a fraction"
@@ -2181,7 +2181,6 @@ def _bulk_fingerprint(tmp_path: Path) -> tuple[Path, str]:
             {
                 "level": "sample",
                 "accession": "SAMN12345678",
-                "attributes": [{"name": "strain", "value": "CB4856", "harmonized": True}],
             },
         ],
     }
@@ -2197,8 +2196,7 @@ def _fingerprint_case_dir(tmp_path: Path, recipe_yaml: str, records_json: str | 
         "description: a real bulk dataset resolved from its fingerprint package, samples from records\n"
         "fields:\n"
         "  library.chemistry: bulk-rnaseq\n"
-        "  experiment.samples.*.strain: [CB4856]\n"
-        "  experiment.samples.SAMN12345678.strain: CB4856\n"
+        "  experiment.n_samples: 1\n"
     )
     if records_json is not None:
         (case_dir / "records.json").write_text(records_json)
@@ -2208,7 +2206,7 @@ def _fingerprint_case_dir(tmp_path: Path, recipe_yaml: str, records_json: str | 
 def test_a_fingerprint_case_resolves_from_the_package_and_grades_samples_from_records(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The kind end to end: pinned bytes decide the chemistry, records decide the sample attributes.
+    """The kind end to end: pinned bytes decide the chemistry, records decide the samples.
 
     No full FASTQ is present (only the slice), no onlist is fetched, no LLM runs. That this grades
     CORRECT is the benchmark's core promise — a real dataset checked in CI from a byte-light artifact.
@@ -2279,44 +2277,6 @@ def test_the_hf_benchmark_tier_is_well_formed_and_separate_from_the_hermetic_cor
     assert all(c.root.resolve() not in hermetic_roots for c in cases)
 
 
-def test_a_benchmark_case_declares_exactly_the_samples_it_grades() -> None:
-    """A benchmark case's `records.json` may not carry a sample the case does not grade.
-
-    The transcript is fetched for a whole accession; the package pins a chosen subset of its runs. So
-    the two drift, and the drift is expensive rather than wrong: every record with prose is one
-    extraction call, and a sample no slice can join to is billed and then discarded unread. GSE126954
-    declared the series' eighth sample, whose 910 run records were 92% of that case's LLM spend and
-    83% of the whole benchmark's, for claims the resolver never reached.
-
-    This is the offline half of the invariant, and it is a proxy: the expectation's
-    `experiment.samples.*` lists are one entry per graded sample, so their length is what the
-    transcript's sample count must equal. It needs no package and therefore runs everywhere. The
-    networked half below asserts the real property against the bytes.
-    """
-    bench = _benchmark_tier_or_skip()
-    for case in discover_cases(bench):
-        assert case.records is not None, f"{case.id}: a benchmark case commits its records.json"
-        declared = {r.accession for r in case.records.at("sample")}
-        graded = {
-            len(v)
-            for k, v in case.expected.fields.items()
-            if k.startswith("experiment.samples.*") and isinstance(v, list)
-        }
-        assert len(graded) <= 1, (
-            f"{case.id}: the `*` lists disagree on how many samples this case grades: {graded}"
-        )
-        if graded:
-            assert len(declared) == graded.pop(), (
-                f"{case.id}: records.json declares {len(declared)} sample(s) but the expectation "
-                f"grades a different number — narrow the transcript to what the package pins"
-            )
-        # A per-accession pin naming a sample the transcript does not carry can never be graded.
-        for key in case.expected.fields:
-            parts = key.split(".")
-            if key.startswith("experiment.samples.") and parts[2] != "*":
-                assert parts[2] in declared, f"{case.id}: {key} names an undeclared sample"
-
-
 #: The one benchmark case whose `records.json` is narrowed by FIELD as well as by record. Every other
 #: case commits the archive's whole transcript for the runs its package pins; this one keeps an
 #: allowlist, because a plate deposit gives each of 96 cells its own sample AND experiment AND run.
@@ -2366,10 +2326,9 @@ def test_the_field_narrowed_transcript_still_resolves_every_value_its_case_grade
     not a proof.
 
     So this resolves the committed transcript through the **same** metadata resolver and the **same**
-    extractor the harness grades with, and asserts the graded values exactly. Delete `strain` from
-    the transcript and the 96-element multiset becomes empty; delete `taxonomy_id` and the organism
-    becomes null; delete `study_title` or `cell_type` and their claims become null. Every one of
-    those is red here, and none of them is red in the eval report.
+    extractor the harness grades with, and asserts the graded values exactly. Delete `taxonomy_id`
+    from the transcript and the organism becomes null; delete `study_title` and the project title
+    does. Both are red here, and neither is red in the eval report.
 
     **It needs no package and no network**, which is the other half of the point: the trim is a
     property of a committed file, so its proof must be too. The files are named from the run
@@ -2410,7 +2369,7 @@ def test_the_field_narrowed_transcript_still_resolves_every_value_its_case_grade
         "harness's own run-level narrowing must be a no-op on it"
     )
 
-    metadata = resolve_metadata(files=files, records=narrowed, assertions=(), subjects=())
+    metadata = resolve_metadata(files=files, records=narrowed)
     for check in grade_experiment_fields(graded, metadata):
         assert check.ok, (
             f"{case.id}: {check.path} resolved to {check.actual!r}, not {check.expected!r} — the "
@@ -2771,11 +2730,17 @@ def _priceable_case(tmp_path: Path, *, n_runs: int = 3) -> Case:
                         "accession": "SAMN1",
                         "free_text": [{"label": "title", "text": "adult hermaphrodite neurons"}],
                     },
+                    {
+                        "level": "experiment",
+                        "accession": "SRX1",
+                        "parent": "SAMN1",
+                        "free_text": [{"label": "design", "text": "droplet-based libraries"}],
+                    },
                     *(
                         {
                             "level": "run",
                             "accession": f"SRR{i}",
-                            "parent": "SAMN1",
+                            "parent": "SRX1",
                             "free_text": [{"label": "alias", "text": f"N2_wild_type_rep{i}"}],
                         }
                         for i in range(n_runs)
@@ -2806,13 +2771,13 @@ def test_the_tier_plan_is_the_send_list_the_paid_run_would_use(tmp_path: Path) -
     case = _priceable_case(tmp_path)
     row = plan_case(case, prompt_chars=system_prompt_chars())
 
-    # One human document + one sample record + the sample's three runs, collapsed into one document.
-    assert row.n_documents == 3
-    # The sample and run documents share the same ask and travel together; the human document's
-    # dataset-scope ask is different, so it cannot join them.
+    # One human document + the experiment record; the sample and its runs are asked nothing.
+    assert row.n_documents == 2
+    # The experiment's ask (the chemistry) differs from the human document's dataset-scope ask, so
+    # the two cannot share a request.
     assert row.n_requests == 2
-    assert row.n_records_read == 4
-    assert row.n_records_collapsed == 2
+    assert row.n_records_read == 1
+    assert row.n_records_collapsed == 0
     assert row.n_chars > 0
     assert row.estimated_input_tokens > row.n_chars // 4, "the system prefix is charged per request"
     assert row.skipped is None
@@ -2824,8 +2789,8 @@ def test_the_tier_plan_is_the_send_list_the_paid_run_would_use(tmp_path: Path) -
 
 
 def _near_identical_case(tmp_path: Path) -> Case:
-    """A case whose sample records say the same thing and differ in a serial name — what the
-    near-identical collapse is for, and the shape eleven of the eighteen benchmark packages have."""
+    """A case whose experiment records say the same thing and differ in a serial name — what the
+    near-identical collapse is for."""
     from seqforge.evals.case import load_case
 
     case_dir = tmp_path / "twins"
@@ -2844,8 +2809,8 @@ def _near_identical_case(tmp_path: Path) -> Case:
                 "query": "TEST",
                 "records": [
                     {
-                        "level": "sample",
-                        "accession": f"SAMN{i}",
+                        "level": "experiment",
+                        "accession": f"SRX{i}",
                         "free_text": [{"label": "title", "text": f"adult neurons, plate well {i}"}],
                     }
                     for i in range(1, 4)
@@ -2947,7 +2912,7 @@ def test_eval_plan_is_a_verb_that_prices_a_tier_and_needs_no_credential(
     assert result.exit_code == 0, result.output
     payload = json.loads(result.stdout)
     assert payload["n_cases"] == 1
-    assert payload["per_case"][0]["n_documents"] == 3
+    assert payload["per_case"][0]["n_documents"] == 2
     assert payload["estimated_input_tokens"] > 0
     assert payload["system_prompt_chars"] > 0
 
@@ -3057,9 +3022,9 @@ def _render_fixture() -> dict[str, Any]:
                         "ok": False,
                     },
                     {
-                        "path": "experiment.samples.*.strain",
-                        "expected": ["N2", "N2", "VC2010, derived from N2"],
-                        "actual": ["N2", "N2", "N2"],
+                        "path": "library.equivalence_members",
+                        "expected": ["10x-3p-gex-v3", "10x-3p-gex-v3", "10x-3p-gex-v3.1"],
+                        "actual": ["10x-3p-gex-v3", "10x-3p-gex-v3", "10x-3p-gex-v3"],
                         "ok": False,
                     },
                 ],
@@ -3071,8 +3036,8 @@ def _render_fixture() -> dict[str, Any]:
                 "harvest": {
                     "matched": ["experiment.organism"],
                     "missing": ["experiment.project.title"],
-                    "hallucinated": ["experiment.samples.tissue"],
-                    "unstable": ["experiment.samples.dev_stage"],
+                    "hallucinated": ["processing.genome.assembly"],
+                    "unstable": ["library.prep_type"],
                     "n_rejected": 4,
                     "n_calls": 412,
                     "n_documents": 73,
@@ -3130,11 +3095,11 @@ def _render_fixture() -> dict[str, Any]:
                         },
                         {
                             "doc_sha256": _FIXTURE_DOC,
-                            "field": "experiment.samples.tissue",
-                            "value": "L4 larva",
-                            "quote": "synchronised L4 larvae",
+                            "field": "processing.quantification",
+                            "value": "GeneFull",
+                            "quote": "counted with GeneFull",
                             "reason": "field_not_permitted_for_doc",
-                            "detail": "'experiment.samples.tissue' may not be set by 'methods.pdf'",
+                            "detail": "'processing.quantification' may not be set by 'methods.pdf'",
                         },
                         {
                             "doc_sha256": _FIXTURE_SAMPLE_DOC,
@@ -3396,7 +3361,7 @@ def _partly_measured_fixture() -> dict[str, Any]:
     case = next(c for c in fixture["per_case"] if c["case"] == "poisoned-one")
     case["harvest"]["status"] = "partial"
     case["harvest"]["n_documents_failed"] = 5
-    case["harvest"]["unchecked"] = ["experiment.samples.strain"]
+    case["harvest"]["unchecked"] = ["experiment.accessions"]
     case["harvest"]["documents"][1]["failure"] = (
         "deepseek returned output that is not valid JSON: Expecting value: line 1 column 1"
     )
@@ -3418,7 +3383,7 @@ def test_the_page_says_how_much_of_the_harvest_stage_ran() -> None:
     assert "1 assertion(s) unchecked" in page
     assert "documents answered" in page, "the per-case status line qualifies the chips under it"
     assert "unchecked" in page
-    assert "experiment.samples.strain" in page
+    assert "experiment.accessions" in page
     assert "could not check, not checked and found nothing" in page
     # ...and WHICH document, by the name a human reads, with the provider's own reason
     assert "SAMN14126930" in page
@@ -3525,14 +3490,14 @@ def test_cases_are_ordered_worst_first_and_severity_is_carried_in_form() -> None
 #: claim the page must state exactly ONCE: a per-row column of always-true booleans is
 #: evidence-shaped and carries nothing.
 PAGE_CLAIMS = [
-    # A failed `experiment.samples.*` check is a multiset and the question is WHICH element moved, so
-    # identical elements collapse onto a multiplicity and the chips whose count differs from the
-    # other side are marked. The raw list shows seven chips of which one differs by position — true,
-    # and not the question anyone is asking.
+    # A failed list check is a multiset and the question is WHICH element moved, so identical
+    # elements collapse onto a multiplicity and the chips whose count differs from the other side
+    # are marked. The raw list shows chips of which one differs by position — true, and not the
+    # question anyone is asking.
     pytest.param([
-        "experiment.samples.*.strain", "×2", "×3",
-        'class="chip chip-diff">N2<span class="mult">×3',
-        'class="chip chip-diff">VC2010, derived from N2',
+        "library.equivalence_members", "×2", "×3",
+        'class="chip chip-diff">10x-3p-gex-v3<span class="mult">×3',
+        'class="chip chip-diff">10x-3p-gex-v3.1',
     ], (), id="a-failed-field-shows-expected-beside-actual-and-marks-what-differs"),
     # Everything `eval run` measures beyond the grade, because it measured it for a reason. A case
     # correct 2 times in 3 is a finding rather than a rounding error (`_merge_harvest` refuses to
@@ -3540,8 +3505,8 @@ PAGE_CLAIMS = [
     # labelled as such; `n_rejected` is the span-verification tripwire WORKING and must not read as
     # a failure; and how the calls were made rides beside what they cost.
     pytest.param([
-        "1/3</b> trials correct", "hallucinated", "experiment.samples.tissue",
-        "nothing downstream would catch these", "unstable", "experiment.samples.dev_stage",
+        "1/3</b> trials correct", "hallucinated", "processing.genome.assembly",
+        "nothing downstream would catch these", "unstable", "library.prep_type",
         "the safety net working, not a failure",
         "max_tokens 8000 · response_format json_object",
         "$0.094 spent", "$0.031</b> spent", "missed a question it had to ask",
@@ -4359,50 +4324,6 @@ def test_eval_report_takes_the_workspace_as_well_as_the_run_directory(tmp_path: 
     assert (tmp_path / "a.html").read_text() == (tmp_path / "b.html").read_text()
 
 
-def test_the_eval_path_fans_a_collapsed_claim_exactly_as_the_shipped_path_does() -> None:
-    """The harness must grade the stage the compiler runs, not one step of it.
-
-    A collapsed group sends ONE member's prose and reads the rest as their differences, so a claim
-    from that prose reaches the other members only through `fan_claims`. `_run_harvest` called
-    `verify_drafts` and stopped, which would under-report the compiler — the one direction a grade
-    must never be wrong in, since it makes the shipped path look worse than it is and invites
-    "fixing" something that works. It also returns subjects for `plan.all_documents`, because
-    `resolve` silently drops a fanned claim whose withheld document it cannot place.
-    """
-    import dataclasses
-
-    from labllm.testing import FakeGateway
-
-    from seqforge.evals.run import _run_harvest
-    from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, FreeText
-
-    twins = ArchiveRecordSet(
-        source="test",
-        query="PRJNA9",
-        records=[
-            ArchiveRecord(
-                level="sample",
-                accession=accession,
-                free_text=[FreeText(label="sample_alias", text="Caenorhabditis elegans, day3")],
-            )
-            for accession in ("SAMN1", "SAMN22")
-        ],
-    )
-    case = dataclasses.replace(_trap_case(), records=twins, metadata_docs=[])
-    drafts = [_draft("experiment.samples.age", "day3", "day3")]
-    fake = FakeGateway(
-        harvest_kit.answering(json.dumps({"drafts": drafts})), prices=harvest_kit.PRICES
-    )
-
-    _grade, accepted, subjects = _run_harvest(case, [], seam=harvest_kit.seam_over(fake))
-
-    ages = [a for a in accepted if a.field == "experiment.samples.age"]
-    assert len(ages) == 2, "one document was sent; the claim holds of both records' bytes"
-    assert len({a.span.doc_sha256 for a in ages}) == 2, "and each cites the record it names"
-    placed = {s.doc_sha256 for s in subjects}
-    assert {a.span.doc_sha256 for a in ages} <= placed, "including the one nobody sent"
-
-
 # --------------------------------------------------------------------------------------------
 # the declared grouping — a `source: user` record set fuses runs the filenames keep apart (#270)
 # --------------------------------------------------------------------------------------------
@@ -4453,9 +4374,8 @@ def test_a_declared_record_set_fuses_two_runs_into_one_sample(
         "set loaded and not applied"
     )
     # A hand-written id is a grouping key and not a specimen an archive named, so it is not an
-    # accession — and the sample carries no attribute, because the dialect has no way to declare
-    # one. That is the half that keeps `asserted` meaning a slot a submitter typed.
-    assert [(s.accession, s.attributes) for s in metadata.samples] == [(None, {})]
+    # accession.
+    assert [s.accession for s in metadata.samples] == [None]
     assert [len(s.file_shas) for s in metadata.samples] == [4], "one sample holds BOTH runs"
     # Every file, once. A sample holding one run twice would leave the count and the depth intact
     # and the dataset wrong.

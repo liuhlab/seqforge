@@ -156,7 +156,7 @@ class NormalizedDoc:
     ``scope``/``subject`` are what the document is ABOUT, and they carry the same disclaimer for the
     same reason: code sets them because code chose which record to render, and a document's contents
     never get a vote. ``subject`` is the record's accession at a record scope, and ``None`` for a
-    document about the whole dataset. Together they are what lets a claim name a sample while
+    document about the whole dataset. Together they are what lets a claim name its record while
     ``AssertionDraft`` stays four fields wide.
     """
 
@@ -542,7 +542,7 @@ def normalize_document(
         source_basename=p.name,
         role=role,
         # A document a human handed us is about the whole pile of files. There is no other honest
-        # reading of "here is the paper" — see `resolve/records.py` for what that costs a sample claim.
+        # reading of "here is the paper".
         scope="dataset",
         pages=pages,
         extractor=extractor,
@@ -558,8 +558,8 @@ def render_record(record: ArchiveRecord) -> str:
     reproducible from the record forever — a human handed the record and this function must be able to
     regenerate the bytes a quote was checked against, or the citation is unfalsifiable.
 
-    Only free text is rendered. The structured half (``strain = CQ758``) is code's to read and is
-    already a key and a value, so putting it in front of a model would be asking it to transcribe
+    Only free text is rendered. The structured half (``library_strategy = RNA-Seq``) is code's to read
+    and is already a key and a value, so putting it in front of a model would be asking it to transcribe
     something we can copy — a chance to be wrong and no chance to be useful.
     """
     lines = [f"{record.level} {record.accession}"]
@@ -648,7 +648,7 @@ def varying_token_indices(texts: Sequence[str]) -> tuple[int, ...]:
     whose values across the group are exactly an enumeration ``1..N`` works on a plate and dies on
     ``sample_1h ... sample_24h``, where the digit IS the data and no code-side test separates the two.
     And ``_is_token_char`` counting ``_`` is not an oversight to fix: it makes ``nasal_prox1_270`` one
-    token, so a serially-named deposit's sample documents do not collapse and every one of them is
+    token, so a serially-named deposit's record documents do not collapse and every one of them is
     asked. That is the design pricing itself, not a defect — cost tracks information content.
 
     Raises ``ValueError`` unless every text shares one skeleton; a caller that has not grouped by
@@ -699,16 +699,16 @@ def variant_text(text: str, indices: Sequence[int]) -> str:
 
     **The record's own accession leads, because it varies and everything that varies is kept.** No
     special case, and it is what makes the reduction safe: a document's identity is its bytes, so two
-    members that happen to share a serial name would otherwise reduce to one ``doc_sha256`` — and
-    ``resolve`` keys a document's subject by that sha, so one of the two samples would silently
-    inherit the other's claims. It also keeps ``_nothing_to_ask`` a single sentence: a member is
+    members that happen to share a serial name would otherwise reduce to one ``doc_sha256`` — and a
+    document's subject is keyed by that sha, so one of the two records would silently inherit the
+    other's claims. It also keeps ``_nothing_to_ask`` a single sentence: a member is
     withheld exactly when this text would say nothing but its own name.
 
     **Adjacent varying tokens keep the separator the record wrote between them; anything else gets a
     paragraph break.** Adjacency is the only syntax the group did NOT already read in the exemplar, so
     it is the only syntax worth carrying; and a paragraph break between tokens that were apart stops
-    the join from inventing a phrase no record wrote (``genotype: WT`` and ``age: 72`` must not
-    reduce to ``WT 72``). What is genuinely lost is the syntax BETWEEN two variants — ``5 mM DMSO``
+    the join from inventing a phrase no record wrote (``kit: v3`` and ``reads: 28`` must not reduce
+    to ``v3 28``). What is genuinely lost is the syntax BETWEEN two variants — ``5 mM DMSO``
     with a shared ``mM`` reduces to ``5`` and ``DMSO`` — and that loss is bounded by the two checks
     that do not move: a quote must still grep back into this text, and it must still entail its value.
     """
@@ -754,11 +754,10 @@ def declared_spans(text: str, records: Sequence[ArchiveRecord]) -> tuple[Declare
     archives lay their records out differently. Where there are no records there are no columns, and
     this is a no-op that returns ``()``.
 
-    ``records`` is plural because a document may be the concatenation of several records' renderings
-    (:func:`~seqforge.harvest.plan._collapsed_run_document` folds one sample's runs into one). They
-    are levels of one deposit, so a span byte-equal to any member's column is still that submitter
-    repeating themselves; offsets are computed against the joined text, which is the only string a
-    quote is ever checked against.
+    ``records`` is plural so that a document joined from several records of one deposit can be
+    marked too: a span byte-equal to any member's column is still that submitter repeating
+    themselves, and offsets are computed against the joined text, which is the only string a quote is
+    ever checked against.
     """
     found: list[DeclaredSpan] = []
     for record in records:
@@ -781,9 +780,9 @@ def declared_spans(text: str, records: Sequence[ArchiveRecord]) -> tuple[Declare
                         )
                     )
                 start = text.find(needle, start + 1)
-    # One span, one mark. Two runs of a sample type the same `library_strategy`, and each of them
-    # finds it in both of their renderings, so the same range would otherwise be marked once per
-    # (record x occurrence) — four copies of two spans, and any count over them a fiction. Which
+    # One span, one mark. Two records of one deposit may type the same `library_strategy`, and each
+    # of them finds it in both of their renderings, so the same range would otherwise be marked once
+    # per (record x occurrence) — four copies of two spans, and any count over them a fiction. Which
     # column proves a span is a detail; that it is proven at all is the fact.
     unique = {
         (d.start, d.end): d for d in sorted(found, key=lambda d: (d.start, d.end, d.attribute))
@@ -794,9 +793,8 @@ def declared_spans(text: str, records: Sequence[ArchiveRecord]) -> tuple[Declare
 def normalize_record(record: ArchiveRecord) -> NormalizedDoc:
     """An archive record -> its own document, scoped to itself.
 
-    This is the whole mechanism behind "a claim can name a sample without being able to name a
-    sample". The document holds one record's prose, so whatever the model finds in it is about that
-    record, because that is the only thing in it. ``subject`` is set from the record we rendered —
+    The document holds one record's prose, so whatever the model finds in it is about that record,
+    because that is the only thing in it. ``subject`` is set from the record we rendered —
     code knows it because code chose it, exactly as ``instruct.py`` decides document role.
 
     It is also where the record's own columns are marked in its own text (:func:`declared_spans`), so

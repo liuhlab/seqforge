@@ -57,8 +57,8 @@ def manifest_fill(
     accession: list[str] = typer.Option(
         [],
         "--accession",
-        help="Accession(s) for this dataset. Each is FETCHED: the archive's per-sample records are "
-        "where strain/tissue/sex/dev_stage come from.",
+        help="Accession(s) for this dataset. Each is FETCHED: the archive's run and sample records "
+        "are what match each file to its sample.",
     ),
     records_path: Path | None = typer.Option(
         None,
@@ -68,8 +68,8 @@ def manifest_fill(
     assertions: Path | None = typer.Option(
         None,
         "--assertions",
-        help="Span-verified assertions from `harvest extract` (seqforge/assertions.json). Without "
-        "this, prose contributes nothing and the model might as well not have run.",
+        help="Span-verified assertions from `harvest extract` (seqforge/assertions.json): the "
+        "chemistry hint, the organism, cells versus nuclei. Without this, prose contributes nothing.",
     ),
     assert_chemistry: str | None = typer.Option(
         None,
@@ -96,21 +96,19 @@ def manifest_fill(
     """Probe -> resolve -> assemble the DATASET manifest: what the data IS.
 
     **Two resolvers, and they answer different questions.** `resolve score` reads the bytes and says
-    what the library is. The metadata resolver reads the archive record and any prose and says which
-    sample each file is, and what that sample was. Both can refuse; neither is shown the other's
-    input.
+    what the library is. The metadata resolver reads the archive record and says which sample each
+    file is. Both can refuse; neither is shown the other's input.
 
     **Multi-run by construction.** Files are grouped into runs by name and each run's roles are
     decided from its own bytes, so one sample per run falls out. Hand it all 12 files of a 6-run
     dataset and you get 6 samples, not one guess.
 
     **An accession is fetched, not decoration.** `--accession PRJNA1027859` pulls the project,
-    sample, experiment and run records and joins them to your files. That is where `tissue`, `strain`,
-    `sex` and `dev_stage` live; before this they were fetched by no code at all, which is why every
-    sample in the pilot's manifest said `tissue: null` under a paper that says "neurons".
+    sample, experiment and run records and joins them to your files, so each file lands in the sample
+    the archive says it belongs to.
 
-    **No accession is fine.** Most sequencing data never had one. You get samples grouped by run with
-    no facts attached, exit 0, and a manifest that is quieter and just as true.
+    **No accession is fine.** Most sequencing data never had one. You get samples grouped by run,
+    exit 0, and a manifest that is just as true.
 
     Takes no genome. Choosing a reference is intent, not something you learn by probing bytes, so it
     lives in `seqforge processing new`. Writes manifest.yaml ONLY after a clean validate.
@@ -330,8 +328,6 @@ def _fill_manifest_pipeline(
             # Identity only: the metadata resolver is handed no probe signal and cannot read one.
             files=[o.file for o in multi.observations],
             records=records,
-            assertions=parsed,
-            subjects=subjects,
         )
         if multi.exit_code() == 0 or plate_chemistries(multi)
         else None
@@ -621,9 +617,8 @@ def _assertions_and_subjects(path: Path | None) -> tuple[list[Assertion], list[A
 
     ``document_subjects`` is the same trick as ``instruction_docs`` beside it — a code-owned mapping
     from document to what code knows about it, written down so a later process can reconstruct it.
-    Without it, an assertion's ``doc_sha256`` is an opaque hash and the resolver cannot tell a
-    sample's own alias from a paper about six samples, which is the entire difference between a
-    declaration and an inference.
+    Without it, an assertion's ``doc_sha256`` is an opaque hash and the wrong-paper guard cannot tell
+    a paper a human staged from an archive record's own text.
     """
     from ..resolve.records import DocumentSubject
 

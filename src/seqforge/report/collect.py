@@ -36,7 +36,6 @@ from .model import (
     ArtifactEmbed,
     AssayLabelView,
     AssayReport,
-    AttributeView,
     ChemistryDecision,
     ConclusionView,
     DecisionField,
@@ -151,15 +150,10 @@ def _collect_assay(
     plan = _plan(ws, proc, pipeline, assertions, doc_index) if proc is not None else None
     conclusion = _conclusion(has_manifest=True, snakefile=pipeline is not None)
 
-    samples = _samples(manifest, assertions, doc_index)
+    samples = _samples(manifest)
     stats = _pipeline_stats(pipeline, manifest, results_dir)
     matrices, ruled_out = _matrices(ws, manifest)
-    has_prose = any(
-        ref.kind == "assertion" and ref.quote
-        for s in samples
-        for a in s.attributes
-        for ref in a.evidence
-    )
+    has_prose = _quotes_prose(assertions, doc_index)
 
     taxid = int(manifest.experiment.organism.value)
     return AssayReport(
@@ -252,36 +246,33 @@ def _files(library: LibrarySection) -> list[FileView]:
     ]
 
 
-def _samples(
-    manifest: DatasetManifest,
-    assertions: dict[str, dict[str, Any]],
-    doc_index: dict[str, str],
-) -> list[SampleView]:
-    out: list[SampleView] = []
-    for sample in manifest.experiment.samples:
-        attrs: list[AttributeView] = []
-        for key in sorted(sample.attributes):
-            ev = sample.attributes[key]
-            attrs.append(
-                AttributeView(
-                    key=key,
-                    value=str(ev.value),
-                    basis=ev.basis,
-                    confidence=ev.confidence,
-                    rung=ev.rung,
-                    evidence=[_resolve_evidence(t, assertions, doc_index) for t in ev.evidence],
-                )
-            )
-        out.append(
-            SampleView(
-                sample_id=sample.sample_id,
-                accession=sample.accession,
-                n_files=len(sample.file_uris),
-                file_names=sorted(Path(u).name for u in sample.file_uris),
-                attributes=attrs,
-            )
+def _samples(manifest: DatasetManifest) -> list[SampleView]:
+    return [
+        SampleView(
+            sample_id=sample.sample_id,
+            accession=sample.accession,
+            n_files=len(sample.file_uris),
+            file_names=sorted(Path(u).name for u in sample.file_uris),
         )
-    return out
+        for sample in manifest.experiment.samples
+    ]
+
+
+#: The stem prefixes of a document rendered from an archive record (``experiment-SRX…``), as against
+#: one a human staged (a paper, a README).
+_RECORD_DOCUMENT = ("project-", "sample-", "experiment-", "run-")
+
+
+def _quotes_prose(assertions: dict[str, dict[str, Any]], doc_index: dict[str, str]) -> bool:
+    """Did harvest quote a document a human staged, rather than only an archive record's text?"""
+    for a in assertions.values():
+        span = a.get("span") or {}
+        if not span.get("quote"):
+            continue
+        stem = doc_index.get(str(span.get("doc_sha256", ""))[:12], "")
+        if not stem.startswith(_RECORD_DOCUMENT):
+            return True
+    return False
 
 
 # ---- evidence join ------------------------------------------------------------------------------

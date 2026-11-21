@@ -26,11 +26,10 @@ but has no verb.
 
 `resolve score` answers **"what IS this library?"** from bytes. It is what this skill is about.
 
-`resolve_metadata` answers **"which sample is each file, and what was that sample?"** from archive
-records and prose — it is a sibling, not a helper, and `manifest fill` runs it. It is handed
-`FileIdentity`, never `Observation`, so it cannot see a probe signal: there is no byte in a FASTQ that
-bears on `tissue` or `strain`, and a probe-sighted reader would settle ties the probe itself created
-and log the wrong reason.
+`resolve_metadata` answers **"which sample is each file?"** from archive records — it is a sibling,
+not a helper, and `manifest fill` runs it. It is handed `FileIdentity`, never `Observation`, so it
+cannot see a probe signal: the join is made by the names the records declare, and a probe-sighted
+reader would settle ties the probe itself created and log the wrong reason.
 
 ## Your lane
 

@@ -17,24 +17,9 @@ import yaml
 from .models.dataset import DatasetManifest
 from .workspace import state_dir
 
-#: Common BioSample attributes, ordered for readability. Any *other* resolved attribute follows,
-#: sorted — the column set is the union of what actually resolved, never a hand-fixed schema.
-_PREFERRED_ATTRS: tuple[str, ...] = (
-    "strain",
-    "genotype",
-    "age",
-    "dev_stage",
-    "sex",
-    "tissue",
-    "cell_type",
-    "cell_line",
-    "treatment",
-    "source_name",
-    "disease",
-)
-
-_LEADING: tuple[str, ...] = ("sample_id", "accession", "assay", "organism")
-_TRAILING: tuple[str, ...] = ("n_files", "files")
+#: The table's columns, in order. What a sample WAS (its tissue, strain or treatment) is not among
+#: them: a study reading holds it.
+_COLUMNS: tuple[str, ...] = ("sample_id", "accession", "assay", "organism", "n_files", "files")
 
 #: The project-level file names, written at the top of ``seqforge/`` (never inside an assay subdir).
 SAMPLE_METADATA_TSV = "sample_metadata.tsv"
@@ -46,18 +31,14 @@ def sample_metadata_table(
 ) -> tuple[list[str], list[dict[str, str]]]:
     """One row per sample across every manifest. Returns ``(columns, rows)``, both deterministic.
 
-    Columns: ``sample_id, accession, assay, organism``, then every resolved BioSample attribute
-    (common ones first, the rest sorted), then ``n_files, files``. An empty cell means the attribute
-    did not resolve for that sample — absence, honestly, rather than a guessed value.
+    Columns: ``sample_id, accession, assay, organism, n_files, files``. An empty ``accession`` means
+    the sample has no archive id — absence, honestly, rather than a guessed value.
     """
     rows: list[dict[str, str]] = []
-    seen_attrs: set[str] = set()
     for manifest in manifests:
         chemistry = manifest.library.chemistry.value[0]
         organism = str(manifest.experiment.organism.value)
         for sample in manifest.experiment.samples:
-            attrs = {key: ev.value for key, ev in sample.attributes.items()}
-            seen_attrs.update(attrs)
             rows.append(
                 {
                     "sample_id": sample.sample_id,
@@ -66,21 +47,17 @@ def sample_metadata_table(
                     "organism": organism,
                     "n_files": str(len(sample.file_uris)),
                     "files": ";".join(sorted(Path(uri).name for uri in sample.file_uris)),
-                    **attrs,
                 }
             )
-    attr_cols = [a for a in _PREFERRED_ATTRS if a in seen_attrs]
-    attr_cols += sorted(seen_attrs - set(_PREFERRED_ATTRS))
-    columns = [*_LEADING, *attr_cols, *_TRAILING]
     rows.sort(key=lambda r: (r["assay"], r["sample_id"]))
-    return columns, rows
+    return list(_COLUMNS), rows
 
 
 def format_tsv(columns: list[str], rows: list[dict[str, str]]) -> str:
     """Render ``(columns, rows)`` as a TSV string (trailing newline).
 
-    Tabs/newlines in a value are squashed to spaces so a stray attribute value can never break the
-    table's shape.
+    Tabs/newlines in a value are squashed to spaces so a stray value can never break the table's
+    shape.
     """
 
     def cell(value: str) -> str:

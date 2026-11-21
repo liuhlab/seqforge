@@ -35,8 +35,8 @@ seqforge run FILES... \
 ```
 
 - **`FILES...`** are the FASTQ `.gz` files. Everything else is optional except the genome.
-- **`--accession`** pulls the archive's project/sample/experiment/run records (where `strain`,
-  `tissue`, `sex`, `dev_stage` live). Omit it for data that never had one — most data.
+- **`--accession`** pulls the archive's project/sample/experiment/run records, which match each file
+  to its archive sample. Omit it for data that never had one — most data.
 - **`--doc`** hands a paper (or any `.pdf`/`.txt`/`.md`) to the one LLM stage, which turns prose into
   span-verified claims. **Repeat it once per document** and pass *every* unstructured file the user
   gave you — the paper AND a sample sheet like `sample_info.txt`, not just one. Each is read

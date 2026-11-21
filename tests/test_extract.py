@@ -398,9 +398,8 @@ def test_the_transcript_is_one_prompt_plus_a_pair_per_exchange(tmp_path: Path) -
 
 # ---------- the plan: records -> documents, before a token is spent ----------
 # One module owns the fan-out both `harvest extract` and the eval harness used to spell for
-# themselves. What it must get right is the count (a call per run was 92% of a corpus's bill), the
-# reassembly (a dict keyed by document identity loses one of two identical documents), and where a
-# collapsed document's claims land (a subject that maps to no sample is silently discarded).
+# themselves. What it must get right is the count (a call per run was 92% of a corpus's bill), and
+# the reassembly (a dict keyed by document identity loses one of two identical documents).
 
 
 def _records(runs_per_sample: dict[str, int], *, alias: str = "N2_wild_type") -> ArchiveRecordSet:
@@ -453,83 +452,16 @@ def _records(runs_per_sample: dict[str, int], *, alias: str = "N2_wild_type") ->
     return ArchiveRecordSet(source="test", query="PRJNA1", records=records)
 
 
-def test_the_runs_of_one_sample_are_one_document_not_one_each() -> None:
-    """The actual fix, and the ceiling is only a backstop.
-
-    A run alias is often the only place a WT-vs-mutant contrast is written, so the runs are still
-    READ — the defect was one call per run, not reading runs. Twelve one-line aliases belonging to
-    one sample are one document; two samples are two.
-    """
+def test_only_the_experiment_records_are_sent() -> None:
+    """A record document is asked only what its level can answer, and only an experiment can answer
+    anything: its protocol paragraph names the chemistry. Project, sample and run records carry prose
+    here, and none of it costs a call."""
     from seqforge.harvest import plan_extraction
 
     plan = plan_extraction(records=_records({"SAMN1": 12, "SAMN2": 4}))
 
-    by_scope = Counter(d.scope for d in plan.documents)
-    assert by_scope == {"sample": 2, "experiment": 2, "run": 2}, "one run document per SAMPLE"
-    assert "project" not in by_scope, "a project record is asked nothing, so it costs no call"
-    assert plan.n_records_read == 2 + 2 + 16
-    assert plan.n_records_collapsed == 14, "16 runs, 2 documents"
-
-    collapsed = next(d for d in plan.documents if d.scope == "run")
-    assert collapsed.text.count("run_alias") == 12, "every alias is still in the document"
-    assert plan.members[collapsed.doc_sha256] == tuple(f"SRR1{i}" for i in range(12))
-
-
-def test_a_collapsed_run_document_speaks_for_its_sample_not_for_one_run() -> None:
-    """Where the collapse is placed is the whole risk, and it fails silently when it is wrong.
-
-    `resolve/records.py` keeps a claim only when the document's subject maps to the sample being
-    resolved, and DROPS it otherwise with nothing said. `_subject_to_sample` maps a sample accession
-    to itself, so a document carrying the sample's accession resolves as `asserted` — while pointing
-    it at one of its twelve runs would attribute the other eleven aliases to a run they did not come
-    from. That the claims survive the join is proved end to end in `tests/test_records.py`.
-    """
-    from seqforge.harvest import plan_extraction
-
-    plan = plan_extraction(records=_records({"SAMN1": 3, "SAMN2": 3}))
-    collapsed = [d for d in plan.documents if d.scope == "run"]
-
-    assert {d.subject for d in collapsed} == {"SAMN1", "SAMN2"}
-    # Two samples with the same run count render to the same shape, so the near-identical collapse
-    # reduces the second — and the subject claim has to survive BOTH outcomes, which is the point of
-    # reading it off the set rather than off one document's name.
-    assert {d.source_basename for d in collapsed} == {"runs-SAMN1.txt", "run-SAMN2-variant.txt"}
-
-
-def test_a_lone_run_is_rendered_exactly_as_its_own_record() -> None:
-    """Collapsing one run must not invent a second rendering of it: a quote is only checkable while
-    the exact bytes it was greppedded against can be regenerated from the record."""
-    from seqforge.harvest import normalize_record, plan_extraction
-
-    records = _records({"SAMN1": 1})
-    plan = plan_extraction(records=records)
-    run = next(r for r in records.records if r.level == "run")
-
-    doc = next(d for d in plan.documents if d.scope == "run")
-    assert doc.doc_sha256 == normalize_record(run).doc_sha256
-    assert doc.subject == run.accession, "no sample to speak for; it speaks for itself"
-
-
-def test_a_run_whose_sample_is_missing_keeps_its_own_identity() -> None:
-    """Folding an orphan run in with unrelated runs would be inventing a join the archive did not
-    declare — and `_basis_for` would then place its claims on somebody else's sample."""
-    from seqforge.harvest import plan_extraction
-
-    records = ArchiveRecordSet(
-        source="test",
-        query="PRJNA1",
-        records=[
-            ArchiveRecord(
-                level="run",
-                accession=f"SRR{i}",
-                free_text=[FreeText(label="run_alias", text=f"orphan_{i}")],
-            )
-            for i in range(3)
-        ],
-    )
-    plan = plan_extraction(records=records)
-
-    assert {d.subject for d in plan.documents} == {"SRR0", "SRR1", "SRR2"}
+    assert Counter(d.scope for d in plan.documents) == {"experiment": 2}
+    assert plan.n_records_read == 2
     assert plan.n_records_collapsed == 0
 
 
@@ -619,22 +551,24 @@ def test_the_plan_charges_the_stable_prefix_once_per_request(tmp_path: Path) -> 
     the arithmetic that makes a fan-out over one-line aliases expensive, and a plan that only counted
     the documents' own text would hide it.
 
-    Per REQUEST, not per document: the sample record and the collapsed run document are asked the
-    same nine attributes and travel together (#190), so four documents are three requests — and a
-    dry run still charging four would overstate the run it is a dry run of by a whole prefix.
+    Per REQUEST, not per document: two experiment records are asked the same question and travel
+    together (#190), so three documents are two requests — and a dry run still charging three would
+    overstate the run it is a dry run of by a whole prefix.
     """
     from seqforge.harvest import plan_extraction
 
     prefix = len(build_system_prompt(kb.load_all_specs(), llm_schema()))
     plan = plan_extraction(
-        documents=[_doc(tmp_path)], records=_records({"SAMN1": 4}), system_prompt_chars=prefix
+        documents=[_doc(tmp_path)],
+        records=_records({"SAMN1": 1, "SAMN2": 1}),
+        system_prompt_chars=prefix,
     )
 
-    assert plan.n_documents == 4  # the paper, a sample, an experiment, one collapsed run document
-    assert plan.n_requests == 3, "the sample and the run document are one question, asked once"
+    assert plan.n_documents == 3  # the paper and two experiments
+    assert plan.n_requests == 2, "the two experiments are one question, asked once"
     assert plan.n_chars == sum(len(d.text) for d in plan.documents)
-    assert plan.estimated_input_tokens == (3 * prefix + plan.n_chars) // 4
-    assert plan.estimated_input_tokens > 3 * prefix // 4
+    assert plan.estimated_input_tokens == (2 * prefix + plan.n_chars) // 4
+    assert plan.estimated_input_tokens > 2 * prefix // 4
 
 
 def test_the_plan_is_free_and_the_dry_run_is_the_list_the_paid_run_sends(tmp_path: Path) -> None:
@@ -647,9 +581,9 @@ def test_the_plan_is_free_and_the_dry_run_is_the_list_the_paid_run_sends(tmp_pat
 
     assert report.n_documents == plan.n_documents == len(report.documents)
     assert [d.doc_sha256 for d in report.documents] == [d.doc_sha256 for d in plan.documents]
-    collapsed = next(d for d in report.documents if d.scope == "run")
-    assert collapsed.members == ["SRR10", "SRR11"], "the collapse is visible, not implicit"
-    assert report.model_dump(mode="json")["n_records_collapsed"] == 1
+    experiment = next(d for d in report.documents if d.scope == "experiment")
+    assert experiment.members == ["SRX1"], "the record each document renders is visible"
+    assert experiment.fields == ["library.chemistry"]
 
 
 def test_two_identical_asks_are_one_document_and_one_result(tmp_path: Path) -> None:
@@ -695,8 +629,9 @@ def test_the_fan_out_returns_outcomes_in_plan_order(tmp_path: Path) -> None:
     assertions depend on which socket returned first."""
     from seqforge.harvest import extract_planned, plan_extraction
 
-    plan = plan_extraction(records=_records({"SAMN1": 2, "SAMN2": 2}))
-    assert plan.n_documents == 6
+    plan = plan_extraction(documents=[_doc(tmp_path)], records=_records({"SAMN1": 2, "SAMN2": 2}))
+    assert plan.n_documents == 3
+    assert plan.n_requests == 2
 
     def finishes_out_of_order(form: dict[str, Any]) -> str:
         """The first document submitted is the last to answer."""
@@ -1000,32 +935,32 @@ def test_documents_that_receive_the_same_ask_travel_in_one_request(tmp_path: Pat
     assert all(d.text in _user(sent) for d in docs)
 
 
-def test_two_different_asks_never_share_a_request() -> None:
+def test_two_different_asks_never_share_a_request(tmp_path: Path) -> None:
     """The group key is the ASK, not the (scope, role) pair it comes from.
 
     A prompt is the only place the ask exists, so documents may share a request exactly when the
-    request would put the same question to both. A `sample` record and a collapsed `run` document are
-    asked the same nine attributes and are one question; an `experiment` document is asked two fields
-    and is another. Keying on scope would send two requests to ask one question.
+    request would put the same question to both. Two papers are asked the dataset's fields and are
+    one question; an `experiment` record is asked the chemistry alone and is another.
     """
     from seqforge.harvest import extract_planned, plan_extraction
 
-    plan = plan_extraction(records=_records({"SAMN1": 2, "SAMN2": 2}))
-    assert plan.n_documents == 6
+    papers = _many(tmp_path, ["Mus musculus, the first paper.", "Mus musculus, the second paper."])
+    plan = plan_extraction(documents=papers, records=_records({"SAMN1": 2, "SAMN2": 2}))
+    assert plan.n_documents == 4
 
-    by_index = {i: plan.asked(plan.documents[i]) for i in range(6)}
+    by_index = {i: plan.asked(plan.documents[i]) for i in range(4)}
     for batch in plan.batches:
         assert len({by_index[i] for i in batch}) == 1, "one request puts one question"
 
     scopes = {tuple(sorted(plan.documents[i].scope for i in batch)) for batch in plan.batches}
-    assert scopes == {("run", "run", "sample", "sample"), ("experiment", "experiment")}
+    assert scopes == {("dataset", "dataset"), ("experiment", "experiment")}
 
     fake, seam = _over(
         _AnswersEveryDocument({d.doc_sha256: "Mus musculus" for d in plan.documents})
     )
     extract_planned(plan, kb.load_all_specs(), seam=seam, partial=True)
     assert len(_sent(fake)) == 2 < plan.n_documents
-    assert sorted(_widths(fake)) == [2, 4]
+    assert sorted(_widths(fake)) == [2, 2]
 
 
 def test_the_character_budget_splits_an_oversized_group_rather_than_sending_one_request(
@@ -1062,29 +997,20 @@ def test_the_width_of_a_request_is_the_output_budget_divided_by_its_ask() -> Non
 
     ``(32 000 - 1 000) / (n_asked x 62)`` — an output budget, less a fixed reservation for reasoning
     tokens that bill against that same ceiling, over the measured cost of serialising one draft. So
-    the nine sample attributes come out at 55, an experiment record's two-field ask at 250, and a
-    dataset document's thirteen at 38.
-
-    **55 and not the 57 #233 decision 1 quotes**, and the two tokens between them are the point.
-    Decision 1 computed 57 as ``32 000 / 558`` with no reserve at all, before #282 required one;
-    rounding the measured 62 down to 60 reaches 57 again only by handing the reserve straight back,
-    at which point a full batch's worst case (``57 x 558 = 31 806``) exceeds the ``31 780`` it would
-    ask for. A width that matches a projection the projection's own assumptions no longer support is
-    worth less than one that falls out of the measurement.
+    an experiment record's one-field ask comes out at 500, a dataset document's four at 125, and an
+    instruction document's six at 83.
 
     Every one of them is above the single count of **8** that used to be applied to all of them
-    alike, and the narrow ask by 31x: that number was worst-case-tuned against the widest ask, so the
-    experiment request — the one carrying the protocol paragraph — paid the sample vocabulary's
-    price. The width falling as the ask widens is the whole shape, and it is what one constant could
-    not express at any value.
+    alike: that number was worst-case-tuned against the widest ask, so the experiment request — the
+    one carrying the protocol paragraph — paid the widest ask's price. The width falling as the ask
+    widens is the whole shape, and it is what one constant could not express at any value.
     """
     from seqforge.harvest.fields import fields_for
     from seqforge.harvest.plan import batch_width
 
-    assert batch_width(fields_for("sample", "reference")) == 55
-    assert batch_width(fields_for("run", "reference")) == 55, "nine attributes, the same question"
-    assert batch_width(fields_for("experiment", "reference")) == 250
-    assert batch_width(fields_for("dataset", "reference")) == 38
+    assert batch_width(fields_for("experiment", "reference")) == 500
+    assert batch_width(fields_for("dataset", "reference")) == 125
+    assert batch_width(fields_for("dataset", "instruction")) == 83
 
     asks = _every_ask()
     assert all(batch_width(a) > 8 for a in asks), "no ask is still bounded by the count it replaced"
@@ -1100,8 +1026,8 @@ def test_a_request_is_bounded_by_its_ask_too_and_never_asks_about_one_document_t
 ) -> None:
     """Characters alone do not bound a batch of one-line records, and two bounds are not one twice.
 
-    A run alias is 20 characters and can still support nine sample attributes, so what bounds the
-    RESPONSE is how many drafts the ask permits, never how much text went in. That is why the second
+    A one-line document is 25 characters and can still support every field asked of it, so what
+    bounds the RESPONSE is how many drafts the ask permits, never how much text went in. That is why the second
     bound is the ask's own width rather than a count: the character budget here is nowhere near
     binding, and the batch still closes. Separately, two documents whose text is byte-identical are
     indistinguishable to a model routing by sha, so they never share a request — a question with no
@@ -1144,9 +1070,9 @@ def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
 ) -> None:
     """The ceiling a width was divided out of is the ceiling the request actually asks for.
 
-    A full-width nine-attribute batch is 55 x 9 x 62 = 30 690 output tokens of drafts, plus the
-    1 000 reserved for reasoning tokens — which bill against this same ceiling — for 31 690, just
-    under the 32 000 budget. Pinned at 8 000, the number this replaced, the same request would run
+    A full-width batch of the widest ask (an instruction document's six fields) is 83 x 6 x 62 =
+    30 876 output tokens of drafts, plus the 1 000 reserved for reasoning tokens — which bill against
+    this same ceiling — for 31 876, just under the 32 000 budget. Pinned at 8 000, the number this replaced, the same request would run
     out of ceiling about a quarter of the way through its own batch, truncate the JSON, and fail the
     shape gate wholesale.
 
@@ -1164,9 +1090,9 @@ def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
     from seqforge.harvest.fields import fields_for
     from seqforge.harvest.plan import BATCH_OUTPUT_BUDGET, batch_max_tokens, batch_width
 
-    width = batch_width(fields_for("sample", "reference"))
+    width = batch_width(fields_for("dataset", "instruction"))
     texts = [f"Aliquot {i} was N2 wild type." for i in range(width)]
-    docs = [_replace(d, scope="sample") for d in _many(tmp_path, texts)]
+    docs = [_replace(d, role="instruction") for d in _many(tmp_path, texts)]
     plan = plan_extraction(documents=docs)
     assert [len(b) for b in plan.batches] == [width], (
         "one full-width request, and this is its price"
@@ -1181,11 +1107,11 @@ def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
 
     ceilings = [form["settings"]["max_output_tokens"] for form in _sent(fake)]
     assert _widths(fake) == [width] + [1] * width, "the batch, then one request per document"
-    assert ceilings == [31_690] + [8000] * width
+    assert ceilings == [31_876] + [8000] * width
 
     from seqforge.harvest.plan import PER_DRAFT_TOKENS, REASONING_HEADROOM_TOKENS
 
-    worst_case_drafts = width * len(fields_for("sample", "reference")) * PER_DRAFT_TOKENS
+    worst_case_drafts = width * len(fields_for("dataset", "instruction")) * PER_DRAFT_TOKENS
     assert worst_case_drafts + REASONING_HEADROOM_TOKENS <= ceilings[0], (
         "the reservation is only a reservation if the drafts fit under the ceiling without it"
     )
@@ -1442,11 +1368,13 @@ _FAN_EXTRACTOR = ExtractorProvenance(model_id="test/fan", prompt_version="v1")
 
 
 def _twins(
-    prose: list[str], *, level: RecordLevel = "sample", label: str = "sample_title"
+    prose: list[str], *, level: RecordLevel = "experiment", label: str = "design"
 ) -> ArchiveRecordSet:
     """One record per entry of ``prose``, at one level, under a project.
 
-    **The accessions are deliberately of different lengths** (`SAMN1`, `SAMN22`, `SAMN333`). An
+    Experiment records by default, because they are the only records a plan sends.
+
+    **The accessions are deliberately of different lengths** (`SRX1`, `SRX22`, `SRX333`). An
     invariant span therefore sits at a different offset in every member, which is the whole reason
     `fan_claims` recomputes offsets with `find_span` against each member's own text rather than
     copying the exemplar's — a copied offset would point at the wrong characters in a document that
@@ -1505,10 +1433,10 @@ def test_records_that_differ_only_in_an_accession_are_one_ask(tmp_path: Path) ->
     assert plan.n_records_read == 4
     assert plan.n_records_collapsed == 3
     exemplar = plan.documents[0]
-    assert plan.stands_for(exemplar) == ("SAMN1", "SAMN22", "SAMN333", "SAMN4444")
+    assert plan.stands_for(exemplar) == ("SRX1", "SRX22", "SRX333", "SRX4444")
     assert plan.report().documents[0].members == list(plan.stands_for(exemplar))
     assert plan.report().documents[0].reduced_members == [], "nothing here was sent its difference"
-    assert [m.value for m in exemplar.variants] == ["SAMN1"], "only the accession varies"
+    assert [m.value for m in exemplar.variants] == ["SRX1"], "only the accession varies"
 
 
 def test_one_record_that_differs_makes_every_record_asked_with_no_special_case(
@@ -1537,9 +1465,9 @@ def test_one_record_that_differs_makes_every_record_asked_with_no_special_case(
     assert one_differs.n_records_reduced == 3
     # ...and what each of them is asked is its own value, which is what makes the ask worth making.
     sent = {d.subject: d.text for d in one_differs.documents}
-    assert "day7" in sent["SAMN4444"]
-    assert "day3" in sent["SAMN22"]
-    assert one_differs.n_chars < 4 * len(sent["SAMN1"]), "and the shared prose is read once"
+    assert "day7" in sent["SRX4444"]
+    assert "day3" in sent["SRX22"]
+    assert one_differs.n_chars < 4 * len(sent["SRX1"]), "and the shared prose is read once"
 
 
 def test_a_reduced_member_is_not_reported_as_a_record_this_document_was_the_only_reading_of() -> (
@@ -1563,23 +1491,23 @@ def test_a_reduced_member_is_not_reported_as_a_record_this_document_was_the_only
     report = plan.report()
     exemplar, *reduced = report.documents
 
-    assert exemplar.members == ["SAMN1"], "it is the only reading of its own record and no other"
-    assert exemplar.reduced_members == ["SAMN22", "SAMN333", "SAMN4444"]
+    assert exemplar.members == ["SRX1"], "it is the only reading of its own record and no other"
+    assert exemplar.reduced_members == ["SRX22", "SRX333", "SRX4444"]
     # ...and each of those is right here, in the same report, with the bytes it cost.
-    assert [d.members for d in reduced] == [["SAMN22"], ["SAMN333"], ["SAMN4444"]]
+    assert [d.members for d in reduced] == [["SRX22"], ["SRX333"], ["SRX4444"]]
     assert all(d.n_chars > 0 and d.reduced_members == [] for d in reduced)
 
     assert sum(len(d.members) for d in report.documents) == report.n_records_read == 4
 
-    # One group holding one of each, which is the case a single list cannot describe at all. SAMN22's
+    # One group holding one of each, which is the case a single list cannot describe at all. SRX22's
     # alias is nothing but the accession we ourselves wrote, so it is withheld — read only through the
-    # exemplar. SAMN333 says `day7`, so its difference is sent and it is read in a document of its own.
+    # exemplar. SRX333 says `day7`, so its difference is sent and it is read in a document of its own.
     mixed = plan_extraction(
-        records=_twins(["day3", "SAMN22", "day7"], label="sample_alias")
+        records=_twins(["day3", "SRX22", "day7"], label="sample_alias")
     ).report()
 
-    assert mixed.documents[0].members == ["SAMN1", "SAMN22"], "withheld, so read only here"
-    assert mixed.documents[0].reduced_members == ["SAMN333"], "sent, so read over there"
+    assert mixed.documents[0].members == ["SRX1", "SRX22"], "withheld, so read only here"
+    assert mixed.documents[0].reduced_members == ["SRX333"], "sent, so read over there"
     assert sum(len(d.members) for d in mixed.documents) == mixed.n_records_read == 3
 
 
@@ -1592,10 +1520,13 @@ def test_a_claim_fans_out_only_where_its_quote_touches_no_variant() -> None:
     """
     from seqforge.harvest import fan_claims, plan_extraction
 
-    plan = plan_extraction(records=_twins(["N2 whole worm, day3"] * 3))
-    shared = fan_claims(_verified(plan, "experiment.samples.age", "day3", "day3"), plan)
+    plan = plan_extraction(records=_twins([f"{_QUOTE}, N2 whole worm"] * 3))
+    shared = fan_claims(_verified(plan, "library.chemistry", "10x-3p-gex-v3", _QUOTE), plan)
     named = fan_claims(
-        _verified(plan, "experiment.samples.strain", "N2", "sample SAMN1\n\nsample_title: N2"), plan
+        _verified(
+            plan, "library.chemistry", "10x-3p-gex-v3", f"experiment SRX1\n\ndesign: {_QUOTE}"
+        ),
+        plan,
     )
 
     assert [f.n_records for f in shared.fanned] == [3]
@@ -1603,43 +1534,9 @@ def test_a_claim_fans_out_only_where_its_quote_touches_no_variant() -> None:
     assert len(named.assertions) == 1
 
 
-def test_a_sample_scoped_claim_materializes_one_assertion_per_member() -> None:
-    """The fan-out UNIT follows field arity, and the field path already says which.
-
-    The nine `experiment.samples.*` are sample-scoped, so each member gets its own `Assertion` citing
-    its OWN document — which is what keeps `resolve.records._basis_for` untouched: the claim maps home
-    through `subject_to_sample` exactly as an unfanned one does, and stays `asserted`. Offsets are
-    recomputed against each member's text, and the members' accessions are different lengths on
-    purpose, so a copied offset would be provably wrong.
-    """
-    from seqforge.harvest import fan_claims, plan_extraction
-
-    plan = plan_extraction(records=_twins(["whole worm, day3"] * 3))
-    fan = fan_claims(_verified(plan, "experiment.samples.age", "day3", "day3"), plan)
-
-    assert len(fan.assertions) == 3, "one per member"
-    assert len({a.id for a in fan.assertions}) == 3
-    assert len({a.span.doc_sha256 for a in fan.assertions}) == 3, "each cites its own document"
-    assert {a.span_verified for a in fan.assertions} == {True}
-    assert {a.entailment_ok for a in fan.assertions} == {True}
-
-    withheld = {d.doc_sha256: d for d in plan.collapsed[plan.documents[0].doc_sha256].members}
-    for a in fan.assertions[1:]:
-        text = withheld[a.span.doc_sha256].text
-        assert text[a.span.char_start : a.span.char_end] == "day3"
-    assert len({a.span.char_start for a in fan.assertions}) == 3, "the offsets really do differ"
-    # ...and the claim's own report names every assertion it produced, first the model's own. A count
-    # beside a list nobody can join back to is what `PlannedDocument.members` cannot answer for a
-    # claim, and it is the whole reason `FannedClaim` exists (folded from the report sibling test).
-    assert [f.materialized for f in fan.fanned] == [True]
-    said, claim = fan.assertions[0], fan.fanned[0]
-    assert claim.assertion_ids == tuple(a.id for a in fan.assertions)
-    assert (claim.field, claim.value, claim.quote) == (said.field, said.value, said.span.quote)
-
-
 def test_a_dataset_scoped_claim_stays_one_assertion_and_buys_a_proof_of_unanimity() -> None:
     """`library.chemistry` is dataset-scoped, and `chemistry_hypothesis` reduces N identical claims to
-    one regardless — so materializing 1440 of them would buy nothing. What the grep buys here is the
+    one regardless — so copying it onto 1440 records would buy nothing. What the grep buys here is the
     *proof of unanimity*: one assertion, and a count of the records whose own bytes carry the quote.
 
     This is what keeps that check ("agreement or nothing") from going vacuous under a collapse. A
@@ -1658,25 +1555,29 @@ def test_a_dataset_scoped_claim_stays_one_assertion_and_buys_a_proof_of_unanimit
     fan = fan_claims(_verified(plan, "library.chemistry", "10x-3p-gex-v3", _QUOTE), plan)
 
     assert len(fan.assertions) == 1, "one judgement, one envelope — not one per record"
-    assert [(f.n_records, f.materialized) for f in fan.fanned] == [(4, False)]
+    assert [f.n_records for f in fan.fanned] == [4]
+    said, claim = fan.assertions[0], fan.fanned[0]
+    assert claim.assertion_id == said.id, "the claim's report names the assertion it is"
     assert fan.fanned[0].records == ("SRX1", "SRX22", "SRX333", "SRX4444")
 
 
 def test_the_age_hazard_never_fans_a_value_into_the_record_that_said_something_else() -> None:
     """The character-granularity bug, at the level a user would meet it.
 
-    Three records say `age: 3` and one says `age: 30`. At character granularity `3` is shared, so the
-    claim would fan onto the record that said 30 and the leftover variant would be a single `0`
-    nothing would ever send. At token granularity the position varies, every record is asked, and no
-    claim fans anywhere.
+    Three records say `v3` and one says `v30`. At character granularity `v3` is shared, so the claim
+    would fan onto the record that said v30 and the leftover variant would be a single `0` nothing
+    would ever send. At token granularity the position varies, every record is asked, and no claim
+    fans anywhere.
     """
     from seqforge.harvest import fan_claims, plan_extraction
 
-    plan = plan_extraction(records=_twins(["age: 3"] * 3 + ["age: 30"], label="sample_alias"))
-    fan = fan_claims(_verified(plan, "experiment.samples.age", "3", "age: 3"), plan)
+    plan = plan_extraction(records=_twins([_QUOTE] * 3 + [f"{_QUOTE}0"]))
+    fan = fan_claims(_verified(plan, "library.chemistry", "10x-3p-gex-v3", _QUOTE), plan)
 
     assert plan.n_documents == 4, "the record that differed is asked, not guessed at"
-    assert plan.n_records_collapsed == 0, "nothing is withheld: every member's `3`/`30` is askable"
+    assert plan.n_records_collapsed == 0, (
+        "nothing is withheld: every member's `v3`/`v30` is askable"
+    )
     # The group DOES form and the marks ARE computed — which is what makes this the real test. The
     # claim does not fan because its quote reaches into the token that varies, not because no group
     # was found. At character granularity `3` would have been shared and the fan would be silent.
@@ -1684,8 +1585,8 @@ def test_the_age_hazard_never_fans_a_value_into_the_record_that_said_something_e
     assert plan.documents[0].variants
     assert fan.fanned == []
     assert len(fan.assertions) == 1
-    assert "30" in {d.text.split()[-1] for d in plan.documents}, (
-        "the odd record is asked its own 30"
+    assert "v30" in {d.text.split()[-1] for d in plan.documents}, (
+        "the odd record is asked its own v30"
     )
 
 
@@ -1740,7 +1641,7 @@ def test_a_collapsed_member_is_rendered_and_kept_even_though_it_is_never_sent() 
     assert len(plan.all_documents) == 3
     assert plan.n_documents == 1
     assert plan.all_documents[0] is plan.documents[0]
-    assert [d.subject for d in plan.all_documents] == ["SAMN1", "SAMN22", "SAMN333"]
+    assert [d.subject for d in plan.all_documents] == ["SRX1", "SRX22", "SRX333"]
     assert all(d.text for d in plan.all_documents)
 
 

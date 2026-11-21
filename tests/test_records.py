@@ -1,4 +1,4 @@
-"""Tests for ``resolve/records.py`` — which sample each file is, and what it was.
+"""Tests for ``resolve/records.py`` — which sample each file is.
 
 The metadata resolver and the provenance gate are one subject: the gate is what decides whether the
 prose it reads describes THIS dataset at all, so it belongs beside the resolver it guards.
@@ -6,24 +6,20 @@ prose it reads describes THIS dataset at all, so it belongs beside the resolver 
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
-from seqforge.harvest.plan import ExtractionPlan, FanReport
 from seqforge.io.archive import (
     merge_biosample_attributes,
     parse_bioproject_set,
     parse_biosample_set,
     parse_sra_package_set,
 )
-from seqforge.models.assertion import Assertion, ExtractorProvenance, SourceSpan
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.observation import FileIdentity
 from seqforge.models.records import ArchiveRecordSet
-from seqforge.models.resolve import MetadataResolution, ResolvedSample
-from seqforge.resolve.records import SAMPLE_FIELD_PREFIX, DocumentSubject, resolve_metadata
+from seqforge.resolve.records import resolve_metadata
 
 # ================================================================================================
 # records — the metadata resolver against the archive's real bytes
@@ -44,12 +40,12 @@ from seqforge.resolve.records import SAMPLE_FIELD_PREFIX, DocumentSubject, resol
 # The pilot's own `expected.yaml` carries the same claims for the eval harness, but that case is
 # `kind: local` and skips wherever the 220 GB of FASTQ is not mounted — which is everywhere except one
 # laptop. So the ground truth also lives here, where CI can see it, with no FASTQ involved at all:
-# sample facts come from records, and records are 60 kB of XML.
+# the join comes from records, and records are 60 kB of XML.
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "archive"
 
-#: The pilot's six runs, and which strain each carries. Transcribed from the BioSample records, which
+#: The pilot's six runs: three wild-type, three daf-2. Transcribed from the BioSample records, which
 #: are committed beside this file — not from a run, and not from memory.
 WT_RUNS = ("SRR28716556", "SRR28716557", "SRR28716558")
 DAF2_RUNS = ("SRR28716553", "SRR28716554", "SRR28716555")
@@ -117,32 +113,19 @@ def test_the_bioproject_record_declares_the_data_type() -> None:
     )
 
 
-# ---------------------------------------------------------------- A1: the pre-registered facts
+# ---------------------------------------------------------------- A1: the join
 
 
-def test_a_record_fact_lands_on_its_own_sample_and_judges_nothing(
-    records: ArchiveRecordSet,
-) -> None:
-    """THE test. Six samples, `tissue: Neurons` on every one — which the pilot's manifest said null.
-
-    The VALUES are graded against the pre-registration below; what is here is the envelope they
-    arrive in. Copying `tissue = Neurons` out of a record is not a judgement, so it cites the record's
-    own accession and carries no confidence — the pilot's manifest wrote `confidence: 0.750672` onto
-    four unrelated fields, one number about one decision wearing four hats.
-    """
+def test_each_pilot_file_lands_on_its_own_biosample(records: ArchiveRecordSet) -> None:
+    """Twelve files, six BioSamples, two mates each: the join is the archive's, by run accession."""
     out = resolve_metadata(files=_pilot_files(), records=records)
     assert not out.blockers
     assert len(out.samples) == 6
-    assert sum(len(s.file_shas) for s in out.samples) == 12
     for sample in out.samples:
         assert len(sample.file_shas) == 2, f"{sample.sample_id} lost a mate"
-        tissue = sample.attributes["tissue"]
-        assert (tissue.value, tissue.basis, tissue.evidence) == (
-            "Neurons",
-            "asserted",
-            [sample.accession],
-        )
-        assert all(attr.confidence is None for attr in sample.attributes.values())
+        assert sample.accession is not None
+        assert sample.accession.startswith("SAMN")
+        assert sample.sample_id == sample.accession
 
 
 def test_the_dataset_wide_facts_come_off_the_record_and_cite_it(records: ArchiveRecordSet) -> None:
@@ -156,84 +139,6 @@ def test_the_dataset_wide_facts_come_off_the_record_and_cite_it(records: Archive
     assert out.project is not None
     assert out.project.accession == "PRJNA1027859"
     assert "abstract" not in out.project.model_dump()
-
-
-# ------------------------------------------------- what a record declares that has no key at all
-#
-# A submitter may type a fact into a structured characteristic under a name nobody controls, and the
-# key space is closed, so that fact can never become an `experiment.samples.*` value. Keeping it out
-# is the decision. Being QUIET about it was not: the same sentence in a free-text protocol field
-# reaches the prose path, so the submitter who used the structured slot ended up less legible to the
-# compiler than the one who buried it in a paragraph. These two tests are the pair — the note fires
-# on the invented tag, and stays silent on the bookkeeping every archive stamps on every sample,
-# which is what keeps it worth reading (#165).
-
-BENCHMARK = Path(__file__).resolve().parents[1] / "evals" / "benchmark"
-
-#: The BD Rhapsody case whose GEO record declares its capture bead in a characteristic. Its
-#: `records.json` is committed, so this needs no network and no FASTQ.
-BD_CASE = BENCHMARK / "GSE282765-colon-crod-wta"
-BD_BEAD_TAG = "bd rhapsody_capture_bead_version"
-
-
-def _bd_case_files(records: ArchiveRecordSet) -> list[FileIdentity]:
-    """The two filenames the run record itself declares. The join is by name, so no bytes are needed."""
-    run = records.at("run")[0]
-    return [_file(name, str(i).ljust(64, "d")) for i, name in enumerate(run.filenames)]
-
-
-def test_an_unharmonized_characteristic_is_surfaced_rather_than_silently_dropped() -> None:
-    """`bd rhapsody_capture_bead_version: enhanced beads` is the whole chemistry of that library.
-
-    It survives transcription and then stops here, because NCBI does not define that name and a key
-    we coined would accept whatever an extraction wanted to put in it. Both halves below: the value
-    does NOT become a sample attribute, AND the resolver says out loud what it declined to key. "It
-    warns" is the claim that rots, so the message is read rather than counted.
-    """
-    from seqforge.evals.case import load_case
-
-    case = load_case(BD_CASE)
-    assert case.records is not None, "the case commits its archive records, so this runs offline"
-    out = resolve_metadata(files=_bd_case_files(case.records), records=case.records)
-
-    assert not out.blockers, "an attribute with no key is never a refusal"
-    assert len(out.samples) == 1
-    sample = out.samples[0]
-    assert sample.accession == "SAMN52065473"
-    # the vocabulary is NOT widened: the bead has no key, under its own name or any near neighbour
-    assert not [k for k in sample.attributes if "bead" in k or k == BD_BEAD_TAG]
-    # ...and the harmonized siblings on the same record still land, so nothing was thrown out with it
-    assert sample.attributes["tissue"].value == "Colon"
-    assert sample.attributes["strain"].value == "C57BL/6J Cre"
-
-    notes = [w for w in out.warnings if w.code == "sample_attribute_unharmonized"]
-    bead = [w for w in notes if BD_BEAD_TAG in w.message]
-    assert len(bead) == 1, f"the dropped bead is invisible; notes were {[w.message for w in notes]}"
-    assert "enhanced beads" in bead[0].message, "a note that omits the value cannot be acted on"
-    assert sample.sample_id in bead[0].message, "and it must say WHICH sample declared it"
-    assert bead[0].subject.ref == f"{SAMPLE_FIELD_PREFIX}{BD_BEAD_TAG}"
-
-    # The arrangement this case was built with is unchanged: the declared bead is evidence FOR the
-    # pre-registration and never something the run grades itself against. A claim keyed on it would
-    # be the case marking its own homework.
-    assert not [k for k in case.expected.fields if BD_BEAD_TAG in k]
-
-
-def test_the_bookkeeping_every_archive_stamps_on_a_sample_is_not_surfaced(
-    records: ArchiveRecordSet,
-) -> None:
-    """The note has to be rare to be worth reading, and the pilot is the proof that it is.
-
-    `center_name`, `biosample_package` and `taxonomy_id` are unharmonized on every BioSample NCBI
-    serves and are facts about the record rather than the biology, so a note on each would be three
-    lines per sample on every dataset that has a record at all.
-    """
-    out = resolve_metadata(files=_pilot_files(), records=records)
-    assert len(out.samples) == 6
-    assert [w for w in out.warnings if w.code == "sample_attribute_unharmonized"] == []
-    # the taxid is not dropped, it is read by name — which is why it owes no note
-    assert out.organism is not None
-    assert out.organism.value == 6239
 
 
 # ---------------------------------------------------------------- the join, and its refusal
@@ -254,7 +159,6 @@ def test_the_original_filenames_join_when_the_accession_is_gone(records: Archive
     assert not out.blockers
     assert len(out.samples) == 1
     assert out.samples[0].accession == "SAMN40935621"
-    assert out.samples[0].attributes["strain"].value == "CQ758"
 
 
 def test_a_record_that_does_not_account_for_the_files_refuses(records: ArchiveRecordSet) -> None:
@@ -401,547 +305,24 @@ def test_a_stamped_set_that_declares_no_originals_still_blames_neither_side() ->
 
 
 def test_no_record_is_not_a_refusal() -> None:
-    """Most sequencing data never had an accession. It still compiles; it just says less — and with
-    nothing to group by, the run key IS the sample identity."""
+    """Most sequencing data never had an accession. It still compiles — and with nothing to group by,
+    the run key IS the sample identity."""
     out = resolve_metadata(files=_pilot_files(), records=None)
     assert not out.blockers
     assert sorted(s.sample_id for s in out.samples) == sorted(WT_RUNS + DAF2_RUNS)
-    assert all(s.attributes == {} and s.accession is None for s in out.samples)
+    assert all(s.accession is None for s in out.samples)
     assert out.project is None
     assert out.organism is None
-
-
-# ---------------------------------------------------------------- prose, subjects, and conflict
-
-
-def _assertion(field: str, value: str, doc: str, *, conf: float = 0.9) -> Assertion:
-    return Assertion(
-        id=f"a-{field}-{value}-{doc[:4]}",
-        field=field,
-        value=value,
-        span=SourceSpan(doc_sha256=doc, quote=value),
-        span_verified=True,
-        entailment_ok=True,
-        llm_confidence=conf,
-        extractor=ExtractorProvenance(model_id="test", prompt_version="test"),
-    )
-
-
-# The metadata resolver is a decision table, and the cells below are it tested one at a time. Every
-# row has the same call shape — `resolve_metadata(files=_pilot_files(), records, assertions, subjects)`
-# — and differs only in the cell: (doc scope, doc subject, does the record already declare this
-# attribute, do the values agree) -> (stored value + basis on the subject's sample, presence/absence on
-# other samples, warning code). Three rows (run/experiment/sample) vary an axis `_basis_for` does NOT
-# branch on: it reads `doc.scope` only for `== "dataset"` (`resolve/records.py`), so a run, an
-# experiment and a sample document all become `asserted` the same way — via which record level
-# `_subject_to_sample` mapped. The `*_asserts*` ids are that trio.
-
-
-@dataclass(frozen=True)
-class _Claim:
-    """One assertion + (optionally) the document code placed it as. ``subject`` is the record accession
-    the document was rendered from — ``@experiment0`` is resolved to the first experiment's accession at
-    run time, since it is not known until the fixture is built. ``placed=False`` means the assertion
-    exists but code registered no ``DocumentSubject`` for it (an unplaced document names no sample)."""
-
-    field: str
-    value: str
-    scope: str
-    subject: str | None
-    placed: bool = True
-
-
-@dataclass(frozen=True)
-class _Cell:
-    """One row of the precedence table: the inputs, and what must land where."""
-
-    id: str
-    use_records: bool
-    claims: tuple[_Claim, ...]
-    attr: str
-    #: The value expected on the subject's sample, or — when no claim names a sample — on EVERY sample.
-    #: ``None`` means the attribute must be ABSENT there.
-    value: str | None
-    basis: str | None = None
-    casefold: bool = False  # compare `value` case-insensitively (the "Male"/"male" rule)
-    check_confidence: bool = False
-    confidence: float | None = None
-    #: Samples OTHER than the subject: "n/a" (unchecked), "absent" (attr not set), "keep_record" (still
-    #: carries the record's Neurons).
-    others: str = "n/a"
-    #: "skip" | "none" (no warnings at all) | "ambiguous" | "inferred_only" | "none_for_subject".
-    warning: str = "skip"
-    warn_count: int | None = None
-    warn_contains: tuple[str, ...] = ()
-
-
-_PRECEDENCE_TABLE: tuple[_Cell, ...] = (
-    # A dataset document (a paper, a README) claims a study-wide fact with no record to declare it: it
-    # fans to every sample as OUR inference, not the paper's claim about each one.
-    _Cell(
-        id="dataset_document_fans_to_all_as_inferred",
-        use_records=False,
-        claims=(_Claim("experiment.samples.tissue", "neurons", "dataset", None),),
-        attr="tissue",
-        value="neurons",
-        basis="inferred",
-        warning="none",
-    ),
-    # The pilot's fix: the WT-vs-daf-2 contrast lives in a run alias, and a run belongs to exactly one
-    # sample, so the run document's claim is `asserted` of THAT sample and beats the paper's dataset-
-    # level `inferred` daf-2. A sample the run does not cover keeps NO per-sample value — the paper's
-    # blanket value is an unsafe guess there — and that is a non-blocking `inferred_only` warning (#10).
-    _Cell(
-        id="run_alias_asserts_over_the_papers_inference",
-        use_records=True,
-        claims=(
-            _Claim("experiment.samples.genotype", "WT", "run", "SRR28716558"),
-            _Claim("experiment.samples.genotype", "daf-2(e1370)", "dataset", None),
-        ),
-        attr="genotype",
-        value="WT",
-        basis="asserted",
-        others="absent",
-        warning="inferred_only",
-        warn_contains=("genotype",),
-    ),
-    # GSE229022's fix at the resolve layer: the diet lives only in the GSM title, which the archive
-    # renders as the EXPERIMENT title. An experiment belongs to one sample, so its document's claim is
-    # `asserted` of that sample via the same `subject_to_sample` join a run alias uses.
-    _Cell(
-        id="experiment_title_asserts_to_its_sample",
-        use_records=True,
-        claims=(
-            _Claim("experiment.samples.treatment", "E. coli OP50", "experiment", "@experiment0"),
-        ),
-        attr="treatment",
-        value="E. coli OP50",
-        basis="asserted",
-        others="absent",
-    ),
-    # A document code did not place has no subject, so it may name no sample: its claim is dropped and
-    # the record's value stands untouched on every sample.
-    _Cell(
-        id="unplaced_document_names_no_sample",
-        use_records=True,
-        claims=(_Claim("experiment.samples.tissue", "muscle", "dataset", None, placed=False),),
-        attr="tissue",
-        value="Neurons",
-        warning="none",
-    ),
-    # The error span verification provably cannot catch: "neurons and body wall muscle" entails BOTH
-    # tissue=neurons and tissue=muscle, both quotes real. The record separates them — it is `asserted`
-    # of this sample, the paper's reading is `inferred` — so the record wins and the paper rides along
-    # as a non-blocking warning on each sample it fanned onto.
-    _Cell(
-        id="dataset_paper_wrong_reading_loses_to_the_record",
-        use_records=True,
-        claims=(_Claim("experiment.samples.tissue", "muscle", "dataset", None),),
-        attr="tissue",
-        value="Neurons",
-        warning="ambiguous",
-        warn_count=6,
-        warn_contains=("muscle", "Neurons"),
-    ),
-    # The record's typed slot against a model's reading of that same deposit's prose. They are one
-    # source at two layers, not two authorities, so the submitter's own string stands and the reading
-    # is noted (#182, #189, ADR-0021). Every OTHER sample keeps its record value, untouched.
-    _Cell(
-        id="a_typed_slot_outranks_a_reading_of_the_same_deposit",
-        use_records=True,
-        claims=(_Claim("experiment.samples.tissue", "muscle", "sample", "SAMN40935621"),),
-        attr="tissue",
-        value="Neurons",
-        basis="asserted",
-        others="keep_record",
-        warning="ambiguous",
-        warn_contains=("SAMN40935621", "muscle"),
-    ),
-    # Two readings of equal authority with NOTHING typed behind either — the record declares no
-    # `treatment` at all. Neither value is the submitter's own string, so code has no tie to break and
-    # the attribute is left null: a value, per "null beats a wrong guess", and a warning. This is the
-    # row the rule above deliberately does not reach; arbitration at rungs 4-6 is what it is for.
-    # The pair is deliberately a containment one: the anchor is the submitter's typed slot, never the
-    # strings, so with nothing typed the longer reading has nothing to make it the answer either.
-    _Cell(
-        id="equal_authorities_disagree_leave_null",
-        use_records=True,
-        claims=(
-            _Claim("experiment.samples.treatment", "control", "experiment", "@experiment0"),
-            _Claim("experiment.samples.treatment", "control RNAi", "experiment", "@experiment0"),
-        ),
-        attr="treatment",
-        value=None,
-        others="absent",
-        warning="ambiguous",
-        warn_contains=("'control'", "'control RNAi'"),
-    ),
-    # 'Neurons' and 'neurons' are the same value; a permanent manifest must not null an equal-authority
-    # attribute over capitalization alone (PRJNA1195922 lost `sex` exactly this way). Equal authorities
-    # that agree case-insensitively RESOLVE, with no disagreement warning for this sample.
-    _Cell(
-        id="equal_authorities_agree_in_case_resolve",
-        use_records=True,
-        claims=(_Claim("experiment.samples.tissue", "neurons", "sample", "SAMN40935621"),),
-        attr="tissue",
-        value="neurons",
-        casefold=True,
-        warning="none_for_subject",
-    ),
-    # A sample document writes only its own sample, `asserted`, and a model's read IS a judgement — so
-    # it carries a confidence, unlike a record transcription.
-    _Cell(
-        id="sample_document_asserts_only_its_own_sample",
-        use_records=True,
-        claims=(_Claim("experiment.samples.genotype", "daf-2(e1370)", "sample", "SAMN40935621"),),
-        attr="genotype",
-        value="daf-2(e1370)",
-        basis="asserted",
-        check_confidence=True,
-        confidence=0.9,
-        others="absent",
-    ),
-    # `condition` was ours, not one of NCBI's 960 — the slot the model filed worm husbandry into. A
-    # field outside the vocabulary never reaches any sample.
-    _Cell(
-        id="field_outside_ncbi_vocabulary_never_lands",
-        use_records=True,
-        claims=(_Claim("experiment.samples.condition", "grown at 20C", "dataset", None),),
-        attr="condition",
-        value=None,
-    ),
-)
-
-
-def _resolve_marker(marker: str | None, records: ArchiveRecordSet) -> str | None:
-    return records.at("experiment")[0].accession if marker == "@experiment0" else marker
-
-
-def _subject_sample(cell: _Cell, records: ArchiveRecordSet) -> str | None:
-    """The sample a placed run/experiment/sample document is about, or ``None`` (dataset/unplaced)."""
-    for claim in cell.claims:
-        if claim.placed and claim.scope in ("sample", "experiment", "run"):
-            acc = _resolve_marker(claim.subject, records)
-            if claim.scope == "sample":
-                return acc
-            rec = records.by_accession(acc) if acc is not None else None
-            ancestor = records.ancestor(rec, "sample") if rec is not None else None
-            return ancestor.accession if ancestor is not None else None
-    return None
-
-
-@pytest.mark.parametrize("cell", _PRECEDENCE_TABLE, ids=[c.id for c in _PRECEDENCE_TABLE])
-def test_the_sample_attribute_precedence_table(cell: _Cell, records: ArchiveRecordSet) -> None:
-    """Every cell of the metadata resolver's precedence table, one row at a time. See the comment above
-    the table for the axis; each `_Cell` is one combination of (scope, subject, record-declares?,
-    agree?) and its expected (value+basis, others, warning). The line this guards lives in
-    `resolve/records.py`."""
-    recs = records if cell.use_records else None
-    assertions: list[Assertion] = []
-    subjects: list[DocumentSubject] = []
-    for i, claim in enumerate(cell.claims):
-        doc = str(i) * 64
-        assertions.append(_assertion(claim.field, claim.value, doc))
-        if claim.placed:
-            subjects.append(
-                DocumentSubject(
-                    doc_sha256=doc,
-                    scope=claim.scope,
-                    subject=_resolve_marker(claim.subject, records),
-                )
-            )
-
-    out = resolve_metadata(
-        files=_pilot_files(), records=recs, assertions=assertions, subjects=subjects
-    )
-    assert not out.blockers
-
-    subject_acc = _subject_sample(cell, records)
-    by_acc = {s.accession: s for s in out.samples}
-
-    def _expect(sample: ResolvedSample) -> None:
-        if cell.value is None:
-            assert cell.attr not in sample.attributes
-            return
-        ev = sample.attributes[cell.attr]
-        if cell.casefold:
-            assert ev.value.casefold() == cell.value.casefold()
-        else:
-            assert ev.value == cell.value
-        if cell.basis is not None:
-            assert ev.basis == cell.basis
-        if cell.check_confidence:
-            assert ev.confidence == cell.confidence
-
-    if subject_acc is None:
-        # no claim named a sample: the expectation holds for EVERY sample (fan-out, or absence)
-        for sample in out.samples:
-            _expect(sample)
-    else:
-        _expect(by_acc[subject_acc])
-        for acc, sample in by_acc.items():
-            if acc == subject_acc:
-                continue
-            if cell.others == "absent":
-                assert cell.attr not in sample.attributes
-            elif cell.others == "keep_record":
-                assert sample.attributes[cell.attr].value == "Neurons"
-
-    _expect_warnings(out, cell, subject_acc)
-
-
-def _expect_warnings(out: MetadataResolution, cell: _Cell, subject_acc: str | None) -> None:
-    warnings = out.warnings
-    ref = f"{SAMPLE_FIELD_PREFIX}{cell.attr}"
-    if cell.warning == "none":
-        assert not warnings
-    elif cell.warning == "ambiguous" and cell.warn_count is not None:
-        assert len(warnings) == cell.warn_count
-        first = warnings[0]
-        assert first.subject.ref == ref
-        assert all(tok in first.message for tok in cell.warn_contains)
-    elif cell.warning == "ambiguous":
-        assert any(
-            w.subject.ref == ref and all(tok in w.message for tok in cell.warn_contains)
-            for w in warnings
-        )
-    elif cell.warning == "inferred_only":
-        assert any(
-            w.code == "sample_attribute_inferred_only"
-            and (w.subject.ref or "").endswith(cell.warn_contains[0])
-            for w in warnings
-        )
-    elif cell.warning == "none_for_subject":
-        assert subject_acc is not None
-        assert not any(subject_acc in w.message and w.subject.ref == ref for w in warnings)
-
-
-# --------------------------------- a typed slot beats a reading of that same deposit (#182, #189)
-#
-# The table's `equal_authorities_disagree_leave_null` row is the policy this section qualifies, and
-# the policy is right where it applies: code may not break a tie between two sources of equal
-# authority. What was wrong is that it fired on a pair that is not two sources. GSE282765's BioSample
-# TYPES `treatment = "Citrobacter rodentium infection"`; harvest reads that SAME submission's
-# experiment title and asserts `treatment = "Citrobacter rodentium"` — span-verified, entailed, true,
-# and one word short. Both land `asserted`, they compare unequal, and the archive's own value was
-# deleted by a claim that agreed with it (#182).
-#
-# The first repair compared the two strings: a reading wholly inside what the same source typed was
-# that declaration quoted short. It closed that shape and no other, and GSE317744 is why it is gone.
-# There the BioSample types `treatment = "MC38_3 weeks"` and a model asserted `treatment = "CCR9 KO"`
-# — the sample's GENOTYPE, filed under the wrong key. The two strings share nothing, so containment,
-# overlap, synonyms and punctuation folding all reach the first case and none of them reaches this
-# one; `harvest/verify.py` concedes span verification cannot reach it either, by construction.
-#
-# So the rule is not about the strings at all. Within ONE source, a value the submitter TYPED into a
-# slot for this attribute beats a model's reading of that source's prose — paraphrase, misfiling or
-# nonsense alike (ADR-0021). What lands is the submitter's own string, byte for byte, which is
-# exactly what a run with no prose at all would store; the losing reading is named in a warning,
-# because a decision was made and it has to stay auditable.
-
-
-def _typed_slot_records(attr: str, declared: str, read: str) -> ArchiveRecordSet:
-    """One submission: a BioSample that TYPED ``attr``, and an experiment title holding ``read``.
-
-    Deliberately the two halves of ONE deposit — the structured slot and the prose a model is shown
-    — because that pairing is the whole subject here.
-    """
-    from seqforge.models.records import ArchiveRecord, FreeText, RecordAttribute, SubmittedFile
-
-    return ArchiveRecordSet(
-        source="fixture",
-        query="PRJNA182",
-        records=[
-            ArchiveRecord(
-                level="sample",
-                accession="SAMN1",
-                attributes=[RecordAttribute(name=attr, value=declared, harmonized=True)],
-            ),
-            ArchiveRecord(
-                level="experiment",
-                accession="SRX1",
-                parent="SAMN1",
-                free_text=[FreeText(label="experiment_title", text=f"GSM1: {read}, scRNAseq")],
-            ),
-            ArchiveRecord(
-                level="run",
-                accession="SRR1",
-                parent="SRX1",
-                submitted_files=[
-                    SubmittedFile(filename="one_1.fastq.gz"),
-                    SubmittedFile(filename="one_2.fastq.gz"),
-                ],
-            ),
-        ],
-    )
-
-
-def _read_out_of_the_experiment_title(attr: str, declared: str, read: str) -> MetadataResolution:
-    """Resolve one sample whose slot says ``declared`` and whose own title was read as ``read``."""
-    from seqforge.harvest import normalize_record
-
-    records = _typed_slot_records(attr, declared, read)
-    experiment = records.by_accession("SRX1")
-    assert experiment is not None
-    doc = normalize_record(experiment)
-    files = [
-        _file(name, str(i).ljust(64, "e")) for i, name in enumerate(records.at("run")[0].filenames)
-    ]
-    return resolve_metadata(
-        files=files,
-        records=records,
-        assertions=[_assertion(f"{SAMPLE_FIELD_PREFIX}{attr}", read, doc.doc_sha256)],
-        subjects=[DocumentSubject(doc_sha256=doc.doc_sha256, scope=doc.scope, subject=doc.subject)],
-    )
-
-
-@dataclass(frozen=True)
-class _Reading:
-    """What one submission typed, what a model read out of that same submission, and what must land.
-
-    The stored value is the typed one on every row, and that is the rule rather than a coincidence of
-    the examples: what varies is only whether a decision was made — i.e. whether the reading differed
-    from the declaration at all, and so whether there is a losing value to name.
-    """
-
-    id: str
-    attr: str
-    declared: str
-    read: str
-    ambiguous: bool
-
-
-_READINGS: tuple[_Reading, ...] = (
-    # The defect itself, as a shape: the model quoted the declaration one word short.
-    _Reading(
-        id="a_shorter_quote_of_the_declaration_keeps_it",
-        attr="treatment",
-        declared="Citrobacter rodentium infection",
-        read="Citrobacter rodentium",
-        ambiguous=True,
-    ),
-    # THE FEARED CASE, and the reason this is not "prefer the more specific value": storing the
-    # longer string would bake a permanent claim that RNAi was done onto a sample whose submitter
-    # typed no such thing. The typed slot wins, so the qualifier the prose added never lands.
-    _Reading(
-        id="a_reading_that_adds_a_qualifier_does_not_win",
-        attr="treatment",
-        declared="control",
-        read="control RNAi",
-        ambiguous=True,
-    ),
-    # 'CD4' is inside 'CD45' as characters and is a different antigen. Nothing here compares the two
-    # strings any more, so it needs no word-boundary rule to come out right.
-    _Reading(
-        id="a_reading_naming_a_different_antigen_does_not_win",
-        attr="cell_type",
-        declared="CD45 positive",
-        read="CD4",
-        ambiguous=True,
-    ),
-    # GSE317744, and the shape no string comparison reaches: `CCR9 KO` is the sample's genotype,
-    # filed under `treatment`. It shares not one word with the typed value.
-    _Reading(
-        id="a_misfiled_reading_does_not_delete_the_slot_it_landed_in",
-        attr="treatment",
-        declared="MC38_3 weeks",
-        read="CCR9 KO",
-        ambiguous=True,
-    ),
-    # And the folding beside it: case alone was never a disagreement...
-    _Reading(
-        id="the_same_words_in_another_case_still_agree",
-        attr="tissue",
-        declared="Colon",
-        read="colon",
-        ambiguous=False,
-    ),
-    # ...and neither is the punctuation a submitter joined two words with (#189). Orthogonal hygiene:
-    # it decides nothing the rule above has not already decided, it only keeps a warning quiet where
-    # there is no disagreement to report.
-    _Reading(
-        id="the_same_words_across_a_hyphen_still_agree",
-        attr="genotype",
-        declared="wild-type",
-        read="wild type",
-        ambiguous=False,
-    ),
-)
-
-
-@pytest.mark.parametrize("row", _READINGS, ids=[r.id for r in _READINGS])
-def test_a_prose_reading_never_outranks_the_slot_the_submitter_typed(row: _Reading) -> None:
-    """One BioSample slot, one reading of that same submission's prose, and what must survive."""
-    out = _read_out_of_the_experiment_title(row.attr, row.declared, row.read)
-    assert not out.blockers
-    assert len(out.samples) == 1
-    attrs = out.samples[0].attributes
-    assert attrs[row.attr].value == row.declared
-    assert attrs[row.attr].basis == "asserted"
-
-    ambiguous = [w for w in out.warnings if w.code == "sample_attribute_ambiguous"]
-    if row.ambiguous:
-        # The known cost of this rule is a submitter who typed a placeholder, and this warning is the
-        # whole mitigation for it: the reading that lost is on the record, by name, with no
-        # enumerated list of placeholder strings anywhere.
-        assert len(ambiguous) == 1, "the losing reading must still be named"
-        assert row.declared in ambiguous[0].message
-        assert row.read in ambiguous[0].message
-    else:
-        # The two values fold to one, so nothing was decided and there is nothing to note.
-        assert ambiguous == [], [w.message for w in ambiguous]
-
-
-def test_a_short_quote_of_the_records_own_field_does_not_delete_it() -> None:
-    """The reported case, off the committed records and one hand-built claim — no model, no network.
-
-    GSE282765 graded `correct` with no prose and `false_accept` with it, which is the whole finding:
-    adding a true statement destroyed a fact the archive had already supplied (#182). The document is
-    built by the shipping planner rather than hand-rolled, so the identity the claim cites is the one
-    a real run would produce.
-    """
-    from seqforge.evals.case import load_case
-    from seqforge.harvest import plan_extraction
-
-    case = load_case(BD_CASE)
-    assert case.records is not None, "the case commits its archive records, so this runs offline"
-    plan = plan_extraction(records=case.records)
-    title_doc = next(d for d in plan.documents if d.scope == "experiment")
-    assert "Citrobacter rodentium" in title_doc.text, "the quote greps back into the document"
-
-    subjects = [
-        DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
-        for d in plan.documents
-    ]
-    claim = _assertion(
-        f"{SAMPLE_FIELD_PREFIX}treatment", "Citrobacter rodentium", title_doc.doc_sha256
-    )
-    files = _bd_case_files(case.records)
-
-    without = resolve_metadata(files=files, records=case.records)
-    assert without.samples[0].attributes["treatment"].value == "Citrobacter rodentium infection"
-
-    with_prose = resolve_metadata(
-        files=files, records=case.records, assertions=[claim], subjects=subjects
-    )
-    treatment = with_prose.samples[0].attributes.get("treatment")
-    assert treatment is not None, "a true claim about the same fact deleted the archive's value"
-    assert treatment.value == "Citrobacter rodentium infection"
-    # The value this case is about is unchanged; what the second repair added is the note. The
-    # declaration outranking the reading IS a decision, so it is recorded like every other one.
-    ambiguous = [w for w in with_prose.warnings if w.code == "sample_attribute_ambiguous"]
-    assert len(ambiguous) == 1
-    assert "Citrobacter rodentium" in ambiguous[0].message
 
 
 # ---------------------------------------------------------------- A3: a record IS a document
 
 
 def test_a_record_becomes_its_own_document_scoped_to_itself(records: ArchiveRecordSet) -> None:
-    """The whole mechanism: the document holds one sample's prose, so the subject is the document.
+    """The document holds one record's prose, so the subject is the document.
 
-    And only its prose. `strain = CQ758` is already a key and a value, so code copies it and the
-    model reads the sentence code cannot parse — showing it the typed half is a chance to be wrong.
+    And only its prose. `strain = CQ758` is already a key and a value, so showing a model the typed
+    half would be asking it to transcribe something code can copy — a chance to be wrong.
     """
     from seqforge.harvest import normalize_record
 
@@ -953,77 +334,9 @@ def test_a_record_becomes_its_own_document_scoped_to_itself(records: ArchiveReco
     # ...and nothing about any OTHER sample is in it. That is what makes the subject unambiguous.
     assert "replicate 1" not in doc.text
     assert "CQ757" not in doc.text
-    # ...nor the structured half of its own record, which the resolver transcribes rather than reads.
+    # ...nor the structured half of its own record.
     assert "CQ758" not in doc.text
     assert "hermaphrodite" not in doc.text
-
-
-def test_a_collapsed_run_document_is_asserted_of_the_sample_its_runs_belong_to() -> None:
-    """The runs of one sample become ONE document, and its claims must still land on that sample.
-
-    That is the half of the collapse that fails silently when it is wrong: a claim is kept only when
-    the document's subject maps to the sample being resolved, and otherwise dropped with nothing
-    said, so a collapsed document pointed at the wrong subject is cheap and empty rather than cheap
-    and correct. Which documents exist is `harvest/plan.py`'s decision, so the plan builds them here.
-    """
-    from seqforge.harvest import plan_extraction
-    from seqforge.models.records import ArchiveRecord, FreeText
-
-    def _run(accession: str, experiment: str, alias: str) -> ArchiveRecord:
-        return ArchiveRecord(
-            level="run",
-            accession=accession,
-            parent=experiment,
-            free_text=[FreeText(label="run_alias", text=alias)],
-        )
-
-    records = ArchiveRecordSet(
-        source="fixture",
-        query="PRJNA9",
-        records=[
-            ArchiveRecord(level="sample", accession="SAMN1"),
-            ArchiveRecord(level="experiment", accession="SRX1", parent="SAMN1"),
-            _run("SRR11", "SRX1", "N2_wild_type_r1"),
-            _run("SRR12", "SRX1", "N2_wild_type_r2"),
-            ArchiveRecord(level="sample", accession="SAMN2"),
-            ArchiveRecord(level="experiment", accession="SRX2", parent="SAMN2"),
-            _run("SRR21", "SRX2", "daf-2_mutant_r1"),
-            _run("SRR22", "SRX2", "daf-2_mutant_r2"),
-        ],
-    )
-    plan = plan_extraction(records=records)
-    collapsed = {d.subject: d for d in plan.documents if d.scope == "run"}
-    assert set(collapsed) == {"SAMN1", "SAMN2"}, "two samples, two documents, not four"
-
-    files = [
-        _file(f"{run}_1.fastq.gz", f"{i}".ljust(64, "a"))
-        for i, run in enumerate(("SRR11", "SRR12", "SRR21", "SRR22"))
-    ]
-    out = resolve_metadata(
-        files=files,
-        records=records,
-        assertions=[
-            _assertion("experiment.samples.genotype", "daf-2", collapsed["SAMN2"].doc_sha256)
-        ],
-        subjects=[
-            DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
-            for d in plan.documents
-        ],
-    )
-
-    by_sample = {s.accession: s for s in out.samples}
-    landed = by_sample["SAMN2"].attributes["genotype"]
-    assert landed.value == "daf-2"
-    assert landed.basis == "asserted", (
-        "a run belongs to one sample, so its alias declares that sample"
-    )
-    assert "genotype" not in by_sample["SAMN1"].attributes, "and it declares no OTHER sample"
-
-
-# What a record document may be ASKED -- the scope/role vocabulary, `fields_for`, `permitted_for`,
-# `ASKED_SAMPLE_ATTRIBUTES`, `describe_asked` -- is `harvest/fields.py`'s table, and its tests live in
-# `tests/test_fields.py`. The claim they used to carry here, "a record document may never set
-# processing", is a property of that table and goes red there.
 
 
 # ---------------------------------------------------------------- A5: the line, as an import graph
@@ -1062,152 +375,6 @@ def test_harvest_cannot_see_the_probe() -> None:
     assert not offenders, (
         "harvest imports the probe. The one LLM touchpoint must not be able to read what the bytes "
         "said:\n" + "\n".join(offenders)
-    )
-
-
-# ---------------------------------------------------------------- A1: the pre-registration grades
-
-
-def test_the_pilots_pre_registered_sample_facts_are_checkable_and_hold() -> None:
-    """The pre-registration's central claims, graded — which for a year they could not be.
-
-    "3 WT (strain CQ757) + 3 daf-2 (CQ758); tissue=Neurons; dev_stage=Adult Day 1;
-    sex=hermaphrodite" was written from public metadata before any run and lived in a `description:`
-    string where nothing read it. It runs on the committed records with no FASTQ at all, because the
-    pilot case is `kind: local` and skips wherever the 220 GB is not mounted — everywhere but one
-    laptop — and sample facts come from records.
-    """
-    from seqforge.evals import discover_cases, grade_experiment_fields
-
-    case = next(c for c in discover_cases() if c.id == "PRJNA1027859")
-    assert case.records is not None, "the pilot's archive records ship with the case"
-    out = resolve_metadata(files=_pilot_files(), records=case.records)
-
-    checks = grade_experiment_fields(case.expected.fields, out)
-    assert checks, "the pre-registration's sample facts are in `fields:`, not in prose"
-    # At least one claim names a specific sample (`experiment.samples.SAMN...`), not just the `*`
-    # multiset: the `*` form asserts what the dataset CONTAINS, the named form asserts the join put a
-    # fact on the RIGHT sample, so a shuffled join would fail this rather than grade clean (folded from
-    # `test_a_named_sample_pins_the_join_not_just_the_multiset`).
-    assert any(c.path.startswith("experiment.samples.SAMN") for c in checks), (
-        "no named-sample claim"
-    )
-    for check in checks:
-        assert check.ok, f"{check.path}: expected {check.expected!r}, got {check.actual!r}"
-
-
-# ================================================================================================
-# A fanned claim is an ordinary claim: `_basis_for` never learned this feature exists
-# ================================================================================================
-
-
-def _twin_sample_records() -> ArchiveRecordSet:
-    """Two samples whose documents differ ONLY in their accessions — the shape harvest collapses.
-
-    The runs carry filenames (that is the join to the files) and no prose, so the only documents in
-    the plan are the two sample records, and the only thing separating them is the accession our own
-    renderer put there.
-    """
-    from seqforge.models.records import ArchiveRecord, FreeText, SubmittedFile
-
-    records = [ArchiveRecord(level="project", accession="PRJNA1")]
-    for accession in ("SAMN1", "SAMN22"):
-        records += [
-            ArchiveRecord(
-                level="sample",
-                accession=accession,
-                parent="PRJNA1",
-                free_text=[FreeText(label="sample_alias", text="whole worm, day3")],
-            ),
-            ArchiveRecord(level="experiment", accession=f"SRX{accession}", parent=accession),
-            ArchiveRecord(
-                level="run",
-                accession=f"SRR{accession}",
-                parent=f"SRX{accession}",
-                submitted_files=[SubmittedFile(filename=f"{accession}_1.fastq.gz")],
-            ),
-        ]
-    return ArchiveRecordSet(source="test", query="PRJNA1", records=records)
-
-
-def _fan_one_claim_over_the_twins() -> tuple[ExtractionPlan, FanReport]:
-    """Plan the twins, verify one `age` draft against the single document harvest paid for, and fan
-    it back over the member that was withheld — the whole shipping path, no model."""
-    from seqforge.harvest import fan_claims, plan_extraction, verify_drafts
-    from seqforge.models.assertion import AssertionDraft
-
-    plan = plan_extraction(records=_twin_sample_records())
-    assert plan.n_documents == 1, "the collapse fired"
-    assert plan.n_records_collapsed == 1, "the collapse fired"
-    draft = AssertionDraft(
-        field=f"{SAMPLE_FIELD_PREFIX}age",
-        value="day3",
-        llm_confidence=0.9,
-        span=SourceSpan(doc_sha256=plan.documents[0].doc_sha256, quote="day3"),
-    )
-    verified = verify_drafts(
-        [draft],
-        list(plan.documents),
-        extractor=ExtractorProvenance(model_id="test", prompt_version="v1"),
-    )
-    assert verified.rejected == []
-    return plan, fan_claims(verified.assertions, plan)
-
-
-_TWIN_FILES = [_file("SAMN1_1.fastq.gz", "a" * 64), _file("SAMN22_1.fastq.gz", "b" * 64)]
-
-
-def test_a_fanned_claim_resolves_as_asserted_against_the_sample_it_names() -> None:
-    """The reason the collapse materializes a claim per member instead of giving `Assertion` a subject
-    list: the resolver is **completely unchanged** by this feature.
-
-    A fanned assertion cites the withheld member's own document, whose subject is that member's
-    accession, so it maps home through the same join a sample's own alias uses and stays
-    **asserted**. A subject list on the Assertion would have left it subject-less at this seam and
-    degraded it to ``inferred`` — the basis that loses to the archive's own slot.
-    """
-    plan, fan = _fan_one_claim_over_the_twins()
-    assert len(fan.assertions) == 2
-    assert [f.n_records for f in fan.fanned] == [2]
-
-    out = resolve_metadata(
-        files=_TWIN_FILES,
-        records=_twin_sample_records(),
-        assertions=fan.assertions,
-        subjects=[
-            DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
-            for d in plan.all_documents
-        ],
-    )
-
-    ages = {s.accession: s.attributes.get("age") for s in out.samples}
-    assert set(ages) == {"SAMN1", "SAMN22"}
-    for accession, age in ages.items():
-        assert age is not None, f"{accession} lost the claim its own bytes carry"
-        assert (age.value, age.basis) == ("day3", "asserted")
-
-
-def test_a_withheld_documents_subject_is_load_bearing_not_bookkeeping() -> None:
-    """Why `harvest extract` writes `plan.all_documents` into `document_subjects` and not the send
-    list. A claim whose document the resolver cannot place is dropped *silently*, because a document
-    code did not place has no subject and may not name a sample — so a collapse that recorded only
-    the documents it paid for would fan a claim onto a record and throw it away one stage later."""
-    plan, fan = _fan_one_claim_over_the_twins()
-    sent_only = [
-        DocumentSubject(doc_sha256=d.doc_sha256, scope=d.scope, subject=d.subject)
-        for d in plan.documents
-    ]
-    out = resolve_metadata(
-        files=_TWIN_FILES,
-        records=_twin_sample_records(),
-        assertions=fan.assertions,
-        subjects=sent_only,
-    )
-
-    ages = {s.accession: s.attributes.get("age") for s in out.samples}
-    assert ages["SAMN1"] is not None, "the document that WAS sent still lands"
-    assert ages["SAMN22"] is None, (
-        "and the fanned one is dropped — which is what the write prevents"
     )
 
 
@@ -1300,7 +467,6 @@ def test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declar
     assert out.blockers == [], "a declared fuse is never a refusal — it is the primary use case"
     assert [s.sample_id for s in out.samples] == ["lib7"]
     assert len(out.samples[0].file_shas) == 4, "all four files compile into the one sample"
-    assert out.samples[0].attributes == {}, "structure only: a hand-written set declares no facts"
     assert out.samples[0].accession is None, (
         "`lib7` is a grouping key a human chose, not a specimen an archive named — storing it as an "
         "accession is both false and unrepresentable, and it arrived here as an uncaught error"
@@ -1316,7 +482,7 @@ def test_a_declared_fuse_compiles_as_one_sample_and_says_the_grouping_was_declar
     assert "declared rather than observed" in note.message, (
         "the point of the note is that no byte and no filename said these are one library"
     )
-    assert note.subject.ref == f"{SAMPLE_FIELD_PREFIX}lib7"
+    assert note.subject.ref == "experiment.samples.lib7"
 
 
 def test_the_safe_draft_grouping_says_nothing(tmp_path: Path) -> None:
@@ -1391,67 +557,3 @@ def test_a_hand_written_set_that_leaves_a_file_unplaced_is_sent_to_its_own_file(
         "the set's `query` is a filename here, so it must not be dropped where an accession is read"
     )
     assert "orphan_S9_L001_R1_001.fastq.gz" in blocker.evidence
-
-
-def test_prose_on_a_hand_written_record_lands_per_sample(tmp_path: Path) -> None:
-    """Two hand-written samples, two different strains, each read out of its own record's prose.
-
-    This is the whole of ADR-0047 in one assertion, and the pair is what makes it one: a
-    dataset-scoped README can also put a strain on both samples, but only ever the SAME strain, at
-    `inferred`. Two DIFFERENT values at `asserted` can only come from documents that know which
-    sample they are about, which before this was reachable only through an archive.
-
-    It goes red on any of the three seams parting: the loader refusing `free_text` again, the join
-    dropping a hand-written sample's record, or `_basis_for` matching subjects against the typed
-    `accession` field — which is empty here, so every claim would be discarded and both strains would
-    vanish rather than merely weaken.
-    """
-    from seqforge.recordset import load_record_set
-
-    path = tmp_path / "records.yaml"
-    path.write_text(
-        "source: user\n"
-        "query: aging_SS3\n"
-        "records:\n"
-        "  - level: run\n"
-        "    id: day1_N2_1\n"
-        "    filenames: [day1_N2_1_1.fq.gz, day1_N2_1_2.fq.gz]\n"
-        "    free_text:\n"
-        "      - {label: directory_name, text: day1_N2_1}\n"
-        "  - level: run\n"
-        "    id: day13_CF_26\n"
-        "    filenames: [day13_CF_26_1.fq.gz, day13_CF_26_2.fq.gz]\n"
-        "    free_text:\n"
-        "      - {label: directory_name, text: day13_CF_26}\n"
-    )
-    records = load_record_set(path)
-
-    files = [
-        _file("day1_N2_1_1.fq.gz", "a" * 64),
-        _file("day1_N2_1_2.fq.gz", "b" * 64),
-        _file("day13_CF_26_1.fq.gz", "c" * 64),
-        _file("day13_CF_26_2.fq.gz", "d" * 64),
-    ]
-    wt_doc, cf_doc = "1" * 64, "2" * 64
-    out = resolve_metadata(
-        files=files,
-        records=records,
-        assertions=[
-            _assertion("experiment.samples.strain", "N2", wt_doc),
-            _assertion("experiment.samples.strain", "CF", cf_doc),
-        ],
-        subjects=[
-            DocumentSubject(doc_sha256=wt_doc, scope="run", subject="day1_N2_1"),
-            DocumentSubject(doc_sha256=cf_doc, scope="run", subject="day13_CF_26"),
-        ],
-    )
-
-    assert not out.blockers
-    strains = {s.sample_id: s.attributes["strain"] for s in out.samples}
-    assert strains["day1_N2_1"].value == "N2"
-    assert strains["day13_CF_26"].value == "CF"
-    assert {ev.basis for ev in strains.values()} == {"asserted"}
-    assert all(s.accession is None for s in out.samples), (
-        "a hand-written id is a grouping key, not a specimen an archive named: it must not be "
-        "stored where an accession is validated"
-    )

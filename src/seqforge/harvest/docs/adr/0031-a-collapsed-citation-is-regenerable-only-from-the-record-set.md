@@ -9,3 +9,6 @@ silently re-answer "was this quote invariant?" for a claim already stored; a sub
 every collapsed claim from `asserted` to `inferred`; and fanning a claim only to the records whose
 bytes already carry its quote was rejected as anti-correlated with value, since it reads the
 majority and skips exactly the records that differ.
+
+**Status.** Amended 2026-11-21 — no field a record document may answer is sample-scoped any more,
+so a fanned claim is never copied onto the members; every member is still written.

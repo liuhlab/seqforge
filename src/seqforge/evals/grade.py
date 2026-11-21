@@ -128,11 +128,9 @@ def grade_case(
     alternative is silent: pick a representative assay and the case passes whenever the expectation
     happens to name that one, having compiled a dataset the pre-registration never described.
 
-    ``metadata`` is the second resolver's answer, and until it existed the harness could not see a
-    sample at all: it graded a ``ResolveResult``, which has candidates and conflicts and no samples,
-    so every sample-level claim in a pre-registration was un-checkable prose. The gap was known and
-    written down ("the grader cannot express … SRX→sample mapping"), and it stayed open for as long
-    as nothing produced samples to grade.
+    ``metadata`` is the second resolver's answer: the samples the files were matched to, the
+    organism and the project the records declare. A ``ResolveResult`` has candidates and conflicts
+    and no samples, so without it a sample count in a pre-registration would be un-checkable.
     """
     actual = outcome_of(exit_code)
     exp = expected.outcome
@@ -308,30 +306,21 @@ def grade_experiment_fields(
 
 
 def _extract_experiment_field(path: str, metadata: MetadataResolution | None) -> Any:
-    """The sample-level half of the grading surface. ``None`` when the resolver said nothing.
+    """The records half of the grading surface. ``None`` when the resolver said nothing.
 
-    ``None`` rather than an ``<unsupported field>`` sentinel, and the difference is the whole reason
-    this exists: a pre-registration saying `tissue: Neurons` must FAIL against a manifest that says
-    null. A sentinel string would also fail, but it would fail for the wrong reason and would keep
-    failing after the bug was fixed.
+    ``None`` rather than an ``<unsupported field>`` sentinel for a path the resolver can answer: a
+    pre-registration naming an organism must FAIL against a resolution that says null, and must fail
+    for that reason rather than for an unknown path.
 
-    Two shapes, both dotted:
-
-    - ``experiment.samples.<sample_id>.<attr>`` — one sample's attribute. The sample id is the
-      archive's accession when a record was joined, so this is a claim about a specific BioSample.
-    - ``experiment.samples.*.<attr>`` — the attribute across EVERY sample, sorted. This is what a
-      pre-registration usually wants: "tissue=Neurons" was never a claim about one of the six.
     - ``experiment.organism`` / ``experiment.project.<field>``.
-    - ``experiment.n_samples`` — how many samples the dataset resolved into.
+    - ``experiment.n_samples`` — how many samples the dataset resolved into. It is a count and not a
+      list of ids on purpose: an id is `run_key`'s output, so pinning ids would pin the naming
+      convention a case happens to use alongside the number of samples it produced, and only the
+      second is the claim. #263 shipped a four-lane library compiled as four quarter-depth samples,
+      at exit 0, past exactly the blind spot this closes.
 
-    **The count is here because for a record-less dataset it is the ONLY sample claim there is.**
-    Every attribute path above reads `sample.attributes`, which comes from records and prose; a
-    deposit with neither has none, so `experiment.samples.*.<attr>` is the empty list whether the
-    compiler found two samples or four — and #263 shipped a four-lane library compiled as four
-    quarter-depth samples, at exit 0, past exactly that blind spot. Grouping was therefore assertable
-    in `tests/` and ungradeable in the corpus. It is a count and not a list of ids on purpose: an id
-    is `run_key`'s output, so pinning ids would pin the naming convention a case happens to use
-    alongside the number of samples it produced, and only the second is the claim.
+    What a sample WAS (its tissue, strain or treatment) is not graded here: the compiler no longer
+    carries it, and a study reading does.
     """
     if metadata is None:
         return None
@@ -342,20 +331,6 @@ def _extract_experiment_field(path: str, metadata: MetadataResolution | None) ->
     if path.startswith("experiment.project."):
         field = path.split(".", 2)[2]
         return getattr(metadata.project, field, None) if metadata.project else None
-    if path.startswith("experiment.samples."):
-        rest = path[len("experiment.samples.") :]
-        sample_id, _, attr = rest.rpartition(".")
-        if not sample_id:  # `experiment.samples.tissue` with no subject names no sample
-            return f"<unsupported field {path}: name a sample id, or '*' for all of them>"
-        if sample_id == "*":
-            return sorted(
-                s.attributes[attr].value for s in metadata.samples if attr in s.attributes
-            )
-        for sample in metadata.samples:
-            if sample.sample_id == sample_id:
-                found = sample.attributes.get(attr)
-                return found.value if found is not None else None
-        return None
     return f"<unsupported field {path}>"
 
 

@@ -15,7 +15,6 @@ embedded so the page stays self-contained. A later LLM-written summary would be 
 from __future__ import annotations
 
 import base64
-import re
 from html import escape
 from math import ceil, log10
 
@@ -33,9 +32,7 @@ from .flow import FlowStep, flow_steps
 from .model import (
     ArtifactEmbed,
     AssayReport,
-    AttributeView,
     DecisionField,
-    EvidenceRef,
     MatrixCellView,
     MatrixView,
     PipelineStage,
@@ -73,37 +70,14 @@ _TABS: list[tuple[str, str]] = [
     ("results", "Results"),
 ]
 
-#: How each provenance basis reads to someone who has never seen the manifest vocabulary — the
-#: **how we know** voice, for a *dataset* field, where that is the question ``basis`` answers.
-_BASIS_PHRASE: dict[str, str] = {
-    "observed": "measured directly from your files",
-    "asserted": "stated in the records or paper",
-    "inferred": "inferred from the surrounding context",
-    "user_confirmed": "confirmed by you",
-}
-
-#: The same four bases as the Samples legend says them: three or four words under a mark, not a
-#: sentence. A third map rather than a shortening of :data:`_BASIS_PHRASE`, because a legend entry and
-#: a popover line are read in different places and only one of them has room for a clause — and,
-#: like the other two, it is asserted total over the ``Basis`` literal so a fifth basis cannot ship a
-#: mark whose key says nothing.
-_BASIS_LEGEND: dict[str, str] = {
-    "observed": "your files",
-    "asserted": "records / paper",
-    "inferred": "we inferred it",
-    "user_confirmed": "you",
-}
-
-#: The same four bases in the **who decided** voice, for a *recipe* field. Two maps, and they stay
-#: two: on a dataset field ``basis`` answers how we know, on a recipe it answers who decided, and the
-#: "Processing choices" table's third column is headed *who decided*. Merged, that column would read
-#: "inferred from the surrounding context" as an answer to "who", which is not an answer at all.
+#: The four provenance bases in the **who decided** voice, for a *recipe* field, where that is the
+#: question ``basis`` answers: the "Processing choices" table's third column is headed *who decided*.
 #:
 #: Each entry is the recipe ladder's own actor: a policy default is us, a flag or an instruction
 #: document is you, reference prose is the paper. ``observed`` has no writer on a recipe today and is
 #: still here, because a map that is total over the ``Basis`` literal cannot render a raw token — and
-#: an exhaustiveness test over both maps derives the members from that literal, so a fifth basis goes
-#: red here rather than shipping ``user confirmed`` onto a page.
+#: an exhaustiveness test derives the members from that literal, so a fifth basis goes red here rather
+#: than shipping ``user confirmed`` onto a page.
 _WHO_PHRASE: dict[str, str] = {
     "observed": "the files themselves",
     "asserted": "the records / paper",
@@ -127,10 +101,6 @@ def esc(value: object) -> str:
     Only ``None`` is blanked. ``0`` and ``False`` are answers, and a falsey test would erase them.
     """
     return escape("" if value is None else str(value), quote=True)
-
-
-def _basis_phrase(basis: str) -> str:
-    return _BASIS_PHRASE.get(basis, basis.replace("_", " "))
 
 
 def _human_size(n: int) -> str:
@@ -412,43 +382,20 @@ def _flow_card(step: FlowStep, index: int) -> str:
 # ---- samples ------------------------------------------------------------------------------------
 
 
-def _basis_legend() -> str:
-    """The key for the provenance marks, iterated over :data:`_BASIS_LEGEND`.
-
-    Over the map and never over a hand-listed tuple, for the reason the level legend gives: a fifth
-    basis would otherwise be carried by the manifest, drawn as a mark by the stylesheet and silently
-    absent from the key that says what the mark means. Insertion order is display order.
-    """
-    marks = "".join(
-        f'<span class="inline-flex items-center gap-2">'
-        f'<span class="basis-mark basis-{esc(key)}" aria-hidden="true"></span>{esc(label)}</span>'
-        for key, label in _BASIS_LEGEND.items()
-    )
-    return (
-        '<p class="mt-0 mb-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-dim">'
-        f"<span>Where each value came from:</span>{marks}</p>"
-    )
-
-
 def samples_pane(assay: AssayReport, index: int) -> str:
     if not assay.samples:
         return _panel("Samples", '<p class="sf-empty">no samples resolved for this assay.</p>')
 
-    columns = assay.attribute_columns
     read_map = {r.read_id: _read_structure(r) for r in assay.reads}
     file_read = {f.basename: f.read_id for f in assay.files if f.read_id}
 
-    head_cells = "".join(f'<th scope="col">{esc(c.replace("_", " "))}</th>' for c in columns)
     header = (
         '<thead><tr><th scope="col" class="sf-col-sticky">Sample</th>'
-        f'{head_cells}<th scope="col" class="text-right">Files</th></tr></thead>'
+        '<th scope="col" class="text-right">Files</th></tr></thead>'
     )
     rows = "".join(
-        _sample_rows(s, columns, read_map, file_read, index, i) for i, s in enumerate(assay.samples)
+        _sample_rows(s, read_map, file_read, index, i) for i, s in enumerate(assay.samples)
     )
-    # `w-auto min-w-full`: fill the panel when a dataset declares three attributes, and grow past it —
-    # letting the region, never the page, scroll — once it declares fifteen. The minimum width that
-    # forces that is stated once, on `.basis-cell`, so it cannot drift column to column.
     body_id = f"samples-{index}"
     table = (
         '<div class="sf-scroll-x"><table class="w-auto min-w-full text-sm">'
@@ -456,21 +403,18 @@ def samples_pane(assay: AssayReport, index: int) -> str:
     )
     return _panel(
         "Samples",
-        _basis_legend() + table + _sample_pager(body_id, assay.n_samples),
-        sub=f"{assay.n_samples} sample(s). Click any value to see — and copy — what supports it; open "
-        "a row (▸) for its files, their read structure, and the exact quotes.",
+        table + _sample_pager(body_id, assay.n_samples),
+        sub=f"{assay.n_samples} sample(s). Open a row (▸) for its files and their read structure.",
     )
 
 
 def _sample_rows(
     sample: SampleView,
-    columns: list[str],
     read_map: dict[str, str],
     file_read: dict[str, str],
     assay_index: int,
     row_index: int,
 ) -> str:
-    by_key = {a.key: a for a in sample.attributes}
     detail_id = f"detail-{assay_index}-{row_index}"
 
     show_acc = sample.accession and sample.accession != sample.sample_id
@@ -492,99 +436,18 @@ def _sample_rows(
         f'<span class="smp-sid">{esc(sample.sample_id)}</span>{acc}</th>'
     )
 
-    cells = "".join(_attr_cell(by_key.get(k)) for k in columns)
     # `data-smp` marks where a sample STARTS, which is all the pager needs to know: it takes the
     # marked row plus every row after it up to the next mark, so a sample that one day renders three
     # rows pages as one thing without the pager learning a second number.
     summary = (
-        f"<tr data-smp>{sample_cell}{cells}"
-        f'<td class="text-right tabular-nums">{sample.n_files}</td></tr>'
+        f'<tr data-smp>{sample_cell}<td class="text-right tabular-nums">{sample.n_files}</td></tr>'
     )
 
-    n_cols = len(columns) + 2
     detail = (
-        f'<tr id="{esc(detail_id)}" hidden><td colspan="{n_cols}">'
+        f'<tr id="{esc(detail_id)}" hidden><td colspan="2">'
         f"{_sample_detail(sample, read_map, file_read)}</td></tr>"
     )
     return summary + detail
-
-
-def _attr_cell(attr: AttributeView | None) -> str:
-    """One metadata cell.
-
-    Provenance rides in ``data-*`` attributes, not a native ``title``: the script turns a click into
-    a pinned, selectable, copyable popover — a hover tooltip can be neither.
-
-    The mark rides *beside* the value in a flex row rather than absolutely positioned into a reserved
-    right-hand gutter. Same picture, but the gutter was padding stated in the stylesheet, and a value
-    long enough to be clamped ran under the mark the moment that padding lost a cascade argument. A
-    flex row cannot overlap.
-
-    Three shapes, and all three say something. A withheld attribute is a real answer — "two equally
-    trusted sources disagreed, so nothing was recorded" — and reads as `— withheld`, never as the
-    empty cell that means nobody ever mentioned it. The empty one is the only cell with no
-    ``data-key``, which is exactly how the script knows not to offer a popover with nothing in it.
-    """
-    if attr is None:
-        return '<td class="basis-cell text-faint">—</td>'
-    if attr.withheld:
-        note = (
-            "left blank on purpose — two equally-trusted sources disagreed, "
-            "so nothing was recorded rather than guess"
-        )
-        return (
-            '<td class="basis-cell" role="button" tabindex="0" '
-            f'data-key="{esc(attr.key)}" data-value="withheld" '
-            f'data-basis="{esc(note)}" data-source="" data-quote="">'
-            '<span class="basis-v basis-withheld">— withheld</span></td>'
-        )
-    return (
-        '<td class="basis-cell" role="button" tabindex="0" '
-        f'data-key="{esc(attr.key)}" data-value="{esc(attr.value)}" '
-        f'data-basis="{esc(_basis_phrase(attr.basis))}" '
-        f'data-source="{esc(_evidence_source(attr.evidence))}" '
-        f'data-quote="{esc(_evidence_quote(attr.evidence))}">'
-        '<span class="flex items-start justify-between gap-2">'
-        f'<span class="basis-v">{esc(attr.value)}</span>'
-        f'<span class="basis-mark basis-{esc(attr.basis)} mt-1" aria-hidden="true"></span>'
-        "</span></td>"
-    )
-
-
-def _evidence_source(evidence: list[EvidenceRef]) -> str:
-    for ref in evidence:
-        if ref.kind == "assertion" and ref.document:
-            return _humanize_document(ref.document) + (f" p.{ref.page}" if ref.page else "")
-        if ref.kind == "accession" and ref.accession:
-            return f"record {ref.accession}"
-    return ""
-
-
-def _humanize_document(name: str) -> str:
-    """A rendered-document stem → words a reader recognises, not an archive filename.
-
-    ``mmc2`` is a journal's auto-name for a supplementary table, ``experiment-SRX…`` is an archive
-    record — neither means anything to a biologist, so each maps to a plain phrase.
-    """
-    low = name.lower()
-    if re.match(r"^mmc\d", low) or "supp" in low:
-        return "a supplementary file"
-    if low.startswith("experiment-"):
-        return "the experiment record"
-    if low.startswith("run-"):
-        return "the run record"
-    if low.startswith(("project-", "study-", "sample-", "biosample-")):
-        return "the record"
-    if "et-al" in low or "et al" in low or re.search(r"\b(19|20)\d{2}\b", name):
-        return "the paper"
-    return name
-
-
-def _evidence_quote(evidence: list[EvidenceRef]) -> str:
-    for ref in evidence:
-        if ref.kind == "assertion" and ref.quote:
-            return ref.quote
-    return ""
 
 
 def _role_human(role: str, region_type: str) -> str:
@@ -610,8 +473,7 @@ def _read_structure(read: ReadView) -> str:
 
 
 def _sample_detail(sample: SampleView, read_map: dict[str, str], file_read: dict[str, str]) -> str:
-    # Just the files + their read structure. The per-attribute quotes used to be repeated here, but the
-    # click popover already carries each value's source and quote, so a second copy was pure redundancy.
+    # Just the files + their read structure.
     head = '<h4 class="sf-sub-h mb-2">FASTQ files &amp; read structure</h4>'
     if not sample.file_names:
         return f'<div class="border-l-2 border-line py-1 pl-4">{head}<p class="sf-empty">none listed</p></div>'

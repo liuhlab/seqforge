@@ -626,9 +626,7 @@ def io_records(
     """Fetch what the archive DECLARES about a dataset: project, sample, experiment, run.
 
     A transcriber, not a resolver. It reports the record and stops — `resolve` decides what any of it
-    means. This is where per-sample metadata comes from: `strain`, `tissue`, `sex`, `dev_stage` live
-    on the BioSample record and were fetched by no code at all until now, which is why the pilot's six
-    samples all said `tissue: null`.
+    means. The run and sample records are what match each file to its sample.
 
     It is also where the files the submitter UPLOADED are listed — name, provider md5, size and the
     `sra-pub-src-*` URI each one can be fetched from. A run that lists none is the normal case: most
@@ -690,10 +688,9 @@ def io_attributes(
         False, "--refresh", help="Re-fetch NCBI's list and rewrite the shipped vocabulary."
     ),
 ) -> None:
-    """NCBI's harmonized BioSample attribute names — the key space a sample fact must use.
+    """NCBI's harmonized BioSample attribute names — what `io records` harmonizes a record's to.
 
-    960 curated names with NCBI's own definitions. We enforce against all of them and ask a model for
-    a hand-picked few. `condition` is NOT one of them, which is why it is no longer one of ours.
+    960 curated names with NCBI's own definitions.
     """
     from ..io.attributes import (
         ATTRIBUTES_URL,

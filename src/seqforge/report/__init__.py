@@ -56,7 +56,10 @@ from __future__ import annotations
 #: a General-Statistics table tinted by each metric's own verdict, a per-sample headline strip, and
 #: hand-built inline-SVG knee plots. The tab is omitted from the strip entirely when no assay has
 #: results, so a compiled-but-not-yet-run workspace renders exactly the page it rendered before.
-REPORT_VERSION = "2026.8.3"
+#: 2026.11.0 — the Samples tab lists each sample and its files and nothing else: the sample-attribute
+#: columns, their provenance marks and legend are gone, because the manifest no longer carries sample
+#: attributes. The Flow tab's sample step says how files were matched to samples instead.
+REPORT_VERSION = "2026.11.0"
 
 from .collect import collect_report  # noqa: E402
 from .render import render_html  # noqa: E402

@@ -22,9 +22,8 @@ seqforge harvest verify DRAFTS                # -> the span-verification tripwir
 **Run `--dry-run` first on anything with `--records`.** It renders every document and prints the plan
 — `n_documents`, `n_requests`, and the estimated input tokens — while reaching no gateway. A
 dataset's cost used to be a property nobody computed until it had been paid: one benchmark series
-billed 983 calls, 92% of them one-line run aliases. Each archive record is a
-document, except that a sample's *runs* are one document between them (a run belongs to exactly one
-sample, so its alias still declares that sample).
+billed 983 calls, 92% of them one-line run aliases. Only an experiment record is sent now: its
+protocol paragraph is asked for the chemistry, and project, sample and run records are asked nothing.
 
 **`n_requests` is the number to read as the cost, not `n_documents`.** Documents that receive the
 same ask travel in one request, so the stable prefix is paid once for the group rather than once
