@@ -1,0 +1,32 @@
+format: 1
+study: GSE241718
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE241718
+  inferred: Picked study; title matches paper and has own samples.
+  see:
+  - 1
+  p: null
+papers:
+- pmid:38997312
+left_out:
+- id: GSE241275
+  inferred: Different samples (2-month VAT) from same paper, not the picked study.
+  see:
+  - 2
+  p: 0.08
+reason: GSE241718 is the picked Series; it and its linked paper describe the same single-nucleus RNA-seq
+  study of mouse adipose tissue aging. GSE241275 is a separate Series with different samples from the
+  same paper.
+passages:
+  1:
+    record: GSE241718
+    field: Series_title
+    quote: Dynamic analysis of mononuclear transcription profiles of fat in different parts of mice during
+      aging
+  2:
+    record: GSE241275
+    field: Samples
+    quote: 'VAT | tissue: VAT; time: 2022-04-02; age: 2 months; cell type: Adipocytes'

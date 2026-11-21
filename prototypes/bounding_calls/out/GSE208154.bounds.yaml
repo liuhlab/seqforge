@@ -1,0 +1,13 @@
+format: 1
+study: GSE208154
+models:
+  bounds: null
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE208154
+  inferred: the study is named by this Series
+  p: null
+papers: []
+left_out: []
+reason: One Series and the one paper its record links.
+passages: {}

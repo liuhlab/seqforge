@@ -1,0 +1,40 @@
+format: 1
+study: GSE306935
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE306935
+  inferred: Study picked by this Series; its title matches the linked ISR paper.
+  see:
+  - 1
+  p: null
+papers:
+- pmid:41256688
+left_out:
+- id: GSE143476
+  inferred: Older dataset with different design, not the picked study.
+  see:
+  - 2
+  p: 0.74
+- id: pmid:32198156
+  inferred: Earlier paper reporting GSE143476, not the ISR study.
+  see:
+  - 3
+  p: 0.96
+reason: The study is the ISR activation experiment in aged MuSCs, reported by the linked preprint and
+  represented by its own Series.
+passages:
+  1:
+    record: GSE306935
+    field: Series_title
+    quote: The Integrated Stress Response Pathway Improves Aged Murine Muscle Stem Cell Activation and
+      in vivo Regeneration
+  2:
+    record: GSE143476
+    field: Series_title
+    quote: Aging induces aberrant state transition kinetics in murine muscle stem cells
+  3:
+    paper: pmid:32198156
+    section: Abstract
+    quote: '[abstract chars 213-331]'

@@ -1,0 +1,41 @@
+format: 1
+study: GSE147401
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE147401
+  inferred: This is the study the group was picked by.
+  see:
+  - 1
+  p: null
+papers:
+- pmid:34519784
+left_out:
+- id: GSE107190
+  inferred: Older 2017 OEF-1 ChIP-seq dataset, a different study.
+  see:
+  - 2
+  p: 0.69
+- id: pmid:29167199
+  inferred: Reports the older GSE107190 study, not this one.
+  see:
+  - 3
+  p: 0.96
+reason: GSE147401 is the OEF-1 histone-modification study reported by pmid:34519784; GSE107190 and pmid:29167199
+  are a separate earlier OEF-1 study.
+passages:
+  1:
+    record: GSE147401
+    field: Series_title
+    quote: The zinc-finger protein OEF-1 stabilizes patterns of activating and silencing modifications
+      in the C. elegans germ line
+  2:
+    record: GSE107190
+    field: Series_title
+    quote: The germline-specific factor OEF-1 facilitates coordinated progression through germ cell development
+      in C. elegans
+  3:
+    paper: pmid:29167199
+    section: Title
+    quote: '[title chars 0-126]'

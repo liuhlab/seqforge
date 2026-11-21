@@ -1,0 +1,37 @@
+format: 1
+study: GSE117724
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE117700
+  quoted:
+  - 1
+  p: 0.96
+- id: GSE117719
+  quoted:
+  - 2
+  p: 0.97
+papers:
+- pmid:30668573
+left_out:
+- id: GSE117724
+  inferred: SuperSeries repeating sub-Series samples; not a study series.
+  see:
+  - 3
+  p: null
+reason: GSE117700 and GSE117719 are the RNA-seq and ChIP-seq SubSeries of SuperSeries GSE117724, all reported
+  by pmid:30668573 on NHR-86 control of anti-pathogen responses in C. elegans.
+passages:
+  1:
+    record: GSE117700
+    field: Series_relation
+    quote: 'SubSeries of: GSE117724'
+  2:
+    record: GSE117719
+    field: Series_relation
+    quote: 'SubSeries of: GSE117724'
+  3:
+    record: GSE117724
+    field: Series_summary
+    quote: This SuperSeries is composed of the SubSeries listed below

@@ -1,0 +1,51 @@
+format: 1
+study: GSE254687
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE254687
+  inferred: Picked study; its own bulk microglia RNA-seq dataset.
+  see:
+  - 1
+  p: null
+- id: GSE256105
+  inferred: Same PARK7 LPS study, scRNA-seq arm with matching design.
+  see:
+  - 2
+  p: 0.92
+papers:
+- pmid:39014482
+left_out:
+- id: GSE115571
+  inferred: Older wildtype-only microglia LPS dataset, not this PARK7 study.
+  see:
+  - 3
+  p: 0.89
+- id: pmid:30206190
+  inferred: Reports the older GSE115571 wildtype microglia study.
+  see:
+  - 4
+  p: 0.96
+reason: GSE254687 and its single-cell companion GSE256105 profile microglia in PARK7/DJ-1 knockout versus
+  wildtype mice after LPS, reported by pmid:39014482; GSE115571 and pmid:30206190 are the earlier wildtype-only
+  dataset re-used for comparison.
+passages:
+  1:
+    record: GSE254687
+    field: Series_title
+    quote: PARK7/DJ-1 deficiency modulates microglial activation in response to LPS-induced inflammation
+  2:
+    record: GSE256105
+    field: Series_overall_design
+    quote: Comparison of sorted microglia (CD11b+CD45int cells) between PARK7/DJ-1 KO and wildtype peripherally
+      LPS-injected mice at single-cell resolution
+  3:
+    record: GSE115571
+    field: Series_overall_design
+    quote: Comparison of sorted microglia (CD11b+CD45int cells) between peripherally LPS-injected mice
+      and saline control mice at single-cell resolution
+  4:
+    paper: pmid:30206190
+    section: Title
+    quote: '[title chars 0-86]'

@@ -1,0 +1,50 @@
+format: 1
+study: GSE234962
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE234962
+  inferred: Pick series; its own 4 MN scRNA-seq samples and atlas summary
+  see:
+  - 1
+  p: null
+papers:
+- pmid:38421866
+- pmid:41390837
+left_out:
+- id: GSE314726
+  quoted:
+  - 2
+  p: 0.84
+- id: pmid:41509263
+  inferred: Reports the GSE314726 unc-3 study, not the atlas
+  see:
+  - 3
+  p: 0.91
+- id: pmid:42711312
+  inferred: Journal version of the GSE314726 unc-3 study
+  see:
+  - 4
+  p: 0.93
+reason: The study is the adult C. elegans motor neuron atlas reported by pmid:38421866, whose scRNA-seq
+  data are the four samples of GSE234962.
+passages:
+  1:
+    record: GSE234962
+    field: Series_overall_design
+    quote: Ventral nerve cord MNs were isolated from two strains of worms. Two samples were collected
+      from both CZ631 juIs14 [acr-2::GFP] and KRA257 kasIs2 [lin-39p::RFP] worms
+  2:
+    record: GSE314726
+    field: Series_overall_design
+    quote: Two samples were collected from lin-39p::RFP worms (GSM7486859 and  GSM7486860 re-used from
+      GSE234962)
+  3:
+    paper: pmid:41509263
+    section: Title
+    quote: '[title chars 0-101]'
+  4:
+    paper: pmid:42711312
+    section: Title
+    quote: '[title chars 0-113]'

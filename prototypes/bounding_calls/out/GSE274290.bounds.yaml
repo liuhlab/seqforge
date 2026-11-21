@@ -1,0 +1,32 @@
+format: 1
+study: GSE274290
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE274290
+  quoted:
+  - 1
+  p: null
+- id: GSE274291
+  inferred: Same paper and project; smRNA-seq supports ELT-1 regulation.
+  see:
+  - 2
+  p: 0.97
+papers:
+- pmid:40097379
+left_out: []
+reason: 'Two Series from the same study: scRNA-seq and smRNA-seq of C. elegans germ cells, reported in
+  one paper.'
+passages:
+  1:
+    record: GSE274290
+    field: Series_overall_design
+    quote: Germ cells of L4 C. elegans (gfp::tev::flag::prg-1) were isolated using Fluorescence-activated
+      cell sorting (FACS) based on the presence or absence of GFP signal. Subsequently, the isolated cells
+      were analyzed using single-cell RNA sequencing (scRNA-seq)
+  2:
+    record: GSE274291
+    field: Series_overall_design
+    quote: To investigate whether the suppression of elt-1 expression could result in the loss of 26G
+      RNAs

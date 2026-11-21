@@ -1,0 +1,31 @@
+format: 1
+study: GSE255902
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE255902
+  inferred: Picked study; contains its own bulk RNA-seq samples
+  see:
+  - 1
+  p: null
+- id: GSE255904
+  inferred: Same paper reports it; companion scRNA-seq arm of the study
+  see:
+  - 2
+  p: 0.97
+papers:
+- pmid:38582079
+left_out: []
+reason: GSE255902 and GSE255904 are the bulk and single-cell arms of one iPSC tauopathy study, both reported
+  by pmid:38582079.
+passages:
+  1:
+    record: GSE255902
+    field: Series_overall_design
+    quote: Bulk RNA sequencing of human iPSC-derived neurons expressing homozygous 4R Tau isoform with
+      and without the P301S mutation, with and without K18-Tau fibril treatment
+  2:
+    record: GSE255904
+    field: Series_title
+    quote: Human iPSC 4R tauopathy model uncovers modifiers of tau propagation [scRNA-seq]

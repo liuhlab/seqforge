@@ -1,0 +1,5 @@
+study: GSE131269
+refused: the format check rejected the answer
+problems:
+- field: left_out[0].id
+  reason: pmid:31279658 is already placed at papers[1]

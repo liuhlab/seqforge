@@ -1,0 +1,6334 @@
+[
+ {
+  "id": "GSE60340",
+  "structure": {
+   "picked": "GSE60340",
+   "superseries": null,
+   "core": [
+    "GSE60340"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 0.27,
+   "cost_usd": 0.0,
+   "first_cost_usd": 0.00048556799999999997,
+   "usage": {
+    "prompt_tokens": 2656,
+    "completion_tokens": 208,
+    "total_tokens": 2864,
+    "prompt_tokens_details": {
+     "cached_tokens": 256
+    },
+    "prompt_cache_hit_tokens": 256,
+    "prompt_cache_miss_tokens": 2400
+   },
+   "cached": true
+  },
+  "entail": {
+   "seconds": 0.3,
+   "cost_usd": 0.0,
+   "first_cost_usd": 2.184e-05,
+   "usage": {
+    "input_tokens": 520,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": null
+  },
+  "jev": {
+   "seconds": 0.23,
+   "cost_usd": 0.0,
+   "first_cost_usd": 0.000121968,
+   "usage": {
+    "input_tokens": 2904,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": true
+  },
+  "jev_p_yes": {
+   "GSE60340": null,
+   "pmid:25483067": 0.91
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE60340",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:25483067",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:25483067": 0.91
+  },
+  "placement": {
+   "in": [
+    "GSE60340",
+    "pmid:25483067"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE60340",
+    "pmid:25483067"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE60340",
+   "pmid:25483067"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE60340",
+     "pmid:25483067"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE60340",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE60340",
+     "field": "Title",
+     "start": 0,
+     "end": 55,
+     "entail_p": 0.44
+    },
+    {
+     "id": "pmid:25483067",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:25483067",
+     "field": "Abstract",
+     "start": 360,
+     "end": 548,
+     "entail_p": 0.14
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE222631",
+  "structure": {
+   "picked": "GSE222631",
+   "superseries": null,
+   "core": [
+    "GSE222631"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.27,
+   "cost_usd": 0.000521436,
+   "first_cost_usd": 0.000521436,
+   "usage": {
+    "prompt_tokens": 3086,
+    "completion_tokens": 223,
+    "total_tokens": 3309,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2574
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.38,
+   "cost_usd": 2.3058e-05,
+   "first_cost_usd": 2.3058e-05,
+   "usage": {
+    "input_tokens": 549,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.29,
+   "cost_usd": 0.000132216,
+   "first_cost_usd": 0.000132216,
+   "usage": {
+    "input_tokens": 3148,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE222631": null,
+   "pmid:37771191": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE222631",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:37771191",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:37771191": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE222631",
+    "pmid:37771191"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE222631",
+    "pmid:37771191"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE222631",
+   "pmid:37771191"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE222631",
+     "pmid:37771191"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE222631",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE222631",
+     "field": "Overall design",
+     "start": 0,
+     "end": 162,
+     "entail_p": 0.56
+    },
+    {
+     "id": "pmid:37771191",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:37771191",
+     "field": "Title",
+     "start": 0,
+     "end": 112,
+     "entail_p": 0.48
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE106105",
+  "structure": {
+   "picked": "GSE106105",
+   "superseries": null,
+   "core": [
+    "GSE106105"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.62,
+   "cost_usd": 0.000331986,
+   "first_cost_usd": 0.000331986,
+   "usage": {
+    "prompt_tokens": 1923,
+    "completion_tokens": 198,
+    "total_tokens": 2121,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1411
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 2.1714e-05,
+   "first_cost_usd": 2.1714e-05,
+   "usage": {
+    "input_tokens": 517,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.29,
+   "cost_usd": 7.5306e-05,
+   "first_cost_usd": 7.5306e-05,
+   "usage": {
+    "input_tokens": 1793,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE106105": null,
+   "pmid:28891792": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE106105",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:28891792",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:28891792": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE106105",
+    "pmid:28891792"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE106105",
+    "pmid:28891792"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE106105",
+   "pmid:28891792"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE106105",
+     "pmid:28891792"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE106105",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE106105",
+     "field": "Title",
+     "start": 0,
+     "end": 114,
+     "entail_p": 0.39
+    },
+    {
+     "id": "pmid:28891792",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:28891792",
+     "field": "Abstract",
+     "start": 224,
+     "end": 402,
+     "entail_p": 0.04
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE253651",
+  "structure": {
+   "picked": "GSE253651",
+   "superseries": null,
+   "core": [
+    "GSE253651"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.02,
+   "cost_usd": 0.00033738599999999996,
+   "first_cost_usd": 0.00033738599999999996,
+   "usage": {
+    "prompt_tokens": 1911,
+    "completion_tokens": 210,
+    "total_tokens": 2121,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1399
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 2.1629999999999998e-05,
+   "first_cost_usd": 2.1629999999999998e-05,
+   "usage": {
+    "input_tokens": 515,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.24,
+   "cost_usd": 7.476e-05,
+   "first_cost_usd": 7.476e-05,
+   "usage": {
+    "input_tokens": 1780,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE253651": null,
+   "pmid:38763956": 0.88
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE253651",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:38763956",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:38763956": 0.88
+  },
+  "placement": {
+   "in": [
+    "GSE253651",
+    "pmid:38763956"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE253651",
+    "pmid:38763956"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE253651",
+   "pmid:38763956"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE253651",
+     "pmid:38763956"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE253651",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE253651",
+     "field": "Title",
+     "start": 0,
+     "end": 89,
+     "entail_p": 0.32
+    },
+    {
+     "id": "pmid:38763956",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:38763956",
+     "field": "Abstract",
+     "start": 259,
+     "end": 455,
+     "entail_p": 0.09
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE135532",
+  "structure": {
+   "picked": "GSE135532",
+   "superseries": null,
+   "core": [
+    "GSE135532"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.33,
+   "cost_usd": 0.00036123599999999997,
+   "first_cost_usd": 0.00036123599999999997,
+   "usage": {
+    "prompt_tokens": 2082,
+    "completion_tokens": 207,
+    "total_tokens": 2289,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1570
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 2.2134e-05,
+   "first_cost_usd": 2.2134e-05,
+   "usage": {
+    "input_tokens": 527,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.28,
+   "cost_usd": 8.337e-05,
+   "first_cost_usd": 8.337e-05,
+   "usage": {
+    "input_tokens": 1985,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE135532": null,
+   "pmid:31415241": 0.94
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE135532",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:31415241",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:31415241": 0.94
+  },
+  "placement": {
+   "in": [
+    "GSE135532",
+    "pmid:31415241"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE135532",
+    "pmid:31415241"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE135532",
+   "pmid:31415241"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE135532",
+     "pmid:31415241"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE135532",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE135532",
+     "field": "Overall design",
+     "start": 0,
+     "end": 198,
+     "entail_p": 0.63
+    },
+    {
+     "id": "pmid:31415241",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:31415241",
+     "field": "Abstract",
+     "start": 558,
+     "end": 666,
+     "entail_p": 0.08
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE97461",
+  "structure": {
+   "picked": "GSE97461",
+   "superseries": null,
+   "core": [
+    "GSE97461"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.03,
+   "cost_usd": 0.00048723599999999994,
+   "first_cost_usd": 0.00048723599999999994,
+   "usage": {
+    "prompt_tokens": 2690,
+    "completion_tokens": 265,
+    "total_tokens": 2955,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2178
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.38,
+   "cost_usd": 2.3352e-05,
+   "first_cost_usd": 2.3352e-05,
+   "usage": {
+    "input_tokens": 556,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.3,
+   "cost_usd": 0.000111468,
+   "first_cost_usd": 0.000111468,
+   "usage": {
+    "input_tokens": 2654,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE97461": null,
+   "pmid:30485811": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE97461",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:30485811",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:30485811": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE97461",
+    "pmid:30485811"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE97461",
+    "pmid:30485811"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE97461",
+   "pmid:30485811"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE97461",
+     "pmid:30485811"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE97461",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE97461",
+     "field": "Overall design",
+     "start": 0,
+     "end": 277,
+     "entail_p": 0.76
+    },
+    {
+     "id": "pmid:30485811",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:30485811",
+     "field": "Abstract",
+     "start": 106,
+     "end": 258,
+     "entail_p": 0.06
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE165978",
+  "structure": {
+   "picked": "GSE165978",
+   "superseries": null,
+   "core": [
+    "GSE165978"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.89,
+   "cost_usd": 0.00036918599999999997,
+   "first_cost_usd": 0.00036918599999999997,
+   "usage": {
+    "prompt_tokens": 2163,
+    "completion_tokens": 200,
+    "total_tokens": 2363,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1651
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 2.1042e-05,
+   "first_cost_usd": 2.1042e-05,
+   "usage": {
+    "input_tokens": 501,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.35,
+   "cost_usd": 8.7906e-05,
+   "first_cost_usd": 8.7906e-05,
+   "usage": {
+    "input_tokens": 2093,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE165978": null,
+   "pmid:34323217": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE165978",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:34323217",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:34323217": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE165978",
+    "pmid:34323217"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE165978",
+    "pmid:34323217"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE165978",
+   "pmid:34323217"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE165978",
+     "pmid:34323217"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE165978",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE165978",
+     "field": "Title",
+     "start": 0,
+     "end": 98,
+     "entail_p": 0.46
+    },
+    {
+     "id": "pmid:34323217",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:34323217",
+     "field": "Title",
+     "start": 0,
+     "end": 105,
+     "entail_p": 0.59
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE196554",
+  "structure": {
+   "picked": "GSE196554",
+   "superseries": null,
+   "core": [
+    "GSE196554"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.89,
+   "cost_usd": 0.000335286,
+   "first_cost_usd": 0.000335286,
+   "usage": {
+    "prompt_tokens": 1829,
+    "completion_tokens": 227,
+    "total_tokens": 2056,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1317
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 2.1252e-05,
+   "first_cost_usd": 2.1252e-05,
+   "usage": {
+    "input_tokens": 506,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.26,
+   "cost_usd": 7.161e-05,
+   "first_cost_usd": 7.161e-05,
+   "usage": {
+    "input_tokens": 1705,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE196554": null,
+   "pmid:37192223": 0.88
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE196554",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:37192223",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:37192223": 0.88
+  },
+  "placement": {
+   "in": [
+    "GSE196554",
+    "pmid:37192223"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE196554",
+    "pmid:37192223"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE196554",
+   "pmid:37192223"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE196554",
+     "pmid:37192223"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE196554",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE196554",
+     "field": "Overall design",
+     "start": 0,
+     "end": 149,
+     "entail_p": 0.72
+    },
+    {
+     "id": "pmid:37192223",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:37192223",
+     "field": "Abstract",
+     "start": 696,
+     "end": 833,
+     "entail_p": 0.12
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE235532",
+  "structure": {
+   "picked": "GSE235532",
+   "superseries": null,
+   "core": [
+    "GSE235532"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.59,
+   "cost_usd": 0.000468936,
+   "first_cost_usd": 0.000468936,
+   "usage": {
+    "prompt_tokens": 2540,
+    "completion_tokens": 272,
+    "total_tokens": 2812,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2028
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 2.4863999999999998e-05,
+   "first_cost_usd": 2.4863999999999998e-05,
+   "usage": {
+    "input_tokens": 592,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.37,
+   "cost_usd": 0.000107562,
+   "first_cost_usd": 0.000107562,
+   "usage": {
+    "input_tokens": 2561,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE235532": null,
+   "pmid:38637528": 0.94
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE235532",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:38637528",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:38637528": 0.94
+  },
+  "placement": {
+   "in": [
+    "GSE235532",
+    "pmid:38637528"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE235532",
+    "pmid:38637528"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE235532",
+   "pmid:38637528"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE235532",
+     "pmid:38637528"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE235532",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE235532",
+     "field": "Overall design",
+     "start": 59,
+     "end": 306,
+     "entail_p": 0.67
+    },
+    {
+     "id": "pmid:38637528",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:38637528",
+     "field": "Abstract",
+     "start": 483,
+     "end": 625,
+     "entail_p": 0.1
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE272899",
+  "structure": {
+   "picked": "GSE272899",
+   "superseries": null,
+   "core": [
+    "GSE272899"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.7,
+   "cost_usd": 0.000378786,
+   "first_cost_usd": 0.000378786,
+   "usage": {
+    "prompt_tokens": 2011,
+    "completion_tokens": 254,
+    "total_tokens": 2265,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1499
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.59,
+   "cost_usd": 2.2134e-05,
+   "first_cost_usd": 2.2134e-05,
+   "usage": {
+    "input_tokens": 527,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.4,
+   "cost_usd": 7.9842e-05,
+   "first_cost_usd": 7.9842e-05,
+   "usage": {
+    "input_tokens": 1901,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE272899": null,
+   "pmid:39386655": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE272899",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:39386655",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:39386655": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE272899",
+    "pmid:39386655"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE272899",
+    "pmid:39386655"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE272899",
+   "pmid:39386655"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE272899",
+     "pmid:39386655"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE272899",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE272899",
+     "field": "Title",
+     "start": 0,
+     "end": 110,
+     "entail_p": 0.26
+    },
+    {
+     "id": "pmid:39386655",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:39386655",
+     "field": "Abstract",
+     "start": 1245,
+     "end": 1469,
+     "entail_p": 0.11
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE175410",
+  "structure": {
+   "picked": "GSE175410",
+   "superseries": null,
+   "core": [
+    "GSE175410"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.93,
+   "cost_usd": 0.000351036,
+   "first_cost_usd": 0.000351036,
+   "usage": {
+    "prompt_tokens": 1758,
+    "completion_tokens": 271,
+    "total_tokens": 2029,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1246
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.55,
+   "cost_usd": 2.331e-05,
+   "first_cost_usd": 2.331e-05,
+   "usage": {
+    "input_tokens": 555,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.31,
+   "cost_usd": 6.6528e-05,
+   "first_cost_usd": 6.6528e-05,
+   "usage": {
+    "input_tokens": 1584,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE175410": null,
+   "pmid:34932867": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE175410",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:34932867",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:34932867": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE175410",
+    "pmid:34932867"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE175410",
+    "pmid:34932867"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE175410",
+   "pmid:34932867"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE175410",
+     "pmid:34932867"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE175410",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE175410",
+     "field": "Overall design",
+     "start": 0,
+     "end": 173,
+     "entail_p": 0.58
+    },
+    {
+     "id": "pmid:34932867",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:34932867",
+     "field": "Abstract",
+     "start": 184,
+     "end": 407,
+     "entail_p": 0.06
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE241718",
+  "structure": {
+   "picked": "GSE241718",
+   "superseries": null,
+   "core": [
+    "GSE241718"
+   ],
+   "n_series": 2,
+   "n_papers": 1,
+   "one_one": false,
+   "recite_sign": {
+    "GSE241275": false
+   }
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 2.79,
+   "cost_usd": 0.000453036,
+   "first_cost_usd": 0.000453036,
+   "usage": {
+    "prompt_tokens": 2166,
+    "completion_tokens": 339,
+    "total_tokens": 2505,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1654
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.55,
+   "cost_usd": 2.184e-05,
+   "first_cost_usd": 2.184e-05,
+   "usage": {
+    "input_tokens": 520,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.27,
+   "cost_usd": 9.198e-05,
+   "first_cost_usd": 9.198e-05,
+   "usage": {
+    "input_tokens": 2190,
+    "output_tokens": 53
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE241275": 0.92,
+   "GSE241718": null,
+   "pmid:38997312": 0.89
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE241718",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE241718",
+    "field": "Title",
+    "start": 0,
+    "end": 101,
+    "entail_p": 0.38
+   },
+   {
+    "id": "pmid:38997312",
+    "list": "papers",
+    "status": "not_found",
+    "entail_p": null
+   },
+   {
+    "id": "GSE241275",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "GSE241275",
+    "field": "Samples",
+    "start": 38,
+    "end": 111,
+    "entail_p": 0.08
+   }
+  ],
+  "paper_p": {
+   "pmid:38997312": 0.89
+  },
+  "placement": {
+   "in": [
+    "GSE241718",
+    "pmid:38997312"
+   ],
+   "out": [
+    "GSE241275"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE241275",
+    "GSE241718",
+    "pmid:38997312"
+   ],
+   "out": []
+  },
+  "differs": [
+   "GSE241275"
+  ],
+  "jev_only_in": [
+   "GSE241275",
+   "GSE241718",
+   "pmid:38997312"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE240375",
+  "structure": {
+   "picked": "GSE240375",
+   "superseries": "GSE240375",
+   "core": [
+    "GSE240373",
+    "GSE240374"
+   ],
+   "n_series": 2,
+   "n_papers": 0,
+   "one_one": false,
+   "recite_sign": {}
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 1.73,
+   "cost_usd": 0.000448536,
+   "first_cost_usd": 0.000448536,
+   "usage": {
+    "prompt_tokens": 2560,
+    "completion_tokens": 233,
+    "total_tokens": 2793,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2048
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.95,
+   "cost_usd": 2.5577999999999998e-05,
+   "first_cost_usd": 2.5577999999999998e-05,
+   "usage": {
+    "input_tokens": 609,
+    "output_tokens": 58
+   },
+   "n_questions": 3,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.31,
+   "cost_usd": 0.00011423999999999999,
+   "first_cost_usd": 0.00011423999999999999,
+   "usage": {
+    "input_tokens": 2720,
+    "output_tokens": 52
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE240373": 0.97,
+   "GSE240374": 0.97,
+   "GSE240375": null
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE240373",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE240373",
+    "field": "Relation",
+    "start": 0,
+    "end": 23,
+    "entail_p": 0.73
+   },
+   {
+    "id": "GSE240374",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE240374",
+    "field": "Relation",
+    "start": 0,
+    "end": 23,
+    "entail_p": 0.73
+   },
+   {
+    "id": "GSE240375",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "GSE240375",
+    "field": "Summary",
+    "start": 0,
+    "end": 58,
+    "entail_p": 0.06
+   }
+  ],
+  "paper_p": {},
+  "placement": {
+   "in": [
+    "GSE240373",
+    "GSE240374"
+   ],
+   "out": [
+    "GSE240375"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE240373",
+    "GSE240374"
+   ],
+   "out": [
+    "GSE240375"
+   ]
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE240373",
+   "GSE240374"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE132886",
+  "structure": {
+   "picked": "GSE132886",
+   "superseries": null,
+   "core": [
+    "GSE132886"
+   ],
+   "n_series": 1,
+   "n_papers": 2,
+   "one_one": false,
+   "recite_sign": {}
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 2.39,
+   "cost_usd": 0.000620136,
+   "first_cost_usd": 0.000620136,
+   "usage": {
+    "prompt_tokens": 3396,
+    "completion_tokens": 310,
+    "total_tokens": 3706,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2884
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.54,
+   "cost_usd": 2.8182e-05,
+   "first_cost_usd": 2.8182e-05,
+   "usage": {
+    "input_tokens": 671,
+    "output_tokens": 58
+   },
+   "n_questions": 3,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.26,
+   "cost_usd": 0.00015099,
+   "first_cost_usd": 0.00015099,
+   "usage": {
+    "input_tokens": 3595,
+    "output_tokens": 54
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE132886": null,
+   "pmid:33258951": 0.97,
+   "pmid:39010112": 0.15
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE132886",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE132886",
+    "field": "Overall design",
+    "start": 0,
+    "end": 170,
+    "entail_p": 0.48
+   },
+   {
+    "id": "pmid:33258951",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:33258951",
+    "field": "Abstract",
+    "start": 315,
+    "end": 442,
+    "entail_p": 0.17
+   },
+   {
+    "id": "pmid:39010112",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:39010112",
+    "field": "Abstract",
+    "start": 998,
+    "end": 1156,
+    "entail_p": 0.15
+   }
+  ],
+  "paper_p": {
+   "pmid:33258951": 0.97,
+   "pmid:39010112": 0.15
+  },
+  "placement": {
+   "in": [
+    "GSE132886",
+    "pmid:33258951",
+    "pmid:39010112"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE132886",
+    "pmid:33258951"
+   ],
+   "out": [
+    "pmid:39010112"
+   ]
+  },
+  "differs": [
+   "pmid:39010112"
+  ],
+  "jev_only_in": [
+   "GSE132886",
+   "pmid:33258951"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE112068",
+  "structure": {
+   "picked": "GSE112068",
+   "superseries": null,
+   "core": [
+    "GSE112068"
+   ],
+   "n_series": 1,
+   "n_papers": 0,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.57,
+   "cost_usd": 0.000350436,
+   "first_cost_usd": 0.000350436,
+   "usage": {
+    "prompt_tokens": 2386,
+    "completion_tokens": 113,
+    "total_tokens": 2499,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1874
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.59,
+   "cost_usd": 1.6464e-05,
+   "first_cost_usd": 1.6464e-05,
+   "usage": {
+    "input_tokens": 392,
+    "output_tokens": 22
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.0,
+   "cost_usd": 0.0,
+   "first_cost_usd": null,
+   "usage": null,
+   "n_questions": 0,
+   "cached": null
+  },
+  "jev_p_yes": {
+   "GSE112068": null
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE112068",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {},
+  "placement": {
+   "in": [
+    "GSE112068"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE112068"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE112068"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE112068"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE112068",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE112068",
+     "field": "Title",
+     "start": 0,
+     "end": 114,
+     "entail_p": 0.46
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE306935",
+  "structure": {
+   "picked": "GSE306935",
+   "superseries": null,
+   "core": [
+    "GSE306935"
+   ],
+   "n_series": 2,
+   "n_papers": 2,
+   "one_one": false,
+   "recite_sign": {
+    "GSE143476": true
+   }
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 0.28,
+   "cost_usd": 0.0,
+   "first_cost_usd": 0.000742518,
+   "usage": {
+    "prompt_tokens": 3625,
+    "completion_tokens": 394,
+    "total_tokens": 4019,
+    "prompt_tokens_details": {
+     "cached_tokens": 256
+    },
+    "prompt_cache_hit_tokens": 256,
+    "prompt_cache_miss_tokens": 3369
+   },
+   "cached": true
+  },
+  "entail": {
+   "seconds": 0.39,
+   "cost_usd": 0.0,
+   "first_cost_usd": 3.1584e-05,
+   "usage": {
+    "input_tokens": 752,
+    "output_tokens": 76
+   },
+   "n_questions": 4,
+   "cached": null
+  },
+  "jev": {
+   "seconds": 0.23,
+   "cost_usd": 0.0,
+   "first_cost_usd": 0.000163086,
+   "usage": {
+    "input_tokens": 3883,
+    "output_tokens": 78
+   },
+   "n_questions": 3,
+   "cached": true
+  },
+  "jev_p_yes": {
+   "GSE143476": 0.26,
+   "GSE306935": null,
+   "pmid:32198156": 0.04,
+   "pmid:41256688": 0.9
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE306935",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE306935",
+    "field": "Title",
+    "start": 0,
+    "end": 112,
+    "entail_p": 0.4
+   },
+   {
+    "id": "pmid:41256688",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:41256688",
+    "field": "Abstract",
+    "start": 570,
+    "end": 706,
+    "entail_p": 0.05
+   },
+   {
+    "id": "GSE143476",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "GSE143476",
+    "field": "Title",
+    "start": 0,
+    "end": 76,
+    "entail_p": 0.25
+   },
+   {
+    "id": "pmid:32198156",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "pmid:32198156",
+    "field": "Abstract",
+    "start": 213,
+    "end": 331,
+    "entail_p": 0.18
+   }
+  ],
+  "paper_p": {
+   "pmid:41256688": 0.9
+  },
+  "placement": {
+   "in": [
+    "GSE306935",
+    "pmid:41256688"
+   ],
+   "out": [
+    "GSE143476",
+    "pmid:32198156"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE306935",
+    "pmid:41256688"
+   ],
+   "out": [
+    "GSE143476",
+    "pmid:32198156"
+   ]
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE306935",
+   "pmid:41256688"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE100021",
+  "structure": {
+   "picked": "GSE100021",
+   "superseries": null,
+   "core": [
+    "GSE100021"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.91,
+   "cost_usd": 0.000320136,
+   "first_cost_usd": 0.000320136,
+   "usage": {
+    "prompt_tokens": 1640,
+    "completion_tokens": 249,
+    "total_tokens": 1889,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1128
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.5,
+   "cost_usd": 2.3939999999999998e-05,
+   "first_cost_usd": 2.3939999999999998e-05,
+   "usage": {
+    "input_tokens": 570,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.24,
+   "cost_usd": 6.405e-05,
+   "first_cost_usd": 6.405e-05,
+   "usage": {
+    "input_tokens": 1525,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE100021": null,
+   "pmid:28645186": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE100021",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:28645186",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:28645186": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE100021",
+    "pmid:28645186"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE100021",
+    "pmid:28645186"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE100021",
+   "pmid:28645186"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE100021",
+     "pmid:28645186"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE100021",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE100021",
+     "field": "Overall design",
+     "start": 0,
+     "end": 209,
+     "entail_p": 0.49
+    },
+    {
+     "id": "pmid:28645186",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:28645186",
+     "field": "Abstract",
+     "start": 792,
+     "end": 1025,
+     "entail_p": 0.15
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE275435",
+  "structure": {
+   "picked": "GSE275435",
+   "superseries": null,
+   "core": [
+    "GSE275435"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.96,
+   "cost_usd": 0.000353586,
+   "first_cost_usd": 0.000353586,
+   "usage": {
+    "prompt_tokens": 1951,
+    "completion_tokens": 227,
+    "total_tokens": 2178,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1439
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.91,
+   "cost_usd": 2.2932e-05,
+   "first_cost_usd": 2.2932e-05,
+   "usage": {
+    "input_tokens": 546,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.34,
+   "cost_usd": 8.1312e-05,
+   "first_cost_usd": 8.1312e-05,
+   "usage": {
+    "input_tokens": 1936,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE275435": null,
+   "pmid:40537787": 0.93
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE275435",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:40537787",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:40537787": 0.93
+  },
+  "placement": {
+   "in": [
+    "GSE275435",
+    "pmid:40537787"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE275435",
+    "pmid:40537787"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE275435",
+   "pmid:40537787"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE275435",
+     "pmid:40537787"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE275435",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE275435",
+     "field": "Overall design",
+     "start": 0,
+     "end": 109,
+     "entail_p": 0.39
+    },
+    {
+     "id": "pmid:40537787",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:40537787",
+     "field": "Abstract",
+     "start": 812,
+     "end": 978,
+     "entail_p": 0.07
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE77720",
+  "structure": {
+   "picked": "GSE77720",
+   "superseries": null,
+   "core": [
+    "GSE77720"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.18,
+   "cost_usd": 0.000432036,
+   "first_cost_usd": 0.000432036,
+   "usage": {
+    "prompt_tokens": 2438,
+    "completion_tokens": 236,
+    "total_tokens": 2674,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1926
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.57,
+   "cost_usd": 2.2722e-05,
+   "first_cost_usd": 2.2722e-05,
+   "usage": {
+    "input_tokens": 541,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.31,
+   "cost_usd": 0.00010621799999999999,
+   "first_cost_usd": 0.00010621799999999999,
+   "usage": {
+    "input_tokens": 2529,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE77720": null,
+   "pmid:26637796": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE77720",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:26637796",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:26637796": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE77720",
+    "pmid:26637796"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE77720",
+    "pmid:26637796"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE77720",
+   "pmid:26637796"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE77720",
+     "pmid:26637796"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE77720",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE77720",
+     "field": "Overall design",
+     "start": 0,
+     "end": 201,
+     "entail_p": 0.55
+    },
+    {
+     "id": "pmid:26637796",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:26637796",
+     "field": "Title",
+     "start": 0,
+     "end": 74,
+     "entail_p": 0.48
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE153881",
+  "structure": {
+   "picked": "GSE153881",
+   "superseries": null,
+   "core": [
+    "GSE153881"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.08,
+   "cost_usd": 0.00046368599999999994,
+   "first_cost_usd": 0.00046368599999999994,
+   "usage": {
+    "prompt_tokens": 2665,
+    "completion_tokens": 232,
+    "total_tokens": 2897,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2153
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.56,
+   "cost_usd": 2.2764e-05,
+   "first_cost_usd": 2.2764e-05,
+   "usage": {
+    "input_tokens": 542,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.26,
+   "cost_usd": 0.000113946,
+   "first_cost_usd": 0.000113946,
+   "usage": {
+    "input_tokens": 2713,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE153881": null,
+   "pmid:33304899": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE153881",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:33304899",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:33304899": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE153881",
+    "pmid:33304899"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE153881",
+    "pmid:33304899"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE153881",
+   "pmid:33304899"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE153881",
+     "pmid:33304899"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE153881",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE153881",
+     "field": "Summary",
+     "start": 493,
+     "end": 639,
+     "entail_p": 0.61
+    },
+    {
+     "id": "pmid:33304899",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:33304899",
+     "field": "Abstract",
+     "start": 437,
+     "end": 647,
+     "entail_p": 0.12
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE302826",
+  "structure": {
+   "picked": "GSE302826",
+   "superseries": null,
+   "core": [
+    "GSE302826"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.98,
+   "cost_usd": 0.00047043599999999997,
+   "first_cost_usd": 0.00047043599999999997,
+   "usage": {
+    "prompt_tokens": 2718,
+    "completion_tokens": 230,
+    "total_tokens": 2948,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2206
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.56,
+   "cost_usd": 2.1546e-05,
+   "first_cost_usd": 2.1546e-05,
+   "usage": {
+    "input_tokens": 513,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.24,
+   "cost_usd": 0.000112266,
+   "first_cost_usd": 0.000112266,
+   "usage": {
+    "input_tokens": 2673,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE302826": null,
+   "pmid:40983680": 0.89
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE302826",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:40983680",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:40983680": 0.89
+  },
+  "placement": {
+   "in": [
+    "GSE302826",
+    "pmid:40983680"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE302826",
+    "pmid:40983680"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE302826",
+   "pmid:40983680"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE302826",
+     "pmid:40983680"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE302826",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE302826",
+     "field": "Overall design",
+     "start": 0,
+     "end": 99,
+     "entail_p": 0.61
+    },
+    {
+     "id": "pmid:40983680",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:40983680",
+     "field": "Abstract",
+     "start": 807,
+     "end": 953,
+     "entail_p": 0.09
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE314221",
+  "structure": {
+   "picked": "GSE314221",
+   "superseries": null,
+   "core": [
+    "GSE314221"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.96,
+   "cost_usd": 0.00042918599999999997,
+   "first_cost_usd": 0.00042918599999999997,
+   "usage": {
+    "prompt_tokens": 2591,
+    "completion_tokens": 193,
+    "total_tokens": 2784,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2079
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.56,
+   "cost_usd": 2.1167999999999998e-05,
+   "first_cost_usd": 2.1167999999999998e-05,
+   "usage": {
+    "input_tokens": 504,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.26,
+   "cost_usd": 0.000106974,
+   "first_cost_usd": 0.000106974,
+   "usage": {
+    "input_tokens": 2547,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE314221": null,
+   "pmid:42547584": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE314221",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:42547584",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:42547584": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE314221",
+    "pmid:42547584"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE314221",
+    "pmid:42547584"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE314221",
+   "pmid:42547584"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE314221",
+     "pmid:42547584"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE314221",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE314221",
+     "field": "Overall design",
+     "start": 0,
+     "end": 119,
+     "entail_p": 0.35
+    },
+    {
+     "id": "pmid:42547584",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:42547584",
+     "field": "Title",
+     "start": 0,
+     "end": 84,
+     "entail_p": 0.29
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE335500",
+  "structure": {
+   "picked": "GSE335500",
+   "superseries": null,
+   "core": [
+    "GSE335500"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.11,
+   "cost_usd": 0.00040758600000000004,
+   "first_cost_usd": 0.00040758600000000004,
+   "usage": {
+    "prompt_tokens": 2319,
+    "completion_tokens": 225,
+    "total_tokens": 2544,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1807
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.52,
+   "cost_usd": 2.268e-05,
+   "first_cost_usd": 2.268e-05,
+   "usage": {
+    "input_tokens": 540,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.33,
+   "cost_usd": 9.596999999999999e-05,
+   "first_cost_usd": 9.596999999999999e-05,
+   "usage": {
+    "input_tokens": 2285,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE335500": null,
+   "pmid:42570239": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE335500",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:42570239",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:42570239": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE335500",
+    "pmid:42570239"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE335500",
+    "pmid:42570239"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE335500",
+   "pmid:42570239"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE335500",
+     "pmid:42570239"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE335500",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE335500",
+     "field": "Overall design",
+     "start": 0,
+     "end": 181,
+     "entail_p": 0.38
+    },
+    {
+     "id": "pmid:42570239",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:42570239",
+     "field": "Title",
+     "start": 0,
+     "end": 128,
+     "entail_p": 0.25
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE329430",
+  "structure": {
+   "picked": "GSE329430",
+   "superseries": null,
+   "core": [
+    "GSE329430"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.81,
+   "cost_usd": 0.0005032859999999999,
+   "first_cost_usd": 0.0005032859999999999,
+   "usage": {
+    "prompt_tokens": 3113,
+    "completion_tokens": 186,
+    "total_tokens": 3299,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2601
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.52,
+   "cost_usd": 2.0495999999999998e-05,
+   "first_cost_usd": 2.0495999999999998e-05,
+   "usage": {
+    "input_tokens": 488,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.57,
+   "cost_usd": 0.000134022,
+   "first_cost_usd": 0.000134022,
+   "usage": {
+    "input_tokens": 3191,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE329430": null,
+   "pmid:42711429": 0.94
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE329430",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:42711429",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:42711429": 0.94
+  },
+  "placement": {
+   "in": [
+    "GSE329430",
+    "pmid:42711429"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE329430",
+    "pmid:42711429"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE329430",
+   "pmid:42711429"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE329430",
+     "pmid:42711429"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE329430",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE329430",
+     "field": "Title",
+     "start": 0,
+     "end": 59,
+     "entail_p": 0.44
+    },
+    {
+     "id": "pmid:42711429",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:42711429",
+     "field": "Abstract",
+     "start": 345,
+     "end": 443,
+     "entail_p": 0.05
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE288106",
+  "structure": {
+   "picked": "GSE288106",
+   "superseries": null,
+   "core": [
+    "GSE288106"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.28,
+   "cost_usd": 0.000470286,
+   "first_cost_usd": 0.000470286,
+   "usage": {
+    "prompt_tokens": 2549,
+    "completion_tokens": 272,
+    "total_tokens": 2821,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2037
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 2.3898e-05,
+   "first_cost_usd": 2.3898e-05,
+   "usage": {
+    "input_tokens": 569,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.61,
+   "cost_usd": 0.00010668,
+   "first_cost_usd": 0.00010668,
+   "usage": {
+    "input_tokens": 2540,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE288106": null,
+   "pmid:42327368": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE288106",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:42327368",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:42327368": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE288106",
+    "pmid:42327368"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE288106",
+    "pmid:42327368"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE288106",
+   "pmid:42327368"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE288106",
+     "pmid:42327368"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE288106",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE288106",
+     "field": "Overall design",
+     "start": 0,
+     "end": 123,
+     "entail_p": 0.47
+    },
+    {
+     "id": "pmid:42327368",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:42327368",
+     "field": "Abstract",
+     "start": 1395,
+     "end": 1680,
+     "entail_p": 0.16
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE125850",
+  "structure": {
+   "picked": "GSE125850",
+   "superseries": null,
+   "core": [
+    "GSE125850"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.26,
+   "cost_usd": 0.000393636,
+   "first_cost_usd": 0.000393636,
+   "usage": {
+    "prompt_tokens": 2282,
+    "completion_tokens": 211,
+    "total_tokens": 2493,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1770
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 2.2343999999999998e-05,
+   "first_cost_usd": 2.2343999999999998e-05,
+   "usage": {
+    "input_tokens": 532,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.26,
+   "cost_usd": 9.324e-05,
+   "first_cost_usd": 9.324e-05,
+   "usage": {
+    "input_tokens": 2220,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE125850": null,
+   "pmid:30668640": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE125850",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:30668640",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:30668640": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE125850",
+    "pmid:30668640"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE125850",
+    "pmid:30668640"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE125850",
+   "pmid:30668640"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE125850",
+     "pmid:30668640"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE125850",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE125850",
+     "field": "Overall design",
+     "start": 0,
+     "end": 139,
+     "entail_p": 0.49
+    },
+    {
+     "id": "pmid:30668640",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:30668640",
+     "field": "Abstract",
+     "start": 1057,
+     "end": 1190,
+     "entail_p": 0.13
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE288182",
+  "structure": {
+   "picked": "GSE288182",
+   "superseries": null,
+   "core": [
+    "GSE288182"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.56,
+   "cost_usd": 0.000296886,
+   "first_cost_usd": 0.000296886,
+   "usage": {
+    "prompt_tokens": 1681,
+    "completion_tokens": 200,
+    "total_tokens": 1881,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1169
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.34,
+   "cost_usd": 2.1462e-05,
+   "first_cost_usd": 2.1462e-05,
+   "usage": {
+    "input_tokens": 511,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.25,
+   "cost_usd": 6.4176e-05,
+   "first_cost_usd": 6.4176e-05,
+   "usage": {
+    "input_tokens": 1528,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE288182": null,
+   "pmid:42210397": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE288182",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:42210397",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:42210397": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE288182",
+    "pmid:42210397"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE288182",
+    "pmid:42210397"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE288182",
+   "pmid:42210397"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE288182",
+     "pmid:42210397"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE288182",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE288182",
+     "field": "Overall design",
+     "start": 0,
+     "end": 129,
+     "entail_p": 0.42
+    },
+    {
+     "id": "pmid:42210397",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:42210397",
+     "field": "Abstract",
+     "start": 597,
+     "end": 710,
+     "entail_p": 0.09
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE146013",
+  "structure": {
+   "picked": "GSE146013",
+   "superseries": null,
+   "core": [
+    "GSE146013"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.01,
+   "cost_usd": 0.000432186,
+   "first_cost_usd": 0.000432186,
+   "usage": {
+    "prompt_tokens": 2527,
+    "completion_tokens": 214,
+    "total_tokens": 2741,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2015
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 2.1714e-05,
+   "first_cost_usd": 2.1714e-05,
+   "usage": {
+    "input_tokens": 517,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.38,
+   "cost_usd": 0.000117264,
+   "first_cost_usd": 0.000117264,
+   "usage": {
+    "input_tokens": 2792,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE146013": null,
+   "pmid:32549330": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE146013",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:32549330",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:32549330": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE146013",
+    "pmid:32549330"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE146013",
+    "pmid:32549330"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE146013",
+   "pmid:32549330"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE146013",
+     "pmid:32549330"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE146013",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE146013",
+     "field": "Summary",
+     "start": 0,
+     "end": 121,
+     "entail_p": 0.32
+    },
+    {
+     "id": "pmid:32549330",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:32549330",
+     "field": "Abstract",
+     "start": 213,
+     "end": 353,
+     "entail_p": 0.08
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE254687",
+  "structure": {
+   "picked": "GSE254687",
+   "superseries": null,
+   "core": [
+    "GSE254687"
+   ],
+   "n_series": 3,
+   "n_papers": 2,
+   "one_one": false,
+   "recite_sign": {
+    "GSE115571": true,
+    "GSE256105": false
+   }
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 3.21,
+   "cost_usd": 0.0009067859999999999,
+   "first_cost_usd": 0.0009067859999999999,
+   "usage": {
+    "prompt_tokens": 4679,
+    "completion_tokens": 467,
+    "total_tokens": 5146,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 4167
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.33,
+   "cost_usd": 3.7086e-05,
+   "first_cost_usd": 3.7086e-05,
+   "usage": {
+    "input_tokens": 883,
+    "output_tokens": 94
+   },
+   "n_questions": 5,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.37,
+   "cost_usd": 0.00022721999999999998,
+   "first_cost_usd": 0.00022721999999999998,
+   "usage": {
+    "input_tokens": 5410,
+    "output_tokens": 102
+   },
+   "n_questions": 4,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE115571": 0.11,
+   "GSE254687": null,
+   "GSE256105": 0.92,
+   "pmid:30206190": 0.04,
+   "pmid:39014482": 0.87
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE254687",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE254687",
+    "field": "Title",
+    "start": 0,
+    "end": 93,
+    "entail_p": 0.42
+   },
+   {
+    "id": "GSE256105",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE256105",
+    "field": "Overall design",
+    "start": 0,
+    "end": 144,
+    "entail_p": 0.04
+   },
+   {
+    "id": "pmid:39014482",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:39014482",
+    "field": "Title",
+    "start": 0,
+    "end": 91,
+    "entail_p": 0.4
+   },
+   {
+    "id": "GSE115571",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "GSE115571",
+    "field": "Overall design",
+    "start": 0,
+    "end": 141,
+    "entail_p": 0.22
+   },
+   {
+    "id": "pmid:30206190",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "pmid:30206190",
+    "field": "Title",
+    "start": 0,
+    "end": 86,
+    "entail_p": 0.43
+   }
+  ],
+  "paper_p": {
+   "pmid:39014482": 0.87
+  },
+  "placement": {
+   "in": [
+    "GSE254687",
+    "GSE256105",
+    "pmid:39014482"
+   ],
+   "out": [
+    "GSE115571",
+    "pmid:30206190"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE254687",
+    "GSE256105",
+    "pmid:39014482"
+   ],
+   "out": [
+    "GSE115571",
+    "pmid:30206190"
+   ]
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE254687",
+   "GSE256105",
+   "pmid:39014482"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE255902",
+  "structure": {
+   "picked": "GSE255902",
+   "superseries": null,
+   "core": [
+    "GSE255902"
+   ],
+   "n_series": 2,
+   "n_papers": 1,
+   "one_one": false,
+   "recite_sign": {
+    "GSE255904": false
+   }
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 2.06,
+   "cost_usd": 0.000538086,
+   "first_cost_usd": 0.000538086,
+   "usage": {
+    "prompt_tokens": 2893,
+    "completion_tokens": 299,
+    "total_tokens": 3192,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2381
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.32,
+   "cost_usd": 2.6922e-05,
+   "first_cost_usd": 2.6922e-05,
+   "usage": {
+    "input_tokens": 641,
+    "output_tokens": 58
+   },
+   "n_questions": 3,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.35,
+   "cost_usd": 0.000126462,
+   "first_cost_usd": 0.000126462,
+   "usage": {
+    "input_tokens": 3011,
+    "output_tokens": 53
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE255902": null,
+   "GSE255904": 0.97,
+   "pmid:38582079": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE255902",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE255902",
+    "field": "Overall design",
+    "start": 0,
+    "end": 165,
+    "entail_p": 0.38
+   },
+   {
+    "id": "GSE255904",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE255904",
+    "field": "Title",
+    "start": 0,
+    "end": 79,
+    "entail_p": 0.16
+   },
+   {
+    "id": "pmid:38582079",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:38582079",
+    "field": "Abstract",
+    "start": 165,
+    "end": 340,
+    "entail_p": 0.09
+   }
+  ],
+  "paper_p": {
+   "pmid:38582079": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE255902",
+    "GSE255904",
+    "pmid:38582079"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE255902",
+    "GSE255904",
+    "pmid:38582079"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE255902",
+   "GSE255904",
+   "pmid:38582079"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE140511",
+  "structure": {
+   "picked": "GSE140511",
+   "superseries": "GSE140511",
+   "core": [
+    "GSE140399",
+    "GSE140510"
+   ],
+   "n_series": 2,
+   "n_papers": 1,
+   "one_one": false,
+   "recite_sign": {}
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 2.3,
+   "cost_usd": 0.000814386,
+   "first_cost_usd": 0.000814386,
+   "usage": {
+    "prompt_tokens": 4675,
+    "completion_tokens": 314,
+    "total_tokens": 4989,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 4163
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.32,
+   "cost_usd": 3.0702e-05,
+   "first_cost_usd": 3.0702e-05,
+   "usage": {
+    "input_tokens": 731,
+    "output_tokens": 76
+   },
+   "n_questions": 4,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.39,
+   "cost_usd": 0.000217014,
+   "first_cost_usd": 0.000217014,
+   "usage": {
+    "input_tokens": 5167,
+    "output_tokens": 77
+   },
+   "n_questions": 3,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE140399": 0.96,
+   "GSE140510": 0.97,
+   "GSE140511": null,
+   "pmid:31932797": 0.92
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE140399",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE140399",
+    "field": "Relation",
+    "start": 0,
+    "end": 23,
+    "entail_p": 0.8
+   },
+   {
+    "id": "GSE140510",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE140510",
+    "field": "Relation",
+    "start": 0,
+    "end": 23,
+    "entail_p": 0.84
+   },
+   {
+    "id": "pmid:31932797",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:31932797",
+    "field": "Abstract",
+    "start": 276,
+    "end": 413,
+    "entail_p": 0.23
+   },
+   {
+    "id": "GSE140511",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "GSE140511",
+    "field": "Summary",
+    "start": 0,
+    "end": 58,
+    "entail_p": 0.06
+   }
+  ],
+  "paper_p": {
+   "pmid:31932797": 0.92
+  },
+  "placement": {
+   "in": [
+    "GSE140399",
+    "GSE140510",
+    "pmid:31932797"
+   ],
+   "out": [
+    "GSE140511"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE140399",
+    "GSE140510",
+    "pmid:31932797"
+   ],
+   "out": [
+    "GSE140511"
+   ]
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE140399",
+   "GSE140510",
+   "pmid:31932797"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE101112",
+  "structure": {
+   "picked": "GSE101112",
+   "superseries": null,
+   "core": [
+    "GSE101112"
+   ],
+   "n_series": 1,
+   "n_papers": 3,
+   "one_one": false,
+   "recite_sign": {}
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 3.32,
+   "cost_usd": 0.000734286,
+   "first_cost_usd": 0.000734286,
+   "usage": {
+    "prompt_tokens": 3509,
+    "completion_tokens": 472,
+    "total_tokens": 3981,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2997
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.32,
+   "cost_usd": 3.3348e-05,
+   "first_cost_usd": 3.3348e-05,
+   "usage": {
+    "input_tokens": 794,
+    "output_tokens": 76
+   },
+   "n_questions": 4,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.36,
+   "cost_usd": 0.000164472,
+   "first_cost_usd": 0.000164472,
+   "usage": {
+    "input_tokens": 3916,
+    "output_tokens": 79
+   },
+   "n_questions": 3,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE101112": null,
+   "pmid:31742554": 0.83,
+   "pmid:32884834": 0.13,
+   "pmid:33294943": 0.09
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE101112",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE101112",
+    "field": "Overall design",
+    "start": 0,
+    "end": 122,
+    "entail_p": 0.44
+   },
+   {
+    "id": "pmid:31742554",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:31742554",
+    "field": "Abstract",
+    "start": 361,
+    "end": 519,
+    "entail_p": 0.09
+   },
+   {
+    "id": "pmid:32884834",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:32884834",
+    "field": "Abstract",
+    "start": 707,
+    "end": 918,
+    "entail_p": 0.09
+   },
+   {
+    "id": "pmid:33294943",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "pmid:33294943",
+    "field": "Abstract",
+    "start": 446,
+    "end": 602,
+    "entail_p": 0.23
+   }
+  ],
+  "paper_p": {
+   "pmid:31742554": 0.83,
+   "pmid:32884834": 0.13
+  },
+  "placement": {
+   "in": [
+    "GSE101112",
+    "pmid:31742554",
+    "pmid:32884834"
+   ],
+   "out": [
+    "pmid:33294943"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE101112",
+    "pmid:31742554"
+   ],
+   "out": [
+    "pmid:32884834",
+    "pmid:33294943"
+   ]
+  },
+  "differs": [
+   "pmid:32884834"
+  ],
+  "jev_only_in": [
+   "GSE101112",
+   "pmid:31742554"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE142633",
+  "structure": {
+   "picked": "GSE142633",
+   "superseries": null,
+   "core": [
+    "GSE142633"
+   ],
+   "n_series": 1,
+   "n_papers": 0,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.96,
+   "cost_usd": 0.000252036,
+   "first_cost_usd": 0.000252036,
+   "usage": {
+    "prompt_tokens": 1702,
+    "completion_tokens": 120,
+    "total_tokens": 1822,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1190
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.23,
+   "cost_usd": 1.6422e-05,
+   "first_cost_usd": 1.6422e-05,
+   "usage": {
+    "input_tokens": 391,
+    "output_tokens": 22
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.0,
+   "cost_usd": 0.0,
+   "first_cost_usd": null,
+   "usage": null,
+   "n_questions": 0,
+   "cached": null
+  },
+  "jev_p_yes": {
+   "GSE142633": null
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE142633",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {},
+  "placement": {
+   "in": [
+    "GSE142633"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE142633"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE142633"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE142633"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE142633",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE142633",
+     "field": "Title",
+     "start": 0,
+     "end": 94,
+     "entail_p": 0.55
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE137213",
+  "structure": {
+   "picked": "GSE137213",
+   "superseries": null,
+   "core": [
+    "GSE137213"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.04,
+   "cost_usd": 0.000400836,
+   "first_cost_usd": 0.000400836,
+   "usage": {
+    "prompt_tokens": 2118,
+    "completion_tokens": 264,
+    "total_tokens": 2382,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1606
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.23,
+   "cost_usd": 2.3477999999999998e-05,
+   "first_cost_usd": 2.3477999999999998e-05,
+   "usage": {
+    "input_tokens": 559,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.55,
+   "cost_usd": 8.5176e-05,
+   "first_cost_usd": 8.5176e-05,
+   "usage": {
+    "input_tokens": 2028,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE137213": null,
+   "pmid:31749671": 0.75
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE137213",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:31749671",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:31749671": 0.75
+  },
+  "placement": {
+   "in": [
+    "GSE137213",
+    "pmid:31749671"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE137213",
+    "pmid:31749671"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE137213",
+   "pmid:31749671"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE137213",
+     "pmid:31749671"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE137213",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE137213",
+     "field": "Summary",
+     "start": 0,
+     "end": 286,
+     "entail_p": 0.7
+    },
+    {
+     "id": "pmid:31749671",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:31749671",
+     "field": "Abstract",
+     "start": 290,
+     "end": 560,
+     "entail_p": 0.13
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE126954",
+  "structure": {
+   "picked": "GSE126954",
+   "superseries": null,
+   "core": [
+    "GSE126954"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.64,
+   "cost_usd": 0.00027663599999999997,
+   "first_cost_usd": 0.00027663599999999997,
+   "usage": {
+    "prompt_tokens": 1614,
+    "completion_tokens": 183,
+    "total_tokens": 1797,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1102
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.35,
+   "cost_usd": 2.121e-05,
+   "first_cost_usd": 2.121e-05,
+   "usage": {
+    "input_tokens": 505,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.27,
+   "cost_usd": 6.216e-05,
+   "first_cost_usd": 6.216e-05,
+   "usage": {
+    "input_tokens": 1480,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE126954": null,
+   "pmid:31488706": 0.97
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE126954",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:31488706",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:31488706": 0.97
+  },
+  "placement": {
+   "in": [
+    "GSE126954",
+    "pmid:31488706"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE126954",
+    "pmid:31488706"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE126954",
+   "pmid:31488706"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE126954",
+     "pmid:31488706"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE126954",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE126954",
+     "field": "Title",
+     "start": 0,
+     "end": 88,
+     "entail_p": 0.57
+    },
+    {
+     "id": "pmid:31488706",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:31488706",
+     "field": "Abstract",
+     "start": 102,
+     "end": 226,
+     "entail_p": 0.21
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE256266",
+  "structure": {
+   "picked": "GSE256266",
+   "superseries": null,
+   "core": [
+    "GSE256266"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.08,
+   "cost_usd": 0.00033243599999999997,
+   "first_cost_usd": 0.00033243599999999997,
+   "usage": {
+    "prompt_tokens": 1890,
+    "completion_tokens": 207,
+    "total_tokens": 2097,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1378
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.32,
+   "cost_usd": 2.1378e-05,
+   "first_cost_usd": 2.1378e-05,
+   "usage": {
+    "input_tokens": 509,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.26,
+   "cost_usd": 7.287e-05,
+   "first_cost_usd": 7.287e-05,
+   "usage": {
+    "input_tokens": 1735,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE256266": null,
+   "pmid:40527319": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE256266",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:40527319",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:40527319": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE256266",
+    "pmid:40527319"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE256266",
+    "pmid:40527319"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE256266",
+   "pmid:40527319"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE256266",
+     "pmid:40527319"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE256266",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE256266",
+     "field": "Title",
+     "start": 0,
+     "end": 66,
+     "entail_p": 0.48
+    },
+    {
+     "id": "pmid:40527319",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:40527319",
+     "field": "Abstract",
+     "start": 174,
+     "end": 326,
+     "entail_p": 0.13
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE78252",
+  "structure": {
+   "picked": "GSE78252",
+   "superseries": null,
+   "core": [
+    "GSE78252"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.01,
+   "cost_usd": 0.000443286,
+   "first_cost_usd": 0.000443286,
+   "usage": {
+    "prompt_tokens": 2645,
+    "completion_tokens": 203,
+    "total_tokens": 2848,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2133
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.31,
+   "cost_usd": 2.1419999999999998e-05,
+   "first_cost_usd": 2.1419999999999998e-05,
+   "usage": {
+    "input_tokens": 510,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.26,
+   "cost_usd": 0.00010983,
+   "first_cost_usd": 0.00010983,
+   "usage": {
+    "input_tokens": 2615,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE78252": null,
+   "pmid:27133166": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE78252",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:27133166",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:27133166": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE78252",
+    "pmid:27133166"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE78252",
+    "pmid:27133166"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE78252",
+   "pmid:27133166"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE78252",
+     "pmid:27133166"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE78252",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE78252",
+     "field": "Title",
+     "start": 0,
+     "end": 84,
+     "entail_p": 0.38
+    },
+    {
+     "id": "pmid:27133166",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:27133166",
+     "field": "Abstract",
+     "start": 181,
+     "end": 350,
+     "entail_p": 0.06
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE243994",
+  "structure": {
+   "picked": "GSE243994",
+   "superseries": null,
+   "core": [
+    "GSE243994"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.05,
+   "cost_usd": 0.00042678599999999996,
+   "first_cost_usd": 0.00042678599999999996,
+   "usage": {
+    "prompt_tokens": 2227,
+    "completion_tokens": 280,
+    "total_tokens": 2507,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1715
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.31,
+   "cost_usd": 2.4401999999999998e-05,
+   "first_cost_usd": 2.4401999999999998e-05,
+   "usage": {
+    "input_tokens": 581,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.36,
+   "cost_usd": 9.0048e-05,
+   "first_cost_usd": 9.0048e-05,
+   "usage": {
+    "input_tokens": 2144,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE243994": null,
+   "pmid:38851828": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE243994",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:38851828",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:38851828": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE243994",
+    "pmid:38851828"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE243994",
+    "pmid:38851828"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE243994",
+   "pmid:38851828"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE243994",
+     "pmid:38851828"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE243994",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE243994",
+     "field": "Overall design",
+     "start": 0,
+     "end": 222,
+     "entail_p": 0.38
+    },
+    {
+     "id": "pmid:38851828",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:38851828",
+     "field": "Abstract",
+     "start": 378,
+     "end": 570,
+     "entail_p": 0.09
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE281157",
+  "structure": {
+   "picked": "GSE281157",
+   "superseries": null,
+   "core": [
+    "GSE281157"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.89,
+   "cost_usd": 0.00041028599999999994,
+   "first_cost_usd": 0.00041028599999999994,
+   "usage": {
+    "prompt_tokens": 2221,
+    "completion_tokens": 254,
+    "total_tokens": 2475,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1709
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.31,
+   "cost_usd": 2.4024e-05,
+   "first_cost_usd": 2.4024e-05,
+   "usage": {
+    "input_tokens": 572,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.36,
+   "cost_usd": 8.715e-05,
+   "first_cost_usd": 8.715e-05,
+   "usage": {
+    "input_tokens": 2075,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE281157": null,
+   "pmid:40199585": 0.89
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE281157",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:40199585",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:40199585": 0.89
+  },
+  "placement": {
+   "in": [
+    "GSE281157",
+    "pmid:40199585"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE281157",
+    "pmid:40199585"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE281157",
+   "pmid:40199585"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE281157",
+     "pmid:40199585"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE281157",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE281157",
+     "field": "Title",
+     "start": 0,
+     "end": 135,
+     "entail_p": 0.4
+    },
+    {
+     "id": "pmid:40199585",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:40199585",
+     "field": "Abstract",
+     "start": 493,
+     "end": 711,
+     "entail_p": 0.05
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE114951",
+  "structure": {
+   "picked": "GSE114951",
+   "superseries": null,
+   "core": [
+    "GSE114951"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.89,
+   "cost_usd": 0.000352236,
+   "first_cost_usd": 0.000352236,
+   "usage": {
+    "prompt_tokens": 1914,
+    "completion_tokens": 234,
+    "total_tokens": 2148,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1402
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.31,
+   "cost_usd": 2.2428e-05,
+   "first_cost_usd": 2.2428e-05,
+   "usage": {
+    "input_tokens": 534,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.35,
+   "cost_usd": 7.245e-05,
+   "first_cost_usd": 7.245e-05,
+   "usage": {
+    "input_tokens": 1725,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE114951": null,
+   "pmid:33473112": 0.8
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE114951",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:33473112",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:33473112": 0.8
+  },
+  "placement": {
+   "in": [
+    "GSE114951",
+    "pmid:33473112"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE114951",
+    "pmid:33473112"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE114951",
+   "pmid:33473112"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE114951",
+     "pmid:33473112"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE114951",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE114951",
+     "field": "Overall design",
+     "start": 30,
+     "end": 199,
+     "entail_p": 0.55
+    },
+    {
+     "id": "pmid:33473112",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:33473112",
+     "field": "Abstract",
+     "start": 371,
+     "end": 507,
+     "entail_p": 0.06
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE151164",
+  "structure": {
+   "picked": "GSE151164",
+   "superseries": null,
+   "core": [
+    "GSE151164"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 2.42,
+   "cost_usd": 0.00040203600000000004,
+   "first_cost_usd": 0.00040203600000000004,
+   "usage": {
+    "prompt_tokens": 2282,
+    "completion_tokens": 225,
+    "total_tokens": 2507,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1770
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.27,
+   "cost_usd": 2.121e-05,
+   "first_cost_usd": 2.121e-05,
+   "usage": {
+    "input_tokens": 505,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.32,
+   "cost_usd": 8.9754e-05,
+   "first_cost_usd": 8.9754e-05,
+   "usage": {
+    "input_tokens": 2137,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE151164": null,
+   "pmid:32518061": 0.97
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE151164",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:32518061",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:32518061": 0.97
+  },
+  "placement": {
+   "in": [
+    "GSE151164",
+    "pmid:32518061"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE151164",
+    "pmid:32518061"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE151164",
+   "pmid:32518061"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE151164",
+     "pmid:32518061"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE151164",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE151164",
+     "field": "Overall design",
+     "start": 0,
+     "end": 99,
+     "entail_p": 0.61
+    },
+    {
+     "id": "pmid:32518061",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:32518061",
+     "field": "Abstract",
+     "start": 840,
+     "end": 942,
+     "entail_p": 0.06
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE310667",
+  "structure": {
+   "picked": "GSE310667",
+   "superseries": null,
+   "core": [
+    "GSE310667"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.59,
+   "cost_usd": 0.000566136,
+   "first_cost_usd": 0.000566136,
+   "usage": {
+    "prompt_tokens": 3496,
+    "completion_tokens": 195,
+    "total_tokens": 3691,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2984
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.27,
+   "cost_usd": 2.1336e-05,
+   "first_cost_usd": 2.1336e-05,
+   "usage": {
+    "input_tokens": 508,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.25,
+   "cost_usd": 0.000151116,
+   "first_cost_usd": 0.000151116,
+   "usage": {
+    "input_tokens": 3598,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE310667": null,
+   "pmid:41332732": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE310667",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:41332732",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:41332732": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE310667",
+    "pmid:41332732"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE310667",
+    "pmid:41332732"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE310667",
+   "pmid:41332732"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE310667",
+     "pmid:41332732"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE310667",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE310667",
+     "field": "Overall design",
+     "start": 0,
+     "end": 150,
+     "entail_p": 0.34
+    },
+    {
+     "id": "pmid:41332732",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:41332732",
+     "field": "Title",
+     "start": 0,
+     "end": 52,
+     "entail_p": 0.57
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE129928",
+  "structure": {
+   "picked": "GSE129928",
+   "superseries": null,
+   "core": [
+    "GSE129928"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.96,
+   "cost_usd": 0.00034983599999999996,
+   "first_cost_usd": 0.00034983599999999996,
+   "usage": {
+    "prompt_tokens": 1958,
+    "completion_tokens": 219,
+    "total_tokens": 2177,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1446
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.23,
+   "cost_usd": 1.7471999999999998e-05,
+   "first_cost_usd": 1.7471999999999998e-05,
+   "usage": {
+    "input_tokens": 416,
+    "output_tokens": 22
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.32,
+   "cost_usd": 7.501199999999999e-05,
+   "first_cost_usd": 7.501199999999999e-05,
+   "usage": {
+    "input_tokens": 1786,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE129928": null,
+   "pmid:31815663": 0.96
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE129928",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:31815663",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:31815663": 0.96
+  },
+  "placement": {
+   "in": [
+    "GSE129928",
+    "pmid:31815663"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE129928",
+    "pmid:31815663"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE129928",
+   "pmid:31815663"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE129928",
+     "pmid:31815663"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE129928",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE129928",
+     "field": "Overall design",
+     "start": 0,
+     "end": 151,
+     "entail_p": 0.53
+    },
+    {
+     "id": "pmid:31815663",
+     "list": "papers",
+     "status": "none",
+     "entail_p": null
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE234962",
+  "structure": {
+   "picked": "GSE234962",
+   "superseries": null,
+   "core": [
+    "GSE234962"
+   ],
+   "n_series": 2,
+   "n_papers": 4,
+   "one_one": false,
+   "recite_sign": {
+    "GSE314726": false
+   }
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 0.23,
+   "cost_usd": 0.0,
+   "first_cost_usd": 0.000824268,
+   "usage": {
+    "prompt_tokens": 3570,
+    "completion_tokens": 544,
+    "total_tokens": 4114,
+    "prompt_tokens_details": {
+     "cached_tokens": 256
+    },
+    "prompt_cache_hit_tokens": 256,
+    "prompt_cache_miss_tokens": 3314
+   },
+   "cached": true
+  },
+  "entail": {
+   "seconds": 0.39,
+   "cost_usd": 0.0,
+   "first_cost_usd": 4.4268e-05,
+   "usage": {
+    "input_tokens": 1054,
+    "output_tokens": 112
+   },
+   "n_questions": 6,
+   "cached": null
+  },
+  "jev": {
+   "seconds": 0.32,
+   "cost_usd": 0.0,
+   "first_cost_usd": 0.000169848,
+   "usage": {
+    "input_tokens": 4044,
+    "output_tokens": 128
+   },
+   "n_questions": 5,
+   "cached": true
+  },
+  "jev_p_yes": {
+   "GSE234962": null,
+   "GSE314726": 0.16,
+   "pmid:38421866": 0.98,
+   "pmid:41390837": 0.04,
+   "pmid:41509263": 0.09,
+   "pmid:42711312": 0.07
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE234962",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE234962",
+    "field": "Overall design",
+    "start": 0,
+    "end": 165,
+    "entail_p": 0.48
+   },
+   {
+    "id": "pmid:38421866",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:38421866",
+    "field": "Title",
+    "start": 0,
+    "end": 128,
+    "entail_p": 0.62
+   },
+   {
+    "id": "pmid:41390837",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:41390837",
+    "field": "Abstract",
+    "start": 327,
+    "end": 450,
+    "entail_p": 0.06
+   },
+   {
+    "id": "GSE314726",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "GSE314726",
+    "field": "Overall design",
+    "start": 64,
+    "end": 166,
+    "entail_p": 0.92
+   },
+   {
+    "id": "pmid:41509263",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "pmid:41509263",
+    "field": "Title",
+    "start": 0,
+    "end": 101,
+    "entail_p": 0.29
+   },
+   {
+    "id": "pmid:42711312",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "pmid:42711312",
+    "field": "Title",
+    "start": 0,
+    "end": 113,
+    "entail_p": 0.31
+   }
+  ],
+  "paper_p": {
+   "pmid:38421866": 0.98,
+   "pmid:41390837": 0.04
+  },
+  "placement": {
+   "in": [
+    "GSE234962",
+    "pmid:38421866",
+    "pmid:41390837"
+   ],
+   "out": [
+    "GSE314726",
+    "pmid:41509263",
+    "pmid:42711312"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE234962",
+    "pmid:38421866"
+   ],
+   "out": [
+    "GSE314726",
+    "pmid:41390837",
+    "pmid:41509263",
+    "pmid:42711312"
+   ]
+  },
+  "differs": [
+   "pmid:41390837"
+  ],
+  "jev_only_in": [
+   "GSE234962",
+   "pmid:38421866"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE274290",
+  "structure": {
+   "picked": "GSE274290",
+   "superseries": null,
+   "core": [
+    "GSE274290"
+   ],
+   "n_series": 2,
+   "n_papers": 1,
+   "one_one": false,
+   "recite_sign": {
+    "GSE274291": false
+   }
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 3.14,
+   "cost_usd": 0.00047358599999999996,
+   "first_cost_usd": 0.00047358599999999996,
+   "usage": {
+    "prompt_tokens": 2223,
+    "completion_tokens": 359,
+    "total_tokens": 2582,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1711
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.23,
+   "cost_usd": 2.793e-05,
+   "first_cost_usd": 2.793e-05,
+   "usage": {
+    "input_tokens": 665,
+    "output_tokens": 58
+   },
+   "n_questions": 3,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.47,
+   "cost_usd": 9.051e-05,
+   "first_cost_usd": 9.051e-05,
+   "usage": {
+    "input_tokens": 2155,
+    "output_tokens": 53
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE274290": null,
+   "GSE274291": 0.97,
+   "pmid:40097379": 0.95
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE274290",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE274290",
+    "field": "Overall design",
+    "start": 0,
+    "end": 254,
+    "entail_p": 0.6
+   },
+   {
+    "id": "GSE274291",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE274291",
+    "field": "Overall design",
+    "start": 0,
+    "end": 95,
+    "entail_p": 0.05
+   },
+   {
+    "id": "pmid:40097379",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:40097379",
+    "field": "Abstract",
+    "start": 269,
+    "end": 474,
+    "entail_p": 0.18
+   }
+  ],
+  "paper_p": {
+   "pmid:40097379": 0.95
+  },
+  "placement": {
+   "in": [
+    "GSE274290",
+    "GSE274291",
+    "pmid:40097379"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE274290",
+    "GSE274291",
+    "pmid:40097379"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE274290",
+   "GSE274291",
+   "pmid:40097379"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE117724",
+  "structure": {
+   "picked": "GSE117724",
+   "superseries": "GSE117724",
+   "core": [
+    "GSE117700",
+    "GSE117719"
+   ],
+   "n_series": 2,
+   "n_papers": 1,
+   "one_one": false,
+   "recite_sign": {}
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 3.09,
+   "cost_usd": 0.000925686,
+   "first_cost_usd": 0.000925686,
+   "usage": {
+    "prompt_tokens": 5217,
+    "completion_tokens": 364,
+    "total_tokens": 5581,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 4705
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.23,
+   "cost_usd": 3.2004e-05,
+   "first_cost_usd": 3.2004e-05,
+   "usage": {
+    "input_tokens": 762,
+    "output_tokens": 76
+   },
+   "n_questions": 4,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.63,
+   "cost_usd": 0.000255822,
+   "first_cost_usd": 0.000255822,
+   "usage": {
+    "input_tokens": 6091,
+    "output_tokens": 77
+   },
+   "n_questions": 3,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE117700": 0.96,
+   "GSE117719": 0.97,
+   "GSE117724": null,
+   "pmid:30668573": 0.93
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE117700",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE117700",
+    "field": "Relation",
+    "start": 0,
+    "end": 23,
+    "entail_p": 0.72
+   },
+   {
+    "id": "GSE117719",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE117719",
+    "field": "Relation",
+    "start": 0,
+    "end": 23,
+    "entail_p": 0.79
+   },
+   {
+    "id": "pmid:30668573",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:30668573",
+    "field": "Abstract",
+    "start": 435,
+    "end": 702,
+    "entail_p": 0.1
+   },
+   {
+    "id": "GSE117724",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "GSE117724",
+    "field": "Summary",
+    "start": 0,
+    "end": 58,
+    "entail_p": 0.06
+   }
+  ],
+  "paper_p": {
+   "pmid:30668573": 0.93
+  },
+  "placement": {
+   "in": [
+    "GSE117700",
+    "GSE117719",
+    "pmid:30668573"
+   ],
+   "out": [
+    "GSE117724"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE117700",
+    "GSE117719",
+    "pmid:30668573"
+   ],
+   "out": [
+    "GSE117724"
+   ]
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE117700",
+   "GSE117719",
+   "pmid:30668573"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE131269",
+  "structure": {
+   "picked": "GSE131269",
+   "superseries": null,
+   "core": [
+    "GSE131269"
+   ],
+   "n_series": 1,
+   "n_papers": 2,
+   "one_one": false,
+   "recite_sign": {}
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 3.01,
+   "cost_usd": 0.000555486,
+   "first_cost_usd": 0.000555486,
+   "usage": {
+    "prompt_tokens": 2749,
+    "completion_tokens": 364,
+    "total_tokens": 3113,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2237
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.23,
+   "cost_usd": 2.8811999999999998e-05,
+   "first_cost_usd": 2.8811999999999998e-05,
+   "usage": {
+    "input_tokens": 686,
+    "output_tokens": 58
+   },
+   "n_questions": 3,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.63,
+   "cost_usd": 0.000123144,
+   "first_cost_usd": 0.000123144,
+   "usage": {
+    "input_tokens": 2932,
+    "output_tokens": 54
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE131269": null,
+   "pmid:31279658": 0.1,
+   "pmid:32494643": 0.85
+  },
+  "problems": [
+   {
+    "field": "left_out[0].id",
+    "reason": "pmid:31279658 is already placed at papers[1]"
+   }
+  ],
+  "quote_checks": [
+   {
+    "id": "GSE131269",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE131269",
+    "field": "Overall design",
+    "start": 0,
+    "end": 161,
+    "entail_p": 0.5
+   },
+   {
+    "id": "pmid:32494643",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:32494643",
+    "field": "Abstract",
+    "start": 163,
+    "end": 316,
+    "entail_p": 0.05
+   },
+   {
+    "id": "pmid:31279658",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:31279658",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "pmid:31279658",
+    "field": "Abstract",
+    "start": 344,
+    "end": 441,
+    "entail_p": 0.22
+   }
+  ],
+  "paper_p": {
+   "pmid:32494643": 0.85,
+   "pmid:31279658": 0.1
+  },
+  "placement": {
+   "in": [
+    "GSE131269",
+    "pmid:31279658",
+    "pmid:32494643"
+   ],
+   "out": [
+    "pmid:31279658"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE131269",
+    "pmid:32494643"
+   ],
+   "out": [
+    "pmid:31279658"
+   ]
+  },
+  "differs": [
+   "pmid:31279658"
+  ],
+  "jev_only_in": [
+   "GSE131269",
+   "pmid:32494643"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ },
+ {
+  "id": "GSE208154",
+  "structure": {
+   "picked": "GSE208154",
+   "superseries": null,
+   "core": [
+    "GSE208154"
+   ],
+   "n_series": 1,
+   "n_papers": 0,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.46,
+   "cost_usd": 0.00037833599999999995,
+   "first_cost_usd": 0.00037833599999999995,
+   "usage": {
+    "prompt_tokens": 2588,
+    "completion_tokens": 109,
+    "total_tokens": 2697,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 2076
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.23,
+   "cost_usd": 1.6085999999999998e-05,
+   "first_cost_usd": 1.6085999999999998e-05,
+   "usage": {
+    "input_tokens": 383,
+    "output_tokens": 22
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.0,
+   "cost_usd": 0.0,
+   "first_cost_usd": null,
+   "usage": null,
+   "n_questions": 0,
+   "cached": null
+  },
+  "jev_p_yes": {
+   "GSE208154": null
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE208154",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {},
+  "placement": {
+   "in": [
+    "GSE208154"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE208154"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE208154"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE208154"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE208154",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE208154",
+     "field": "Title",
+     "start": 0,
+     "end": 58,
+     "entail_p": 0.46
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE182981",
+  "structure": {
+   "picked": "GSE182981",
+   "superseries": null,
+   "core": [
+    "GSE182981"
+   ],
+   "n_series": 1,
+   "n_papers": 1,
+   "one_one": true,
+   "recite_sign": {}
+  },
+  "writer_used": false,
+  "writer": {
+   "seconds": 1.88,
+   "cost_usd": 0.00044838599999999995,
+   "first_cost_usd": 0.00044838599999999995,
+   "usage": {
+    "prompt_tokens": 2447,
+    "completion_tokens": 261,
+    "total_tokens": 2708,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 1935
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.31,
+   "cost_usd": 2.3604e-05,
+   "first_cost_usd": 2.3604e-05,
+   "usage": {
+    "input_tokens": 562,
+    "output_tokens": 40
+   },
+   "n_questions": 2,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.26,
+   "cost_usd": 9.840599999999999e-05,
+   "first_cost_usd": 9.840599999999999e-05,
+   "usage": {
+    "input_tokens": 2343,
+    "output_tokens": 29
+   },
+   "n_questions": 1,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE182981": null,
+   "pmid:36261415": 0.91
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE182981",
+    "list": "series",
+    "status": "none",
+    "entail_p": null
+   },
+   {
+    "id": "pmid:36261415",
+    "list": "papers",
+    "status": "none",
+    "entail_p": null
+   }
+  ],
+  "paper_p": {
+   "pmid:36261415": 0.91
+  },
+  "placement": {
+   "in": [
+    "GSE182981",
+    "pmid:36261415"
+   ],
+   "out": []
+  },
+  "standard": {
+   "in": [
+    "GSE182981",
+    "pmid:36261415"
+   ],
+   "out": []
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE182981",
+   "pmid:36261415"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": {
+   "placement": [
+    [
+     "GSE182981",
+     "pmid:36261415"
+    ],
+    []
+   ],
+   "problems": [],
+   "checks": [
+    {
+     "id": "GSE182981",
+     "list": "series",
+     "status": "named_field",
+     "source": "GSE182981",
+     "field": "Overall design",
+     "start": 0,
+     "end": 167,
+     "entail_p": 0.4
+    },
+    {
+     "id": "pmid:36261415",
+     "list": "papers",
+     "status": "named_field",
+     "source": "pmid:36261415",
+     "field": "Abstract",
+     "start": 258,
+     "end": 445,
+     "entail_p": 0.07
+    }
+   ]
+  }
+ },
+ {
+  "id": "GSE147401",
+  "structure": {
+   "picked": "GSE147401",
+   "superseries": null,
+   "core": [
+    "GSE147401"
+   ],
+   "n_series": 2,
+   "n_papers": 2,
+   "one_one": false,
+   "recite_sign": {
+    "GSE107190": true
+   }
+  },
+  "writer_used": true,
+  "writer": {
+   "seconds": 2.56,
+   "cost_usd": 0.0008838359999999999,
+   "first_cost_usd": 0.0008838359999999999,
+   "usage": {
+    "prompt_tokens": 4878,
+    "completion_tokens": 379,
+    "total_tokens": 5257,
+    "prompt_tokens_details": {
+     "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 4366
+   },
+   "cached": false
+  },
+  "entail": {
+   "seconds": 0.36,
+   "cost_usd": 3.2508e-05,
+   "first_cost_usd": 3.2508e-05,
+   "usage": {
+    "input_tokens": 774,
+    "output_tokens": 76
+   },
+   "n_questions": 4,
+   "cached": false
+  },
+  "jev": {
+   "seconds": 0.35,
+   "cost_usd": 0.000216804,
+   "first_cost_usd": 0.000216804,
+   "usage": {
+    "input_tokens": 5162,
+    "output_tokens": 78
+   },
+   "n_questions": 3,
+   "cached": false
+  },
+  "jev_p_yes": {
+   "GSE107190": 0.31,
+   "GSE147401": null,
+   "pmid:29167199": 0.04,
+   "pmid:34519784": 0.87
+  },
+  "problems": [],
+  "quote_checks": [
+   {
+    "id": "GSE147401",
+    "list": "series",
+    "status": "named_field",
+    "source": "GSE147401",
+    "field": "Title",
+    "start": 0,
+    "end": 119,
+    "entail_p": 0.42
+   },
+   {
+    "id": "pmid:34519784",
+    "list": "papers",
+    "status": "named_field",
+    "source": "pmid:34519784",
+    "field": "Abstract",
+    "start": 530,
+    "end": 651,
+    "entail_p": 0.04
+   },
+   {
+    "id": "GSE107190",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "GSE107190",
+    "field": "Title",
+    "start": 0,
+    "end": 114,
+    "entail_p": 0.21
+   },
+   {
+    "id": "pmid:29167199",
+    "list": "left_out",
+    "status": "named_field",
+    "source": "pmid:29167199",
+    "field": "Title",
+    "start": 0,
+    "end": 126,
+    "entail_p": 0.37
+   }
+  ],
+  "paper_p": {
+   "pmid:34519784": 0.87
+  },
+  "placement": {
+   "in": [
+    "GSE147401",
+    "pmid:34519784"
+   ],
+   "out": [
+    "GSE107190",
+    "pmid:29167199"
+   ]
+  },
+  "standard": {
+   "in": [
+    "GSE147401",
+    "pmid:34519784"
+   ],
+   "out": [
+    "GSE107190",
+    "pmid:29167199"
+   ]
+  },
+  "differs": [],
+  "jev_only_in": [
+   "GSE147401",
+   "pmid:34519784"
+  ],
+  "jev_only_differs": [],
+  "writer_on_one_one": null
+ }
+]

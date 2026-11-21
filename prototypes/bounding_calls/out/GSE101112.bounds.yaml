@@ -1,0 +1,33 @@
+format: 1
+study: GSE101112
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE101112
+  inferred: The Series describes the SAMP8 mouse and rat neuron experiments central to the study.
+  see:
+  - 1
+  p: null
+papers:
+- pmid:31742554
+- pmid:32884834
+left_out:
+- id: pmid:33294943
+  inferred: Describes a computational tool; does not report the study's experiments.
+  see:
+  - 2
+  p: 0.91
+reason: The study is defined by GSE101112, which contains the SAMP8 mouse and rat neuron transcriptome
+  experiments. The two papers report or reanalyze these data; the third paper describes a software tool
+  and does not report the study.
+passages:
+  1:
+    record: GSE101112
+    field: Series_overall_design
+    quote: Six nine-month old female SAMP8 mice per group were fed with vehicle diet and with CMS121 (400ppm)
+      and J147 (200ppm) diets
+  2:
+    paper: pmid:33294943
+    section: Abstract
+    quote: '[abstract chars 446-602]'

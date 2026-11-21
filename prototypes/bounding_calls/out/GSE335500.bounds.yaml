@@ -1,0 +1,14 @@
+format: 1
+study: GSE335500
+models:
+  bounds: null
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE335500
+  inferred: the study is named by this Series
+  p: null
+papers:
+- pmid:42570239
+left_out: []
+reason: One Series and the one paper its record links.
+passages: {}

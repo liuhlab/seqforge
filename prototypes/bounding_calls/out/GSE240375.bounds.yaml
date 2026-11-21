@@ -1,0 +1,36 @@
+format: 1
+study: GSE240375
+models:
+  bounds: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE240373
+  quoted:
+  - 1
+  p: 0.97
+- id: GSE240374
+  quoted:
+  - 2
+  p: 0.97
+papers: []
+left_out:
+- id: GSE240375
+  inferred: SuperSeries only repeats sub-Series samples, never in series
+  see:
+  - 3
+  p: null
+reason: GSE240373 and GSE240374 are the bulk and scRNA-seq SubSeries composing picked SuperSeries GSE240375,
+  with no linked papers.
+passages:
+  1:
+    record: GSE240373
+    field: Series_relation
+    quote: 'SubSeries of: GSE240375'
+  2:
+    record: GSE240374
+    field: Series_relation
+    quote: 'SubSeries of: GSE240375'
+  3:
+    record: GSE240375
+    field: Series_summary
+    quote: This SuperSeries is composed of the SubSeries listed below
