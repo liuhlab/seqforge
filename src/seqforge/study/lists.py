@@ -167,9 +167,12 @@ def instructions(guides: Iterable[str]) -> str:
 
 
 class _Loose(BaseModel):
-    """A part of the writer's answer: unknown keys are dropped, and plain types coerced."""
+    """A part of the writer's answer: unknown keys are dropped, and plain types coerced.
 
-    model_config = ConfigDict(extra="ignore")
+    A level named ``3`` is the text ``"3"``: a name or a text written as a number is not broken.
+    """
+
+    model_config = ConfigDict(extra="ignore", coerce_numbers_to_str=True)
 
 
 class Quote(_Loose):

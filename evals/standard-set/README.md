@@ -63,6 +63,22 @@ wrote each `draft.yaml`, and `standard-set judge` asked Claude (`claude-fable-5-
 and wrote its `verdict.yaml`, `bounds.yaml` and `study.yaml`. Where the judge disagreed, its bounds
 became the study's and the draft was kept.
 
+## Read a study
+
+The reading job writes each study's reading from the study's own `bounds.yaml`, with the same
+stores, gateway and review clone as the bounding job.
+
+```bash
+seqforge pass start study-reading --ceiling-usd 2 --units-at-once 2
+seqforge study write-reading --out evals/standard-set --name job-reading.yaml
+```
+
+`write-reading` writes the job's reading as `<id>/job-reading.yaml`, beside the five worked
+examples, and never over a file.
+[The study workflow](../../docs/study-workflow.md#3-read-the-study) says how the job decides.
+
+## Look at the studies
+
 To look at the drawn studies, build the reading page:
 [`prototypes/standard_set_page/`](../../prototypes/standard_set_page/).
 
@@ -76,6 +92,7 @@ the project: where it is, its format, who made it, and how to load it.
 | `<id>/study.yaml` | the pipeline | the study: why it was picked, its records, where its bounds came from |
 | `<id>/bounds.yaml` | the pipeline | the study's bounds |
 | `<id>/job-bounds.yaml` | the bounding job | its own bounds, once it has run on the set |
+| `<id>/job-reading.yaml` | the reading job | its own study reading, once it has run on the set |
 | `<id>/draft.yaml` | the small model | the drafted summary and bounds |
 | `<id>/verdict.yaml` | the large model | whether it agrees with the draft, and why |
 | `<id>/reading.yaml` | a large model | the study reading, for five worked examples only |
