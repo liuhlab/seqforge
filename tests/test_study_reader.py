@@ -63,6 +63,8 @@ SERIES = {
         "Series_title": "Brain of vehicle and drug mice",
         "Series_overall_design": "Drug or vehicle",
     },
+    "GSE60": {"Series_title": "Liver of 26 mouse strains"},
+    "GSE70": {"Series_title": "Intestine of a mouse and a worm"},
 }
 SAMPLES = {
     "GSE10": {
@@ -85,6 +87,15 @@ SAMPLES = {
     "GSE50": {
         "GSM51": _sample("brain vehicle", "brain", "RNA-Seq", "treatment: vehicle"),
         "GSM52": _sample("brain drug", "brain", "RNA-Seq", "treatment: drug"),
+    },
+    "GSE60": {"GSM61": _sample("liver", "liver", "RNA-Seq")},
+    "GSE70": {
+        "GSM71": _sample("mouse gut", "intestine", "RNA-Seq"),
+        "GSM72": {
+            **_sample("worm gut", "intestine", "RNA-Seq"),
+            "Sample_organism_ch1": "Caenorhabditis elegans",
+            "Sample_taxid_ch1": "6239",
+        },
     },
 }
 #: The one paper: an abstract, and a full text whose white space differs from the writer's quote.
@@ -144,6 +155,9 @@ SNAPSHOT = Snapshot("test ontology snapshot", dt.date(2026, 11, 1))
 CANNED = {
     ("liver", "uberon"): (Candidate("UBERON:0002107", "liver", "liver"),),
     ("RNA-seq", "efo"): (Candidate("EFO:0008896", "RNA-seq", "RNA-seq"),),
+    # One text, two species: a mouse's intestine is UBERON's, a worm's is WBbt's.
+    ("intestine", "uberon"): (Candidate("UBERON:0000160", "intestine", "intestine"),),
+    ("intestine", "wbbt"): (Candidate("WBbt:0005772", "intestine", "intestine"),),
 }
 
 
@@ -295,6 +309,12 @@ LISTS: dict[str, dict[str, Any]] = {
         ],
         "labels": {"tissue": _values({"text": "brain"})},
     },
+    # One more strain than Jev chooses among.
+    "GSE60": {
+        "factors": [],
+        "labels": {"strain": _values(*({"text": f"strain {n}"} for n in range(26)))},
+    },
+    "GSE70": {"factors": [], "labels": {"tissue": _values({"text": "intestine"})}},
 }
 
 #: Each sample's value texts, as Jev picks them; a label it has none of is na.
@@ -311,6 +331,9 @@ TRUTH = {
     "GSM42": frozenset({"brain"}),
     "GSM51": frozenset({"vehicle", "brain"}),
     "GSM52": frozenset({"drug", "brain"}),
+    "GSM61": frozenset({"strain 0"}),
+    "GSM71": frozenset({"intestine"}),
+    "GSM72": frozenset({"intestine"}),
 }
 
 
@@ -342,7 +365,7 @@ def _choose(name: str, question: dict[str, Any], sample: str | None) -> tuple[st
     if name == "donor":
         return "one_each", 0.8
     if name.startswith("o"):
-        return "c0", 0.95 if "UBERON" in options["c0"] else 0.6
+        return "c0", 0.95 if options["c0"].startswith(("UBERON", "WBbt")) else 0.6
     assert sample is not None
     for k, text in options.items():
         if any(text.endswith((f"= {v}", f" is {v}")) for v in TRUTH[sample]):
@@ -565,3 +588,27 @@ def test_the_pull_down_guide_goes_only_to_a_pull_down_study_and_jev_checks_each_
         {"biosample": "B1", "signal": "GSM22", "control": "GSM21"},
         {"biosample": "B2", "signal": "GSM24", "control": "GSM23"},
     ]
+
+
+def test_a_study_listing_more_values_than_jev_chooses_among_is_refused_naming_the_label(
+    read: tuple[Path, dict[str, Any], FakeGateway],
+) -> None:
+    """GSE60's writer lists 26 strains, one more than Jev's options hold. No value is cut from
+    the options unseen: the study is refused, and the reason names the label and the count."""
+    set_dir, said, _ = read
+
+    assert said["GSE60"]["ending"] == "refused"
+    assert "strain (26)" in said["GSE60"]["reason"]
+    assert not (set_dir / "GSE60" / "job-reading.yaml").exists()
+
+
+def test_a_term_is_looked_up_in_the_vocabulary_of_each_samples_species(
+    read: tuple[Path, dict[str, Any], FakeGateway],
+) -> None:
+    """GSE70's mouse and worm both have the tissue "intestine". The mouse's term is UBERON's and
+    the worm's is WBbt's: a term found for one species is never written for the other."""
+    set_dir, _, _ = read
+    reading = _reading(set_dir, "GSE70")
+
+    assert _claim(reading, "GSM71", "tissue")["term"] == "UBERON:0000160"
+    assert _claim(reading, "GSM72", "tissue")["term"] == "WBbt:0005772"

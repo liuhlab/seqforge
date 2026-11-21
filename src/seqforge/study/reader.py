@@ -81,7 +81,9 @@ JEV = Model("typesafe", "jev-1.14.0")
 YES = 0.5
 #: A searched term is written only when Jev's pick of it has at least this probability.
 TERM_AT = 0.8
-#: The most values of one label Jev chooses among.
+#: The most values of one label Jev chooses among. A study whose writer lists more for one label
+#: is refused, naming the label: a value cut from the options would be a quiet loss, and asking in
+#: batches would give picks whose probabilities do not compare.
 MOST_VALUES = 25
 #: The Jev requests one study sends at once.
 AT_ONCE = 4
@@ -293,7 +295,7 @@ def _glossary(lists: _Lists, kept: list[_Factor]) -> str:
             texts = [
                 v.text
                 + (f' ("{v.quote.text[:150]}")' if v.quote and v.quote.text != v.text else "")
-                for v in listed.values[:MOST_VALUES]
+                for v in listed.values
             ]
             out.append(f"{label}: " + " | ".join(texts))
     return "\n".join(out)
@@ -412,9 +414,7 @@ def _sample_questions(
         if not listed.values:
             continue
         words = label.replace("_", " ")
-        options = {
-            f"v{j}": f"{words} is {v.text}" for j, v in enumerate(listed.values[:MOST_VALUES])
-        }
+        options = {f"v{j}": f"{words} is {v.text}" for j, v in enumerate(listed.values)}
         options["unknown"] = f"`sample`'s text and the listed words do not say its {words}"
         example = _NA_EXAMPLE.get(label)
         options["na"] = f"{words} does not apply to `sample`" + (f" ({example})" if example else "")
@@ -573,7 +573,7 @@ def _check_passages(
 class _Terms:
     """The ids code and Jev gave each value's text, and the snapshot the searched ones came from."""
 
-    by_text: dict[tuple[str, str], str | list[str]] = field(default_factory=dict)
+    by_text: dict[tuple[str, str, str | None], str | list[str]] = field(default_factory=dict)
     snapshot: Snapshot | None = None
     searched: int = 0
 
@@ -581,36 +581,36 @@ class _Terms:
 def _terms(
     u: Unit,
     search: OntologySearch,
-    used: Mapping[tuple[str, str], tuple[Value, str | None]],
+    used: Mapping[tuple[str, str, str | None], Value],
     glossary: str,
 ) -> _Terms:
     """Each used value's term: the search's candidates for its search names, Jev's pick of them.
 
-    ``used`` maps ``(label, text)`` to the listed value and the taxonomy id of a sample that has
-    it. A term is written only for a pick at least :data:`TERM_AT` sure; a treatment of several
+    ``used`` maps ``(label, text, vocabulary)`` to the listed value, the vocabulary being the one
+    of the species of a sample that has it, so one text is looked up once per vocabulary. A term
+    is written only for a pick at least :data:`TERM_AT` sure; a treatment of several
     compounds gets a list, only when every compound got one. ``healthy`` maps to its PATO id, and
     ``adult`` to the species' adult stage when the search finds it by its whole name.
     """
     terms = _Terms()
     questions: dict[str, Any] = {}
-    asked: dict[str, tuple[tuple[str, str], int, Snapshot | None]] = {}
+    asked: dict[str, tuple[tuple[str, str, str | None], int, Snapshot | None]] = {}
     candidates: dict[str, tuple[Candidate, ...]] = {}
-    wanted: dict[tuple[str, str], int] = {}
-    for (label, text), (value, taxid) in used.items():
+    wanted: dict[tuple[str, str, str | None], int] = {}
+    for (label, text, vocab), value in used.items():
         if label == "disease" and text.strip().lower() == "healthy":
-            terms.by_text[(label, text)] = HEALTHY
+            terms.by_text[(label, text, vocab)] = HEALTHY
             continue
-        vocab = vocabulary(label, taxid)
         if vocab is None:
             continue
         if label == "development_stage" and text.strip().lower() == "adult":
             if (adult := _adult_stage(search, vocab)) is not None:
-                terms.by_text[(label, text)] = adult[0].id
+                terms.by_text[(label, text, vocab)] = adult[0].id
                 terms.snapshot = terms.snapshot or adult[1]
             continue
         names = value.search if isinstance(value.search, list) else [value.search or text]
         names = [n for n in names if n and n.strip()][: 1 if label != "treatment" else 10]
-        wanted[(label, text)] = len(names)
+        wanted[(label, text, vocab)] = len(names)
         for n, name in enumerate(names):
             found = search.search(name.strip(), vocab)
             terms.searched += 1
@@ -623,10 +623,10 @@ def _terms(
                 f'Which ontology term names the {label.replace("_", " ")} "{name}" (the text: "{text}")?',
                 options,
             )
-            asked[key] = ((label, text), n, found.snapshot)
+            asked[key] = ((label, text, vocab), n, found.snapshot)
             candidates[key] = found.candidates
     answers = _ask(u, f"Ontology terms for the samples of a study.\n{glossary[:6000]}", questions)
-    picked: dict[tuple[str, str], dict[int, str]] = defaultdict(dict)
+    picked: dict[tuple[str, str, str | None], dict[int, str]] = defaultdict(dict)
     for key, (which, n, snapshot) in asked.items():
         choice, p = _pick(answers.get(key))
         if choice and choice.startswith("c") and p is not None and p >= TERM_AT:
@@ -676,6 +676,14 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
     ] + notes_text
     study = _ask_study(u, study_text, lists)
     kept = _kept(lists)
+    if crowded := {
+        k: len(v.values) for k, v in lists.labels.items() if len(v.values) > MOST_VALUES
+    }:
+        said = ", ".join(f"{label} ({n})" for label, n in crowded.items())
+        u.refuse(
+            "too_many_values",
+            f"more values listed than Jev chooses among ({MOST_VALUES}) for: {said}",
+        )
     glossary = _glossary(lists, kept)
     first = _sample_questions(kept, lists.labels, reverse=False)
     second = _sample_questions(kept, lists.labels, reverse=True)
@@ -717,14 +725,14 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
                 f"{f.label} is {level.text} for the samples this passage describes",
                 level,
             )
-    used: dict[tuple[str, str], tuple[Value, str | None]] = {}
+    used: dict[tuple[str, str, str | None], Value] = {}
     for g in samples:
         taxid = src.taxonomy(by_id[g])[1]
         for i, f in enumerate(kept):
             c = picks[g][f"lvl{i}"][0]
             if c and c.startswith("L") and f.names:
                 level = f.levels[int(c[1:])]
-                used.setdefault((f.label, level.text), (level, taxid))
+                used.setdefault((f.label, level.text, vocabulary(f.label, taxid)), level)
         for label, listed_label in lists.labels.items():
             c = picks[g].get(f"lab_{label}", (None, None))[0]
             if c and c.startswith("v"):
@@ -736,7 +744,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
                         value,
                     ),
                 )
-                used.setdefault((label, value.text), (value, taxid))
+                used.setdefault((label, value.text, vocabulary(label, taxid)), value)
     check_text = src.records_text(sources)[:40_000] + notes_text
     backing, tied, passages, counts = _check_passages(u, check_text, sources, claims, lists.ties)
     terms = _terms(u, context.search, used, glossary)
@@ -745,6 +753,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
     donor_kind, p_donor = _pick(study.get("donor"))
     groups = _biosamples(samples, tied)
     for g in samples:
+        taxid = src.taxonomy(by_id[g])[1]
         rows[g].update(_material(g, groups, donor_kind, p_donor))
         rows[g]["species"] = _species(sources, by_id[g], passages)
         for i, f in enumerate(kept):
@@ -753,7 +762,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
                 j = int(c[1:])
                 key = f"level:{f.label}:{f.names[j]}"
                 rows[g][f.label] = _value_claim(
-                    f.label, f.levels[j], backing[key], terms, p, level=f.names[j]
+                    f.label, f.levels[j], backing[key], terms, taxid, p, level=f.names[j]
                 )
             else:
                 rows[g][f.label] = _gap(f.label, "na" if c == "na" else "unknown", None, p)
@@ -765,7 +774,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
                 if c and c.startswith("v"):
                     value = listed_label.values[int(c[1:])]
                     rows[g][label] = _value_claim(
-                        label, value, backing[f"value:{label}:{c}"], terms, p
+                        label, value, backing[f"value:{label}:{c}"], terms, taxid, p
                     )
                 else:
                     gap = listed_label.gap.why if listed_label.gap else None
@@ -987,12 +996,14 @@ def _value_claim(
     value: Value,
     backing: _Backing,
     terms: _Terms,
+    taxid: str | None,
     p: float | None,
     *,
     level: str | None = None,
 ) -> dict[str, Any]:
+    """A sample's claim on one listed value, its term looked up in the vocabulary of its species."""
     claim: dict[str, Any] = {"text": value.text}
-    term = terms.by_text.get((label, value.text))
+    term = terms.by_text.get((label, value.text, vocabulary(label, taxid)))
     if label == "sex" and value.text.strip().lower() in SEX_WORDS:
         term = value.text.strip().lower()
     if term:
