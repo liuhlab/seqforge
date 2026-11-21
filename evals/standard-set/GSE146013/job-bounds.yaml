@@ -1,0 +1,14 @@
+format: 1
+study: GSE146013
+models:
+  bounds: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE146013
+  inferred: 'code: the study starts from GSE146013'
+  p: null
+papers:
+- pmid:32549330
+left_out: []
+reason: Code kept GEO Series GSE146013; Jev judged each other record kept here to be from the same research.
+passages: {}

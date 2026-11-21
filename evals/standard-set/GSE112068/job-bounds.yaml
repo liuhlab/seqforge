@@ -1,0 +1,13 @@
+format: 1
+study: GSE112068
+models:
+  bounds: null
+  probabilities: null
+series:
+- id: GSE112068
+  inferred: 'code: the study starts from GSE112068'
+  p: null
+papers: []
+left_out: []
+reason: Code kept GEO Series GSE112068; the linked group holds no other record to ask about.
+passages: {}

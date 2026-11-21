@@ -1,0 +1,21 @@
+format: 1
+study: GSE140511
+models:
+  bounds: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE140399
+  inferred: 'code: a sub-Series of GSE140511'
+  p: null
+- id: GSE140510
+  inferred: 'code: a sub-Series of GSE140511'
+  p: null
+papers:
+- pmid:31932797
+left_out:
+- id: GSE140511
+  inferred: 'code: a SuperSeries only repeats its sub-Series'' samples'
+  p: null
+reason: Code kept the Series under SuperSeries GSE140511; Jev judged each other record kept here to be
+  from the same research.
+passages: {}

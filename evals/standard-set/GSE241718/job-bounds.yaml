@@ -1,0 +1,18 @@
+format: 1
+study: GSE241718
+models:
+  bounds: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE241718
+  inferred: 'code: the study starts from GSE241718'
+  p: null
+- id: GSE241275
+  inferred: 'Jev''s p(yes) that GSE241275 was deposited for the same research as GEO Series GSE241718:
+    0.92; its p(yes) to the reversed question: 0.16'
+  p: 0.92
+papers:
+- pmid:38997312
+left_out: []
+reason: Code kept GEO Series GSE241718; Jev judged each other record kept here to be from the same research.
+passages: {}

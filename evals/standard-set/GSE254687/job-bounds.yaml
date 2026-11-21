@@ -1,0 +1,26 @@
+format: 1
+study: GSE254687
+models:
+  bounds: typesafe/jev-1.14.0
+  probabilities: typesafe/jev-1.14.0
+series:
+- id: GSE254687
+  inferred: 'code: the study starts from GSE254687'
+  p: null
+- id: GSE256105
+  inferred: 'Jev''s p(yes) that GSE256105 was deposited for the same research as GEO Series GSE254687:
+    0.92; its p(yes) to the reversed question: 0.12'
+  p: 0.92
+papers:
+- pmid:39014482
+left_out:
+- id: GSE115571
+  inferred: 'Jev''s p(yes) that GSE115571 was deposited for the same research as GEO Series GSE254687:
+    0.11; its p(yes) to the reversed question: 0.79'
+  p: 0.89
+- id: pmid:30206190
+  inferred: 'Jev''s p(yes) that pmid:30206190 first reports the data of GEO Series GSE254687: 0.04; its
+    p(yes) to the reversed question: 0.53'
+  p: 0.96
+reason: Code kept GEO Series GSE254687; Jev judged each other record kept here to be from the same research.
+passages: {}
