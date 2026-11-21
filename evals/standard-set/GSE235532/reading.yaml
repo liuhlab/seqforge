@@ -12,7 +12,7 @@
 #             na: "why"                     the label does not apply to this sample
 #   p:      the writing model's own estimate that the claim as written is right, given what `read`
 #           lists. Not calibrated.
-format: 1
+format: 2
 study: GSE235532
 models: {reading: claude-fable-5-2, probabilities: claude-fable-5-2}
 # Read: the Series record and all 24 sample records of GSE235532; the abstract and the main text of
@@ -20,6 +20,10 @@ models: {reading: claude-fable-5-2, probabilities: claude-fable-5-2}
 # figure image). The 24 BioSample records and two SRA experiment records were looked at and are
 # not cited: they add only "sex: male" and a replicate number that runs 1 to 24.
 read: [records, abstract, full_text]
+
+# Where the ontology ids below came from. Every id was looked up at the EBI's OLS4 on this date,
+# when the assay ids were added.
+ontology_snapshot: {source: "EBI OLS4 web search", date: 2026-11-21}
 
 # Each quote is one unbroken span copied from one field, always on one line.
 # record: each_sample means every sample record of the study holds this quote in that field.
@@ -67,7 +71,7 @@ factors:
 # row writes, and that claim replaces the shared one whole.
 shared:
   donor:             {na: "each library comes from a pool of 25 fly heads (passages 8, 28); no single animal", p: 0.95}
-  assay:             {text: ChIP-Seq, quoted: [9, 1], p: 0.99}
+  assay:             {text: ChIP-Seq, term: "EFO:0002692", quoted: [9, 1], p: 0.99}
   control_type:      {na: "a pull-down library, not a background control", p: 0.98}
   species:           {text: Drosophila melanogaster, term: "NCBITaxon:7227", quoted: [4], p: 0.99}
   sex:               {text: male, term: male, quoted: [7, 27], p: 0.97}

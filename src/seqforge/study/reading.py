@@ -4,7 +4,9 @@ One claim is one label of one sample, written as :mod:`.claims` has every study 
 with one more backing mark of the reading's own: ``na``, for a label that does not apply. A claim
 under ``shared`` belongs to every sample whose own row does not write that label, and a row's claim
 replaces the shared one whole. A **factor** names a label the study varied on purpose and the
-levels it took; a sample's claim on that label names its level.
+levels it took; a sample's claim on that label names its level. A claim may also name the
+passages that speak against it, under ``against``, when the sources disagree. A reading that writes
+an ontology id names, once, the dated snapshot of the ontologies its ids came from.
 
 :func:`check_reading` is the format check. It takes a file's content as loaded and returns what is
 wrong with it, each problem naming its field; an empty list is a valid file. The check is
@@ -15,7 +17,8 @@ valid one.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+import datetime
+from collections.abc import Iterator, Mapping
 from typing import Any, Literal
 
 from pydantic import Field, PositiveInt, StrictBool, ValidationError
@@ -32,7 +35,7 @@ from .claims import (
 )
 
 #: The one format the check accepts. A change to the file's shape raises it, and rewrites every file.
-FORMAT = 1
+FORMAT = 2
 
 #: The labels every sample has once the shared claims are applied. A row may add labels of its own.
 LABELS = (
@@ -65,13 +68,26 @@ _NAMED = ("biosample", "donor")
 #: What says a value. A claim that marks a gap carries none of them.
 _VALUE_FIELDS = ("text", "term", "value", "unit", "level")
 
+#: The one label whose term may be a list: one sample can be given several compounds.
+_MANY_TERMS = "treatment"
 
-class SampleClaim(Claim):
+#: The label whose term is a word of the format's own, not an ontology id, so it needs no snapshot.
+_OWN_WORDS = "sex"
+
+
+class ReadingClaim(Claim):
+    """A claim of a reading. Beside its backing, it may name the passages that speak against it."""
+
+    against: list[int] | None = None
+
+
+class SampleClaim(ReadingClaim):
     """One label of one sample: what the source says, and how that is backed."""
 
     na: str | None = None
     text: str | None = None
-    term: str | None = None
+    #: One ontology id; a list only on a treatment of several compounds.
+    term: str | list[str] | None = None
     #: One number, or the two ends of a range. Typed loosely so that the check says which in the
     #: format's own words: see :func:`_number_or_range`.
     value: Any = None
@@ -85,7 +101,7 @@ class SampleClaim(Claim):
         return self.unknown is None and self.na is None
 
 
-class Factor(Claim):
+class Factor(ReadingClaim):
     """A label the study varied on purpose, and the levels it took. A factor is a claim too."""
 
     levels: list[str] = Field(min_length=1)
@@ -101,14 +117,23 @@ class Models(Strict):
     probabilities: str | None
 
 
+class OntologySnapshot(Strict):
+    """Where a reading's ontology ids came from: a named source of the ontologies, and its date."""
+
+    source: str
+    date: datetime.date
+
+
 class Reading(Strict):
     """A whole reading file."""
 
-    format: Literal[1]
+    format: Literal[2]
     study: str = Field(min_length=1)
     models: Models
     read: list[Literal["records", "abstract", "full_text"]] = Field(min_length=1)
     read_detail: str | None = None
+    #: Required once any claim writes an ontology id: see :func:`_between_fields`.
+    ontology_snapshot: OntologySnapshot | None = None
     passages: dict[PositiveInt, Passage]
     factors: dict[str, Factor]
     shared: dict[str, SampleClaim]
@@ -134,6 +159,11 @@ def _label_problems(
     """What is wrong with one written claim that depends on the label it is written under."""
     if claim.value is not None and not _number_or_range(claim.value):
         yield f"{where}.value", "a value is a number, or a range as [low, high]"
+    if isinstance(claim.term, list):
+        if label != _MANY_TERMS:
+            yield f"{where}.term", "a list of terms is only for a treatment of several compounds"
+        elif not claim.term:
+            yield f"{where}.term", "an empty list names no term"
     if not claim.says:
         for name in _VALUE_FIELDS:
             if getattr(claim, name) is not None:
@@ -154,14 +184,31 @@ def _label_problems(
             yield f"{where}.level", f"{claim.level} is not a level of the factor {label}"
 
 
+def _against_problems(
+    where: str, claim: ReadingClaim, passages: Mapping[int, Passage]
+) -> Iterator[tuple[str, str]]:
+    """A passage named as speaking against a claim that the file does not hold."""
+    for number in claim.against or []:
+        if number not in passages:
+            yield f"{where}.against", f"passage {number} does not exist"
+
+
 def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
     """What no single field shows: a claim's mark, a pointer to nothing, a label a sample lacks."""
     by = reading.models.probabilities
     yield from passage_problems(reading.passages)
+    snapshot = reading.ontology_snapshot
+    if snapshot is not None and not snapshot.source.strip():
+        yield "ontology_snapshot.source", "blank: the snapshot names where the ids came from"
     rows = reading.rows()
+    # The target of a pull-down is a label and never a factor: the relations already keep samples
+    # with different targets apart, and a target has no baseline to compare the others with.
+    if "target" in reading.factors:
+        yield "factors.target", "target is never a factor; it stays a label of each sample"
     for label, factor in reading.factors.items():
         where = f"factors.{label}"
         yield from claim_problems(where, factor, reading.passages, probabilities_by=by)
+        yield from _against_problems(where, factor, reading.passages)
         if len(set(factor.levels)) != len(factor.levels):
             yield f"{where}.levels", "a level is named twice"
         if factor.baseline is not None and factor.baseline not in factor.levels:
@@ -183,7 +230,15 @@ def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
         yield from claim_problems(
             where, claim, reading.passages, marks=SAMPLE_MARKS, probabilities_by=by
         )
+        yield from _against_problems(where, claim, reading.passages)
         yield from _label_problems(where, label, claim, reading.factors)
+    # An id is only as good as the ontology it was read from, so a file that writes one says which.
+    ids = [where for where, label, claim in written if claim.term and label != _OWN_WORDS]
+    if ids and snapshot is None:
+        yield (
+            "ontology_snapshot",
+            f"missing: {ids[0]} writes an ontology id, so the file names the snapshot it came from",
+        )
     # A row's claim replaces the shared one whole, its level too: a row that forgets the level
     # would leave its sample outside the factor without saying so.
     for sample, own in reading.samples.items():

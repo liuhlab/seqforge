@@ -29,3 +29,16 @@
 - **Units:** `μM`, `percent`, `hour`. I found no written unit list.
 - **Paper sections** are `abstract`, `results`, `methods`. A paper quote is checked against the article text with italics and links removed.
 - **Sex** comes only from the full text; the records are silent.
+
+## Format 2 (2026-11-21)
+
+The reading format changed, and the reading was rewritten to it. No claim's text, number, level or
+`p` changed.
+
+- `assay` gains EFO ids: `EFO:0008896` (RNA-Seq) and `EFO:0002692` (ChIP-seq). The file names
+  where its ids came from: the EBI's OLS4, where every id was looked up again on 2026-11-21.
+- Item 5: the 12 mutant `strain` claims now list passage 23, the records' `strain: N2`, under
+  `against`. It moved there from `see`.
+- Item 10: the format now holds two compounds as a list of terms, and a duration as text only, as
+  `overnight` already is. The R24 claims are left as written: R24 has no id, and adding DMSO would
+  change a claim's value.

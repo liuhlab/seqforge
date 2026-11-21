@@ -127,6 +127,7 @@ def evidence(
         "note": None if mark == "quoted" else getattr(claim, mark, None),
         "quoted": claim.quoted or [],
         "see": claim.see or [],
+        "against": claim.against or [],
         "p": claim.p,
         "dis": dis,
     }
@@ -165,12 +166,13 @@ def cell(
 
 def claim_cell(label: str, who: str, claim: SampleClaim, dis: list[int], add: Add) -> str:
     """One label of one sample, as a cell that opens its evidence."""
+    terms = claim.term if isinstance(claim.term, str) else ", ".join(claim.term or [])
     facts = [
         ("In the source's words", claim.text or ""),
         ("Name given in this file", claim.id or ""),
         ("Number", amount(claim)),
         ("Level of the factor", claim.level or ""),
-        ("Ontology term", claim.term or ""),
+        ("Ontology term", terms),
     ]
     n = add(evidence(words(label), who, claim, facts, dis))
     small = []
@@ -178,8 +180,8 @@ def claim_cell(label: str, who: str, claim: SampleClaim, dis: list[int], add: Ad
         small.append(f'<span class="lv">level: {e(claim.level)}</span>')
     if claim.value is not None and (claim.text or claim.id):
         small.append(f'<span class="sub">{e(amount(claim))}</span>')
-    if claim.term:
-        small.append(f'<span class="term">{e(claim.term)}</span>')
+    if terms:
+        small.append(f'<span class="term">{e(terms)}</span>')
     return cell(n, f"{words(label)}, {who}", said(claim), small, claim, bool(dis))
 
 

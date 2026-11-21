@@ -6,11 +6,16 @@
 # A claim is one label of one sample, on one line: what it says, how it is backed, how sure.
 #   backed: exactly one of quoted: [passages], inferred: "how", unknown: "note" (the material
 #           read does not say), na: "why" (does not apply). The last three may add see: [passages].
+#   against: [passages], optional beside any mark: the passages that say otherwise.
 #   p:      the chance the claim as written is right, given what `read` lists.
-format: 1
+format: 2
 study: GSE241718
 models: {reading: claude-fable-5-2, probabilities: claude-fable-5-2}
 read: [records, abstract, full_text]
+
+# Where the ontology ids below came from. Every id was looked up at the EBI's OLS4 on this date,
+# when the assay ids were added.
+ontology_snapshot: {source: "EBI OLS4 web search", date: 2026-11-21}
 
 # Each quote is one unbroken span copied from one field, always on one line.
 # record: each_sample means all eight sample records, in both Series, hold this quote in that field.
@@ -32,7 +37,7 @@ passages:
   14: {record: [GSM7734325, GSM7734326, GSM7734327, GSM7734328], field: Sample_characteristics_ch1, quote: "tissue: SAT"}
   15: {record: [GSM7720368, GSM7720369, GSM7734329, GSM7734330], field: Sample_characteristics_ch1, quote: "tissue: VAT"}
   16: {record: [GSM7720368, GSM7720369, GSM7734325, GSM7734326], field: Sample_characteristics_ch1, quote: "age: 2 months"}
-  # Passages 17 to 20 speak AGAINST a claim below. No claim cites them: `quoted` and `see` name support.
+  # Passages 17 to 20 speak against claims below, which name them under `against`.
   17: {record: [GSM7734327, GSM7734328, GSM7734329, GSM7734330], field: Sample_characteristics_ch1, quote: "age: 24 months"}
   18: {record: each_sample, field: Sample_characteristics_ch1, quote: "cell type: Adipocytes"}
   19: {record: [GSM7720368, GSM7720369], field: Sample_description, quote: "10x Genomics"}
@@ -55,12 +60,12 @@ factors:
 # Inheritance, the whole rule: a sample has every claim under `shared`, except a label its own
 # row writes, and that claim replaces the shared one whole.
 shared:
-  assay:             {text: single-nucleus RNA-seq, quoted: [2, 13, 12, 8], p: 0.97}
+  assay:             {text: single-nucleus RNA-seq, term: "EFO:0009809", quoted: [2, 13, 12, 8], p: 0.97}
   target:            {na: "RNA-seq of nuclear RNA has no target", p: 0.99}
   control_type:      {na: "no library is a background control", p: 0.98}
   species:           {text: Mus musculus, term: "NCBITaxon:10090", quoted: [11], p: 0.99}
   sex:               {text: female, term: female, quoted: [1, 7, 4], p: 0.98}
-  cell_type:         {na: "nuclei of the whole fat depot, not sorted by cell type; the paper finds seven cell types in these libraries. The record's own 'cell type: Adipocytes' (passage 18) names the cell of interest", see: [8, 13], p: 0.88}
+  cell_type:         {na: "nuclei of the whole fat depot, not sorted by cell type; the paper finds seven cell types in these libraries. The record's own 'cell type: Adipocytes' (passage 18) names the cell of interest", see: [8, 13], against: [18], p: 0.88}
   cell_line:         {na: "tissue taken from the animal", p: 0.99}
   disease:           {text: healthy, term: "PATO:0000461", inferred: "pathogen-free mice in a study of normal aging; no disease or disease model is named", see: [9], p: 0.92}
   genotype:          {text: wild type, inferred: "inbred C57BL/6J mice; records and paper name no mutation or transgene", see: [1, 7], p: 0.9}
@@ -76,14 +81,14 @@ samples:
   GSM7720368:
     biosample:         {id: B1, text: MM_VA_1, quoted: [21, 8], p: 0.92}
     donor:             {id: D1, inferred: "two mice per age group gave both depots; replicate 1 paired with SAT replicate 1 of the other Series by number, a guess", see: [5, 10], p: 0.5}
-    assay:             {text: single-nucleus RNA-seq, quoted: [2, 13, 12, 8], p: 0.93}
+    assay:             {text: single-nucleus RNA-seq, term: "EFO:0009809", quoted: [2, 13, 12, 8], against: [19, 20], p: 0.93}
     tissue:            {text: VAT, term: "UBERON:0003428", level: VAT, quoted: [15, 2, 5], p: 0.93}
     age:               {text: 2 months, value: 2, unit: month, level: young, quoted: [16, 1], p: 0.97}
     development_stage: {text: young, term: "MmusDv:0000062", quoted: [3, 4], p: 0.9}
   GSM7720369:
     biosample:         {id: B2, text: MM_VA_2, quoted: [22, 8], p: 0.92}
     donor:             {id: D2, inferred: "two mice per age group gave both depots; replicate 2 paired with SAT replicate 2 of the other Series by number, a guess", see: [5, 10], p: 0.5}
-    assay:             {text: single-nucleus RNA-seq, quoted: [2, 13, 12, 8], p: 0.93}
+    assay:             {text: single-nucleus RNA-seq, term: "EFO:0009809", quoted: [2, 13, 12, 8], against: [19, 20], p: 0.93}
     tissue:            {text: VAT, term: "UBERON:0003428", level: VAT, quoted: [15, 2, 5], p: 0.93}
     age:               {text: 2 months, value: 2, unit: month, level: young, quoted: [16, 1], p: 0.97}
     development_stage: {text: young, term: "MmusDv:0000062", quoted: [3, 4], p: 0.9}
@@ -103,23 +108,23 @@ samples:
     biosample:         {id: B5, text: FGG1_24M, quoted: [25, 8], p: 0.92}
     donor:             {id: D3, inferred: "two mice per age group gave both depots; FGG1 paired with XX1 by number, a guess", see: [5], p: 0.55}
     tissue:            {text: SAT, term: "UBERON:0010410", level: SAT, quoted: [14, 2, 5], p: 0.93}
-    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], p: 0.55}
+    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], against: [17], p: 0.55}
     development_stage: {text: aged, term: "MmusDv:0000134", quoted: [3, 4], p: 0.92}
   GSM7734328:
     biosample:         {id: B6, text: FGG2_24M, quoted: [26, 8], p: 0.92}
     donor:             {id: D4, inferred: "two mice per age group gave both depots; FGG2 paired with XX2 by number, a guess", see: [5], p: 0.55}
     tissue:            {text: SAT, term: "UBERON:0010410", level: SAT, quoted: [14, 2, 5], p: 0.93}
-    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], p: 0.55}
+    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], against: [17], p: 0.55}
     development_stage: {text: aged, term: "MmusDv:0000134", quoted: [3, 4], p: 0.92}
   GSM7734329:
     biosample:         {id: B7, text: XX1_24M, quoted: [27, 8], p: 0.92}
     donor:             {id: D3, inferred: "two mice per age group gave both depots; XX1 paired with FGG1 by number, a guess", see: [5], p: 0.55}
     tissue:            {text: VAT, term: "UBERON:0003428", level: VAT, quoted: [15, 2, 5], p: 0.93}
-    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], p: 0.55}
+    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], against: [17], p: 0.55}
     development_stage: {text: aged, term: "MmusDv:0000134", quoted: [3, 4], p: 0.92}
   GSM7734330:
     biosample:         {id: B8, text: XX2_24M, quoted: [28, 8], p: 0.92}
     donor:             {id: D4, inferred: "two mice per age group gave both depots; XX2 paired with FGG2 by number, a guess", see: [5], p: 0.55}
     tissue:            {text: VAT, term: "UBERON:0003428", level: VAT, quoted: [15, 2, 5], p: 0.93}
-    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], p: 0.55}
+    age:               {text: 26 months, value: 26, unit: month, level: aged, quoted: [1, 7, 4], against: [17], p: 0.55}
     development_stage: {text: aged, term: "MmusDv:0000134", quoted: [3, 4], p: 0.92}

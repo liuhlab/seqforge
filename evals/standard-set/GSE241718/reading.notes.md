@@ -37,3 +37,15 @@ GSE241275 rows restate `assay` only to lower its `p`. `format: 1` is the prototy
 
 **Outside the format:** `study.yaml` says one Series is whole cells and one nuclei. The paper and
 both protocols say all eight libraries are single-nucleus, two upload stages of one batch.
+
+## Format 2 (2026-11-21)
+
+The reading format changed, and the reading was rewritten to it. No claim's text, number, level or
+`p` changed.
+
+- `assay` gains the EFO id `EFO:0009809` (single nucleus RNA sequencing). The file names where
+  its ids came from: the EBI's OLS4, where every id was looked up again on 2026-11-21.
+- Items 1 and 7: the four aged `age` claims list passage 17 (24 months) under `against`, the shared
+  `cell_type` gap lists 18, and the two GSE241275 `assay` claims list 19 and 20. No passage is left
+  uncited.
+- Item 9: assay now has a term source.
