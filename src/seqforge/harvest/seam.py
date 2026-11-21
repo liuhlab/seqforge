@@ -149,6 +149,9 @@ class ModelSeam:
         self.meter = meter
         self.model = model
         self._record = record
+        #: Which repeat of each request is sent. 1 is the plain request, the compiler's own; an eval
+        #: sets trial k's number before that trial, so each trial gets a fresh answer.
+        self.replicate = 1
         self._lock = threading.Lock()
         self._settled = threading.Condition(self._lock)
         self._in_flight = 0
@@ -169,7 +172,11 @@ class ModelSeam:
         return f"{self.model.provider}/{self.model.name}"
 
     def mode(self, max_tokens: int) -> dict[str, Any]:
-        """The settings a request with this output allowance is sent with: the Ledger's ``mode``."""
+        """The settings a request with this output allowance is sent with: the Ledger's ``mode``.
+
+        A replicate other than the plain request is part of the request, so it is kept here and a
+        transcript can tell an eval's trials apart and replay each one.
+        """
         return {
             **{
                 k: v
@@ -181,6 +188,7 @@ class ModelSeam:
                 if v is not None
             },
             "max_output_tokens": max_tokens,
+            **({"replicate": self.replicate} if self.replicate != 1 else {}),
         }
 
     @property
@@ -199,13 +207,21 @@ class ModelSeam:
         from labllm import CeilingReached, Stopped
 
         model = replace(self.model, max_output_tokens=max_tokens)
+        replicate = self.replicate
         mode = self.mode(max_tokens)
         while True:
             with self._lock:
                 self._in_flight += 1
                 settled_before = self._n_settled
             try:
-                r = self.meter.chat(model, system=system, user=user, schema=schema, tag=tag)
+                r = self.meter.chat(
+                    model,
+                    system=system,
+                    user=user,
+                    schema=schema,
+                    tag=tag,
+                    replicate=replicate,
+                )
             except CeilingReached as exc:
                 if self._wait_for_room(settled_before):
                     continue

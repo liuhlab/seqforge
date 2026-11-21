@@ -307,7 +307,11 @@ def run_case(
             )
 
         ws = workspace or tmp_path
-        for _ in range(n):
+        for trial in range(1, n + 1):
+            # Trial k asks for replicate k: without it the gateway answers trials 2..N from trial
+            # 1's cache and stability would always read 1.
+            if seam is not None:
+                seam.replicate = trial
             hypothesis: Hypothesis | None = None
             if case.recipe.hypothesis:
                 hypothesis = Hypothesis(value=case.recipe.hypothesis, id="recipe", confidence=0.9)
