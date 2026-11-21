@@ -24,8 +24,9 @@ This page is the short, friendly path. When you want to see every step and inspe
 
 3. **Reach the model gateway for reading prose.** One stage — reading a paper or a sample sheet —
    uses a language model, through the lab's model gateway. Open a tunnel to it and set
-   `LABLLM_GATEWAY` to its local address ([Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/)); you need no provider key. If you have no paper to
-   read, you can skip this and stay fully offline.
+   `LABLLM_GATEWAY` to its local address
+   ([Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/));
+   you need no provider key. If you have no paper to read, you can skip this and stay fully offline.
 
 That's it. From here on you just talk to Claude.
 

@@ -74,6 +74,7 @@ from .plan import (  # noqa: E402
 )
 from .seam import (  # noqa: E402
     DEEPSEEK_DEFAULT_MODEL,
+    DEFAULT_CEILING_USD,
     DEFAULT_PROVIDER,
     Exchange,
     ModelSeam,
@@ -166,6 +167,7 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "stop_blocker",
     "DEFAULT_PROVIDER",
     "DEEPSEEK_DEFAULT_MODEL",
+    "DEFAULT_CEILING_USD",
     "Exchange",
     "Transcript",
     # the transcript's address on disk (the seam holds it; this writes and reads it)

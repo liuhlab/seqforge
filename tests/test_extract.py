@@ -58,13 +58,13 @@ def _over(provider: Callable[[dict[str, Any]], Any], **seam: Any) -> tuple[FakeG
     return fake, harvest_kit.seam_over(fake, **{"ceiling_usd": 10.0, **seam})
 
 
-def _answering(*texts: str, **seam: Any) -> tuple[FakeGateway, ModelSeam]:
-    """A seam whose provider answers each request with the next of ``texts``, the last from then on.
+def _answering(text: str, **seam: Any) -> tuple[FakeGateway, ModelSeam]:
+    """A seam whose provider answers every request with ``text``.
 
     A fake gateway caches by request, so two calls that must get two different replies to the same
     request take two seams.
     """
-    return _over(harvest_kit.answering(*texts), **seam)
+    return _over(harvest_kit.answering(text), **seam)
 
 
 def _sent(fake: FakeGateway) -> list[dict[str, Any]]:

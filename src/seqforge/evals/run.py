@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from ..harvest import (
+    DEFAULT_CEILING_USD,
     EXTRACT_PROMPT_VERSION,
     ModelSeam,
     extract_planned,
@@ -73,9 +74,6 @@ from .grade import CaseGrade, Grade, grade_case
 
 if TYPE_CHECKING:
     from labllm import Gateway, Model
-
-#: What a case may spend at the model seam, in dollars, when the caller names nothing: one harvest's.
-DEFAULT_CASE_CEILING_USD = 1.0
 
 
 @dataclass
@@ -239,7 +237,7 @@ def run_case(
     gateway: Gateway | None = None,
     model: Model | None = None,
     trials: int = 1,
-    ceiling_usd: float = DEFAULT_CASE_CEILING_USD,
+    ceiling_usd: float = DEFAULT_CEILING_USD,
     workspace: Path | None = None,
 ) -> CaseRun:
     """Run one case through the compiler ``trials`` times and grade every trial.
@@ -302,16 +300,7 @@ def run_case(
         if use_llm:
             from ..passes import gateway as gateway_module
 
-            try:
-                client = gateway if gateway is not None else gateway_module.make_gateway()
-            except Stopped as exc:
-                return CaseRun(
-                    case.id,
-                    _empty_grade(case),
-                    skipped=f"{exc.reason}: {exc}",
-                    blocker=stop_blocker(exc, subject=case.id, spent_usd=0.0),
-                    seconds=time.monotonic() - started,
-                )
+            client = gateway if gateway is not None else gateway_module.make_gateway()
             seam = ModelSeam(
                 client.meter(case.id, ceiling_usd=ceiling_usd),
                 model or harvest_model(),
@@ -494,7 +483,7 @@ def run_cases(
     model: Model | None = None,
     trials: int = 1,
     jobs: int | None = None,
-    ceiling_usd: float = DEFAULT_CASE_CEILING_USD,
+    ceiling_usd: float = DEFAULT_CEILING_USD,
     workspace: Path | None = None,
 ) -> tuple[EvalReport, list[CaseRun]]:
     """Run every case and aggregate into the harness's metric set.

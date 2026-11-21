@@ -1691,10 +1691,10 @@ def _paired_reads(tmp_path: Path) -> list[str]:
 def test_harvest_ledger_is_in_dollars_and_joins_each_call_to_its_document(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """One meter per harvest, labelled by the dataset, under a one-dollar ceiling by default; each
-    call tagged with the document its cost is booked against; the Ledger in dollars from the
-    meter's counters and each reply's cost. A second harvest over the same documents is answered
-    from the gateway's cache and costs nothing.
+    """One meter per harvest, labelled by the dataset (here the workspace's folder, as no record set
+    names it), under a one-dollar ceiling by default; each call tagged with the document its cost is
+    booked against; the Ledger in dollars from the meter's counters and each reply's cost. A second
+    harvest over the same documents is answered from the gateway's cache and costs nothing.
     """
     fake = harvest_kit.install(monkeypatch)
     argv = ["harvest", "extract", *_prose_docs_apart(tmp_path, 3), "-C", str(tmp_path)]
@@ -1704,7 +1704,7 @@ def test_harvest_ledger_is_in_dollars_and_joins_each_call_to_its_document(
     paid = [e for e in fake.record if not e.cached]
     assert len(paid) == 3
     assert len({e.meter for e in paid}) == 1, "one meter per invocation"
-    assert {(e.label, e.ceiling_usd) for e in paid} == {("dataset", 1.0)}
+    assert {(e.label, e.ceiling_usd) for e in paid} == {(tmp_path.name, 1.0)}
 
     ledger = json.loads((tmp_path / "seqforge" / "logs" / "usage.json").read_text())
     totals = ledger["totals"]
@@ -1730,7 +1730,7 @@ _STOPS = {
 
 
 @pytest.mark.parametrize("stop", [*_STOPS, "rejected"])
-def test_each_stop_ends_harvest_and_run_with_exit_3_and_its_reason(
+def test_a_stop_ends_harvest_and_run_with_exit_3_and_a_rejection_with_exit_1(
     stop: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The four stops end `harvest extract` and `run` with exit 3, the reason and a Blocker; a request
@@ -1767,8 +1767,38 @@ def test_each_stop_ends_harvest_and_run_with_exit_3_and_its_reason(
         assert harvested["reason"] == reason
         assert harvested["blockers"][0]["code"] == "MODEL_CALLS_STOPPED"
         assert f"reason={reason}" in harvested["blockers"][0]["evidence"]
-        if stop != "ceiling":
-            assert {e.ceiling_usd for e in fake.record} <= {1.0}, "a dollar unless told otherwise"
+
+
+def test_requests_in_flight_wait_for_room_under_the_ceiling_rather_than_stop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The gateway holds back each request's largest possible cost while it is in flight. A ceiling
+    with room for one such hold and not two must slow harvest's fan-out, not stop it: a run stops
+    only when a request would cross the ceiling with nothing else in flight."""
+    import time
+
+    from labllm.testing import Price
+
+    from seqforge.harvest import DEEPSEEK_DEFAULT_MODEL
+    from seqforge.harvest.fields import fields_for
+    from seqforge.harvest.plan import batch_max_tokens
+
+    # Output dominates the hold and costs almost nothing once answered, so what each request holds
+    # back is its output allowance, and what three cost together stays far under one hold.
+    per_token = 1e-5
+    hold = batch_max_tokens(fields_for("dataset", "reference"), 1) * per_token
+
+    def provider(form: dict[str, Any]) -> str:
+        time.sleep(0.05)  # in flight long enough for the others to be refused beside it
+        return harvest_kit.NOTHING
+
+    fake = harvest_kit.install(
+        monkeypatch, provider, prices={DEEPSEEK_DEFAULT_MODEL: Price(0.0, per_token)}
+    )
+    argv = ["harvest", "extract", *_prose_docs_apart(tmp_path, 3), "--ceiling-usd", str(1.5 * hold)]
+    result = runner.invoke(app, [*argv, "-C", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    assert len(fake.record) == 3, "each document asked once, one at a time"
 
 
 def test_harvest_writes_its_ledger_and_transcript_on_a_stop(
@@ -1817,8 +1847,8 @@ def test_a_dry_run_and_a_run_without_the_llm_reach_no_gateway(
               "--offline", "--no-llm", "-C", str(tmp_path)]
     )  # fmt: skip
     result = runner.invoke(app, argv)
-    assert result.exception is None or isinstance(result.exception, SystemExit), result.output
-    assert result.exit_code in (0, 2), result.output  # `run` stops at the genome it was not given
+    # `run` stops at the genome it was not given, after harvest was skipped.
+    assert result.exit_code == (0 if command.startswith("harvest") else 2), result.output
 
 
 def test_harvest_usage_counts_requests_not_documents(

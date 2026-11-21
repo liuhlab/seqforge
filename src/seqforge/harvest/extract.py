@@ -503,7 +503,7 @@ def extract_batch(
 
     drafts: list[list[AssertionDraft]] = [[] for _ in docs]
     rejected: list[list[dict[str, object]]] = [[] for _ in docs]
-    for item in _parsed_drafts(reply.text, seam.name):
+    for item in _parsed_drafts(reply.text, seam.provider):
         try:
             draft = AssertionDraft.model_validate(item)
         except ValidationError as exc:
@@ -517,7 +517,7 @@ def extract_batch(
         index = 0 if len(docs) == 1 else home_of.get(draft.span.doc_sha256, -1)
         if index < 0:
             raise ExtractUnavailable(
-                f"{seam.name} returned a draft for document {draft.span.doc_sha256!r}, which is "
+                f"{seam.provider} returned a draft for document {draft.span.doc_sha256!r}, which is "
                 f"none of the {len(docs)} documents this request carried"
             )
         drafts[index].append(_anchor(draft, docs[index]))
@@ -528,12 +528,12 @@ def extract_batch(
         model_id=seam.model_id,
         prompt_version=EXTRACT_PROMPT_VERSION,
     )
-    mode = {**seam.mode, "max_output_tokens": max_tokens}
+    mode = seam.mode(max_tokens)
     return [
         ExtractionOutcome(
             drafts=drafts[i],
             extractor=extractor,
-            provider=seam.name,
+            provider=seam.provider,
             model=seam.model.name,
             mode=mode,
             # Cost is a property of the REQUEST, and this batch was one. It is booked whole against

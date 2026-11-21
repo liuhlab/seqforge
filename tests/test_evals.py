@@ -1876,11 +1876,6 @@ def test_a_starved_cell_leaves_the_manifest_whole_and_the_pipeline_short(
 # --------------------------------------------------------------------------------------------
 
 
-def _poisoned(drafts: list[dict[str, object]], poison: str) -> Gateway:
-    """A fake gateway that answers every document except the one whose text holds ``poison``."""
-    return _stub(drafts, poison=poison)
-
-
 def _two_document_trap(tmp_path: Path) -> Case:
     """The trap case plus a second document that states nothing — so one can fail and one survive."""
     import dataclasses
@@ -1899,7 +1894,7 @@ def test_a_case_whose_only_document_never_answered_grades_and_says_so() -> None:
     summary said nothing about any of them. Now the case grades what it can and the harvest grade
     carries the one word that qualifies the rest of it.
     """
-    run = run_case(_trap_case(), llm=True, gateway=_poisoned([], "droplet"))
+    run = run_case(_trap_case(), llm=True, gateway=_stub([], poison="droplet"))
 
     assert run.skipped is None, "the deterministic half of the case still runs and still grades"
     assert run.grade.grade is Grade.CORRECT
@@ -1927,7 +1922,7 @@ def test_one_documents_abort_no_longer_takes_the_whole_case_down(tmp_path: Path)
     answered are still graded, and the one that did not is named.
     """
     good = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    run = run_case(_two_document_trap(tmp_path), llm=True, gateway=_poisoned(good, "Table S1"))
+    run = run_case(_two_document_trap(tmp_path), llm=True, gateway=_stub(good, poison="Table S1"))
 
     assert run.skipped is None
     assert run.harvest is not None
@@ -1952,7 +1947,7 @@ def test_a_negative_verdict_needs_every_document_a_positive_one_needs_one(tmp_pa
     nothing unsettles it.
     """
     silent = run_case(
-        _two_document_trap(tmp_path), llm=True, gateway=_poisoned([], "droplet-based")
+        _two_document_trap(tmp_path), llm=True, gateway=_stub([], poison="droplet-based")
     )
     assert silent.harvest is not None
     assert silent.harvest.status == "partial", "the second document answered, and honestly said no"
@@ -1969,7 +1964,7 @@ def test_an_unchecked_assertion_poisons_no_rate_and_is_reported_instead() -> Non
     """
     from seqforge.evals import run_cases
 
-    report, _ = run_cases([_trap_case()], llm=True, gateway=_poisoned([], "droplet"))
+    report, _ = run_cases([_trap_case()], llm=True, gateway=_stub([], poison="droplet"))
 
     assert report.field_accuracy == 1.0, "the byte half graded; the unchecked assertion did not"
     assert report.harvest is not None
@@ -3984,7 +3979,7 @@ def test_a_partly_measured_llm_run_reports_it_on_stderr_and_still_exits_zero(
 
     from seqforge.cli import app
 
-    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: _poisoned([], "droplet"))
+    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: _stub([], poison="droplet"))
     result = CliRunner().invoke(
         app,
         ["eval", "run", "--llm", "--case", "chemistry-unstated-trap", "-C", str(tmp_path)],

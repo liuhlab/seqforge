@@ -14,14 +14,19 @@ from typing import TYPE_CHECKING, Any
 import typer
 from pydantic import ValidationError
 
+from ..harvest.seam import DEFAULT_CEILING_USD
 from ..manifest import instructions_from_assertions
 from ..workspace import documents_dir, logs_dir, readable
 from ._common import _emit, _StageOut
 from .root import harvest_app
 
-#: The most one harvest may spend, in dollars, when `--ceiling-usd` names none: `harvest extract`'s,
-#: `run`'s and, per case, `eval run`'s. There is no "no ceiling" value.
-DEFAULT_CEILING_USD = 1.0
+
+def bad_ceiling(ceiling_usd: float) -> str | None:
+    """Why ``--ceiling-usd`` cannot be used, or ``None``: it is a number of dollars, zero or more."""
+    if math.isfinite(ceiling_usd) and ceiling_usd >= 0:
+        return None
+    return f"--ceiling-usd must be a number of dollars, not {ceiling_usd}"
+
 
 if TYPE_CHECKING:
     from ..harvest.fields import DocRole
@@ -240,7 +245,7 @@ def _harvest_extract_pipeline(
     ``dry_run`` returns the plan and stops **before** a gateway client is even built: "what will
     this dataset cost" must be answerable on a machine that cannot reach the gateway.
     """
-    from labllm import Rejected, Stopped
+    from labllm import GatewayUnreachable, Rejected, Stopped
 
     from ..harvest import (
         ExtractUnavailable,
@@ -260,10 +265,8 @@ def _harvest_extract_pipeline(
     from ..passes import gateway
     from ..recordset import RecordSetError, load_record_set
 
-    if not math.isfinite(ceiling_usd) or ceiling_usd < 0:
-        return _StageOut(
-            f"--ceiling-usd must be a number of dollars, not {ceiling_usd}", 2, err=True
-        )
+    if refused := bad_ceiling(ceiling_usd):
+        return _StageOut(refused, 2, err=True)
     try:
         chosen = harvest_model(provider, model)
     except ValueError as exc:
@@ -291,7 +294,9 @@ def _harvest_extract_pipeline(
                 err=True,
             )
 
-    dataset_ref = "dataset"
+    # What the meter is labelled and a stop's Blocker names: the record set's query when there is
+    # one, else the workspace's folder, which is where a dataset with no accession is named.
+    dataset_ref = workspace.resolve().name or "dataset"
     records = None
     if records_path is not None:
         try:
@@ -326,32 +331,35 @@ def _harvest_extract_pipeline(
     extractor = None
     usage_records: list[dict[str, object]] = []
 
-    seam: ModelSeam | None = None
     try:
-        # One meter per invocation, labelled by the dataset: its ceiling is this run's, and the
-        # gateway's record groups this run's calls under it.
-        meter = gateway.make_gateway().meter(dataset_ref, ceiling_usd=ceiling_usd)
-        seam = ModelSeam(meter, chosen)
+        client = gateway.make_gateway()
+    except GatewayUnreachable as exc:
+        # No usable gateway address is a setup this command cannot use, as `pass start` treats it:
+        # nothing was sent, so there is nothing to stop.
+        return _StageOut(f"no gateway address: {exc}", 2, err=True)
+    # One meter per invocation, labelled by the dataset: its ceiling is this run's, and the
+    # gateway's record groups this run's calls under it.
+    seam = ModelSeam(client.meter(dataset_ref, ceiling_usd=ceiling_usd), chosen)
+    try:
         outcomes = extract_planned(plan, specs, seam=seam)
     except Stopped as exc:
         # A stop, not a failure of this code: exit 3 with the reason. The Ledger and the Transcript
         # are written first, because what was spent up to the stop was really spent.
-        spent = seam.meter.spent_usd if seam is not None else 0.0
-        payload: dict[str, object] = {
-            "error": "stopped",
-            "reason": exc.reason,
-            "detail": str(exc),
-            "blockers": [
-                stop_blocker(exc, subject=dataset_ref, spent_usd=spent).model_dump(mode="json")
-            ],
-        }
-        if seam is not None:
-            _write_usage(logs, seam, None, usage_records, len(normalized))
-            payload["usage"] = {**seam.totals(), "n_documents": len(normalized)}
-            payload["usage_path"] = str(logs / "usage.json")
-            payload["transcript_path"] = str(_write_transcript(logs, seam))
+        _write_usage(logs, seam, None, usage_records, len(normalized))
+        blocker = stop_blocker(exc, subject=dataset_ref, spent_usd=seam.meter.spent_usd)
         # stdout, like every other refusal: a `blockers` list IS the result object.
-        return _StageOut(payload, 3)
+        return _StageOut(
+            {
+                "error": "stopped",
+                "reason": exc.reason,
+                "detail": str(exc),
+                "blockers": [blocker.model_dump(mode="json")],
+                "usage": {**seam.totals(), "n_documents": len(normalized)},
+                "usage_path": str(logs / "usage.json"),
+                "transcript_path": str(_write_transcript(logs, seam)),
+            },
+            3,
+        )
     except Rejected as exc:
         # A request the provider or the gateway rejects as malformed or unauthorized is a bug,
         # here or in the gateway's settings: an error, not a stop to rerun past.
@@ -380,8 +388,8 @@ def _harvest_extract_pipeline(
         )
 
     _write_usage(logs, seam, extractor, usage_records, len(normalized))
-    payload = {
-        "provider": seam.name,
+    payload: dict[str, object] = {
+        "provider": seam.provider,
         "model": chosen.name,
         "n_drafts": len(all_drafts),
         # Drafts the model returned malformed (e.g. `value: null`) — dropped, not fatal (#5). Surfaced
@@ -580,7 +588,7 @@ def _write_usage(
     (logs / "usage.json").write_text(
         json.dumps(
             {
-                "provider": seam.name,
+                "provider": seam.provider,
                 "model": seam.model.name,
                 "prompt_version": extractor.prompt_version if extractor else None,
                 "totals": {**seam.totals(), "n_documents": n_documents},

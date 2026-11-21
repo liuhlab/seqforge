@@ -9,7 +9,7 @@ exchange) with a function the test supplies playing the provider. `install` puts
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import pytest
@@ -30,21 +30,19 @@ PRICES = {
 NOTHING = json.dumps({"drafts": []})
 
 
-def answering(*texts: str) -> Callable[[dict[str, Any]], str]:
-    """A provider that answers each request with the next text, the last one from then on."""
-    replies = list(texts) or [NOTHING]
-
-    def provider(form: dict[str, Any]) -> str:
-        return replies.pop(0) if len(replies) > 1 else replies[0]
-
-    return provider
+def answering(text: str = NOTHING) -> Callable[[dict[str, Any]], str]:
+    """A provider that answers every request with ``text``."""
+    return lambda form: text
 
 
 def install(
-    monkeypatch: pytest.MonkeyPatch, provider: Callable[[dict[str, Any]], Any] | None = None
+    monkeypatch: pytest.MonkeyPatch,
+    provider: Callable[[dict[str, Any]], Any] | None = None,
+    *,
+    prices: Mapping[str, Price] = PRICES,
 ) -> FakeGateway:
     """Put a fake gateway behind every command that builds a gateway client, and return it."""
-    fake = FakeGateway(provider or answering(), prices=PRICES)
+    fake = FakeGateway(provider or answering(), prices=prices)
     monkeypatch.setattr(
         "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
     )
@@ -52,16 +50,11 @@ def install(
 
 
 def seam_over(
-    fake: FakeGateway,
-    *,
-    ceiling_usd: float = 1.0,
-    model: Model | None = None,
-    label: str = "test",
-    record: bool = True,
+    fake: FakeGateway, *, ceiling_usd: float = 1.0, model: Model | None = None
 ) -> ModelSeam:
     """A seam over a new meter on `fake`, calling harvest's default model unless told otherwise."""
-    meter = fake.client(repo="seqforge").meter(label, ceiling_usd=ceiling_usd)
-    return ModelSeam(meter, model or harvest_model(), record=record)
+    meter = fake.client(repo="seqforge").meter("test", ceiling_usd=ceiling_usd)
+    return ModelSeam(meter, model or harvest_model())
 
 
 def sent_texts(fake: FakeGateway) -> list[str]:

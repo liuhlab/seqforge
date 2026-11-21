@@ -27,8 +27,9 @@ including what to do when Claude stops and asks a question, is in
 
 One thing worth knowing up front: reading a paper or sample sheet uses a language model, through the
 lab's model gateway. Open a tunnel to it and set `LABLLM_GATEWAY` to its local address
-([Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/) says how); you need no provider key. If you have no prose to read, you can skip that and stay
-fully offline.
+([Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/)
+says how); you need no provider key. If you have no prose to read, you can skip that and stay fully
+offline.
 
 ## Running it yourself
 

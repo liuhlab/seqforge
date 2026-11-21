@@ -18,6 +18,7 @@ from pydantic import ValidationError
 
 from .. import __version__
 from ..compose import AlreadyComposed, ComposeError, compose
+from ..harvest.seam import DEFAULT_CEILING_USD
 from ..io import default_registry
 from ..kb import load_spec
 from ..manifest import (
@@ -32,7 +33,7 @@ from ..pipeline import CompiledPipeline
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..workspace import logs_dir, readable, records_dir, state_dir
 from ._common import _auto_cpus, _load_manifest
-from .harvest import DEFAULT_CEILING_USD, PdfBackendChoice, _harvest_extract_pipeline
+from .harvest import PdfBackendChoice, _harvest_extract_pipeline
 from .manifest import _fill_manifest_pipeline
 from .processing import _instructions_from
 from .root import app

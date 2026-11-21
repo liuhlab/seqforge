@@ -4,9 +4,8 @@
 seqforge eval list                       # what is in the corpus
 seqforge eval plan --cases evals/benchmark   # what an --llm pass would cost; spends nothing
 seqforge eval run                        # deterministic cases only — no gateway, no network
-seqforge eval run --llm --trials 3       # include the prose cases (costs money, via the gateway)
+seqforge eval run --llm                  # include the prose cases (costs money, via the gateway)
 seqforge eval run --llm --model deepseek-flash  # the other DeepSeek model; the default is -v4-pro
-seqforge eval run --llm --provider anthropic --model claude-opus-4-8
 seqforge eval run --case chemistry-unstated-trap --llm
 seqforge eval run --llm --ceiling-usd 5  # raise the per-case dollar ceiling (default: one dollar)
 seqforge eval run --no-llm -C out && seqforge eval report out/seqforge/eval
@@ -25,6 +24,11 @@ refuses rather than warns: a case whose calls stop — at that ceiling, at the p
 because the provider or the gateway is down — is reported with a `MODEL_CALLS_STOPPED` Blocker
 instead of a grade, and the run exits 3. A rerun replays every answered request from the gateway's
 cache at no cost. `--no-llm` reaches no gateway and spends nothing.
+
+**The cache also answers repeated trials.** Each trial of `--trials N` sends the requests the first
+trial sent, so trials after the first get the first trial's replies, and `stability` and `unstable`
+cannot show a model that answers differently from one request to the next. Only DeepSeek has been
+run through the gateway so far.
 
 **`-C` gives the run a directory**, under `seqforge/eval/`: `report.json` — byte-identical to what the
 command printed — and `transcripts/<case>.jsonl` for every case that reached a model. That is where a

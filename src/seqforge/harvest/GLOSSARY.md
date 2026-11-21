@@ -63,16 +63,16 @@ _Avoid_: proposal, raw assertion, candidate (a candidate is a scored technology)
 ### The model seam
 
 **Exchange**:
-One request harvest sent through its meter and what came back, as harvest saw it: system prompt,
-user text, returned text, usage, mode, cost. The unit a **Transcript** is a list of. Not
-liulab-llms's *exchange* (its `GLOSSARY.md`), which is one attempt at a provider: the gateway's
-retries are several of those under one of these, and a cache hit is one with no cost.
+One request harvest sent through its meter and what came back — system prompt, user text, returned
+text, usage, mode, cost — the unit a **Transcript** is a list of. Narrower than liulab-llms's
+*exchange*, one attempt at a provider, of which the gateway's retries put several under one of these.
 _Avoid_: call, turn, message, completion, round-trip; a **Document** is what an exchange is *about*,
 not the exchange
 
 **Ceiling**:
-The most dollars one harvest may spend, `--ceiling-usd`, one dollar unless told otherwise: the
-ceiling of the run's liulab-llms meter, which the gateway enforces. It refuses rather than warns.
+liulab-llms's *ceiling* on the meter one harvest opens, which the gateway enforces and which
+refuses rather than warns. The meter requires one; harvest's `--ceiling-usd` gives one dollar unless
+told otherwise.
 _Avoid_: limit, cap, quota, token budget, max tokens (that is one response's output bound); and
 never a **Budget**, which bounds one head in bytes and reads
 

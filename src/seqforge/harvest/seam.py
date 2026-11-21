@@ -5,7 +5,9 @@ The gateway sends every call, holds the provider keys, retries, caches and enfor
 
 - :func:`harvest_model` reads ``--provider`` and ``--model`` into the model harvest calls;
 - :class:`ModelSeam` sends each request through the run's meter, tagged with its document, and
-  records each **Exchange** for the **Transcript**;
+  records each **Exchange** for the **Transcript**. A request the ceiling refuses while others are
+  in flight waits for one of them to settle and is sent again, so the ceiling bounds what a run
+  spends, not how many requests it has in flight;
 - :func:`stop_blocker` turns a stop into the ``Blocker`` that ends the run with exit 3.
 
 The seam never reads a reply's text for meaning: extraction validates it.
@@ -25,6 +27,10 @@ if TYPE_CHECKING:
 
 #: The provider harvest calls when ``--provider`` names none.
 DEFAULT_PROVIDER = "deepseek"
+
+#: The most one harvest may spend, in dollars, when ``--ceiling-usd`` names none: `harvest extract`'s,
+#: `run`'s and, per case, `eval run`'s. There is no "no ceiling" value.
+DEFAULT_CEILING_USD = 1.0
 
 #: The model harvest calls on DeepSeek when ``--model`` names none. `-pro` won the benchmark's
 #: head-to-head on every axis, cost included (`evals/README.md`, "The default model, and the run
@@ -130,6 +136,13 @@ class ModelSeam:
     Thread-safe: extraction fans requests out over a pool, and every one goes through here. The
     first stop it meets stops the meter, so requests not yet sent raise at once rather than each
     meeting the stop again.
+
+    **The ceiling bounds spend, not width.** The gateway holds back each request's largest possible
+    cost, its input and its whole output allowance, while the request is in flight, and refuses one
+    that would cross the ceiling. Harvest fans out up to two dozen requests at once, so under a
+    one-dollar ceiling those holds alone would refuse a run that spends a few cents. A request
+    refused while others of this seam are in flight therefore waits until one of them settles and
+    is sent again; only a refusal with nothing else in flight stops the run.
     """
 
     def __init__(self, meter: Meter, model: Model, *, record: bool = True) -> None:
@@ -137,12 +150,16 @@ class ModelSeam:
         self.model = model
         self._record = record
         self._lock = threading.Lock()
+        self._settled = threading.Condition(self._lock)
+        self._in_flight = 0
+        self._n_settled = 0
+        self._halted = False
         self._prompts: dict[str, str] = {}
         self._exchanges: list[Exchange] = []
         self._n_exchanges = 0
 
     @property
-    def name(self) -> str:
+    def provider(self) -> str:
         """The provider, as provenance and the Ledger name it."""
         return self.model.provider
 
@@ -151,17 +168,19 @@ class ModelSeam:
         """``provider/model``: who an Assertion's extractor was."""
         return f"{self.model.provider}/{self.model.name}"
 
-    @property
-    def mode(self) -> dict[str, Any]:
-        """The settings every request is sent with, but its output allowance."""
+    def mode(self, max_tokens: int) -> dict[str, Any]:
+        """The settings a request with this output allowance is sent with: the Ledger's ``mode``."""
         return {
-            k: v
-            for k, v in (
-                ("thinking", self.model.thinking),
-                ("effort", self.model.effort),
-                ("temperature", self.model.temperature),
-            )
-            if v is not None
+            **{
+                k: v
+                for k, v in (
+                    ("thinking", self.model.thinking),
+                    ("effort", self.model.effort),
+                    ("temperature", self.model.temperature),
+                )
+                if v is not None
+            },
+            "max_output_tokens": max_tokens,
         }
 
     @property
@@ -177,18 +196,31 @@ class ModelSeam:
 
         Raises liulab-llms's ``Stopped`` (after stopping the meter) or ``Rejected``.
         """
-        from labllm import Stopped
+        from labllm import CeilingReached, Stopped
 
         model = replace(self.model, max_output_tokens=max_tokens)
-        mode = {**self.mode, "max_output_tokens": max_tokens}
-        try:
-            r = self.meter.chat(model, system=system, user=user, schema=schema, tag=tag)
-        except Stopped as exc:
-            self.meter.stop(exc)
-            self._keep(system, user, "", {}, mode, exc.cost_usd, False, f"{exc.reason}: {exc}")
-            raise
-        self._keep(system, user, r.text, r.usage, mode, r.cost_usd, r.cached, None)
-        return Reply(r.text, dict(r.usage), r.cost_usd, r.cached)
+        mode = self.mode(max_tokens)
+        while True:
+            with self._lock:
+                self._in_flight += 1
+                settled_before = self._n_settled
+            try:
+                r = self.meter.chat(model, system=system, user=user, schema=schema, tag=tag)
+            except CeilingReached as exc:
+                if self._wait_for_room(settled_before):
+                    continue
+                self._stop(exc, system, user, mode)
+                raise
+            except Stopped as exc:
+                self._settle()
+                self._stop(exc, system, user, mode)
+                raise
+            except BaseException:
+                self._settle()
+                raise
+            self._settle()
+            self._keep(system, user, r.text, r.usage, mode, r.cost_usd, r.cached, None)
+            return Reply(r.text, dict(r.usage), r.cost_usd, r.cached)
 
     def totals(self) -> dict[str, Any]:
         """The meter's counters, in dollars, and the requests harvest sent."""
@@ -205,7 +237,34 @@ class ModelSeam:
     def transcript(self) -> Transcript:
         """A snapshot of every exchange so far."""
         with self._lock:
-            return Transcript(self.name, dict(self._prompts), tuple(self._exchanges))
+            return Transcript(self.provider, dict(self._prompts), tuple(self._exchanges))
+
+    def _settle(self) -> None:
+        """One request of this seam is no longer in flight; wake those waiting for room."""
+        with self._lock:
+            self._in_flight -= 1
+            self._n_settled += 1
+            self._settled.notify_all()
+
+    def _wait_for_room(self, settled_before: int) -> bool:
+        """After a ceiling refusal: wait for another request to settle; False if none is in flight.
+
+        A request that settled since this one was sent may already have made room, so it is sent
+        again at once.
+        """
+        with self._lock:
+            self._in_flight -= 1
+            while not self._halted and self._n_settled == settled_before and self._in_flight > 0:
+                self._settled.wait()
+            return not self._halted and self._n_settled != settled_before
+
+    def _stop(self, exc: Stopped, system: str, user: str, mode: dict[str, Any]) -> None:
+        """Stop the meter for every later request, and keep the request that stopped."""
+        with self._lock:
+            self._halted = True
+            self._settled.notify_all()
+        self.meter.stop(exc)
+        self._keep(system, user, "", {}, mode, exc.cost_usd, False, f"{exc.reason}: {exc}")
 
     def _keep(
         self,
@@ -260,6 +319,7 @@ def stop_blocker(exc: Stopped, *, subject: str, spent_usd: float) -> Blocker:
 
 __all__ = [
     "DEEPSEEK_DEFAULT_MODEL",
+    "DEFAULT_CEILING_USD",
     "DEFAULT_PROVIDER",
     "Exchange",
     "ModelSeam",

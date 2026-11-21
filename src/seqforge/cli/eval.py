@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-import math
 from pathlib import Path
 
 import typer
 
-from .harvest import DEFAULT_CEILING_USD
+from ..harvest.seam import DEFAULT_CEILING_USD
+from .harvest import bad_ceiling
 from .root import eval_app
 
 
@@ -109,7 +109,11 @@ def eval_run(
         "models.",
     ),
     trials: int = typer.Option(
-        1, "--trials", min=1, help="Re-run each prose case N times; extraction is nondeterministic."
+        1,
+        "--trials",
+        min=1,
+        help="Re-run each prose case N times. Each trial sends the requests the first sent, so the "
+        "gateway's cache answers trials after the first with the first's replies.",
     ),
     jobs: int | None = typer.Option(
         None,
@@ -169,8 +173,8 @@ def eval_run(
         typer.echo("no cases found", err=True)
         raise typer.Exit(2)
 
-    if not math.isfinite(ceiling_usd) or ceiling_usd < 0:
-        typer.echo(f"--ceiling-usd must be a number of dollars, not {ceiling_usd}", err=True)
+    if refused := bad_ceiling(ceiling_usd):
+        typer.echo(refused, err=True)
         raise typer.Exit(2)
     try:
         chosen = harvest_model(provider, model)
@@ -184,8 +188,9 @@ def eval_run(
         try:
             client = gateway_module.make_gateway()
         except GatewayUnreachable as exc:
-            typer.echo(f"gateway_unreachable: {exc}", err=True)
-            raise typer.Exit(3) from exc
+            # No usable gateway address is a setup the command cannot use, as for `pass start`.
+            typer.echo(f"no gateway address: {exc}", err=True)
+            raise typer.Exit(2) from exc
     try:
         report, runs = run_cases(
             cases,

@@ -20,8 +20,9 @@ seqforge harvest verify DRAFTS                # -> the span-verification tripwir
 ```
 
 **Run `--dry-run` first on anything with `--records`.** It renders every document and prints the plan
-— `n_documents`, `n_requests`, and the estimated input tokens — while reaching no gateway. A dataset's cost used to be a property nobody computed until it had been paid: one
-benchmark series billed 983 calls, 92% of them one-line run aliases. Each archive record is a
+— `n_documents`, `n_requests`, and the estimated input tokens — while reaching no gateway. A
+dataset's cost used to be a property nobody computed until it had been paid: one benchmark series
+billed 983 calls, 92% of them one-line run aliases. Each archive record is a
 document, except that a sample's *runs* are one document between them (a run belongs to exactly one
 sample, so its alias still declares that sample).
 

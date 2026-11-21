@@ -48,8 +48,9 @@ It chains every stage below — records, the paper, the manifest, the recipe, th
 the first refusal, and writes everything under `seqforge/`. The genome is the one argument with no
 default (a wrong one aligns cleanly and exits 0, so it will not guess). Reading the paper uses a
 language model through the lab's model gateway: open a tunnel to it and set `LABLLM_GATEWAY` to its
-local address ([Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/)). It spends at most a dollar unless `--ceiling-usd` says otherwise. Add
-`--no-llm` to skip prose and stay fully deterministic.
+local address ([Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/)).
+It spends at most a dollar unless `--ceiling-usd` says otherwise. Add `--no-llm` to skip prose and
+stay fully deterministic.
 
 The rest of this page walks the same pipeline one verb at a time — which is what you want when a step
 needs inspecting, and what `run` is doing for you when it does not.

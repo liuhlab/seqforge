@@ -823,7 +823,7 @@ def extract_planned(
             return extract_drafts(doc, specs, seam=seam, max_tokens=max_tokens)
         except ExtractUnavailable as exc:
             return ExtractionOutcome.unanswered(
-                provider=seam.name, model=seam.model.name, detail=str(exc)
+                provider=seam.provider, model=seam.model.name, detail=str(exc)
             )
 
     def _one(batch: tuple[int, ...]) -> list[ExtractionOutcome]:
