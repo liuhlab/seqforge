@@ -1,0 +1,277 @@
+format: 2
+study: GSE100021
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE100021 and their 8 sequenced samples; the full text of pmid:28645186.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01'
+  date: 2026-11-24
+passages:
+  1:
+    record: GSE100021
+    field: Series_overall_design
+    quote: Hippocampal RNA-Seq profiles of 28 months old rats intracerebroventricularly injected with
+      an adenovector expressing rat IGF-I was compared with placebo adenovector-injected counterparts
+      (4 samples each group)
+  2:
+    record:
+    - GSM2668015
+    - GSM2668016
+    - GSM2668017
+    - GSM2668018
+    field: Sample_description
+    quote: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+  3:
+    record:
+    - GSM2668019
+    - GSM2668020
+    - GSM2668021
+    - GSM2668022
+    field: Sample_description
+    quote: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+  4:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Sex: female'
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'age: 28-months'
+  7:
+    paper: pmid:28645186
+    section: abstract
+    quote: old female rats
+  8:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: Rat hippocampus
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: Sprague-Dawley rats'
+  10:
+    paper: pmid:28645186
+    section: Full text
+    quote: The animals were injected bilaterally with 8 μl per side of a suspension containing 1.7 x1012
+      viral particles of the appropriate vector.
+  11:
+    paper: pmid:28645186
+    section: Full text
+    quote: Eighty days after vector injection (on the day of sacrifice)
+  12:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Rattus norvegicus
+factors:
+  treatment:
+    levels:
+    - IGF-I
+    - DsRed
+    baseline: DsRed
+    ordered: false
+    quoted:
+    - 1
+    p: 0.99
+shared:
+  species:
+    text: Rattus norvegicus
+    term: NCBITaxon:10116
+    quoted:
+    - 12
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 4
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: No background-control libraries in RNA-Seq
+    p: 1.0
+  sex:
+    text: female
+    term: female
+    quoted:
+    - 5
+    p: 1.0
+  age:
+    text: 28-months
+    value: 28
+    unit: months
+    quoted:
+    - 6
+    p: 1.0
+  development_stage:
+    text: old
+    quoted:
+    - 7
+    p: 1.0
+  tissue:
+    text: Rat hippocampus
+    quoted:
+    - 8
+    p: 1.0
+  cell_type:
+    na: Bulk hippocampal tissue; no cell type isolated
+    p: 0.96
+  cell_line:
+    na: Rat tissue; no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: No disease or disease model reported
+    p: 0.99
+  genotype:
+    unknown: Genotype not reported in records or paper
+    p: 0.57
+  strain:
+    text: Sprague-Dawley rats
+    quoted:
+    - 9
+    p: 1.0
+  dose:
+    text: 8 μl per side of a suspension containing 1.7 x1012 viral particles
+    quoted:
+    - 10
+    p: 0.76
+  duration:
+    text: Eighty days after vector injection
+    value: 80
+    unit: days
+    quoted:
+    - 11
+    p: 0.79
+samples:
+  GSM2668015:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D1
+      inferred: Jev judged each library to come from its own individual
+      p: 1.0
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+      level: IGF-I
+      quoted:
+      - 2
+      p: 0.99
+  GSM2668016:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D2
+      inferred: Jev judged each library to come from its own individual
+      p: 1.0
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+      level: IGF-I
+      quoted:
+      - 2
+      p: 0.99
+  GSM2668017:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D3
+      inferred: Jev judged each library to come from its own individual
+      p: 1.0
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+      level: IGF-I
+      quoted:
+      - 2
+      p: 0.97
+  GSM2668018:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D4
+      inferred: Jev judged each library to come from its own individual
+      p: 1.0
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector expressing rat IGF-I
+      level: IGF-I
+      quoted:
+      - 2
+      p: 0.97
+  GSM2668019:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D5
+      inferred: Jev judged each library to come from its own individual
+      p: 1.0
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+      level: DsRed
+      quoted:
+      - 3
+      p: 0.98
+  GSM2668020:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D6
+      inferred: Jev judged each library to come from its own individual
+      p: 1.0
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+      level: DsRed
+      quoted:
+      - 3
+      p: 1.0
+  GSM2668021:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D7
+      inferred: Jev judged each library to come from its own individual
+      p: 1.0
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+      level: DsRed
+      quoted:
+      - 3
+      p: 0.99
+  GSM2668022:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D8
+      inferred: Jev judged each library to come from its own individual
+      p: 1.0
+    treatment:
+      text: Rat intracerebroventricularly injected with an adenovector with empty vector DsRed
+      level: DsRed
+      quoted:
+      - 3
+      p: 0.99

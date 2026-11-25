@@ -1,0 +1,1527 @@
+format: 2
+study: GSE97461
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE97461 and their 19 sequenced samples; the full text of pmid:30485811.
+ontology_snapshot:
+  source: 'liulab-data ontology store: cellosaurus-57.0, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01,
+    uberon-2026-11-05'
+  date: 2026-11-24
+passages:
+  1:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    field: Sample_characteristics_ch1
+    quote: 'cell type: D1 spiny projection neurons'
+  2:
+    record:
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_characteristics_ch1
+    quote: 'cell type: D2 spiny projection neurons'
+  3:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    field: Sample_characteristics_ch1
+    quote: 'age: 42 days old'
+  4:
+    record:
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_characteristics_ch1
+    quote: 'age: 2 years old'
+  5:
+    record: GSM3475596
+    field: Sample_characteristics_ch1
+    quote: 'treatment: 100uM paraquat'
+  6:
+    record: GSM3475597
+    field: Sample_characteristics_ch1
+    quote: 'treatment: ABCE1 siRNA'
+  7:
+    record: GSM3475598
+    field: Sample_characteristics_ch1
+    quote: 'treatment: control siRNA'
+  8:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  9:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    field: Sample_characteristics_ch1
+    quote: 'strain: Drd1::EGFP-L10a on C56BL/6J background'
+  10:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_characteristics_ch1
+    quote: 'Sex: female'
+  11:
+    paper: pmid:30485811
+    section: STAR★METHODS > EXPERIMENTAL MODEL AND SUBJECT DETAILS > Mouse models
+    quote: Female BAC transgenic mouse lines Drd1::EGFP-L10a and Drd2::EGFP-L10a on a C56BL/6J background
+      at 6 weeks of age (PN42) and 2-years of age were used for experiments.
+  12:
+    record:
+    - GSM2565655
+    - GSM2565656
+    - GSM2565657
+    - GSM2565658
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565663
+    - GSM2565664
+    - GSM2565665
+    - GSM2565666
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_source_name_ch1
+    quote: Brain, striatum
+  13:
+    record:
+    - GSM2565659
+    - GSM2565660
+    - GSM2565661
+    - GSM2565662
+    - GSM2565667
+    - GSM2565668
+    - GSM2565669
+    - GSM2565670
+    field: Sample_characteristics_ch1
+    quote: 'strain: Drd2::EGFP-L10a on C56BL/6J background'
+  14:
+    record:
+    - GSM3475596
+    - GSM3475597
+    - GSM3475598
+    field: Sample_extract_protocol_ch1
+    quote: ribosome footprinting
+  15:
+    record:
+    - GSM3475596
+    - GSM3475597
+    - GSM3475598
+    field: Sample_characteristics_ch1
+    quote: 'cell line: NIH-3T3'
+  16:
+    paper: pmid:30485811
+    section: RESULTS > Depletion of ABCE1 Induces Cleavage-Associated Fragments and 3′ UTR Enrichment
+    quote: Over a 5-day treatment time course with 100 μM PQ
+  17:
+    paper: pmid:30485811
+    section: STAR★METHODS > EXPERIMENTAL MODEL AND SUBJECT DETAILS > Cell Lines
+    quote: 75pmol of siRNA per well of a 6-well cell-culture dish for ABCE1 knockdown
+  18:
+    paper: pmid:30485811
+    section: RESULTS > Depletion of ABCE1 Induces Cleavage-Associated Fragments and 3′ UTR Enrichment
+    quote: after 3 days
+  19:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  cell_type:
+    levels:
+    - D1_SPN
+    - D2_SPN
+    baseline: null
+    ordered: false
+    inferred: D1 versus D2 spiny projection neurons in striatum
+    p: 0.98
+  age:
+    levels:
+    - young
+    - aged
+    baseline: young
+    ordered: false
+    inferred: young 42-day versus aged 2-year mice
+    p: 0.99
+  treatment:
+    levels:
+    - paraquat
+    - ABCE1_siRNA
+    - control_siRNA
+    baseline: control_siRNA
+    ordered: false
+    inferred: paraquat or ABCE1 siRNA versus control siRNA in NIH-3T3
+    p: 0.82
+shared:
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 19
+    p: null
+  control_type:
+    na: No input or IgG background-control libraries among sequenced samples.
+    p: 0.99
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model stated
+    p: 0.93
+  strain:
+    text: C56BL/6J background
+    quoted:
+    - 9
+    p: 0.43
+samples:
+  GSM2565655:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D1
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D1 spiny projection neurons
+      level: D1_SPN
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: days
+      level: young
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.6
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.98
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.99
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.89
+    genotype:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.94
+    duration:
+      na: no treatment
+      p: 0.95
+  GSM2565656:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D2
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D1 spiny projection neurons
+      level: D1_SPN
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: days
+      level: young
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.56
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 0.99
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.98
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.99
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.89
+    genotype:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.92
+    duration:
+      na: no treatment
+      p: 0.95
+  GSM2565657:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D3
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D1 spiny projection neurons
+      level: D1_SPN
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: days
+      level: young
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.52
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 0.99
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.98
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.99
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.86
+    genotype:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.95
+    duration:
+      na: no treatment
+      p: 0.96
+  GSM2565658:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D4
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D1 spiny projection neurons
+      level: D1_SPN
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: days
+      level: young
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.57
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.98
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.99
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.84
+    genotype:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.94
+    duration:
+      na: no treatment
+      p: 0.94
+  GSM2565659:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D5
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D2 spiny projection neurons
+      level: D2_SPN
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: days
+      level: young
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.61
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.87
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.99
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.91
+    genotype:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 13
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.94
+    duration:
+      na: no treatment
+      p: 0.96
+  GSM2565660:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D6
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D2 spiny projection neurons
+      level: D2_SPN
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: days
+      level: young
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.53
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.93
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.98
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.94
+    genotype:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 13
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.92
+    duration:
+      na: no treatment
+      p: 0.94
+  GSM2565661:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D7
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D2 spiny projection neurons
+      level: D2_SPN
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: days
+      level: young
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.55
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.9
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.99
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.91
+    genotype:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 13
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.92
+    duration:
+      na: no treatment
+      p: 0.95
+  GSM2565662:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D8
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D2 spiny projection neurons
+      level: D2_SPN
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 42 days old
+      value: 42
+      unit: days
+      level: young
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.57
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.93
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.99
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.94
+    genotype:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 13
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.94
+    duration:
+      na: no treatment
+      p: 0.95
+  GSM2565663:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D9
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D1 spiny projection neurons
+      level: D1_SPN
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: years
+      level: aged
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.63
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 0.99
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.97
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.98
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.92
+    genotype:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.93
+    duration:
+      na: no treatment
+      p: 0.94
+  GSM2565664:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D10
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D1 spiny projection neurons
+      level: D1_SPN
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: years
+      level: aged
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.59
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.96
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.98
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.9
+    genotype:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.91
+    duration:
+      na: no treatment
+      p: 0.95
+  GSM2565665:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D11
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D1 spiny projection neurons
+      level: D1_SPN
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: years
+      level: aged
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.66
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 0.99
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.98
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.99
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.87
+    genotype:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.93
+    duration:
+      na: no treatment
+      p: 0.93
+  GSM2565666:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D12
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D1 spiny projection neurons
+      level: D1_SPN
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: years
+      level: aged
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.61
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.96
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.98
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.92
+    genotype:
+      text: Drd1::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 9
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.93
+    duration:
+      na: no treatment
+      p: 0.94
+  GSM2565667:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D13
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D2 spiny projection neurons
+      level: D2_SPN
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: years
+      level: aged
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.63
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.93
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.98
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.93
+    genotype:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 13
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.92
+    duration:
+      na: no treatment
+      p: 0.96
+  GSM2565668:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D14
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D2 spiny projection neurons
+      level: D2_SPN
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: years
+      level: aged
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.58
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.9
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.96
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.88
+    genotype:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 13
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.94
+    duration:
+      na: no treatment
+      p: 0.96
+  GSM2565669:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D15
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D2 spiny projection neurons
+      level: D2_SPN
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: years
+      level: aged
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.6
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 1.0
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.91
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.98
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.94
+    genotype:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 13
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.94
+    duration:
+      na: no treatment
+      p: 0.95
+  GSM2565670:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D16
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      text: D2 spiny projection neurons
+      level: D2_SPN
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 2 years old
+      value: 2
+      unit: years
+      level: aged
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.57
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 8
+      p: 0.99
+    target:
+      text: EGFP-L10a
+      quoted:
+      - 9
+      p: 0.89
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 10
+      p: 1.0
+    development_stage:
+      text: adult
+      inferred: 42-day and 2-year mice are adult
+      see:
+      - 11
+      p: 0.98
+    tissue:
+      text: Brain, striatum
+      term: UBERON:0002435
+      quoted:
+      - 12
+      p: 1.0
+    cell_line:
+      na: tissue taken from an animal
+      p: 0.95
+    genotype:
+      text: Drd2::EGFP-L10a on C56BL/6J background
+      quoted:
+      - 13
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.92
+    duration:
+      na: no treatment
+      p: 0.95
+  GSM3475596:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D17
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.88
+    age:
+      na: age does not apply to this sample
+      p: 0.86
+    treatment:
+      text: 100uM paraquat
+      level: paraquat
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: ribosome footprinting
+      term: EFO:0008891
+      quoted:
+      - 14
+      p: 0.95
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.76
+    sex:
+      na: sex does not apply to this sample
+      p: 0.51
+    development_stage:
+      na: development stage does not apply to this sample
+      p: 0.75
+    tissue:
+      na: tissue does not apply to this sample
+      p: 0.71
+    cell_line:
+      text: NIH-3T3
+      term: CVCL_0594
+      quoted:
+      - 15
+      p: 0.99
+    genotype:
+      na: genotype does not apply to this sample
+      p: 0.82
+    dose:
+      text: 100uM
+      value: 100
+      unit: uM
+      quoted:
+      - 5
+      p: 1.0
+    duration:
+      text: 5 days
+      value: 5
+      unit: days
+      quoted:
+      - 16
+      p: 0.91
+  GSM3475597:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D18
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.85
+    age:
+      na: age does not apply to this sample
+      p: 0.84
+    treatment:
+      text: ABCE1 siRNA
+      level: ABCE1_siRNA
+      quoted:
+      - 6
+      p: 1.0
+    assay:
+      text: ribosome footprinting
+      term: EFO:0008891
+      quoted:
+      - 14
+      p: 0.93
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.75
+    sex:
+      na: sex does not apply to this sample
+      p: 0.52
+    development_stage:
+      na: development stage does not apply to this sample
+      p: 0.68
+    tissue:
+      na: tissue does not apply to this sample
+      p: 0.62
+    cell_line:
+      text: NIH-3T3
+      term: CVCL_0594
+      quoted:
+      - 15
+      p: 0.99
+    genotype:
+      na: genotype does not apply to this sample
+      p: 0.81
+    dose:
+      text: 75pmol
+      value: 75
+      unit: pmol
+      quoted:
+      - 17
+      p: 0.98
+    duration:
+      text: 3 days
+      value: 3
+      unit: days
+      quoted:
+      - 18
+      p: 0.73
+  GSM3475598:
+    biosample:
+      id: B19
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D19
+      inferred: Jev judged each library to come from its own individual
+      p: 0.35
+    cell_type:
+      na: whole tissue with no cell type isolated
+      p: 0.89
+    age:
+      na: age does not apply to this sample
+      p: 0.84
+    treatment:
+      text: control siRNA
+      level: control_siRNA
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: ribosome footprinting
+      term: EFO:0008891
+      quoted:
+      - 14
+      p: 0.92
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.79
+    sex:
+      na: sex does not apply to this sample
+      p: 0.52
+    development_stage:
+      na: development stage does not apply to this sample
+      p: 0.68
+    tissue:
+      na: tissue does not apply to this sample
+      p: 0.62
+    cell_line:
+      text: NIH-3T3
+      term: CVCL_0594
+      quoted:
+      - 15
+      p: 0.99
+    genotype:
+      na: genotype does not apply to this sample
+      p: 0.83
+    dose:
+      text: 75pmol
+      value: 75
+      unit: pmol
+      quoted:
+      - 17
+      p: 0.62
+    duration:
+      na: no treatment
+      p: 0.45

@@ -1,0 +1,244 @@
+format: 2
+study: GSE234962
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE234962 and their 4 sequenced samples; the full text of pmid:38421866.
+ontology_snapshot:
+  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01,
+    wbbt-2025-08-19'
+  date: 2026-11-24
+passages:
+  1:
+    record: GSE234962
+    field: Series_overall_design
+    quote: Ventral nerve cord MNs were isolated from two strains of worms.
+  2:
+    record:
+    - GSM7486857
+    - GSM7486858
+    field: Sample_characteristics_ch1
+    quote: 'strain: CZ631 juIs14 [ acr-2::GFP + lin-15(+)]'
+  3:
+    record:
+    - GSM7486859
+    - GSM7486860
+    field: Sample_characteristics_ch1
+    quote: 'strain: KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]'
+  4:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  5:
+    paper: pmid:38421866
+    section: RESULTS > Single-cell profiling of adult C. elegans MNs reveals striking molecular diversity
+    quote: in day 1 adult C. elegans hermaphrodites
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'age: young adult'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Motor neurons'
+  8:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: Motor neurons
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wt'
+  10:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'synchronization protocol: L1 arrest'
+  11:
+    record: GSM7486857
+    field: Sample_title
+    quote: acr-2::GFP wt MNs rep 1
+  12:
+    record: GSM7486858
+    field: Sample_title
+    quote: acr-2::GFP wt MNs rep 2
+  13:
+    record:
+    - GSM7486859
+    - GSM7486860
+    field: Sample_characteristics_ch1
+    quote: 'synchronization protocol: L1 arrest + mesh synchronization'
+  14:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  strain:
+    levels:
+    - CZ631
+    - KRA257
+    baseline: null
+    ordered: false
+    quoted:
+    - 1
+    p: 0.84
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.97
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 14
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 4
+    p: 1.0
+  target:
+    na: single-cell RNA-seq has no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 5
+    p: 0.92
+  age:
+    text: young adult
+    quoted:
+    - 6
+    p: 1.0
+  development_stage:
+    text: young adult
+    quoted:
+    - 6
+    p: 1.0
+  tissue:
+    text: Motor neurons
+    term: WBbt:0005409
+    quoted:
+    - 7
+    p: 1.0
+  cell_type:
+    text: Motor neurons
+    term: CL:0000100
+    quoted:
+    - 8
+    p: 0.99
+  cell_line:
+    na: primary C. elegans neurons, no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model
+    p: 0.99
+  genotype:
+    text: wt
+    quoted:
+    - 9
+    p: 0.99
+  treatment:
+    na: no experimental treatment applied
+    p: 0.66
+  dose:
+    na: no treatment
+    p: 0.99
+  duration:
+    na: no treatment
+    p: 0.94
+samples:
+  GSM7486857:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    strain:
+      text: CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
+      level: CZ631
+      quoted:
+      - 2
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest
+      quoted:
+      - 10
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 11
+      p: 1.0
+  GSM7486858:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    strain:
+      text: CZ631 juIs14 [ acr-2::GFP + lin-15(+)]
+      level: CZ631
+      quoted:
+      - 2
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest
+      quoted:
+      - 10
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 12
+      p: 1.0
+  GSM7486859:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    strain:
+      text: KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]
+      level: KRA257
+      quoted:
+      - 3
+      p: 1.0
+    synchronization_protocol:
+      text: L1 arrest + mesh synchronization
+      quoted:
+      - 13
+      p: 0.98
+    replicate:
+      text: rep 1
+      quoted:
+      - 11
+      p: 0.97
+  GSM7486860:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    strain:
+      text: KRA257 kasIs2 [lin-39p::RFP  + pha-1(+)]
+      level: KRA257
+      quoted:
+      - 3
+      p: 0.99
+    synchronization_protocol:
+      text: L1 arrest + mesh synchronization
+      quoted:
+      - 13
+      p: 0.98
+    replicate:
+      text: rep 2
+      quoted:
+      - 12
+      p: 0.84

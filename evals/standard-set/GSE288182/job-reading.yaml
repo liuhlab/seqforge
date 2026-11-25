@@ -1,0 +1,469 @@
+format: 2
+study: GSE288182
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE288182 and their 9 sequenced samples; the full text of pmid:42210397.
+ontology_snapshot:
+  source: 'liulab-data ontology store: mondo-2026-11-03, ncbitaxon-2026-11-25, pato-2026-10-01, uberon-2026-11-05'
+  date: 2026-11-24
+passages:
+  1:
+    record:
+    - GSM8760787
+    - GSM8760788
+    - GSM8760789
+    field: Sample_characteristics_ch1
+    quote: 'genotype: WT'
+  2:
+    record:
+    - GSM8760790
+    - GSM8760791
+    - GSM8760792
+    - GSM8760793
+    - GSM8760794
+    - GSM8760795
+    field: Sample_characteristics_ch1
+    quote: 'genotype: APP/PS1'
+  3:
+    record:
+    - GSM8760787
+    - GSM8760788
+    - GSM8760789
+    - GSM8760790
+    - GSM8760791
+    - GSM8760792
+    field: Sample_characteristics_ch1
+    quote: 'treatment: mock'
+  4:
+    record:
+    - GSM8760793
+    - GSM8760794
+    - GSM8760795
+    field: Sample_characteristics_ch1
+    quote: 'treatment: OSK-treatment'
+  5:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: Bisulfite-Seq
+  6:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: Male APP/PS1 and wild-type (WT) mice were housed under a 12-h light/dark cycle with ad libitum
+      access to food and water.
+  7:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: brain samples were collected at 6 months.
+  8:
+    paper: pmid:42210397
+    section: Results > OSK restores cognitive function in early-stage APP/PS1 mice
+    quote: 4-month-old mice (corresponding to early-stage AD)
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: brain'
+  10:
+    paper: pmid:42210397
+    section: abstract
+    quote: In APP/PS1 mice, OSK reprogramming improves cognitive performance across disease stages, reduces
+      amyloid-β deposition, attenuates microglial activation, preserves synaptic integrity, and limits
+      neuronal apoptosis.
+  11:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: AAV-OSK or AAV-Mock (2 µl per side) was stereotaxically injected into the bilateral hippocampus
+  12:
+    paper: pmid:42210397
+    section: Methods > Animals and treatments
+    quote: injections were initiated at 4 months of age and repeated one month later; behavioral testing
+      was conducted, and brain samples were collected at 6 months.
+  13:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  genotype:
+    levels:
+    - WT
+    - APP/PS1
+    baseline: WT
+    ordered: false
+    inferred: WT versus APP/PS1 comparison in RRBS design
+    p: 0.98
+  treatment:
+    levels:
+    - mock
+    - OSK-treatment
+    baseline: mock
+    ordered: false
+    inferred: AAV-Mock versus AAV-OSK treatment comparison
+    p: 0.98
+shared:
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 13
+    p: null
+  assay:
+    text: Bisulfite-Seq
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    na: No pull-down; RRBS of genomic DNA
+    p: 1.0
+  control_type:
+    na: No background-control libraries among sequenced samples
+    p: 0.99
+  sex:
+    text: Male
+    term: male
+    quoted:
+    - 6
+    p: 0.94
+  age:
+    text: 6 months
+    value: 6
+    unit: month
+    quoted:
+    - 7
+    p: 0.95
+  development_stage:
+    text: adult
+    quoted:
+    - 8
+    p: 0.95
+  tissue:
+    text: brain
+    term: UBERON:0000955
+    quoted:
+    - 9
+    p: 1.0
+  cell_type:
+    na: Bulk brain tissue, not a cell type
+    p: 0.98
+  cell_line:
+    na: Animal brain tissue, no cell line
+    p: 1.0
+  strain:
+    unknown: Background strain not stated; APP/PS1 is genotype
+    p: 0.99
+samples:
+  GSM8760787:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D1
+      inferred: Jev judged each library to come from its own individual
+      p: 0.78
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: WT samples have no disease model
+      p: 0.92
+    dose:
+      na: no treatment
+      p: 0.68
+    duration:
+      na: no treatment
+      p: 0.79
+  GSM8760788:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D2
+      inferred: Jev judged each library to come from its own individual
+      p: 0.78
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: WT samples have no disease model
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.75
+    duration:
+      na: no treatment
+      p: 0.73
+  GSM8760789:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D3
+      inferred: Jev judged each library to come from its own individual
+      p: 0.78
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: WT samples have no disease model
+      p: 0.96
+    dose:
+      na: no treatment
+      p: 0.74
+    duration:
+      na: no treatment
+      p: 0.65
+  GSM8760790:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D4
+      inferred: Jev judged each library to come from its own individual
+      p: 0.78
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 3
+      p: 0.99
+    disease:
+      text: APP/PS1
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.53
+    duration:
+      na: no treatment
+      p: 0.63
+  GSM8760791:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D5
+      inferred: Jev judged each library to come from its own individual
+      p: 0.78
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: APP/PS1
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.59
+    duration:
+      na: no treatment
+      p: 0.68
+  GSM8760792:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D6
+      inferred: Jev judged each library to come from its own individual
+      p: 0.78
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: mock
+      level: mock
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: APP/PS1
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 1.0
+    dose:
+      na: no treatment
+      p: 0.52
+    duration:
+      na: no treatment
+      p: 0.66
+  GSM8760793:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D7
+      inferred: Jev judged each library to come from its own individual
+      p: 0.78
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: OSK-treatment
+      level: OSK-treatment
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: APP/PS1
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 0.99
+    dose:
+      text: 2 µl per side
+      quoted:
+      - 11
+      p: 0.97
+    duration:
+      text: 2 months
+      value: 2
+      unit: month
+      quoted:
+      - 12
+      p: 0.96
+  GSM8760794:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D8
+      inferred: Jev judged each library to come from its own individual
+      p: 0.78
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: OSK-treatment
+      level: OSK-treatment
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: APP/PS1
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 0.99
+    dose:
+      text: 2 µl per side
+      quoted:
+      - 11
+      p: 0.96
+    duration:
+      text: 2 months
+      value: 2
+      unit: month
+      quoted:
+      - 12
+      p: 0.97
+  GSM8760795:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D9
+      inferred: Jev judged each library to come from its own individual
+      p: 0.78
+    genotype:
+      text: APP/PS1
+      level: APP/PS1
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: OSK-treatment
+      level: OSK-treatment
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: APP/PS1
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 1.0
+    dose:
+      text: 2 µl per side
+      quoted:
+      - 11
+      p: 0.97
+    duration:
+      text: 2 months
+      value: 2
+      unit: month
+      quoted:
+      - 12
+      p: 0.96

@@ -1,0 +1,458 @@
+format: 2
+study: GSE306935
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE306935 and their 12 sequenced samples; the full text of pmid:41256688.
+ontology_snapshot:
+  source: 'liulab-data ontology store: chebi-257, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, uberon-2026-11-05'
+  date: 2026-11-24
+passages:
+  1:
+    paper: pmid:41256688
+    section: METHODS AND MATERIALS > Single cell RNA-Sequencing
+    quote: In a separate dataset, adult (4 months) and aged (22 months) MuSCs were isolated by FACS
+  2:
+    record:
+    - GSM9212752
+    - GSM9212754
+    - GSM9212756
+    - GSM9212758
+    field: Sample_characteristics_ch1
+    quote: 'age: 4 months'
+  3:
+    record:
+    - GSM9212760
+    - GSM9212762
+    - GSM9212763
+    - GSM9212764
+    - GSM9212765
+    - GSM9212766
+    - GSM9212767
+    - GSM9212768
+    field: Sample_characteristics_ch1
+    quote: 'age: 22 months'
+  4:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: for 18 hours in DMSO or in 10 µM of the the ISR activator (ISR-a Sal003 (activated).
+  5:
+    record:
+    - GSM9212752
+    - GSM9212754
+    - GSM9212756
+    - GSM9212758
+    - GSM9212760
+    - GSM9212762
+    - GSM9212763
+    - GSM9212764
+    field: Sample_characteristics_ch1
+    quote: 'treatment: DMSO'
+  6:
+    record:
+    - GSM9212765
+    - GSM9212766
+    - GSM9212767
+    - GSM9212768
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Sal003'
+  7:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  8:
+    paper: pmid:41256688
+    section: METHODS AND MATERIALS > Animals
+    quote: Adult (2-5 months) and aged (18-24 months) C57Bl/6J (C57) were purchased from Jackson Laboratory.
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: hindlimb and forelimb'
+  10:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Muscle Stem Cells'
+  11:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: 10 µM of the the ISR activator (ISR-a Sal003 (activated).
+  12:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  age:
+    levels:
+    - adult_4_months
+    - aged_22_months
+    baseline: adult_4_months
+    ordered: true
+    quoted:
+    - 1
+    p: 0.99
+  treatment:
+    levels:
+    - DMSO
+    - Sal003
+    baseline: DMSO
+    ordered: false
+    quoted:
+    - 4
+    p: 0.98
+shared:
+  donor:
+    unknown: nothing read says which individual a library came from
+    p: 0.58
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 12
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 7
+    p: 1.0
+  target:
+    na: RNA-Seq libraries have no pull-down target
+    p: 1.0
+  control_type:
+    na: No background-control libraries; DMSO is a baseline
+    p: 1.0
+  sex:
+    unknown: Sex not stated in records or paper
+    p: 0.98
+  development_stage:
+    text: adult
+    quoted:
+    - 8
+    p: 0.87
+  tissue:
+    text: hindlimb and forelimb
+    term: UBERON:0001134
+    quoted:
+    - 9
+    p: 1.0
+  cell_type:
+    text: Muscle Stem Cells
+    quoted:
+    - 10
+    p: 1.0
+  cell_line:
+    na: Primary MuSCs from mouse tissue; no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: No disease or disease model reported
+    p: 0.99
+  genotype:
+    unknown: No genotype stated for sequenced samples
+    p: 0.85
+  strain:
+    text: C57Bl/6J
+    quoted:
+    - 8
+    p: 0.97
+  duration:
+    text: 18 hours
+    value: 18
+    unit: hours
+    quoted:
+    - 4
+    p: 0.75
+samples:
+  GSM9212752:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4 months
+      value: 4
+      unit: months
+      level: adult_4_months
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 5
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.84
+  GSM9212754:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4 months
+      value: 4
+      unit: months
+      level: adult_4_months
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 5
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.83
+  GSM9212756:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4 months
+      value: 4
+      unit: months
+      level: adult_4_months
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 5
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.87
+  GSM9212758:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4 months
+      value: 4
+      unit: months
+      level: adult_4_months
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 5
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.81
+  GSM9212760:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 22 months
+      value: 22
+      unit: months
+      level: aged_22_months
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 5
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.88
+  GSM9212762:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 22 months
+      value: 22
+      unit: months
+      level: aged_22_months
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 5
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.82
+  GSM9212763:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 22 months
+      value: 22
+      unit: months
+      level: aged_22_months
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 5
+      p: 0.98
+    dose:
+      na: no treatment
+      p: 0.85
+  GSM9212764:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 22 months
+      value: 22
+      unit: months
+      level: aged_22_months
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 5
+      p: 0.99
+    dose:
+      na: no treatment
+      p: 0.78
+  GSM9212765:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 22 months
+      value: 22
+      unit: months
+      level: aged_22_months
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: Sal003
+      level: Sal003
+      quoted:
+      - 6
+      p: 1.0
+    dose:
+      text: 10 µM
+      value: 10
+      unit: µM
+      quoted:
+      - 11
+      p: 1.0
+  GSM9212766:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 22 months
+      value: 22
+      unit: months
+      level: aged_22_months
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: Sal003
+      level: Sal003
+      quoted:
+      - 6
+      p: 1.0
+    dose:
+      text: 10 µM
+      value: 10
+      unit: µM
+      quoted:
+      - 11
+      p: 1.0
+  GSM9212767:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 22 months
+      value: 22
+      unit: months
+      level: aged_22_months
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: Sal003
+      level: Sal003
+      quoted:
+      - 6
+      p: 1.0
+    dose:
+      text: 10 µM
+      value: 10
+      unit: µM
+      quoted:
+      - 11
+      p: 1.0
+  GSM9212768:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 22 months
+      value: 22
+      unit: months
+      level: aged_22_months
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: Sal003
+      level: Sal003
+      quoted:
+      - 6
+      p: 1.0
+    dose:
+      text: 10 µM
+      value: 10
+      unit: µM
+      quoted:
+      - 11
+      p: 1.0

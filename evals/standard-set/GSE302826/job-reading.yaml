@@ -1,0 +1,1380 @@
+format: 2
+study: GSE302826
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE302826 and their 18 sequenced samples; the full text of pmid:40983680.
+ontology_snapshot:
+  source: 'liulab-data ontology store: cellosaurus-57.0, cl-2026-11-13, efo-3.96.0, hsapdv-2025-01-23,
+    ncbitaxon-2026-11-25, pato-2026-10-01'
+  date: 2026-11-24
+passages:
+  1:
+    record:
+    - GSM9111824
+    - GSM9111825
+    - GSM9111826
+    - GSM9111830
+    - GSM9111831
+    - GSM9111832
+    - GSM9111833
+    - GSM9111834
+    - GSM9111835
+    field: Sample_characteristics_ch1
+    quote: 'genotype: ApoE3/3'
+  2:
+    record:
+    - GSM9111827
+    - GSM9111828
+    - GSM9111829
+    - GSM9111836
+    - GSM9111837
+    - GSM9111838
+    - GSM9111839
+    - GSM9111840
+    - GSM9111841
+    field: Sample_characteristics_ch1
+    quote: 'genotype: ApoE4/4'
+  3:
+    paper: pmid:40983680
+    section: Methods > iPS cell culture
+    quote: Kolf2.1J C112R Hom3 (APOE4/4 set 1)
+  4:
+    record:
+    - GSM9111824
+    - GSM9111825
+    - GSM9111826
+    - GSM9111827
+    - GSM9111828
+    - GSM9111829
+    field: Sample_characteristics_ch1
+    quote: 'cell line: BIONi037-A'
+  5:
+    record:
+    - GSM9111827
+    - GSM9111828
+    - GSM9111829
+    field: Sample_characteristics_ch1
+    quote: 'cell line: BIONi037-A4'
+  6:
+    record:
+    - GSM9111830
+    - GSM9111831
+    - GSM9111832
+    - GSM9111833
+    - GSM9111834
+    - GSM9111835
+    - GSM9111836
+    - GSM9111837
+    - GSM9111838
+    - GSM9111839
+    - GSM9111840
+    - GSM9111841
+    field: Sample_characteristics_ch1
+    quote: 'cell line: KOLF2.1J'
+  7:
+    record:
+    - GSM9111836
+    - GSM9111837
+    - GSM9111838
+    - GSM9111839
+    - GSM9111840
+    - GSM9111841
+    field: Sample_characteristics_ch1
+    quote: 'cell line: KOLF2.1J C156R hom3'
+  8:
+    record: GSM9111830
+    field: Sample_title
+    quote: KOLF2.1J ApoE3/3 +FBS R1
+  9:
+    record: GSM9111833
+    field: Sample_title
+    quote: KOLF2.1J ApoE3/3 -FBS R1
+  10:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  11:
+    paper: pmid:40983680
+    section: Methods > iPS cell culture
+    quote: 'Isogenic BIONi037-A (APOE3/3) and BIONi037-A4 (APOE4/4) human iPS cell lines were obtained
+      through EBISC (donor: 77-year-old woman).'
+  12:
+    record:
+    - GSM9111824
+    - GSM9111825
+    - GSM9111826
+    - GSM9111827
+    - GSM9111828
+    - GSM9111829
+    field: Sample_characteristics_ch1
+    quote: 'cell type: iPSC-derived astrocytes'
+  13:
+    paper: pmid:40983680
+    section: Discussion > CE accumulation as a hallmark of AD
+    quote: in the absence of pathology
+  14:
+    record:
+    - GSM9111824
+    - GSM9111825
+    - GSM9111826
+    - GSM9111827
+    - GSM9111828
+    - GSM9111829
+    field: Sample_characteristics_ch1
+    quote: 'batch: FEB2022'
+  15:
+    paper: pmid:40983680
+    section: Methods > iPS cell culture
+    quote: 'Isogenic Kolf2.1J (APOE3/3), Kolf2.1J C112R Hom3 (APOE4/4 set 1) and Kolf2.1J C112R Hom2 (APOE4/4
+      set 2) human iPS cells were a kind gift from iNDI (donor: 57-year-old man).'
+  16:
+    record:
+    - GSM9111830
+    - GSM9111831
+    - GSM9111832
+    - GSM9111833
+    - GSM9111834
+    - GSM9111835
+    - GSM9111836
+    - GSM9111837
+    - GSM9111838
+    - GSM9111839
+    - GSM9111840
+    - GSM9111841
+    field: Sample_characteristics_ch1
+    quote: 'cell type: iAstrocytes'
+  17:
+    paper: pmid:40983680
+    section: 'Methods > Experimental setup for iAstrocyte multiomics: ApoE4 versus ApoE3'
+    quote: fully differentiated iAstrocytes were plated at 17,000 cells per cm2 in AM + 2% FBS in uncoated
+      10-cm dishes.
+  18:
+    paper: pmid:40983680
+    section: Methods > Lipidomics of iAstrocytes
+    quote: After 24 h, on day 3, iAstrocytes were collected by Accutase dissociation after one PBS wash
+      and counted.
+  19:
+    record:
+    - GSM9111830
+    - GSM9111831
+    - GSM9111832
+    - GSM9111833
+    - GSM9111834
+    - GSM9111835
+    - GSM9111836
+    - GSM9111837
+    - GSM9111838
+    - GSM9111839
+    - GSM9111840
+    - GSM9111841
+    field: Sample_characteristics_ch1
+    quote: 'batch: DEC2024'
+  20:
+    paper: pmid:40983680
+    section: Methods > Lipidomics of iAstrocytes
+    quote: the medium was replaced by AM without FBS after one PBS wash
+  21:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+factors:
+  genotype:
+    levels:
+    - APOE3_3
+    - APOE4_4
+    baseline: APOE3_3
+    ordered: false
+    inferred: Isogenic APOE3/3 versus APOE4/4 astrocytes.
+    p: 0.98
+  cell_line:
+    levels:
+    - BIONi037-A
+    - BIONi037-A4
+    - KOLF2.1J
+    - KOLF2.1J_C156R_hom3
+    baseline: BIONi037-A
+    ordered: false
+    inferred: Parental and ApoE4-edited iPS cell lines.
+    p: 0.77
+  treatment:
+    levels:
+    - FBS_plus
+    - FBS_minus
+    baseline: null
+    ordered: false
+    inferred: Astrocytes cultured with or without FBS.
+    p: 0.96
+shared:
+  donor:
+    na: a cell line or a culture, no single individual
+    p: 0.97
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 21
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 10
+    p: 1.0
+  target:
+    na: RNA-Seq with no pull-down.
+    p: 1.0
+  control_type:
+    na: No background-control libraries.
+    p: 1.0
+  tissue:
+    na: In vitro iPSC-derived astrocytes.
+    p: 0.79
+  disease:
+    text: healthy
+    term: PATO:0000461
+    quoted:
+    - 13
+    p: 0.85
+  strain:
+    na: Human cell lines, no strain.
+    p: 0.99
+samples:
+  GSM9111824:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE3/3
+      level: APOE3_3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: BIONi037-A
+      term: CVCL_II80
+      level: BIONi037-A
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 1.0
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.56
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 11
+      p: 0.95
+    age:
+      text: 77 years
+      value: 77
+      unit: years
+      quoted:
+      - 11
+      p: 0.92
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.66
+    cell_type:
+      text: iPSC-derived astrocytes
+      term: CL:0000127
+      quoted:
+      - 12
+      p: 0.99
+    dose:
+      unknown: what was read does not say its dose
+      p: 0.58
+    duration:
+      na: no treatment
+      p: 0.41
+    batch:
+      text: FEB2022
+      quoted:
+      - 14
+      p: 1.0
+  GSM9111825:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE3/3
+      level: APOE3_3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: BIONi037-A
+      term: CVCL_II80
+      level: BIONi037-A
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 1.0
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.62
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 11
+      p: 0.95
+    age:
+      text: 77 years
+      value: 77
+      unit: years
+      quoted:
+      - 11
+      p: 0.89
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.63
+    cell_type:
+      text: iPSC-derived astrocytes
+      term: CL:0000127
+      quoted:
+      - 12
+      p: 0.99
+    dose:
+      unknown: what was read does not say its dose
+      p: 0.65
+    duration:
+      na: no treatment
+      p: 0.49
+    batch:
+      text: FEB2022
+      quoted:
+      - 14
+      p: 1.0
+  GSM9111826:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE3/3
+      level: APOE3_3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: BIONi037-A
+      term: CVCL_II80
+      level: BIONi037-A
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 1.0
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.7
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 11
+      p: 0.93
+    age:
+      text: 77 years
+      value: 77
+      unit: years
+      quoted:
+      - 11
+      p: 0.88
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.59
+    cell_type:
+      text: iPSC-derived astrocytes
+      term: CL:0000127
+      quoted:
+      - 12
+      p: 0.99
+    dose:
+      unknown: what was read does not say its dose
+      p: 0.6
+    duration:
+      na: no treatment
+      p: 0.61
+    batch:
+      text: FEB2022
+      quoted:
+      - 14
+      p: 1.0
+  GSM9111827:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE4/4
+      level: APOE4_4
+      quoted:
+      - 2
+      p: 1.0
+    cell_line:
+      text: BIONi037-A4
+      level: BIONi037-A4
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.58
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 11
+      p: 0.94
+    age:
+      text: 77 years
+      value: 77
+      unit: years
+      quoted:
+      - 11
+      p: 0.92
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.63
+    cell_type:
+      text: iPSC-derived astrocytes
+      term: CL:0000127
+      quoted:
+      - 12
+      p: 1.0
+    dose:
+      unknown: what was read does not say its dose
+      p: 0.6
+    duration:
+      na: no treatment
+      p: 0.63
+    batch:
+      text: FEB2022
+      quoted:
+      - 14
+      p: 1.0
+  GSM9111828:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE4/4
+      level: APOE4_4
+      quoted:
+      - 2
+      p: 1.0
+    cell_line:
+      text: BIONi037-A4
+      level: BIONi037-A4
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      na: no treatment applied in the study
+      p: 0.46
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 11
+      p: 0.94
+    age:
+      text: 77 years
+      value: 77
+      unit: years
+      quoted:
+      - 11
+      p: 0.89
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.51
+    cell_type:
+      text: iPSC-derived astrocytes
+      term: CL:0000127
+      quoted:
+      - 12
+      p: 0.99
+    dose:
+      unknown: what was read does not say its dose
+      p: 0.55
+    duration:
+      na: no treatment
+      p: 0.58
+    batch:
+      text: FEB2022
+      quoted:
+      - 14
+      p: 1.0
+  GSM9111829:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE4/4
+      level: APOE4_4
+      quoted:
+      - 2
+      p: 1.0
+    cell_line:
+      text: BIONi037-A4
+      level: BIONi037-A4
+      quoted:
+      - 5
+      p: 1.0
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.66
+    sex:
+      text: female
+      term: female
+      quoted:
+      - 11
+      p: 0.95
+    age:
+      text: 77 years
+      value: 77
+      unit: years
+      quoted:
+      - 11
+      p: 0.88
+    development_stage:
+      unknown: what was read does not say its development stage
+      p: 0.56
+    cell_type:
+      text: iPSC-derived astrocytes
+      term: CL:0000127
+      quoted:
+      - 12
+      p: 0.99
+    dose:
+      unknown: what was read does not say its dose
+      p: 0.67
+    duration:
+      na: no treatment
+      p: 0.53
+    batch:
+      text: FEB2022
+      quoted:
+      - 14
+      p: 1.0
+  GSM9111830:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE3/3
+      level: APOE3_3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      level: KOLF2.1J
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    treatment:
+      text: +FBS
+      level: FBS_plus
+      quoted:
+      - 8
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.93
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.9
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.96
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.97
+    dose:
+      text: 2% FBS
+      value: 2
+      unit: '%'
+      quoted:
+      - 17
+      p: 0.89
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.9
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111831:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE3/3
+      level: APOE3_3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      level: KOLF2.1J
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    treatment:
+      text: +FBS
+      level: FBS_plus
+      quoted:
+      - 8
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.94
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.92
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.92
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.97
+    dose:
+      text: 2% FBS
+      value: 2
+      unit: '%'
+      quoted:
+      - 17
+      p: 0.92
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.87
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111832:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE3/3
+      level: APOE3_3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      level: KOLF2.1J
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    treatment:
+      text: +FBS
+      level: FBS_plus
+      quoted:
+      - 8
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.95
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.92
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.94
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.98
+    dose:
+      text: 2% FBS
+      value: 2
+      unit: '%'
+      quoted:
+      - 17
+      p: 0.93
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.84
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111833:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE3/3
+      level: APOE3_3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      level: KOLF2.1J
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    treatment:
+      text: -FBS
+      level: FBS_minus
+      quoted:
+      - 9
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.95
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.92
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.97
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.95
+    dose:
+      text: without FBS
+      quoted:
+      - 20
+      p: 0.99
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.95
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111834:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE3/3
+      level: APOE3_3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      level: KOLF2.1J
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    treatment:
+      text: -FBS
+      level: FBS_minus
+      quoted:
+      - 9
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.91
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.91
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.95
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.96
+    dose:
+      text: without FBS
+      quoted:
+      - 20
+      p: 0.99
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.91
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111835:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE3/3
+      level: APOE3_3
+      quoted:
+      - 1
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J
+      level: KOLF2.1J
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    treatment:
+      text: -FBS
+      level: FBS_minus
+      quoted:
+      - 9
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.96
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.93
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.95
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.97
+    dose:
+      text: without FBS
+      quoted:
+      - 20
+      p: 0.99
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.89
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111836:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE4/4
+      level: APOE4_4
+      quoted:
+      - 2
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J_C156R_hom3
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: +FBS
+      level: FBS_plus
+      quoted:
+      - 8
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.83
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.75
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.77
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.98
+    dose:
+      text: 2% FBS
+      value: 2
+      unit: '%'
+      quoted:
+      - 17
+      p: 0.95
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.75
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111837:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE4/4
+      level: APOE4_4
+      quoted:
+      - 2
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J_C156R_hom3
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: +FBS
+      level: FBS_plus
+      quoted:
+      - 8
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.87
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.81
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.79
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.98
+    dose:
+      text: 2% FBS
+      value: 2
+      unit: '%'
+      quoted:
+      - 17
+      p: 0.92
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.76
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111838:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE4/4
+      level: APOE4_4
+      quoted:
+      - 2
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J_C156R_hom3
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: +FBS
+      level: FBS_plus
+      quoted:
+      - 8
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.86
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.79
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.78
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.98
+    dose:
+      text: 2% FBS
+      value: 2
+      unit: '%'
+      quoted:
+      - 17
+      p: 0.91
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.73
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111839:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE4/4
+      level: APOE4_4
+      quoted:
+      - 2
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J_C156R_hom3
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: -FBS
+      level: FBS_minus
+      quoted:
+      - 9
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.83
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.79
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.76
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.97
+    dose:
+      text: without FBS
+      quoted:
+      - 20
+      p: 0.99
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.84
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111840:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE4/4
+      level: APOE4_4
+      quoted:
+      - 2
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J_C156R_hom3
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: -FBS
+      level: FBS_minus
+      quoted:
+      - 9
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.87
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.83
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.84
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.98
+    dose:
+      text: without FBS
+      quoted:
+      - 20
+      p: 0.99
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.85
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0
+  GSM9111841:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: ApoE4/4
+      level: APOE4_4
+      quoted:
+      - 2
+      p: 1.0
+    cell_line:
+      text: KOLF2.1J C156R hom3
+      level: KOLF2.1J_C156R_hom3
+      quoted:
+      - 7
+      p: 1.0
+    treatment:
+      text: -FBS
+      level: FBS_minus
+      quoted:
+      - 9
+      p: 1.0
+    sex:
+      text: male
+      term: male
+      quoted:
+      - 15
+      p: 0.86
+    age:
+      text: 57 years
+      value: 57
+      unit: years
+      quoted:
+      - 15
+      p: 0.81
+    development_stage:
+      text: adult
+      term: HsapDv:0000258
+      inferred: Donor age indicates adult.
+      see:
+      - 15
+      p: 0.82
+    cell_type:
+      text: iAstrocytes
+      term: CL:0000127
+      quoted:
+      - 16
+      p: 0.98
+    dose:
+      text: without FBS
+      quoted:
+      - 20
+      p: 0.99
+    duration:
+      text: 24 h
+      value: 24
+      unit: hours
+      quoted:
+      - 18
+      p: 0.88
+    batch:
+      text: DEC2024
+      quoted:
+      - 19
+      p: 1.0

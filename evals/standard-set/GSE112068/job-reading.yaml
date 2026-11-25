@@ -1,0 +1,1037 @@
+format: 2
+study: GSE112068
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+read_detail: The records of GSE112068 and their 23 sequenced samples; no paper.
+ontology_snapshot:
+  source: 'liulab-data ontology store: cellosaurus-57.0, chebi-257, cl-2026-11-13, efo-3.96.0, hsapdv-2025-01-23,
+    ncbitaxon-2026-11-25, pato-2026-10-01, uberon-2026-11-05'
+  date: 2026-11-24
+passages:
+  1:
+    record: GSE112068
+    field: Series_summary
+    quote: samples were treated with the DNA-damaging agent bleomycin at 0 ug/ml, 2 ug/ml and 40 ug/ml
+      for 2 h.
+  2:
+    record: GSM3056966
+    field: Sample_description
+    quote: no exposure for 0 day
+  3:
+    record:
+    - GSM3056969
+    - GSM3056970
+    - GSM3056971
+    - GSM3056972
+    - GSM3056973
+    - GSM3056974
+    - GSM3056975
+    - GSM3056976
+    - GSM3056977
+    - GSM3056978
+    - GSM3056979
+    - GSM3056980
+    - GSM3056981
+    - GSM3056982
+    - GSM3056983
+    - GSM3056984
+    - GSM3056985
+    - GSM3056986
+    - GSM3056987
+    - GSM3056988
+    field: Sample_characteristics_ch1
+    quote: 'agent: bleomycin'
+  4:
+    record: GSE112068
+    field: Series_summary
+    quote: bleomycin at 0 ug/ml, 2 ug/ml and 40 ug/ml for 2 h
+  5:
+    record:
+    - GSM3056966
+    - GSM3056967
+    - GSM3056968
+    field: Sample_characteristics_ch1
+    quote: 'dose: 0 ug/ml'
+  6:
+    record:
+    - GSM3056969
+    - GSM3056970
+    - GSM3056971
+    - GSM3056972
+    - GSM3056973
+    - GSM3056974
+    - GSM3056975
+    - GSM3056976
+    - GSM3056977
+    - GSM3056978
+    field: Sample_characteristics_ch1
+    quote: 'dose: 2 ug/ml'
+  7:
+    record:
+    - GSM3056979
+    - GSM3056980
+    - GSM3056981
+    - GSM3056982
+    - GSM3056983
+    - GSM3056984
+    - GSM3056985
+    - GSM3056986
+    - GSM3056987
+    - GSM3056988
+    field: Sample_characteristics_ch1
+    quote: 'dose: 40 ug/ml'
+  8:
+    record: GSE112068
+    field: Series_summary
+    quote: High-resolution time course analysis of gene expression in DNA damage-induced cellular senescence
+      and transient cell-cycle arrest
+  9:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: at 12 time points (0 h, 2 h, 4 h, 8 h, 12 h, 24 h, 32 h, 2 days, 4 days, 6 days and 8 days)
+      after exposure to bleomycin at 2 ug/ml and 40 ug/ml.
+  10:
+    record: GSM3056966
+    field: Sample_characteristics_ch1
+    quote: 'time: 0 day'
+  11:
+    record:
+    - GSM3056970
+    - GSM3056980
+    field: Sample_characteristics_ch1
+    quote: 'time: 2 h'
+  12:
+    record:
+    - GSM3056972
+    - GSM3056982
+    field: Sample_characteristics_ch1
+    quote: 'time: 4 h'
+  13:
+    record:
+    - GSM3056975
+    - GSM3056985
+    field: Sample_characteristics_ch1
+    quote: 'time: 8 h'
+  14:
+    record:
+    - GSM3056976
+    - GSM3056986
+    field: Sample_characteristics_ch1
+    quote: 'time: 12 h'
+  15:
+    record:
+    - GSM3056977
+    - GSM3056987
+    field: Sample_characteristics_ch1
+    quote: 'time: 24 h'
+  16:
+    record:
+    - GSM3056978
+    - GSM3056988
+    field: Sample_characteristics_ch1
+    quote: 'time: 36 h'
+  17:
+    record:
+    - GSM3056969
+    - GSM3056979
+    field: Sample_characteristics_ch1
+    quote: 'time: 2 days'
+  18:
+    record:
+    - GSM3056967
+    - GSM3056971
+    - GSM3056981
+    field: Sample_characteristics_ch1
+    quote: 'time: 4 days'
+  19:
+    record:
+    - GSM3056973
+    - GSM3056983
+    field: Sample_characteristics_ch1
+    quote: 'time: 6 days'
+  20:
+    record:
+    - GSM3056968
+    - GSM3056974
+    - GSM3056984
+    field: Sample_characteristics_ch1
+    quote: 'time: 8 days'
+  21:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  22:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'age: 16 weeks gestation'
+  23:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: lung
+  24:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: fibroblast'
+  25:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell line: IMR-90'
+  26:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+factors:
+  treatment:
+    levels:
+    - no_exposure
+    - bleomycin
+    baseline: no_exposure
+    ordered: true
+    quoted:
+    - 1
+    p: 0.87
+  dose:
+    levels:
+    - 0_ug_ml
+    - 2_ug_ml
+    - 40_ug_ml
+    baseline: 0_ug_ml
+    ordered: true
+    quoted:
+    - 4
+    p: 0.99
+  time_point:
+    levels:
+    - t0d
+    - t2h
+    - t4h
+    - t8h
+    - t12h
+    - t24h
+    - t36h
+    - t2d
+    - t4d
+    - t6d
+    - t8d
+    baseline: t0d
+    ordered: true
+    quoted:
+    - 8
+    p: 0.94
+shared:
+  donor:
+    na: a cell line or a culture, no single individual
+    p: 1.0
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 26
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 21
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down target
+    p: 1.0
+  control_type:
+    na: Untreated samples are baseline, not control libraries
+    p: 1.0
+  sex:
+    unknown: No sex annotation in sample records
+    p: 0.65
+  age:
+    text: 16 weeks gestation
+    value: 16
+    unit: weeks
+    quoted:
+    - 22
+    p: 1.0
+  development_stage:
+    text: 16 weeks gestation
+    term: HsapDv:0000037
+    quoted:
+    - 22
+    p: 0.97
+  tissue:
+    text: lung
+    term: UBERON:0002048
+    quoted:
+    - 23
+    p: 0.97
+  cell_type:
+    text: fibroblast
+    term: CL:0000057
+    quoted:
+    - 24
+    p: 1.0
+  cell_line:
+    text: IMR-90
+    term: CVCL_0347
+    quoted:
+    - 25
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model stated
+    p: 0.98
+  genotype:
+    unknown: No genotype annotation in records
+    p: 0.8
+  strain:
+    na: Human cell-line samples have no strain
+    p: 0.99
+samples:
+  GSM3056966:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: no exposure
+      level: no_exposure
+      quoted:
+      - 2
+      p: 0.99
+    dose:
+      text: 0 ug/ml
+      value: 0
+      unit: ug/ml
+      level: 0_ug_ml
+      quoted:
+      - 5
+      p: 1.0
+    time_point:
+      text: 0 day
+      level: t0d
+      quoted:
+      - 10
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.78
+  GSM3056967:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: no exposure
+      level: no_exposure
+      quoted:
+      - 2
+      p: 0.98
+    dose:
+      text: 0 ug/ml
+      value: 0
+      unit: ug/ml
+      level: 0_ug_ml
+      quoted:
+      - 5
+      p: 1.0
+    time_point:
+      text: 4 days
+      level: t4d
+      quoted:
+      - 18
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.59
+  GSM3056968:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: no exposure
+      level: no_exposure
+      quoted:
+      - 2
+      p: 0.99
+    dose:
+      text: 0 ug/ml
+      value: 0
+      unit: ug/ml
+      level: 0_ug_ml
+      quoted:
+      - 5
+      p: 1.0
+    time_point:
+      text: 8 days
+      level: t8d
+      quoted:
+      - 20
+      p: 1.0
+    duration:
+      na: no treatment
+      p: 0.63
+  GSM3056969:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 2 days
+      level: t2d
+      quoted:
+      - 17
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056970:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 2 h
+      level: t2h
+      quoted:
+      - 11
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056971:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 4 days
+      level: t4d
+      quoted:
+      - 18
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056972:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 4 h
+      level: t4h
+      quoted:
+      - 12
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056973:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 6 days
+      level: t6d
+      quoted:
+      - 19
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056974:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 8 days
+      level: t8d
+      quoted:
+      - 20
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056975:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 8 h
+      level: t8h
+      quoted:
+      - 13
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056976:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 12 h
+      level: t12h
+      quoted:
+      - 14
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 0.99
+  GSM3056977:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 24 h
+      level: t24h
+      quoted:
+      - 15
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056978:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 2 ug/ml
+      value: 2
+      unit: ug/ml
+      level: 2_ug_ml
+      quoted:
+      - 6
+      p: 1.0
+    time_point:
+      text: 36 h
+      level: t36h
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 16
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056979:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 2 days
+      level: t2d
+      quoted:
+      - 17
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056980:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 2 h
+      level: t2h
+      quoted:
+      - 11
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056981:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 4 days
+      level: t4d
+      quoted:
+      - 18
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056982:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 4 h
+      level: t4h
+      quoted:
+      - 12
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056983:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 6 days
+      level: t6d
+      quoted:
+      - 19
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056984:
+    biosample:
+      id: B19
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 8 days
+      level: t8d
+      quoted:
+      - 20
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056985:
+    biosample:
+      id: B20
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 8 h
+      level: t8h
+      quoted:
+      - 13
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056986:
+    biosample:
+      id: B21
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 12 h
+      level: t12h
+      quoted:
+      - 14
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056987:
+    biosample:
+      id: B22
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 24 h
+      level: t24h
+      quoted:
+      - 15
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0
+  GSM3056988:
+    biosample:
+      id: B23
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: bleomycin
+      term: CHEBI:22907
+      level: bleomycin
+      quoted:
+      - 3
+      p: 1.0
+    dose:
+      text: 40 ug/ml
+      value: 40
+      unit: ug/ml
+      level: 40_ug_ml
+      quoted:
+      - 7
+      p: 1.0
+    time_point:
+      text: 36 h
+      level: t36h
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 16
+      p: 1.0
+    duration:
+      text: 2 h
+      value: 2
+      unit: hour
+      quoted:
+      - 1
+      p: 1.0

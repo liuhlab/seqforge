@@ -1,0 +1,1025 @@
+format: 2
+study: GSE117724
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE117700, GSE117719 and their 20 sequenced samples; the full text of pmid:30668573.
+ontology_snapshot:
+  source: 'liulab-data ontology store: chebi-257, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbls-2026-04-16'
+  date: 2026-11-24
+passages:
+  1:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: transferred to 70 μM R24 or solvent control (DMSO, 1% final concentration)
+  2:
+    record:
+    - GSM3307357
+    - GSM3307358
+    - GSM3307359
+    - GSM3307363
+    - GSM3307364
+    - GSM3307365
+    - GSM3307369
+    - GSM3307370
+    - GSM3307371
+    - GSM3398125
+    field: Sample_characteristics_ch1
+    quote: 'treatment: DMSO'
+  3:
+    record:
+    - GSM3307360
+    - GSM3307361
+    - GSM3307362
+    - GSM3307366
+    - GSM3307367
+    - GSM3307368
+    - GSM3307372
+    - GSM3307373
+    - GSM3307374
+    - GSM3398126
+    field: Sample_characteristics_ch1
+    quote: 'treatment: R24'
+  4:
+    record: GSE117700
+    field: Series_overall_design
+    quote: Transcriptional profiles of C. elegans animals treated with immunostimulator molecule R24 in
+      wild-type and nhr-86 loss of function animals
+  5:
+    record:
+    - GSM3307357
+    - GSM3307358
+    - GSM3307359
+    - GSM3307360
+    - GSM3307361
+    - GSM3307362
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wild-type'
+  6:
+    record:
+    - GSM3307363
+    - GSM3307364
+    - GSM3307365
+    - GSM3307366
+    - GSM3307367
+    - GSM3307368
+    field: Sample_characteristics_ch1
+    quote: 'genotype: nhr-86(tm2590)'
+  7:
+    record:
+    - GSM3307369
+    - GSM3307370
+    - GSM3307371
+    - GSM3307372
+    - GSM3307373
+    - GSM3307374
+    field: Sample_characteristics_ch1
+    quote: 'genotype: nhr-86(ums12)'
+  8:
+    record:
+    - GSM3398125
+    - GSM3398126
+    field: Sample_characteristics_ch1
+    quote: 'genotype: VL648 unc-119(ed3); wwIs22 [Pnhr-86::nhr-86ORF::GFP unc-119(+)]'
+  9:
+    record:
+    - GSM3307357
+    - GSM3307358
+    - GSM3307359
+    - GSM3307360
+    - GSM3307361
+    - GSM3307362
+    - GSM3307363
+    - GSM3307364
+    - GSM3307365
+    - GSM3307366
+    - GSM3307367
+    - GSM3307368
+    - GSM3307369
+    - GSM3307370
+    - GSM3307371
+    - GSM3307372
+    - GSM3307373
+    - GSM3307374
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  10:
+    paper: pmid:30668573
+    section: Materials and methods > mRNA-seq, NanoString ncounter gene expression analyses and qRT-PCR
+    quote: Synchronized, L1 stage, hermaphrodites C. elegans
+  11:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L4'
+  12:
+    paper: pmid:30668573
+    section: Materials and methods > mRNA-seq, NanoString ncounter gene expression analyses and qRT-PCR
+    quote: grown to the L4/ young adult stage
+  13:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Whole animal'
+  14:
+    record:
+    - GSM3307357
+    - GSM3307358
+    - GSM3307359
+    - GSM3307360
+    - GSM3307361
+    - GSM3307362
+    - GSM3307363
+    - GSM3307364
+    - GSM3307365
+    - GSM3307366
+    - GSM3307367
+    - GSM3307368
+    - GSM3307369
+    - GSM3307370
+    - GSM3307371
+    - GSM3307372
+    - GSM3307373
+    - GSM3307374
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  15:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: DMSO, 1% final concentration
+  16:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: incubated at 20°C overnight
+  17:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: 70 μM R24
+  18:
+    record:
+    - GSM3398125
+    - GSM3398126
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  19:
+    paper: pmid:30668573
+    section: Results > NHR-86 binds to the promoters of innate immune genes to drive their transcription
+    quote: The ChIP-seq experiment was performed with a strain containing a GFP-tagged NHR-86 protein
+      (NHR-86::GFP)
+  20:
+    record:
+    - GSM3398125
+    - GSM3398126
+    field: Sample_characteristics_ch1
+    quote: 'strain: VL648'
+  21:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  treatment:
+    levels:
+    - DMSO
+    - R24
+    baseline: DMSO
+    ordered: false
+    quoted:
+    - 1
+    p: 0.99
+  genotype:
+    levels:
+    - wild-type
+    - nhr-86(tm2590)
+    - nhr-86(ums12)
+    - VL648
+    baseline: wild-type
+    ordered: false
+    quoted:
+    - 4
+    p: 0.96
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.84
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 21
+    p: null
+  control_type:
+    na: No input or IgG control libraries were sequenced.
+    p: 0.92
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 10
+    p: 0.9
+  age:
+    unknown: No age given; only developmental stage L4.
+    p: 0.67
+  development_stage:
+    text: L4
+    term: WBls:0000038
+    quoted:
+    - 11
+    p: 1.0
+  tissue:
+    text: Whole animal
+    quoted:
+    - 13
+    p: 1.0
+  cell_type:
+    na: Whole animal samples, no specific cell type.
+    p: 0.99
+  cell_line:
+    na: Whole animals, not cultured cell lines.
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: No disease or disease model described.
+    p: 0.98
+  duration:
+    text: overnight
+    quoted:
+    - 16
+    p: 0.81
+samples:
+  GSM3307357:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild-type
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.99
+  GSM3307358:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild-type
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.99
+  GSM3307359:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild-type
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.99
+  GSM3307360:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild-type
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.99
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 1.0
+  GSM3307361:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild-type
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.99
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 1.0
+  GSM3307362:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: wild-type
+      level: wild-type
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.99
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 1.0
+  GSM3307363:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: nhr-86(tm2590)
+      level: nhr-86(tm2590)
+      quoted:
+      - 6
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.98
+  GSM3307364:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: nhr-86(tm2590)
+      level: nhr-86(tm2590)
+      quoted:
+      - 6
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.98
+  GSM3307365:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: nhr-86(tm2590)
+      level: nhr-86(tm2590)
+      quoted:
+      - 6
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.99
+  GSM3307366:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: nhr-86(tm2590)
+      level: nhr-86(tm2590)
+      quoted:
+      - 6
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.99
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 1.0
+  GSM3307367:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: nhr-86(tm2590)
+      level: nhr-86(tm2590)
+      quoted:
+      - 6
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.99
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 1.0
+  GSM3307368:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: nhr-86(tm2590)
+      level: nhr-86(tm2590)
+      quoted:
+      - 6
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.99
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 1.0
+  GSM3307369:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: nhr-86(ums12)
+      level: nhr-86(ums12)
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.99
+  GSM3307370:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: nhr-86(ums12)
+      level: nhr-86(ums12)
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.98
+  GSM3307371:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: nhr-86(ums12)
+      level: nhr-86(ums12)
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 0.98
+  GSM3307372:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: nhr-86(ums12)
+      level: nhr-86(ums12)
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 0.99
+  GSM3307373:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: nhr-86(ums12)
+      level: nhr-86(ums12)
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 0.99
+  GSM3307374:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: nhr-86(ums12)
+      level: nhr-86(ums12)
+      quoted:
+      - 7
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 9
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 1.0
+  GSM3398125:
+    biosample:
+      id: B19
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: DMSO
+      term: CHEBI:28262
+      level: DMSO
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: VL648 unc-119(ed3); wwIs22 [Pnhr-86::nhr-86ORF::GFP unc-119(+)]
+      level: VL648
+      quoted:
+      - 8
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 18
+      p: 1.0
+    target:
+      text: NHR-86::GFP
+      quoted:
+      - 19
+      p: 0.99
+    strain:
+      text: VL648
+      quoted:
+      - 20
+      p: 1.0
+    dose:
+      text: 1% final concentration
+      value: 1
+      unit: '%'
+      quoted:
+      - 15
+      p: 1.0
+  GSM3398126:
+    biosample:
+      id: B20
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: R24
+      level: R24
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: VL648 unc-119(ed3); wwIs22 [Pnhr-86::nhr-86ORF::GFP unc-119(+)]
+      level: VL648
+      quoted:
+      - 8
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 18
+      p: 1.0
+    target:
+      text: NHR-86::GFP
+      quoted:
+      - 19
+      p: 0.98
+    strain:
+      text: VL648
+      quoted:
+      - 20
+      p: 1.0
+    dose:
+      text: 70 μM
+      value: 70
+      unit: μM
+      quoted:
+      - 17
+      p: 1.0

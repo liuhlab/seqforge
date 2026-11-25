@@ -1,0 +1,502 @@
+format: 2
+study: GSE126954
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE126954 and their 8 sequenced samples; the full text of pmid:31488706.
+ontology_snapshot:
+  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01,
+    wbbt-2025-08-19, wbls-2026-04-16'
+  date: 2026-11-24
+passages:
+  1:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: embryo'
+  2:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L2'
+  3:
+    record: GSE126954
+    field: Series_overall_design
+    quote: Single cell RNA-seq profiles of cells from C. elegans embryos at varying developmental stages
+      (~100-650 minutes post first cleavage).
+  4:
+    paper: pmid:31488706
+    section: Single-cell RNA-seq of C. elegans embryos
+    quote: embryos that had been allowed to develop for ~300, ~400, and ~500 minutes after the first cleavage
+      of the fertilized egg
+  5:
+    record: GSM3618670
+    field: Sample_title
+    quote: UW synchronized 300 min post bleach
+  6:
+    record: GSM3618671
+    field: Sample_title
+    quote: UW synchronized 400 min post bleach
+  7:
+    record: GSM3618672
+    field: Sample_title
+    quote: UW synchronized 500 min post bleach batch 1
+  8:
+    record: GSM3618674
+    field: Sample_title
+    quote: UPenn mixed embryo batch r17
+  9:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  10:
+    paper: pmid:31488706
+    section: Body
+    quote: from the fertilized egg to an adult hermaphrodite with 959 somatic cells
+  11:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_source_name_ch1
+    quote: C. elegans embryos
+  12:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_description
+    quote: 10X sc-RNA-seq with cells from dissociated C. elegans embryos
+  13:
+    record:
+    - GSM3618670
+    - GSM3618671
+    - GSM3618672
+    - GSM3618673
+    field: Sample_characteristics_ch1
+    quote: 'strain: VC2010, derived from N2'
+  14:
+    record:
+    - GSM3618674
+    - GSM3618675
+    - GSM3618676
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  15:
+    record: GSM4318946
+    field: Sample_source_name_ch1
+    quote: whole c.elegans (L2 stage)
+  16:
+    record: GSM4318946
+    field: Sample_description
+    quote: sciRNAseq with c.elegans cells (during sorting, polyploid c.elegans cells were exlcuded)
+  17:
+    record: GSM4318946
+    field: Sample_characteristics_ch1
+    quote: 'strain: C. elegans strain (RW12139 stIs11435(unc-120::H1-Wcherry;unc-119(+));unc-119(tm4063))
+      carrying an integrated Punc-120::mCherry gene in a wild type background was used'
+  18:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  development_stage:
+    levels:
+    - embryo
+    - L2
+    baseline: null
+    ordered: true
+    inferred: embryo atlas plus re-analyzed L2 sample
+    p: 0.55
+  age:
+    levels:
+    - 300_min_post_bleach
+    - 400_min_post_bleach
+    - 500_min_post_bleach
+    - mixed_embryo
+    baseline: null
+    ordered: true
+    quoted:
+    - 3
+    p: 0.95
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.93
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 18
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 9
+    p: 1.0
+  target:
+    na: RNA-seq has no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 10
+    p: 0.94
+  cell_line:
+    na: samples are whole organisms, not cultured cell lines
+    p: 0.98
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model mentioned
+    p: 0.99
+  treatment:
+    na: no experimental treatment applied
+    p: 0.59
+  dose:
+    na: no experimental treatment
+    p: 0.89
+  duration:
+    na: no experimental treatment
+    p: 0.69
+samples:
+  GSM3618670:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    development_stage:
+      text: embryo
+      term: WBls:0000003
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 300 min post bleach
+      value: 300
+      unit: minute
+      level: 300_min_post_bleach
+      quoted:
+      - 5
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      term: CL:0002321
+      quoted:
+      - 12
+      p: 0.98
+    genotype:
+      text: VC2010, derived from N2
+      quoted:
+      - 13
+      p: 0.99
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 13
+      p: 1.0
+  GSM3618671:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    development_stage:
+      text: embryo
+      term: WBls:0000003
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 400 min post bleach
+      value: 400
+      unit: minute
+      level: 400_min_post_bleach
+      quoted:
+      - 6
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      term: CL:0002321
+      quoted:
+      - 12
+      p: 0.99
+    genotype:
+      text: VC2010, derived from N2
+      quoted:
+      - 13
+      p: 1.0
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 13
+      p: 1.0
+  GSM3618672:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    development_stage:
+      text: embryo
+      term: WBls:0000003
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 500 min post bleach
+      value: 500
+      unit: minute
+      level: 500_min_post_bleach
+      quoted:
+      - 7
+      p: 1.0
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      term: CL:0002321
+      quoted:
+      - 12
+      p: 0.98
+    genotype:
+      text: VC2010, derived from N2
+      quoted:
+      - 13
+      p: 1.0
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 13
+      p: 1.0
+  GSM3618673:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    development_stage:
+      text: embryo
+      term: WBls:0000003
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: 500 min post bleach
+      value: 500
+      unit: minute
+      level: 500_min_post_bleach
+      quoted:
+      - 7
+      p: 0.98
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      term: CL:0002321
+      quoted:
+      - 12
+      p: 0.98
+    genotype:
+      text: VC2010, derived from N2
+      quoted:
+      - 13
+      p: 0.99
+    strain:
+      text: VC2010, derived from N2
+      quoted:
+      - 13
+      p: 1.0
+  GSM3618674:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    development_stage:
+      text: embryo
+      term: WBls:0000003
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: mixed embryo
+      level: mixed_embryo
+      quoted:
+      - 8
+      p: 0.98
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      term: CL:0002321
+      quoted:
+      - 12
+      p: 0.98
+    genotype:
+      text: N2
+      quoted:
+      - 14
+      p: 0.82
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 0.86
+  GSM3618675:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    development_stage:
+      text: embryo
+      term: WBls:0000003
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: mixed embryo
+      level: mixed_embryo
+      quoted:
+      - 8
+      p: 0.89
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      term: CL:0002321
+      quoted:
+      - 12
+      p: 0.98
+    genotype:
+      text: N2
+      quoted:
+      - 14
+      p: 0.87
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 0.89
+  GSM3618676:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    development_stage:
+      text: embryo
+      term: WBls:0000003
+      level: embryo
+      quoted:
+      - 1
+      p: 1.0
+    age:
+      text: mixed embryo
+      level: mixed_embryo
+      quoted:
+      - 8
+      p: 0.91
+    tissue:
+      text: C. elegans embryos
+      quoted:
+      - 11
+      p: 1.0
+    cell_type:
+      text: cells from dissociated C. elegans embryos
+      term: CL:0002321
+      quoted:
+      - 12
+      p: 0.99
+    genotype:
+      text: N2
+      quoted:
+      - 14
+      p: 0.85
+    strain:
+      text: N2
+      quoted:
+      - 14
+      p: 0.9
+  GSM4318946:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    development_stage:
+      text: L2
+      term: WBls:0000107
+      level: L2
+      quoted:
+      - 2
+      p: 0.99
+    age:
+      unknown: what was read does not say its age
+      p: 0.47
+    tissue:
+      text: whole c.elegans (L2 stage)
+      term: WBbt:0007833
+      quoted:
+      - 15
+      p: 0.97
+    cell_type:
+      text: c.elegans cells
+      term: CL:0000000
+      quoted:
+      - 16
+      p: 0.97
+    genotype:
+      text: RW12139 stIs11435(unc-120::H1-Wcherry;unc-119(+));unc-119(tm4063)
+      quoted:
+      - 17
+      p: 0.97
+    strain:
+      text: RW12139
+      quoted:
+      - 17
+      p: 0.91

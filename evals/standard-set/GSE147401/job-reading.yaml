@@ -1,0 +1,1575 @@
+format: 2
+study: GSE147401
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE147401 and their 30 sequenced samples; the full text of pmid:34519784.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbbt-2025-08-19'
+  date: 2026-11-24
+passages:
+  1:
+    record: GSE147401
+    field: Series_overall_design
+    quote: ChIP-seq samples in C. elegans performed in duplicate for two histone modifications on four
+      genotypes
+  2:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430038
+    - GSM4430039
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wild-type'
+  3:
+    record:
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430040
+    - GSM4430041
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'genotype: oef-1(vr25)'
+  4:
+    record:
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'genotype: glp-4(bn2)'
+  5:
+    record:
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'genotype: glp-4(bn2); oef-1(vr25)'
+  6:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  7:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430034
+    - GSM4430035
+    - GSM4430042
+    - GSM4430043
+    - GSM4430046
+    - GSM4430047
+    field: Sample_characteristics_ch1
+    quote: 'antibody: H3K27me3'
+  8:
+    record: GSE147401
+    field: Series_summary
+    quote: In the XX hermaphrodite germ line of C. elegans
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Stage: Young adult'
+  10:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430038
+    - GSM4430039
+    - GSM4430040
+    - GSM4430041
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Isolated germ nuclei'
+  11:
+    record:
+    - GSM4430030
+    - GSM4430031
+    - GSM4430032
+    - GSM4430033
+    - GSM4430038
+    - GSM4430039
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  12:
+    record:
+    - GSM4430030
+    - GSM4430032
+    - GSM4430034
+    - GSM4430036
+    - GSM4430038
+    - GSM4430040
+    - GSM4430042
+    - GSM4430044
+    - GSM4430046
+    - GSM4430048
+    - GSM4430050
+    - GSM4430052
+    - GSM4430054
+    - GSM4430057
+    field: Sample_title
+    quote: rep 1
+  13:
+    record:
+    - GSM4430031
+    - GSM4430033
+    - GSM4430035
+    - GSM4430037
+    - GSM4430039
+    - GSM4430041
+    - GSM4430043
+    - GSM4430045
+    - GSM4430047
+    - GSM4430049
+    - GSM4430051
+    - GSM4430053
+    - GSM4430055
+    - GSM4430058
+    field: Sample_title
+    quote: rep 2
+  14:
+    record:
+    - GSM4430032
+    - GSM4430033
+    - GSM4430036
+    - GSM4430037
+    - GSM4430044
+    - GSM4430045
+    - GSM4430048
+    - GSM4430049
+    field: Sample_characteristics_ch1
+    quote: 'antibody: H3K36me3'
+  15:
+    record:
+    - GSM4430034
+    - GSM4430035
+    - GSM4430036
+    - GSM4430037
+    - GSM4430040
+    - GSM4430041
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'strain: YL585'
+  16:
+    record:
+    - GSM4430038
+    - GSM4430039
+    field: Sample_description
+    quote: A fraction of the input total chromatin that was used for H3K27me3 or H3K36me3 ChIP on wild
+      type
+  17:
+    record:
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430050
+    - GSM4430051
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Whole animal'
+  18:
+    record:
+    - GSM4430042
+    - GSM4430043
+    - GSM4430044
+    - GSM4430045
+    - GSM4430050
+    - GSM4430051
+    field: Sample_characteristics_ch1
+    quote: 'strain: SS104'
+  19:
+    record:
+    - GSM4430046
+    - GSM4430047
+    - GSM4430048
+    - GSM4430049
+    - GSM4430052
+    - GSM4430053
+    field: Sample_characteristics_ch1
+    quote: 'strain: YL679'
+  20:
+    record:
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  21:
+    record:
+    - GSM4430054
+    - GSM4430055
+    - GSM4430056
+    - GSM4430057
+    - GSM4430058
+    - GSM4430059
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Dissected gonads'
+  22:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  genotype:
+    levels:
+    - wild_type
+    - oef1_vr25
+    - glp4_bn2
+    - glp4_oef1
+    baseline: wild_type
+    ordered: false
+    quoted:
+    - 1
+    p: 0.98
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.89
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 22
+    p: null
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 8
+    p: 0.68
+  age:
+    unknown: records give stage, not age
+    p: 0.74
+  development_stage:
+    text: Young adult
+    quoted:
+    - 9
+    p: 1.0
+  cell_type:
+    unknown: no cell type purified; nuclei and whole tissues
+    p: 0.62
+  cell_line:
+    na: whole animals; no cultured cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model
+    p: 0.91
+  treatment:
+    na: no treatment applied; crosslinking is ChIP protocol
+    p: 0.56
+  dose:
+    na: no treatment applied
+    p: 0.73
+  duration:
+    unknown: no treatment applied
+    p: 0.52
+samples:
+  GSM4430030:
+    biosample:
+      id: B1
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 12
+      p: 0.62
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 7
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.94
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 1.0
+  GSM4430031:
+    biosample:
+      id: B2
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.57
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 7
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.92
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 0.99
+  GSM4430032:
+    biosample:
+      id: B1
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 12
+      p: 0.62
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K36me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.96
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 0.99
+  GSM4430033:
+    biosample:
+      id: B2
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.57
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K36me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.96
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 0.99
+  GSM4430034:
+    biosample:
+      id: B3
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 12
+      p: 0.61
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 3
+      p: 0.99
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 7
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.87
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 15
+      p: 0.99
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 0.99
+  GSM4430035:
+    biosample:
+      id: B4
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.54
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 3
+      p: 0.99
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 7
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.9
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 15
+      p: 0.99
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 0.99
+  GSM4430036:
+    biosample:
+      id: B3
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 12
+      p: 0.61
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 3
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K36me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.96
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 15
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 1.0
+  GSM4430037:
+    biosample:
+      id: B4
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.54
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 3
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K36me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.95
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 15
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 0.99
+  GSM4430038:
+    biosample:
+      id: B1
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 12
+      p: 0.62
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 0.99
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 0.99
+  GSM4430039:
+    biosample:
+      id: B2
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.57
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 0.99
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 1.0
+  GSM4430040:
+    biosample:
+      id: B3
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 12
+      p: 0.61
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 3
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 15
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 0.98
+  GSM4430041:
+    biosample:
+      id: B4
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.54
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 3
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 0.99
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Isolated germ nuclei
+      term: WBbt:0006796
+      quoted:
+      - 10
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 15
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 1.0
+  GSM4430042:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 7
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.95
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.93
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 1.0
+  GSM4430043:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 7
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.91
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.91
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 0.99
+  GSM4430044:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K36me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.96
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.95
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 1.0
+  GSM4430045:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K36me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.95
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.9
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 0.99
+  GSM4430046:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 7
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.96
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.9
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 1.0
+  GSM4430047:
+    biosample:
+      id: B10
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.5
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 7
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.93
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.88
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 0.99
+  GSM4430048:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K36me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.95
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.94
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 0.99
+  GSM4430049:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      text: H3K36me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.91
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.91
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 0.99
+  GSM4430050:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 0.99
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.98
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 0.99
+  GSM4430051:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2)
+      level: glp4_bn2
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.97
+    strain:
+      text: SS104
+      quoted:
+      - 18
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 1.0
+  GSM4430052:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 0.99
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.96
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 0.99
+  GSM4430053:
+    biosample:
+      id: B10
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.5
+    genotype:
+      text: glp-4(bn2); oef-1(vr25)
+      level: glp4_oef1
+      quoted:
+      - 5
+      p: 1.0
+    assay:
+      text: ChIP-Seq
+      term: EFO:0002692
+      quoted:
+      - 6
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 16
+      p: 1.0
+    tissue:
+      text: Whole animal
+      term: WBbt:0007833
+      quoted:
+      - 17
+      p: 0.97
+    strain:
+      text: YL679
+      quoted:
+      - 19
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 0.99
+  GSM4430054:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 20
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 0.99
+  GSM4430055:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 20
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 1.0
+  GSM4430056:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: wild-type
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 20
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.71
+  GSM4430057:
+    biosample:
+      id: B19
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 3
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 20
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 15
+      p: 1.0
+    replicate:
+      text: rep 1
+      quoted:
+      - 12
+      p: 0.99
+  GSM4430058:
+    biosample:
+      id: B20
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 3
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 20
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 15
+      p: 1.0
+    replicate:
+      text: rep 2
+      quoted:
+      - 13
+      p: 1.0
+  GSM4430059:
+    biosample:
+      id: B21
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: oef-1(vr25)
+      level: oef1_vr25
+      quoted:
+      - 3
+      p: 1.0
+    assay:
+      text: RNA-Seq
+      term: EFO:0008896
+      quoted:
+      - 20
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 1.0
+    tissue:
+      text: Dissected gonads
+      quoted:
+      - 21
+      p: 1.0
+    strain:
+      text: YL585
+      quoted:
+      - 15
+      p: 1.0
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.78

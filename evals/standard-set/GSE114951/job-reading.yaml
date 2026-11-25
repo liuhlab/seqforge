@@ -1,0 +1,326 @@
+format: 2
+study: GSE114951
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE114951 and their 12 sequenced samples; the full text of pmid:33473112.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbls-2026-04-16'
+  date: 2026-11-24
+passages:
+  1:
+    record: GSE114951
+    field: Series_title
+    quote: Comparison of WT to atfs-1(null) & WT to atfs-1(et18) in C. elegans by deep sequencing
+  2:
+    record:
+    - GSM3160728
+    - GSM3160729
+    - GSM3160730
+    - GSM4964731
+    - GSM4964732
+    - GSM4964733
+    field: Sample_characteristics_ch1
+    quote: 'genotype/variation: WT'
+  3:
+    record:
+    - GSM3160731
+    - GSM3160732
+    - GSM3160733
+    field: Sample_characteristics_ch1
+    quote: 'genotype/variation: atfs-1 (null)'
+  4:
+    record:
+    - GSM4964734
+    - GSM4964735
+    - GSM4964736
+    field: Sample_characteristics_ch1
+    quote: 'genotype/variation: atfs-1 (et18)'
+  5:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L4'
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Whole body'
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain/background: N2'
+  9:
+    record: GSE114951
+    field: Series_overall_design
+    quote: In the first experiment, we collected 3 samples of N2 and 3 samples of atfs-1(null).
+  10:
+    record: GSE114951
+    field: Series_overall_design
+    quote: In the second experiment, we collected 3 samples of N2 and 3 samples of atfs-1(et18).
+  11:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  genotype:
+    levels:
+    - WT
+    - atfs-1_null
+    - atfs-1_et18
+    baseline: WT
+    ordered: false
+    quoted:
+    - 1
+    p: 0.98
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.87
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 11
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down target
+    p: 1.0
+  control_type:
+    na: RNA-Seq libraries are not background controls
+    p: 1.0
+  sex:
+    unknown: not stated in records or paper
+    p: 0.82
+  age:
+    unknown: records give stage, not age
+    p: 0.68
+  development_stage:
+    text: L4
+    term: WBls:0000038
+    quoted:
+    - 6
+    p: 1.0
+  tissue:
+    text: Whole body
+    quoted:
+    - 7
+    p: 1.0
+  cell_type:
+    na: whole-body samples; no cell type specified
+    p: 0.99
+  cell_line:
+    na: whole organism; no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: No disease or disease model stated
+    p: 0.97
+  strain:
+    text: N2
+    quoted:
+    - 8
+    p: 0.99
+  treatment:
+    na: no treatment; protocol says None.
+    p: 0.98
+  dose:
+    na: no treatment applied
+    p: 0.99
+  duration:
+    na: no treatment applied
+    p: 1.0
+samples:
+  GSM3160728:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    experiment:
+      unknown: what was read does not say its experiment
+      p: 0.81
+  GSM3160729:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    experiment:
+      unknown: what was read does not say its experiment
+      p: 0.87
+  GSM3160730:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    experiment:
+      unknown: what was read does not say its experiment
+      p: 0.83
+  GSM3160731:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: atfs-1 (null)
+      level: atfs-1_null
+      quoted:
+      - 3
+      p: 1.0
+    experiment:
+      text: first experiment
+      quoted:
+      - 9
+      p: 0.98
+  GSM3160732:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: atfs-1 (null)
+      level: atfs-1_null
+      quoted:
+      - 3
+      p: 1.0
+    experiment:
+      text: first experiment
+      quoted:
+      - 9
+      p: 0.92
+  GSM3160733:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: atfs-1 (null)
+      level: atfs-1_null
+      quoted:
+      - 3
+      p: 1.0
+    experiment:
+      text: first experiment
+      quoted:
+      - 9
+      p: 0.96
+  GSM4964731:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    experiment:
+      unknown: what was read does not say its experiment
+      p: 0.81
+  GSM4964732:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    experiment:
+      unknown: what was read does not say its experiment
+      p: 0.78
+  GSM4964733:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    experiment:
+      unknown: what was read does not say its experiment
+      p: 0.82
+  GSM4964734:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: atfs-1 (et18)
+      level: atfs-1_et18
+      quoted:
+      - 4
+      p: 1.0
+    experiment:
+      text: second experiment
+      quoted:
+      - 10
+      p: 0.98
+  GSM4964735:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: atfs-1 (et18)
+      level: atfs-1_et18
+      quoted:
+      - 4
+      p: 1.0
+    experiment:
+      text: second experiment
+      quoted:
+      - 10
+      p: 0.98
+  GSM4964736:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: atfs-1 (et18)
+      level: atfs-1_et18
+      quoted:
+      - 4
+      p: 1.0
+    experiment:
+      text: second experiment
+      quoted:
+      - 10
+      p: 0.97

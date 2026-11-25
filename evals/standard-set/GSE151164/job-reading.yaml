@@ -1,0 +1,531 @@
+format: 2
+study: GSE151164
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE151164 and their 12 sequenced samples; the full text of pmid:32518061.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbls-2026-04-16'
+  date: 2026-11-24
+passages:
+  1:
+    record: GSE151164
+    field: Series_overall_design
+    quote: We measured the effect of the affl-2(sy975) mutation on heat shock induced transcriptional
+      response.
+  2:
+    record:
+    - GSM4567615
+    - GSM4567616
+    - GSM4567617
+    - GSM4567618
+    - GSM4567619
+    - GSM4567620
+    field: Sample_characteristics_ch1
+    quote: 'genotype: WT'
+  3:
+    record:
+    - GSM4567621
+    - GSM4567622
+    - GSM4567623
+    - GSM4567624
+    - GSM4567625
+    - GSM4567626
+    field: Sample_characteristics_ch1
+    quote: 'genotype: affl-2(sy975)'
+  4:
+    record:
+    - GSM4567615
+    - GSM4567616
+    - GSM4567617
+    - GSM4567621
+    - GSM4567622
+    - GSM4567623
+    field: Sample_characteristics_ch1
+    quote: 'treatment: non-heat-shock'
+  5:
+    record:
+    - GSM4567618
+    - GSM4567619
+    - GSM4567620
+    - GSM4567624
+    - GSM4567625
+    - GSM4567626
+    field: Sample_characteristics_ch1
+    quote: 'treatment: heat shock'
+  6:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage/tissue: Whole animal L4 stage'
+  8:
+    record:
+    - GSM4567615
+    - GSM4567616
+    - GSM4567617
+    - GSM4567618
+    - GSM4567619
+    - GSM4567620
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  9:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: For the non heat shock condition, we covered each plate with parafilm and left them at room
+      temperature (20 °C) for 30 minutes.
+  10:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: placed them in a preheated water bath at 33 °C for 30 minutes
+  11:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: To heat shock worms, we covered each plate with parafilm and placed them in a preheated water
+      bath at 33 °C for 30 minutes.
+  12:
+    record:
+    - GSM4567621
+    - GSM4567622
+    - GSM4567623
+    - GSM4567624
+    - GSM4567625
+    - GSM4567626
+    field: Sample_characteristics_ch1
+    quote: 'strain: PS8060'
+  13:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  genotype:
+    levels:
+    - WT
+    - affl-2(sy975)
+    baseline: WT
+    ordered: false
+    quoted:
+    - 1
+    p: 0.99
+  treatment:
+    levels:
+    - non_heat_shock
+    - heat_shock
+    baseline: non_heat_shock
+    ordered: false
+    inferred: Heat shock compared with non-heat-shock control.
+    p: 0.99
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.97
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 13
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 6
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down target
+    p: 1.0
+  control_type:
+    na: No input or IgG background-control libraries
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    inferred: C. elegans L4 hermaphrodites; N2 is hermaphroditic.
+    p: 0.89
+  age:
+    unknown: No age reported; only L4 stage
+    p: 0.63
+  development_stage:
+    text: L4 stage
+    term: WBls:0000109
+    quoted:
+    - 7
+    p: 1.0
+  tissue:
+    text: whole animal
+    quoted:
+    - 7
+    p: 1.0
+  cell_type:
+    na: Whole animal samples, not a cell type
+    p: 0.99
+  cell_line:
+    na: Whole animals, no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: No disease or disease model reported.
+    p: 0.98
+  duration:
+    text: 30 minutes
+    value: 30
+    unit: minute
+    quoted:
+    - 10
+    p: 0.83
+samples:
+  GSM4567615:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non_heat_shock
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      text: 20 °C
+      value: 20
+      unit: °C
+      quoted:
+      - 9
+      p: 0.98
+  GSM4567616:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non_heat_shock
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      text: 20 °C
+      value: 20
+      unit: °C
+      quoted:
+      - 9
+      p: 0.96
+  GSM4567617:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non_heat_shock
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      text: 20 °C
+      value: 20
+      unit: °C
+      quoted:
+      - 9
+      p: 0.96
+  GSM4567618:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat_shock
+      quoted:
+      - 5
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      text: 33 °C
+      value: 33
+      unit: °C
+      quoted:
+      - 11
+      p: 1.0
+  GSM4567619:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat_shock
+      quoted:
+      - 5
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      text: 33 °C
+      value: 33
+      unit: °C
+      quoted:
+      - 11
+      p: 1.0
+  GSM4567620:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat_shock
+      quoted:
+      - 5
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 8
+      p: 1.0
+    dose:
+      text: 33 °C
+      value: 33
+      unit: °C
+      quoted:
+      - 11
+      p: 1.0
+  GSM4567621:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non_heat_shock
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 12
+      p: 0.99
+    dose:
+      text: 20 °C
+      value: 20
+      unit: °C
+      quoted:
+      - 9
+      p: 0.97
+  GSM4567622:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non_heat_shock
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 12
+      p: 0.97
+    dose:
+      text: 20 °C
+      value: 20
+      unit: °C
+      quoted:
+      - 9
+      p: 0.97
+  GSM4567623:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: non-heat-shock
+      level: non_heat_shock
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 12
+      p: 0.98
+    dose:
+      text: 20 °C
+      value: 20
+      unit: °C
+      quoted:
+      - 9
+      p: 0.95
+  GSM4567624:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat_shock
+      quoted:
+      - 5
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 12
+      p: 0.98
+    dose:
+      text: 33 °C
+      value: 33
+      unit: °C
+      quoted:
+      - 11
+      p: 1.0
+  GSM4567625:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat_shock
+      quoted:
+      - 5
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 12
+      p: 0.98
+    dose:
+      text: 33 °C
+      value: 33
+      unit: °C
+      quoted:
+      - 11
+      p: 1.0
+  GSM4567626:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: affl-2(sy975)
+      level: affl-2(sy975)
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: heat shock
+      level: heat_shock
+      quoted:
+      - 5
+      p: 1.0
+    strain:
+      text: PS8060
+      quoted:
+      - 12
+      p: 0.97
+    dose:
+      text: 33 °C
+      value: 33
+      unit: °C
+      quoted:
+      - 11
+      p: 1.0
