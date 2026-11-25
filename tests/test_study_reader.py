@@ -12,6 +12,7 @@ import datetime as dt
 import io
 import json
 import re
+import time
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any, ClassVar
@@ -28,7 +29,7 @@ from seqforge.cli import app
 from seqforge.passes.kinds import KINDS
 from seqforge.study import reader
 from seqforge.study.lists import guide_text
-from seqforge.study.ontology_search import open_store_search
+from seqforge.study.ontology_search import StoreSearch
 from seqforge.study.reading import check_reading, read_reading
 from seqforge.study.relations import relations
 
@@ -430,7 +431,7 @@ def read(
     opened = []
 
     def build(store: Any) -> Any:
-        opened.append(open_store_search(OPENED))
+        opened.append(StoreSearch(OPENED))
         return reader.reading_kind(Store(), Papers(), set_dir=set_dir, search=opened[-1])
 
     kind = dataclasses.replace(reader.KIND, build=build, reads_store=False)
@@ -660,18 +661,17 @@ def test_a_term_is_looked_up_in_the_vocabulary_of_each_samples_species(
 def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """No ontology store is set up: the pass exits 2 naming the variable that sets one, rather
-    than read with no search."""
+    """The ontology store's variable names a folder that is no store: the pass exits 2 naming the
+    variable, rather than read with no search."""
     import labdata
-    import labdata.ontology.root
 
     fake = FakeGateway(lambda form: "{}", prices={})
     # The module's pass holds its own build of the kind until the module ends: run the real one.
     monkeypatch.setitem(KINDS, reader.KIND_NAME, reader.KIND)
     monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
     monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="s"))
-    monkeypatch.delenv("LABDATA_ONTOLOGIES", raising=False)
-    monkeypatch.setattr(labdata.ontology.root, "pointer_path", lambda: tmp_path / "none.toml")
+    (tmp_path / "empty").mkdir()
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "empty"))
     monkeypatch.chdir(tmp_path)
     (tmp_path / "clone" / "reviews").mkdir(parents=True)
     (tmp_path / "keys.txt").write_text("GSE10\n")
@@ -687,3 +687,28 @@ def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
     assert started.exit_code == 2, started.output
     assert "LABDATA_ONTOLOGIES" in started.stderr
     assert fake.record == []
+
+
+def test_the_pass_pins_its_snapshots_on_the_utc_day(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The store's snapshots are named by UTC day, so the day a reading says they were pinned is
+    the UTC day too, wherever the pass runs: here in a zone whose own date is another day."""
+    utc = dt.datetime.now(dt.UTC)
+    # Twelve hours behind UTC is yesterday before noon UTC; fourteen ahead is tomorrow after it.
+    zone = "Etc/GMT+12" if utc.hour < 12 else "Etc/GMT-14"
+    built: list[Any] = []
+    monkeypatch.setattr(reader, "paper_reader", lambda: None)
+    monkeypatch.setattr(reader, "reading_kind", lambda *a, search, **k: built.append(search))
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(build_tiny_store(tmp_path, VOCABULARIES)))
+    try:
+        with pytest.MonkeyPatch.context() as clock:
+            clock.setenv("TZ", zone)
+            time.tzset()
+            assert dt.date.today() != utc.date()
+            reader.KIND.build(None)
+    finally:
+        time.tzset()
+
+    built[0].close()
+    assert built[0].date == utc.date()

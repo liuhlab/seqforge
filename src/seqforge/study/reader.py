@@ -71,7 +71,7 @@ from .lists import (
 from .ontology_search import (
     Candidate,
     OntologySearch,
-    open_store_search,
+    StoreSearch,
     snapshot_source,
     vocabulary,
 )
@@ -80,7 +80,7 @@ from .reading import FORMAT, check_reading
 
 KIND_NAME = "study-reading"
 #: Raise it when an instruction, a question, a guide or a rule of writing the reading changes.
-KIND_VERSION = "2026.11.4"
+KIND_VERSION = "2026.11.5"
 #: The roles, and the models that fill them unless a pass names others.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
 WRITER = Model("deepseek", "deepseek-flash", thinking=True, max_output_tokens=40000)
@@ -1208,7 +1208,8 @@ def _build(store: Any) -> UnitKind:
     from labdata.exceptions import NotAStoreError, OntologyError, StoreNotConfiguredError
 
     try:
-        search = open_store_search(datetime.date.today())
+        # The store names its snapshots by UTC day, so the day they are pinned is one too.
+        search = StoreSearch(datetime.datetime.now(datetime.UTC).date())
     except (StoreNotConfiguredError, NotAStoreError, OntologyError) as exc:
         raise SetupRefused(
             f"kind {KIND_NAME!r} searches liulab-data's ontology store: {exc}"

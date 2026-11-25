@@ -4,7 +4,7 @@ The ontologies, their dated snapshots and the search over them are liulab-data's
 no ontology file and no ontology code. The reader hands a label's short text and a vocabulary to an
 :class:`OntologySearch` and gets back up to :data:`MOST_CANDIDATES` candidates, whole-text matches
 first, and the snapshot that answered; it names a code-mapped id, such as a species' taxonomy id,
-through the same store. :func:`open_store_search` opens the store once, which pins each
+through the same store. :class:`StoreSearch` opens the store once, which pins each
 vocabulary's snapshot until it is closed, so one pass reads one set of snapshots.
 
 :func:`vocabulary` says which vocabulary a label's terms come from, for a sample of one species.
@@ -87,6 +87,9 @@ class OntologySearch(Protocol):
 class StoreSearch:
     """liulab-data's ontology store, opened once and pinned until :meth:`close`.
 
+    The store is found through ``LABDATA_ONTOLOGIES`` or its per-user pointer; liulab-data's own
+    error, which names the variable, is raised when none can be opened.
+
     An open store answers only on the thread that opened it, and a pass reads several units at
     once on threads of its own, so one thread of this object's opens the store and asks it every
     question. Each search takes milliseconds, so the units queueing for it cost little.
@@ -125,14 +128,6 @@ class StoreSearch:
         """Release the snapshots and the thread that read them."""
         self._owner.submit(self._store.close).result()
         self._owner.shutdown()
-
-
-def open_store_search(today: datetime.date) -> StoreSearch:
-    """liulab-data's ontology store, found through ``LABDATA_ONTOLOGIES`` or its per-user pointer.
-
-    Raises liulab-data's own error, which names the variable, when no store can be opened.
-    """
-    return StoreSearch(today)
 
 
 def snapshot_source(snapshots: set[str]) -> str:
