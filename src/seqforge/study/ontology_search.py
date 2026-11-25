@@ -1,10 +1,11 @@
-"""The one door the reader asks for ontology terms through, and the stand-in behind it for now.
+"""The one door the reader asks for ontology terms through: liulab-data's ontology store.
 
 The ontologies, their dated snapshots and the search over them are liulab-data's, so seqforge keeps
 no ontology file and no ontology code. The reader hands a label's short text and a vocabulary to an
 :class:`OntologySearch` and gets back up to :data:`MOST_CANDIDATES` candidates, whole-text matches
-first, and the snapshot that answered. Until liulab-data's search is plugged in here,
-:data:`STAND_IN` answers every search with no candidate, so a reading writes no searched term.
+first, and the snapshot that answered; it names a code-mapped id, such as a species' taxonomy id,
+through the same store. :func:`open_store_search` opens the store once, which pins each
+vocabulary's snapshot until it is closed, so one pass reads one set of snapshots.
 
 :func:`vocabulary` says which vocabulary a label's terms come from, for a sample of one species.
 """
@@ -12,11 +13,14 @@ first, and the snapshot that answered. Until liulab-data's search is plugged in 
 from __future__ import annotations
 
 import datetime
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 #: The most candidates one search returns.
 MOST_CANDIDATES = 10
+#: What ``source`` in a reading's ``ontology_snapshot`` starts with, before the snapshots' names.
+STORE_SOURCE = "liulab-data ontology store"
 
 #: Each label whose terms a search finds, and its vocabulary. ``None`` means by species.
 _BY_LABEL = {
@@ -44,39 +48,96 @@ class Candidate:
 
 
 @dataclass(frozen=True)
-class Snapshot:
-    """The dated snapshot of the ontologies a search answered from."""
+class Found:
+    """What one search returned: candidates, whole-text matches first, and the snapshot searched.
 
-    source: str
-    date: datetime.date
+    ``snapshot`` is ``None`` when the store holds no such vocabulary, so nothing was searched.
+    """
+
+    candidates: tuple[Candidate, ...]
+    snapshot: str | None
 
 
 @dataclass(frozen=True)
-class Found:
-    """What one search returned: candidates, whole-text matches first, and who answered."""
+class Named:
+    """A term looked up by its id: the ontology's name for it and the snapshot that holds it."""
 
-    candidates: tuple[Candidate, ...]
-    snapshot: Snapshot | None
+    id: str
+    name: str
+    snapshot: str
 
 
 class OntologySearch(Protocol):
-    """Looks up a label's short text in one vocabulary."""
+    """Looks up a label's short text in one vocabulary, and a term by its id.
+
+    ``date`` is the day the snapshots it answers from were pinned.
+    """
+
+    date: datetime.date
 
     def search(self, text: str, vocabulary: str) -> Found:
         """Up to :data:`MOST_CANDIDATES` candidates for ``text``, whole-text matches first."""
         ...
 
+    def lookup(self, id: str) -> Named | None:
+        """The live term ``id`` names, a bare number being a taxonomy id; ``None`` if none."""
+        ...
 
-class NoSearch:
-    """The stand-in: no ontology is held yet, so every search finds nothing."""
+
+class StoreSearch:
+    """liulab-data's ontology store, opened once and pinned until :meth:`close`.
+
+    An open store answers only on the thread that opened it, and a pass reads several units at
+    once on threads of its own, so one thread of this object's opens the store and asks it every
+    question. Each search takes milliseconds, so the units queueing for it cost little.
+    """
+
+    def __init__(self, today: datetime.date) -> None:
+        from labdata.ontology import open_ontology_store
+
+        self.date = today
+        self._owner = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ontology-store")
+        try:
+            self._store: Any = self._owner.submit(open_ontology_store).result()
+        except BaseException:
+            self._owner.shutdown()
+            raise
 
     def search(self, text: str, vocabulary: str) -> Found:
-        """No candidate, and no snapshot, since nothing answered."""
-        return Found((), None)
+        """Up to :data:`MOST_CANDIDATES` candidates; none, and no snapshot, for an unheld vocabulary."""
+        return self._owner.submit(self._search, text, vocabulary).result()
+
+    def _search(self, text: str, vocabulary: str) -> Found:
+        snapshot = self._store.snapshots.get(vocabulary)
+        if snapshot is None:
+            return Found((), None)
+        found = self._store.search(text, vocabulary, limit=MOST_CANDIDATES)
+        return Found(tuple(Candidate(c.id, c.name or c.text, c.text) for c in found), snapshot)
+
+    def lookup(self, id: str) -> Named | None:
+        """The term ``id`` names; ``None`` for an id no snapshot holds or one retired unnamed."""
+        term = self._owner.submit(self._store.lookup, id).result()
+        if term is None or term.name is None or term.obsolete:
+            return None
+        return Named(term.id, term.name, term.snapshot)
+
+    def close(self) -> None:
+        """Release the snapshots and the thread that read them."""
+        self._owner.submit(self._store.close).result()
+        self._owner.shutdown()
 
 
-#: What the reader searches with until liulab-data's search is plugged in.
-STAND_IN: OntologySearch = NoSearch()
+def open_store_search(today: datetime.date) -> StoreSearch:
+    """liulab-data's ontology store, found through ``LABDATA_ONTOLOGIES`` or its per-user pointer.
+
+    Raises liulab-data's own error, which names the variable, when no store can be opened.
+    """
+    return StoreSearch(today)
+
+
+def snapshot_source(snapshots: set[str]) -> str:
+    """A reading's ``ontology_snapshot.source``: the store, and each snapshot its ids came from."""
+    return f"{STORE_SOURCE}: {', '.join(sorted(snapshots))}"
 
 
 def vocabulary(label: str, taxid: str | None) -> str | None:

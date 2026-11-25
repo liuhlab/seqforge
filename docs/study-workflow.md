@@ -164,11 +164,19 @@ factor. It also asks the writer to tie each control library to its pull-down lib
 that tie them, such as a replicate number in the sample titles. Jev checks each tie. Libraries that
 are tied share one `biosample` id.
 
-**Ontology ids.** The species id comes from the record's own taxonomy id, and `healthy` is
-`PATO:0000461`. Every other id comes from an ontology search, and Jev picks one of its candidates
-or none. A term is written only when Jev is sure of its pick. The ontologies are liulab-data's, and
-until its search is plugged in, the reader searches nothing. So a reading's only ids are the
-species ids and `healthy`, and its `ontology_snapshot` says that no ontology was searched.
+**Ontology ids.** The ontologies are liulab-data's **ontology store**, found through
+`LABDATA_ONTOLOGIES` or the per-user pointer that `labdata ontology init` writes. The pass opens
+the store once when it starts, and the store keeps each vocabulary's snapshot fixed until the pass
+ends. If the store cannot be opened, `pass start` exits 2 and names `LABDATA_ONTOLOGIES`; it never
+reads with no search.
+
+The species id is the record's own taxonomy id, and `healthy` is `PATO:0000461`. The store names
+both, and an id it does not hold is not written. Every other id comes from a search of the store:
+up to 10 candidates, whole-text matches first, and Jev picks one or none. A term is written only
+when Jev is sure of its pick. A vocabulary that the store does not hold finds nothing, so its
+labels get no id. The reading's `ontology_snapshot` names each snapshot that its ids came from,
+such as `liulab-data ontology store: ncbitaxon-2026-11-22, uberon-2026-11-05`. Its date is the day
+the pass opened the store.
 
 **What it writes.** `seqforge study write-reading --out <folder>` writes each study's answer as
 `<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file.
