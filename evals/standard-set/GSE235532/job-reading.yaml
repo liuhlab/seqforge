@@ -1,0 +1,1084 @@
+format: 2
+study: GSE235532
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE235532 and their 24 sequenced samples; the full text of pmid:38637528.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, fbdv-2026-11-02, ncbitaxon-2026-11-25, pato-2026-10-01,
+    uberon-2026-11-05'
+  date: 2026-11-25
+passages:
+  1:
+    record: GSE235532
+    field: Series_overall_design
+    quote: 3-day-old w1118 control, 3-day-old LKRSDHMB01942 mutant, 40-day-old w1118 control and 40-day-old
+      LKRSDHMB01942 mutant flies
+  2:
+    record:
+    - GSM7504787
+    - GSM7504788
+    - GSM7504789
+    - GSM7504790
+    - GSM7504795
+    - GSM7504796
+    - GSM7504797
+    - GSM7504798
+    - GSM7504803
+    - GSM7504804
+    - GSM7504805
+    - GSM7504806
+    field: Sample_characteristics_ch1
+    quote: 'age: 3 day'
+  3:
+    record:
+    - GSM7504791
+    - GSM7504792
+    - GSM7504793
+    - GSM7504794
+    - GSM7504799
+    - GSM7504800
+    - GSM7504801
+    - GSM7504802
+    - GSM7504807
+    - GSM7504808
+    - GSM7504809
+    - GSM7504810
+    field: Sample_characteristics_ch1
+    quote: 'age: 40 day'
+  4:
+    record:
+    - GSM7504789
+    - GSM7504790
+    - GSM7504793
+    - GSM7504794
+    - GSM7504797
+    - GSM7504798
+    - GSM7504801
+    - GSM7504802
+    - GSM7504805
+    - GSM7504806
+    - GSM7504809
+    - GSM7504810
+    field: Sample_characteristics_ch1
+    quote: 'genotype: w1118'
+  5:
+    record:
+    - GSM7504787
+    - GSM7504788
+    - GSM7504791
+    - GSM7504792
+    - GSM7504795
+    - GSM7504796
+    - GSM7504799
+    - GSM7504800
+    - GSM7504803
+    - GSM7504804
+    - GSM7504807
+    - GSM7504808
+    field: Sample_characteristics_ch1
+    quote: 'genotype: LKRSDHMB01942 mutant'
+  6:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  7:
+    record:
+    - GSM7504787
+    - GSM7504788
+    - GSM7504789
+    - GSM7504790
+    - GSM7504791
+    - GSM7504792
+    - GSM7504793
+    - GSM7504794
+    field: Sample_characteristics_ch1
+    quote: 'ip target: input'
+  8:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: Mated males were collected and maintained at 20 flies per vial
+  9:
+    paper: pmid:38637528
+    section: Results > The expression of LKRSDH in both neurons and glial cells is necessary for maintaining
+      circadian rhythm in aged flies
+    quote: To determine the expression pattern of LKRSDH in the adult fly brain
+  10:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: head
+  11:
+    paper: pmid:38637528
+    section: Methods > Fly stocks
+    quote: All mutants and transgenes were backcrossed by a w1118 for seven generations to clean up the
+      genetic background.
+  12:
+    record: GSM7504787
+    field: Sample_title
+    quote: input 3d 23382-1
+  13:
+    record: GSM7504788
+    field: Sample_title
+    quote: input 3d 23382-2
+  14:
+    record:
+    - GSM7504795
+    - GSM7504796
+    - GSM7504797
+    - GSM7504798
+    - GSM7504799
+    - GSM7504800
+    - GSM7504801
+    - GSM7504802
+    field: Sample_characteristics_ch1
+    quote: 'ip target: H3K27me3'
+  15:
+    record:
+    - GSM7504803
+    - GSM7504804
+    - GSM7504805
+    - GSM7504806
+    - GSM7504807
+    - GSM7504808
+    - GSM7504809
+    - GSM7504810
+    field: Sample_characteristics_ch1
+    quote: 'ip target: H3R17me2'
+  16:
+    record:
+    - GSM7504787
+    - GSM7504795
+    - GSM7504803
+    field: Sample_title
+    quote: 3d 23382-1
+  17:
+    record:
+    - GSM7504788
+    - GSM7504796
+    - GSM7504804
+    field: Sample_title
+    quote: 3d 23382-2
+  18:
+    record:
+    - GSM7504789
+    - GSM7504797
+    - GSM7504805
+    field: Sample_title
+    quote: 3d w1118-1
+  19:
+    record:
+    - GSM7504790
+    - GSM7504798
+    - GSM7504806
+    field: Sample_title
+    quote: 3d w1118-2
+  20:
+    record:
+    - GSM7504791
+    - GSM7504799
+    - GSM7504807
+    field: Sample_title
+    quote: 40d 23382-1
+  21:
+    record:
+    - GSM7504792
+    - GSM7504800
+    - GSM7504808
+    field: Sample_title
+    quote: 40d 23382-2
+  22:
+    record:
+    - GSM7504793
+    - GSM7504801
+    - GSM7504809
+    field: Sample_title
+    quote: 40d w1118-1
+  23:
+    record:
+    - GSM7504794
+    - GSM7504802
+    - GSM7504810
+    field: Sample_title
+    quote: 40d w1118-2
+  24:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Drosophila melanogaster
+factors:
+  age:
+    levels:
+    - 3_day
+    - 40_day
+    baseline: 3_day
+    ordered: true
+    quoted:
+    - 1
+    p: 0.99
+  genotype:
+    levels:
+    - w1118
+    - LKRSDHMB01942
+    baseline: w1118
+    ordered: false
+    quoted:
+    - 1
+    p: 0.98
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.95
+  species:
+    text: Drosophila melanogaster
+    term: NCBITaxon:7227
+    quoted:
+    - 24
+    p: null
+  assay:
+    text: ChIP-Seq
+    term: EFO:0002692
+    quoted:
+    - 6
+    p: 0.99
+  sex:
+    text: male
+    term: male
+    quoted:
+    - 8
+    p: 0.94
+  development_stage:
+    text: adult
+    term: FBdv:00005369
+    quoted:
+    - 9
+    p: 0.86
+  tissue:
+    text: head
+    term: UBERON:0000033
+    quoted:
+    - 10
+    p: 1.0
+  cell_type:
+    na: whole head tissue, not a cell type
+    p: 0.98
+  cell_line:
+    na: Drosophila head tissue, no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model described
+    p: 0.94
+  strain:
+    text: w1118
+    inferred: mutants backcrossed into w1118 background
+    see:
+    - 11
+    p: 0.72
+  treatment:
+    na: no treatment applied; age and genotype only
+    p: 0.71
+  dose:
+    na: no treatment applied
+    p: 0.91
+  duration:
+    na: no treatment; age is not treatment duration
+    p: 0.88
+samples:
+  GSM7504787:
+    biosample:
+      id: B1
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 16
+      p: 0.65
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 1.0
+    replicate:
+      text: '1'
+      quoted:
+      - 12
+      p: 0.98
+  GSM7504788:
+    biosample:
+      id: B2
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 17
+      p: 0.6
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 1.0
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 1.0
+  GSM7504789:
+    biosample:
+      id: B3
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 18
+      p: 0.54
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 1.0
+    replicate:
+      text: '1'
+      quoted:
+      - 12
+      p: 0.71
+  GSM7504790:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 1.0
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.86
+  GSM7504791:
+    biosample:
+      id: B5
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 20
+      p: 0.63
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 0.99
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 1.0
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.46
+  GSM7504792:
+    biosample:
+      id: B6
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 21
+      p: 0.56
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 0.98
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 1.0
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.97
+  GSM7504793:
+    biosample:
+      id: B7
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 22
+      p: 0.68
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 1.0
+    replicate:
+      text: '1'
+      quoted:
+      - 12
+      p: 0.91
+  GSM7504794:
+    biosample:
+      id: B8
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 23
+      p: 0.63
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 1.0
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 1.0
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.95
+  GSM7504795:
+    biosample:
+      id: B1
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 16
+      p: 0.65
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 0.99
+    target:
+      text: H3K27me3
+      quoted:
+      - 14
+      p: 0.96
+    control_type:
+      na: a library that is not a background control
+      p: 0.9
+    replicate:
+      text: '1'
+      quoted:
+      - 12
+      p: 0.67
+  GSM7504796:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 0.95
+    target:
+      text: H3K27me3
+      quoted:
+      - 14
+      p: 0.9
+    control_type:
+      na: a library that is not a background control
+      p: 0.8
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.89
+  GSM7504797:
+    biosample:
+      id: B3
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 18
+      p: 0.54
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.99
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.48
+  GSM7504798:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.97
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.82
+  GSM7504799:
+    biosample:
+      id: B5
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 20
+      p: 0.63
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 0.99
+    target:
+      text: H3K27me3
+      quoted:
+      - 14
+      p: 0.99
+    control_type:
+      na: a library that is not a background control
+      p: 0.97
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.59
+  GSM7504800:
+    biosample:
+      id: B6
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 21
+      p: 0.56
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.98
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.8
+  GSM7504801:
+    biosample:
+      id: B7
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 22
+      p: 0.68
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.99
+    replicate:
+      text: '1'
+      quoted:
+      - 12
+      p: 0.65
+  GSM7504802:
+    biosample:
+      id: B8
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 23
+      p: 0.63
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      text: H3K27me3
+      quoted:
+      - 14
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.98
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.54
+  GSM7504803:
+    biosample:
+      id: B1
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 16
+      p: 0.65
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 0.98
+    target:
+      text: H3R17me2
+      quoted:
+      - 15
+      p: 0.9
+    control_type:
+      na: a library that is not a background control
+      p: 0.8
+    replicate:
+      text: '1'
+      quoted:
+      - 12
+      p: 0.84
+  GSM7504804:
+    biosample:
+      id: B2
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 17
+      p: 0.6
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 0.94
+    target:
+      text: H3R17me2
+      quoted:
+      - 15
+      p: 0.65
+    control_type:
+      na: a library that is not a background control
+      p: 0.74
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.97
+  GSM7504805:
+    biosample:
+      id: B3
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 18
+      p: 0.54
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      text: H3R17me2
+      quoted:
+      - 15
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.98
+    replicate:
+      text: '1'
+      quoted:
+      - 12
+      p: 0.56
+  GSM7504806:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 3 day
+      value: 3
+      unit: day
+      level: 3_day
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      text: H3R17me2
+      quoted:
+      - 15
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.99
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.48
+  GSM7504807:
+    biosample:
+      id: B5
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 20
+      p: 0.63
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 0.98
+    target:
+      text: H3R17me2
+      quoted:
+      - 15
+      p: 0.98
+    control_type:
+      na: a library that is not a background control
+      p: 0.96
+    replicate:
+      text: '1'
+      quoted:
+      - 12
+      p: 0.48
+  GSM7504808:
+    biosample:
+      id: B6
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 21
+      p: 0.56
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: LKRSDHMB01942 mutant
+      level: LKRSDHMB01942
+      quoted:
+      - 5
+      p: 0.97
+    target:
+      text: H3R17me2
+      quoted:
+      - 15
+      p: 0.98
+    control_type:
+      na: a library that is not a background control
+      p: 0.96
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.72
+  GSM7504809:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      text: H3R17me2
+      quoted:
+      - 15
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.98
+    replicate:
+      text: '1'
+      quoted:
+      - 12
+      p: 0.55
+  GSM7504810:
+    biosample:
+      id: B8
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 23
+      p: 0.63
+    age:
+      text: 40 day
+      value: 40
+      unit: day
+      level: 40_day
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: w1118
+      level: w1118
+      quoted:
+      - 4
+      p: 1.0
+    target:
+      text: H3R17me2
+      quoted:
+      - 15
+      p: 1.0
+    control_type:
+      na: a library that is not a background control
+      p: 0.99
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.62

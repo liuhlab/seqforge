@@ -1,0 +1,1127 @@
+format: 2
+study: GSE329430
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: The records of GSE329430 and their 20 sequenced samples; the abstract of pmid:42711429.
+ontology_snapshot:
+  source: 'liulab-data ontology store: chebi-257, cl-2026-11-13, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
+    uberon-2026-11-05'
+  date: 2026-11-25
+passages:
+  1:
+    record:
+    - GSM9703851
+    - GSM9703852
+    - GSM9703853
+    - GSM9703854
+    - GSM9703855
+    - GSM9703856
+    - GSM9703857
+    field: Sample_characteristics_ch1
+    quote: 'genotype: WT'
+  2:
+    record:
+    - GSM9703838
+    - GSM9703839
+    - GSM9703840
+    - GSM9703841
+    - GSM9703842
+    - GSM9703843
+    - GSM9703844
+    - GSM9703845
+    - GSM9703846
+    field: Sample_characteristics_ch1
+    quote: 'genotype: Multiplexed WT and 5xFAD'
+  3:
+    record:
+    - GSM9703847
+    - GSM9703848
+    - GSM9703849
+    - GSM9703850
+    field: Sample_characteristics_ch1
+    quote: 'genotype: Chimeric 5xFAD with WT or IFNAR1KO cells'
+  4:
+    paper: pmid:42711429
+    section: abstract
+    quote: In the 5×FAD mouse model
+  5:
+    record:
+    - GSM9703838
+    - GSM9703839
+    - GSM9703840
+    - GSM9703841
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Skull and femur BM'
+  6:
+    record:
+    - GSM9703842
+    - GSM9703843
+    - GSM9703844
+    - GSM9703845
+    - GSM9703851
+    - GSM9703852
+    - GSM9703853
+    - GSM9703854
+    - GSM9703855
+    - GSM9703856
+    - GSM9703857
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Femur BM'
+  7:
+    record:
+    - GSM9703846
+    - GSM9703847
+    - GSM9703848
+    - GSM9703849
+    - GSM9703850
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Brain'
+  8:
+    record:
+    - GSM9703838
+    - GSM9703839
+    - GSM9703840
+    - GSM9703841
+    field: Sample_characteristics_ch1
+    quote: 'cell type: HSPC'
+  9:
+    record:
+    - GSM9703842
+    - GSM9703843
+    - GSM9703844
+    - GSM9703845
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Myeloid Cells and HSPC'
+  10:
+    record:
+    - GSM9703842
+    - GSM9703843
+    - GSM9703844
+    - GSM9703845
+    - GSM9703846
+    - GSM9703847
+    - GSM9703848
+    - GSM9703849
+    - GSM9703850
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Myeloid Cells'
+  11:
+    record:
+    - GSM9703851
+    - GSM9703852
+    - GSM9703853
+    - GSM9703854
+    - GSM9703855
+    - GSM9703856
+    - GSM9703857
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Ly6Chigh Monocytes'
+  12:
+    record:
+    - GSM9703838
+    - GSM9703839
+    - GSM9703842
+    - GSM9703843
+    - GSM9703846
+    - GSM9703847
+    - GSM9703848
+    - GSM9703851
+    - GSM9703852
+    - GSM9703853
+    - GSM9703854
+    - GSM9703855
+    - GSM9703856
+    - GSM9703857
+    field: Sample_characteristics_ch1
+    quote: 'library type: mRNA'
+  13:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Sex: Female'
+  14:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'age: 12 months'
+  15:
+    record: GSE329430
+    field: Series_overall_design
+    quote: 12-month-old WT and 5xFAD mice
+  16:
+    record: GSM9703840
+    field: Sample_title
+    quote: CMO. HSPC from WT and 5xFAD skull and femur BM, lane 1
+  17:
+    record: GSM9703844
+    field: Sample_title
+    quote: HTO. Myeloid cells and HSPC from WT and 5xFAD femur BM, lane 1
+  18:
+    record: GSM9703849
+    field: Sample_title
+    quote: ADT. Myeloid cells from WT_5xFAD and IFNAR1_5xFAD mice lane 1. GEM-X OCM.
+  19:
+    record: GSM9703851
+    field: Sample_title
+    quote: bulk RNAseq. BM Monocytes from PBS-treated mice. Sample 1
+  20:
+    record: GSM9703854
+    field: Sample_title
+    quote: bulk RNAseq. BM Monocytes from poly-IC-treated mice. Sample 1
+  21:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  genotype:
+    levels:
+    - WT
+    - multiplexed_WT_5xFAD
+    - chimeric_5xFAD
+    baseline: WT
+    ordered: false
+    inferred: WT versus 5xFAD; chimeric donor genotypes
+    see:
+    - 1
+    p: 0.92
+  disease:
+    levels:
+    - healthy
+    - 5xFAD
+    - mixed_WT_5xFAD
+    baseline: healthy
+    ordered: false
+    quoted:
+    - 4
+    p: 0.63
+  tissue:
+    levels:
+    - Skull and femur BM
+    - Femur BM
+    - Brain
+    baseline: Skull and femur BM
+    ordered: false
+    inferred: skull/femur bone marrow versus brain
+    see:
+    - 5
+    p: 0.91
+  cell_type:
+    levels:
+    - HSPC
+    - Myeloid Cells and HSPC
+    - Myeloid Cells
+    - Ly6Chigh Monocytes
+    baseline: Ly6Chigh Monocytes
+    ordered: false
+    inferred: sorted HSPC, myeloid and monocyte populations
+    see:
+    - 8
+    p: 0.89
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.63
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 21
+    p: null
+  control_type:
+    na: no input or IgG libraries
+    p: 0.99
+  sex:
+    text: Female
+    term: female
+    quoted:
+    - 13
+    p: 1.0
+  age:
+    text: 12 months
+    value: 12
+    unit: month
+    quoted:
+    - 14
+    p: 1.0
+  development_stage:
+    text: adult
+    term: MmusDv:0000110
+    quoted:
+    - 15
+    p: 0.99
+  cell_line:
+    na: primary mouse cells, no cell line
+    p: 1.0
+  strain:
+    unknown: strain not stated in records or paper
+    p: 0.99
+  dose:
+    unknown: no dose reported
+    p: 0.75
+  duration:
+    unknown: treatment duration not reported
+    p: 0.69
+samples:
+  GSM9703838:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Multiplexed WT and 5xFAD
+      level: multiplexed_WT_5xFAD
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Multiplexed WT and 5xFAD
+      level: mixed_WT_5xFAD
+      quoted:
+      - 2
+      p: 0.97
+    tissue:
+      text: Skull and femur BM
+      term: UBERON:0002371
+      level: Skull and femur BM
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: HSPC
+      level: HSPC
+      quoted:
+      - 8
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 0.51
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.85
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.48
+  GSM9703839:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Multiplexed WT and 5xFAD
+      level: multiplexed_WT_5xFAD
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Multiplexed WT and 5xFAD
+      level: mixed_WT_5xFAD
+      quoted:
+      - 2
+      p: 0.97
+    tissue:
+      text: Skull and femur BM
+      term: UBERON:0002371
+      level: Skull and femur BM
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: HSPC
+      level: HSPC
+      quoted:
+      - 8
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 0.88
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.87
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.58
+  GSM9703840:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Multiplexed WT and 5xFAD
+      level: multiplexed_WT_5xFAD
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Multiplexed WT and 5xFAD
+      level: mixed_WT_5xFAD
+      quoted:
+      - 2
+      p: 0.97
+    tissue:
+      text: Skull and femur BM
+      term: UBERON:0002371
+      level: Skull and femur BM
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: HSPC
+      level: HSPC
+      quoted:
+      - 8
+      p: 1.0
+    assay:
+      text: CMO
+      quoted:
+      - 16
+      p: 0.95
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.93
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.53
+  GSM9703841:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Multiplexed WT and 5xFAD
+      level: multiplexed_WT_5xFAD
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Multiplexed WT and 5xFAD
+      level: mixed_WT_5xFAD
+      quoted:
+      - 2
+      p: 0.99
+    tissue:
+      text: Skull and femur BM
+      term: UBERON:0002371
+      level: Skull and femur BM
+      quoted:
+      - 5
+      p: 1.0
+    cell_type:
+      text: HSPC
+      level: HSPC
+      quoted:
+      - 8
+      p: 1.0
+    assay:
+      text: CMO
+      quoted:
+      - 16
+      p: 0.93
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.92
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.51
+  GSM9703842:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Multiplexed WT and 5xFAD
+      level: multiplexed_WT_5xFAD
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Multiplexed WT and 5xFAD
+      level: mixed_WT_5xFAD
+      quoted:
+      - 2
+      p: 0.97
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Myeloid Cells and HSPC
+      level: Myeloid Cells and HSPC
+      quoted:
+      - 9
+      p: 0.99
+    assay:
+      text: HTO
+      quoted:
+      - 17
+      p: 0.6
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.77
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.51
+  GSM9703843:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Multiplexed WT and 5xFAD
+      level: multiplexed_WT_5xFAD
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Multiplexed WT and 5xFAD
+      level: mixed_WT_5xFAD
+      quoted:
+      - 2
+      p: 0.97
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Myeloid Cells and HSPC
+      level: Myeloid Cells and HSPC
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 0.66
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.82
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.55
+  GSM9703844:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Multiplexed WT and 5xFAD
+      level: multiplexed_WT_5xFAD
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Multiplexed WT and 5xFAD
+      level: mixed_WT_5xFAD
+      quoted:
+      - 2
+      p: 0.98
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Myeloid Cells and HSPC
+      level: Myeloid Cells and HSPC
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: HTO
+      quoted:
+      - 17
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.83
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.51
+  GSM9703845:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Multiplexed WT and 5xFAD
+      level: multiplexed_WT_5xFAD
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Multiplexed WT and 5xFAD
+      level: mixed_WT_5xFAD
+      quoted:
+      - 2
+      p: 0.97
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Myeloid Cells and HSPC
+      level: Myeloid Cells and HSPC
+      quoted:
+      - 9
+      p: 1.0
+    assay:
+      text: HTO
+      quoted:
+      - 17
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.83
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.57
+  GSM9703846:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Multiplexed WT and 5xFAD
+      level: multiplexed_WT_5xFAD
+      quoted:
+      - 2
+      p: 1.0
+    disease:
+      text: Multiplexed WT and 5xFAD
+      level: mixed_WT_5xFAD
+      quoted:
+      - 2
+      p: 0.95
+    tissue:
+      text: Brain
+      term: UBERON:0000955
+      level: Brain
+      quoted:
+      - 7
+      p: 1.0
+    cell_type:
+      text: Myeloid Cells
+      term: CL:0000763
+      level: Myeloid Cells
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 10
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 0.98
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.9
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.49
+  GSM9703847:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Chimeric 5xFAD with WT or IFNAR1KO cells
+      level: chimeric_5xFAD
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: 5xFAD
+      level: 5xFAD
+      quoted:
+      - 4
+      p: 0.69
+    tissue:
+      text: Brain
+      term: UBERON:0000955
+      level: Brain
+      quoted:
+      - 7
+      p: 1.0
+    cell_type:
+      text: Myeloid Cells
+      term: CL:0000763
+      level: Myeloid Cells
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 10
+      p: 1.0
+    assay:
+      text: ADT
+      quoted:
+      - 18
+      p: 0.78
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.71
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.59
+  GSM9703848:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Chimeric 5xFAD with WT or IFNAR1KO cells
+      level: chimeric_5xFAD
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: 5xFAD
+      level: 5xFAD
+      quoted:
+      - 4
+      p: 0.79
+    tissue:
+      text: Brain
+      term: UBERON:0000955
+      level: Brain
+      quoted:
+      - 7
+      p: 1.0
+    cell_type:
+      text: Myeloid Cells
+      term: CL:0000763
+      level: Myeloid Cells
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 10
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 0.51
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.86
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.6
+  GSM9703849:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Chimeric 5xFAD with WT or IFNAR1KO cells
+      level: chimeric_5xFAD
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: 5xFAD
+      level: 5xFAD
+      quoted:
+      - 4
+      p: 0.67
+    tissue:
+      text: Brain
+      term: UBERON:0000955
+      level: Brain
+      quoted:
+      - 7
+      p: 1.0
+    cell_type:
+      text: Myeloid Cells
+      term: CL:0000763
+      level: Myeloid Cells
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 10
+      p: 1.0
+    assay:
+      text: ADT
+      quoted:
+      - 18
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.52
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.58
+  GSM9703850:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: Chimeric 5xFAD with WT or IFNAR1KO cells
+      level: chimeric_5xFAD
+      quoted:
+      - 3
+      p: 1.0
+    disease:
+      text: 5xFAD
+      level: 5xFAD
+      quoted:
+      - 4
+      p: 0.68
+    tissue:
+      text: Brain
+      term: UBERON:0000955
+      level: Brain
+      quoted:
+      - 7
+      p: 1.0
+    cell_type:
+      text: Myeloid Cells
+      term: CL:0000763
+      level: Myeloid Cells
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 10
+      p: 1.0
+    assay:
+      text: ADT
+      quoted:
+      - 18
+      p: 0.99
+    target:
+      text: TotalSeq-B0178 is for CD45.1, TotalSeq-B0157 is for CD45.2
+      inferred: ADT antibodies target CD45.1 and CD45.2
+      p: 0.63
+    treatment:
+      unknown: what was read does not say its treatment
+      p: 0.57
+  GSM9703851:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: WT
+      level: healthy
+      quoted:
+      - 1
+      p: 0.99
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Ly6Chigh Monocytes
+      level: Ly6Chigh Monocytes
+      quoted:
+      - 11
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.92
+    treatment:
+      text: PBS-treated mice
+      quoted:
+      - 19
+      p: 1.0
+  GSM9703852:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: WT
+      level: healthy
+      quoted:
+      - 1
+      p: 0.98
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Ly6Chigh Monocytes
+      level: Ly6Chigh Monocytes
+      quoted:
+      - 11
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.93
+    treatment:
+      text: PBS-treated mice
+      quoted:
+      - 19
+      p: 0.99
+  GSM9703853:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: WT
+      level: healthy
+      quoted:
+      - 1
+      p: 0.98
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Ly6Chigh Monocytes
+      level: Ly6Chigh Monocytes
+      quoted:
+      - 11
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.93
+    treatment:
+      text: PBS-treated mice
+      quoted:
+      - 19
+      p: 0.99
+  GSM9703854:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: WT
+      level: healthy
+      quoted:
+      - 1
+      p: 0.95
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Ly6Chigh Monocytes
+      level: Ly6Chigh Monocytes
+      quoted:
+      - 11
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.92
+    treatment:
+      text: poly-IC-treated mice
+      term: CHEBI:84491
+      quoted:
+      - 20
+      p: 0.98
+  GSM9703855:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: WT
+      level: healthy
+      quoted:
+      - 1
+      p: 0.96
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Ly6Chigh Monocytes
+      level: Ly6Chigh Monocytes
+      quoted:
+      - 11
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.91
+    treatment:
+      text: poly-IC-treated mice
+      term: CHEBI:84491
+      quoted:
+      - 20
+      p: 0.99
+  GSM9703856:
+    biosample:
+      id: B19
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: WT
+      level: healthy
+      quoted:
+      - 1
+      p: 0.96
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Ly6Chigh Monocytes
+      level: Ly6Chigh Monocytes
+      quoted:
+      - 11
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.92
+    treatment:
+      text: poly-IC-treated mice
+      term: CHEBI:84491
+      quoted:
+      - 20
+      p: 1.0
+  GSM9703857:
+    biosample:
+      id: B20
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: WT
+      level: WT
+      quoted:
+      - 1
+      p: 1.0
+    disease:
+      text: WT
+      level: healthy
+      quoted:
+      - 1
+      p: 0.97
+    tissue:
+      text: Femur BM
+      term: UBERON:0002371
+      level: Femur BM
+      quoted:
+      - 6
+      p: 1.0
+    cell_type:
+      text: Ly6Chigh Monocytes
+      level: Ly6Chigh Monocytes
+      quoted:
+      - 11
+      p: 1.0
+    assay:
+      text: mRNA
+      term: EFO:0008896
+      quoted:
+      - 12
+      p: 1.0
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.93
+    treatment:
+      text: poly-IC-treated mice
+      term: CHEBI:84491
+      quoted:
+      - 20
+      p: 1.0

@@ -1,0 +1,365 @@
+format: 2
+study: GSE208154
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+read_detail: The records of GSE208154 and their 11 sequenced samples; no paper.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbbt-2025-08-19,
+    wbls-2026-04-16'
+  date: 2026-11-25
+passages:
+  1:
+    record:
+    - GSM6338211
+    - GSM6338215
+    - GSM6338216
+    - GSM6338220
+    - GSM6338221
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: age day 1'
+  2:
+    record:
+    - GSM6338212
+    - GSM6338217
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: age day 3'
+  3:
+    record:
+    - GSM6338213
+    - GSM6338218
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: age day 5'
+  4:
+    record:
+    - GSM6338214
+    - GSM6338219
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: age day 8'
+  5:
+    record:
+    - GSM6338215
+    - GSM6338220
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: age day 11'
+  6:
+    record: GSM6338221
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: age day 15'
+  7:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: all the tissues'
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: all the cell types'
+  10:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: gon-2(q388) I; muIs274 [eft-3p:del:unc-54 3''UTR + Cbr-unc-119(+)] II; daf-2(mu465[daf-2::AID]
+      III'
+  11:
+    record: GSM6338211
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 1, technical replicate 1
+  12:
+    record: GSM6338216
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 1, technical replicate 2
+  13:
+    record: GSM6338221
+    field: Sample_title
+    quote: scRNAseq C. elegans whole animals day 15, 1 technical replicate
+  14:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  age:
+    levels:
+    - day_1
+    - day_3
+    - day_5
+    - day_8
+    - day_11
+    - day_15
+    baseline: null
+    ordered: true
+    inferred: adult time course with six ages
+    p: 0.97
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.94
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 14
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 7
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down
+    p: 1.0
+  control_type:
+    na: no background-control library
+    p: 1.0
+  sex:
+    unknown: no sample record states sex
+    p: 0.82
+  development_stage:
+    text: adult
+    term: WBls:0000041
+    inferred: adult lifespan stated in overall design
+    p: 0.98
+  tissue:
+    text: all the tissues
+    term: WBbt:0007833
+    quoted:
+    - 8
+    p: 0.99
+  cell_type:
+    text: all the cell types
+    quoted:
+    - 9
+    p: 0.99
+  cell_line:
+    na: whole animals, no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model stated
+    p: 0.98
+  genotype:
+    text: gon-2(q388) I; muIs274 [eft-3p:del:unc-54 3'UTR + Cbr-unc-119(+)] II; daf-2(mu465[daf-2::AID]
+      III
+    quoted:
+    - 10
+    p: 1.0
+  strain:
+    text: CF4596
+    inferred: strain named in overall design
+    p: 0.96
+  treatment:
+    unknown: no treatment applied in study
+    p: 0.55
+  dose:
+    na: no treatment applied in study
+    p: 0.85
+  duration:
+    na: no treatment applied in study
+    p: 0.72
+samples:
+  GSM6338211:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 1
+      value: 1
+      unit: day
+      level: day_1
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 1
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 11
+      p: 1.0
+  GSM6338212:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 3
+      value: 3
+      unit: day
+      level: day_3
+      quoted:
+      - 2
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 11
+      p: 0.72
+  GSM6338213:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 5
+      value: 5
+      unit: day
+      level: day_5
+      quoted:
+      - 3
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 11
+      p: 0.81
+  GSM6338214:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 8
+      value: 8
+      unit: day
+      level: day_8
+      quoted:
+      - 4
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 11
+      p: 0.75
+  GSM6338215:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 11
+      value: 11
+      unit: day
+      level: day_11
+      quoted:
+      - 5
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 1
+      quoted:
+      - 11
+      p: 0.76
+  GSM6338216:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 1
+      value: 1
+      unit: day
+      level: day_1
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 1
+      p: 1.0
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 12
+      p: 1.0
+  GSM6338217:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 3
+      value: 3
+      unit: day
+      level: day_3
+      quoted:
+      - 2
+      p: 0.98
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 12
+      p: 0.66
+  GSM6338218:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 5
+      value: 5
+      unit: day
+      level: day_5
+      quoted:
+      - 3
+      p: 0.99
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 12
+      p: 0.68
+  GSM6338219:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 8
+      value: 8
+      unit: day
+      level: day_8
+      quoted:
+      - 4
+      p: 0.98
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 12
+      p: 0.62
+  GSM6338220:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 11
+      value: 11
+      unit: day
+      level: day_11
+      quoted:
+      - 5
+      p: 0.99
+    technical_replicate:
+      text: technical replicate 2
+      quoted:
+      - 12
+      p: 0.82
+  GSM6338221:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: age day 15
+      value: 15
+      unit: day
+      level: day_15
+      quoted:
+      - 6
+      p: 1.0
+    technical_replicate:
+      text: 1 technical replicate
+      quoted:
+      - 13
+      p: 0.93

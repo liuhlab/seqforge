@@ -1,0 +1,705 @@
+format: 2
+study: GSE78252
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE78252 and their 18 sequenced samples; the full text of pmid:27133166.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbls-2026-04-16'
+  date: 2026-11-25
+passages:
+  1:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: N2, lin-65(n3441) and met-2(ok2307) animals were grown from hatch at 20C on either empty vector
+      (EV) or EV+cco-1 RNAi bacteria.
+  2:
+    record:
+    - GSM2070425
+    - GSM2070426
+    - GSM2070427
+    - GSM2070428
+    - GSM2070429
+    - GSM2070430
+    - GSM2070431
+    field: Sample_characteristics_ch1
+    quote: 'strain/line background: N2'
+  3:
+    record:
+    - GSM2070432
+    - GSM2070433
+    - GSM2070434
+    - GSM2070435
+    - GSM2070436
+    field: Sample_characteristics_ch1
+    quote: 'strain/line background: lin-65(n3441)'
+  4:
+    record:
+    - GSM2070437
+    - GSM2070438
+    - GSM2070439
+    - GSM2070440
+    - GSM2070441
+    - GSM2070442
+    field: Sample_characteristics_ch1
+    quote: 'strain/line background: met-2(ok2307)'
+  5:
+    record: GSE78252
+    field: Series_overall_design
+    quote: comparison of gene expression changes in response to cco-1 RNAi treatment in N2, lin-65(n3441)
+      and met-2(ok2307) populations of C. elegans L4 animals
+  6:
+    record:
+    - GSM2070425
+    - GSM2070426
+    - GSM2070427
+    - GSM2070431
+    - GSM2070432
+    - GSM2070433
+    - GSM2070437
+    - GSM2070438
+    - GSM2070439
+    field: Sample_characteristics_ch1
+    quote: 'RNAi treatment: empty vector (EV)'
+  7:
+    record:
+    - GSM2070428
+    - GSM2070429
+    - GSM2070430
+    - GSM2070434
+    - GSM2070435
+    - GSM2070436
+    - GSM2070440
+    - GSM2070441
+    - GSM2070442
+    field: Sample_characteristics_ch1
+    quote: 'RNAi treatment: cco-1 + empty vector (EV)'
+  8:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'developmental stage: L4'
+  10:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole worm lysate'
+  11:
+    paper: pmid:27133166
+    section: Experimental Procedures > Strains
+    quote: N2 wild type strains were obtained from the Caenorhabditis Genetics Center
+  12:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: animals were grown from hatch at 20C
+  13:
+    record: GSM2070425
+    field: Sample_title
+    quote: N2 EV replicate 1
+  14:
+    record: GSM2070426
+    field: Sample_title
+    quote: N2 EV replicate 2
+  15:
+    record: GSM2070427
+    field: Sample_title
+    quote: N2 EV replicate 3
+  16:
+    paper: pmid:27133166
+    section: Experimental Procedures > Strains
+    quote: MT13232 (lin-65(n3441)), RB1789 (met-2(ok2307))
+  17:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  genotype:
+    levels:
+    - N2_wild_type
+    - lin-65(n3441)
+    - met-2(ok2307)
+    baseline: N2_wild_type
+    ordered: false
+    quoted:
+    - 1
+    against:
+    - 2
+    p: 0.98
+  treatment:
+    levels:
+    - empty_vector_EV
+    - cco-1_RNAi
+    baseline: empty_vector_EV
+    ordered: false
+    quoted:
+    - 5
+    p: 0.99
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.94
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 17
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 8
+    p: 1.0
+  target:
+    na: no pull-down; RNA-Seq
+    p: 1.0
+  control_type:
+    na: no background-control library
+    p: 1.0
+  sex:
+    unknown: sex not stated in records or paper
+    p: 0.8
+  age:
+    unknown: no age value; only L4 stage
+    p: 0.72
+  development_stage:
+    text: L4
+    term: WBls:0000109
+    quoted:
+    - 9
+    p: 1.0
+  tissue:
+    text: whole worm lysate
+    quoted:
+    - 10
+    p: 1.0
+  cell_type:
+    na: whole worm lysate, no isolated cell type
+    p: 0.99
+  cell_line:
+    na: whole animal, no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model described
+    p: 0.96
+  dose:
+    unknown: no dose stated for RNAi feeding
+    p: 0.99
+  duration:
+    text: from hatch
+    quoted:
+    - 12
+    p: 0.41
+samples:
+  GSM2070425:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: N2
+      level: N2_wild_type
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    treatment:
+      text: empty vector (EV)
+      level: empty_vector_EV
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2 wild type
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: replicate 1
+      quoted:
+      - 13
+      p: 1.0
+  GSM2070426:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: N2
+      level: N2_wild_type
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    treatment:
+      text: empty vector (EV)
+      level: empty_vector_EV
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2 wild type
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: replicate 2
+      quoted:
+      - 14
+      p: 1.0
+  GSM2070427:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: N2
+      level: N2_wild_type
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    treatment:
+      text: empty vector (EV)
+      level: empty_vector_EV
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: N2 wild type
+      quoted:
+      - 11
+      p: 1.0
+    replicate:
+      text: replicate 3
+      quoted:
+      - 15
+      p: 0.99
+  GSM2070428:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: N2
+      level: N2_wild_type
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 7
+      p: 0.97
+    strain:
+      text: N2 wild type
+      quoted:
+      - 11
+      p: 0.99
+    replicate:
+      text: replicate 1
+      quoted:
+      - 13
+      p: 0.76
+  GSM2070429:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: N2
+      level: N2_wild_type
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 7
+      p: 0.93
+    strain:
+      text: N2 wild type
+      quoted:
+      - 11
+      p: 0.99
+    replicate:
+      text: replicate 2
+      quoted:
+      - 14
+      p: 0.88
+  GSM2070430:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: N2
+      level: N2_wild_type
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 7
+      p: 0.9
+    strain:
+      text: N2 wild type
+      quoted:
+      - 11
+      p: 0.99
+    replicate:
+      text: replicate 3
+      quoted:
+      - 15
+      p: 0.92
+  GSM2070431:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 3
+      p: 0.91
+    treatment:
+      text: empty vector (EV)
+      level: empty_vector_EV
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: MT13232 (lin-65(n3441))
+      quoted:
+      - 16
+      against:
+      - 2
+      p: 0.8
+    replicate:
+      text: replicate 1
+      quoted:
+      - 13
+      p: 0.97
+  GSM2070432:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 3
+      p: 0.95
+    treatment:
+      text: empty vector (EV)
+      level: empty_vector_EV
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: MT13232 (lin-65(n3441))
+      quoted:
+      - 16
+      against:
+      - 2
+      p: 0.97
+    replicate:
+      text: replicate 2
+      quoted:
+      - 14
+      p: 0.89
+  GSM2070433:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 3
+      p: 0.95
+    treatment:
+      text: empty vector (EV)
+      level: empty_vector_EV
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: MT13232 (lin-65(n3441))
+      quoted:
+      - 16
+      against:
+      - 2
+      p: 0.91
+    replicate:
+      text: replicate 3
+      quoted:
+      - 15
+      p: 0.84
+  GSM2070434:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 7
+      p: 0.99
+    strain:
+      text: MT13232 (lin-65(n3441))
+      quoted:
+      - 16
+      against:
+      - 2
+      p: 0.99
+    replicate:
+      text: replicate 1
+      quoted:
+      - 13
+      p: 0.94
+  GSM2070435:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 3
+      p: 0.99
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 7
+      p: 0.99
+    strain:
+      text: MT13232 (lin-65(n3441))
+      quoted:
+      - 16
+      against:
+      - 2
+      p: 0.97
+    replicate:
+      text: replicate 2
+      quoted:
+      - 14
+      p: 0.85
+  GSM2070436:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: lin-65(n3441)
+      level: lin-65(n3441)
+      quoted:
+      - 3
+      p: 0.98
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 7
+      p: 0.99
+    strain:
+      text: MT13232 (lin-65(n3441))
+      quoted:
+      - 16
+      against:
+      - 2
+      p: 0.94
+    replicate:
+      text: replicate 3
+      quoted:
+      - 15
+      p: 0.82
+  GSM2070437:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      text: empty vector (EV)
+      level: empty_vector_EV
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: RB1789 (met-2(ok2307))
+      quoted:
+      - 16
+      p: 0.99
+    replicate:
+      text: replicate 1
+      quoted:
+      - 13
+      p: 0.96
+  GSM2070438:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 4
+      p: 0.99
+    treatment:
+      text: empty vector (EV)
+      level: empty_vector_EV
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: RB1789 (met-2(ok2307))
+      quoted:
+      - 16
+      p: 0.97
+    replicate:
+      text: replicate 2
+      quoted:
+      - 14
+      p: 0.93
+  GSM2070439:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 4
+      p: 0.99
+    treatment:
+      text: empty vector (EV)
+      level: empty_vector_EV
+      quoted:
+      - 6
+      p: 1.0
+    strain:
+      text: RB1789 (met-2(ok2307))
+      quoted:
+      - 16
+      p: 0.97
+    replicate:
+      text: replicate 3
+      quoted:
+      - 15
+      p: 0.9
+  GSM2070440:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 7
+      p: 0.99
+    strain:
+      text: RB1789 (met-2(ok2307))
+      quoted:
+      - 16
+      p: 0.99
+    replicate:
+      text: replicate 1
+      quoted:
+      - 13
+      p: 0.95
+  GSM2070441:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 7
+      p: 0.99
+    strain:
+      text: RB1789 (met-2(ok2307))
+      quoted:
+      - 16
+      p: 0.99
+    replicate:
+      text: replicate 2
+      quoted:
+      - 14
+      p: 0.87
+  GSM2070442:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: met-2(ok2307)
+      level: met-2(ok2307)
+      quoted:
+      - 4
+      p: 1.0
+    treatment:
+      text: cco-1 + empty vector (EV)
+      level: cco-1_RNAi
+      quoted:
+      - 7
+      p: 0.99
+    strain:
+      text: RB1789 (met-2(ok2307))
+      quoted:
+      - 16
+      p: 0.95
+    replicate:
+      text: replicate 3
+      quoted:
+      - 15
+      p: 0.87

@@ -1,0 +1,803 @@
+format: 2
+study: GSE77720
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE77720 and their 23 sequenced samples; the full text of pmid:26637796.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, uberon-2026-11-05'
+  date: 2026-11-25
+passages:
+  1:
+    record: GSE77720
+    field: Series_overall_design
+    quote: To compare the RNA Seq profiles from the cortex and spinal cord of transgenic mice expressing
+      unexpanded human C9orf72 (F08, n=4), expanded human C9orf72 (F112, n=3/4), and nontransgenic controls
+      (n=4).
+  2:
+    record:
+    - GSM2057826
+    - GSM2057827
+    - GSM2057828
+    - GSM2057829
+    - GSM2057845
+    - GSM2057846
+    - GSM2057847
+    - GSM2057848
+    field: Sample_characteristics_ch1
+    quote: 'genotype: nontransgenic (NTg)'
+  3:
+    record:
+    - GSM2057830
+    - GSM2057831
+    - GSM2057832
+    - GSM2057833
+    - GSM2057841
+    - GSM2057842
+    - GSM2057843
+    - GSM2057844
+    field: Sample_characteristics_ch1
+    quote: 'genotype: F08'
+  4:
+    record:
+    - GSM2057834
+    - GSM2057835
+    - GSM2057836
+    - GSM2057837
+    - GSM2057838
+    - GSM2057839
+    - GSM2057840
+    field: Sample_characteristics_ch1
+    quote: 'genotype: F112exp'
+  5:
+    record:
+    - GSM2057826
+    - GSM2057827
+    - GSM2057828
+    - GSM2057829
+    - GSM2057830
+    - GSM2057831
+    - GSM2057832
+    - GSM2057833
+    - GSM2057834
+    - GSM2057835
+    - GSM2057836
+    field: Sample_characteristics_ch1
+    quote: 'tissue: cortex'
+  6:
+    record:
+    - GSM2057837
+    - GSM2057838
+    - GSM2057839
+    - GSM2057840
+    - GSM2057841
+    - GSM2057842
+    - GSM2057843
+    - GSM2057844
+    - GSM2057845
+    - GSM2057846
+    - GSM2057847
+    - GSM2057848
+    field: Sample_characteristics_ch1
+    quote: 'tissue: lumbar spinal cord'
+  7:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  8:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: collected at 6 month
+  9:
+    paper: pmid:26637796
+    section: Results > C9-BACexp mice have evidence of nucleolar stress without downstream sequelae
+    quote: 6 month old C9-BAC mice
+  10:
+    record: GSE77720
+    field: Series_overall_design
+    quote: nontransgenic controls (n=4)
+  11:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: C57BL/6'
+  12:
+    record: GSE77720
+    field: Series_summary
+    quote: disease-associated expansion (~100–1,000 repeats; C9-BACexp)
+  13:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  genotype:
+    levels:
+    - NTg
+    - F08
+    - F112exp
+    baseline: NTg
+    ordered: false
+    quoted:
+    - 1
+    p: 0.99
+  tissue:
+    levels:
+    - cortex
+    - lumbar_spinal_cord
+    baseline: null
+    ordered: false
+    quoted:
+    - 1
+    p: 0.96
+shared:
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 13
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 7
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  sex:
+    unknown: not stated for sequenced mice
+    p: 0.98
+  age:
+    text: 6 month
+    value: 6
+    unit: month
+    quoted:
+    - 8
+    p: 1.0
+  development_stage:
+    text: 6 month old
+    quoted:
+    - 9
+    p: 1.0
+  cell_type:
+    na: not specified for bulk tissue
+    p: 0.98
+  cell_line:
+    na: tissue from mice, no cell line
+    p: 1.0
+  strain:
+    text: C57BL/6
+    quoted:
+    - 11
+    p: 1.0
+  treatment:
+    na: no treatment applied to sequenced samples
+    p: 0.62
+  dose:
+    na: no treatment applied to sequenced samples
+    p: 0.97
+  duration:
+    na: no treatment applied to sequenced samples
+    p: 0.95
+samples:
+  GSM2057826:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D1
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: nontransgenic and unexpanded controls
+      see:
+      - 10
+      p: 1.0
+  GSM2057827:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D2
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: nontransgenic and unexpanded controls
+      see:
+      - 10
+      p: 0.99
+  GSM2057828:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D3
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: nontransgenic and unexpanded controls
+      see:
+      - 10
+      p: 1.0
+  GSM2057829:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D4
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: nontransgenic and unexpanded controls
+      see:
+      - 10
+      p: 1.0
+  GSM2057830:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D5
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      unknown: what was read does not say its disease
+      p: 0.48
+  GSM2057831:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D6
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      unknown: what was read does not say its disease
+      p: 0.43
+  GSM2057832:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D7
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      unknown: what was read does not say its disease
+      p: 0.34
+  GSM2057833:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D8
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      unknown: what was read does not say its disease
+      p: 0.54
+  GSM2057834:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D9
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: C9-BACexp
+      quoted:
+      - 12
+      p: 0.95
+  GSM2057835:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D10
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: C9-BACexp
+      quoted:
+      - 12
+      p: 0.96
+  GSM2057836:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D11
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: cortex
+      level: cortex
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: C9-BACexp
+      quoted:
+      - 12
+      p: 0.94
+  GSM2057837:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D12
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: C9-BACexp
+      quoted:
+      - 12
+      p: 0.98
+  GSM2057838:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D13
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: C9-BACexp
+      quoted:
+      - 12
+      p: 0.94
+  GSM2057839:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D14
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: C9-BACexp
+      quoted:
+      - 12
+      p: 0.95
+  GSM2057840:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D15
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F112exp
+      level: F112exp
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: C9-BACexp
+      quoted:
+      - 12
+      p: 0.95
+  GSM2057841:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D16
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: C9-BACexp
+      quoted:
+      - 12
+      p: 0.44
+  GSM2057842:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D17
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      unknown: what was read does not say its disease
+      p: 0.41
+  GSM2057843:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D18
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: C9-BACexp
+      quoted:
+      - 12
+      p: 0.41
+  GSM2057844:
+    biosample:
+      id: B19
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D19
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: F08
+      level: F08
+      quoted:
+      - 3
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      unknown: what was read does not say its disease
+      p: 0.44
+  GSM2057845:
+    biosample:
+      id: B20
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D20
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: nontransgenic and unexpanded controls
+      see:
+      - 10
+      p: 1.0
+  GSM2057846:
+    biosample:
+      id: B21
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D21
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: nontransgenic and unexpanded controls
+      see:
+      - 10
+      p: 1.0
+  GSM2057847:
+    biosample:
+      id: B22
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D22
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: nontransgenic and unexpanded controls
+      see:
+      - 10
+      p: 1.0
+  GSM2057848:
+    biosample:
+      id: B23
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D23
+      inferred: Jev judged each library to come from its own individual
+      p: 0.7
+    genotype:
+      text: nontransgenic (NTg)
+      level: NTg
+      quoted:
+      - 2
+      p: 1.0
+    tissue:
+      text: lumbar spinal cord
+      term: UBERON:0002792
+      level: lumbar_spinal_cord
+      quoted:
+      - 6
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      inferred: nontransgenic and unexpanded controls
+      see:
+      - 10
+      p: 1.0

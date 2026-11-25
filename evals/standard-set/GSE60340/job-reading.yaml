@@ -1,0 +1,842 @@
+format: 2
+study: GSE60340
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+read_detail: The records of GSE60340 and their 24 sequenced samples; the abstract of pmid:25483067.
+ontology_snapshot:
+  source: 'liulab-data ontology store: cellosaurus-57.0, chebi-257, efo-3.96.0, mondo-2026-11-03, ncbitaxon-2026-11-25'
+  date: 2026-11-25
+passages:
+  1:
+    record:
+    - GSM1473759
+    - GSM1473764
+    - GSM1473767
+    - GSM1473770
+    - GSM1473772
+    - GSM1473774
+    - GSM1473776
+    - GSM1473779
+    - GSM1473781
+    - GSM1473784
+    - GSM1473786
+    - GSM1473788
+    field: Sample_characteristics_ch1
+    quote: 'treated with: None'
+  2:
+    record:
+    - GSM1473759
+    - GSM1473764
+    - GSM1473767
+    field: Sample_characteristics_ch1
+    quote: 'treated with: None (spontaneously immortal)'
+  3:
+    record:
+    - GSM1473784
+    - GSM1473786
+    - GSM1473788
+    field: Sample_characteristics_ch1
+    quote: 'treated with: None (grown until growth arrest)'
+  4:
+    record:
+    - GSM1473790
+    - GSM1473792
+    - GSM1473794
+    field: Sample_characteristics_ch1
+    quote: 'treated with: Adriamycin'
+  5:
+    record:
+    - GSM1473796
+    - GSM1473798
+    - GSM1473800
+    field: Sample_characteristics_ch1
+    quote: 'treated with: 5-aza'
+  6:
+    record:
+    - GSM1473803
+    - GSM1473805
+    - GSM1473807
+    field: Sample_characteristics_ch1
+    quote: 'treated with: H2O2'
+  7:
+    record:
+    - GSM1473810
+    - GSM1473812
+    - GSM1473815
+    field: Sample_characteristics_ch1
+    quote: 'treated with: Serum-starved'
+  8:
+    record:
+    - GSM1473759
+    - GSM1473764
+    - GSM1473767
+    field: Sample_characteristics_ch1
+    quote: 'sample group: spontaneously immortal cells'
+  9:
+    record:
+    - GSM1473770
+    - GSM1473772
+    - GSM1473774
+    field: Sample_characteristics_ch1
+    quote: 'sample group: young cells'
+  10:
+    record:
+    - GSM1473776
+    - GSM1473779
+    - GSM1473781
+    field: Sample_characteristics_ch1
+    quote: 'sample group: aging cells'
+  11:
+    record:
+    - GSM1473784
+    - GSM1473786
+    - GSM1473788
+    field: Sample_characteristics_ch1
+    quote: 'sample group: replicatively senescent'
+  12:
+    record:
+    - GSM1473790
+    - GSM1473792
+    - GSM1473794
+    - GSM1473796
+    - GSM1473798
+    - GSM1473800
+    - GSM1473803
+    - GSM1473805
+    - GSM1473807
+    field: Sample_characteristics_ch1
+    quote: 'sample group: induced into senescence'
+  13:
+    record:
+    - GSM1473810
+    - GSM1473812
+    - GSM1473815
+    field: Sample_characteristics_ch1
+    quote: 'sample group: induced into quiescence'
+  14:
+    record:
+    - GSM1473759
+    - GSM1473764
+    - GSM1473767
+    - GSM1473790
+    - GSM1473792
+    - GSM1473794
+    - GSM1473796
+    - GSM1473798
+    - GSM1473800
+    - GSM1473803
+    - GSM1473805
+    - GSM1473807
+    - GSM1473810
+    - GSM1473812
+    - GSM1473815
+    field: Sample_characteristics_ch1
+    quote: 'passages: >200'
+  15:
+    record:
+    - GSM1473770
+    - GSM1473772
+    - GSM1473774
+    field: Sample_characteristics_ch1
+    quote: 'passages: 10-12'
+  16:
+    record:
+    - GSM1473776
+    - GSM1473779
+    - GSM1473781
+    field: Sample_characteristics_ch1
+    quote: 'passages: 17-19'
+  17:
+    record:
+    - GSM1473784
+    - GSM1473786
+    - GSM1473788
+    field: Sample_characteristics_ch1
+    quote: 'passages: 28-30'
+  18:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  19:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue origin: Skin'
+  20:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: MDAH041 LFS fibroblasts'
+  21:
+    record: GSE60340
+    field: Series_summary
+    quote: LFS MDAH041 cells
+  22:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+factors:
+  treatment:
+    levels:
+    - none
+    - none_spontaneously_immortal
+    - none_growth_arrest
+    - adriamycin
+    - 5_aza
+    - h2o2
+    - serum_starved
+    baseline: none
+    ordered: false
+    inferred: Various inducers and untreated states profiled
+    p: 0.96
+  sample_group:
+    levels:
+    - spontaneously_immortal
+    - young
+    - aging
+    - replicatively_senescent
+    - induced_senescence
+    - induced_quiescence
+    baseline: young
+    ordered: true
+    inferred: Cell state groups compared by RNA-seq
+    p: 0.98
+  passage:
+    levels:
+    - gt_200
+    - '10_12'
+    - '17_19'
+    - '28_30'
+    baseline: '10_12'
+    ordered: true
+    inferred: Passage ranges mark young, aging and senescent cells
+    p: 0.96
+shared:
+  donor:
+    na: a cell line or a culture, no single individual
+    p: 0.99
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 22
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 18
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down target
+    p: 1.0
+  control_type:
+    na: No background-control libraries in RNA-Seq
+    p: 1.0
+  sex:
+    unknown: Sex not stated in records or paper
+    p: 0.94
+  age:
+    na: in vitro cell line; no organism age
+    p: 0.55
+  development_stage:
+    na: in vitro cell line; no developmental stage
+    p: 0.83
+  tissue:
+    text: Skin
+    quoted:
+    - 19
+    p: 1.0
+  cell_type:
+    text: MDAH041 LFS fibroblasts
+    quoted:
+    - 20
+    p: 1.0
+  cell_line:
+    text: MDAH041
+    term: CVCL_E212
+    quoted:
+    - 21
+    p: 1.0
+  disease:
+    text: LFS
+    term: MONDO:0018875
+    quoted:
+    - 21
+    p: 1.0
+  genotype:
+    unknown: Genotype not stated in records or paper
+    p: 0.89
+  strain:
+    na: Human cell line; no strain
+    p: 0.98
+  dose:
+    unknown: Doses not stated for inducers; untreated samples have no dose
+    p: 1.0
+  duration:
+    unknown: Treatment durations not stated in records or paper
+    p: 0.99
+samples:
+  GSM1473759:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None (spontaneously immortal)
+      level: none_spontaneously_immortal
+      quoted:
+      - 2
+      p: 0.99
+    sample_group:
+      text: spontaneously immortal cells
+      level: spontaneously_immortal
+      quoted:
+      - 8
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473764:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None (spontaneously immortal)
+      level: none_spontaneously_immortal
+      quoted:
+      - 2
+      p: 0.99
+    sample_group:
+      text: spontaneously immortal cells
+      level: spontaneously_immortal
+      quoted:
+      - 8
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473767:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None (spontaneously immortal)
+      level: none_spontaneously_immortal
+      quoted:
+      - 2
+      p: 0.99
+    sample_group:
+      text: spontaneously immortal cells
+      level: spontaneously_immortal
+      quoted:
+      - 8
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473770:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None
+      level: none
+      quoted:
+      - 1
+      p: 1.0
+    sample_group:
+      text: young cells
+      level: young
+      quoted:
+      - 9
+      p: 1.0
+    passage:
+      text: 10-12
+      level: '10_12'
+      quoted:
+      - 15
+      p: 1.0
+  GSM1473772:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None
+      level: none
+      quoted:
+      - 1
+      p: 1.0
+    sample_group:
+      text: young cells
+      level: young
+      quoted:
+      - 9
+      p: 1.0
+    passage:
+      text: 10-12
+      level: '10_12'
+      quoted:
+      - 15
+      p: 1.0
+  GSM1473774:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None
+      level: none
+      quoted:
+      - 1
+      p: 1.0
+    sample_group:
+      text: young cells
+      level: young
+      quoted:
+      - 9
+      p: 1.0
+    passage:
+      text: 10-12
+      level: '10_12'
+      quoted:
+      - 15
+      p: 1.0
+  GSM1473776:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None
+      level: none
+      quoted:
+      - 1
+      p: 0.96
+    sample_group:
+      text: aging cells
+      level: aging
+      quoted:
+      - 10
+      p: 1.0
+    passage:
+      text: 17-19
+      level: '17_19'
+      quoted:
+      - 16
+      p: 1.0
+  GSM1473779:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None
+      level: none
+      quoted:
+      - 1
+      p: 0.96
+    sample_group:
+      text: aging cells
+      level: aging
+      quoted:
+      - 10
+      p: 1.0
+    passage:
+      text: 17-19
+      level: '17_19'
+      quoted:
+      - 16
+      p: 1.0
+  GSM1473781:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None
+      level: none
+      quoted:
+      - 1
+      p: 0.97
+    sample_group:
+      text: aging cells
+      level: aging
+      quoted:
+      - 10
+      p: 1.0
+    passage:
+      text: 17-19
+      level: '17_19'
+      quoted:
+      - 16
+      p: 1.0
+  GSM1473784:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None (grown until growth arrest)
+      level: none_growth_arrest
+      quoted:
+      - 3
+      p: 1.0
+    sample_group:
+      text: replicatively senescent
+      level: replicatively_senescent
+      quoted:
+      - 11
+      p: 1.0
+    passage:
+      text: 28-30
+      level: '28_30'
+      quoted:
+      - 17
+      p: 1.0
+  GSM1473786:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None (grown until growth arrest)
+      level: none_growth_arrest
+      quoted:
+      - 3
+      p: 1.0
+    sample_group:
+      text: replicatively senescent
+      level: replicatively_senescent
+      quoted:
+      - 11
+      p: 1.0
+    passage:
+      text: 28-30
+      level: '28_30'
+      quoted:
+      - 17
+      p: 1.0
+  GSM1473788:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: None (grown until growth arrest)
+      level: none_growth_arrest
+      quoted:
+      - 3
+      p: 1.0
+    sample_group:
+      text: replicatively senescent
+      level: replicatively_senescent
+      quoted:
+      - 11
+      p: 1.0
+    passage:
+      text: 28-30
+      level: '28_30'
+      quoted:
+      - 17
+      p: 1.0
+  GSM1473790:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: Adriamycin
+      term: CHEBI:28748
+      level: adriamycin
+      quoted:
+      - 4
+      p: 1.0
+    sample_group:
+      text: induced into senescence
+      level: induced_senescence
+      quoted:
+      - 12
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473792:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: Adriamycin
+      term: CHEBI:28748
+      level: adriamycin
+      quoted:
+      - 4
+      p: 1.0
+    sample_group:
+      text: induced into senescence
+      level: induced_senescence
+      quoted:
+      - 12
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473794:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: Adriamycin
+      term: CHEBI:28748
+      level: adriamycin
+      quoted:
+      - 4
+      p: 1.0
+    sample_group:
+      text: induced into senescence
+      level: induced_senescence
+      quoted:
+      - 12
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473796:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: 5-aza
+      term: CHEBI:50131
+      level: 5_aza
+      quoted:
+      - 5
+      p: 1.0
+    sample_group:
+      text: induced into senescence
+      level: induced_senescence
+      quoted:
+      - 12
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473798:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: 5-aza
+      term: CHEBI:50131
+      level: 5_aza
+      quoted:
+      - 5
+      p: 1.0
+    sample_group:
+      text: induced into senescence
+      level: induced_senescence
+      quoted:
+      - 12
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473800:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: 5-aza
+      term: CHEBI:50131
+      level: 5_aza
+      quoted:
+      - 5
+      p: 1.0
+    sample_group:
+      text: induced into senescence
+      level: induced_senescence
+      quoted:
+      - 12
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473803:
+    biosample:
+      id: B19
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: H2O2
+      term: CHEBI:16240
+      level: h2o2
+      quoted:
+      - 6
+      p: 1.0
+    sample_group:
+      text: induced into senescence
+      level: induced_senescence
+      quoted:
+      - 12
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473805:
+    biosample:
+      id: B20
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: H2O2
+      term: CHEBI:16240
+      level: h2o2
+      quoted:
+      - 6
+      p: 1.0
+    sample_group:
+      text: induced into senescence
+      level: induced_senescence
+      quoted:
+      - 12
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473807:
+    biosample:
+      id: B21
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: H2O2
+      term: CHEBI:16240
+      level: h2o2
+      quoted:
+      - 6
+      p: 1.0
+    sample_group:
+      text: induced into senescence
+      level: induced_senescence
+      quoted:
+      - 12
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473810:
+    biosample:
+      id: B22
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: Serum-starved
+      level: serum_starved
+      quoted:
+      - 7
+      p: 1.0
+    sample_group:
+      text: induced into quiescence
+      level: induced_quiescence
+      quoted:
+      - 13
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473812:
+    biosample:
+      id: B23
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: Serum-starved
+      level: serum_starved
+      quoted:
+      - 7
+      p: 1.0
+    sample_group:
+      text: induced into quiescence
+      level: induced_quiescence
+      quoted:
+      - 13
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0
+  GSM1473815:
+    biosample:
+      id: B24
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: Serum-starved
+      level: serum_starved
+      quoted:
+      - 7
+      p: 1.0
+    sample_group:
+      text: induced into quiescence
+      level: induced_quiescence
+      quoted:
+      - 13
+      p: 1.0
+    passage:
+      text: '>200'
+      level: gt_200
+      quoted:
+      - 14
+      p: 1.0

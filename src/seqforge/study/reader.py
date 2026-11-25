@@ -20,8 +20,9 @@ The chain, for one study:
    reversed.
 3. **Code** finds every quote in its record or paper; Jev judges whether each found passage backs
    its claim, or speaks against it, and checks each listed tie of a control to a pull-down.
-4. **The ontology search** gives candidates for each value's search name, and Jev picks one or
-   none. Code maps the species from the record's taxonomy id and ``healthy`` to its PATO id.
+4. **liulab-data's ontology search** gives candidates for each value's search name, and Jev picks
+   one or none. Code maps the species from the record's taxonomy id and ``healthy`` to its PATO
+   id, each named through the same store, so every id in the file comes from a snapshot it names.
 5. **Code** writes the reading, drops a factor level no sample is at, and runs the format check.
 
 A unit ends **refused** when the writer's answer cannot be used after one retry or the reading
@@ -44,6 +45,7 @@ from typing import Any
 import yaml
 from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
+from ..passes import SetupRefused
 from ..passes.kinds import Kind, register
 from ..passes.review import ReviewForm
 from ..standard_set import BOUNDS, default_set_dir, pick_entries
@@ -66,13 +68,19 @@ from .lists import (
     parse_lists,
     snake,
 )
-from .ontology_search import STAND_IN, Candidate, OntologySearch, Snapshot, vocabulary
+from .ontology_search import (
+    Candidate,
+    OntologySearch,
+    StoreSearch,
+    snapshot_source,
+    vocabulary,
+)
 from .publish import model_name, write_files
 from .reading import FORMAT, check_reading
 
 KIND_NAME = "study-reading"
 #: Raise it when an instruction, a question, a guide or a rule of writing the reading changes.
-KIND_VERSION = "2026.11.1"
+KIND_VERSION = "2026.11.5"
 #: The roles, and the models that fill them unless a pass names others.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
 WRITER = Model("deepseek", "deepseek-flash", thinking=True, max_output_tokens=40000)
@@ -94,7 +102,8 @@ HEALTHY = "PATO:0000461"
 #: The words ``sex`` takes as its term, which the format defines itself.
 SEX_WORDS = ("female", "male", "hermaphrodite", "mixed")
 #: The search names code looks the species' adult stage up by, the first whole-text match taken.
-ADULT_STAGE = ("adult stage", "adult")
+#: The mouse's is named neither: its adult stages share the parent mature stage.
+ADULT_STAGE = ("adult stage", "adult", "mature stage")
 #: The labels whose gap Jev is told about, when a label has no listed value.
 _NA_EXAMPLE = {
     "target": "an assay with no pull-down, or a control library",
@@ -182,17 +191,17 @@ def _r(p: float | None) -> float | None:
 
 
 def _write_lists(u: Unit, user: str, system: str) -> tuple[Lists, int]:
-    """The writer's lists, and how many answers it took. A second broken answer refuses the unit."""
-    reply = u.chat(WRITER_ROLE, system=system, user=user, schema={"type": "object"})
+    """The writer's lists, and how many answers it took. A second broken answer refuses the unit.
+
+    No schema is sent: the gateway sends a DeepSeek schema as a strict function call, which needs
+    thinking off, and the writer thinks. :func:`.lists.parse_lists` takes the object out of the
+    reply's text.
+    """
+    reply = u.chat(WRITER_ROLE, system=system, user=user)
     lists, broken = parse_lists(reply.text)
     if lists is not None:
         return lists, 1
-    again = u.chat(
-        WRITER_ROLE,
-        system=system,
-        user=user + RETRY.format(reason=broken),
-        schema={"type": "object"},
-    )
+    again = u.chat(WRITER_ROLE, system=system, user=user + RETRY.format(reason=broken))
     lists, still = parse_lists(again.text)
     if lists is None:
         u.refuse("writer_answer", f"the writer's answer could not be used twice: {still}")
@@ -571,11 +580,12 @@ def _check_passages(
 
 @dataclass
 class _Terms:
-    """The ids code and Jev gave each value's text, and the snapshot the searched ones came from."""
+    """The ids code and Jev gave each value's text, and the snapshot each id came from."""
 
     by_text: dict[tuple[str, str, str | None], str | list[str]] = field(default_factory=dict)
-    snapshot: Snapshot | None = None
+    snapshots: dict[str, str] = field(default_factory=dict)
     searched: int = 0
+    not_held: set[str] = field(default_factory=set)
 
 
 def _terms(
@@ -589,24 +599,27 @@ def _terms(
     ``used`` maps ``(label, text, vocabulary)`` to the listed value, the vocabulary being the one
     of the species of a sample that has it, so one text is looked up once per vocabulary. A term
     is written only for a pick at least :data:`TERM_AT` sure; a treatment of several
-    compounds gets a list, only when every compound got one. ``healthy`` maps to its PATO id, and
-    ``adult`` to the species' adult stage when the search finds it by its whole name.
+    compounds gets a list, only when every compound got one. ``healthy`` maps to its PATO id when
+    the store holds it, and ``adult`` to the species' adult stage when the search finds it by its
+    whole name. A vocabulary the store does not hold finds nothing, and is noted.
     """
     terms = _Terms()
     questions: dict[str, Any] = {}
-    asked: dict[str, tuple[tuple[str, str, str | None], int, Snapshot | None]] = {}
+    asked: dict[str, tuple[tuple[str, str, str | None], int, str | None]] = {}
     candidates: dict[str, tuple[Candidate, ...]] = {}
     wanted: dict[tuple[str, str, str | None], int] = {}
     for (label, text, vocab), value in used.items():
         if label == "disease" and text.strip().lower() == "healthy":
-            terms.by_text[(label, text, vocab)] = HEALTHY
+            if (healthy := search.lookup(HEALTHY)) is not None:
+                terms.by_text[(label, text, vocab)] = healthy.id
+                terms.snapshots[healthy.id] = healthy.snapshot
             continue
         if vocab is None:
             continue
         if label == "development_stage" and text.strip().lower() == "adult":
             if (adult := _adult_stage(search, vocab)) is not None:
                 terms.by_text[(label, text, vocab)] = adult[0].id
-                terms.snapshot = terms.snapshot or adult[1]
+                terms.snapshots[adult[0].id] = adult[1]
             continue
         names = value.search if isinstance(value.search, list) else [value.search or text]
         names = [n for n in names if n and n.strip()][: 1 if label != "treatment" else 10]
@@ -614,6 +627,8 @@ def _terms(
         for n, name in enumerate(names):
             found = search.search(name.strip(), vocab)
             terms.searched += 1
+            if found.snapshot is None:
+                terms.not_held.add(vocab)
             if not found.candidates:
                 continue
             key = f"o{len(questions)}"
@@ -629,9 +644,9 @@ def _terms(
     picked: dict[tuple[str, str, str | None], dict[int, str]] = defaultdict(dict)
     for key, (which, n, snapshot) in asked.items():
         choice, p = _pick(answers.get(key))
-        if choice and choice.startswith("c") and p is not None and p >= TERM_AT:
+        if choice and choice.startswith("c") and p is not None and p >= TERM_AT and snapshot:
             picked[which][n] = candidates[key][int(choice[1:])].id
-            terms.snapshot = terms.snapshot or snapshot
+            terms.snapshots[picked[which][n]] = snapshot
     for which, ids in picked.items():
         if len(ids) == wanted[which]:
             ordered = [ids[n] for n in sorted(ids)]
@@ -641,11 +656,11 @@ def _terms(
     return terms
 
 
-def _adult_stage(search: OntologySearch, vocab: str) -> tuple[Candidate, Snapshot | None] | None:
+def _adult_stage(search: OntologySearch, vocab: str) -> tuple[Candidate, str] | None:
     for name in ADULT_STAGE:
         found = search.search(name, vocab)
         for candidate in found.candidates:
-            if candidate.matched.strip().lower() == name:
+            if candidate.matched.strip().lower() == name and found.snapshot:
                 return candidate, found.snapshot
     return None
 
@@ -655,10 +670,9 @@ def _adult_stage(search: OntologySearch, vocab: str) -> tuple[Candidate, Snapsho
 
 @dataclass(frozen=True)
 class _Context:
-    """What the kind's build fixes for every unit: the search and where code ids came from."""
+    """What the kind's build fixes for every unit: the one open ontology search."""
 
     search: OntologySearch
-    records_snapshot: dict[str, Any]
 
 
 def _read(u: Unit, context: _Context) -> dict[str, Any]:
@@ -755,7 +769,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
     for g in samples:
         taxid = src.taxonomy(by_id[g])[1]
         rows[g].update(_material(g, groups, donor_kind, p_donor))
-        rows[g]["species"] = _species(sources, by_id[g], passages)
+        rows[g]["species"] = _species(sources, by_id[g], passages, context.search, terms)
         for i, f in enumerate(kept):
             c, p = picks[g][f"lvl{i}"]
             if c and c.startswith("L") and f.names:
@@ -802,7 +816,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
         "read": _read_what(sources),
         "read_detail": _read_detail(sources),
     }
-    if snapshot := _snapshot(rows, shared, terms, context.records_snapshot):
+    if snapshot := _snapshot(rows, shared, terms, context.search.date):
         reading["ontology_snapshot"] = snapshot
     reading |= {
         "passages": passages.by_number,
@@ -822,6 +836,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
             "quotes_not_found": counts["not_found"],
             "ties": [{"control": c, "pulldown": d, "p": _r(t.p)} for (c, d), t in tied.items()],
             "searches": terms.searched,
+            "vocabularies_not_held": sorted(terms.not_held),
             "factors_listed": len(lists.factors),
             "factors_kept": len(covered),
             "samples_left_out": len(sources["left_out"]),
@@ -966,23 +981,36 @@ def _material(
 
 
 def _species(
-    sources: Mapping[str, Any], sample: Mapping[str, Any], passages: _Passages
+    sources: Mapping[str, Any],
+    sample: Mapping[str, Any],
+    passages: _Passages,
+    search: OntologySearch,
+    terms: _Terms,
 ) -> dict[str, Any]:
-    """A sample's species, from its own record: the organism as written, the taxonomy id as term."""
+    """A sample's species, from its own record: the organism as written, the taxonomy id as term.
+
+    The id is written only when NCBI Taxonomy's snapshot holds it, and that snapshot is noted; a
+    record that writes no organism takes the taxonomy's name for it.
+    """
     name, taxid = src.taxonomy(sample)
+    named = search.lookup(taxid) if taxid else None
+    if named is not None:
+        terms.snapshots[named.id] = named.snapshot
     if not name:
-        return {
-            "text": f"NCBI Taxonomy {taxid}",
-            "term": f"NCBITaxon:{taxid}",
-            "inferred": "the record's taxonomy id",
-            "p": None,
-        }
+        claim: dict[str, Any] = {"text": named.name if named else f"NCBI Taxonomy {taxid}"}
+        if named:
+            claim["term"] = named.id
+        claim["inferred"] = "the record's taxonomy id" + (
+            ", named by NCBI Taxonomy" if named else ""
+        )
+        claim["p"] = None
+        return claim
     where = src.find_quote(
         {"source": sample["id"], "field": "Sample_organism_ch1", "text": name}, sources
     )
-    claim: dict[str, Any] = {"text": name}
-    if taxid:
-        claim["term"] = f"NCBITaxon:{taxid}"
+    claim = {"text": name}
+    if named:
+        claim["term"] = named.id
     if where is not None:
         claim["quoted"] = [passages.number(where.passage)]
     else:
@@ -1055,19 +1083,26 @@ def _snapshot(
     rows: Mapping[str, Mapping[str, Any]],
     shared: Mapping[str, Any],
     terms: _Terms,
-    records: dict[str, Any],
+    opened: datetime.date,
 ) -> dict[str, Any] | None:
-    """The file's ``ontology_snapshot``: the search's, or where code's own ids came from.
+    """The file's ``ontology_snapshot``: the snapshots its ids came from, and their pinning day.
 
-    ``None`` when no claim writes an ontology id.
+    The date is the day the store was opened, which pinned its snapshots for the pass. ``None``
+    when no claim writes an ontology id.
     """
     claims = [c for row in rows.values() for label, c in row.items() if label != "sex"]
     claims += [c for label, c in shared.items() if label != "sex"]
-    if not any("term" in c for c in claims):
+    ids = [i for c in claims if "term" in c for i in _as_list(c["term"])]
+    if not ids:
         return None
-    if terms.snapshot is not None:
-        return {"source": terms.snapshot.source, "date": terms.snapshot.date.isoformat()}
-    return dict(records)
+    return {
+        "source": snapshot_source({terms.snapshots[i] for i in ids}),
+        "date": opened.isoformat(),
+    }
+
+
+def _as_list(term: str | list[str]) -> list[str]:
+    return term if isinstance(term, list) else [term]
 
 
 def _read_what(sources: Mapping[str, Any]) -> list[str]:
@@ -1119,18 +1154,16 @@ def reading_kind(
     papers: Any | None,
     *,
     set_dir: Path,
-    search: OntologySearch = STAND_IN,
-    records_snapshot: dict[str, Any],
+    search: OntologySearch,
 ) -> UnitKind:
-    """The liulab-llms kind over liulab-data's record store and its paper reader, or ``None``.
+    """The liulab-llms kind over liulab-data's record store, paper reader and ontology search.
 
-    Each study is read from ``<set_dir>/<key>/bounds.yaml``. ``records_snapshot`` is the file's
-    ``ontology_snapshot`` when the only ontology ids in it are code's own: the records' taxonomy
-    ids and ``healthy``.
+    The paper reader may be ``None``. One ontology search serves the whole pass. Each study is read
+    from ``<set_dir>/<key>/bounds.yaml``.
     """
     # A pass loads several units at once, and the stores' readers are not made for two threads.
     one_at_a_time = threading.Lock()
-    context = _Context(search, records_snapshot)
+    context = _Context(search)
 
     def load_unit(key: str) -> Inputs:
         if not SERIES.fullmatch(key):
@@ -1147,7 +1180,10 @@ def reading_kind(
             raise Held(f"the store does not hold {', '.join(missing)}")
         guides = guides_for(src.library_strategies(sources))
         text = src.records_text(sources) + "\n\n" + src.papers_text(sources, full=True)
-        tag = hashlib.sha256("\n".join([text, *guides]).encode()).hexdigest()[:16]
+        # A store update can change a reading's terms with no record changed, so the tag names
+        # every snapshot pinned: which ones a study will search is not known until it is read.
+        identity = "\n".join([text, *guides, *search.snapshots])
+        tag = hashlib.sha256(identity.encode()).hexdigest()[:16]
         return Inputs({"sources": sources, "guides": guides, "writer_text": text}, tag=tag)
 
     return UnitKind(
@@ -1166,34 +1202,21 @@ def reading_kind(
     )
 
 
-def records_snapshot(build: str | None, today: datetime.date) -> dict[str, Any]:
-    """The ``ontology_snapshot`` of a reading whose only ids are code's own, for store ``build``.
-
-    No ontology was searched: a species id is the GEO record's own taxonomy id, read from
-    liulab-data's store, so the source names the store's build, and the date is the build's.
-    """
-    date = today
-    if build and len(build) >= 8 and build[:8].isdigit():
-        date = datetime.date(int(build[:4]), int(build[4:6]), int(build[6:8]))
-    where = f"liulab-data store build {build}" if build else "liulab-data's store"
-    return {
-        "source": f"no ontology search: species ids are the GEO records' taxonomy ids ({where}), "
-        f"and healthy is {HEALTHY} as the reading format writes it",
-        "date": date.isoformat(),
-    }
-
-
 def _build(store: Any) -> UnitKind:
-    """The kind over the record store the pass opened, liulab-data's paper store, and the stand-in."""
-    build = getattr(store, "settings", {}).get("build")
-    return reading_kind(
-        store,
-        paper_reader(),
-        set_dir=default_set_dir(),
-        records_snapshot=records_snapshot(
-            None if build is None else str(build), datetime.date.today()
-        ),
-    )
+    """The kind over the pass's record store, liulab-data's paper store and its ontology store.
+
+    The ontology store is opened once for the pass. Refuses the setup when it cannot be opened,
+    rather than read with no search.
+    """
+    from labdata.exceptions import NotAStoreError, OntologyError, StoreNotConfiguredError
+
+    try:
+        search = StoreSearch()
+    except (StoreNotConfiguredError, NotAStoreError, OntologyError) as exc:
+        raise SetupRefused(
+            f"kind {KIND_NAME!r} searches liulab-data's ontology store: {exc}"
+        ) from exc
+    return reading_kind(store, paper_reader(), set_dir=default_set_dir(), search=search)
 
 
 def reading_file(outcome: Outcome) -> dict[str, Any]:

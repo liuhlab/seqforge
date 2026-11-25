@@ -144,7 +144,9 @@ only such a file gives is `unknown`.
 1. A writing model, DeepSeek Flash with thinking on, reads the records and the papers. It lists the
    **factors**, which are the labels that the study varied on purpose, with their levels. It also
    lists every value that each label takes, each with a quote. It does not say which sample has
-   which value. An answer that cannot be used is asked for once more.
+   which value. An answer that cannot be used is asked for once more. The request sends no JSON
+   schema, because the gateway refuses a DeepSeek schema with thinking on. Code takes the JSON
+   object out of the reply's text instead.
 2. Jev, a model that answers closed questions with a probability, answers every closed question. It
    says whether each factor was varied on purpose, which level is the baseline, and whether the
    levels are in order. Then, for each sample, it picks the sample's level on each factor and its
@@ -164,11 +166,21 @@ factor. It also asks the writer to tie each control library to its pull-down lib
 that tie them, such as a replicate number in the sample titles. Jev checks each tie. Libraries that
 are tied share one `biosample` id.
 
-**Ontology ids.** The species id comes from the record's own taxonomy id, and `healthy` is
-`PATO:0000461`. Every other id comes from an ontology search, and Jev picks one of its candidates
-or none. A term is written only when Jev is sure of its pick. The ontologies are liulab-data's, and
-until its search is plugged in, the reader searches nothing. So a reading's only ids are the
-species ids and `healthy`, and its `ontology_snapshot` says that no ontology was searched.
+**Ontology ids.** The ontologies are liulab-data's **ontology store**, found through
+`LABDATA_ONTOLOGIES` or the per-user pointer that `labdata ontology init` writes. The pass opens
+the store once when it starts, and the store keeps each vocabulary's snapshot fixed until the pass
+ends. If the store cannot be opened, `pass start` exits 2 and names `LABDATA_ONTOLOGIES`; it never
+reads with no search.
+
+The species id is the record's own taxonomy id, and `healthy` is `PATO:0000461`. The store names
+both, and an id it does not hold is not written. A `development_stage` of `adult` is the species'
+adult stage in its stage list, found by its whole name. For the mouse, that is MmusDv's
+`mature stage`. Every other id comes from a search of the store:
+up to 10 candidates, whole-text matches first, and Jev picks one or none. A term is written only
+when Jev is sure of its pick. A vocabulary that the store does not hold finds nothing, so its
+labels get no id. The reading's `ontology_snapshot` names each snapshot that its ids came from,
+such as `liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, uberon-2026-11-05`. Its date
+is the UTC day the pass opened the store, because the store names its snapshots by UTC day.
 
 **What it writes.** `seqforge study write-reading --out <folder>` writes each study's answer as
 `<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file.
@@ -223,5 +235,5 @@ to a person.
 
 ## Files that exist today
 
-[Files from the hand work](hand-work-files.md) lists every bounds file, worked reading and
-verdict made so far, with where each is, its format and who made it.
+[Files from the hand work](hand-work-files.md) lists every bounds file, reading and verdict made
+so far, with where each is, its format and who made it.

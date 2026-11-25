@@ -1,0 +1,598 @@
+format: 2
+study: GSE142633
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+read_detail: The records of GSE142633 and their 13 sequenced samples; no paper.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25,
+    pato-2026-10-01, uberon-2026-11-05'
+  date: 2026-11-25
+passages:
+  1:
+    record: GSE142633
+    field: Series_overall_design
+    quote: 6- and 11-month-old wild type (WT) and 5XFAD mice
+  2:
+    record:
+    - GSM4233218
+    - GSM4233219
+    - GSM4233220
+    - GSM4233221
+    - GSM4233222
+    - GSM4233223
+    - GSM4233224
+    field: Sample_characteristics_ch1
+    quote: 'age: 6 months'
+  3:
+    record:
+    - GSM4233225
+    - GSM4233226
+    - GSM4233227
+    - GSM4233228
+    - GSM4233229
+    - GSM4233230
+    field: Sample_characteristics_ch1
+    quote: 'age: 11 months'
+  4:
+    record: GSE142633
+    field: Series_overall_design
+    quote: wild type (WT) and 5XFAD mice
+  5:
+    record: GSE142633
+    field: Series_title
+    quote: wild type and 5XFAD transcriptomes
+  6:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Frontal cortex of brain'
+  8:
+    record: GSE142633
+    field: Series_overall_design
+    quote: wild type (WT)
+  9:
+    record:
+    - GSM4233218
+    - GSM4233219
+    - GSM4233220
+    - GSM4233221
+    - GSM4233225
+    - GSM4233226
+    - GSM4233227
+    field: Sample_characteristics_ch1
+    quote: 'strain: B6SJLF1/J'
+  10:
+    record: GSE142633
+    field: Series_title
+    quote: Alzheimer's disease study
+  11:
+    record:
+    - GSM4233222
+    - GSM4233223
+    - GSM4233224
+    - GSM4233228
+    - GSM4233229
+    - GSM4233230
+    field: Sample_characteristics_ch1
+    quote: 'strain: 5XFAD'
+  12:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  age:
+    levels:
+    - 6 months
+    - 11 months
+    baseline: 6 months
+    ordered: true
+    quoted:
+    - 1
+    p: 0.98
+  genotype:
+    levels:
+    - wild type
+    - 5XFAD
+    baseline: wild type
+    ordered: true
+    quoted:
+    - 4
+    p: 0.99
+shared:
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 12
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 6
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down target.
+    p: 1.0
+  control_type:
+    na: No background-control library is present.
+    p: 1.0
+  sex:
+    unknown: No sex is stated in sample records.
+    p: 0.98
+  development_stage:
+    text: adult
+    term: MmusDv:0000110
+    quoted:
+    - 2
+    p: 0.6
+  tissue:
+    text: Frontal cortex of brain
+    term: UBERON:0001870
+    quoted:
+    - 7
+    p: 1.0
+  cell_type:
+    na: Bulk tissue; no cell type is stated.
+    p: 0.97
+  cell_line:
+    na: Tissue from mice, not a cell line.
+    p: 1.0
+  treatment:
+    na: No treatment is described for these samples.
+    p: 0.86
+  dose:
+    na: No treatment is described.
+    p: 0.95
+  duration:
+    na: No treatment is described.
+    p: 0.91
+samples:
+  GSM4233218:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D1
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: wild type (WT)
+      level: wild type
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 8
+      p: 1.0
+    strain:
+      text: B6SJLF1/J
+      quoted:
+      - 9
+      p: 1.0
+  GSM4233219:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D2
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: wild type (WT)
+      level: wild type
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 8
+      p: 1.0
+    strain:
+      text: B6SJLF1/J
+      quoted:
+      - 9
+      p: 1.0
+  GSM4233220:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D3
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: wild type (WT)
+      level: wild type
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 8
+      p: 1.0
+    strain:
+      text: B6SJLF1/J
+      quoted:
+      - 9
+      p: 1.0
+  GSM4233221:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D4
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: wild type (WT)
+      level: wild type
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 8
+      p: 1.0
+    strain:
+      text: B6SJLF1/J
+      quoted:
+      - 9
+      p: 1.0
+  GSM4233222:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D5
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 0.98
+    strain:
+      text: 5XFAD
+      quoted:
+      - 11
+      p: 0.98
+  GSM4233223:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D6
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 0.99
+    strain:
+      text: 5XFAD
+      quoted:
+      - 11
+      p: 0.97
+  GSM4233224:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D7
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 6 months
+      value: 6
+      unit: month
+      level: 6 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 0.99
+    strain:
+      text: 5XFAD
+      quoted:
+      - 11
+      p: 0.98
+  GSM4233225:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D8
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: wild type (WT)
+      level: wild type
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 8
+      p: 1.0
+    strain:
+      text: B6SJLF1/J
+      quoted:
+      - 9
+      p: 1.0
+  GSM4233226:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D9
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: wild type (WT)
+      level: wild type
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 8
+      p: 1.0
+    strain:
+      text: B6SJLF1/J
+      quoted:
+      - 9
+      p: 1.0
+  GSM4233227:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D10
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: wild type (WT)
+      level: wild type
+      quoted:
+      - 4
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 8
+      p: 1.0
+    strain:
+      text: B6SJLF1/J
+      quoted:
+      - 9
+      p: 1.0
+  GSM4233228:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D11
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 0.99
+    strain:
+      text: 5XFAD
+      quoted:
+      - 11
+      p: 0.98
+  GSM4233229:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D12
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 0.99
+    strain:
+      text: 5XFAD
+      quoted:
+      - 11
+      p: 0.99
+  GSM4233230:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D13
+      inferred: Jev judged each library to come from its own individual
+      p: 0.89
+    age:
+      text: 11 months
+      value: 11
+      unit: month
+      level: 11 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 5
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 10
+      p: 0.99
+    strain:
+      text: 5XFAD
+      quoted:
+      - 11
+      p: 0.98

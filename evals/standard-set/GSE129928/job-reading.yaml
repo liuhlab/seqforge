@@ -1,0 +1,605 @@
+format: 2
+study: GSE129928
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE129928 and their 12 sequenced samples; the full text of pmid:31815663.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01'
+  date: 2026-11-25
+passages:
+  1:
+    record: GSE129928
+    field: Series_overall_design
+    quote: H3K9me2 ChIP-seq in early-, mid-, and late-gen wild-type and wdr-5 mutant populations and in
+      early- and mid-gen wild-type and jhdm-1 mutant populations.
+  2:
+    record:
+    - GSM3728255
+    - GSM3728256
+    - GSM3728257
+    - GSM3728262
+    - GSM3728263
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  3:
+    record:
+    - GSM3728258
+    - GSM3728259
+    - GSM3728260
+    field: Sample_characteristics_ch1
+    quote: 'strain: wdr-5 (ok1417)'
+  4:
+    record:
+    - GSM3728264
+    - GSM3728265
+    field: Sample_characteristics_ch1
+    quote: 'strain: jhdm-1 (ok2364)'
+  5:
+    paper: pmid:31815663
+    section: Results > Transgenerational longevity in wdr-5 mutants
+    quote: For the first six generations (which are hereafter referred to as early-gen populations)
+  6:
+    paper: pmid:31815663
+    section: Results > Transgenerational longevity in wdr-5 mutants
+    quote: In generations F8 to F14 (hereafter referred to as mid-gen populations)
+  7:
+    paper: pmid:31815663
+    section: Results > Transgenerational longevity in wdr-5 mutants
+    quote: By generation F20 and in subsequent generations (hereafter referred to as late-gen populations)
+  8:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  9:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: 10ul of H3K9me2 antibody (ab1220, Abcam)
+  10:
+    paper: pmid:31815663
+    section: Materials and methods
+    quote: Genetic reagent (Caenorhabditis elegans, hermaphrodite)
+  11:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Stage: mixed'
+  12:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: whole animal'
+  13:
+    record: GSM3728255
+    field: Sample_title
+    quote: transgen_expt_1_N2_earlygen
+  14:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: 1/20th of sample volume was taken for input controls.
+  15:
+    record:
+    - GSM3728261
+    - GSM3728266
+    field: Sample_characteristics_ch1
+    quote: 'strain: mixed'
+  16:
+    record: GSM3728262
+    field: Sample_title
+    quote: transgen_expt_2_N2_earlygen
+  17:
+    record:
+    - GSM3728255
+    - GSM3728256
+    - GSM3728257
+    - GSM3728258
+    - GSM3728259
+    - GSM3728260
+    - GSM3728261
+    field: Sample_title
+    quote: transgen_expt_1
+  18:
+    record:
+    - GSM3728262
+    - GSM3728263
+    - GSM3728264
+    - GSM3728265
+    - GSM3728266
+    field: Sample_title
+    quote: transgen_expt_2
+  19:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  genotype:
+    levels:
+    - N2
+    - wdr-5
+    - jhdm-1
+    baseline: N2
+    ordered: false
+    quoted:
+    - 1
+    p: 0.99
+  generation:
+    levels:
+    - early-gen
+    - mid-gen
+    - late-gen
+    baseline: early-gen
+    ordered: true
+    inferred: Compared early, mid, and late generations.
+    p: 0.97
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.98
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 19
+    p: null
+  assay:
+    text: ChIP-Seq
+    term: EFO:0002692
+    quoted:
+    - 8
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 10
+    p: 0.78
+  age:
+    unknown: mixed-stage populations; no age specified
+    p: 0.63
+  development_stage:
+    text: mixed
+    quoted:
+    - 11
+    p: 1.0
+  tissue:
+    text: whole animal
+    quoted:
+    - 12
+    p: 1.0
+  cell_type:
+    na: whole-animal mixed-stage samples; no cell type specified
+    p: 0.99
+  cell_line:
+    na: whole-animal samples, not cultured cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: No disease or disease model mentioned.
+    p: 0.96
+  treatment:
+    na: no treatment applied to sequenced samples
+    p: 0.69
+  dose:
+    na: no treatment dose
+    p: 0.82
+  duration:
+    na: no treatment duration
+    p: 0.61
+samples:
+  GSM3728255:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 2
+      p: 1.0
+    generation:
+      text: early-gen populations
+      level: early-gen
+      quoted:
+      - 5
+      p: 0.99
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.98
+    control_type:
+      na: a library that is not a background control
+      p: 0.86
+    strain:
+      text: N2
+      quoted:
+      - 2
+      p: 0.99
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 13
+      p: 1.0
+  GSM3728256:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 2
+      p: 1.0
+    generation:
+      text: mid-gen populations
+      level: mid-gen
+      quoted:
+      - 6
+      p: 0.99
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.99
+    control_type:
+      na: a library that is not a background control
+      p: 0.8
+    strain:
+      text: N2
+      quoted:
+      - 2
+      p: 0.99
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 13
+      p: 0.97
+  GSM3728257:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 2
+      p: 1.0
+    generation:
+      text: late-gen populations
+      level: late-gen
+      quoted:
+      - 7
+      p: 0.99
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.97
+    control_type:
+      na: a library that is not a background control
+      p: 0.77
+    strain:
+      text: N2
+      quoted:
+      - 2
+      p: 0.99
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 13
+      p: 0.86
+  GSM3728258:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: wdr-5 (ok1417)'
+      level: wdr-5
+      quoted:
+      - 3
+      p: 1.0
+    generation:
+      text: early-gen populations
+      level: early-gen
+      quoted:
+      - 5
+      p: 0.94
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.96
+    control_type:
+      na: a library that is not a background control
+      p: 0.79
+    strain:
+      text: wdr-5 (ok1417)
+      quoted:
+      - 3
+      p: 0.97
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 13
+      p: 0.94
+  GSM3728259:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: wdr-5 (ok1417)'
+      level: wdr-5
+      quoted:
+      - 3
+      p: 1.0
+    generation:
+      text: mid-gen populations
+      level: mid-gen
+      quoted:
+      - 6
+      p: 0.99
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.96
+    control_type:
+      na: a library that is not a background control
+      p: 0.84
+    strain:
+      text: wdr-5 (ok1417)
+      quoted:
+      - 3
+      p: 0.99
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 13
+      p: 0.99
+  GSM3728260:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: wdr-5 (ok1417)'
+      level: wdr-5
+      quoted:
+      - 3
+      p: 1.0
+    generation:
+      text: late-gen populations
+      level: late-gen
+      quoted:
+      - 7
+      p: 0.97
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.97
+    control_type:
+      na: a library that is not a background control
+      p: 0.82
+    strain:
+      text: wdr-5 (ok1417)
+      quoted:
+      - 3
+      p: 0.99
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 13
+      p: 0.96
+  GSM3728261:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      unknown: what was read does not say its genotype
+      p: 0.74
+    generation:
+      unknown: what was read does not say its generation
+      p: 0.73
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.97
+    control_type:
+      text: input
+      quoted:
+      - 14
+      p: 0.98
+    strain:
+      text: mixed
+      quoted:
+      - 15
+      p: 0.94
+    experiment:
+      text: transgen_expt_1
+      quoted:
+      - 13
+      p: 0.94
+  GSM3728262:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 2
+      p: 0.99
+    generation:
+      text: early-gen populations
+      level: early-gen
+      quoted:
+      - 5
+      p: 0.98
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.95
+    control_type:
+      na: a library that is not a background control
+      p: 0.82
+    strain:
+      text: N2
+      quoted:
+      - 2
+      p: 0.99
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 16
+      p: 0.95
+  GSM3728263:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 2
+      p: 0.99
+    generation:
+      text: mid-gen populations
+      level: mid-gen
+      quoted:
+      - 6
+      p: 0.95
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.96
+    control_type:
+      na: a library that is not a background control
+      p: 0.74
+    strain:
+      text: N2
+      quoted:
+      - 2
+      p: 0.98
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 16
+      p: 0.91
+  GSM3728264:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: jhdm-1 (ok2364)'
+      level: jhdm-1
+      quoted:
+      - 4
+      p: 0.97
+    generation:
+      text: early-gen populations
+      level: early-gen
+      quoted:
+      - 5
+      p: 0.81
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.94
+    control_type:
+      na: a library that is not a background control
+      p: 0.76
+    strain:
+      text: jhdm-1 (ok2364)
+      quoted:
+      - 4
+      p: 0.96
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 16
+      p: 0.87
+  GSM3728265:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: jhdm-1 (ok2364)'
+      level: jhdm-1
+      quoted:
+      - 4
+      p: 0.99
+    generation:
+      text: mid-gen populations
+      level: mid-gen
+      quoted:
+      - 6
+      p: 0.98
+    target:
+      text: H3K9me2
+      quoted:
+      - 9
+      p: 0.97
+    control_type:
+      na: a library that is not a background control
+      p: 0.83
+    strain:
+      text: jhdm-1 (ok2364)
+      quoted:
+      - 4
+      p: 0.98
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 16
+      p: 0.89
+  GSM3728266:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: 'strain: N2'
+      level: N2
+      quoted:
+      - 2
+      p: 0.59
+    generation:
+      text: early-gen populations
+      level: early-gen
+      quoted:
+      - 5
+      p: 0.78
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.97
+    control_type:
+      text: input
+      quoted:
+      - 14
+      p: 0.99
+    strain:
+      text: mixed
+      quoted:
+      - 15
+      p: 0.78
+    experiment:
+      text: transgen_expt_2
+      quoted:
+      - 16
+      p: 0.94

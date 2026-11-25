@@ -1,0 +1,946 @@
+format: 2
+study: GSE140511
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE140399, GSE140510 and their 20 sequenced samples; the full text of pmid:31932797.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25,
+    pato-2026-10-01, uberon-2026-11-05'
+  date: 2026-11-25
+passages:
+  1:
+    paper: pmid:31932797
+    section: Online Methods > Mice
+    quote: Animals used for snRNA-seq were sacrificed at 7 or 15 months of age.
+  2:
+    record:
+    - GSM4173504
+    - GSM4173505
+    - GSM4173506
+    - GSM4173507
+    - GSM4173508
+    - GSM4173509
+    - GSM4173510
+    - GSM4173511
+    - GSM4173512
+    - GSM4173513
+    - GSM4173514
+    - GSM4173515
+    field: Sample_characteristics_ch1
+    quote: 'age: 7 months'
+  3:
+    record:
+    - GSM4160643
+    - GSM4160644
+    - GSM4160645
+    - GSM4160646
+    - GSM4160647
+    - GSM4160648
+    - GSM4160649
+    - GSM4160650
+    field: Sample_characteristics_ch1
+    quote: 'age: 15 months'
+  4:
+    paper: pmid:31932797
+    section: Online Methods > Mice
+    quote: 3 male mice per genotype (WT, Trem2−/−, 5XFAD and Trem2−/− 5XFAD) were used.
+  5:
+    record:
+    - GSM4160643
+    - GSM4160647
+    - GSM4173504
+    - GSM4173505
+    - GSM4173506
+    field: Sample_characteristics_ch1
+    quote: 'mouse genotype: wt'
+  6:
+    record:
+    - GSM4160644
+    - GSM4160646
+    - GSM4160648
+    - GSM4160650
+    - GSM4173507
+    - GSM4173508
+    - GSM4173509
+    - GSM4173513
+    - GSM4173514
+    - GSM4173515
+    field: Sample_characteristics_ch1
+    quote: 'mouse genotype: Trem2-/-'
+  7:
+    record:
+    - GSM4160645
+    - GSM4160649
+    - GSM4173510
+    - GSM4173511
+    - GSM4173512
+    field: Sample_characteristics_ch1
+    quote: 'mouse genotype: 5XFAD'
+  8:
+    record:
+    - GSM4160646
+    - GSM4160650
+    - GSM4173513
+    - GSM4173514
+    - GSM4173515
+    field: Sample_characteristics_ch1
+    quote: 'mouse genotype: Trem2-/- 5XFAD'
+  9:
+    paper: pmid:31932797
+    section: Results > snRNA-seq reveals a Trem2-dependent microgliosis at early stages of Aβ accumulation
+    quote: nuclei pooled from the cortices or the hippocampi of 3 mice per genotype
+  10:
+    record: GSM4160643
+    field: Sample_title
+    quote: WT_Cor
+  11:
+    record: GSM4160647
+    field: Sample_title
+    quote: WT_Hip
+  12:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  13:
+    paper: pmid:31932797
+    section: Online Methods > Mice
+    quote: 3 male mice per genotype
+  14:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: nuclei of brain'
+  15:
+    record:
+    - GSM4160643
+    - GSM4160647
+    - GSM4173504
+    - GSM4173505
+    - GSM4173506
+    field: Sample_source_name_ch1
+    quote: Isolated single nuclei from brain of wild type mice
+  16:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: B6'
+  17:
+    record:
+    - GSM4160643
+    - GSM4160644
+    - GSM4160645
+    - GSM4160646
+    - GSM4160647
+    - GSM4160648
+    - GSM4160649
+    - GSM4160650
+    field: Sample_extract_protocol_ch1
+    quote: droplet-based 3’ end massively parallel single-cell RNA sequencing
+  18:
+    record: GSE140399
+    field: Series_summary
+    quote: We surveyed gene expression changes associated with AD pathology and TREM2 in 5XFAD mice and
+      human AD by snRNA-seq.
+  19:
+    record:
+    - GSM4173504
+    - GSM4173505
+    - GSM4173506
+    - GSM4173507
+    - GSM4173508
+    - GSM4173509
+    - GSM4173510
+    - GSM4173511
+    - GSM4173512
+    - GSM4173513
+    - GSM4173514
+    - GSM4173515
+    field: Sample_extract_protocol_ch1
+    quote: droplet-based 5’ end massively parallel single-cell RNA sequencing
+  20:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  age:
+    levels:
+    - 7 months
+    - 15 months
+    baseline: 7 months
+    ordered: true
+    quoted:
+    - 1
+    p: 0.89
+  genotype:
+    levels:
+    - wt
+    - Trem2-/-
+    - 5XFAD
+    - Trem2-/- 5XFAD
+    baseline: wt
+    ordered: false
+    quoted:
+    - 4
+    p: 0.98
+  brain_region:
+    levels:
+    - cortex
+    - hippocampus
+    baseline: null
+    ordered: false
+    quoted:
+    - 9
+    p: 0.89
+shared:
+  donor:
+    unknown: nothing read says which individual a library came from
+    p: 0.47
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 20
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 12
+    p: 1.0
+  target:
+    na: snRNA-seq; no pull-down
+    p: 1.0
+  control_type:
+    na: no background-control libraries
+    p: 1.0
+  sex:
+    text: male
+    term: male
+    quoted:
+    - 13
+    p: 0.73
+  development_stage:
+    text: adult
+    term: MmusDv:0000110
+    quoted:
+    - 1
+    p: 1.0
+  tissue:
+    text: nuclei of brain
+    term: UBERON:0000955
+    quoted:
+    - 14
+    p: 1.0
+  cell_type:
+    unknown: mixed brain nuclei; cell type not specified
+    p: 0.92
+  cell_line:
+    na: tissue-derived nuclei; no cell line
+    p: 1.0
+  strain:
+    text: B6
+    quoted:
+    - 16
+    p: 1.0
+  treatment:
+    na: no treatment applied; genotypes only
+    p: 0.89
+  dose:
+    na: no treatment administered
+    p: 0.97
+  duration:
+    na: no treatment administered
+    p: 0.97
+samples:
+  GSM4160643:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 15 months
+      value: 15
+      unit: month
+      level: 15 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 5
+      p: 1.0
+    brain_region:
+      text: Cor
+      level: cortex
+      quoted:
+      - 10
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 15
+      p: 0.98
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 17
+      p: 1.0
+  GSM4160644:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 15 months
+      value: 15
+      unit: month
+      level: 15 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: Trem2-/-
+      level: Trem2-/-
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    brain_region:
+      text: Cor
+      level: cortex
+      quoted:
+      - 10
+      p: 0.99
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.5
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 17
+      p: 0.99
+  GSM4160645:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 15 months
+      value: 15
+      unit: month
+      level: 15 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 7
+      p: 0.96
+    brain_region:
+      text: Cor
+      level: cortex
+      quoted:
+      - 10
+      p: 1.0
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.98
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 17
+      p: 0.99
+  GSM4160646:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 15 months
+      value: 15
+      unit: month
+      level: 15 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2-/- 5XFAD
+      quoted:
+      - 8
+      p: 1.0
+    brain_region:
+      text: Cor
+      level: cortex
+      quoted:
+      - 10
+      p: 0.99
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 1.0
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 17
+      p: 1.0
+  GSM4160647:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 15 months
+      value: 15
+      unit: month
+      level: 15 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 5
+      p: 1.0
+    brain_region:
+      text: Hip
+      level: hippocampus
+      quoted:
+      - 11
+      p: 1.0
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 15
+      p: 0.99
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 17
+      p: 1.0
+  GSM4160648:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 15 months
+      value: 15
+      unit: month
+      level: 15 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: Trem2-/-
+      level: Trem2-/-
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    brain_region:
+      text: Hip
+      level: hippocampus
+      quoted:
+      - 11
+      p: 0.94
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.51
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 17
+      p: 1.0
+  GSM4160649:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 15 months
+      value: 15
+      unit: month
+      level: 15 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 7
+      p: 0.97
+    brain_region:
+      text: Hip
+      level: hippocampus
+      quoted:
+      - 11
+      p: 0.99
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.94
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 17
+      p: 1.0
+  GSM4160650:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 15 months
+      value: 15
+      unit: month
+      level: 15 months
+      quoted:
+      - 3
+      p: 1.0
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2-/- 5XFAD
+      quoted:
+      - 8
+      p: 1.0
+    brain_region:
+      text: Hip
+      level: hippocampus
+      quoted:
+      - 11
+      p: 0.95
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 1.0
+    library_chemistry:
+      text: 3’ end
+      quoted:
+      - 17
+      p: 1.0
+  GSM4173504:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 0.99
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 5
+      p: 1.0
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.84
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 15
+      p: 0.99
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.94
+  GSM4173505:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 0.99
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 5
+      p: 1.0
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.87
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 15
+      p: 0.99
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.97
+  GSM4173506:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 0.99
+    genotype:
+      text: wt
+      level: wt
+      quoted:
+      - 5
+      p: 1.0
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.86
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 15
+      p: 0.99
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.96
+  GSM4173507:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: Trem2-/-
+      level: Trem2-/-
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.92
+    disease:
+      text: healthy
+      term: PATO:0000461
+      quoted:
+      - 15
+      p: 0.43
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.96
+  GSM4173508:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 0.99
+    genotype:
+      text: Trem2-/-
+      level: Trem2-/-
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.94
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.4
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.93
+  GSM4173509:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: Trem2-/-
+      level: Trem2-/-
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 6
+      p: 1.0
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.94
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.38
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.97
+  GSM4173510:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 0.99
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 7
+      p: 0.98
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.89
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.94
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.95
+  GSM4173511:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 7
+      p: 0.98
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.91
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.94
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.96
+  GSM4173512:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 0.99
+    genotype:
+      text: 5XFAD
+      level: 5XFAD
+      quoted:
+      - 7
+      p: 0.98
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.89
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.93
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.97
+  GSM4173513:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2-/- 5XFAD
+      quoted:
+      - 8
+      p: 1.0
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.96
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.99
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.95
+  GSM4173514:
+    biosample:
+      id: B19
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2-/- 5XFAD
+      quoted:
+      - 8
+      p: 1.0
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.96
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.98
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.97
+  GSM4173515:
+    biosample:
+      id: B20
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 7 months
+      value: 7
+      unit: month
+      level: 7 months
+      quoted:
+      - 2
+      p: 1.0
+    genotype:
+      text: Trem2-/- 5XFAD
+      level: Trem2-/- 5XFAD
+      quoted:
+      - 8
+      p: 1.0
+    brain_region:
+      unknown: what was read does not say its brain region
+      p: 0.95
+    disease:
+      text: Alzheimer's disease
+      term: MONDO:0004975
+      quoted:
+      - 18
+      p: 0.98
+    library_chemistry:
+      text: 5’ end
+      quoted:
+      - 19
+      p: 0.97

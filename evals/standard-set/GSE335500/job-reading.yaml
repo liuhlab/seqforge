@@ -1,0 +1,577 @@
+format: 2
+study: GSE335500
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE335500 and their 12 sequenced samples; the full text of pmid:42570239.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25'
+  date: 2026-11-25
+passages:
+  1:
+    record: GSE335500
+    field: Series_overall_design
+    quote: 6 APOE3, 6 APOE4 astrocyte recipients
+  2:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814713
+    - GSM9814715
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'cell type: APOE3'
+  3:
+    record:
+    - GSM9814710
+    - GSM9814711
+    - GSM9814712
+    - GSM9814714
+    - GSM9814716
+    - GSM9814717
+    field: Sample_characteristics_ch1
+    quote: 'cell type: APOE4'
+  4:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  5:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Sex: male'
+  6:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814710
+    - GSM9814711
+    - GSM9814712
+    - GSM9814713
+    - GSM9814715
+    - GSM9814716
+    - GSM9814717
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'age: 7.5 months'
+  7:
+    paper: pmid:42570239
+    section: Results > Transplanted hiPSC-derived astrocyte progenitors integrate efficiently within the
+      mouse host brain and differentiate to human astrocytes
+    quote: Chimeric mice were aged for five to six months
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: cortex'
+  9:
+    record:
+    - GSM9814708
+    - GSM9814709
+    - GSM9814715
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW2E33-3D11'
+  10:
+    paper: pmid:42570239
+    section: abstract
+    quote: Alzheimer's disease (AD)
+  11:
+    paper: pmid:42570239
+    section: Results > APOE3 and APOE4 hAstrocytes distinctly shape microglial states and responses to
+      Aβ plaques
+    quote: P1-P4 mice (AppNL-G-FRag2−/−) were injected with either APOE3 or APOE4 hAstrocyte progenitor
+      cells.
+  12:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: AD'
+  13:
+    record: GSE335500
+    field: Series_overall_design
+    quote: transplantation of human iPSC-derived astrocyte progenitors
+  14:
+    paper: pmid:42570239
+    section: STAR★Methods > Method details > Transplantation of hiPSC-derived astrocyte progenitors
+    quote: approximately 200,000 cells were injected using Hamilton syringes
+  15:
+    record: each_sample
+    field: Sample_description
+    quote: 6 months post-transplant
+  16:
+    record:
+    - GSM9814710
+    - GSM9814711
+    - GSM9814716
+    - GSM9814717
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW2E44-4B12'
+  17:
+    record:
+    - GSM9814712
+    - GSM9814714
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW3E44-F-2'
+  18:
+    record:
+    - GSM9814713
+    - GSM9814718
+    - GSM9814719
+    field: Sample_characteristics_ch1
+    quote: 'treatment: TCW3E33-H-2'
+  19:
+    record: GSM9814714
+    field: Sample_characteristics_ch1
+    quote: 'age: 6 months'
+  20:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  donor_apoe_variant:
+    levels:
+    - APOE3
+    - APOE4
+    baseline: null
+    ordered: false
+    quoted:
+    - 1
+    p: 0.98
+shared:
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 20
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 4
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down
+    p: 1.0
+  control_type:
+    na: not a background-control library
+    p: 1.0
+  sex:
+    text: male
+    term: male
+    quoted:
+    - 5
+    p: 1.0
+  development_stage:
+    text: adult
+    term: MmusDv:0000110
+    inferred: mice aged five to six months before harvest
+    see:
+    - 7
+    p: 0.99
+  tissue:
+    text: cortex
+    quoted:
+    - 8
+    p: 1.0
+  cell_type:
+    na: bulk cortical tissue; APOE3/4 are donor variants
+    p: 0.95
+  disease:
+    text: Alzheimer's disease
+    term: MONDO:0004975
+    quoted:
+    - 10
+    p: 1.0
+  genotype:
+    text: AppNL-G-FRag2−/−
+    quoted:
+    - 11
+    against:
+    - 12
+    p: 0.7
+  strain:
+    unknown: background strain not stated; only model/genotype
+    p: 0.99
+  treatment:
+    text: transplantation of human iPSC-derived astrocyte progenitors
+    quoted:
+    - 13
+    p: 0.95
+  dose:
+    text: approximately 200,000 cells
+    value: 200000
+    unit: cells
+    quoted:
+    - 14
+    p: 0.91
+  duration:
+    na: transplantation procedure has no application duration
+    p: 0.53
+  time_after_transplantation:
+    text: 6 months post-transplant
+    quoted:
+    - 15
+    p: 0.79
+samples:
+  GSM9814708:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D1
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW2E33-3D11
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 9
+      p: 0.77
+  GSM9814709:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D2
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 2
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW2E33-3D11
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 9
+      p: 0.69
+  GSM9814710:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D3
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW2E44-4B12
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 16
+      p: 0.67
+  GSM9814711:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D4
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW2E44-4B12
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 16
+      p: 0.64
+  GSM9814712:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D5
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW3E44-F-2
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 17
+      p: 0.66
+  GSM9814713:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D6
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 2
+      p: 0.96
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW3E33-H-2
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 18
+      p: 0.68
+  GSM9814714:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D7
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: 6 months
+      value: 6
+      unit: months
+      quoted:
+      - 19
+      p: 0.91
+    cell_line:
+      text: TCW3E44-F-2
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 17
+      p: 0.61
+  GSM9814715:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D8
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 2
+      p: 0.95
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW2E33-3D11
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 9
+      p: 0.71
+  GSM9814716:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D9
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW2E44-4B12
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 16
+      p: 0.57
+  GSM9814717:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D10
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE4
+      level: APOE4
+      quoted:
+      - 3
+      p: 1.0
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW2E44-4B12
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 16
+      p: 0.53
+  GSM9814718:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D11
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 2
+      p: 0.96
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW3E33-H-2
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 18
+      p: 0.62
+  GSM9814719:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D12
+      inferred: Jev judged each library to come from its own individual
+      p: 0.99
+    donor_apoe_variant:
+      text: APOE3
+      level: APOE3
+      quoted:
+      - 2
+      p: 0.99
+    age:
+      text: 7.5 months
+      value: 7.5
+      unit: months
+      quoted:
+      - 6
+      against:
+      - 7
+      p: 0.99
+    cell_line:
+      text: TCW3E33-H-2
+      inferred: donor hiPSC line listed in record treatment field
+      see:
+      - 18
+      p: 0.76

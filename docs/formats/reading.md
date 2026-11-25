@@ -131,7 +131,7 @@ field is rejected.
 | `models` | Who wrote the file. `reading` is the model that read the study. `probabilities` is the model that gave the `p` values. Either may be `null`. |
 | `read` | What the model read: one or more of `records`, `abstract` and `full_text`. No other word is accepted. |
 | `read_detail` | Optional. One sentence that says which records and which paper. |
-| `ontology_snapshot` | Where the file's ontology ids came from, written once: `source` names the dated snapshot of the ontologies, or the service the ids were looked up in, and `date` is its date, written `2026-11-21`. Required when any claim has a `term`, except a `term` on `sex`, which is a word of this page's own. |
+| `ontology_snapshot` | Where the file's ontology ids came from, written once: `source` names the dated snapshot of the ontologies, or the service the ids were looked up in, and `date` is its date, written `2026-11-21`. For ids from liulab-data's ontology store, `date` is the UTC day the pass pinned the store's snapshots. Required when any claim has a `term`, except a `term` on `sex`, which is a word of this page's own. |
 | `passages` | The quotes that back the claims, each under its number. May be empty: `{}`. |
 | `factors` | The labels the study varied on purpose, each under its label. May be empty: `{}`. |
 | `shared` | The claims that every sample has unless its own row says otherwise. May be empty: `{}`. |

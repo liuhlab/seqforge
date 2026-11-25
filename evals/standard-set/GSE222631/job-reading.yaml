@@ -1,0 +1,728 @@
+format: 2
+study: GSE222631
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE222631 and their 24 sequenced samples; the full text of pmid:37771191.
+ontology_snapshot:
+  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
+    pato-2026-10-01, uberon-2026-11-05'
+  date: 2026-11-25
+passages:
+  1:
+    record: GSE222631
+    field: Series_overall_design
+    quote: S100B-GFP+ SCs and S100B-GFP+/NG2-dsRed+ PSCs collected from hindlimbs muscles of female young
+      adult (4-5 months) and aged (23-24 months) S100B-GFP;NG2-dsRed mice.
+  2:
+    paper: pmid:37771191
+    section: MATERIALS AND METHODS > Animals
+    quote: “Young adult” mice used for these experiments were 3–5 months old, “middle‐aged” mice were
+      17 months old, and “old” mice were 23–29 months old.
+  3:
+    record:
+    - GSM6928004
+    - GSM6928005
+    - GSM6928006
+    - GSM6928007
+    - GSM6928008
+    - GSM6928009
+    - GSM6928010
+    - GSM6928011
+    - GSM6928012
+    - GSM6928013
+    - GSM6928014
+    - GSM6928015
+    field: Sample_characteristics_ch1
+    quote: 'age: 4-5 months'
+  4:
+    record:
+    - GSM6927992
+    - GSM6927993
+    - GSM6927994
+    - GSM6927995
+    - GSM6927996
+    - GSM6927997
+    - GSM6927998
+    - GSM6927999
+    - GSM6928000
+    - GSM6928001
+    - GSM6928002
+    - GSM6928003
+    field: Sample_characteristics_ch1
+    quote: 'age: 23-24 months'
+  5:
+    paper: pmid:37771191
+    section: abstract
+    quote: We next profiled the transcriptome of PSCs and other Schwann cells (SCs) to identify mechanisms
+      altered in aged PSCs.
+  6:
+    record:
+    - GSM6927992
+    - GSM6927994
+    - GSM6927996
+    - GSM6927998
+    - GSM6928000
+    - GSM6928002
+    - GSM6928004
+    - GSM6928006
+    - GSM6928008
+    - GSM6928010
+    - GSM6928012
+    - GSM6928014
+    field: Sample_source_name_ch1
+    quote: Perisynaptic Schwann cell
+  7:
+    record:
+    - GSM6927993
+    - GSM6927995
+    - GSM6927997
+    - GSM6927999
+    - GSM6928001
+    - GSM6928003
+    - GSM6928005
+    - GSM6928007
+    - GSM6928009
+    - GSM6928011
+    - GSM6928013
+    - GSM6928015
+    field: Sample_source_name_ch1
+    quote: other Schwann cell
+  8:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'Sex: female'
+  10:
+    paper: pmid:37771191
+    section: RESULTS > Molecular mechanisms disrupted in aged PSCs
+    quote: We collected PSCs and other SCs from hindlimb muscles of young adult (4–5 months) and old (23–24
+      months) female mice and performed bulk RNA‐seq.
+  11:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'genotype: S100B-GFP;NG2-dsRed'
+  12:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  age:
+    levels:
+    - 4-5 months
+    - 23-24 months
+    baseline: 4-5 months
+    ordered: true
+    quoted:
+    - 1
+    p: 0.98
+  cell_type:
+    levels:
+    - PSC
+    - other SC
+    baseline: null
+    ordered: true
+    quoted:
+    - 5
+    p: 0.98
+shared:
+  donor:
+    unknown: nothing read says which individual a library came from
+    p: 0.49
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 12
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 8
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down target.
+    p: 1.0
+  control_type:
+    na: All libraries are RNA-Seq, not background controls.
+    p: 1.0
+  sex:
+    text: female
+    term: female
+    quoted:
+    - 9
+    p: 1.0
+  development_stage:
+    text: adult
+    term: MmusDv:0000110
+    quoted:
+    - 2
+    p: 0.99
+  tissue:
+    text: hindlimb muscles
+    term: UBERON:0001134
+    quoted:
+    - 10
+    p: 0.94
+  cell_line:
+    na: Primary FACS-isolated cells, not a cell line.
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: No disease or disease model described.
+    p: 0.99
+  genotype:
+    text: S100B-GFP;NG2-dsRed
+    quoted:
+    - 11
+    p: 1.0
+  strain:
+    unknown: Not stated for sequenced transgenic mice.
+    p: 0.99
+  treatment:
+    na: No treatment was applied.
+    p: 0.87
+  dose:
+    na: No treatment.
+    p: 0.99
+  duration:
+    na: No treatment.
+    p: 0.99
+samples:
+  GSM6927992:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6927993:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 1.0
+  GSM6927994:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6927995:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 1.0
+  GSM6927996:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6927997:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 1.0
+  GSM6927998:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6927999:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 0.99
+  GSM6928000:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6928001:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 0.99
+  GSM6928002:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6928003:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 23-24 months
+      value:
+      - 23
+      - 24
+      unit: month
+      level: 23-24 months
+      quoted:
+      - 4
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 0.99
+  GSM6928004:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6928005:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 1.0
+  GSM6928006:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6928007:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 1.0
+  GSM6928008:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6928009:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 1.0
+  GSM6928010:
+    biosample:
+      id: B19
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6928011:
+    biosample:
+      id: B20
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 1.0
+  GSM6928012:
+    biosample:
+      id: B21
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6928013:
+    biosample:
+      id: B22
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 1.0
+  GSM6928014:
+    biosample:
+      id: B23
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: Perisynaptic Schwann cell
+      term: CL:0000692
+      level: PSC
+      quoted:
+      - 6
+      p: 1.0
+  GSM6928015:
+    biosample:
+      id: B24
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 4-5 months
+      value:
+      - 4
+      - 5
+      unit: month
+      level: 4-5 months
+      quoted:
+      - 3
+      p: 1.0
+    cell_type:
+      text: other Schwann cell
+      term: CL:0002573
+      level: other SC
+      quoted:
+      - 7
+      p: 1.0

@@ -1,0 +1,808 @@
+format: 2
+study: GSE125850
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE125850 and their 12 sequenced samples; the full text of pmid:30668640.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25,
+    uberon-2026-11-05'
+  date: 2026-11-25
+passages:
+  1:
+    record: GSE125850
+    field: Series_overall_design
+    quote: Examination of histone H3 dimethylation at lysine 9 in wild type mice, familial AD mice and
+      familial AD mice treated with EHMT1/2 inhibitor
+  2:
+    record:
+    - GSM3583145
+    - GSM3583146
+    - GSM3583147
+    - GSM3583148
+    field: Sample_source_name_ch1
+    quote: wild-type mice
+  3:
+    record:
+    - GSM3583149
+    - GSM3583150
+    - GSM3583151
+    - GSM3583152
+    - GSM3583153
+    - GSM3583154
+    - GSM3583155
+    - GSM3583156
+    field: Sample_source_name_ch1
+    quote: FAD mice
+  4:
+    paper: pmid:30668640
+    section: Full text
+    quote: without or with BIX01294 treatment
+  5:
+    record:
+    - GSM3583153
+    - GSM3583154
+    - GSM3583155
+    - GSM3583156
+    field: Sample_source_name_ch1
+    quote: BIX01294-treated FAD mice
+  6:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: ChIP-Seq
+  7:
+    record:
+    - GSM3583145
+    - GSM3583147
+    - GSM3583149
+    - GSM3583151
+    - GSM3583153
+    - GSM3583155
+    field: Sample_title
+    quote: input
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'age: 5-6 months old'
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: prefrontal cortex'
+  10:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: C57BL/6'
+  11:
+    record:
+    - GSM3583145
+    - GSM3583146
+    field: Sample_title
+    quote: WT1
+  12:
+    paper: pmid:30668640
+    section: abstract
+    quote: H3K9me2
+  13:
+    record:
+    - GSM3583147
+    - GSM3583148
+    field: Sample_title
+    quote: WT2
+  14:
+    paper: pmid:30668640
+    section: Full text
+    quote: 1 mg/kg
+  15:
+    paper: pmid:30668640
+    section: Full text
+    quote: once daily for 3 days
+  16:
+    record:
+    - GSM3583149
+    - GSM3583150
+    field: Sample_title
+    quote: FAD1
+  17:
+    record:
+    - GSM3583151
+    - GSM3583152
+    field: Sample_title
+    quote: FAD2
+  18:
+    record:
+    - GSM3583153
+    - GSM3583154
+    field: Sample_title
+    quote: FAD-BIX1
+  19:
+    record:
+    - GSM3583155
+    - GSM3583156
+    field: Sample_title
+    quote: FAD-BIX2
+  20:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  disease:
+    levels:
+    - healthy
+    - alzheimer_disease
+    baseline: healthy
+    ordered: false
+    quoted:
+    - 1
+    p: 0.98
+  genotype:
+    levels:
+    - wild_type
+    - FAD
+    baseline: wild_type
+    ordered: false
+    quoted:
+    - 1
+    p: 0.97
+  treatment:
+    levels:
+    - untreated
+    - BIX01294
+    baseline: untreated
+    ordered: false
+    quoted:
+    - 1
+    p: 0.97
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.71
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 20
+    p: null
+  assay:
+    text: ChIP-Seq
+    term: EFO:0002692
+    quoted:
+    - 6
+    p: 1.0
+  sex:
+    unknown: sample records and paper do not state mouse sex
+    p: 0.98
+  age:
+    text: 5-6 months old
+    value:
+    - 5
+    - 6
+    unit: month
+    quoted:
+    - 8
+    p: 1.0
+  development_stage:
+    text: adult
+    term: MmusDv:0000110
+    quoted:
+    - 8
+    p: 0.99
+  tissue:
+    text: prefrontal cortex
+    term: UBERON:0000451
+    quoted:
+    - 9
+    p: 1.0
+  cell_type:
+    na: PFC tissue; no cell type stated
+    p: 0.97
+  cell_line:
+    na: tissue from mice; no cell line
+    p: 1.0
+  strain:
+    text: C57BL/6
+    quoted:
+    - 10
+    p: 1.0
+samples:
+  GSM3583145:
+    biosample:
+      id: B1
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 11
+      p: 0.86
+    disease:
+      text: wild-type mice
+      level: healthy
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.98
+    genotype:
+      text: wild-type mice
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: untreated
+      level: untreated
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 0.72
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.86
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 0.97
+    dose:
+      na: no treatment
+      p: 0.92
+    duration:
+      na: no treatment
+      p: 0.95
+    replicate:
+      text: '1'
+      quoted:
+      - 11
+      p: 0.98
+  GSM3583146:
+    biosample:
+      id: B1
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 11
+      p: 0.86
+    disease:
+      text: wild-type mice
+      level: healthy
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.99
+    genotype:
+      text: wild-type mice
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: untreated
+      level: untreated
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 0.83
+    target:
+      text: H3K9me2
+      quoted:
+      - 12
+      p: 0.71
+    control_type:
+      na: a library that is not a background control
+      p: 0.49
+    dose:
+      na: no treatment
+      p: 0.88
+    duration:
+      na: no treatment
+      p: 0.95
+    replicate:
+      text: '1'
+      quoted:
+      - 11
+      p: 0.97
+  GSM3583147:
+    biosample:
+      id: B2
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.83
+    disease:
+      text: wild-type mice
+      level: healthy
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.97
+    genotype:
+      text: wild-type mice
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: untreated
+      level: untreated
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 0.78
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.88
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 0.96
+    dose:
+      na: no treatment
+      p: 0.93
+    duration:
+      na: no treatment
+      p: 0.96
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.98
+  GSM3583148:
+    biosample:
+      id: B2
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 13
+      p: 0.83
+    disease:
+      text: wild-type mice
+      level: healthy
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.99
+    genotype:
+      text: wild-type mice
+      level: wild_type
+      quoted:
+      - 2
+      p: 1.0
+    treatment:
+      text: untreated
+      level: untreated
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 0.78
+    target:
+      text: H3K9me2
+      quoted:
+      - 12
+      p: 0.81
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 0.43
+    dose:
+      na: no treatment
+      p: 0.88
+    duration:
+      na: no treatment
+      p: 0.94
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.98
+  GSM3583149:
+    biosample:
+      id: B3
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 16
+      p: 0.83
+    disease:
+      text: FAD mice
+      term: MONDO:0004975
+      level: alzheimer_disease
+      quoted:
+      - 3
+      p: 0.95
+    genotype:
+      text: FAD mice
+      level: FAD
+      quoted:
+      - 3
+      p: 0.97
+    treatment:
+      text: untreated
+      level: untreated
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 0.65
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.8
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 0.92
+    dose:
+      na: no treatment
+      p: 0.54
+    duration:
+      na: no treatment
+      p: 0.66
+    replicate:
+      text: '1'
+      quoted:
+      - 11
+      p: 0.57
+  GSM3583150:
+    biosample:
+      id: B3
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 16
+      p: 0.83
+    disease:
+      text: FAD mice
+      term: MONDO:0004975
+      level: alzheimer_disease
+      quoted:
+      - 3
+      p: 0.97
+    genotype:
+      text: FAD mice
+      level: FAD
+      quoted:
+      - 3
+      p: 0.94
+    treatment:
+      text: untreated
+      level: untreated
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 0.55
+    target:
+      text: H3K9me2
+      quoted:
+      - 12
+      p: 0.78
+    control_type:
+      na: a library that is not a background control
+      p: 0.48
+    dose:
+      text: 1 mg/kg
+      value: 1
+      unit: mg/kg
+      quoted:
+      - 14
+      p: 0.38
+    duration:
+      text: 3 days
+      value: 3
+      unit: day
+      quoted:
+      - 15
+      p: 0.37
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.58
+  GSM3583151:
+    biosample:
+      id: B4
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 17
+      p: 0.81
+    disease:
+      text: FAD mice
+      term: MONDO:0004975
+      level: alzheimer_disease
+      quoted:
+      - 3
+      p: 0.95
+    genotype:
+      text: FAD mice
+      level: FAD
+      quoted:
+      - 3
+      p: 0.99
+    treatment:
+      text: untreated
+      level: untreated
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 0.73
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.87
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 0.95
+    dose:
+      na: no treatment
+      p: 0.62
+    duration:
+      na: no treatment
+      p: 0.66
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.56
+  GSM3583152:
+    biosample:
+      id: B4
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 17
+      p: 0.81
+    disease:
+      text: FAD mice
+      term: MONDO:0004975
+      level: alzheimer_disease
+      quoted:
+      - 3
+      p: 0.96
+    genotype:
+      text: FAD mice
+      level: FAD
+      quoted:
+      - 3
+      p: 0.95
+    treatment:
+      text: untreated
+      level: untreated
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 4
+      p: 0.42
+    target:
+      text: H3K9me2
+      quoted:
+      - 12
+      p: 0.84
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 0.49
+    dose:
+      text: 1 mg/kg
+      value: 1
+      unit: mg/kg
+      quoted:
+      - 14
+      p: 0.49
+    duration:
+      text: 3 days
+      value: 3
+      unit: day
+      quoted:
+      - 15
+      p: 0.43
+    replicate:
+      unknown: what was read does not say its replicate
+      p: 0.61
+  GSM3583153:
+    biosample:
+      id: B5
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 18
+      p: 0.77
+    disease:
+      text: FAD mice
+      term: MONDO:0004975
+      level: alzheimer_disease
+      quoted:
+      - 3
+      p: 0.98
+    genotype:
+      text: FAD mice
+      level: FAD
+      quoted:
+      - 3
+      p: 0.99
+    treatment:
+      text: BIX01294-treated FAD mice
+      level: BIX01294
+      quoted:
+      - 5
+      p: 0.96
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.66
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 0.86
+    dose:
+      text: 1 mg/kg
+      value: 1
+      unit: mg/kg
+      quoted:
+      - 14
+      p: 0.92
+    duration:
+      text: 3 days
+      value: 3
+      unit: day
+      quoted:
+      - 15
+      p: 0.94
+    replicate:
+      text: '1'
+      quoted:
+      - 11
+      p: 0.57
+  GSM3583154:
+    biosample:
+      id: B5
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 18
+      p: 0.77
+    disease:
+      text: FAD mice
+      term: MONDO:0004975
+      level: alzheimer_disease
+      quoted:
+      - 3
+      p: 0.98
+    genotype:
+      text: FAD mice
+      level: FAD
+      quoted:
+      - 3
+      p: 1.0
+    treatment:
+      text: BIX01294-treated FAD mice
+      level: BIX01294
+      quoted:
+      - 5
+      p: 1.0
+    target:
+      text: H3K9me2
+      quoted:
+      - 12
+      p: 0.82
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 0.53
+    dose:
+      text: 1 mg/kg
+      value: 1
+      unit: mg/kg
+      quoted:
+      - 14
+      p: 0.88
+    duration:
+      text: 3 days
+      value: 3
+      unit: day
+      quoted:
+      - 15
+      p: 0.93
+    replicate:
+      text: '1'
+      quoted:
+      - 11
+      p: 0.4
+  GSM3583155:
+    biosample:
+      id: B6
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 19
+      p: 0.79
+    disease:
+      text: FAD mice
+      term: MONDO:0004975
+      level: alzheimer_disease
+      quoted:
+      - 3
+      p: 0.94
+    genotype:
+      text: FAD mice
+      level: FAD
+      quoted:
+      - 3
+      p: 0.99
+    treatment:
+      text: BIX01294-treated FAD mice
+      level: BIX01294
+      quoted:
+      - 5
+      p: 0.97
+    target:
+      na: an assay with no pull-down, or a control library
+      p: 0.56
+    control_type:
+      text: input
+      quoted:
+      - 7
+      p: 0.82
+    dose:
+      text: 1 mg/kg
+      value: 1
+      unit: mg/kg
+      quoted:
+      - 14
+      p: 0.92
+    duration:
+      text: 3 days
+      value: 3
+      unit: day
+      quoted:
+      - 15
+      p: 0.95
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.49
+  GSM3583156:
+    biosample:
+      id: B6
+      inferred: Jev judged the tie the writer listed between this library and another
+      see:
+      - 19
+      p: 0.79
+    disease:
+      text: FAD mice
+      term: MONDO:0004975
+      level: alzheimer_disease
+      quoted:
+      - 3
+      p: 0.99
+    genotype:
+      text: FAD mice
+      level: FAD
+      quoted:
+      - 3
+      p: 0.99
+    treatment:
+      text: BIX01294-treated FAD mice
+      level: BIX01294
+      quoted:
+      - 5
+      p: 1.0
+    target:
+      text: H3K9me2
+      quoted:
+      - 12
+      p: 0.86
+    control_type:
+      na: a library that is not a background control
+      p: 0.48
+    dose:
+      text: 1 mg/kg
+      value: 1
+      unit: mg/kg
+      quoted:
+      - 14
+      p: 0.92
+    duration:
+      text: 3 days
+      value: 3
+      unit: day
+      quoted:
+      - 15
+      p: 0.93
+    replicate:
+      text: '2'
+      quoted:
+      - 13
+      p: 0.71

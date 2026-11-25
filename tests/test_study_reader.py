@@ -1,8 +1,8 @@
 """The reading job: a pass of ``study-reading`` over a store, then ``seqforge study write-reading``.
 
 The writer and Jev are played by liulab-llms's fake gateway, liulab-data's stores by a few records
-held in memory, and the ontology search by a fake with canned candidates. No test reads a real
-store, calls a model or searches an ontology.
+held in memory, and its ontology store by a tiny one built with liulab-data's own writer. No test
+reads a real store, calls a model or searches a real ontology.
 """
 
 from __future__ import annotations
@@ -12,13 +12,16 @@ import datetime as dt
 import io
 import json
 import re
+import time
 from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 import yaml
+from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
 from labdata.store.model import Link, Record
+from labllm import Rejected
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
@@ -26,7 +29,7 @@ from seqforge.cli import app
 from seqforge.passes.kinds import KINDS
 from seqforge.study import reader
 from seqforge.study.lists import guide_text
-from seqforge.study.ontology_search import Candidate, Found, Snapshot
+from seqforge.study.ontology_search import StoreSearch
 from seqforge.study.reading import check_reading, read_reading
 from seqforge.study.relations import relations
 
@@ -93,7 +96,8 @@ SAMPLES = {
         "GSM71": _sample("mouse gut", "intestine", "RNA-Seq"),
         "GSM72": {
             **_sample("worm gut", "intestine", "RNA-Seq"),
-            "Sample_organism_ch1": "Caenorhabditis elegans",
+            # No organism written: the species is named from the taxonomy id alone.
+            "Sample_organism_ch1": [],
             "Sample_taxid_ch1": "6239",
         },
     },
@@ -108,6 +112,8 @@ ABSTRACT = "Livers of young and old mice. The old mice were 22 months of age."
 
 class Store:
     """liulab-data's record store, as the reader reads it: Series, their sample links, samples."""
+
+    settings: ClassVar[dict[str, str]] = {}
 
     def open_many(self, accessions: Iterable[str]) -> dict[str, Record]:
         day = dt.date(2026, 1, 1)
@@ -148,24 +154,34 @@ class Papers:
         return {p: paper(info, (_File("xml", Path("article.xml")),)) for p in pmids}
 
 
-SNAPSHOT = Snapshot("test ontology snapshot", dt.date(2026, 11, 1))
-
-
-#: The ontology search's canned candidates, by text and vocabulary.
-CANNED = {
-    ("liver", "uberon"): (Candidate("UBERON:0002107", "liver", "liver"),),
-    ("RNA-seq", "efo"): (Candidate("EFO:0008896", "RNA-seq", "RNA-seq"),),
+#: The ontology search the module's pass opened, which pins the store's snapshots for the pass.
+OPENED: list[StoreSearch] = []
+#: The ontology store: a few terms of each vocabulary the studies need. ChEBI is not held.
+VOCABULARIES = [
+    SnapshotData(
+        "uberon",
+        "2026-11-05",
+        [
+            SourceTerm("UBERON:0002107", "liver"),
+            SourceTerm("UBERON:0000160", "intestine"),
+        ],
+    ),
     # One text, two species: a mouse's intestine is UBERON's, a worm's is WBbt's.
-    ("intestine", "uberon"): (Candidate("UBERON:0000160", "intestine", "intestine"),),
-    ("intestine", "wbbt"): (Candidate("WBbt:0005772", "intestine", "intestine"),),
-}
-
-
-class Search:
-    """The ontology search, with canned candidates for two texts."""
-
-    def search(self, text: str, vocabulary: str) -> Found:
-        return Found(CANNED.get((text, vocabulary), ()), SNAPSHOT)
+    SnapshotData("wbbt", "2025-08-19", [SourceTerm("WBbt:0005772", "intestine")]),
+    # The mouse's adult stage is named neither "adult" nor "adult stage".
+    SnapshotData("mmusdv", "2025-01-23", [SourceTerm("MmusDv:0000110", "mature stage")]),
+    SnapshotData("efo", "3.96.0", [SourceTerm("EFO:0008896", "RNA-seq")]),
+    SnapshotData("pato", "2026-10-01", [SourceTerm("PATO:0000461", "normal")]),
+    SnapshotData(
+        "ncbitaxon",
+        "2026-11-22",
+        [
+            SourceTerm("NCBITaxon:10090", "Mus musculus"),
+            SourceTerm("NCBITaxon:6239", "Caenorhabditis elegans"),
+        ],
+        searchable=False,
+    ),
+]
 
 
 def _q(source: str, field: str, text: str) -> dict[str, str]:
@@ -314,7 +330,13 @@ LISTS: dict[str, dict[str, Any]] = {
         "factors": [],
         "labels": {"strain": _values(*({"text": f"strain {n}"} for n in range(26)))},
     },
-    "GSE70": {"factors": [], "labels": {"tissue": _values({"text": "intestine"})}},
+    "GSE70": {
+        "factors": [],
+        "labels": {
+            "tissue": _values({"text": "intestine"}),
+            "development_stage": _values({"text": "adult"}),
+        },
+    },
 }
 
 #: Each sample's value texts, as Jev picks them; a label it has none of is na.
@@ -332,18 +354,24 @@ TRUTH = {
     "GSM51": frozenset({"vehicle", "brain"}),
     "GSM52": frozenset({"drug", "brain"}),
     "GSM61": frozenset({"strain 0"}),
-    "GSM71": frozenset({"intestine"}),
+    "GSM71": frozenset({"intestine", "adult"}),
     "GSM72": frozenset({"intestine"}),
 }
 
 
 def _writer(form: dict[str, Any]) -> str:
+    # The gateway's rule, which its fake does not keep: a DeepSeek schema is a strict function
+    # call, and a strict function call with thinking on is refused before any paid call.
+    if form["provider"] == "deepseek" and form["settings"]["thinking"] and form.get("schema"):
+        raise Rejected("DeepSeek strict function calls need thinking off")
     user = form["messages"][-1]["content"]
     study = re.search(r"=== GEO Series (GSE\d+) ===", user)
     assert study is not None
     key = study.group(1)
     if key == "GSE30" or (key == "GSE40" and "could not be used" not in user):
         return "{the writer's answer, cut off"
+    if key == "GSE10":
+        return f"Here are the lists {{as asked}}:\n```json\n{json.dumps(LISTS[key])}\n```\nDone."
     return json.dumps(LISTS[key])
 
 
@@ -399,17 +427,13 @@ def read(
         bounds = {"study": key, "series": [{"id": key}], "papers": papers}
         (set_dir / key / "bounds.yaml").write_text(yaml.safe_dump(bounds))
     (set_dir / "GSE10" / "reading.yaml").write_text("the standard set's own\n")
-    kind = dataclasses.replace(
-        reader.KIND,
-        build=lambda store: reader.reading_kind(
-            Store(),
-            Papers(),
-            set_dir=set_dir,
-            search=Search(),
-            records_snapshot=reader.records_snapshot("20261107T000000Z", dt.date(2026, 11, 21)),
-        ),
-        reads_store=False,
-    )
+    ontologies = build_tiny_store(here / "ontologies", VOCABULARIES)
+
+    def build(store: Any) -> Any:
+        OPENED.append(StoreSearch())
+        return reader.reading_kind(Store(), Papers(), set_dir=set_dir, search=OPENED[-1])
+
+    kind = dataclasses.replace(reader.KIND, build=build, reads_store=False)
     fake = FakeGateway(
         lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
         prices={reader.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
@@ -420,6 +444,7 @@ def read(
             "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
         )
         monkeypatch.delenv("SEQFORGE_REVIEWS", raising=False)
+        monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
         monkeypatch.chdir(here)
         clone = ["--reviews", str(here / "clone")]
         (here / "clone" / "reviews").mkdir(parents=True)
@@ -440,6 +465,8 @@ def read(
         written = runner.invoke(app, write)
         assert written.exit_code == 0, written.output
         yield set_dir, json.loads(written.stdout)["studies"], fake
+    for search in OPENED:
+        search.close()
 
 
 def _reading(set_dir: Path, key: str) -> dict[str, Any]:
@@ -496,8 +523,9 @@ def test_a_claim_is_quoted_only_from_a_passage_code_found_and_terms_come_from_a_
     """A record quote is found character for character, a paper quote once white space is one
     space; a quote its source does not hold leaves the claim inferred, citing nothing. A passage
     Jev judges to speak against a claim is listed under against. Species is the record's taxonomy
-    id, healthy its PATO id, and a searched term is written only for a pick Jev is sure of, the
-    file naming the search's snapshot."""
+    id, healthy its PATO id, and a searched term is written only for a pick Jev is sure of. The
+    file names the snapshot of each vocabulary its ids came from, and the day the store was opened;
+    a vocabulary searched for a term not written is not named."""
     set_dir, _, _ = read
     reading = _reading(set_dir, "GSE10")
     passages = reading["passages"]
@@ -526,8 +554,9 @@ def test_a_claim_is_quoted_only_from_a_passage_code_found_and_terms_come_from_a_
     assert cited["tissue"]["term"] == "UBERON:0002107"
     assert "term" not in cited["assay"]
     assert reading["ontology_snapshot"] == {
-        "source": "test ontology snapshot",
-        "date": dt.date(2026, 11, 1),
+        "source": "liulab-data ontology store: ncbitaxon-2026-11-22, pato-2026-10-01, "
+        "uberon-2026-11-05",
+        "date": OPENED[-1].date,
     }
 
 
@@ -535,23 +564,28 @@ def test_a_study_whose_two_askings_disagree_is_unsettled_and_still_written(
     read: tuple[Path, dict[str, Any], FakeGateway],
 ) -> None:
     """Jev says yes both to whether GSE50 varied its treatment on purpose and to the negated
-    question. The study is unsettled, and its reading is written. Its only ids are code's own, so
-    the snapshot says no ontology was searched and names the store's build."""
+    question. The study is unsettled, and its reading is written. Its treatment's vocabulary,
+    ChEBI, is not in the store, so its only ids are the species', and the snapshot names only the
+    taxonomy's."""
     set_dir, said, _ = read
     reading = _reading(set_dir, "GSE50")
 
     assert said["GSE50"]["ending"] == "unsettled"
     assert "factor treatment: varied on purpose" in said["GSE50"]["checks_failed"][0]
     assert reading["factors"]["treatment"]["baseline"] == "vehicle"
-    assert reading["ontology_snapshot"]["date"] == dt.date(2026, 11, 7)
-    assert "no ontology search" in reading["ontology_snapshot"]["source"]
+    assert reading["ontology_snapshot"] == {
+        "source": "liulab-data ontology store: ncbitaxon-2026-11-22",
+        "date": OPENED[-1].date,
+    }
 
 
 def test_a_broken_writer_answer_is_asked_for_once_more_and_a_second_refuses(
     read: tuple[Path, dict[str, Any], FakeGateway],
 ) -> None:
     """GSE40's first answer is cut off and its second is whole: it is read. GSE30's writer is cut
-    off twice: the study is refused with the reason, and no file is written."""
+    off twice: the study is refused with the reason, and no file is written. The writer thinks and
+    sends no schema, which the gateway refuses for DeepSeek with thinking on, so its object is
+    taken out of the reply's text: GSE10's, in a code fence among prose, is read the first time."""
     set_dir, said, fake = read
     asked = [_first_id(f["messages"][-1]["content"]) for f in _sent(fake) if f["route"] == "chat"]
 
@@ -606,9 +640,94 @@ def test_a_term_is_looked_up_in_the_vocabulary_of_each_samples_species(
     read: tuple[Path, dict[str, Any], FakeGateway],
 ) -> None:
     """GSE70's mouse and worm both have the tissue "intestine". The mouse's term is UBERON's and
-    the worm's is WBbt's: a term found for one species is never written for the other."""
+    the worm's is WBbt's: a term found for one species is never written for the other. The worm's
+    record names no organism, so its species is named from its taxonomy id. The mouse is adult,
+    and its stage is MmusDv's mature stage, the parent of its adult stages."""
     set_dir, _, _ = read
     reading = _reading(set_dir, "GSE70")
 
     assert _claim(reading, "GSM71", "tissue")["term"] == "UBERON:0000160"
     assert _claim(reading, "GSM72", "tissue")["term"] == "WBbt:0005772"
+    assert _claim(reading, "GSM71", "development_stage")["term"] == "MmusDv:0000110"
+    assert _claim(reading, "GSM72", "species") == {
+        "text": "Caenorhabditis elegans",
+        "term": "NCBITaxon:6239",
+        "inferred": "the record's taxonomy id, named by NCBI Taxonomy",
+        "p": None,
+    }
+
+
+def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The ontology store's variable names a folder that is no store: the pass exits 2 naming the
+    variable, rather than read with no search."""
+    import labdata
+
+    fake = FakeGateway(lambda form: "{}", prices={})
+    # The module's pass holds its own build of the kind until the module ends: run the real one.
+    monkeypatch.setitem(KINDS, reader.KIND_NAME, reader.KIND)
+    monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
+    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="s"))
+    (tmp_path / "empty").mkdir()
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "empty"))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "clone" / "reviews").mkdir(parents=True)
+    (tmp_path / "keys.txt").write_text("GSE10\n")
+
+    started = runner.invoke(
+        app,
+        [
+            *("pass", "start", reader.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"),
+            *("--reviews", str(tmp_path / "clone")),
+        ],
+    )
+
+    assert started.exit_code == 2, started.output
+    assert "LABDATA_ONTOLOGIES" in started.stderr
+    assert fake.record == []
+
+
+def test_the_store_search_pins_its_snapshots_on_the_utc_day_and_a_units_tag_names_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The store's snapshots are named by UTC day, so the day a reading says they were pinned is
+    the UTC day too, wherever the pass runs: here in a zone whose own date is another day.
+
+    A store update changes no record yet can change a reading's terms, so a unit's inputs tag
+    names every snapshot the search pinned: a review of the old reading stops holding."""
+    store = build_tiny_store(tmp_path / "store", VOCABULARIES)
+    utc = dt.datetime.now(dt.UTC)
+    # Twelve hours behind UTC is yesterday before noon UTC; fourteen ahead is tomorrow after it.
+    zone = "Etc/GMT+12" if utc.hour < 12 else "Etc/GMT-14"
+    try:
+        with pytest.MonkeyPatch.context() as clock:
+            clock.setenv("TZ", zone)
+            clock.setenv("LABDATA_ONTOLOGIES", str(store))
+            time.tzset()
+            assert dt.date.today() != utc.date()
+            search = StoreSearch()
+    finally:
+        time.tzset()
+    search.close()
+
+    assert search.date == utc.date()
+
+    set_dir = tmp_path / "set"
+    (set_dir / "GSE10").mkdir(parents=True)
+    bounds = {"study": "GSE10", "series": [{"id": "GSE10"}], "papers": []}
+    (set_dir / "GSE10" / "bounds.yaml").write_text(yaml.safe_dump(bounds))
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(store))
+
+    def tag() -> str:
+        pinned = StoreSearch()
+        try:
+            kind = reader.reading_kind(Store(), None, set_dir=set_dir, search=pinned)
+            return kind.load("GSE10").tag
+        finally:
+            pinned.close()
+
+    before, again = tag(), tag()
+    # One vocabulary gets a new release; every other snapshot, and every record, stays.
+    build_tiny_store(store, [SnapshotData("efo", "3.97.0", [SourceTerm("EFO:0008896", "RNA-seq")])])
+    assert before == again != tag()

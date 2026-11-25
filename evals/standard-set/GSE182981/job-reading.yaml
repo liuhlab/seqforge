@@ -1,0 +1,723 @@
+format: 2
+study: GSE182981
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE182981 and their 18 sequenced samples; the full text of pmid:36261415.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbbt-2025-08-19'
+  date: 2026-11-25
+passages:
+  1:
+    record: GSE182981
+    field: Series_overall_design
+    quote: fed normal OP50 diet (ND) or supplemented with 2% glucose at day 1 (HGD-1) or day 5 (HGD-5)
+      of adulthood
+  2:
+    record: GSM5548060
+    field: Sample_characteristics_ch1
+    quote: 'growth condition: UV-killed OP50 (normal diet, ND)'
+  3:
+    record: GSM5548061
+    field: Sample_characteristics_ch1
+    quote: 'growth condition: UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet,
+      HGD-1)'
+  4:
+    record: GSM5548062
+    field: Sample_characteristics_ch1
+    quote: 'growth condition: UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet,
+      HGD-5)'
+  5:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  6:
+    paper: pmid:36261415
+    section: Results > Glucose and infertility synergistically prolong lifespans of aged animals
+    quote: Lifespan assays of WT hermaphrodite animals fed on ND, HGD-1, HGD-5 in the presence of FUdR
+      from L4 to D8
+  7:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'age: day 8 of adulthood (D8)'
+  8:
+    paper: pmid:36261415
+    section: Results > HGD induces broader transcriptomic shifts in young than aged animals
+    quote: Worms fed ND, HGD-1 and HGD-5 were harvested eight days later (Supplementary Fig. 1).
+  9:
+    record: each_sample
+    field: Sample_extract_protocol_ch1
+    quote: Pelleted worms were lysed by beat beating in TRIzol reagent (Thermo Fisher, Waltham, MA).
+  10:
+    record: GSE182981
+    field: Series_overall_design
+    quote: Wild type (WT, N2) C. elegans mRNA profiles of day 8 adulthood
+  11:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'strain: N2'
+  12:
+    record: GSM5548060
+    field: Sample_title
+    quote: ND biol rep 1
+  13:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: NGM agar plates were supplemented with 2% glucose (high glucose diet, HGD) when indicated.
+  14:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: A single pool of ~ 6,000 synchronised worms was grown on ND to day 1 of adulthood (D1). From
+      the same single pool, a subset of ~2,000 worms was fed HGD-1.
+  15:
+    record: each_sample
+    field: Sample_growth_protocol_ch1
+    quote: The second subset of ~2,000 worms grown on ND was fed HGD-5 at day 5 of adulthood (D5). Worms
+      fed ND, HGD-1, and HGD-5 were harvested at D8.
+  16:
+    record: GSM5548063
+    field: Sample_title
+    quote: ND biol rep 2
+  17:
+    record: GSM5548066
+    field: Sample_title
+    quote: ND biol rep 3
+  18:
+    record: GSM5548069
+    field: Sample_title
+    quote: ND biol rep 4
+  19:
+    record: GSM5548072
+    field: Sample_title
+    quote: ND biol rep 5
+  20:
+    record: GSM5548075
+    field: Sample_title
+    quote: ND biol rep 6
+  21:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  treatment:
+    levels:
+    - ND
+    - HGD-1
+    - HGD-5
+    baseline: ND
+    ordered: true
+    quoted:
+    - 1
+    p: 0.99
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 1.0
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 21
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    na: RNA-Seq, no pull-down enrichment
+    p: 1.0
+  control_type:
+    na: no background-control library
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 6
+    p: 0.92
+  age:
+    text: day 8 of adulthood (D8)
+    value: 8
+    unit: day
+    quoted:
+    - 7
+    p: 1.0
+  development_stage:
+    text: adulthood
+    quoted:
+    - 7
+    p: 1.0
+  tissue:
+    text: worms
+    term: WBbt:0007833
+    quoted:
+    - 9
+    p: 0.99
+  cell_type:
+    na: bulk whole-worm RNA, no cell type isolated
+    p: 0.96
+  cell_line:
+    na: whole animal, no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model stated
+    p: 0.99
+  genotype:
+    text: Wild type (WT, N2)
+    quoted:
+    - 10
+    p: 0.99
+  strain:
+    text: N2
+    quoted:
+    - 11
+    p: 1.0
+samples:
+  GSM5548060:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 (normal diet, ND)
+      level: ND
+      quoted:
+      - 2
+      p: 1.0
+    dose:
+      text: normal diet (ND)
+      value: 0
+      unit: percent
+      quoted:
+      - 2
+      p: 0.95
+    duration:
+      na: no treatment
+      p: 0.92
+    biological_replicate:
+      text: biol rep 1
+      quoted:
+      - 12
+      p: 1.0
+  GSM5548061:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)
+      level: HGD-1
+      quoted:
+      - 3
+      p: 0.99
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 1.0
+    duration:
+      text: day 1 of adulthood (D1)
+      value: 7
+      unit: day
+      inferred: HGD-1 start; harvest D8 = 7 days
+      see:
+      - 14
+      against:
+      - 8
+      p: 0.73
+    biological_replicate:
+      text: biol rep 1
+      quoted:
+      - 12
+      p: 0.95
+  GSM5548062:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)
+      level: HGD-5
+      quoted:
+      - 4
+      p: 1.0
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 1.0
+    duration:
+      text: day 5 of adulthood (D5)
+      value: 3
+      unit: day
+      inferred: HGD-5 start; harvest D8 = 3 days
+      see:
+      - 15
+      p: 0.66
+    biological_replicate:
+      text: biol rep 1
+      quoted:
+      - 12
+      p: 0.93
+  GSM5548063:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 (normal diet, ND)
+      level: ND
+      quoted:
+      - 2
+      p: 0.99
+    dose:
+      text: normal diet (ND)
+      value: 0
+      unit: percent
+      quoted:
+      - 2
+      p: 0.9
+    duration:
+      na: no treatment
+      p: 0.94
+    biological_replicate:
+      text: biol rep 2
+      quoted:
+      - 16
+      p: 0.99
+  GSM5548064:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)
+      level: HGD-1
+      quoted:
+      - 3
+      p: 0.88
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.87
+    duration:
+      text: day 1 of adulthood (D1)
+      value: 7
+      unit: day
+      inferred: HGD-1 start; harvest D8 = 7 days
+      see:
+      - 14
+      against:
+      - 8
+      p: 0.75
+    biological_replicate:
+      text: biol rep 2
+      quoted:
+      - 16
+      p: 0.91
+  GSM5548065:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)
+      level: HGD-5
+      quoted:
+      - 4
+      p: 0.96
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.96
+    duration:
+      text: day 5 of adulthood (D5)
+      value: 3
+      unit: day
+      inferred: HGD-5 start; harvest D8 = 3 days
+      see:
+      - 15
+      p: 0.59
+    biological_replicate:
+      text: biol rep 2
+      quoted:
+      - 16
+      p: 0.91
+  GSM5548066:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 (normal diet, ND)
+      level: ND
+      quoted:
+      - 2
+      p: 0.98
+    dose:
+      text: normal diet (ND)
+      value: 0
+      unit: percent
+      quoted:
+      - 2
+      p: 0.9
+    duration:
+      na: no treatment
+      p: 0.9
+    biological_replicate:
+      text: biol rep 3
+      quoted:
+      - 17
+      p: 0.99
+  GSM5548067:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)
+      level: HGD-1
+      quoted:
+      - 3
+      p: 0.94
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.94
+    duration:
+      text: day 1 of adulthood (D1)
+      value: 7
+      unit: day
+      inferred: HGD-1 start; harvest D8 = 7 days
+      see:
+      - 14
+      against:
+      - 8
+      p: 0.82
+    biological_replicate:
+      text: biol rep 3
+      quoted:
+      - 17
+      p: 0.92
+  GSM5548068:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)
+      level: HGD-5
+      quoted:
+      - 4
+      p: 0.95
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.96
+    duration:
+      text: day 5 of adulthood (D5)
+      value: 3
+      unit: day
+      inferred: HGD-5 start; harvest D8 = 3 days
+      see:
+      - 15
+      p: 0.64
+    biological_replicate:
+      text: biol rep 3
+      quoted:
+      - 17
+      p: 0.92
+  GSM5548069:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 (normal diet, ND)
+      level: ND
+      quoted:
+      - 2
+      p: 0.98
+    dose:
+      text: normal diet (ND)
+      value: 0
+      unit: percent
+      quoted:
+      - 2
+      p: 0.88
+    duration:
+      na: no treatment
+      p: 0.9
+    biological_replicate:
+      text: biol rep 4
+      quoted:
+      - 18
+      p: 0.99
+  GSM5548070:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)
+      level: HGD-1
+      quoted:
+      - 3
+      p: 0.85
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.81
+    duration:
+      text: day 1 of adulthood (D1)
+      value: 7
+      unit: day
+      inferred: HGD-1 start; harvest D8 = 7 days
+      see:
+      - 14
+      against:
+      - 8
+      p: 0.73
+    biological_replicate:
+      text: biol rep 4
+      quoted:
+      - 18
+      p: 0.91
+  GSM5548071:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)
+      level: HGD-5
+      quoted:
+      - 4
+      p: 0.88
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.89
+    duration:
+      text: day 5 of adulthood (D5)
+      value: 3
+      unit: day
+      inferred: HGD-5 start; harvest D8 = 3 days
+      see:
+      - 15
+      p: 0.63
+    biological_replicate:
+      text: biol rep 4
+      quoted:
+      - 18
+      p: 0.92
+  GSM5548072:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 (normal diet, ND)
+      level: ND
+      quoted:
+      - 2
+      p: 0.97
+    dose:
+      text: normal diet (ND)
+      value: 0
+      unit: percent
+      quoted:
+      - 2
+      p: 0.88
+    duration:
+      na: no treatment
+      p: 0.88
+    biological_replicate:
+      text: biol rep 5
+      quoted:
+      - 19
+      p: 0.99
+  GSM5548073:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)
+      level: HGD-1
+      quoted:
+      - 3
+      p: 0.87
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.83
+    duration:
+      text: day 1 of adulthood (D1)
+      value: 7
+      unit: day
+      inferred: HGD-1 start; harvest D8 = 7 days
+      see:
+      - 14
+      against:
+      - 8
+      p: 0.77
+    biological_replicate:
+      text: biol rep 5
+      quoted:
+      - 19
+      p: 0.96
+  GSM5548074:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)
+      level: HGD-5
+      quoted:
+      - 4
+      p: 0.87
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.9
+    duration:
+      text: day 5 of adulthood (D5)
+      value: 3
+      unit: day
+      inferred: HGD-5 start; harvest D8 = 3 days
+      see:
+      - 15
+      p: 0.6
+    biological_replicate:
+      text: biol rep 5
+      quoted:
+      - 19
+      p: 0.92
+  GSM5548075:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 (normal diet, ND)
+      level: ND
+      quoted:
+      - 2
+      p: 0.96
+    dose:
+      text: normal diet (ND)
+      value: 0
+      unit: percent
+      quoted:
+      - 2
+      p: 0.88
+    duration:
+      na: no treatment
+      p: 0.91
+    biological_replicate:
+      text: biol rep 6
+      quoted:
+      - 20
+      p: 1.0
+  GSM5548076:
+    biosample:
+      id: B17
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 1 adulthood (High glucose diet, HGD-1)
+      level: HGD-1
+      quoted:
+      - 3
+      p: 0.81
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.78
+    duration:
+      text: day 1 of adulthood (D1)
+      value: 7
+      unit: day
+      inferred: HGD-1 start; harvest D8 = 7 days
+      see:
+      - 14
+      against:
+      - 8
+      p: 0.77
+    biological_replicate:
+      text: biol rep 6
+      quoted:
+      - 20
+      p: 0.98
+  GSM5548077:
+    biosample:
+      id: B18
+      inferred: no text read ties this library's material to another's
+      p: null
+    treatment:
+      text: UV-killed OP50 with 2% glucose from day 5 adulthood (High glucose diet, HGD-5)
+      level: HGD-5
+      quoted:
+      - 4
+      p: 0.81
+    dose:
+      text: 2% glucose
+      value: 2
+      unit: percent
+      quoted:
+      - 13
+      p: 0.88
+    duration:
+      text: day 5 of adulthood (D5)
+      value: 3
+      unit: day
+      inferred: HGD-5 start; harvest D8 = 3 days
+      see:
+      - 15
+      p: 0.62
+    biological_replicate:
+      text: biol rep 6
+      quoted:
+      - 20
+      p: 0.97

@@ -1,0 +1,367 @@
+format: 2
+study: GSE281157
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE281157 and their 12 sequenced samples; the full text of pmid:40199585.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbls-2026-04-16'
+  date: 2026-11-25
+passages:
+  1:
+    record:
+    - GSM8611902
+    - GSM8611903
+    - GSM8611904
+    field: Sample_characteristics_ch1
+    quote: 'genotype: wild type (N2)'
+  2:
+    record:
+    - GSM8611905
+    - GSM8611906
+    - GSM8611907
+    - GSM8611911
+    - GSM8611912
+    - GSM8611913
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-16(mu86)'
+  3:
+    record:
+    - GSM8611908
+    - GSM8611909
+    - GSM8611910
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-18(ok480)'
+  4:
+    record:
+    - GSM8611911
+    - GSM8611912
+    - GSM8611913
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-16(mu86); daf-18(ok480)'
+  5:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  6:
+    record: each_sample
+    field: Sample_treatment_protocol_ch1
+    quote: Approximately 20,000 starved L1s were collected at 16 hr after hypochlorite treatment
+  7:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: whole worm
+  8:
+    paper: pmid:40199585
+    section: Materials and Methods > Strains used in this study
+    quote: WT N2 is from the Sternberg Lab collection.
+  9:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'treatment: Starved in virgin S-basal with 0.1% EtOH for about 4 hours at 20 °C'
+  10:
+    paper: pmid:40199585
+    section: Materials and Methods > Strains used in this study
+    quote: CF1038 daf-16(mu86) I
+  11:
+    paper: pmid:40199585
+    section: Materials and Methods > Strains used in this study
+    quote: IC166 daf-18(ok480) IV is from the Chin-Sang Lab at Queen’s University.
+  12:
+    paper: pmid:40199585
+    section: Materials and Methods > Strains generated in this study
+    quote: LRB378 daf-16(mu86) I; daf-18(ok480) IV.
+  13:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  genotype:
+    levels:
+    - wild_type_N2
+    - daf-16_mu86
+    - daf-18_ok480
+    - daf-16_daf-18_double
+    baseline: wild_type_N2
+    ordered: false
+    inferred: four genotypes compared by RNA-seq
+    p: 0.99
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.99
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 13
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    na: RNA-Seq libraries have no pull-down
+    p: 1.0
+  control_type:
+    na: non-control RNA-Seq libraries
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    inferred: C. elegans experimental animals are hermaphrodites
+    p: 0.99
+  age:
+    unknown: no age since hatching reported
+    p: 0.65
+  development_stage:
+    text: L1 larvae
+    term: WBls:0000024
+    quoted:
+    - 6
+    p: 1.0
+  tissue:
+    text: whole worm
+    quoted:
+    - 7
+    p: 1.0
+  cell_type:
+    na: whole-worm samples; no isolated cell type
+    p: 0.99
+  cell_line:
+    na: whole-worm animal samples; no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: no disease or disease model reported
+    p: 1.0
+  treatment:
+    text: Starved in virgin S-basal with 0.1% EtOH
+    quoted:
+    - 9
+    p: 1.0
+  dose:
+    text: 0.1% EtOH
+    value: 0.1
+    unit: percent
+    quoted:
+    - 9
+    p: 1.0
+  duration:
+    text: about 4 hours
+    value: 4
+    unit: hour
+    quoted:
+    - 9
+    p: 1.0
+  hours_after_hypochlorite_treatment:
+    text: 16 hr after hypochlorite treatment
+    quoted:
+    - 6
+    p: 0.98
+samples:
+  GSM8611902:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: wild type (N2)
+      level: wild_type_N2
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 8
+      p: 1.0
+  GSM8611903:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: wild type (N2)
+      level: wild_type_N2
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 8
+      p: 0.99
+  GSM8611904:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: wild type (N2)
+      level: wild_type_N2
+      quoted:
+      - 1
+      p: 1.0
+    strain:
+      text: N2
+      quoted:
+      - 8
+      p: 1.0
+  GSM8611905:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: daf-16(mu86)
+      level: daf-16_mu86
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    strain:
+      text: CF1038 daf-16(mu86) I
+      inferred: daf-16 mutant strain
+      see:
+      - 10
+      p: 0.97
+  GSM8611906:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: daf-16(mu86)
+      level: daf-16_mu86
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    strain:
+      text: CF1038 daf-16(mu86) I
+      inferred: daf-16 mutant strain
+      see:
+      - 10
+      p: 0.98
+  GSM8611907:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: daf-16(mu86)
+      level: daf-16_mu86
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    strain:
+      text: CF1038 daf-16(mu86) I
+      inferred: daf-16 mutant strain
+      see:
+      - 10
+      p: 0.97
+  GSM8611908:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: daf-18(ok480)
+      level: daf-18_ok480
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: IC166 daf-18(ok480) IV
+      quoted:
+      - 11
+      p: 0.98
+  GSM8611909:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: daf-18(ok480)
+      level: daf-18_ok480
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: IC166 daf-18(ok480) IV
+      quoted:
+      - 11
+      p: 0.98
+  GSM8611910:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: daf-18(ok480)
+      level: daf-18_ok480
+      quoted:
+      - 3
+      p: 1.0
+    strain:
+      text: IC166 daf-18(ok480) IV
+      quoted:
+      - 11
+      p: 0.98
+  GSM8611911:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf-16_daf-18_double
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: LRB378 daf-16(mu86) I; daf-18(ok480) IV
+      quoted:
+      - 12
+      p: 1.0
+  GSM8611912:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf-16_daf-18_double
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: LRB378 daf-16(mu86) I; daf-18(ok480) IV
+      quoted:
+      - 12
+      p: 1.0
+  GSM8611913:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    genotype:
+      text: daf-16(mu86); daf-18(ok480)
+      level: daf-16_daf-18_double
+      quoted:
+      - 4
+      p: 1.0
+    strain:
+      text: LRB378 daf-16(mu86) I; daf-18(ok480) IV
+      quoted:
+      - 12
+      p: 0.99

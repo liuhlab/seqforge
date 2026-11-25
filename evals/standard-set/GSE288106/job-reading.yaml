@@ -1,0 +1,541 @@
+format: 2
+study: GSE288106
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE288106 and their 16 sequenced samples; the full text of pmid:42327368.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, hsapdv-2025-01-23, ncbitaxon-2026-11-25, uberon-2026-11-05'
+  date: 2026-11-25
+passages:
+  1:
+    paper: pmid:42327368
+    section: Materials and methods > Cases
+    quote: neurologically normal controls which were devoid of TDP-43 pathology and had no neurological
+      clinical manifestations
+  2:
+    paper: pmid:42327368
+    section: Introduction
+    quote: three FTLD-TDP subtypes (sporadic TDP-A, C9orf72-associated TDP-A and TDP-C)
+  3:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  4:
+    record:
+    - GSM8759021
+    - GSM8759023
+    - GSM8759025
+    - GSM8759026
+    - GSM8759029
+    - GSM8759030
+    - GSM8759032
+    - GSM8759035
+    - GSM8759036
+    field: Sample_characteristics_ch1
+    quote: 'Sex: Male'
+  5:
+    paper: pmid:42327368
+    section: Materials and methods > Cases
+    quote: Age at death (y ± SD)
+  6:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: Brain'
+  7:
+    paper: pmid:42327368
+    section: Introduction
+    quote: C9orf72-associated TDP-A
+  8:
+    record:
+    - GSM8759022
+    - GSM8759024
+    - GSM8759027
+    - GSM8759028
+    - GSM8759031
+    - GSM8759033
+    - GSM8759034
+    field: Sample_characteristics_ch1
+    quote: 'Sex: Female'
+  9:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Homo sapiens
+factors:
+  disease:
+    levels:
+    - control
+    - TDP_A
+    - TDP_A_C9
+    - TDP_C
+    baseline: control
+    ordered: false
+    inferred: Compare FTLD-TDP subtypes A, A-C9, C with controls
+    p: 0.97
+shared:
+  species:
+    text: Homo sapiens
+    term: NCBITaxon:9606
+    quoted:
+    - 9
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 3
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down
+    p: 1.0
+  control_type:
+    na: not a background-control library
+    p: 1.0
+  age:
+    unknown: individual ages not in records; paper reports group means
+    p: 0.97
+  development_stage:
+    text: adult
+    term: HsapDv:0000258
+    inferred: Ages at death in Table 1 are adult
+    see:
+    - 5
+    p: 0.9
+  tissue:
+    text: Brain
+    term: UBERON:0000955
+    quoted:
+    - 6
+    p: 1.0
+  cell_type:
+    unknown: unsorted brain tissue; no single cell type
+    p: 0.81
+  cell_line:
+    na: human brain tissue, not a cell line
+    p: 0.69
+  strain:
+    na: human samples; strain not applicable
+    p: 1.0
+  treatment:
+    na: no treatment applied
+    p: 0.93
+  dose:
+    na: no treatment
+    p: 1.0
+  duration:
+    na: no treatment
+    p: 1.0
+samples:
+  GSM8759021:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D1
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: neurologically normal controls
+      level: control
+      quoted:
+      - 1
+      p: 0.72
+    sex:
+      text: 'Sex: Male'
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.4
+  GSM8759022:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D2
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: TDP-C
+      level: TDP_C
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.74
+    sex:
+      text: 'Sex: Female'
+      quoted:
+      - 8
+      p: 0.99
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.56
+  GSM8759023:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D3
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: TDP-C
+      level: TDP_C
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.68
+    sex:
+      text: 'Sex: Male'
+      quoted:
+      - 4
+      p: 0.99
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.68
+  GSM8759024:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D4
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: neurologically normal controls
+      level: control
+      quoted:
+      - 1
+      p: 0.65
+    sex:
+      text: 'Sex: Female'
+      quoted:
+      - 8
+      p: 0.99
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.49
+  GSM8759025:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D5
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: C9orf72-associated TDP-A
+      level: TDP_A_C9
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    sex:
+      text: 'Sex: Male'
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.99
+  GSM8759026:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D6
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: sporadic TDP-A
+      level: TDP_A
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.57
+    sex:
+      text: 'Sex: Male'
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.68
+  GSM8759027:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D7
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: sporadic TDP-A
+      level: TDP_A
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.52
+    sex:
+      text: 'Sex: Female'
+      quoted:
+      - 8
+      p: 0.99
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.76
+  GSM8759028:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D8
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: TDP-C
+      level: TDP_C
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.8
+    sex:
+      text: 'Sex: Female'
+      quoted:
+      - 8
+      p: 0.99
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.5
+  GSM8759029:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D9
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: C9orf72-associated TDP-A
+      level: TDP_A_C9
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    sex:
+      text: 'Sex: Male'
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 1.0
+  GSM8759030:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D10
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: TDP-C
+      level: TDP_C
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.74
+    sex:
+      text: 'Sex: Male'
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.55
+  GSM8759031:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D11
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: TDP-C
+      level: TDP_C
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.74
+    sex:
+      text: 'Sex: Female'
+      quoted:
+      - 8
+      p: 0.99
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.55
+  GSM8759032:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D12
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: sporadic TDP-A
+      level: TDP_A
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 0.52
+    sex:
+      text: 'Sex: Male'
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.73
+  GSM8759033:
+    biosample:
+      id: B13
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D13
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: neurologically normal controls
+      level: control
+      quoted:
+      - 1
+      p: 0.73
+    sex:
+      text: 'Sex: Female'
+      quoted:
+      - 8
+      p: 0.99
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.41
+  GSM8759034:
+    biosample:
+      id: B14
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D14
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: C9orf72-associated TDP-A
+      level: TDP_A_C9
+      inferred: Jev picked it from the values the writer listed
+      see:
+      - 2
+      p: 1.0
+    sex:
+      text: 'Sex: Female'
+      quoted:
+      - 8
+      p: 1.0
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.99
+  GSM8759035:
+    biosample:
+      id: B15
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D15
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: neurologically normal controls
+      level: control
+      quoted:
+      - 1
+      p: 0.65
+    sex:
+      text: 'Sex: Male'
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      text: C9orf72-associated TDP-A
+      quoted:
+      - 7
+      p: 0.43
+  GSM8759036:
+    biosample:
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
+    donor:
+      id: D16
+      inferred: Jev judged each library to come from its own individual
+      p: 0.95
+    disease:
+      text: neurologically normal controls
+      level: control
+      quoted:
+      - 1
+      p: 0.78
+    sex:
+      text: 'Sex: Male'
+      quoted:
+      - 4
+      p: 1.0
+    genotype:
+      na: non-C9 genotypes not stated
+      p: 0.38

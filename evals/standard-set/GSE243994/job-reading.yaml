@@ -1,0 +1,398 @@
+format: 2
+study: GSE243994
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE243994 and their 12 sequenced samples; the full text of pmid:38851828.
+ontology_snapshot:
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01'
+  date: 2026-11-25
+passages:
+  1:
+    record: GSE243994
+    field: Series_overall_design
+    quote: Comparative gene expression profiling analysis of RNA-seq data for the proximal region of the
+      somatic gonad (PSG) cells of daf-2(rf) and daf-16(0); daf-2(rf) hermaphrodite nematodes on day1
+      (D1) and day 7 (D7) of adulthood.
+  2:
+    record: GSE243994
+    field: Series_overall_design
+    quote: daf-2(rf) and daf-16(0); daf-2(rf) hermaphrodite nematodes
+  3:
+    record:
+    - GSM7804448
+    - GSM7804449
+    - GSM7804450
+    - GSM7804454
+    - GSM7804455
+    - GSM7804456
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf-2(rf)'
+  4:
+    record:
+    - GSM7804451
+    - GSM7804452
+    - GSM7804453
+    - GSM7804457
+    - GSM7804458
+    - GSM7804459
+    field: Sample_characteristics_ch1
+    quote: 'genotype: daf 16(-); daf 2(rf)'
+  5:
+    record: each_sample
+    field: Sample_library_strategy
+    quote: RNA-Seq
+  6:
+    record: GSE243994
+    field: Series_overall_design
+    quote: hermaphrodite nematodes
+  7:
+    record: GSE243994
+    field: Series_overall_design
+    quote: on day1 (D1) and day 7 (D7) of adulthood
+  8:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'tissue: the proximal region of the somatic gonad (PSG) cells'
+  9:
+    record: each_sample
+    field: Sample_source_name_ch1
+    quote: the proximal region of the somatic gonad (PSG) cells
+  10:
+    paper: pmid:38851828
+    section: Methods > C. elegans strains and maintenance
+    quote: Strains were derived from N2 wild type (Bristol)
+  11:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Caenorhabditis elegans
+factors:
+  age:
+    levels:
+    - D1
+    - D7
+    baseline: D1
+    ordered: true
+    quoted:
+    - 1
+    p: 0.99
+  genotype:
+    levels:
+    - daf2_rf
+    - daf16_daf2
+    baseline: daf2_rf
+    ordered: true
+    quoted:
+    - 2
+    p: 0.99
+shared:
+  donor:
+    na: the library pools many individuals
+    p: 0.44
+  species:
+    text: Caenorhabditis elegans
+    term: NCBITaxon:6239
+    quoted:
+    - 11
+    p: null
+  assay:
+    text: RNA-Seq
+    term: EFO:0008896
+    quoted:
+    - 5
+    p: 1.0
+  target:
+    na: RNA-Seq has no pull-down
+    p: 1.0
+  control_type:
+    na: RNA-Seq has no background control
+    p: 1.0
+  sex:
+    text: hermaphrodite
+    term: hermaphrodite
+    quoted:
+    - 6
+    p: 1.0
+  development_stage:
+    text: adulthood
+    quoted:
+    - 7
+    p: 1.0
+  tissue:
+    text: the proximal region of the somatic gonad (PSG) cells
+    quoted:
+    - 8
+    p: 1.0
+  cell_type:
+    text: PSG cells
+    quoted:
+    - 9
+    p: 0.99
+  cell_line:
+    na: Animal tissue, no cultured cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: No disease or disease model described
+    p: 0.97
+  strain:
+    text: N2 wild type (Bristol)
+    inferred: Derived from N2 Bristol background
+    see:
+    - 10
+    p: 0.92
+  treatment:
+    na: No treatment applied; records say untreated
+    p: 0.98
+  dose:
+    na: No treatment applied
+    p: 0.99
+  duration:
+    na: No treatment applied
+    p: 0.98
+samples:
+  GSM7804448:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day1 (D1)
+      value: 1
+      unit: day
+      level: D1
+      inferred: Young adult reference timepoint
+      see:
+      - 1
+      p: 0.94
+    genotype:
+      text: daf-2(rf)
+      level: daf2_rf
+      quoted:
+      - 3
+      p: 1.0
+  GSM7804449:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day1 (D1)
+      value: 1
+      unit: day
+      level: D1
+      inferred: Young adult reference timepoint
+      see:
+      - 1
+      p: 0.9
+    genotype:
+      text: daf-2(rf)
+      level: daf2_rf
+      quoted:
+      - 3
+      p: 1.0
+  GSM7804450:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day1 (D1)
+      value: 1
+      unit: day
+      level: D1
+      inferred: Young adult reference timepoint
+      see:
+      - 1
+      p: 0.86
+    genotype:
+      text: daf-2(rf)
+      level: daf2_rf
+      quoted:
+      - 3
+      p: 0.99
+  GSM7804451:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day1 (D1)
+      value: 1
+      unit: day
+      level: D1
+      inferred: Young adult reference timepoint
+      see:
+      - 1
+      p: 0.95
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf16_daf2
+      quoted:
+      - 4
+      p: 1.0
+  GSM7804452:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day1 (D1)
+      value: 1
+      unit: day
+      level: D1
+      inferred: Young adult reference timepoint
+      see:
+      - 1
+      p: 0.9
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf16_daf2
+      quoted:
+      - 4
+      p: 1.0
+  GSM7804453:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day1 (D1)
+      value: 1
+      unit: day
+      level: D1
+      inferred: Young adult reference timepoint
+      see:
+      - 1
+      p: 0.9
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf16_daf2
+      quoted:
+      - 4
+      p: 1.0
+  GSM7804454:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day 7 (D7)
+      value: 7
+      unit: day
+      level: D7
+      inferred: Aging adult timepoint
+      see:
+      - 1
+      p: 0.93
+    genotype:
+      text: daf-2(rf)
+      level: daf2_rf
+      quoted:
+      - 3
+      p: 0.99
+  GSM7804455:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day 7 (D7)
+      value: 7
+      unit: day
+      level: D7
+      inferred: Aging adult timepoint
+      see:
+      - 1
+      p: 0.95
+    genotype:
+      text: daf-2(rf)
+      level: daf2_rf
+      quoted:
+      - 3
+      p: 0.98
+  GSM7804456:
+    biosample:
+      id: B9
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day 7 (D7)
+      value: 7
+      unit: day
+      level: D7
+      inferred: Aging adult timepoint
+      see:
+      - 1
+      p: 0.96
+    genotype:
+      text: daf-2(rf)
+      level: daf2_rf
+      quoted:
+      - 3
+      p: 0.99
+  GSM7804457:
+    biosample:
+      id: B10
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day 7 (D7)
+      value: 7
+      unit: day
+      level: D7
+      inferred: Aging adult timepoint
+      see:
+      - 1
+      p: 0.97
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf16_daf2
+      quoted:
+      - 4
+      p: 1.0
+  GSM7804458:
+    biosample:
+      id: B11
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day 7 (D7)
+      value: 7
+      unit: day
+      level: D7
+      inferred: Aging adult timepoint
+      see:
+      - 1
+      p: 0.96
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf16_daf2
+      quoted:
+      - 4
+      p: 1.0
+  GSM7804459:
+    biosample:
+      id: B12
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: day 7 (D7)
+      value: 7
+      unit: day
+      level: D7
+      inferred: Aging adult timepoint
+      see:
+      - 1
+      p: 0.96
+    genotype:
+      text: daf 16(-); daf 2(rf)
+      level: daf16_daf2
+      quoted:
+      - 4
+      p: 1.0

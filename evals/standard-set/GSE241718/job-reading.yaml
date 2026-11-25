@@ -1,0 +1,400 @@
+format: 2
+study: GSE241718
+models:
+  reading: deepseek/deepseek-flash
+  probabilities: typesafe/jev-1.14.0
+read:
+- records
+- abstract
+- full_text
+read_detail: The records of GSE241718, GSE241275 and their 8 sequenced samples; the full text of pmid:38997312.
+ontology_snapshot:
+  source: 'liulab-data ontology store: cl-2026-11-13, mmusdv-2025-01-23, ncbitaxon-2026-11-25, pato-2026-10-01,
+    uberon-2026-11-05'
+  date: 2026-11-25
+passages:
+  1:
+    paper: pmid:38997312
+    section: abstract
+    quote: young and aged mice
+  2:
+    paper: pmid:38997312
+    section: Results > Single-nucleus RNA sequencing uncovers the full spectrum of cell types in mouse
+      SAT and VAT
+    quote: young (2-month-old) and aged (26-month-old) female C57BL/6 J mice
+  3:
+    record: GSE241718
+    field: Series_overall_design
+    quote: 2 months and 26 months female C57BL/6J mice
+  4:
+    record:
+    - GSM7720368
+    - GSM7720369
+    - GSM7734325
+    - GSM7734326
+    field: Sample_characteristics_ch1
+    quote: 'age: 2 months'
+  5:
+    record:
+    - GSM7734327
+    - GSM7734328
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'age: 24 months'
+  6:
+    record: GSE241718
+    field: Series_title
+    quote: Dynamic analysis of mononuclear transcription profiles of fat in different parts of mice during
+      aging
+  7:
+    record:
+    - GSM7734325
+    - GSM7734326
+    - GSM7734327
+    - GSM7734328
+    field: Sample_characteristics_ch1
+    quote: 'tissue: SAT'
+  8:
+    record:
+    - GSM7720368
+    - GSM7720369
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'tissue: VAT'
+  9:
+    paper: pmid:38997312
+    section: abstract
+    quote: single-nucleus RNA sequencing
+  10:
+    paper: pmid:38997312
+    section: Results > Single-nucleus RNA sequencing uncovers the full spectrum of cell types in mouse
+      SAT and VAT
+    quote: female C57BL/6 J mice
+  11:
+    record: each_sample
+    field: Sample_characteristics_ch1
+    quote: 'cell type: Adipocytes'
+  12:
+    paper: pmid:38997312
+    section: Results > Single-nucleus RNA sequencing uncovers the full spectrum of cell types in mouse
+      SAT and VAT
+    quote: The integrated and clustered whole WAT sample yielded seven distinct clusters
+  13:
+    paper: pmid:38997312
+    section: Materials and methods > Mice
+    quote: All subjects were ensured to be Specific-Pathogen-Free (SPF) grade, excluding any disease effects.
+  14:
+    paper: pmid:38997312
+    section: Materials and methods > Mice
+    quote: C57BL/6J mice were fed a sterile, full-nutrition pellet feed
+  15:
+    record:
+    - GSM7720368
+    - GSM7720369
+    field: Sample_characteristics_ch1
+    quote: 'time: 2022-04-02'
+  16:
+    record:
+    - GSM7734325
+    - GSM7734326
+    - GSM7734327
+    - GSM7734328
+    - GSM7734329
+    - GSM7734330
+    field: Sample_characteristics_ch1
+    quote: 'time: 4/2/2022'
+  17:
+    record: each_sample
+    field: Sample_organism_ch1
+    quote: Mus musculus
+factors:
+  age:
+    levels:
+    - 2 months
+    - 24 months
+    baseline: 2 months
+    ordered: true
+    quoted:
+    - 1
+    p: 0.87
+  tissue:
+    levels:
+    - SAT
+    - VAT
+    baseline: null
+    ordered: true
+    quoted:
+    - 6
+    p: 0.97
+shared:
+  donor:
+    unknown: nothing read says which individual a library came from
+    p: 0.43
+  species:
+    text: Mus musculus
+    term: NCBITaxon:10090
+    quoted:
+    - 17
+    p: null
+  assay:
+    text: single-nucleus RNA sequencing
+    quoted:
+    - 9
+    p: 0.99
+  target:
+    na: an assay with no pull-down, or a control library
+    p: 0.92
+  control_type:
+    na: a library that is not a background control
+    p: 0.86
+  sex:
+    text: female
+    term: female
+    quoted:
+    - 10
+    p: 0.95
+  development_stage:
+    text: adult
+    term: MmusDv:0000110
+    inferred: 2- and 26-month-old mice are adults
+    see:
+    - 2
+    p: 0.99
+  cell_type:
+    text: Adipocytes
+    term: CL:0000136
+    quoted:
+    - 11
+    against:
+    - 12
+    p: 1.0
+  cell_line:
+    na: tissue from mice; no cell line
+    p: 1.0
+  disease:
+    text: healthy
+    term: PATO:0000461
+    inferred: SPF mice excluding disease effects
+    see:
+    - 13
+    p: 0.98
+  genotype:
+    unknown: no genotype stated; only strain C57BL/6J
+    p: 0.84
+  strain:
+    text: C57BL/6J
+    quoted:
+    - 14
+    p: 0.98
+  treatment:
+    na: no treatment applied in study
+    p: 0.89
+  dose:
+    na: no treatment applied
+    p: 0.99
+  duration:
+    na: no treatment applied
+    p: 0.98
+samples:
+  GSM7720368:
+    biosample:
+      id: B1
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: 2 months
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: VAT
+      term: UBERON:0014454
+      level: VAT
+      quoted:
+      - 8
+      p: 1.0
+    time:
+      text: '2022-04-02'
+      quoted:
+      - 15
+      p: 0.96
+  GSM7720369:
+    biosample:
+      id: B2
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: 2 months
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: VAT
+      term: UBERON:0014454
+      level: VAT
+      quoted:
+      - 8
+      p: 1.0
+    time:
+      text: '2022-04-02'
+      quoted:
+      - 15
+      p: 0.96
+  GSM7734325:
+    biosample:
+      id: B3
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: 2 months
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: SAT
+      term: UBERON:0002190
+      level: SAT
+      quoted:
+      - 7
+      p: 1.0
+    time:
+      text: 4/2/2022
+      quoted:
+      - 16
+      p: 0.75
+  GSM7734326:
+    biosample:
+      id: B4
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 2 months
+      value: 2
+      unit: month
+      level: 2 months
+      quoted:
+      - 4
+      p: 1.0
+    tissue:
+      text: SAT
+      term: UBERON:0002190
+      level: SAT
+      quoted:
+      - 7
+      p: 1.0
+    time:
+      text: 4/2/2022
+      quoted:
+      - 16
+      p: 0.73
+  GSM7734327:
+    biosample:
+      id: B5
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: 24 months
+      quoted:
+      - 5
+      p: 1.0
+    tissue:
+      text: SAT
+      term: UBERON:0002190
+      level: SAT
+      quoted:
+      - 7
+      p: 1.0
+    time:
+      text: 4/2/2022
+      quoted:
+      - 16
+      p: 0.7
+  GSM7734328:
+    biosample:
+      id: B6
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: 24 months
+      quoted:
+      - 5
+      p: 1.0
+    tissue:
+      text: SAT
+      term: UBERON:0002190
+      level: SAT
+      quoted:
+      - 7
+      p: 1.0
+    time:
+      text: 4/2/2022
+      quoted:
+      - 16
+      p: 0.71
+  GSM7734329:
+    biosample:
+      id: B7
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: 24 months
+      quoted:
+      - 5
+      p: 1.0
+    tissue:
+      text: VAT
+      term: UBERON:0014454
+      level: VAT
+      quoted:
+      - 8
+      p: 1.0
+    time:
+      text: 4/2/2022
+      quoted:
+      - 16
+      p: 0.74
+  GSM7734330:
+    biosample:
+      id: B8
+      inferred: no text read ties this library's material to another's
+      p: null
+    age:
+      text: 24 months
+      value: 24
+      unit: month
+      level: 24 months
+      quoted:
+      - 5
+      p: 1.0
+    tissue:
+      text: VAT
+      term: UBERON:0014454
+      level: VAT
+      quoted:
+      - 8
+      p: 1.0
+    time:
+      text: 4/2/2022
+      quoted:
+      - 16
+      p: 0.76
