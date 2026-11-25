@@ -11,7 +11,7 @@ read_detail: The records of GSE234962 and their 4 sequenced samples; the full te
 ontology_snapshot:
   source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01,
     wbbt-2025-08-19'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record: GSE234962

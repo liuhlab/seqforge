@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE78252 and their 18 sequenced samples; the full text of pmid:27133166.
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbls-2026-04-16'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record: each_sample

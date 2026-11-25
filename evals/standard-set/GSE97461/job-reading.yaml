@@ -11,7 +11,7 @@ read_detail: The records of GSE97461 and their 19 sequenced samples; the full te
 ontology_snapshot:
   source: 'liulab-data ontology store: cellosaurus-57.0, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
     pato-2026-10-01, uberon-2026-11-05'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record:

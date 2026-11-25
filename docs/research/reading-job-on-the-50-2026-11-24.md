@@ -47,7 +47,10 @@ first start. It paid $0.0000, sent no request and took all 1,774 answers from th
 That is the 1,685 requests and 89 cache answers of the paid pass, so every question was asked as
 before. The rerun took 30 seconds. Endings, quotes and searches are as below. The files differ from
 the paid run's only in the stage terms of 17 mouse studies and in the vocabularies those files
-name. The cost and time below are the paid run's.
+name. The files were written once more from a third cached rerun, under kind version `2026.11.5`,
+so that each file's date is the UTC day the pass pinned its snapshots; it too paid $0.0000 and took
+all 1,774 answers from the cache, and only that date changed. The cost and time below are the paid
+run's.
 
 The ontology store held 13 vocabularies, each at one snapshot: `cellosaurus-57.0`, `chebi-257`,
 `cl-2026-11-13`, `efo-3.96.0`, `fbdv-2026-11-02`, `hsapdv-2025-01-23`, `mmusdv-2025-01-23`,

@@ -9,7 +9,7 @@ read:
 read_detail: The records of GSE60340 and their 24 sequenced samples; the abstract of pmid:25483067.
 ontology_snapshot:
   source: 'liulab-data ontology store: cellosaurus-57.0, chebi-257, efo-3.96.0, mondo-2026-11-03, ncbitaxon-2026-11-25'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record:

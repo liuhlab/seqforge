@@ -11,7 +11,7 @@ read_detail: The records of GSE275435 and their 12 sequenced samples; the full t
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25,
     pato-2026-10-01'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record:

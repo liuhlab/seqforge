@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE135532 and their 16 sequenced samples; the full text of pmid:31415241.
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, uberon-2026-11-05'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record: GSE135532

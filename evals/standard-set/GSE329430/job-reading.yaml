@@ -10,7 +10,7 @@ read_detail: The records of GSE329430 and their 20 sequenced samples; the abstra
 ontology_snapshot:
   source: 'liulab-data ontology store: chebi-257, cl-2026-11-13, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
     uberon-2026-11-05'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record:

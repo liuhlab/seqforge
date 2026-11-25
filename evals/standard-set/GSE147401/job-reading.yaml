@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE147401 and their 30 sequenced samples; the full text of pmid:34519784.
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbbt-2025-08-19'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record: GSE147401

@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE243994 and their 12 sequenced samples; the full text of pmid:38851828.
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record: GSE243994

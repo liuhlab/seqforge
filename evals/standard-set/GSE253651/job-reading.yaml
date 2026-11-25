@@ -11,7 +11,7 @@ read_detail: The records of GSE253651 and their 18 sequenced samples; the full t
 ontology_snapshot:
   source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
     pato-2026-10-01, uberon-2026-11-05'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record: GSE253651

@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE255902, GSE255904 and their 22 sequenced samples; the full text of pmid:38582079.
 ontology_snapshot:
   source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, mondo-2026-11-03, ncbitaxon-2026-11-25'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record: GSE255902

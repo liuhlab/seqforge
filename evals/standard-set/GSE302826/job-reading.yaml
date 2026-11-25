@@ -11,7 +11,7 @@ read_detail: The records of GSE302826 and their 18 sequenced samples; the full t
 ontology_snapshot:
   source: 'liulab-data ontology store: cellosaurus-57.0, cl-2026-11-13, efo-3.96.0, hsapdv-2025-01-23,
     ncbitaxon-2026-11-25, pato-2026-10-01'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record:

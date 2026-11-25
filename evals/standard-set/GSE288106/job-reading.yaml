@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE288106 and their 16 sequenced samples; the full text of pmid:42327368.
 ontology_snapshot:
   source: 'liulab-data ontology store: efo-3.96.0, hsapdv-2025-01-23, ncbitaxon-2026-11-25, uberon-2026-11-05'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     paper: pmid:42327368

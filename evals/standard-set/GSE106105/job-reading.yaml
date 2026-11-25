@@ -10,7 +10,7 @@ read:
 read_detail: The records of GSE106105 and their 11 sequenced samples; the full text of pmid:28891792.
 ontology_snapshot:
   source: 'liulab-data ontology store: chebi-257, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, uberon-2026-11-05'
-  date: 2026-11-24
+  date: 2026-11-25
 passages:
   1:
     record: GSE106105
