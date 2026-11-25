@@ -40,6 +40,15 @@ The first start of the pass found the gateway down and stopped at once, with all
 unfinished, no request sent and $0 paid. The same command, run again once the gateway was back,
 is pass 2, and every number below is from pass 2.
 
+The 50 files were then written again from a rerun under kind version `2026.11.4`, which gives a
+mouse `adult` its development-stage term (see [Searches and terms](#searches-and-terms)). The rerun
+used a new task folder, and it was pass 2 there for the same reason: the gateway was down at its
+first start. It paid $0.0000, sent no request and took all 1,774 answers from the gateway's cache.
+That is the 1,685 requests and 89 cache answers of the paid pass, so every question was asked as
+before. The rerun took 30 seconds. Endings, quotes and searches are as below. The files differ from
+the paid run's only in the stage terms of 17 mouse studies and in the vocabularies those files
+name. The cost and time below are the paid run's.
+
 The ontology store held 13 vocabularies, each at one snapshot: `cellosaurus-57.0`, `chebi-257`,
 `cl-2026-11-13`, `efo-3.96.0`, `fbdv-2026-11-02`, `hsapdv-2025-01-23`, `mmusdv-2025-01-23`,
 `mondo-2026-11-03`, `ncbitaxon-2026-11-25`, `pato-2026-10-01`, `uberon-2026-11-05`,
@@ -171,6 +180,7 @@ least one, the distinct ids over all 50, and the samples whose claim carries one
 | EFO | 47 | 6 | 713 |
 | PATO (`healthy` only) | 40 | 1 | 502 |
 | UBERON | 25 | 24 | 401 |
+| MmusDv | 19 | 2 | 283 |
 | Cell Ontology (CL) | 14 | 16 | 174 |
 | MONDO | 13 | 6 | 144 |
 | WBls | 10 | 6 | 118 |
@@ -179,19 +189,15 @@ least one, the distinct ids over all 50, and the samples whose claim carries one
 | HsapDv | 4 | 2 | 63 |
 | Cellosaurus | 4 | 4 | 53 |
 | FBdv | 1 | 1 | 24 |
-| MmusDv | 2 | 1 | 23 |
 | The format's own `sex` words | 33 | 3 | 500 |
 
 By label, out of the samples whose claim has a text: species 787 of 787 have a term, assay 713 of
 787, disease 646 of 777, tissue 504 of 744, `sex` 500 of 521, cell type 174 of 327, development
-stage 228 of 687, cell line 53 of 102 and treatment 89 of 466.
+stage 488 of 687, cell line 53 of 102 and treatment 89 of 466.
 
-**No mouse `adult` got a term.** The development stage `adult` is written with no term in 17 mouse
-studies, and it gets a term for every human, worm and fly study that writes it. Code maps `adult`
-to the species' adult stage by searching for the whole name `adult stage` or `adult`. HsapDv,
-WBls and FBdv each hold a term by that name. MmusDv names its adult stage `mature stage`
-(`MmusDv:0000110`), so both searches find only longer names, such as `young adult stage`, and code
-writes no term.
+**Every `adult` stage has a term, in this kind version.** Code maps `adult` to the species'
+adult stage by its whole name. MmusDv names that stage `mature stage` (`MmusDv:0000110`), and kind
+`2026.11.4` adds that name, so 54 claims in 17 mouse studies, 260 samples, gained the term.
 
 ## What this does and does not show
 
