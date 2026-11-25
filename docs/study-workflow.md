@@ -144,7 +144,9 @@ only such a file gives is `unknown`.
 1. A writing model, DeepSeek Flash with thinking on, reads the records and the papers. It lists the
    **factors**, which are the labels that the study varied on purpose, with their levels. It also
    lists every value that each label takes, each with a quote. It does not say which sample has
-   which value. An answer that cannot be used is asked for once more.
+   which value. An answer that cannot be used is asked for once more. The request sends no JSON
+   schema, because the gateway refuses a DeepSeek schema with thinking on. Code takes the JSON
+   object out of the reply's text instead.
 2. Jev, a model that answers closed questions with a probability, answers every closed question. It
    says whether each factor was varied on purpose, which level is the baseline, and whether the
    levels are in order. Then, for each sample, it picks the sample's level on each factor and its
@@ -171,12 +173,14 @@ ends. If the store cannot be opened, `pass start` exits 2 and names `LABDATA_ONT
 reads with no search.
 
 The species id is the record's own taxonomy id, and `healthy` is `PATO:0000461`. The store names
-both, and an id it does not hold is not written. Every other id comes from a search of the store:
+both, and an id it does not hold is not written. A `development_stage` of `adult` is the species'
+adult stage in its stage list, found by its whole name. For the mouse, that is MmusDv's
+`mature stage`. Every other id comes from a search of the store:
 up to 10 candidates, whole-text matches first, and Jev picks one or none. A term is written only
 when Jev is sure of its pick. A vocabulary that the store does not hold finds nothing, so its
 labels get no id. The reading's `ontology_snapshot` names each snapshot that its ids came from,
-such as `liulab-data ontology store: ncbitaxon-2026-11-22, uberon-2026-11-05`. Its date is the day
-the pass opened the store.
+such as `liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, uberon-2026-11-05`. Its date
+is the UTC day the pass opened the store, because the store names its snapshots by UTC day.
 
 **What it writes.** `seqforge study write-reading --out <folder>` writes each study's answer as
 `<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file.

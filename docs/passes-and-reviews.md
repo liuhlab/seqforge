@@ -191,6 +191,9 @@ the issue's `url`, and `unfiled`, the number of units in the queue that are stil
 | 2 | A setup it cannot use: an unknown kind, no review clone, no task in the folder, no `gh`, or a clone whose `origin` is not on GitHub. One line on stderr says which |
 | 3 | Another process holds the task, such as a running pass or another `review file`, and `message` names it. Or a GitHub call failed: `stopped` is `github_failed`, and `filed` lists what was filed before it. Run the command again to file the rest |
 
+For the `study-reading` kind, `review file` and `review read` also need liulab-data's ontology
+store, because they build the kind, and building it opens the store.
+
 ## Read reviews back
 
 Once people have closed issues, read their answers back:
