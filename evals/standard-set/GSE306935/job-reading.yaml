@@ -9,7 +9,8 @@ read:
 - full_text
 read_detail: The records of GSE306935 and their 12 sequenced samples; the full text of pmid:41256688.
 ontology_snapshot:
-  source: 'liulab-data ontology store: chebi-257, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, uberon-2026-11-05'
+  source: 'liulab-data ontology store: chebi-257, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
+    pato-2026-10-01, uberon-2026-11-05'
   date: 2026-11-24
 passages:
   1:
@@ -130,6 +131,7 @@ shared:
     p: 0.98
   development_stage:
     text: adult
+    term: MmusDv:0000110
     quoted:
     - 8
     p: 0.87

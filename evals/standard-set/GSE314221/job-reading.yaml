@@ -9,7 +9,7 @@ read:
 - full_text
 read_detail: The records of GSE314221 and their 16 sequenced samples; the full text of pmid:42547584.
 ontology_snapshot:
-  source: 'liulab-data ontology store: chebi-257, efo-3.96.0, mondo-2026-11-03, ncbitaxon-2026-11-25,
+  source: 'liulab-data ontology store: chebi-257, efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25,
     pato-2026-10-01, uberon-2026-11-05'
   date: 2026-11-24
 passages:
@@ -158,6 +158,7 @@ shared:
     p: 0.9
   development_stage:
     text: adult
+    term: MmusDv:0000110
     inferred: 21-week-old mice are adult
     see:
     - 9

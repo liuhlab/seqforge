@@ -7,8 +7,8 @@ read:
 - records
 read_detail: The records of GSE142633 and their 13 sequenced samples; no paper.
 ontology_snapshot:
-  source: 'liulab-data ontology store: efo-3.96.0, mondo-2026-11-03, ncbitaxon-2026-11-25, pato-2026-10-01,
-    uberon-2026-11-05'
+  source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25,
+    pato-2026-10-01, uberon-2026-11-05'
   date: 2026-11-24
 passages:
   1:
@@ -128,6 +128,7 @@ shared:
     p: 0.98
   development_stage:
     text: adult
+    term: MmusDv:0000110
     quoted:
     - 2
     p: 0.6

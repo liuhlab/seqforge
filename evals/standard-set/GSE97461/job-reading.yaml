@@ -9,8 +9,8 @@ read:
 - full_text
 read_detail: The records of GSE97461 and their 19 sequenced samples; the full text of pmid:30485811.
 ontology_snapshot:
-  source: 'liulab-data ontology store: cellosaurus-57.0, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01,
-    uberon-2026-11-05'
+  source: 'liulab-data ontology store: cellosaurus-57.0, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
+    pato-2026-10-01, uberon-2026-11-05'
   date: 2026-11-24
 passages:
   1:
@@ -284,6 +284,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -353,6 +354,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -422,6 +424,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -491,6 +494,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -560,6 +564,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -629,6 +634,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -698,6 +704,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -767,6 +774,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -836,6 +844,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -905,6 +914,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -974,6 +984,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -1043,6 +1054,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -1112,6 +1124,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -1181,6 +1194,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -1250,6 +1264,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11
@@ -1319,6 +1334,7 @@ samples:
       p: 1.0
     development_stage:
       text: adult
+      term: MmusDv:0000110
       inferred: 42-day and 2-year mice are adult
       see:
       - 11

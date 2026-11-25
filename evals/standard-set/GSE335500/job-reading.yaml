@@ -9,7 +9,7 @@ read:
 - full_text
 read_detail: The records of GSE335500 and their 12 sequenced samples; the full text of pmid:42570239.
 ontology_snapshot:
-  source: 'liulab-data ontology store: efo-3.96.0, mondo-2026-11-03, ncbitaxon-2026-11-25'
+  source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25'
   date: 2026-11-24
 passages:
   1:
@@ -167,6 +167,7 @@ shared:
     p: 1.0
   development_stage:
     text: adult
+    term: MmusDv:0000110
     inferred: mice aged five to six months before harvest
     see:
     - 7

@@ -9,8 +9,8 @@ read:
 - full_text
 read_detail: The records of GSE222631 and their 24 sequenced samples; the full text of pmid:37771191.
 ontology_snapshot:
-  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01,
-    uberon-2026-11-05'
+  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
+    pato-2026-10-01, uberon-2026-11-05'
   date: 2026-11-24
 passages:
   1:
@@ -162,6 +162,7 @@ shared:
     p: 1.0
   development_stage:
     text: adult
+    term: MmusDv:0000110
     quoted:
     - 2
     p: 0.99

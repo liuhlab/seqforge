@@ -9,7 +9,8 @@ read:
 - full_text
 read_detail: The records of GSE101112 and their 32 sequenced samples; the full text of pmid:31742554.
 ontology_snapshot:
-  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01'
+  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
+    pato-2026-10-01'
   date: 2026-11-24
 passages:
   1:
@@ -320,6 +321,7 @@ samples:
       p: 0.72
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.98
@@ -386,6 +388,7 @@ samples:
       p: 0.8
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.98
@@ -452,6 +455,7 @@ samples:
       p: 0.7
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -518,6 +522,7 @@ samples:
       p: 0.76
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.98
@@ -584,6 +589,7 @@ samples:
       p: 0.8
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.98
@@ -650,6 +656,7 @@ samples:
       p: 0.6
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.99
@@ -711,6 +718,7 @@ samples:
       p: 0.52
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -777,6 +785,7 @@ samples:
       p: 0.64
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.99
@@ -843,6 +852,7 @@ samples:
       p: 0.62
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -909,6 +919,7 @@ samples:
       p: 0.61
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.99
@@ -975,6 +986,7 @@ samples:
       p: 0.64
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -1041,6 +1053,7 @@ samples:
       p: 0.66
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -1115,6 +1128,7 @@ samples:
       p: 0.62
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -1189,6 +1203,7 @@ samples:
       p: 0.72
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.99
@@ -1263,6 +1278,7 @@ samples:
       p: 0.65
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -1337,6 +1353,7 @@ samples:
       p: 0.63
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.99
@@ -1411,6 +1428,7 @@ samples:
       p: 0.69
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.99
@@ -1485,6 +1503,7 @@ samples:
       p: 0.68
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -1560,6 +1579,7 @@ samples:
       p: 0.68
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -1635,6 +1655,7 @@ samples:
       p: 0.68
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
@@ -1710,6 +1731,7 @@ samples:
       p: 0.58
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.99
@@ -1785,6 +1807,7 @@ samples:
       p: 0.66
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 0.99
@@ -1860,6 +1883,7 @@ samples:
       p: 0.71
     development_stage:
       text: adult
+      term: MmusDv:0000110
       quoted:
       - 12
       p: 1.0
