@@ -370,24 +370,26 @@ def extract_drafts(
     return extract_batch([doc], specs, seam=seam, fields=fields, max_tokens=max_tokens)[0]
 
 
-def _reply_json(text: str) -> Any:
-    """The JSON the reply is, or else the object that opens at its first brace.
+#: A Markdown code fence and what it holds, its language tag dropped.
+_FENCE = re.compile(r"```[A-Za-z]*\s*(.*?)\s*```", re.DOTALL)
 
-    Prose or a code fence around that object is read past; when the brace opens no whole object, the
-    error of reading the whole reply is raised. A model that thinks is sent no schema, so only the
-    prompt keeps a fence or a line of prose off its JSON. Only the first brace is tried, so a reply
-    cut off mid-object still fails as not JSON rather than yielding one of its drafts.
+
+def _reply_json(text: str) -> Any:
+    """The JSON the reply is, or else the JSON its one code fence holds.
+
+    A model that thinks is sent no schema, so only the prompt keeps it from fencing its JSON among
+    prose. One fence is unambiguous. With none or several, the whole reply's error stands: a reply
+    cut off before its fence closes, or one that fences an example beside its answer, fails as not
+    JSON rather than having one object picked out of it. The Transcript keeps the reply verbatim,
+    so how often a model fences is a grep away.
     """
     try:
         return json.loads(text)
-    except ValueError as whole:
-        start = text.find("{")
-        if start < 0:
+    except ValueError:
+        fences = _FENCE.findall(text)
+        if len(fences) != 1:
             raise
-        try:
-            return json.JSONDecoder().raw_decode(text, start)[0]
-        except ValueError:
-            raise whole from None
+    return json.loads(fences[0])
 
 
 def _parsed_drafts(text: str, provider_name: str) -> list[Any]:

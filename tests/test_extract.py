@@ -165,15 +165,15 @@ def test_prompt_names_only_permitted_fields() -> None:
         ),
     ],
 )
-def test_extract_keeps_the_document_out_of_the_cached_prefix(
+def test_a_request_keeps_the_document_out_of_the_prefix_and_the_schema_from_a_thinking_model(
     provider: str | None, name: str | None, sends_schema: bool, tmp_path: Path
 ) -> None:
     """The document rides in the volatile half, and the request travels under the wire schema derived
     from ``AssertionDraft`` rather than a second, hand-maintained copy that could drift from it.
 
-    Except from a model that thinks: the gateway sends a DeepSeek schema as a strict function call,
-    which DeepSeek takes only with thinking off, so the default model is sent the schema in its
-    prompt alone. A model that does not think keeps its provider's strict output."""
+    Except from a model that thinks, which is sent the schema in its prompt alone
+    (:meth:`ModelSeam.complete_json` says why). A model that does not think keeps its provider's
+    strict output."""
     fake, seam = _answering(harvest_kit.NOTHING, model=harvest_model(provider, name))
     extract_drafts(_doc(tmp_path), kb.load_all_specs(), seam=seam)
     (sent,) = _sent(fake)
@@ -259,10 +259,10 @@ def test_a_bare_array_or_a_fenced_object_is_the_same_batch_under_a_different_env
     `AssertionDraft.model_validate` alone, so refusing the document over the absent key would
     discard a whole document's worth of valid extraction for one missing token — the same defect
     `test_extract_drops_one_malformed_draft_and_keeps_the_rest` closed one layer down, and measurably
-    live on the weaker json-object models (#190). The fence is the default model's to add: it thinks,
-    so it is sent no schema, and nothing but the prompt holds its reply to bare JSON. Unwrapping
-    changes the envelope and nothing else: the per-draft gate is still the gate, and `[]` is still
-    the common, correct answer that an envelope may not turn into a lost document.
+    live on the weaker json-object models (#190). The fence is the default model's to add, since it
+    is sent no schema. Unwrapping changes the envelope and nothing else: the per-draft gate is still
+    the gate, and `[]` is still the common, correct answer that an envelope may not turn into a lost
+    document.
     """
     doc = _doc(tmp_path)
     wrapped = extract_drafts(
@@ -1314,6 +1314,10 @@ def test_a_draft_for_a_document_the_request_never_carried_refuses_the_whole_batc
 _BATCH_FAILURES = [
     pytest.param("not json at all", id="an-unusable-envelope"),
     pytest.param(json.dumps({"notes": []}), id="an-envelope-with-no-drafts"),
+    pytest.param(
+        f"An example:\n```json\n{harvest_kit.NOTHING}\n```\nMy answer:\n```json\n{harvest_kit.NOTHING}\n```",
+        id="an-example-fenced-beside-the-answer",
+    ),
 ]
 
 

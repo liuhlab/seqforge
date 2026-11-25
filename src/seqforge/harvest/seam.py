@@ -201,11 +201,11 @@ class ModelSeam:
     def complete_json(
         self, *, system: str, user: str, schema: dict[str, Any], max_tokens: int, tag: str
     ) -> Reply:
-        """Send one request under ``schema``, tagged ``tag``, and return its reply.
+        """Send one request, under ``schema`` unless the model thinks, tagged ``tag``; return its reply.
 
-        A model that thinks is sent no schema: the gateway sends a DeepSeek schema as a strict
-        function call, which DeepSeek takes only with thinking off. The schema still travels in the
-        prompt, and extraction validates the reply whether or not a provider held it to one.
+        A model that thinks is sent no schema: thinking is a DeepSeek setting, and the gateway sends
+        a DeepSeek schema as a strict function call, which DeepSeek takes only with thinking off.
+        The schema still travels in the prompt, and extraction validates the reply either way.
 
         Raises liulab-llms's ``Stopped`` (after stopping the meter) or ``Rejected``.
         """

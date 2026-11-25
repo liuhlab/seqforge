@@ -43,9 +43,8 @@ def fake(
 ) -> FakeGateway:
     """A fake gateway with ``provider`` playing the provider, under the real gateway's DeepSeek rule.
 
-    The gateway sends a DeepSeek schema as a strict function call, which DeepSeek takes only with
-    thinking off, so it refuses a request with both before any paid call. liulab-llms's fake does
-    not copy a provider's mapping, so harvest's fake keeps the rule itself.
+    The real gateway refuses a DeepSeek request with both thinking on and a schema before any paid
+    call. liulab-llms's fake does not copy a provider's mapping, so harvest's keeps the rule itself.
     """
     answer = provider or answering()
 
