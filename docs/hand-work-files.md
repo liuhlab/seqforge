@@ -25,7 +25,7 @@ checked any of them.
 All files are under `evals/standard-set/` in the
 [seqforge repository](https://github.com/liuhlab/seqforge/tree/main/evals/standard-set). `<ID>` is
 the Series that a study was picked by, and it is also the name of the study's folder. The counts
-were measured on 2026-11-19.
+were measured on 2026-11-24.
 
 | File | Path | Count | Made by | Format |
 | --- | --- | --- | --- | --- |
@@ -33,6 +33,7 @@ were measured on 2026-11-19.
 | The study file | `<ID>/study.yaml` | 50 | The `judge` command | [On this page](#studyyaml-the-facts-about-one-pick) |
 | The bounds | `<ID>/bounds.yaml` | 50 | Code, from the two models' answers | [The bounds file](formats/bounds.md) |
 | The job's bounds | `<ID>/job-bounds.yaml` | 50 | The bounding job, `typesafe/jev-1.14.0`, 2026-11-21 | [The bounds file](formats/bounds.md) |
+| The job's reading | `<ID>/job-reading.yaml` | 50 | The reading job, `deepseek/deepseek-flash` and `typesafe/jev-1.14.0`, 2026-11-24 | [The reading file](formats/reading.md) |
 | The draft | `<ID>/draft.yaml` | 50 | `deepseek/deepseek-v4-flash` | [On this page](#draftyaml-what-the-small-model-answered) |
 | The verdict | `<ID>/verdict.yaml` | 50 | `claude-fable-5-2` | [On this page](#verdictyaml-what-the-judge-answered) |
 | The reading | `<ID>/reading.yaml` | 5 | `claude-fable-5-2` | [The reading file](formats/reading.md) |
@@ -40,8 +41,8 @@ were measured on 2026-11-19.
 | The reading's notes | `<ID>/reading.notes.md` | 5 | The model that wrote the reading | Markdown text |
 | A person's answers | none yet | 0 | Nobody yet | [The rule](#answers-a-person-gave-while-checking) |
 
-That is 266 files: the pick, five files for each of the 50 studies, and three more for each of the
-five studies that have a reading. The folder also holds a `README.md`, which describes the
+That is 316 files: the pick, six files for each of the 50 studies, and three more for each of the
+five studies that have a worked reading. The folder also holds a `README.md`, which describes the
 commands.
 
 This snippet counts the files again. Run it, and every other snippet on this page, from the root
@@ -391,7 +392,8 @@ seqforge study check-reading evals/standard-set/<ID>/reading.yaml
 ```
 
 All 50 bounds files pass their check (measured on 2026-11-19), and all five readings pass theirs
-(measured on 2026-11-21).
+(measured on 2026-11-21). All 50 `job-reading.yaml` files pass the reading check (measured on
+2026-11-24).
 
 The other files have no format number, and their fields are the ones this page lists. The drafts
 and the verdicts are kept as the models wrote them, so they hold fields from before the bounds

@@ -231,5 +231,5 @@ to a person.
 
 ## Files that exist today
 
-[Files from the hand work](hand-work-files.md) lists every bounds file, worked reading and
-verdict made so far, with where each is, its format and who made it.
+[Files from the hand work](hand-work-files.md) lists every bounds file, reading and verdict made
+so far, with where each is, its format and who made it.
