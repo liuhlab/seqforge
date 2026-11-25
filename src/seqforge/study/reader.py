@@ -80,7 +80,7 @@ from .reading import FORMAT, check_reading
 
 KIND_NAME = "study-reading"
 #: Raise it when an instruction, a question, a guide or a rule of writing the reading changes.
-KIND_VERSION = "2026.11.2"
+KIND_VERSION = "2026.11.3"
 #: The roles, and the models that fill them unless a pass names others.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
 WRITER = Model("deepseek", "deepseek-flash", thinking=True, max_output_tokens=40000)
@@ -190,17 +190,17 @@ def _r(p: float | None) -> float | None:
 
 
 def _write_lists(u: Unit, user: str, system: str) -> tuple[Lists, int]:
-    """The writer's lists, and how many answers it took. A second broken answer refuses the unit."""
-    reply = u.chat(WRITER_ROLE, system=system, user=user, schema={"type": "object"})
+    """The writer's lists, and how many answers it took. A second broken answer refuses the unit.
+
+    No schema is sent: the gateway sends a DeepSeek schema as a strict function call, which needs
+    thinking off, and the writer thinks. :func:`.lists.parse_lists` takes the object out of the
+    reply's text.
+    """
+    reply = u.chat(WRITER_ROLE, system=system, user=user)
     lists, broken = parse_lists(reply.text)
     if lists is not None:
         return lists, 1
-    again = u.chat(
-        WRITER_ROLE,
-        system=system,
-        user=user + RETRY.format(reason=broken),
-        schema={"type": "object"},
-    )
+    again = u.chat(WRITER_ROLE, system=system, user=user + RETRY.format(reason=broken))
     lists, still = parse_lists(again.text)
     if lists is None:
         u.refuse("writer_answer", f"the writer's answer could not be used twice: {still}")

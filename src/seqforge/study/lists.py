@@ -252,14 +252,34 @@ def snake(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
+def _json_object(text: str) -> object:
+    """The JSON the text is, or else the first JSON object in it, read from its opening brace.
+
+    Raises the error of reading the whole text when no brace opens an object.
+    """
+    try:
+        return json.loads(text)
+    except ValueError as whole:
+        decoder = json.JSONDecoder()
+        for at in (m.start() for m in re.finditer(r"\{", text)):
+            try:
+                data, _ = decoder.raw_decode(text, at)
+            except ValueError:
+                continue
+            if isinstance(data, dict):
+                return data
+        raise whole
+
+
 def parse_lists(text: str) -> tuple[Lists | None, str | None]:
     """The writer's answer as lists, or ``None`` and why it cannot be used.
 
-    An answer is broken when it is not one JSON object, does not have the shape the instructions
-    give, or names one level of a factor twice.
+    The writer answers in text, with no schema, so the object is taken out of it: a code fence or
+    prose around it is no fault. An answer is broken when it holds no JSON object, does not have
+    the shape the instructions give, or names one level of a factor twice.
     """
     try:
-        data = json.loads(text)
+        data = _json_object(text)
     except (TypeError, ValueError) as exc:
         return None, f"not JSON: {exc}"
     if not isinstance(data, dict):

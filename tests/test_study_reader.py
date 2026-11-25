@@ -20,6 +20,7 @@ import pytest
 import yaml
 from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
 from labdata.store.model import Link, Record
+from labllm import Rejected
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
@@ -350,12 +351,18 @@ TRUTH = {
 
 
 def _writer(form: dict[str, Any]) -> str:
+    # The gateway's rule, which its fake does not keep: a DeepSeek schema is a strict function
+    # call, and a strict function call with thinking on is refused before any paid call.
+    if form["provider"] == "deepseek" and form["settings"]["thinking"] and form.get("schema"):
+        raise Rejected("DeepSeek strict function calls need thinking off")
     user = form["messages"][-1]["content"]
     study = re.search(r"=== GEO Series (GSE\d+) ===", user)
     assert study is not None
     key = study.group(1)
     if key == "GSE30" or (key == "GSE40" and "could not be used" not in user):
         return "{the writer's answer, cut off"
+    if key == "GSE10":
+        return f"Here are the lists {{as asked}}:\n```json\n{json.dumps(LISTS[key])}\n```\nDone."
     return json.dumps(LISTS[key])
 
 
@@ -568,7 +575,9 @@ def test_a_broken_writer_answer_is_asked_for_once_more_and_a_second_refuses(
     read: tuple[Path, dict[str, Any], FakeGateway],
 ) -> None:
     """GSE40's first answer is cut off and its second is whole: it is read. GSE30's writer is cut
-    off twice: the study is refused with the reason, and no file is written."""
+    off twice: the study is refused with the reason, and no file is written. The writer thinks and
+    sends no schema, which the gateway refuses for DeepSeek with thinking on, so its object is
+    taken out of the reply's text: GSE10's, in a code fence among prose, is read the first time."""
     set_dir, said, fake = read
     asked = [_first_id(f["messages"][-1]["content"]) for f in _sent(fake) if f["route"] == "chat"]
 
