@@ -1315,8 +1315,8 @@ _BATCH_FAILURES = [
     pytest.param("not json at all", id="an-unusable-envelope"),
     pytest.param(json.dumps({"notes": []}), id="an-envelope-with-no-drafts"),
     pytest.param(
-        f"An example:\n```json\n{harvest_kit.NOTHING}\n```\nMy answer:\n```json\n{harvest_kit.NOTHING}\n```",
-        id="an-example-fenced-beside-the-answer",
+        f"An example:\n```json\n{harvest_kit.NOTHING}\n```\nMy answer:\n```json\n" + '{"drafts": [',
+        id="an-example-fenced-beside-an-answer-cut-off",
     ),
 ]
 

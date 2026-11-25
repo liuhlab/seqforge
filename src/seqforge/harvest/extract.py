@@ -370,26 +370,23 @@ def extract_drafts(
     return extract_batch([doc], specs, seam=seam, fields=fields, max_tokens=max_tokens)[0]
 
 
-#: A Markdown code fence and what it holds, its language tag dropped.
-_FENCE = re.compile(r"```[A-Za-z]*\s*(.*?)\s*```", re.DOTALL)
-
-
 def _reply_json(text: str) -> Any:
     """The JSON the reply is, or else the JSON its one code fence holds.
 
     A model that thinks is sent no schema, so only the prompt keeps it from fencing its JSON among
-    prose. One fence is unambiguous. With none or several, the whole reply's error stands: a reply
-    cut off before its fence closes, or one that fences an example beside its answer, fails as not
-    JSON rather than having one object picked out of it. The Transcript keeps the reply verbatim,
-    so how often a model fences is a grep away.
+    prose. One fence, opened and closed, is unambiguous. With any other count of fence markers the
+    whole reply's error stands: a reply cut off inside a fence, or one that fences an example
+    beside its answer, fails as not JSON rather than having one object picked out of it. The
+    Transcript keeps the reply verbatim, so how often a model fences is a grep away.
     """
     try:
         return json.loads(text)
     except ValueError:
-        fences = _FENCE.findall(text)
-        if len(fences) != 1:
+        parts = text.split("```")
+        if len(parts) != 3:
             raise
-    return json.loads(fences[0])
+    _language, _, fenced = parts[1].partition("\n")
+    return json.loads(fenced)
 
 
 def _parsed_drafts(text: str, provider_name: str) -> list[Any]:
