@@ -688,10 +688,15 @@ def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
     assert fake.record == []
 
 
-def test_the_store_search_pins_its_snapshots_on_the_utc_day(tmp_path: Path) -> None:
+def test_the_store_search_pins_its_snapshots_on_the_utc_day_and_a_units_tag_names_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The store's snapshots are named by UTC day, so the day a reading says they were pinned is
-    the UTC day too, wherever the pass runs: here in a zone whose own date is another day."""
-    store = build_tiny_store(tmp_path, VOCABULARIES)
+    the UTC day too, wherever the pass runs: here in a zone whose own date is another day.
+
+    A store update changes no record yet can change a reading's terms, so a unit's inputs tag
+    names every snapshot the search pinned: a review of the old reading stops holding."""
+    store = build_tiny_store(tmp_path / "store", VOCABULARIES)
     utc = dt.datetime.now(dt.UTC)
     # Twelve hours behind UTC is yesterday before noon UTC; fourteen ahead is tomorrow after it.
     zone = "Etc/GMT+12" if utc.hour < 12 else "Etc/GMT-14"
@@ -707,3 +712,22 @@ def test_the_store_search_pins_its_snapshots_on_the_utc_day(tmp_path: Path) -> N
     search.close()
 
     assert search.date == utc.date()
+
+    set_dir = tmp_path / "set"
+    (set_dir / "GSE10").mkdir(parents=True)
+    bounds = {"study": "GSE10", "series": [{"id": "GSE10"}], "papers": []}
+    (set_dir / "GSE10" / "bounds.yaml").write_text(yaml.safe_dump(bounds))
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(store))
+
+    def tag() -> str:
+        pinned = StoreSearch()
+        try:
+            kind = reader.reading_kind(Store(), None, set_dir=set_dir, search=pinned)
+            return kind.load("GSE10").tag
+        finally:
+            pinned.close()
+
+    before, again = tag(), tag()
+    # One vocabulary gets a new release; every other snapshot, and every record, stays.
+    build_tiny_store(store, [SnapshotData("efo", "3.97.0", [SourceTerm("EFO:0008896", "RNA-seq")])])
+    assert before == again != tag()

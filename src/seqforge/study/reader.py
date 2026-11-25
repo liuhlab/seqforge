@@ -1180,7 +1180,10 @@ def reading_kind(
             raise Held(f"the store does not hold {', '.join(missing)}")
         guides = guides_for(src.library_strategies(sources))
         text = src.records_text(sources) + "\n\n" + src.papers_text(sources, full=True)
-        tag = hashlib.sha256("\n".join([text, *guides]).encode()).hexdigest()[:16]
+        # A store update can change a reading's terms with no record changed, so the tag names
+        # every snapshot pinned: which ones a study will search is not known until it is read.
+        identity = "\n".join([text, *guides, *search.snapshots])
+        tag = hashlib.sha256(identity.encode()).hexdigest()[:16]
         return Inputs({"sources": sources, "guides": guides, "writer_text": text}, tag=tag)
 
     return UnitKind(

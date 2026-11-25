@@ -70,10 +70,12 @@ class Named:
 class OntologySearch(Protocol):
     """Looks up a label's short text in one vocabulary, and a term by its id.
 
-    ``date`` is the day the snapshots it answers from were pinned.
+    ``date`` is the day the snapshots it answers from were pinned, and ``snapshots`` their names,
+    sorted: every vocabulary's, searched or not.
     """
 
     date: datetime.date
+    snapshots: tuple[str, ...]
 
     def search(self, text: str, vocabulary: str) -> Found:
         """Up to :data:`MOST_CANDIDATES` candidates for ``text``, whole-text matches first."""
@@ -106,6 +108,7 @@ class StoreSearch:
         except BaseException:
             self._owner.shutdown()
             raise
+        self.snapshots = tuple(sorted(self._store.snapshots.values()))
 
     def search(self, text: str, vocabulary: str) -> Found:
         """Up to :data:`MOST_CANDIDATES` candidates; none, and no snapshot, for an unheld vocabulary."""
