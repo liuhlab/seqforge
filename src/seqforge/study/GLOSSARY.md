@@ -24,6 +24,11 @@ The fixed list of 50 small GEO studies that work on reading studies is built and
 list, shared by every later stage.
 _Avoid_: benchmark, test set, gold set, corpus
 
+**Study folder**:
+The folder that holds one study's files, named by the study's id. A job reads and writes a folder
+of them, and the standard set is one.
+_Avoid_: workspace (the compiler's state folder), output folder, study directory
+
 **Claim**:
 One statement in a study file, with how it is backed (quoted, inferred or unknown) and its
 probability.
@@ -42,6 +47,16 @@ _Avoid_: annotation, curation, sample metadata
 A label the study varied on purpose between its samples, such as a treatment or an age, with the
 levels it took and the level the others are compared with.
 _Avoid_: variable, condition, covariate
+
+**Job**:
+One step of the study chain that models do for each study: a unit kind, and the command that writes
+its answers as files. There are two, bounding and reading.
+_Avoid_: pass (one run of a job's unit kind over some studies), stage, step
+
+**Closed question**:
+A question with a fixed set of answers, yes or no or one of a list, which the model Jev answers
+with a probability.
+_Avoid_: Question (the shared word for an ambiguity put to a person), prompt, query
 
 **Assay guide**:
 A short text the reader adds to its instructions for a study of one kind of assay, written only
