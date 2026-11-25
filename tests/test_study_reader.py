@@ -167,6 +167,8 @@ VOCABULARIES = [
     ),
     # One text, two species: a mouse's intestine is UBERON's, a worm's is WBbt's.
     SnapshotData("wbbt", "2025-08-19", [SourceTerm("WBbt:0005772", "intestine")]),
+    # The mouse's adult stage is named neither "adult" nor "adult stage".
+    SnapshotData("mmusdv", "2025-01-23", [SourceTerm("MmusDv:0000110", "mature stage")]),
     SnapshotData("efo", "3.96.0", [SourceTerm("EFO:0008896", "RNA-seq")]),
     SnapshotData("pato", "2026-10-01", [SourceTerm("PATO:0000461", "normal")]),
     SnapshotData(
@@ -327,7 +329,13 @@ LISTS: dict[str, dict[str, Any]] = {
         "factors": [],
         "labels": {"strain": _values(*({"text": f"strain {n}"} for n in range(26)))},
     },
-    "GSE70": {"factors": [], "labels": {"tissue": _values({"text": "intestine"})}},
+    "GSE70": {
+        "factors": [],
+        "labels": {
+            "tissue": _values({"text": "intestine"}),
+            "development_stage": _values({"text": "adult"}),
+        },
+    },
 }
 
 #: Each sample's value texts, as Jev picks them; a label it has none of is na.
@@ -345,7 +353,7 @@ TRUTH = {
     "GSM51": frozenset({"vehicle", "brain"}),
     "GSM52": frozenset({"drug", "brain"}),
     "GSM61": frozenset({"strain 0"}),
-    "GSM71": frozenset({"intestine"}),
+    "GSM71": frozenset({"intestine", "adult"}),
     "GSM72": frozenset({"intestine"}),
 }
 
@@ -633,12 +641,14 @@ def test_a_term_is_looked_up_in_the_vocabulary_of_each_samples_species(
 ) -> None:
     """GSE70's mouse and worm both have the tissue "intestine". The mouse's term is UBERON's and
     the worm's is WBbt's: a term found for one species is never written for the other. The worm's
-    record names no organism, so its species is named from its taxonomy id."""
+    record names no organism, so its species is named from its taxonomy id. The mouse is adult,
+    and its stage is MmusDv's mature stage, the parent of its adult stages."""
     set_dir, _, _ = read
     reading = _reading(set_dir, "GSE70")
 
     assert _claim(reading, "GSM71", "tissue")["term"] == "UBERON:0000160"
     assert _claim(reading, "GSM72", "tissue")["term"] == "WBbt:0005772"
+    assert _claim(reading, "GSM71", "development_stage")["term"] == "MmusDv:0000110"
     assert _claim(reading, "GSM72", "species") == {
         "text": "Caenorhabditis elegans",
         "term": "NCBITaxon:6239",

@@ -80,7 +80,7 @@ from .reading import FORMAT, check_reading
 
 KIND_NAME = "study-reading"
 #: Raise it when an instruction, a question, a guide or a rule of writing the reading changes.
-KIND_VERSION = "2026.11.3"
+KIND_VERSION = "2026.11.4"
 #: The roles, and the models that fill them unless a pass names others.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
 WRITER = Model("deepseek", "deepseek-flash", thinking=True, max_output_tokens=40000)
@@ -102,7 +102,8 @@ HEALTHY = "PATO:0000461"
 #: The words ``sex`` takes as its term, which the format defines itself.
 SEX_WORDS = ("female", "male", "hermaphrodite", "mixed")
 #: The search names code looks the species' adult stage up by, the first whole-text match taken.
-ADULT_STAGE = ("adult stage", "adult")
+#: The mouse's is named neither: its adult stages share the parent mature stage.
+ADULT_STAGE = ("adult stage", "adult", "mature stage")
 #: The labels whose gap Jev is told about, when a label has no listed value.
 _NA_EXAMPLE = {
     "target": "an assay with no pull-down, or a control library",
