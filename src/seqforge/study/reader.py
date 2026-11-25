@@ -80,7 +80,7 @@ from .reading import FORMAT, check_reading
 
 KIND_NAME = "study-reading"
 #: Raise it when an instruction, a question, a guide or a rule of writing the reading changes.
-KIND_VERSION = "2026.11.1"
+KIND_VERSION = "2026.11.2"
 #: The roles, and the models that fill them unless a pass names others.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
 WRITER = Model("deepseek", "deepseek-flash", thinking=True, max_output_tokens=40000)
