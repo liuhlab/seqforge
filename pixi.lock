@@ -337,12 +337,12 @@ environments:
       - pypi: ./
       - pypi: git+https://github.com/liuhlab/liulab-data.git#6377bd229e8e13fb5419e56baa2a1a63bcbe1317
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
-      - pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/70/21/61dd2876bbaa69cf77d7b5c620e52e8b25faae7096f4d2e4a812b52095d7/duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/98/d6/33a411115b61dbfc16ad6ad73e71730f6fea654ee3667673bc53ab0e2fe7/pyarrow-25.0.1-cp313-cp313-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c4/ea/066ce356c5df3c2d42b72801f768d41bf691f58f6d2a90f6334fbed39785/pysam-0.24.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/f0/1e/e02fea18bc28aa481de50e6f1f306a319090caeec08a49e5b49751afec5d/fastobo-0.14.2-cp312-abi3-manylinux_2_28_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
       osx-64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -630,11 +630,11 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#6377bd229e8e13fb5419e56baa2a1a63bcbe1317
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/0c/6d/5466a2b53ddd557644dfa47a763f68748efccdf282e6ae7c4f1bcfb3da69/duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/36/a4/d6dc96557e53c45e8853cd86ddeaf9ae2907e6950cd876581e5a0d510c18/fastobo-0.14.2-cp312-abi3-macosx_12_0_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/86/79/2f5151ac001d8c74fb047036bfea9e4e897939e6587d3c4d512e46c450b1/pysam-0.24.0-cp313-cp313-macosx_10_13_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/d2/cd/5bac242f4e841b9971d5eb94fdfe2577e2b70be983e27401e72055786037/pyarrow-25.0.1-cp313-cp313-macosx_12_0_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
       osx-arm64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -920,12 +920,12 @@ environments:
       - pypi: ./
       - pypi: git+https://github.com/liuhlab/liulab-data.git#6377bd229e8e13fb5419e56baa2a1a63bcbe1317
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
-      - pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/44/71/26a251e1ad500831b7828d4063a16da9ea9efa12c4fb3f57839314b29c64/fastobo-0.14.2-cp312-abi3-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/cc/8d/8f271a7a034c834910ec925d56fa4b29733b1380f5289419f5aaa3b02777/pyarrow-25.0.1-cp313-cp313-macosx_12_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/d1/2c/fd59b47677a1df3efa64172dcd9b99fa7db437de8c663f08120ebd4db835/pysam-0.24.0-cp313-cp313-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/d4/a0/bf87071170835ee4a34fe764fc11c1c6e7040a0e021b36c1b6f834a4c22f/duckdb-1.5.6-cp313-cp313-macosx_11_0_arm64.whl
+      - pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
   dist:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
@@ -1422,12 +1422,12 @@ environments:
       - pypi: ./
       - pypi: git+https://github.com/liuhlab/liulab-data.git#6377bd229e8e13fb5419e56baa2a1a63bcbe1317
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
-      - pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/70/21/61dd2876bbaa69cf77d7b5c620e52e8b25faae7096f4d2e4a812b52095d7/duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/98/d6/33a411115b61dbfc16ad6ad73e71730f6fea654ee3667673bc53ab0e2fe7/pyarrow-25.0.1-cp313-cp313-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c4/ea/066ce356c5df3c2d42b72801f768d41bf691f58f6d2a90f6334fbed39785/pysam-0.24.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/f0/1e/e02fea18bc28aa481de50e6f1f306a319090caeec08a49e5b49751afec5d/fastobo-0.14.2-cp312-abi3-manylinux_2_28_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
       osx-64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -1689,11 +1689,11 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#6377bd229e8e13fb5419e56baa2a1a63bcbe1317
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/0c/6d/5466a2b53ddd557644dfa47a763f68748efccdf282e6ae7c4f1bcfb3da69/duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/36/a4/d6dc96557e53c45e8853cd86ddeaf9ae2907e6950cd876581e5a0d510c18/fastobo-0.14.2-cp312-abi3-macosx_12_0_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/86/79/2f5151ac001d8c74fb047036bfea9e4e897939e6587d3c4d512e46c450b1/pysam-0.24.0-cp313-cp313-macosx_10_13_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/d2/cd/5bac242f4e841b9971d5eb94fdfe2577e2b70be983e27401e72055786037/pyarrow-25.0.1-cp313-cp313-macosx_12_0_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
       osx-arm64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -1953,12 +1953,12 @@ environments:
       - pypi: ./
       - pypi: git+https://github.com/liuhlab/liulab-data.git#6377bd229e8e13fb5419e56baa2a1a63bcbe1317
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
-      - pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/44/71/26a251e1ad500831b7828d4063a16da9ea9efa12c4fb3f57839314b29c64/fastobo-0.14.2-cp312-abi3-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/cc/8d/8f271a7a034c834910ec925d56fa4b29733b1380f5289419f5aaa3b02777/pyarrow-25.0.1-cp313-cp313-macosx_12_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/d1/2c/fd59b47677a1df3efa64172dcd9b99fa7db437de8c663f08120ebd4db835/pysam-0.24.0-cp313-cp313-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/d4/a0/bf87071170835ee4a34fe764fc11c1c6e7040a0e021b36c1b6f834a4c22f/duckdb-1.5.6-cp313-cp313-macosx_11_0_arm64.whl
+      - pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
   test:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
@@ -2242,12 +2242,12 @@ environments:
       - pypi: ./
       - pypi: git+https://github.com/liuhlab/liulab-data.git#6377bd229e8e13fb5419e56baa2a1a63bcbe1317
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
-      - pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/59/a1/18fad0ca587eef5ba25a207db5f9730058365825bfdd1fc6650ab2b25609/py2bit-1.0.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/70/21/61dd2876bbaa69cf77d7b5c620e52e8b25faae7096f4d2e4a812b52095d7/duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/98/d6/33a411115b61dbfc16ad6ad73e71730f6fea654ee3667673bc53ab0e2fe7/pyarrow-25.0.1-cp313-cp313-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c4/ea/066ce356c5df3c2d42b72801f768d41bf691f58f6d2a90f6334fbed39785/pysam-0.24.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/f0/1e/e02fea18bc28aa481de50e6f1f306a319090caeec08a49e5b49751afec5d/fastobo-0.14.2-cp312-abi3-manylinux_2_28_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
       osx-64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -2498,11 +2498,11 @@ environments:
       - pypi: git+https://github.com/liuhlab/liulab-data.git#6377bd229e8e13fb5419e56baa2a1a63bcbe1317
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
       - pypi: https://files.pythonhosted.org/packages/0c/6d/5466a2b53ddd557644dfa47a763f68748efccdf282e6ae7c4f1bcfb3da69/duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/36/a4/d6dc96557e53c45e8853cd86ddeaf9ae2907e6950cd876581e5a0d510c18/fastobo-0.14.2-cp312-abi3-macosx_12_0_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/86/79/2f5151ac001d8c74fb047036bfea9e4e897939e6587d3c4d512e46c450b1/pysam-0.24.0-cp313-cp313-macosx_10_13_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/d2/cd/5bac242f4e841b9971d5eb94fdfe2577e2b70be983e27401e72055786037/pyarrow-25.0.1-cp313-cp313-macosx_12_0_x86_64.whl
+      - pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
       osx-arm64:
       - conda: https://conda.anaconda.org/bioconda/noarch/gffutils-0.14-pyh106432d_0.conda
       - conda: https://conda.anaconda.org/bioconda/noarch/pyfaidx-0.9.0.4-pyhdfd78af_0.conda
@@ -2751,12 +2751,12 @@ environments:
       - pypi: ./
       - pypi: git+https://github.com/liuhlab/liulab-data.git#6377bd229e8e13fb5419e56baa2a1a63bcbe1317
       - pypi: git+https://github.com/liuhlab/liulab-genome.git#b88e2c40e9a32d6b8cff02717d44a1e9483ea760
-      - pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/44/71/26a251e1ad500831b7828d4063a16da9ea9efa12c4fb3f57839314b29c64/fastobo-0.14.2-cp312-abi3-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/46/3b/9dedd2e35cebcd4eb3539514b5ac674fd45654404839e6f9eff6e25d67c7/py2bit-1.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/cc/8d/8f271a7a034c834910ec925d56fa4b29733b1380f5289419f5aaa3b02777/pyarrow-25.0.1-cp313-cp313-macosx_12_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/d1/2c/fd59b47677a1df3efa64172dcd9b99fa7db437de8c663f08120ebd4db835/pysam-0.24.0-cp313-cp313-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/d4/a0/bf87071170835ee4a34fe764fc11c1c6e7040a0e021b36c1b6f834a4c22f/duckdb-1.5.6-cp313-cp313-macosx_11_0_arm64.whl
+      - pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
   test-star:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
@@ -13952,18 +13952,6 @@ packages:
   - pyarrow ; extra == 'all'
   - adbc-driver-manager ; extra == 'all'
   requires_python: '>=3.10.0'
-- pypi: https://files.pythonhosted.org/packages/16/e4/aa85e456889d43705e40d58f52864676dd4a5a9b4c005b9f733a813862f4/liulab_llms-2026.11.4-py3-none-any.whl
-  name: liulab-llms
-  version: 2026.11.4
-  sha256: b4f4e56c23d54e48e064ca1ea8d4e288248a790e25347f9bd8e6d882b4754dbb
-  requires_dist:
-  - fastjsonschema>=2.21
-  - litellm==1.106.6 ; extra == 'gateway'
-  - openai ; extra == 'gateway'
-  - psycopg-pool>=3.2 ; extra == 'gateway'
-  - psycopg>=3.2 ; extra == 'gateway'
-  - typesafe-sdk>=0.7.5,<0.8 ; extra == 'gateway'
-  requires_python: '>=3.13'
 - pypi: https://files.pythonhosted.org/packages/36/a4/d6dc96557e53c45e8853cd86ddeaf9ae2907e6950cd876581e5a0d510c18/fastobo-0.14.2-cp312-abi3-macosx_12_0_x86_64.whl
   name: fastobo
   version: 0.14.2
@@ -14041,3 +14029,16 @@ packages:
   version: 0.14.2
   sha256: 7ab6a52b96cbc8677b5e3b963f72e0c87e1e241b1950c75777ecdeb3d8491c21
   requires_python: '>=3.9'
+- pypi: https://files.pythonhosted.org/packages/fc/e4/66d5557084059bfa6383367b4829208d8d2f1c7fa8c410feb1d41306fe0f/liulab_llms-2026.11.8-py3-none-any.whl
+  name: liulab-llms
+  version: 2026.11.8
+  sha256: df0e7ce27c21c23ea26df93a2bf73adabade20ebf4657aa59e38f9224b601fe4
+  requires_dist:
+  - fastjsonschema>=2.21
+  - litellm==1.106.6 ; extra == 'gateway'
+  - openai ; extra == 'gateway'
+  - psycopg-pool>=3.2 ; extra == 'gateway'
+  - psycopg>=3.2 ; extra == 'gateway'
+  - pypdf>=6 ; extra == 'gateway'
+  - typesafe-sdk>=0.7.5,<0.8 ; extra == 'gateway'
+  requires_python: '>=3.13'
