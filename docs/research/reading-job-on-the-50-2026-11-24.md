@@ -48,7 +48,8 @@ That is the 1,685 requests and 89 cache answers of the paid pass, so every quest
 before. The rerun took 30 seconds. Endings, quotes and searches are as below. The files differ from
 the paid run's only in the stage terms of 17 mouse studies and in the vocabularies those files
 name. The files were written once more from a third cached rerun, under kind version `2026.11.5`,
-so that each file's date is the UTC day the pass pinned its snapshots; it too paid $0.0000 and took
+so that each file's date is the UTC day the pass pinned its snapshots, the rerun's own 2026-11-25,
+which is why it differs from the paid run's local date; it too paid $0.0000 and took
 all 1,774 answers from the cache, and only that date changed. The cost and time below are the paid
 run's.
 

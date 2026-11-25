@@ -88,17 +88,18 @@ class StoreSearch:
     """liulab-data's ontology store, opened once and pinned until :meth:`close`.
 
     The store is found through ``LABDATA_ONTOLOGIES`` or its per-user pointer; liulab-data's own
-    error, which names the variable, is raised when none can be opened.
+    error, which names the variable, is raised when none can be opened. ``date`` is the UTC day it
+    was opened, because the store names its snapshots by UTC day.
 
     An open store answers only on the thread that opened it, and a pass reads several units at
     once on threads of its own, so one thread of this object's opens the store and asks it every
     question. Each search takes milliseconds, so the units queueing for it cost little.
     """
 
-    def __init__(self, today: datetime.date) -> None:
+    def __init__(self) -> None:
         from labdata.ontology import open_ontology_store
 
-        self.date = today
+        self.date = datetime.datetime.now(datetime.UTC).date()
         self._owner = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ontology-store")
         try:
             self._store: Any = self._owner.submit(open_ontology_store).result()

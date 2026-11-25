@@ -154,8 +154,8 @@ class Papers:
         return {p: paper(info, (_File("xml", Path("article.xml")),)) for p in pmids}
 
 
-#: The day the pass opens the ontology store, which pins its snapshots for the whole pass.
-OPENED = dt.date(2026, 11, 21)
+#: The ontology search the module's pass opened, which pins the store's snapshots for the pass.
+OPENED: list[StoreSearch] = []
 #: The ontology store: a few terms of each vocabulary the studies need. ChEBI is not held.
 VOCABULARIES = [
     SnapshotData(
@@ -428,11 +428,10 @@ def read(
         (set_dir / key / "bounds.yaml").write_text(yaml.safe_dump(bounds))
     (set_dir / "GSE10" / "reading.yaml").write_text("the standard set's own\n")
     ontologies = build_tiny_store(here / "ontologies", VOCABULARIES)
-    opened = []
 
     def build(store: Any) -> Any:
-        opened.append(StoreSearch(OPENED))
-        return reader.reading_kind(Store(), Papers(), set_dir=set_dir, search=opened[-1])
+        OPENED.append(StoreSearch())
+        return reader.reading_kind(Store(), Papers(), set_dir=set_dir, search=OPENED[-1])
 
     kind = dataclasses.replace(reader.KIND, build=build, reads_store=False)
     fake = FakeGateway(
@@ -466,7 +465,7 @@ def read(
         written = runner.invoke(app, write)
         assert written.exit_code == 0, written.output
         yield set_dir, json.loads(written.stdout)["studies"], fake
-    for search in opened:
+    for search in OPENED:
         search.close()
 
 
@@ -557,7 +556,7 @@ def test_a_claim_is_quoted_only_from_a_passage_code_found_and_terms_come_from_a_
     assert reading["ontology_snapshot"] == {
         "source": "liulab-data ontology store: ncbitaxon-2026-11-22, pato-2026-10-01, "
         "uberon-2026-11-05",
-        "date": OPENED,
+        "date": OPENED[-1].date,
     }
 
 
@@ -576,7 +575,7 @@ def test_a_study_whose_two_askings_disagree_is_unsettled_and_still_written(
     assert reading["factors"]["treatment"]["baseline"] == "vehicle"
     assert reading["ontology_snapshot"] == {
         "source": "liulab-data ontology store: ncbitaxon-2026-11-22",
-        "date": OPENED,
+        "date": OPENED[-1].date,
     }
 
 
@@ -689,26 +688,22 @@ def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
     assert fake.record == []
 
 
-def test_the_pass_pins_its_snapshots_on_the_utc_day(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_the_store_search_pins_its_snapshots_on_the_utc_day(tmp_path: Path) -> None:
     """The store's snapshots are named by UTC day, so the day a reading says they were pinned is
     the UTC day too, wherever the pass runs: here in a zone whose own date is another day."""
+    store = build_tiny_store(tmp_path, VOCABULARIES)
     utc = dt.datetime.now(dt.UTC)
     # Twelve hours behind UTC is yesterday before noon UTC; fourteen ahead is tomorrow after it.
     zone = "Etc/GMT+12" if utc.hour < 12 else "Etc/GMT-14"
-    built: list[Any] = []
-    monkeypatch.setattr(reader, "paper_reader", lambda: None)
-    monkeypatch.setattr(reader, "reading_kind", lambda *a, search, **k: built.append(search))
-    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(build_tiny_store(tmp_path, VOCABULARIES)))
     try:
         with pytest.MonkeyPatch.context() as clock:
             clock.setenv("TZ", zone)
+            clock.setenv("LABDATA_ONTOLOGIES", str(store))
             time.tzset()
             assert dt.date.today() != utc.date()
-            reader.KIND.build(None)
+            search = StoreSearch()
     finally:
         time.tzset()
+    search.close()
 
-    built[0].close()
-    assert built[0].date == utc.date()
+    assert search.date == utc.date()

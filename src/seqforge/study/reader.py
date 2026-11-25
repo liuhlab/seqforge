@@ -1208,8 +1208,7 @@ def _build(store: Any) -> UnitKind:
     from labdata.exceptions import NotAStoreError, OntologyError, StoreNotConfiguredError
 
     try:
-        # The store names its snapshots by UTC day, so the day they are pinned is one too.
-        search = StoreSearch(datetime.datetime.now(datetime.UTC).date())
+        search = StoreSearch()
     except (StoreNotConfiguredError, NotAStoreError, OntologyError) as exc:
         raise SetupRefused(
             f"kind {KIND_NAME!r} searches liulab-data's ontology store: {exc}"
