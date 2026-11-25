@@ -42,8 +42,9 @@ def harvest_model(provider: str | None = None, name: str | None = None) -> Model
     """``--provider`` and ``--model`` -> the model harvest calls. Raises ``ValueError`` on a gap.
 
     DeepSeek is called with thinking on at high effort, its documented default, sent explicitly so
-    the setting is in the gateway's cache key and the Transcript. Any other provider takes its own
-    defaults, and must be given ``--model``: harvest knows no other provider's model names.
+    the setting is in the gateway's cache key and the Transcript; thinking on, it is sent no schema
+    (:meth:`ModelSeam.complete_json`). Any other provider takes its own defaults, and must be given
+    ``--model``: harvest knows no other provider's model names.
     """
     from labllm import Model
 
@@ -202,10 +203,15 @@ class ModelSeam:
     ) -> Reply:
         """Send one request under ``schema``, tagged ``tag``, and return its reply.
 
+        A model that thinks is sent no schema: the gateway sends a DeepSeek schema as a strict
+        function call, which DeepSeek takes only with thinking off. The schema still travels in the
+        prompt, and extraction validates the reply whether or not a provider held it to one.
+
         Raises liulab-llms's ``Stopped`` (after stopping the meter) or ``Rejected``.
         """
         from labllm import CeilingReached, Stopped
 
+        sent_schema = None if self.model.thinking else schema
         model = replace(self.model, max_output_tokens=max_tokens)
         replicate = self.replicate
         mode = self.mode(max_tokens)
@@ -218,7 +224,7 @@ class ModelSeam:
                     model,
                     system=system,
                     user=user,
-                    schema=schema,
+                    schema=sent_schema,
                     tag=tag,
                     replicate=replicate,
                 )

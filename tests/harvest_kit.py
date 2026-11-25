@@ -1,7 +1,8 @@
 """Harvest's side of liulab-llms's fake gateway, for the tests of harvest, `run` and `eval run`.
 
 The fake plays the gateway by its rules (the cache, each meter's dollar ceiling, the record of every
-exchange) with a function the test supplies playing the provider. `install` puts it behind
+exchange) with a function the test supplies playing the provider. `fake` builds it with the one
+provider rule the real gateway keeps and its fake does not; `install` puts it behind
 :func:`seqforge.passes.gateway.make_gateway`, the one place a command builds its gateway client;
 `seam_over` opens a meter on it directly for the tests below the CLI.
 """
@@ -13,7 +14,7 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 import pytest
-from labllm import Model
+from labllm import Model, Rejected
 from labllm.testing import FakeGateway, Price
 
 from seqforge.harvest import DEEPSEEK_DEFAULT_MODEL, ModelSeam, harvest_model
@@ -35,6 +36,28 @@ def answering(text: str = NOTHING) -> Callable[[dict[str, Any]], str]:
     return lambda form: text
 
 
+def fake(
+    provider: Callable[[dict[str, Any]], Any] | None = None,
+    *,
+    prices: Mapping[str, Price] = PRICES,
+) -> FakeGateway:
+    """A fake gateway with ``provider`` playing the provider, under the real gateway's DeepSeek rule.
+
+    The gateway sends a DeepSeek schema as a strict function call, which DeepSeek takes only with
+    thinking off, so it refuses a request with both before any paid call. liulab-llms's fake does
+    not copy a provider's mapping, so harvest's fake keeps the rule itself.
+    """
+    answer = provider or answering()
+
+    def keeping_the_rule(form: dict[str, Any]) -> Any:
+        thinks = form["settings"]["thinking"] is True
+        if form["provider"] == "deepseek" and thinks and form.get("schema") is not None:
+            raise Rejected("DeepSeek strict function calls need thinking off")
+        return answer(form)
+
+    return FakeGateway(keeping_the_rule, prices=prices)
+
+
 def install(
     monkeypatch: pytest.MonkeyPatch,
     provider: Callable[[dict[str, Any]], Any] | None = None,
@@ -42,11 +65,11 @@ def install(
     prices: Mapping[str, Price] = PRICES,
 ) -> FakeGateway:
     """Put a fake gateway behind every command that builds a gateway client, and return it."""
-    fake = FakeGateway(provider or answering(), prices=prices)
+    gateway = fake(provider, prices=prices)
     monkeypatch.setattr(
-        "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
+        "seqforge.passes.gateway.make_gateway", lambda: gateway.client(repo="seqforge")
     )
-    return fake
+    return gateway
 
 
 def seam_over(
