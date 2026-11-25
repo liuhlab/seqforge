@@ -1744,6 +1744,9 @@ the issue's <code>url</code>, and <code>unfiled</code>, the number of units in t
 </tr>
 </tbody>
 </table>
+<p>For the <code>study-reading</code> kind, <code>review file</code> and <code>review read</code> also need liulab-data's ontology
+store, because they build the kind, and building it opens the store. A unit's inputs include the
+names of the store's snapshots, so a review made before a store update stops holding after it.</p>
 <h2 id="read-reviews-back">Read reviews back<a class="headerlink" href="#read-reviews-back" title="Permanent link">&para;</a></h2>
 <p>Once people have closed issues, read their answers back:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>seqforge<span class="w"> </span>review<span class="w"> </span><span class="nb">read</span><span class="w"> </span>&lt;kind&gt;

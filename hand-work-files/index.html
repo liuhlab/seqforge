@@ -1536,7 +1536,7 @@ checked any of them.</p>
 <p>All files are under <code>evals/standard-set/</code> in the
 <a href="https://github.com/liuhlab/seqforge/tree/main/evals/standard-set">seqforge repository</a>. <code>&lt;ID&gt;</code> is
 the Series that a study was picked by, and it is also the name of the study's folder. The counts
-were measured on 2026-11-19.</p>
+were measured on 2026-11-24.</p>
 <table>
 <thead>
 <tr>
@@ -1575,6 +1575,13 @@ were measured on 2026-11-19.</p>
 <td>50</td>
 <td>The bounding job, <code>typesafe/jev-1.14.0</code>, 2026-11-21</td>
 <td><a href="../formats/bounds/">The bounds file</a></td>
+</tr>
+<tr>
+<td>The job's reading</td>
+<td><code>&lt;ID&gt;/job-reading.yaml</code></td>
+<td>50</td>
+<td>The reading job, <code>deepseek/deepseek-flash</code> and <code>typesafe/jev-1.14.0</code>, 2026-11-24</td>
+<td><a href="../formats/reading/">The reading file</a></td>
 </tr>
 <tr>
 <td>The draft</td>
@@ -1620,8 +1627,8 @@ were measured on 2026-11-19.</p>
 </tr>
 </tbody>
 </table>
-<p>That is 266 files: the pick, five files for each of the 50 studies, and three more for each of the
-five studies that have a reading. The folder also holds a <code>README.md</code>, which describes the
+<p>That is 316 files: the pick, six files for each of the 50 studies, and three more for each of the
+five studies that have a worked reading. The folder also holds a <code>README.md</code>, which describes the
 commands.</p>
 <p>This snippet counts the files again. Run it, and every other snippet on this page, from the root
 of the repository. Each snippet needs Python 3 and PyYAML and nothing else.</p>
@@ -2199,7 +2206,8 @@ with it. The page does not promise that the content of a file stays the same.</p
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>check-reading<span class="w"> </span>evals/standard-set/&lt;ID&gt;/reading.yaml
 </code></pre></div>
 <p>All 50 bounds files pass their check (measured on 2026-11-19), and all five readings pass theirs
-(measured on 2026-11-21).</p>
+(measured on 2026-11-21). All 50 <code>job-reading.yaml</code> files pass the reading check (measured on
+2026-11-24).</p>
 <p>The other files have no format number, and their fields are the ones this page lists. The drafts
 and the verdicts are kept as the models wrote them, so they hold fields from before the bounds
 format:</p>
