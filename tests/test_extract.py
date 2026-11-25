@@ -8,8 +8,8 @@ concern (evals), not a unit-test one.
 
 Sending, retrying, caching and the dollar Ceiling are the gateway's, and liulab-llms tests them. What
 is tested here is harvest's side of the seam: what it asks, what it keeps of a reply, and that it never
-trusts a reply's shape. A json-object provider (DeepSeek) does not guarantee the shape, so the gate
-must hold whichever provider answered.
+trusts a reply's shape. DeepSeek thinks, so it is sent no schema and nothing holds its reply to a
+shape: the gate must hold whichever provider answered.
 """
 
 from __future__ import annotations
@@ -54,7 +54,7 @@ def _over(provider: Callable[[dict[str, Any]], Any], **seam: Any) -> tuple[FakeG
     The ceiling is ten dollars unless a test says otherwise, which no test here reaches by accident:
     the ceiling is the gateway's to enforce, and a test of it would be a test of liulab-llms.
     """
-    fake = FakeGateway(provider, prices=harvest_kit.PRICES)
+    fake = harvest_kit.fake(provider)
     return fake, harvest_kit.seam_over(fake, **{"ceiling_usd": 10.0, **seam})
 
 
@@ -119,8 +119,9 @@ def test_kb_context_is_deterministic_and_carries_aliases() -> None:
     assert once.index("10x-3p-gex-v2") < once.index("10x-3p-gex-v3") < once.index("splitseq")
 
 
-def test_system_prompt_satisfies_the_json_mode_contract() -> None:
-    """DeepSeek's json_object mode REQUIRES the word 'json' plus a format example in the prompt."""
+def test_system_prompt_carries_the_reply_contract() -> None:
+    """DeepSeek thinks and is sent no schema, so the prompt alone asks for JSON: it says 'json',
+    carries the schema, and shows a worked example."""
     prompt = build_system_prompt(kb.load_all_specs(), llm_schema())
     assert "json" in prompt.lower()
     assert "AssertionDraft" in prompt  # the schema travels in-prompt for non-strict providers
@@ -155,15 +156,30 @@ def test_prompt_names_only_permitted_fields() -> None:
     )
 
 
-def test_extract_keeps_the_document_out_of_the_cached_prefix(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("provider", "name", "sends_schema"),
+    [
+        pytest.param(None, None, False, id="deepseek-thinks-and-is-sent-none"),
+        pytest.param(
+            "anthropic", "claude-test-1", True, id="a-model-that-does-not-think-is-sent-it"
+        ),
+    ],
+)
+def test_a_request_keeps_the_document_out_of_the_prefix_and_the_schema_from_a_thinking_model(
+    provider: str | None, name: str | None, sends_schema: bool, tmp_path: Path
+) -> None:
     """The document rides in the volatile half, and the request travels under the wire schema derived
-    from ``AssertionDraft`` rather than a second, hand-maintained copy that could drift from it."""
-    fake, seam = _answering(harvest_kit.NOTHING)
+    from ``AssertionDraft`` rather than a second, hand-maintained copy that could drift from it.
+
+    Except from a model that thinks, which is sent the schema in its prompt alone
+    (:meth:`ModelSeam.complete_json` says why). A model that does not think keeps its provider's
+    strict output."""
+    fake, seam = _answering(harvest_kit.NOTHING, model=harvest_model(provider, name))
     extract_drafts(_doc(tmp_path), kb.load_all_specs(), seam=seam)
     (sent,) = _sent(fake)
     assert _TEXT not in _system(sent)  # volatile content must not poison the prefix
     assert _TEXT in _user(sent)
-    assert sent["schema"] == llm_schema()
+    assert sent.get("schema") == (llm_schema() if sends_schema else None)
 
 
 def test_the_request_says_which_document_it_is_about_and_says_it_readably(tmp_path: Path) -> None:
@@ -233,32 +249,37 @@ def test_extract_rejects_a_broken_top_level_shape_wholesale(tmp_path: Path) -> N
         pytest.param([], [], 0, id="a-document-that-supports-nothing"),
     ],
 )
-def test_a_bare_top_level_array_is_the_same_batch_under_a_different_envelope(
+def test_a_bare_array_or_a_fenced_object_is_the_same_batch_under_a_different_envelope(
     drafts: list[dict[str, Any]], values: list[str], n_rejected: int, tmp_path: Path
 ) -> None:
-    """A model that returns the drafts array without wrapping it has still returned the batch.
+    """A model that returns the drafts array without wrapping it has still returned the batch, and so
+    has one that wraps the object in a code fence among prose.
 
     The elements are byte-identical either way and each one still faces
     `AssertionDraft.model_validate` alone, so refusing the document over the absent key would
     discard a whole document's worth of valid extraction for one missing token — the same defect
     `test_extract_drops_one_malformed_draft_and_keeps_the_rest` closed one layer down, and measurably
-    live on the weaker json-object models (#190). Unwrapping changes the envelope and nothing else:
-    the per-draft gate is still the gate, and `[]` is still the common, correct answer that an
-    envelope may not turn into a lost document.
+    live on the weaker json-object models (#190). The fence is the default model's to add, since it
+    is sent no schema. Unwrapping changes the envelope and nothing else: the per-draft gate is still
+    the gate, and `[]` is still the common, correct answer that an envelope may not turn into a lost
+    document.
     """
     doc = _doc(tmp_path)
     wrapped = extract_drafts(
         doc, kb.load_all_specs(), seam=_answering(json.dumps({"drafts": drafts}))[1]
     )
     bare = extract_drafts(doc, kb.load_all_specs(), seam=_answering(json.dumps(drafts))[1])
+    fence = f"Here are the drafts:\n```json\n{json.dumps({'drafts': drafts})}\n```\nDone."
+    fenced = extract_drafts(doc, kb.load_all_specs(), seam=_answering(fence)[1])
 
-    assert [d.value for d in bare.drafts] == [d.value for d in wrapped.drafts] == values
-    assert len(bare.rejected) == len(wrapped.rejected) == n_rejected
-    assert bare.drafts == wrapped.drafts
-    assert bare.rejected == wrapped.rejected
-    assert bare.answered
+    for other in (bare, fenced):
+        assert [d.value for d in other.drafts] == [d.value for d in wrapped.drafts] == values
+        assert len(other.rejected) == len(wrapped.rejected) == n_rejected
+        assert other.drafts == wrapped.drafts
+        assert other.rejected == wrapped.rejected
+        assert other.answered
+        assert other.failure is None
     assert wrapped.answered
-    assert bare.failure is None
 
 
 @pytest.mark.parametrize(
@@ -1293,6 +1314,10 @@ def test_a_draft_for_a_document_the_request_never_carried_refuses_the_whole_batc
 _BATCH_FAILURES = [
     pytest.param("not json at all", id="an-unusable-envelope"),
     pytest.param(json.dumps({"notes": []}), id="an-envelope-with-no-drafts"),
+    pytest.param(
+        f"An example:\n```json\n{harvest_kit.NOTHING}\n```\nMy answer:\n```json\n" + '{"drafts": [',
+        id="an-example-fenced-beside-an-answer-cut-off",
+    ),
 ]
 
 

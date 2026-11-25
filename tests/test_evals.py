@@ -1100,14 +1100,13 @@ def _stub(drafts: list[dict[str, object]], poison: str | None = None) -> Gateway
     is the part worth copying: on `GSE234962` both aborts landed on `mmc2.txt`, a 1 KB supplementary
     table the model quotes rows of, so the failure keys on the RESPONSE a document provokes.
     """
-    from labllm.testing import FakeGateway
 
     def provider(form: dict[str, Any]) -> str:
         if poison is not None and poison in form["messages"][-1]["content"]:
             return "the model wandered off"
         return json.dumps({"drafts": drafts})
 
-    return FakeGateway(provider, prices=harvest_kit.PRICES).client(repo="seqforge")
+    return harvest_kit.fake(provider).client(repo="seqforge")
 
 
 def _draft(fieldname: str, value: str, quote: str) -> dict[str, object]:
@@ -4112,12 +4111,9 @@ def test_a_case_that_reaches_its_ceiling_is_blocked_not_graded() -> None:
 def test_the_default_ceiling_never_binds_and_the_report_says_what_a_case_spent() -> None:
     """A backstop is a number nothing normally touches; the default must not change any grade. And
     what the case did spend reaches the report, in dollars."""
-    from labllm.testing import FakeGateway
 
     drafts = [_draft("experiment.organism", "Caenorhabditis elegans", "Caenorhabditis elegans")]
-    fake = FakeGateway(
-        harvest_kit.answering(json.dumps({"drafts": drafts})), prices=harvest_kit.PRICES
-    )
+    fake = harvest_kit.fake(harvest_kit.answering(json.dumps({"drafts": drafts})))
     run = run_case(_trap_case(), llm=True, gateway=fake.client(repo="seqforge"))
     assert run.blocker is None
     assert run.skipped is None

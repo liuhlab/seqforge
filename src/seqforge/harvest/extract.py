@@ -11,8 +11,9 @@ Everything else in seqforge is a verifier. This module's entire job is to turn p
   both flags and fails closed.
 - **No trusted shape.** Whatever the model returns is validated against the canonical Pydantic
   model here. That is what makes the model swappable (the calls go through
-  :mod:`seqforge.harvest.seam`): strict-schema providers and json-object providers differ in how
-  *likely* a malformed batch is, never in whether one could reach the manifest.
+  :mod:`seqforge.harvest.seam`): a provider held to a strict schema and a model sent none (DeepSeek,
+  which thinks) differ in how *likely* a malformed batch is, never in whether one could reach the
+  manifest.
 
 The wire schema is derived from ``AssertionDraft`` — never hand-maintained — so the
 contract cannot drift from ``models/``.
@@ -234,10 +235,11 @@ def build_kb_context(specs: dict[str, Spec]) -> str:
 
 
 def schema_prompt(schema: dict[str, Any]) -> str:
-    """The json-mode contract: say 'json', show the schema, show an example (DeepSeek requires both).
+    """The reply's contract, in the prompt: say 'json', show the schema, show an example.
 
-    Harmless on providers that enforce a strict schema, so extraction keeps ONE prompt across
-    providers — one ``prompt_version``, one thing for evals to compare.
+    A model that thinks is sent no schema, so for DeepSeek this is the only contract there is. It is
+    harmless on a provider held to a strict schema, so extraction keeps ONE prompt across providers —
+    one ``prompt_version``, one thing for evals to compare.
     """
     example = {
         "drafts": [
@@ -368,10 +370,29 @@ def extract_drafts(
     return extract_batch([doc], specs, seam=seam, fields=fields, max_tokens=max_tokens)[0]
 
 
+def _reply_json(text: str) -> Any:
+    """The JSON the reply is, or else the JSON its one code fence holds.
+
+    A model that thinks is sent no schema, so only the prompt keeps it from fencing its JSON among
+    prose. One fence, opened and closed, is unambiguous. With any other count of fence markers the
+    whole reply's error stands: a reply cut off inside a fence, or one that fences an example
+    beside its answer, fails as not JSON rather than having one object picked out of it. The
+    Transcript keeps the reply verbatim, so how often a model fences is a grep away.
+    """
+    try:
+        return json.loads(text)
+    except ValueError:
+        parts = text.split("```")
+        if len(parts) != 3:
+            raise
+    _language, _, fenced = parts[1].partition("\n")
+    return json.loads(fenced)
+
+
 def _parsed_drafts(text: str, provider_name: str) -> list[Any]:
     """THE gate: the response's top-level shape, or a wholesale refusal. Returns the raw draft list.
 
-    json-object providers do not enforce shape, so this is where a malformed batch is caught. The
+    A model sent no schema is held to no shape, so this is where a malformed batch is caught. The
     split is deliberate: a broken TOP-LEVEL shape (no JSON at all, or no `drafts` array under either
     accepted envelope) is a provider failure with nothing to salvage and dies wholesale (that is #4's
     empty-content case). But a single malformed DRAFT — a `value: null`, a missing span — is just one
@@ -385,8 +406,8 @@ def _parsed_drafts(text: str, provider_name: str) -> list[Any]:
     verdict about the response.
     """
     try:
-        raw = json.loads(text)
-    except (json.JSONDecodeError, ValueError) as exc:
+        raw = _reply_json(text)
+    except ValueError as exc:
         raise ExtractUnavailable(
             f"{provider_name} returned output that is not valid JSON: {exc}"
         ) from exc
