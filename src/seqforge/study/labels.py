@@ -28,6 +28,11 @@ class LabelRow:
     factor: bool = True
     #: Whether its claim may say only which one it is, by an id made up in the file.
     id_alone: bool = False
+    #: What the id every claim of it carries names, such as the material; ``None`` when a claim
+    #: may carry none.
+    id_names: str | None = None
+    #: Whether every claim of it is quoted or inferred, never unknown or na.
+    always_known: bool = False
     #: Whether its term may be a list: one sample can be given several compounds.
     many_terms: bool = False
     #: The vocabulary its terms come from, for a sample of any species not in ``by_species``.
@@ -57,6 +62,7 @@ LABELS: tuple[LabelRow, ...] = (
         "the piece of material the library was made from",
         written_by="code",
         id_alone=True,
+        id_names="the material",
     ),
     LabelRow(
         "donor",
@@ -83,7 +89,9 @@ LABELS: tuple[LabelRow, ...] = (
         "the kind of background-control library, such as input or IgG; na for every other library",
         na="a library that is not a background control",
     ),
-    LabelRow("species", "the species", written_by="code", vocabulary="ncbitaxon"),
+    LabelRow(
+        "species", "the species", written_by="code", vocabulary="ncbitaxon", always_known=True
+    ),
     LabelRow(
         "sex",
         "the sex: female, male, hermaphrodite or mixed",

@@ -154,10 +154,10 @@ def _label_problems(
     elif not ((claim.text or "").strip() or claim.value is not None or (named and claim.id)):
         what = "text, value or id" if named else "text or value"
         yield where, f"a quoted or inferred claim says something: {what}"
-    if label == "species" and not claim.says:
-        yield where, "species is quoted or inferred, never unknown or na"
-    if label == "biosample" and not claim.id:
-        yield f"{where}.id", "missing: a biosample claim carries the id of the material"
+    if rules.always_known and not claim.says:
+        yield where, f"{label} is quoted or inferred, never unknown or na"
+    if rules.id_names and not claim.id:
+        yield f"{where}.id", f"missing: a {label} claim carries the id of {rules.id_names}"
     if claim.level is not None:
         if label not in factors:
             yield f"{where}.level", f"{label} is not a factor, so its claims name no level"
