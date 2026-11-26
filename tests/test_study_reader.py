@@ -590,7 +590,11 @@ def test_a_study_is_read_into_a_reading_that_passes_the_check_beside_the_sets_ow
     reading = _reading(set_dir, "GSE10")
     carried = []
     for form in _sent(fake):
-        named = form["route"] != "chat" and re.match(r"`sample` is (GSM1\d)\.", form["description"])
+        named = (
+            re.match(r"`sample` is (GSM1\d)\.", form["description"])
+            if form["route"] != "chat"
+            else None
+        )
         if named:
             asked = form["questions"].values()
             second = all(next(iter(q["criteria"])) == "na" for q in asked)
