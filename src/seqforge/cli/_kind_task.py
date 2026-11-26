@@ -46,9 +46,9 @@ class KindTask:
         """Open the task to read it, with no gateway, so it reads the same with the gateway down."""
         from labllm import Task
 
-        from ..passes import gateway
+        from ..gateway import offline_gateway
 
-        return self.open(Task, gateway=gateway.offline_gateway())
+        return self.open(Task, gateway=offline_gateway())
 
 
 def for_kind(

@@ -49,6 +49,8 @@ Every context shares the paths below, and none of them has words of its own:
 - `models/` — the Pydantic models that every stage exchanges
 - `hooks/` — the agent hook guards, which turn the rules into checks
 - `assets/` — the style tokens that the workspace report and the eval report share
+- `gateway.py` — the lab gateway's client, the ceiling check and the refusals for a setup a command
+  cannot use, which harvest, `run`, `eval run` and the passes share. Its words are liulab-llms's
 - `__init__.py` and `py.typed` at the top of the package
 
 The eval harness, `evals/` inside the package, has no glossary. It runs the stages of every context
