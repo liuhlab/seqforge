@@ -49,7 +49,7 @@ from .remote import (
 )
 
 #: CalVer YYYY.M.PATCH; bump when onlist packing, registry semantics or what a record set holds change. History: `docs/research/io-version-history-2026-11-25.md`.
-IO_VERSION = "2026.11.0"
+IO_VERSION = "2026.11.1"
 
 __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetical
     "IO_VERSION",
