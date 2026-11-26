@@ -135,32 +135,36 @@ def _pass_start(
         check_ceiling(ceiling_usd)
         client = make_gateway()
         built = kind.build(folder)
-        unit_kind = built.unit_kind
-        models = {**kind.default_models, **named}
-        if extra := sorted(set(models) - set(unit_kind.roles)):
-            raise SetupRefused(
-                f"kind {kind.name!r} has no role {', '.join(extra)}; "
-                f"its roles are {', '.join(sorted(unit_kind.roles))}"
-            )
-        if unfilled := sorted(set(unit_kind.roles) - set(models)):
-            raise SetupRefused(f"no model for role {', '.join(unfilled)}: name one with --model")
-
-        # Once the pass is over and its task closed, the build releases what it opened.
-        with closing(built), setup.open(Task, gateway=client) as opened:
-            if keys is None:
-                keys = opened.keys(unit_kind, endings=endings)
-            result = run_with_progress(
-                opened,
-                unit_kind,
-                keys,
-                models=models,
-                ceiling_usd=ceiling_usd,
-                label=label or kind.name,
-                off_peak_only=off_peak_only,
-                units_at_once=units_at_once,
-                note=built.store_build,
-            )
-            (record,) = [p for p in opened.passes(unit_kind) if p.pass_id == result.pass_id]
+        # Whatever ends the pass from here, a refused setup included, the build releases what it
+        # opened, once the task is closed.
+        with closing(built):
+            unit_kind = built.unit_kind
+            models = {**kind.default_models, **named}
+            # The roles are the built kind's, so they are checked after the build opened its stores.
+            if extra := sorted(set(models) - set(unit_kind.roles)):
+                raise SetupRefused(
+                    f"kind {kind.name!r} has no role {', '.join(extra)}; "
+                    f"its roles are {', '.join(sorted(unit_kind.roles))}"
+                )
+            if unfilled := sorted(set(unit_kind.roles) - set(models)):
+                raise SetupRefused(
+                    f"no model for role {', '.join(unfilled)}: name one with --model"
+                )
+            with setup.open(Task, gateway=client) as opened:
+                if keys is None:
+                    keys = opened.keys(unit_kind, endings=endings)
+                result = run_with_progress(
+                    opened,
+                    unit_kind,
+                    keys,
+                    models=models,
+                    ceiling_usd=ceiling_usd,
+                    label=label or kind.name,
+                    off_peak_only=off_peak_only,
+                    units_at_once=units_at_once,
+                    note=built.store_build,
+                )
+                (record,) = [p for p in opened.passes(unit_kind) if p.pass_id == result.pass_id]
         if result.stopped == Rejected.reason:
             # The gateway refused a request outright, such as one for a model it has no price for:
             # the setup is wrong, and rerunning the same command would only meet it again.

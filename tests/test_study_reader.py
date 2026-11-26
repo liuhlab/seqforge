@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import dataclasses
 import datetime as dt
+import gc
 import io
 import json
 import re
@@ -844,14 +845,18 @@ def test_a_study_whose_bounds_file_is_missing_or_fails_its_check_is_held_with_th
         ("record", "liulab-data's record store"),
         ("paper", "liulab-data's paper store"),
         ("ontology", "LABDATA_ONTOLOGIES"),
+        # Every store opens, and the setup is refused after: what the build opened is closed.
+        (None, "no role reader"),
     ],
 )
 def test_the_reading_pass_refuses_to_start_without_a_store_it_reads(
-    unopened: str, said: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    unopened: str | None, said: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A store the kind reads cannot be opened: no record store is set up, the paper store set up
     is not a store, or the ontology store's variable names a folder that is no store. The pass
-    exits 2 naming that store, rather than read without it."""
+    exits 2 naming that store, rather than read without it. A setup refused once every store is
+    open, such as a model for a role the kind lacks, leaves no store open: the suite fails a test
+    on the warning an unclosed one raises."""
     import labdata
     import labdata.papers
     from labdata.exceptions import NotAStoreError
@@ -869,16 +874,23 @@ def test_the_reading_pass_refuses_to_start_without_a_store_it_reads(
         "open_paper_store",
         no_paper_store if unopened == "paper" else lambda root=None: papers,
     )
-    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "empty"))
+    ontologies = tmp_path / "empty"
+    if unopened is None:
+        ontologies = build_tiny_store(tmp_path / "ontologies", VOCABULARIES)
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
     monkeypatch.chdir(tmp_path)
     (tmp_path / "keys.txt").write_text("GSE10\n")
+    role = ["--model", "reader=test/echo-weak"] if unopened is None else []
 
     started = runner.invoke(
         app,
         [
             *("pass", "start", reader.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"),
+            *role,
         ],
     )
+    # A store left open is found when it is collected: here, so this test is the one that fails.
+    gc.collect()
 
     assert started.exit_code == 2, started.output
     assert said in started.stderr
