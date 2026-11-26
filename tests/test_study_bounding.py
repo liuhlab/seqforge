@@ -11,16 +11,17 @@ import json
 import re
 import threading
 import types
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
 from typing import Any, ClassVar
 
 import pytest
 import yaml
 from labdata.store.model import RELATIONS, Link, Record
-from labllm.testing import FakeGateway, Price
+from labllm.testing import Price
 from typer.testing import CliRunner
 
+import gateway_kit
 from seqforge.cli import app
 from seqforge.study import bounding, closed
 from seqforge.study.bounds import check_bounds
@@ -115,7 +116,7 @@ class Papers:
         }
 
 
-def _jev() -> FakeGateway:
+def _jev() -> Callable[[dict[str, Any]], dict[str, Any]]:
     """Plays Jev, answering each question by the record it asks about. The job asks a study's
     questions as written first, then reversed."""
     asked: set[str] = set()
@@ -132,7 +133,7 @@ def _jev() -> FakeGateway:
                 out[name] = {"noul": p}
         return out
 
-    return FakeGateway(answer, prices={closed.JEV.name: Price(0.0, 0.0)})
+    return answer
 
 
 @pytest.fixture(scope="module")
@@ -150,7 +151,7 @@ def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict
         opened.append(Store())
         return opened[-1]
 
-    fake, here = _jev(), tmp_path_factory.mktemp("bounding")
+    here = tmp_path_factory.mktemp("bounding")
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(labdata, "open_store", open_once)
         monkeypatch.setattr(
@@ -158,9 +159,7 @@ def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict
             "open_paper_store",
             lambda root=None: types.SimpleNamespace(reader=Papers()),
         )
-        monkeypatch.setattr(
-            "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
-        )
+        gateway_kit.install(monkeypatch, _jev(), prices={closed.JEV.name: Price(0.0, 0.0)})
         monkeypatch.chdir(here)
         (here / "keys.txt").write_text("GSE10\nGSE20\nGSE30\nGSE90\nGSE91\nGSE92\n")
         started = runner.invoke(

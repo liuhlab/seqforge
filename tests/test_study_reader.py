@@ -26,6 +26,7 @@ from labllm import Rejected
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
+import gateway_kit
 from seqforge.cli import app
 from seqforge.study import closed, reader
 from seqforge.study.lists import guide_text
@@ -441,16 +442,14 @@ def read(
         (set_dir / key / "bounds.yaml").write_text(yaml.safe_dump(bounds))
     (set_dir / "GSE10" / "reading.yaml").write_text("the standard set's own\n")
     ontologies = build_tiny_store(here / "ontologies", VOCABULARIES)
-    fake = FakeGateway(
-        lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
-        prices={closed.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
-    )
     with pytest.MonkeyPatch.context() as monkeypatch:
         _stores(monkeypatch)
         # Until a pass names its folder of study folders, the kind reads the standard set's.
         monkeypatch.setattr(reader, "default_set_dir", lambda: set_dir)
-        monkeypatch.setattr(
-            "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
+        fake = gateway_kit.install(
+            monkeypatch,
+            lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
+            prices={closed.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
         )
         monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
         monkeypatch.chdir(here)
@@ -683,7 +682,7 @@ def test_the_reading_pass_refuses_to_start_without_a_store_it_reads(
         raise NotAStoreError(f"{tmp_path / 'empty'} is not a paper store")
 
     papers = types.SimpleNamespace(reader=Papers())
-    fake = FakeGateway(lambda form: "{}", prices={})
+    fake = gateway_kit.install(monkeypatch, lambda form: "{}", prices={})
     (tmp_path / "empty").mkdir()
     if unopened != "record":  # the suite's own stub leaves no record store set up
         monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
@@ -692,7 +691,6 @@ def test_the_reading_pass_refuses_to_start_without_a_store_it_reads(
         "open_paper_store",
         no_paper_store if unopened == "paper" else lambda root=None: papers,
     )
-    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="s"))
     monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "empty"))
     monkeypatch.chdir(tmp_path)
     (tmp_path / "keys.txt").write_text("GSE10\n")
