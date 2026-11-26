@@ -358,18 +358,18 @@ def _ask_study(u: Unit, text: str, lists: _Lists) -> tuple[dict[str, Answer | No
     answers = ask(u, JEV_ROLE, text, askings)
     for i, f in enumerate(lists.factors):
         f.varied = Askings(
-            askings[f"f{i}_varied"].question,
+            askings[f"f{i}_varied"].closed_question,
             answers[f"f{i}_varied"],
             answers[f"f{i}_varied_negated"],
         )
         f.reference = Askings(
-            askings[f"f{i}_baseline"].question,
+            askings[f"f{i}_baseline"].closed_question,
             answers[f"f{i}_baseline"],
             answers[f"f{i}_baseline_reversed"],
         )
         f.ordered = answers[f"f{i}_ordered"]
     unanswered = [
-        askings[n].question.about
+        askings[n].closed_question.about
         for n in askings
         if (n.startswith("gap_") or n == "donor") and answers[n] is None
     ]

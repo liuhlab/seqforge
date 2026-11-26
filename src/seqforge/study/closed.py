@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any, ClassVar, Literal, TypeGuard
+from typing import Any, ClassVar, Literal, TypeGuard, get_args
 
 from labllm import Model, Unit
 
@@ -163,14 +163,14 @@ class Choice:
 
 
 #: A closed question.
-Question = YesNo | Choice
+ClosedQuestion = YesNo | Choice
 
 
 @dataclass(frozen=True)
 class Asking:
     """One asking of a closed question: its first, or its second."""
 
-    question: Question
+    closed_question: ClosedQuestion
     second: bool = False
 
 
@@ -185,25 +185,25 @@ def ask(
     """
     if not askings:
         return {}
-    questions = {n: a.question.form(second=a.second) for n, a in askings.items()}
+    questions = {n: a.closed_question.form(second=a.second) for n, a in askings.items()}
     replies = u.jev(role, description=description, questions=questions).answers
     replies = replies if isinstance(replies, Mapping) else {}
-    return {n: a.question.read(replies.get(n)) for n, a in askings.items()}
+    return {n: a.closed_question.read(replies.get(n)) for n, a in askings.items()}
 
 
 @dataclass(frozen=True)
 class Askings:
     """Both askings of a closed question asked twice, and Jev's answer to each."""
 
-    question: Question
+    closed_question: ClosedQuestion
     first: Answer | None
     second: Answer | None
 
     def saved(self) -> dict[str, Any]:
         """The two askings as every job saves them, in the form :data:`ASKINGS_SCHEMA` states."""
         return {
-            "about": self.question.about,
-            "how": self.question.how,
+            "about": self.closed_question.about,
+            "how": self.closed_question.how,
             "first": None if self.first is None else self.first.saved(),
             "second": None if self.second is None else self.second.saved(),
         }
@@ -247,7 +247,7 @@ ASKINGS_SCHEMA: dict[str, Any] = {
         "type": "object",
         "properties": {
             "about": {"type": "string"},
-            "how": {"enum": ["negated", "reversed"]},
+            "how": {"enum": list(get_args(How))},
             "first": _SAVED_ANSWER,
             "second": _SAVED_ANSWER,
         },
