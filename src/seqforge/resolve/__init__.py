@@ -10,7 +10,8 @@ content-addressed under ``.seqforge/``. The only interpretive input is a span-ve
 
 from __future__ import annotations
 
-#: CalVer YYYY.M.PATCH; bump when scoring/assignment/escalation semantics change (folded into the dataset cache key). History: `docs/research/resolve-version-history-2026-11-25.md`.
+#: CalVer YYYY.M.PATCH; bump when scoring/assignment/escalation semantics change (folded into the
+#: dataset cache key). History: `docs/research/resolve-version-history-2026-11-25.md`.
 RESOLVE_VERSION = "2026.11.0"
 
 from .cache import Cache, dataset_id  # noqa: E402

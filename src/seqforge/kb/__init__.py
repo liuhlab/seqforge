@@ -21,7 +21,8 @@ from .match import curated_forms, resolve_chemistry, resolve_chemistry_id
 from .roundtrip import roundtrip_checks, run_roundtrip
 from .schema import Spec
 
-#: CalVer YYYY.M.PATCH; bump when spec semantics change. History: `docs/research/kb-version-history-2026-11-25.md`.
+#: CalVer YYYY.M.PATCH; bump when spec semantics change.
+#: History: `docs/research/kb-version-history-2026-11-25.md`.
 KB_VERSION = "2026.8.8"
 
 __all__ = [

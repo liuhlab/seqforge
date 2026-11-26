@@ -179,8 +179,9 @@ def test_the_round_trip_rejects_a_taxid_that_does_not_answer_to_the_name() -> No
 # so with a raiser swapped in for urlopen it still passed -- it asserted `_SEED[k] == _SEED[k]`, the
 # exact self-validating table its own docstring lectured against. The seed values that ARE pinned
 # against literals stay pinned: `test_the_seed_resolves_offline` (6239) and the ranks test below
-# (4932 / 559292). The archive-fixture note near the top of test_resolve_records.py records that neither the
-# seed table nor the archive XMLs has a live freshness guard -- a known gap, not an oversight.
+# (4932 / 559292). The archive-fixture note near the top of test_resolve_records.py records that
+# neither the seed table nor the archive XMLs has a live freshness guard -- a known gap, not an
+# oversight.
 
 
 def test_seed_ranks_are_deliberate_not_accidental() -> None:

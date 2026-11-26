@@ -165,7 +165,8 @@ def _plate_run(i: int) -> dict[str, object]:
 
 #: ``(run, expected)`` for ``fastq_targets_meta``. ``fastq_bytes`` is aligned to the UNSORTED
 #: ``fastq_ftp``, so the join must re-associate by url after sorting; a missing size defaults to 0
-#: rather than dropping the row. (The url/md5 half is ``fastq_targets``, proved in ``test_io_remote``.)
+#: rather than dropping the row. (The url/md5 half is ``fastq_targets``, proved in
+#: ``test_io_remote``.)
 FASTQ_TARGETS_META = [
     pytest.param(
         {

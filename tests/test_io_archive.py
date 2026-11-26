@@ -4,8 +4,8 @@
 experiments hop to :func:`labdata.experiments_for`, whose Entrez ``elink`` route reaches a GEO
 SuperSeries our own SOFT recursion could not. These tests mock that hop (seqforge never hits the
 network in a test) and the ``efetch`` calls, then drive the *real* parse/merge path on the committed
-pilot XML — the same fixtures :mod:`test_resolve_records` uses — so the composition is exercised end to end
-without a byte of network.
+pilot XML — the same fixtures :mod:`test_resolve_records` uses — so the composition is exercised end
+to end without a byte of network.
 """
 
 from __future__ import annotations

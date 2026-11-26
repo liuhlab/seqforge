@@ -450,9 +450,9 @@ def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, 
     answer ``io records`` gets: it follows a SuperSeries down and a SubSeries to its own runs. ENA is
     then asked once per study for the FASTQ links and sizes, and only the accession's own runs are
     kept, since a study can hold runs of other GEO records. `studies` reports which studies, and
-    `runs_not_in_ena` the accession's runs that ENA's report lacks, so none is dropped silently. This
-    reports declared facts and abstains loudly; it never guesses a chemistry — that is resolve's job,
-    from bytes.
+    `runs_not_in_ena` the accession's runs that ENA's report lacks, so none is dropped silently.
+    This reports declared facts and abstains loudly; it never guesses a chemistry — that is
+    resolve's job, from bytes.
     """
     acc = accession.strip()
     kind = classify_accession(acc)

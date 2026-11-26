@@ -21,8 +21,9 @@ def open_task[T: Task](cls: type[T], folder: Path, *, gateway: Gateway) -> T:
     """Open the task in ``folder``, taking its hold; make it if it is missing.
 
     Its reviews are read from :data:`REVIEWS_DIRNAME` inside ``folder``, so a review file a person
-    puts there still counts. Raises liulab-llms's ``TaskInUse`` when another process holds it: that is a stop, exit 3, and
-    the message names the holder. A state file this liulab-llms cannot read is a setup refusal.
+    puts there still counts. Raises liulab-llms's ``TaskInUse`` when another process holds it: that
+    is a stop, exit 3, and the message names the holder. A state file this liulab-llms cannot read
+    is a setup refusal.
     """
     try:
         return cls(folder, gateway=gateway, reviews=folder / REVIEWS_DIRNAME)

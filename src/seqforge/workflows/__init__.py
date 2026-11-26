@@ -47,7 +47,8 @@ from .module import (
 if TYPE_CHECKING:
     from ..kb.schema import Spec
 
-#: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change. History: `docs/research/workflows-version-history-2026-11-25.md`.
+#: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: History: `docs/research/workflows-version-history-2026-11-25.md`.
 WORKFLOW_VERSION = "2026.8.25"
 
 MODULES: dict[str, WorkflowModule] = {

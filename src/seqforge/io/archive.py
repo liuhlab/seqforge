@@ -17,9 +17,9 @@ the comfortable assumption, and it was false.
 
 1. ``labdata.experiments_for`` expands *any* accession — GEO series, BioProject, study, run,
    BioSample — into the experiments underneath it, over NCBI Entrez. It replaced our own ENA/SOFT
-   routing, here and in ``io resolve``, because its ``elink`` route traverses a GEO *SuperSeries* (which owns no runs of its own)
-   and a BioProject umbrella transitively — the recursion our SOFT parser missed, which lost a whole
-   SuperSeries dataset while reporting success.
+   routing, here and in ``io resolve``, because its ``elink`` route traverses a GEO *SuperSeries*
+   (which owns no runs of its own) and a BioProject umbrella transitively — the recursion our SOFT
+   parser missed, which lost a whole SuperSeries dataset while reporting success.
 2. NCBI's ``efetch db=sra`` returns one ``EXPERIMENT_PACKAGE`` per experiment, and a package is the
    whole hierarchy in one object: STUDY (title, abstract, centre), EXPERIMENT (the protocol prose),
    SAMPLE (alias, taxon, attributes), RUN (accession, alias, submitted files). A sample's attributes
