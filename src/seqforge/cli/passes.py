@@ -44,6 +44,14 @@ def pass_start(
     keys_file: Path | None = typer.Option(
         None, "--keys", help="Run exactly these units, one key per line, in this order."
     ),
+    studies: Path | None = typer.Option(
+        None,
+        "--studies",
+        help=(
+            "The folder of study folders the pass works on; with no --keys, it runs the studies "
+            "the folder's pick.yaml lists. Default: the standard set, evals/standard-set."
+        ),
+    ),
     only: str | None = typer.Option(
         None,
         "--only",
@@ -65,10 +73,11 @@ def pass_start(
 ) -> None:
     """Run one pass of a seqforge kind over its units, and print its JSON.
 
-    The units are the kind's default keys, or `--keys FILE`, or `--only ENDINGS`. Exit 0 when the
-    pass reached the end of its keys, whatever its counts; 3 when it stopped -- at its ceiling, a
-    provider's balance or cap, a provider or the gateway unavailable -- or another process holds the
-    task; 2 for a setup it cannot use, a model name the gateway rejects included. Rerun the same
+    The units are the kind's default keys, the studies the pick of the `--studies` folder lists, or
+    `--keys FILE`, or `--only ENDINGS`. Exit 0 when the pass reached the end of its keys, whatever
+    its counts; 3 when it stopped -- at its ceiling, a provider's balance or cap, a provider or the
+    gateway unavailable -- or another process holds the task; 2 for a setup it cannot use, a model
+    name the gateway rejects or a folder with no pick and no `--keys` included. Rerun the same
     command to resume: units already answered replay from the gateway's cache at no cost. Progress
     goes to stderr; stdout carries only JSON.
     """
@@ -78,6 +87,7 @@ def pass_start(
             ceiling_usd=ceiling_usd,
             model=model,
             keys_file=keys_file,
+            studies=studies,
             only=only,
             units_at_once=units_at_once,
             off_peak_only=off_peak_only,
@@ -93,6 +103,7 @@ def _pass_start(
     ceiling_usd: float,
     model: list[str],
     keys_file: Path | None,
+    studies: Path | None,
     only: str | None,
     units_at_once: int,
     off_peak_only: bool,
@@ -106,17 +117,24 @@ def _pass_start(
     from ..passes.model_text import parse_models
     from ..passes.progress import run_with_progress
     from ..passes.status import pass_json
+    from ..study.folder import default_set_dir
 
     def run(setup: KindTask) -> _StageOut:
         kind = setup.kind
         named = parse_models(model)
         if keys_file is not None and only is not None:
             raise SetupRefused("give --keys FILE or --only ENDINGS, not both")
-        file_keys = None if keys_file is None else _read_keys(keys_file)
+        folder = default_set_dir() if studies is None else studies
         endings = None if only is None else _parse_endings(only)
+        # The units --only names are read from the task, once it is open; the others are known now.
+        keys: list[str] | None = None
+        if keys_file is not None:
+            keys = _read_keys(keys_file)
+        elif endings is None:
+            keys = list(kind.default_keys(folder))
         check_ceiling(ceiling_usd)
         client = make_gateway()
-        built = kind.build()
+        built = kind.build(folder)
         unit_kind = built.unit_kind
         models = {**kind.default_models, **named}
         if extra := sorted(set(models) - set(unit_kind.roles)):
@@ -129,12 +147,8 @@ def _pass_start(
 
         # Once the pass is over and its task closed, the build releases what it opened.
         with closing(built), setup.open(Task, gateway=client) as opened:
-            if file_keys is not None:
-                keys = file_keys
-            elif endings is not None:
+            if keys is None:
                 keys = opened.keys(unit_kind, endings=endings)
-            else:
-                keys = list(kind.default_keys())
             result = run_with_progress(
                 opened,
                 unit_kind,

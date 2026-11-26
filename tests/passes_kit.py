@@ -76,7 +76,7 @@ def echo_unit_kind(texts: dict[str, str], *, name: str = "echo") -> UnitKind:
 #: The echo kind, which a test lists in the kind table as ``echo``, under this module's name.
 KIND = Kind(
     name="echo",
-    build=lambda: Built(echo_unit_kind(ECHO_TEXTS)),
+    build=lambda folder: Built(echo_unit_kind(ECHO_TEXTS)),
     default_models={"writer": ECHO_WEAK},
-    default_keys=lambda: list(ECHO_TEXTS),
+    default_keys=lambda folder: list(ECHO_TEXTS),
 )

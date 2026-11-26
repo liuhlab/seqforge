@@ -30,7 +30,7 @@ from labllm import Held, Inputs, Outcome, Role, Task, Unit, UnitKind
 from ..passes.kinds import Built, Kind, name_of
 from .bounds import FORMAT, check_bounds
 from .closed import ASKINGS_SCHEMA, JEV, YES, Answer, Asking, Askings, YesNo, ask, disagreeing
-from .folder import default_set_dir, model_name, pick_entries, write_files
+from .folder import model_name, picked_studies, write_files
 from .group import SERIES, group_text, linked_series, paper_reader, read_group, record_store
 
 KIND_NAME = name_of(__name__)
@@ -202,8 +202,11 @@ def _tag(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()[:16]
 
 
-def _build() -> Built:
-    """The kind over liulab-data's record store and paper store, each opened once for the pass."""
+def _build(folder: Path) -> Built:
+    """The kind over liulab-data's record store and paper store, each opened once for the pass.
+
+    A study is drawn from the stores alone, so the kind reads nothing in ``folder``.
+    """
     store, build = record_store()
     return Built(bounds_kind(store, paper_reader()), store_build=build)
 
@@ -229,5 +232,5 @@ KIND = Kind(
     name=KIND_NAME,
     build=_build,
     default_models={ROLE: JEV},
-    default_keys=lambda: list(pick_entries(default_set_dir())),
+    default_keys=picked_studies,
 )

@@ -2,9 +2,9 @@
 
 The kind table lists this module as ``study-reading``, so ``seqforge pass start study-reading`` runs
 its kind on the run engine. One unit is one study, keyed by the GEO Series it was picked by, and
-read from the standard set's own bounds file: the records of the Series it keeps, their sequenced
-samples, and its papers, each in full where the paper store holds the full text and by its
-abstract otherwise.
+read from its bounds file in the folder of study folders the pass names: the records of the Series
+it keeps, their sequenced samples, and its papers, each in full where the paper store holds the
+full text and by its abstract otherwise.
 
 The chain, for one study:
 
@@ -45,7 +45,6 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, TypeGuard
 
-import yaml
 from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
 from ..passes import SetupRefused
@@ -64,15 +63,7 @@ from .closed import (
     ask,
     disagreeing,
 )
-from .folder import (
-    BOUNDS,
-    default_set_dir,
-    file_text,
-    model_name,
-    pick_entries,
-    text_problems,
-    write_files,
-)
+from .folder import bounds_in, file_text, model_name, picked_studies, text_problems, write_files
 from .group import SERIES, paper_reader, record_store
 from .lists import (
     CODE_LABELS,
@@ -1148,13 +1139,13 @@ def reading_kind(
     store: Any,
     papers: Any | None,
     *,
-    set_dir: Path,
+    folder: Path,
     search: OntologySearch,
 ) -> UnitKind:
     """The liulab-llms kind over liulab-data's record store, paper reader and ontology search.
 
     The paper reader may be ``None``. One ontology search serves the whole pass. Each study is read
-    from ``<set_dir>/<key>/bounds.yaml``.
+    from its bounds file in ``folder``, and held when the file is missing or fails its check.
     """
     # A pass loads several units at once, and the stores' readers are not made for two threads.
     one_at_a_time = threading.Lock()
@@ -1163,11 +1154,8 @@ def reading_kind(
     def load_unit(key: str) -> Inputs:
         if not SERIES.fullmatch(key):
             raise Held(f"{key} is not a GEO Series")
-        path = set_dir / key / BOUNDS
-        if not path.is_file():
-            raise Held(f"no bounds file for {key} at {path}")
-        bounds = yaml.safe_load(path.read_text(encoding="utf-8"))
-        if papers is None and bounds.get("papers"):
+        bounds = bounds_in(folder, key)
+        if papers is None and bounds.papers:
             raise Held("no paper store is configured, so the papers cannot be read")
         with one_at_a_time:
             sources = src.read_sources(store, papers, bounds)
@@ -1197,8 +1185,8 @@ def reading_kind(
     )
 
 
-def _build() -> Built:
-    """The kind over liulab-data's record store, paper store and ontology store.
+def _build(folder: Path) -> Built:
+    """The kind over liulab-data's record store, paper store and ontology store, reading ``folder``.
 
     Each store is opened once for the pass, and the ontology store is closed when the pass is over.
     Refuses the setup when one cannot be opened, the ontology store included, rather than read
@@ -1214,7 +1202,7 @@ def _build() -> Built:
         raise SetupRefused(
             f"kind {KIND_NAME!r} searches liulab-data's ontology store: {exc}"
         ) from exc
-    kind = reading_kind(store, papers, set_dir=default_set_dir(), search=search)
+    kind = reading_kind(store, papers, folder=folder, search=search)
     return Built(kind, store_build=build, close=search.close)
 
 
@@ -1241,5 +1229,5 @@ KIND = Kind(
     name=KIND_NAME,
     build=_build,
     default_models={WRITER_ROLE: WRITER, JEV_ROLE: JEV},
-    default_keys=lambda: list(pick_entries(default_set_dir())),
+    default_keys=picked_studies,
 )
