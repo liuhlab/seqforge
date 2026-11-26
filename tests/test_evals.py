@@ -1101,12 +1101,18 @@ def _stub(drafts: list[dict[str, object]], poison: str | None = None) -> Gateway
     table the model quotes rows of, so the failure keys on the RESPONSE a document provokes.
     """
 
+    return harvest_kit.fake(_answering(drafts, poison)).client(repo="seqforge")
+
+
+def _answering(drafts: list[dict[str, object]], poison: str | None = None) -> Any:
+    """The provider of :func:`_stub`."""
+
     def provider(form: dict[str, Any]) -> str:
         if poison is not None and poison in form["messages"][-1]["content"]:
             return "the model wandered off"
         return json.dumps({"drafts": drafts})
 
-    return harvest_kit.fake(provider).client(repo="seqforge")
+    return provider
 
 
 def _draft(fieldname: str, value: str, quote: str) -> dict[str, object]:
@@ -3979,7 +3985,7 @@ def test_a_partly_measured_llm_run_reports_it_on_stderr_and_still_exits_zero(
 
     from seqforge.cli import app
 
-    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: _stub([], poison="droplet"))
+    harvest_kit.install(monkeypatch, _answering([], poison="droplet"))
     result = CliRunner().invoke(
         app,
         ["eval", "run", "--llm", "--case", "chemistry-unstated-trap", "-C", str(tmp_path)],

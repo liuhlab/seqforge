@@ -8,14 +8,16 @@ liulab-llms's glossary's. It sits outside the six bounded contexts: the kind tab
 kind's module, and nothing here knows what a study is.
 
 - :mod:`.kinds` -- the table of seqforge's kinds, by name, and what a kind is.
-- :mod:`.gateway` -- the one place a command builds its gateway client, which tests replace.
 - :mod:`.task` -- opening a kind's task.
 - :mod:`.model_text` -- the ``--model`` text, read into a model.
 - :mod:`.status` -- where a kind's task stands, read with no gateway.
+
+The gateway client, the ceiling check and :class:`SetupRefused` are :mod:`seqforge.gateway`'s,
+which every command that calls a model shares.
 """
 
 from __future__ import annotations
 
+from ..gateway import SetupRefused
 
-class SetupRefused(Exception):
-    """A setup a pass command cannot use. Its message is the one-line reason; exit 2."""
+__all__ = ["SetupRefused"]
