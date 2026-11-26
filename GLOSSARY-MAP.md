@@ -17,18 +17,44 @@ module, interface, depth, seam, adapter, leverage, locality — are fixed, and "
 
 ## Contexts
 
-- [Probe](./src/seqforge/probe/GLOSSARY.md) — covers `probe/`, `fingerprint/`, `io/`: reading
-  bounded bytes, and what a file is without reading it
+- [Probe](./src/seqforge/probe/GLOSSARY.md) — covers `probe/`, `fingerprint/` and part of `io/`:
+  reading bounded bytes, and what a file is without reading it
 - [Harvest](./src/seqforge/harvest/GLOSSARY.md) — covers `harvest/`: prose, the claims read out of
   it, and what one run spent reading it
-- [Knowledge base](./src/seqforge/kb/GLOSSARY.md) — covers `kb/`: what a chemistry declares, and
-  how a claim about one is ranked
-- [Resolve](./src/seqforge/resolve/GLOSSARY.md) — covers `resolve/`, `manifest/`: which library
-  and which sample, from bytes and from records
+- [Knowledge base](./src/seqforge/kb/GLOSSARY.md) — covers `kb/`, `e2e.py` and part of `io/`: what
+  a chemistry declares, and how a claim about one is ranked
+- [Resolve](./src/seqforge/resolve/GLOSSARY.md) — covers `resolve/`, `recordset.py`, `project.py`
+  and parts of `io/` and `manifest/`: which library and which sample, from bytes and from records
 - [Compose](./src/seqforge/compose/GLOSSARY.md) — covers `compose/`, `workflows/`, `report/`,
-  `pipeline.py`: the recipe, the compiled pipeline, and what it reported
+  `pipeline.py`, `workspace.py` and part of `manifest/`: the recipe, the compiled pipeline, and
+  what it reported
 - [Study](./src/seqforge/study/GLOSSARY.md) — covers `study/`, `standard_set/`: a study's bounds and
   its reading, and the fixed set of studies they are built on
+
+## Folders that two or more contexts share
+
+`io/` and `manifest/` hold the words of more than one context. Each module, or each function where a
+module is split, uses one context's words:
+
+- `io/` — Probe's words in `sra.py`, `benchmark.py`, and `peek` and `probe_remote` in `remote.py`.
+  Resolve's words in `archive.py`, `attributes.py`, `taxonomy.py`, and `resolve_accession` in
+  `remote.py`. The Knowledge base's words in `onlist.py` and `efo.py`.
+- `manifest/` — Resolve's words for the dataset manifest: `fill_manifest` in `fill.py` and
+  `validate_manifest` in `validate.py`. Compose's words for the recipe and for the hashes that pair
+  it with a manifest: `policy.py`, `instruct.py`, `hash.py`, `fill_processing` in `fill.py` and
+  `validate_processing` in `validate.py`.
+
+Every context shares the paths below, and none of them has words of its own:
+
+- `cli/` — one module per command group, each in the words of the package it fronts
+- `models/` — the Pydantic models that every stage exchanges
+- `hooks/` — the agent hook guards, which turn the rules into checks
+- `assets/` — the style tokens that the workspace report and the eval report share
+- `__init__.py` and `py.typed` at the top of the package
+
+The eval harness, `evals/` inside the package, has no glossary. It runs the stages of every context
+over the cases in the repo's top-level `evals/`, and its own words, such as case, tier and false
+accept, are explained in its code.
 
 ## The run engine's words
 
