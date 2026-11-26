@@ -6,7 +6,6 @@ read from either end as the real store reads them. No test reads a real store or
 
 from __future__ import annotations
 
-import dataclasses
 import datetime as dt
 import json
 import re
@@ -14,7 +13,7 @@ import threading
 import types
 from collections.abc import Iterable, Iterator
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 import yaml
@@ -23,7 +22,6 @@ from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
 from seqforge.cli import app
-from seqforge.passes.kinds import KINDS
 from seqforge.study import bounding, closed
 from seqforge.study.bounds import check_bounds
 
@@ -85,6 +83,9 @@ RECORD = re.compile(r"GSE\d+|pmid:\d+")
 class Store:
     """liulab-data's record store, as the job reads it: links from either end, and records."""
 
+    #: The store's marker, whose ``build`` names the build a pass reads.
+    settings: ClassVar[dict[str, str]] = {"build": "b1"}
+
     def links(self, accessions: str | Iterable[str], relation: str | None = None) -> Any:
         wanted = [accessions] if isinstance(accessions, str) else list(accessions)
         found: dict[str, list[Link]] = {a: [] for a in wanted}
@@ -136,26 +137,40 @@ def _jev() -> FakeGateway:
 
 @pytest.fixture(scope="module")
 def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict[str, Any], Any]]:
-    """One pass over six studies, written twice beside the standard set's own files."""
-    kind = dataclasses.replace(
-        bounding.KIND,
-        build=lambda store: bounding.bounds_kind(Store(), Papers()),
-        reads_store=False,
-    )
+    """One pass over six studies, written twice beside the standard set's own files.
+
+    The record store can be opened once: a second open, by the pass or by a unit, fails the pass."""
+    import labdata
+    import labdata.papers
+
+    opened: list[Store] = []
+
+    def open_once(root: Any = None) -> Store:
+        assert not opened, "the record store was opened twice in one pass"
+        opened.append(Store())
+        return opened[-1]
+
     fake, here = _jev(), tmp_path_factory.mktemp("bounding")
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setitem(KINDS, kind.name, kind)
+        monkeypatch.setattr(labdata, "open_store", open_once)
+        monkeypatch.setattr(
+            labdata.papers,
+            "open_paper_store",
+            lambda root=None: types.SimpleNamespace(reader=Papers()),
+        )
         monkeypatch.setattr(
             "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
         )
         monkeypatch.chdir(here)
         (here / "keys.txt").write_text("GSE10\nGSE20\nGSE30\nGSE90\nGSE91\nGSE92\n")
         started = runner.invoke(
-            app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt"]
+            app, ["pass", "start", bounding.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"]
         )
         assert started.exit_code == 0, started.output
-        counts = json.loads(started.stdout)["counts"]
+        ran = json.loads(started.stdout)
+        counts = ran["counts"]
         assert (counts["settled"], counts["unsettled"], counts["refused"]) == (1, 3, 2)
+        assert ran["store_build"] == "b1"
 
         set_dir = here / "set"
         (set_dir / "GSE10").mkdir(parents=True)
@@ -215,6 +230,23 @@ def test_a_study_whose_two_answers_disagree_on_a_record_is_unsettled_and_still_w
     assert said["studies"]["GSE20"]["ending"] == "unsettled"
     assert "pmid:401" in said["studies"]["GSE20"]["checks_failed"][0]
     assert bounds["papers"] == ["pmid:400", "pmid:401"]
+
+
+def test_a_pass_reads_one_build_of_the_record_store_and_status_names_it_with_no_store(
+    drawn: tuple[Path, dict[str, Any], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The kind opened the record store once, when the pass built it, so every unit read one build.
+    The pass keeps that build, and status reads it back without opening the store."""
+    import labdata
+
+    def no_store(root: Any = None) -> Any:
+        raise AssertionError("pass status opened the record store")
+
+    monkeypatch.setattr(labdata, "open_store", no_store)
+    status = runner.invoke(app, ["pass", "status", bounding.KIND_NAME])
+
+    assert status.exit_code == 0, status.output
+    assert [p["store_build"] for p in json.loads(status.stdout)["passes"]] == ["b1"]
 
 
 def test_a_group_of_more_than_fifty_series_is_refused_and_written_nowhere(

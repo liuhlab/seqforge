@@ -4,7 +4,8 @@ A study starts from one GEO Series. Its **linked group** is that Series, every S
 from it, and every paper any of them links. :func:`linked_series` gathers the group's Series,
 :func:`read_group` reads the group as plain data, and :func:`group_text` renders what the model is
 shown: the records and each paper's abstract. Record and paper text is only ever passed on: the
-repo keeps identifiers.
+repo keeps identifiers. :func:`record_store` and :func:`paper_reader` open the two stores, once for
+a pass.
 """
 
 from __future__ import annotations
@@ -13,6 +14,8 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from typing import Any
+
+from ..passes import SetupRefused
 
 #: The Series fields the model sees, in this order, each with its label.
 _SERIES_FIELDS = (
@@ -196,15 +199,35 @@ def group_text(group: Mapping[str, Any]) -> str:
     return "\n".join(out).rstrip() + "\n"
 
 
+def record_store() -> tuple[Any, str | None]:
+    """liulab-data's record store, opened once for a pass, and the build it reads.
+
+    Opening pins one build for as long as the store lives, so a store refreshed mid-pass cannot mix
+    two builds into one pass. Refuses the setup, naming the store, when it cannot be opened.
+    """
+    import labdata
+    from labdata.exceptions import NotAStoreError, StoreNotConfiguredError
+
+    try:
+        store = labdata.open_store()
+    except (StoreNotConfiguredError, NotAStoreError) as exc:
+        raise SetupRefused(f"cannot open liulab-data's record store: {exc}") from exc
+    build = store.settings.get("build")
+    return store, None if build is None else str(build)
+
+
 def paper_reader() -> Any | None:
     """liulab-data's paper reader, from ``LABDATA_PAPERS``; ``None`` when no paper store is set up.
 
-    So a study with no paper can still be read.
+    So a study with no paper can still be read. A paper store that is set up but cannot be opened
+    refuses the setup, naming the store.
     """
-    from labdata.exceptions import StoreNotConfiguredError
+    from labdata.exceptions import NotAStoreError, StoreNotConfiguredError
     from labdata.papers import open_paper_store
 
     try:
         return open_paper_store().reader
     except StoreNotConfiguredError:
         return None
+    except NotAStoreError as exc:
+        raise SetupRefused(f"cannot open liulab-data's paper store: {exc}") from exc

@@ -13,6 +13,8 @@ from typing import Any
 from labllm import Held, Inputs, Model, Role, Unit, UnitKind
 from labllm.testing import Price
 
+from seqforge.passes.kinds import Built, Kind
+
 #: The texts the echo kind's units read, by key, in the kind's default order.
 ECHO_TEXTS = {"u1": "alpha", "u2": "beta", "u3": "gamma", "u4": "delta"}
 ECHO_SCHEMA = {
@@ -69,3 +71,12 @@ def echo_unit_kind(texts: dict[str, str], *, name: str = "echo") -> UnitKind:
         answer_schema=ECHO_SCHEMA,
         answer_checks=(in_capitals,),
     )
+
+
+#: The echo kind, which a test lists in the kind table as ``echo``, under this module's name.
+KIND = Kind(
+    name="echo",
+    build=lambda: Built(echo_unit_kind(ECHO_TEXTS)),
+    default_models={"writer": ECHO_WEAK},
+    default_keys=lambda: list(ECHO_TEXTS),
+)
