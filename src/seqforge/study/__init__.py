@@ -4,6 +4,8 @@ The files and their checks:
 
 - :mod:`.bounds` — the bounds file: which GEO Series and papers belong to one study.
 - :mod:`.reading` — the reading file: what each sequenced sample of the study is.
+- :mod:`.labels` — the 18 labels of a reading, one row each, read by its check and by the
+  reading job.
 - :mod:`.claims` — how a claim is written and backed in every study file, for each file kind's
   check to build on.
 - :mod:`.relations` — what a valid reading implies between its samples, worked out on demand and

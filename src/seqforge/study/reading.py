@@ -33,46 +33,16 @@ from .claims import (
     passage_problems,
     validation_problems,
 )
+from .labels import LABELS, label_row
 
 #: The one format the check accepts. A change to the file's shape raises it, and rewrites every file.
 FORMAT = 2
 
-#: The labels every sample has once the shared claims are applied. A row may add labels of its own.
-LABELS = (
-    "biosample",
-    "donor",
-    "assay",
-    "target",
-    "control_type",
-    "species",
-    "sex",
-    "age",
-    "development_stage",
-    "tissue",
-    "cell_type",
-    "cell_line",
-    "disease",
-    "genotype",
-    "strain",
-    "treatment",
-    "dose",
-    "duration",
-)
-
 #: A sample's claim has one more backing mark than a bounds claim: the label does not apply.
 SAMPLE_MARKS = (*MARKS, "na")
 
-#: The labels whose claim may say only which one it is, by a name made up in the file.
-_NAMED = ("biosample", "donor")
-
 #: What says a value. A claim that marks a gap carries none of them.
 _VALUE_FIELDS = ("text", "term", "value", "unit", "level")
-
-#: The one label whose term may be a list: one sample can be given several compounds.
-_MANY_TERMS = "treatment"
-
-#: The label whose term is a word of the format's own, not an ontology id, so it needs no snapshot.
-_OWN_WORDS = "sex"
 
 
 class ReadingClaim(Claim):
@@ -157,10 +127,11 @@ def _label_problems(
     where: str, label: str, claim: SampleClaim, factors: dict[str, Factor]
 ) -> Iterator[tuple[str, str]]:
     """What is wrong with one written claim that depends on the label it is written under."""
+    named = label_row(label).id_alone
     if claim.value is not None and not _number_or_range(claim.value):
         yield f"{where}.value", "a value is a number, or a range as [low, high]"
     if isinstance(claim.term, list):
-        if label != _MANY_TERMS:
+        if not label_row(label).many_terms:
             yield f"{where}.term", "a list of terms is only for a treatment of several compounds"
         elif not claim.term:
             yield f"{where}.term", "an empty list names no term"
@@ -168,10 +139,8 @@ def _label_problems(
         for name in _VALUE_FIELDS:
             if getattr(claim, name) is not None:
                 yield f"{where}.{name}", f"an unknown or na claim gives no value, so no {name}"
-    elif not (
-        (claim.text or "").strip() or claim.value is not None or (label in _NAMED and claim.id)
-    ):
-        what = "text, value or id" if label in _NAMED else "text or value"
+    elif not ((claim.text or "").strip() or claim.value is not None or (named and claim.id)):
+        what = "text, value or id" if named else "text or value"
         yield where, f"a quoted or inferred claim says something: {what}"
     if label == "species" and not claim.says:
         yield where, "species is quoted or inferred, never unknown or na"
@@ -201,10 +170,9 @@ def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
     if snapshot is not None and not snapshot.source.strip():
         yield "ontology_snapshot.source", "blank: the snapshot names where the ids came from"
     rows = reading.rows()
-    # The target of a pull-down is a label and never a factor: the relations already keep samples
-    # with different targets apart, and a target has no baseline to compare the others with.
-    if "target" in reading.factors:
-        yield "factors.target", "target is never a factor; it stays a label of each sample"
+    for label in reading.factors:
+        if not label_row(label).factor:
+            yield f"factors.{label}", f"{label} is never a factor; it stays a label of each sample"
     for label, factor in reading.factors.items():
         where = f"factors.{label}"
         yield from claim_problems(where, factor, reading.passages, probabilities_by=by)
@@ -233,7 +201,8 @@ def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
         yield from _against_problems(where, claim, reading.passages)
         yield from _label_problems(where, label, claim, reading.factors)
     # An id is only as good as the ontology it was read from, so a file that writes one says which.
-    ids = [where for where, label, claim in written if claim.term and label != _OWN_WORDS]
+    # A term from a label's own words is no id.
+    ids = [where for where, label, claim in written if claim.term and not label_row(label).words]
     if ids and snapshot is None:
         yield (
             "ontology_snapshot",
@@ -253,7 +222,7 @@ def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
     # A gap is written as unknown or na, so a label that is absent was forgotten.
     varied = [label for label in reading.factors if any(label in row for row in rows.values())]
     for sample, row in rows.items():
-        for label in dict.fromkeys((*LABELS, *varied)):
+        for label in dict.fromkeys((*(r.name for r in LABELS), *varied)):
             if label not in row:
                 yield (
                     f"samples.{sample}.{label}",

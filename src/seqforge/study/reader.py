@@ -65,11 +65,8 @@ from .closed import (
 )
 from .folder import bounds_in, file_text, model_name, picked_studies, text_problems, write_files
 from .group import SERIES, paper_reader, record_store
+from .labels import LABELS, label_row, vocabulary
 from .lists import (
-    CODE_LABELS,
-    LABELS,
-    MEANING,
-    NUMERIC,
     RETRY,
     FactorList,
     Label,
@@ -86,7 +83,6 @@ from .ontology_search import (
     OntologySearch,
     StoreSearch,
     snapshot_source,
-    vocabulary,
 )
 from .reading import FORMAT, check_reading
 
@@ -108,25 +104,6 @@ MOST_VALUES = 25
 AT_ONCE = 4
 #: The most characters of a description Jev reads, for the study and for one sample.
 _STUDY_CAP, _SAMPLE_CAP = 90_000, 20_000
-#: The ids code maps on its own: healthy, as the reading format names it.
-HEALTHY = "PATO:0000461"
-#: The words ``sex`` takes as its term, which the format defines itself.
-SEX_WORDS = ("female", "male", "hermaphrodite", "mixed")
-#: The search names code looks the species' adult stage up by, the first whole-text match taken.
-#: The mouse's is named neither: its adult stages share the parent mature stage.
-ADULT_STAGE = ("adult stage", "adult", "mature stage")
-#: The labels whose gap Jev is told about, when a label has no listed value.
-_NA_EXAMPLE = {
-    "target": "an assay with no pull-down, or a control library",
-    "control_type": "a library that is not a background control",
-    "cell_line": "tissue taken from an animal",
-    "cell_type": "whole tissue with no cell type isolated",
-    "treatment": "no treatment applied in the study",
-    "dose": "no treatment",
-    "duration": "no treatment",
-    "strain": "a species with no strains, such as human",
-}
-
 ANSWER_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -238,10 +215,12 @@ def _tidy(lists: Lists, samples: set[str]) -> _Lists:
     A factor's label lists no values of its own, since its levels say them. A value that says
     nothing is dropped, and so is a tie that names a library outside the study's samples.
     """
-    labels: dict[str, Label] = {label: lists.labels.get(label) or Label() for label in LABELS}
+    labels: dict[str, Label] = {
+        r.name: lists.labels.get(r.name) or Label() for r in LABELS if r.written_by == "writer"
+    }
     for name, label in lists.extra_labels.items():
         own = snake(name)
-        if own and own not in labels and own not in CODE_LABELS:
+        if own and own not in labels and label_row(own).written_by == "writer":
             labels[own] = label
     for label in labels.values():
         label.values = [_said(v) for v in label.values if _says(v)]
@@ -249,9 +228,9 @@ def _tidy(lists: Lists, samples: set[str]) -> _Lists:
     for listed in lists.factors:
         name = snake(listed.label)
         levels = [_said(v) for v in listed.levels if _says(v)]
-        if not name or name in CODE_LABELS or not levels:
+        if not name or label_row(name).written_by == "code" or not levels:
             continue
-        if name == "target":
+        if not label_row(name).factor:
             labels.setdefault(name, Label()).values += levels
             continue
         names = [str(v.name or v.text) for v in levels]
@@ -357,8 +336,8 @@ def _ask_study(u: Unit, text: str, lists: _Lists) -> dict[str, Answer | None]:
     for label, listed in lists.labels.items():
         if listed.values or label in {f.label for f in lists.factors}:
             continue
-        example = _NA_EXAMPLE.get(label)
-        meaning = MEANING.get(label, "a label of the study's own")
+        example = label_row(label).na
+        meaning = label_row(label).holds
         askings[f"gap_{label}"] = Choice(
             f"{label}: no listed value",
             f"For the samples of this study, what about their {label.replace('_', ' ')} "
@@ -429,8 +408,8 @@ def _sample_questions(kept: list[_Factor], labels: Mapping[str, Label]) -> dict[
         if not listed.values:
             continue
         words = label.replace("_", " ")
-        example = _NA_EXAMPLE.get(label)
-        meaning = MEANING.get(label, "a label of the study's own")
+        example = label_row(label).na
+        meaning = label_row(label).holds
         questions[f"lab_{label}"] = Choice(
             f"value of {label}",
             f"What is the {words} of `sample` ({meaning})?",
@@ -633,20 +612,21 @@ def _terms(
     asked: dict[str, tuple[tuple[str, str, str | None], int, str | None]] = {}
     wanted: dict[tuple[str, str, str | None], int] = {}
     for (label, text, vocab), value in used.items():
-        if label == "disease" and text.strip().lower() == "healthy":
-            if (healthy := search.lookup(HEALTHY)) is not None:
-                terms.by_text[(label, text, vocab)] = healthy.id
-                terms.snapshots[healthy.id] = healthy.snapshot
+        rules, folded = label_row(label), text.strip().lower()
+        if folded in rules.ids:
+            if (named := search.lookup(rules.ids[folded])) is not None:
+                terms.by_text[(label, text, vocab)] = named.id
+                terms.snapshots[named.id] = named.snapshot
             continue
         if vocab is None:
             continue
-        if label == "development_stage" and text.strip().lower() == "adult":
-            if (adult := _adult_stage(search, vocab)) is not None:
-                terms.by_text[(label, text, vocab)] = adult[0].id
-                terms.snapshots[adult[0].id] = adult[1]
+        if folded in rules.named_by:
+            if (whole := _whole_name(search, vocab, rules.named_by[folded])) is not None:
+                terms.by_text[(label, text, vocab)] = whole[0].id
+                terms.snapshots[whole[0].id] = whole[1]
             continue
         names = value.search if isinstance(value.search, list) else [value.search or text]
-        names = [n for n in names if n and n.strip()][: 1 if label != "treatment" else 10]
+        names = [n for n in names if n and n.strip()][: 10 if rules.many_terms else 1]
         wanted[(label, text, vocab)] = len(names)
         for n, name in enumerate(names):
             found = search.search(name.strip(), vocab)
@@ -681,13 +661,16 @@ def _terms(
         if len(ids) == wanted[which]:
             ordered = [ids[n] for n in sorted(ids)]
             terms.by_text[which] = (
-                ordered if which[0] == "treatment" and len(ordered) > 1 else ordered[0]
+                ordered if label_row(which[0]).many_terms and len(ordered) > 1 else ordered[0]
             )
     return terms
 
 
-def _adult_stage(search: OntologySearch, vocab: str) -> tuple[Candidate, str] | None:
-    for name in ADULT_STAGE:
+def _whole_name(
+    search: OntologySearch, vocab: str, names: tuple[str, ...]
+) -> tuple[Candidate, str] | None:
+    """The first candidate whose whole text is one of ``names``, tried in order, and its snapshot."""
+    for name in names:
         found = search.search(name, vocab)
         for candidate in found.candidates:
             if candidate.matched.strip().lower() == name and found.snapshot:
@@ -1013,13 +996,14 @@ def _value_claim(
     level: str | None = None,
 ) -> dict[str, Any]:
     """A sample's claim on one listed value, its term looked up in the vocabulary of its species."""
+    rules = label_row(label)
     claim: dict[str, Any] = {"text": value.text}
     term = terms.by_text.get((label, value.text, vocabulary(label, taxid)))
-    if label == "sex" and value.text.strip().lower() in SEX_WORDS:
+    if value.text.strip().lower() in rules.words:
         term = value.text.strip().lower()
     if term:
         claim["term"] = term
-    if label in NUMERIC and value.value is not None:
+    if rules.number and value.value is not None:
         claim["value"] = _number(value.value)
         if value.unit and value.unit.strip():
             claim["unit"] = value.unit.strip()
@@ -1039,7 +1023,7 @@ def _gap(label: str, said: Answer | None, why: str | None = None) -> dict[str, A
     p = None if said is None else _r(said.p)
     if said is not None and said.option is not None and said.option.key == _NA:
         return {
-            "na": why or _NA_EXAMPLE.get(label) or f"{words} does not apply to this sample",
+            "na": why or label_row(label).na or f"{words} does not apply to this sample",
             "p": p,
         }
     return {"unknown": why or f"what was read does not say its {words}", "p": p}
@@ -1078,8 +1062,9 @@ def _snapshot(
     The date is the day the store was opened, which pinned its snapshots for the pass. ``None``
     when no claim writes an ontology id.
     """
-    claims = [c for row in rows.values() for label, c in row.items() if label != "sex"]
-    claims += [c for label, c in shared.items() if label != "sex"]
+    # A term from a label's own words is no ontology id.
+    claims = [c for row in rows.values() for label, c in row.items() if not label_row(label).words]
+    claims += [c for label, c in shared.items() if not label_row(label).words]
     ids = [i for c in claims if "term" in c for i in _as_list(c["term"])]
     if not ids:
         return None
