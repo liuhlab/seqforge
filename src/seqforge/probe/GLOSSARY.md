@@ -1,8 +1,10 @@
 # Probe
 
 What a FASTQ is from its bytes, and what it is without reading a byte at all. This context covers
-`probe/`, `fingerprint/` and `io/`: every read is bounded, deterministic, and reports structure
-without naming what any of it means.
+`probe/`, `fingerprint/` and part of `io/`: `sra.py`, `benchmark.py`, and `peek` and
+`probe_remote` in `remote.py`. Every read is bounded, deterministic, and reports structure without
+naming what any of it means. The rest of `io/` uses the words of Resolve and the Knowledge base, as
+the repo-root `GLOSSARY-MAP.md` says.
 
 Words every context shares — **Evidenced**, **Basis**, **Observed**, **Conflict** and the rest — are
 defined once in the repo-root `GLOSSARY-MAP.md`.
