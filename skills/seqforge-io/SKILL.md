@@ -17,7 +17,6 @@ seqforge io resolve ACC                 # accession -> runs + declared metadata 
 seqforge io records ACC                 # accession -> project/sample/experiment/run, as DECLARED
 seqforge io peek URI                    # first records via HTTP Range (~64 KB, never the file)
 seqforge io onlist list|show|pack|write # barcode whitelists (shipped pre-packed, sha256-verified)
-seqforge io attributes [NAME]           # NCBI's 960 harmonized BioSample names, with definitions
 seqforge io efo                         # what EFO:0009922 is actually called
 ```
 

@@ -53,7 +53,7 @@ nav:
       - Adding a technology: tutorials/adding-a-technology.md
   - The study workflow: study-workflow.md
   - Files from the hand work: hand-work-files.md
-  - Passes and reviews: passes-and-reviews.md
+  - Passes: passes.md
   - File formats:
       - The bounds file: formats/bounds.md
       - The reading file: formats/reading.md

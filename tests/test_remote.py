@@ -1,23 +1,26 @@
 """Tests for the network surface — the PARSERS, offline.
 
-Two of these endpoints (`run_new`, GEO SOFT) are **undocumented**, so their shape can change without
-notice. The fixtures are trimmed from genuine responses (SRR9170959 is the real
-dropped-technical-read case: SRA says 3 reads / 110 bases per spot, ENA published 50), and pinning
-them means a change surfaces as a red test rather than as a silently empty result.
+One of these endpoints (`run_new`) is **undocumented**, so its shape can change without notice.
+The fixtures are trimmed from genuine responses (SRR9170959 is the real dropped-technical-read
+case: SRA says 3 reads / 110 bases per spot, ENA published 50), and pinning them means a change
+surfaces as a red test rather than as a silently empty result.
 """
 
 from __future__ import annotations
 
 import gzip
+import json
 import re
 import time
 import types
-from collections.abc import Callable
+from dataclasses import dataclass
 
 import pytest
 import requests
+from typer.testing import CliRunner
 
 from conftest import range_server
+from seqforge.cli import app
 from seqforge.io import remote
 from seqforge.io.remote import (
     RemoteError,
@@ -30,9 +33,6 @@ from seqforge.io.remote import (
     parse_fastq_prefix,
     parse_filereport,
     parse_run_new,
-    parse_soft_bioproject,
-    parse_soft_srp,
-    parse_soft_superseries,
     peek,
     probe_remote,
     retry_delay,
@@ -160,136 +160,63 @@ def test_classify_every_namespace_and_refuse_to_guess_the_rest() -> None:
 
 
 # ---------------------------------------------------------------------------------------------
-# GEO SOFT -> SRP, including the SuperSeries trap
+# A GEO accession -> its runs, through liulab-data
 # ---------------------------------------------------------------------------------------------
 
-_SOFT_WITH_SRP = """\
-^SERIES = GSE164073
-!Series_title = Some study
-!Series_relation = BioProject: https://www.ncbi.nlm.nih.gov/bioproject/PRJNA692883
-!Series_relation = SRA: https://www.ncbi.nlm.nih.gov/sra?term=SRP299835
-"""
 
-_SOFT_SUPERSERIES = """\
-^SERIES = GSE140511
-!Series_title = A SuperSeries
-!Series_relation = SuperSeries of: GSE140399
-!Series_relation = SuperSeries of: GSE140510
-"""
-
-#: GSE207085, trimmed from the live brief record. A SubSeries declares no `term=SRP...` and has no
-#: sub-series to walk — the BioProject URL is the only route to its runs. The supplementary-file line
-#: is kept deliberately: it is the other URL in the record, and it must not be read as a BioProject.
-_SOFT_SUBSERIES = """\
-^SERIES = GSE207085
-!Series_title = Three-dimensional morphologic and molecular atlases of murine nasal vasculatures \
-[Mouse_Nasal_SmartSeq]
-!Series_supplementary_file = ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE207nnn/GSE207085/suppl/GSE207085_ss3_prox1_ct_normalized_expression_matrix.csv.gz
-!Series_relation = SubSeries of: GSE207086
-!Series_relation = BioProject: https://www.ncbi.nlm.nih.gov/bioproject/PRJNA853582
-"""
-
-#: GSE207086, the SuperSeries above GSE207085 — it declares BOTH its sub-series and an umbrella
-#: BioProject, which is what makes the order the two are tried in observable.
-_SOFT_SUPERSERIES_WITH_BIOPROJECT = """\
-^SERIES = GSE207086
-!Series_title = Three-dimensional morphologic and molecular atlases of human/mouse nasal vasculatures
-!Series_relation = SuperSeries of: GSE207083
-!Series_relation = SuperSeries of: GSE207084
-!Series_relation = SuperSeries of: GSE207085
-!Series_relation = BioProject: https://www.ncbi.nlm.nih.gov/bioproject/PRJNA853578
-"""
-
-_SOFT_WITH_NOTHING = """\
-^SERIES = GSE999999
-!Series_title = Processed matrices only
-!Series_supplementary_file = ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE999nnn/GSE999999/suppl/counts.csv.gz
-"""
+@dataclass
+class _Run:
+    accession: str
 
 
-def _soft_stub(
-    records: dict[str, str], monkeypatch: pytest.MonkeyPatch
-) -> list[str]:  # returns the fetch log
-    """Serve GEO SOFT from a dict, and record which accessions were asked for."""
-    fetched: list[str] = []
+@dataclass
+class _Experiment:
+    """The three facts ``io resolve`` reads off a liulab-data experiment."""
 
-    def fake_soft(accession: str) -> str:
-        fetched.append(accession)
-        return records[accession]
-
-    monkeypatch.setattr(remote, "geo_soft", fake_soft)
-    return fetched
+    accession: str
+    study: str
+    runs: list[_Run]
 
 
-#: ``(parser, soft, expected)``. Each parser reads its own relation line and nothing else: a record
-#: carries several URLs, only the SRA one holds `term=SRP...`, and a supplementary FTP path under
-#: `GSE207nnn` is not an accession. A SuperSeries declares no SRP of its own — eutils and runinfo both
-#: return ZERO for one, silently, so a resolver that misses the sub-series reports success and loses
-#: the whole dataset, the worst kind of wrong.
-SOFT_PARSERS = [
-    pytest.param(parse_soft_srp, _SOFT_WITH_SRP, ["SRP299835"], id="srp-not-bioproject"),
-    pytest.param(parse_soft_srp, _SOFT_SUPERSERIES, [], id="a-superseries-declares-no-srp"),
-    pytest.param(
-        parse_soft_superseries,
-        _SOFT_SUPERSERIES,
-        ["GSE140399", "GSE140510"],
-        id="its-sub-series",
-    ),
-    pytest.param(parse_soft_bioproject, _SOFT_SUBSERIES, ["PRJNA853582"], id="a-subseries-project"),
-    pytest.param(parse_soft_bioproject, _SOFT_WITH_SRP, ["PRJNA692883"], id="beside-an-srp"),
-    pytest.param(parse_soft_bioproject, _SOFT_WITH_NOTHING, [], id="no-bioproject-at-all"),
-]
+def test_io_resolve_returns_the_runs_of_a_subseries(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A GEO accession resolves to the runs of THAT accession, and liulab-data says which they are.
 
-
-@pytest.mark.parametrize(("parser", "soft", "expected"), SOFT_PARSERS)
-def test_the_soft_parsers_read_their_own_relation_line(
-    parser: Callable[[str], list[str]], soft: str, expected: list[str]
-) -> None:
-    assert parser(soft) == expected
-
-
-def test_a_subseries_resolves_through_its_own_bioproject(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A GEO accession resolves to the runs of THAT accession (#238).
-
-    A SubSeries declares neither an SRA study nor a sub-series, so it had nothing to walk and
-    `io resolve GSE207085` exited 1; its own BioProject is the route. The fetch log is half the
-    assertion — walking up to GSE207086 and back down returns the siblings' runs too.
+    GSE207085 is a SubSeries: its GEO record names no SRA study, and `io resolve` once refused it
+    while `io records` worked. ENA is asked once per study for the FASTQ links, and a run of the
+    same study outside the accession is not one of its runs.
     """
-    fetched = _soft_stub({"GSE207085": _SOFT_SUBSERIES}, monkeypatch)
+    import labdata
 
-    assert remote.geo_to_studies("GSE207085") == ["PRJNA853582"]
-    assert fetched == ["GSE207085"], "the SuperSeries and its siblings were never consulted"
+    experiments = {
+        "GSE207085": [
+            _Experiment("SRX15929663", "SRP383998", [_Run("SRR19886100")]),
+            _Experiment("SRX15929662", "SRP383998", [_Run("SRR19886101")]),
+        ]
+    }
+    monkeypatch.setattr(labdata, "experiments_for", lambda acc: experiments[acc], raising=False)
+    asked: list[str] = []
 
+    def fake_filereport(accession: str) -> list[dict[str, str]]:
+        asked.append(accession)
+        return [
+            {
+                "run_accession": run,
+                "study_accession": "SRP383998",
+                "fastq_ftp": f"ftp.x/{run}.fq.gz",
+            }
+            for run in ("SRR19886100", "SRR19886101", "SRR1")
+        ]
 
-def test_a_superseries_still_walks_down_rather_than_taking_its_umbrella_bioproject(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The BioProject is the last resort, not the first: a SuperSeries declares one that spans every
-    sub-series, and taking it would answer with the union whichever accession was asked for."""
-    fetched = _soft_stub(
-        {
-            "GSE207086": _SOFT_SUPERSERIES_WITH_BIOPROJECT,
-            "GSE207083": _SOFT_SUBSERIES.replace("PRJNA853582", "PRJNA853580"),
-            "GSE207084": _SOFT_SUBSERIES.replace("PRJNA853582", "PRJNA853581"),
-            "GSE207085": _SOFT_SUBSERIES,
-        },
-        monkeypatch,
-    )
+    monkeypatch.setattr(remote, "ena_filereport", fake_filereport)
 
-    assert remote.geo_to_studies("GSE207086") == ["PRJNA853580", "PRJNA853581", "PRJNA853582"]
-    assert "PRJNA853578" not in fetched
-    assert sorted(fetched) == ["GSE207083", "GSE207084", "GSE207085", "GSE207086"]
+    result = CliRunner().invoke(app, ["io", "resolve", "GSE207085", "--no-check-reads"])
 
-
-def test_a_geo_record_declaring_neither_refuses_and_names_both(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """A series carrying only processed matrices has no raw data to point at. That is still a
-    failure, and the message names the declarations looked for so a reader can check the record."""
-    _soft_stub({"GSE999999": _SOFT_WITH_NOTHING}, monkeypatch)
-
-    with pytest.raises(RemoteError, match="no SRA study, sub-series or BioProject"):
-        remote.geo_to_studies("GSE999999")
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["studies"] == ["SRP383998"]
+    assert [r["run_accession"] for r in payload["runs"]] == ["SRR19886100", "SRR19886101"]
+    assert payload["runs"][0]["fastq_urls"] == ["https://ftp.x/SRR19886100.fq.gz"]
+    assert asked == ["SRP383998"]
 
 
 # ---------------------------------------------------------------------------------------------

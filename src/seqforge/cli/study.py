@@ -52,7 +52,6 @@ def _write(
     out: Path,
     name: str,
     task: Path | None,
-    reviews: Path | None,
 ) -> None:
     """Write each study's file from a pass's answers, and print how each study ended."""
     from ._kind_task import KindTask, for_kind
@@ -69,7 +68,7 @@ def _write(
         said: dict[str, object] = {"kind": kind_name, "task": str(setup.folder), "out": str(out)}
         return _StageOut({**said, "studies": done}, 0)
 
-    _emit(for_kind(kind_name, task=task, reviews=reviews, body=run))
+    _emit(for_kind(kind_name, task=task, body=run))
 
 
 @study_app.command("write-bounds")
@@ -87,20 +86,16 @@ def study_write_bounds(
         "--task",
         help="The bounding pass's task folder. Default: seqforge/passes/<kind>/ here.",
     ),
-    reviews: Path | None = typer.Option(
-        None, "--reviews", envvar="SEQFORGE_REVIEWS", help="A local clone of the review repo."
-    ),
 ) -> None:
     """Write ``<out>/<ID>/<name>`` from the bounding pass's answers, for each study that has none.
 
     A refused study gets no file; the JSON gives its reason. A file already there is never
     overwritten. It reads the task only, so it works with the gateway down. Exit 0 with one object
-    per study; 2 for no task, no review clone or a ``--name`` that is a path; 3 when a running pass
-    holds the task.
+    per study; 2 for no task or a ``--name`` that is a path; 3 when a running pass holds the task.
     """
     from ..study.bounding import KIND_NAME, write_bounds
 
-    _write(KIND_NAME, write_bounds, out, name, task, reviews)
+    _write(KIND_NAME, write_bounds, out, name, task)
 
 
 @study_app.command("write-reading")
@@ -118,20 +113,17 @@ def study_write_reading(
         "--task",
         help="The reading pass's task folder. Default: seqforge/passes/<kind>/ here.",
     ),
-    reviews: Path | None = typer.Option(
-        None, "--reviews", envvar="SEQFORGE_REVIEWS", help="A local clone of the review repo."
-    ),
 ) -> None:
     """Write ``<out>/<ID>/<name>`` from the reading pass's answers, for each study that has none.
 
     The same as write-bounds, for the reading pass: a refused study gets no file and the JSON
     gives its reason, and a file already there is never overwritten, so the standard set's own
-    readings stay as they are. Exit 0 with one object per study; 2 for no task, no review clone or
-    a ``--name`` that is a path; 3 when a running pass holds the task.
+    readings stay as they are. Exit 0 with one object per study; 2 for no task or a ``--name`` that
+    is a path; 3 when a running pass holds the task.
     """
     from ..study.reader import KIND_NAME, write_readings
 
-    _write(KIND_NAME, write_readings, out, name, task, reviews)
+    _write(KIND_NAME, write_readings, out, name, task)
 
 
 @study_app.command("check-bounds")

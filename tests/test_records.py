@@ -10,12 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from seqforge.io.archive import (
-    merge_biosample_attributes,
-    parse_bioproject_set,
-    parse_biosample_set,
-    parse_sra_package_set,
-)
+from seqforge.io.archive import parse_bioproject_set, parse_sra_package_set
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.observation import FileIdentity
 from seqforge.models.records import ArchiveRecordSet
@@ -45,8 +40,8 @@ from seqforge.resolve.records import resolve_metadata
 
 FIXTURES = Path(__file__).parent / "fixtures" / "archive"
 
-#: The pilot's six runs: three wild-type, three daf-2. Transcribed from the BioSample records, which
-#: are committed beside this file — not from a run, and not from memory.
+#: The pilot's six runs: three wild-type, three daf-2. Transcribed from the SRA packages, which are
+#: committed beside this file — not from a run, and not from memory.
 WT_RUNS = ("SRR28716556", "SRR28716557", "SRR28716558")
 DAF2_RUNS = ("SRR28716553", "SRR28716554", "SRR28716555")
 
@@ -55,9 +50,6 @@ DAF2_RUNS = ("SRR28716553", "SRR28716554", "SRR28716555")
 def records() -> ArchiveRecordSet:
     """The pilot's archive records, parsed from what NCBI actually served. No network."""
     recs = parse_sra_package_set((FIXTURES / "PRJNA1027859.sra.xml").read_text())
-    recs = merge_biosample_attributes(
-        recs, parse_biosample_set((FIXTURES / "PRJNA1027859.biosample.xml").read_text())
-    )
     return ArchiveRecordSet(source="fixture", query="PRJNA1027859", records=recs)
 
 
@@ -95,14 +87,6 @@ def test_the_hierarchy_joins_run_to_experiment_to_sample_to_project(
         project = records.ancestor(run, "project")
         assert project is not None
         assert project.accession == "PRJNA1027859"
-
-
-def test_ncbi_harmonizes_the_attributes_and_we_do_not(records: ArchiveRecordSet) -> None:
-    """`harmonized_name` comes out of the BioSample record. We never guess at NCBI's vocabulary."""
-    sample = records.by_accession("SAMN40935621")
-    assert sample is not None
-    harmonized = {a.name for a in sample.attributes if a.harmonized}
-    assert {"strain", "tissue", "sex", "dev_stage", "collection_date"} <= harmonized
 
 
 def test_the_bioproject_record_declares_the_data_type() -> None:

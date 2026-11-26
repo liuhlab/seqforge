@@ -26,7 +26,6 @@ from typing import Any
 from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
 from ..passes.kinds import Kind, register
-from ..passes.review import ReviewForm
 from ..standard_set import default_set_dir, pick_entries
 from .bounds import FORMAT, check_bounds
 from .group import SERIES, group_text, linked_series, paper_reader, read_group
@@ -240,31 +239,12 @@ def write_bounds(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str, 
     return write_files(task, kind, out, name, bounds_file)
 
 
-def _records(inputs: Inputs) -> str:
-    """A unit's records for a review issue: links only, no record text."""
-    geo = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc="
-    lines = [f"- [{s}]({geo}{s})" for s in inputs.data["series"]]
-    papers = (inputs.data["group"] or {}).get("papers", [])
-    lines += [f"- [{p['id']}](https://pubmed.ncbi.nlm.nih.gov/{p['pmid']}/)" for p in papers]
-    return "\n".join(lines)
-
-
-def _show(answer: Any) -> str:
-    bounds = answer["bounds"]
-    kept = [claim["id"] for claim in bounds["series"]] + bounds["papers"]
-    out = ", ".join(claim["id"] for claim in bounds["left_out"]) or "nothing"
-    return f"In: {', '.join(kept)}. Left out: {out}."
-
-
 KIND = register(
     Kind(
         name=KIND_NAME,
         build=_build,
         default_models={ROLE: JEV},
         default_keys=lambda store: list(pick_entries(default_set_dir())),
-        review_form=ReviewForm(
-            records=_records, show=_show, drop_reasons=("no bounds can be drawn", "other")
-        ),
         reads_store=True,
     )
 )

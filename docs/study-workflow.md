@@ -62,7 +62,7 @@ small plain file: the question, the study, the answer, who gave it and when.
 
 Bounding is drawing a study from its linked records. The bounding job runs a pass of the
 `study-bounds` kind, which asks a model the same kind of question once for each study and keeps
-each answer in the pass's task folder. [Passes and reviews](passes-and-reviews.md) describes passes.
+each answer in the pass's task folder. [Passes](passes.md) describes passes.
 A study is named by the GEO Series it starts from. With no `--keys` file, the pass runs the 50
 studies of the standard set.
 
@@ -230,7 +230,7 @@ set are kept out. The chain bounds and reads every study with no person involved
 
 For each study the run writes a `bounds.yaml` and a `reading.yaml`, or it lists the study with the
 reason it stopped. Every study ends as settled, unsettled or refused, as
-[Passes and reviews](passes-and-reviews.md#start-a-pass) defines those endings. No study is sent
+[Passes](passes.md#start-a-pass) defines those endings. No study is sent
 to a person.
 
 ## Files that exist today
