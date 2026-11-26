@@ -79,8 +79,10 @@ examples, and never over a file.
 
 ## Look at the studies
 
-To look at the drawn studies, build the reading page:
-[`prototypes/standard_set_page/`](../../prototypes/standard_set_page/).
+A prototype page draws one picture per study, the paper beside its GEO datasets. It is kept on the
+tag
+[`archive/prototype-standard-set-page`](https://github.com/liuhlab/seqforge/tree/archive/prototype-standard-set-page/prototypes/standard_set_page),
+and its README there says how to build it.
 
 ## One folder per study
 
@@ -104,14 +106,14 @@ dose and time series), GSE235532 (pull-down libraries with their input controls)
 assays) and GSE241718 (one paper over two Series). A model wrote each and a second model pass
 checked it against the records. No person has checked them. Where the second pass disagrees, the
 reading is left as written and the disagreement is in the verdict. The format is on the
-[study reading](../../docs/formats/reading.md) page, and
-[`prototypes/study_reading_page/`](../../prototypes/study_reading_page/) builds a page to look at
-them.
+[study reading](../../docs/formats/reading.md) page. A prototype page to look at them is kept on the
+tag
+[`archive/prototype-study-reading-page`](https://github.com/liuhlab/seqforge/tree/archive/prototype-study-reading-page/prototypes/study_reading_page).
 
 No file is overwritten after it is written, with one exception. Each of the 50 `study.yaml` files
 was rewritten once to move its bounds out into `bounds.yaml`, so that the bounds
-exist in one place. The page that shows the studies is view-only: a correction file is written
-only when a person actually corrects a study.
+exist in one place. The archived pages were view-only: a correction file is written only when a
+person actually corrects a study.
 
 ## `bounds.yaml`
 
