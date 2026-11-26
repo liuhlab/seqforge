@@ -72,9 +72,9 @@ class PlannedDocument(BaseModel):
     """One document an extraction will pay for, described before it is sent.
 
     **Two member lists, because a collapse produces two facts and one list cannot hold both.**
-    ``members`` is every archive record this document is the ONLY reading of — its own, the runs of
-    one sample folded into it, and a near-identical member *withheld* onto it because its whole
-    difference was the accession we ourselves wrote. ``reduced_members`` is every near-identical
+    ``members`` is every archive record this document is the ONLY reading of — its own, and a
+    near-identical member *withheld* onto it because its whole difference was the accession we
+    ourselves wrote. ``reduced_members`` is every near-identical
     record that shares this document's prose and was sent **its own difference**, as a document of
     its own further down the same list (ADR-0031). A reader handed only the union would take "one
     document, 1440 members" for 1439 records that went unread, which is the exact opposite of the
@@ -127,8 +127,8 @@ class ExtractionPlanReport(BaseModel):
     #: Archive records with prose that this plan reads. A level asked nothing (``project``) and a
     #: record with no free text are not read, and are not counted here.
     n_records_read: int = 0
-    #: Records read but not costing a document of their own — the runs folded into their sample's
-    #: document, and a near-identical record whose only difference is the accession we ourselves wrote.
+    #: Records read but not costing a document of their own — a near-identical record whose only
+    #: difference is the accession we ourselves wrote.
     n_records_collapsed: int = 0
     #: Records sent as their DISTINCTIVE BYTES only: the invariant they share was read once, in the
     #: exemplar. A separate number from ``n_records_collapsed`` because they are separate facts — a
