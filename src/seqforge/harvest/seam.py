@@ -126,10 +126,6 @@ class Transcript:
         """How many requests the transcript holds."""
         return len(self.exchanges)
 
-    def prompt_for(self, exchange: Exchange) -> str:
-        """The system prompt this exchange was made under."""
-        return self.prompts[exchange.prompt_sha256]
-
 
 class ModelSeam:
     """Harvest's side of one liulab-llms meter: sends each request and keeps each exchange.

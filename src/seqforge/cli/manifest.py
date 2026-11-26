@@ -632,9 +632,7 @@ def _assertions_and_subjects(path: Path | None) -> tuple[list[Assertion], list[A
         )
     parsed = [Assertion.model_validate(a) for a in payload.get("assertions", ())]
     subjects = [
-        DocumentSubject(
-            doc_sha256=str(d["doc_sha256"]), scope=str(d["scope"]), subject=d.get("subject")
-        )
+        DocumentSubject(doc_sha256=str(d["doc_sha256"]), scope=str(d["scope"]))
         for d in payload.get("document_subjects", ())
     ]
     return parsed, subjects
