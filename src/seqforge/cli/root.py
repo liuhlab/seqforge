@@ -25,7 +25,11 @@ app.add_typer(schema_app, name="schema")
 kb_app = typer.Typer(help="The executable, self-testing knowledge base.")
 app.add_typer(kb_app, name="kb")
 
-io_app = typer.Typer(help="The network + onlist surface (pooch-cached, sha256-verified).")
+io_app = typer.Typer(
+    help="The network + onlist surface (pooch-cached, sha256-verified), and the steps a compiled "
+    "pipeline runs after alignment: h5ad, qc-bundle, fragments, fragments-qc, cram, umi-extract, "
+    "umi-count, split-chimera."
+)
 app.add_typer(io_app, name="io")
 
 onlist_app = typer.Typer(help="Barcode-whitelist (onlist) registry.")
