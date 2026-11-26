@@ -23,8 +23,9 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
   Its `not_done` list names each unit whose latest outcome is unfinished or held, with the reason
   and the pass, such as a study held for a missing bounds file. It reads the task folder only and
-  takes no hold, so it works with the gateway down and while a pass runs; so do
-  `study write-bounds` and `study write-reading`.
+  takes no hold, so it works with the gateway down and while a pass runs. `study write-bounds`
+  and `study write-reading` take no hold either, so they do not refuse while a pass runs: they
+  write the answers recorded so far and never replace a file. Run them once the pass has ended.
 - seqforge now depends on liulab-llms (2026.11.9 or later), from PyPI.
 
 ### Changed

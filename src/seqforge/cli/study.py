@@ -74,7 +74,9 @@ def _write(
 
     A text the format check rejects is a refusal, as check-bounds and check-reading make it: the
     other files are still written, and the command exits 3. The task is only read, with no hold,
-    so the files of the studies a running pass has answered can be written before it ends.
+    and liulab-llms gives a read no way to tell that a pass holds the task, so nothing refuses a
+    write while a pass runs. That write takes the answers recorded so far, and a file once written
+    is never replaced.
     """
     from ._kind_task import KindTask, for_kind
 
@@ -111,10 +113,13 @@ def study_write_bounds(
 
     A refused study gets no file; the JSON gives its reason. The format check runs on the exact
     text to be written, and a text it rejects is not written. A file already there is never
-    overwritten. It reads the task only, with no hold, so it works with the gateway down and while a
-    pass runs. Exit 0 with one object per study; 2 for no task, a task a pass stopped in the middle
-    of a write, or a ``--name`` that is a path; 3 when a pass's write kept the read waiting, or when
-    the format check rejects a text, whose study the JSON names with its problems.
+    overwritten. It reads the task only, with no hold, so it works with the gateway down. Run it once
+    the pass has ended: while a pass runs it does not refuse, and it writes the answers recorded so
+    far, so a study the pass has not reached gets an earlier pass's answer, and the new one needs
+    that file deleted by hand and the command run again. Exit 0 with one object per study; 2 for no
+    task, a task a pass stopped in the middle of a write, or a ``--name`` that is a path; 3 when a
+    pass's write kept the read waiting, or when the format check rejects a text, whose study the
+    JSON names with its problems.
     """
     from ..study.bounding import KIND_NAME, write_bounds
 
@@ -141,8 +146,9 @@ def study_write_reading(
 
     The same as write-bounds, for the reading pass: a refused study gets no file and the JSON
     gives its reason, and a file already there is never overwritten, so the standard set's own
-    readings stay as they are. Exit 0 with one object per study; 2 as for write-bounds, or for no
-    liulab-data for the format check; 3 as for write-bounds.
+    readings stay as they are. Run it once the pass has ended, for the reason write-bounds gives:
+    while a pass runs it writes the answers so far. Exit 0 with one object per study; 2 as for
+    write-bounds, or for no liulab-data for the format check; 3 as for write-bounds.
     """
     from ..study.reader import KIND_NAME, write_readings
 
