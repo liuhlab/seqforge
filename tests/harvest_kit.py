@@ -1,9 +1,10 @@
 """Harvest's side of liulab-llms's fake gateway, for the tests of harvest, `run` and `eval run`.
 
 The fake plays the gateway by its rules (the cache, each meter's dollar ceiling, the record of every
-exchange) with a function the test supplies playing the provider. `fake` builds it with the one
-provider rule the real gateway keeps and its fake does not; `install` puts it behind every command,
-through the gateway kit; `seam_over` opens a meter on it directly for the tests below the CLI.
+exchange) with a function the test supplies playing the provider. Both `fake` and `install` build it
+through the gateway kit, at harvest's prices and with a provider that finds nothing unless told
+otherwise; `install` puts it behind every command; `seam_over` opens a meter on it directly for the
+tests below the CLI.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 import pytest
-from labllm import Model, Rejected
+from labllm import Model
 from labllm.testing import FakeGateway, Price
 
 import gateway_kit
@@ -41,27 +42,8 @@ def fake(
     *,
     prices: Mapping[str, Price] = PRICES,
 ) -> FakeGateway:
-    """A fake gateway with ``provider`` playing the provider, under the real gateway's DeepSeek rule."""
-    return FakeGateway(_keeping_the_rule(provider), prices=prices)
-
-
-def _keeping_the_rule(
-    provider: Callable[[dict[str, Any]], Any] | None,
-) -> Callable[[dict[str, Any]], Any]:
-    """``provider``, or one that finds nothing, behind the real gateway's DeepSeek rule.
-
-    The real gateway refuses a DeepSeek request with both thinking on and a schema before any paid
-    call. liulab-llms's fake does not copy a provider's mapping, so harvest's keeps the rule itself.
-    """
-    answer = provider or answering()
-
-    def keeping_the_rule(form: dict[str, Any]) -> Any:
-        thinks = form["settings"]["thinking"] is True
-        if form["provider"] == "deepseek" and thinks and form.get("schema") is not None:
-            raise Rejected("DeepSeek strict function calls need thinking off")
-        return answer(form)
-
-    return keeping_the_rule
+    """A fake gateway with ``provider``, or one that finds nothing, playing the provider."""
+    return gateway_kit.fake(provider or answering(), prices=prices)
 
 
 def install(
@@ -71,7 +53,7 @@ def install(
     prices: Mapping[str, Price] = PRICES,
 ) -> FakeGateway:
     """Put a fake gateway behind every command that builds a gateway client, and return it."""
-    return gateway_kit.install(monkeypatch, _keeping_the_rule(provider), prices=prices)
+    return gateway_kit.install(monkeypatch, provider or answering(), prices=prices)
 
 
 def seam_over(
