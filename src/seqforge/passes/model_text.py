@@ -1,8 +1,7 @@
-"""The ``--model`` text, ``ROLE=PROVIDER/NAME[,KEY=VALUE...]``: read into a model, and written back.
+"""The ``--model`` text, ``ROLE=PROVIDER/NAME[,KEY=VALUE...]``, read into a model.
 
-``pass start --model`` reads it, and a review issue writes each pass's models in it, so a person can
-copy one into the next command. The settings it may carry are :data:`SETTINGS`, each read and
-written in one row: a new setting is one edit.
+``pass start --model`` reads it. The settings it may carry are :data:`SETTINGS`, each read in one
+row: a new setting is one edit.
 """
 
 from __future__ import annotations
@@ -19,14 +18,13 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class Setting:
-    """One ``KEY=VALUE`` a model text may carry: the ``Model`` field it sets, read and written.
+    """One ``KEY=VALUE`` a model text may carry: the ``Model`` field it sets, and how it is read.
 
     ``read`` raises ``ValueError`` saying why a value is wrong.
     """
 
     field: str
     read: Callable[[str], Any]
-    write: Callable[[Any], str] = str
 
 
 def _on_off(value: str) -> bool:
@@ -50,7 +48,7 @@ def _word(value: str) -> str:
 
 #: Every setting a model text may carry after its name, by key, in the order it is written.
 SETTINGS = {
-    "thinking": Setting("thinking", _on_off, lambda on: "on" if on else "off"),
+    "thinking": Setting("thinking", _on_off),
     "effort": Setting("effort", _word),
     "temperature": Setting("temperature", float),
     "max-output-tokens": Setting("max_output_tokens", _tokens),
@@ -94,19 +92,3 @@ def parse_model(text: str) -> tuple[str, Model]:
         except ValueError as exc:
             raise SetupRefused(f"--model {text!r}: {exc}") from None
     return role.strip(), Model(provider.strip(), model_name.strip(), **fields)
-
-
-def model_text(role: str, model: Model) -> str:
-    """``ROLE=PROVIDER/NAME[,KEY=VALUE...]``, as :func:`parse_model` reads it back.
-
-    It names each setting that differs from liulab-llms's default.
-    """
-    from labllm import Model
-
-    plain = Model(model.provider, model.name)
-    text = f"{role}={model.provider}/{model.name}"
-    for key, setting in SETTINGS.items():
-        value = getattr(model, setting.field)
-        if value != getattr(plain, setting.field):
-            text += f",{key}={setting.write(value)}"
-    return text

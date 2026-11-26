@@ -62,12 +62,6 @@ def pass_start(
     task: Path | None = typer.Option(
         None, "--task", help="The task's folder. Default: seqforge/passes/<kind>/ here."
     ),
-    reviews: Path | None = typer.Option(
-        None,
-        "--reviews",
-        envvar="SEQFORGE_REVIEWS",
-        help="A local clone of the review repo, whose reviews/ say which units a review holds.",
-    ),
 ) -> None:
     """Run one pass of a seqforge kind over its units, and print its JSON.
 
@@ -89,7 +83,6 @@ def pass_start(
             off_peak_only=off_peak_only,
             label=label,
             task=task,
-            reviews=reviews,
         )
     )
 
@@ -105,7 +98,6 @@ def _pass_start(
     off_peak_only: bool,
     label: str | None,
     task: Path | None,
-    reviews: Path | None,
 ) -> _StageOut:
     """The body of ``pass start``: every setup refusal first, then the hold, then the pass."""
     from labllm import GatewayUnreachable, Rejected, Task
@@ -172,7 +164,7 @@ def _pass_start(
         }
         return _StageOut(payload, 0 if result.stopped is None else 3)
 
-    return for_kind(name, task=task, reviews=reviews, body=run)
+    return for_kind(name, task=task, body=run)
 
 
 @pass_app.command("status")
@@ -181,23 +173,17 @@ def pass_status(
     task: Path | None = typer.Option(
         None, "--task", help="The task's folder. Default: seqforge/passes/<kind>/ here."
     ),
-    reviews: Path | None = typer.Option(
-        None,
-        "--reviews",
-        envvar="SEQFORGE_REVIEWS",
-        help="A local clone of the review repo, whose reviews/ give a person's endings.",
-    ),
 ) -> None:
     """Report where a kind's task stands, and what each of its passes cost per unit, as JSON.
 
-    It reads the task's state and the reviews only, so it works with the gateway down. Exit 0 with
-    the report; 2 for an unknown kind, no review clone, or a folder that holds no task; 3 when a
-    running pass holds the task, whose stderr is then the live view.
+    It reads the task's state and its reviews only, so it works with the gateway down. Exit 0 with
+    the report; 2 for an unknown kind or a folder that holds no task; 3 when a running pass holds
+    the task, whose stderr is then the live view.
     """
-    _emit(_pass_status(name=kind, task=task, reviews=reviews))
+    _emit(_pass_status(name=kind, task=task))
 
 
-def _pass_status(*, name: str, task: Path | None, reviews: Path | None) -> _StageOut:
+def _pass_status(*, name: str, task: Path | None) -> _StageOut:
     from ..passes.status import read_only_kind, task_status
 
     def run(setup: KindTask) -> _StageOut:
@@ -206,7 +192,7 @@ def _pass_status(*, name: str, task: Path | None, reviews: Path | None) -> _Stag
             report = task_status(opened, read_only_kind(setup.kind.name))
         return _StageOut({"kind": setup.kind.name, "task": str(setup.folder), **report}, 0)
 
-    return for_kind(name, task=task, reviews=reviews, body=run)
+    return for_kind(name, task=task, body=run)
 
 
 def _read_keys(path: Path) -> list[str]:

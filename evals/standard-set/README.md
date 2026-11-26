@@ -40,8 +40,8 @@ What the links between records showed is written up in
 ## Draw a study
 
 The bounding job draws a study. It reads
-liulab-data's stores, so set `LABDATA_STORE` and `LABDATA_PAPERS`. It also needs the lab gateway
-and a clone of the review repo: see [Passes and reviews](../../docs/passes-and-reviews.md).
+liulab-data's stores, so set `LABDATA_STORE` and `LABDATA_PAPERS`. It also needs the lab gateway:
+see [Passes](../../docs/passes.md).
 
 ```bash
 seqforge pass start study-bounds --ceiling-usd 0.1
@@ -66,7 +66,7 @@ became the study's and the draft was kept.
 ## Read a study
 
 The reading job writes each study's reading from the study's own `bounds.yaml`, with the same
-stores, gateway and review clone as the bounding job.
+stores and gateway as the bounding job.
 
 ```bash
 seqforge pass start study-reading --ceiling-usd 2 --units-at-once 2
