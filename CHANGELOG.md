@@ -16,21 +16,7 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   it stops, and 2 for a setup it cannot use. A model name the gateway rejects, such as a misspelled
   one, is such a setup: the gateway's message goes to stderr. Rerunning the same command resumes
   it, and every unit answered before comes back from the gateway's cache at no cost. No kind is
-  registered yet. The new "Passes and reviews" page of the docs describes it.
-- `seqforge review file <kind>` files a small sample of a kind's review queue, the units that
-  ended unsettled or refused, as issues in the lab's private review repo: five by default, more
-  with `--count`, in the kind's own review order. Each issue shows the unit's records, each pass's
-  answer and the checks it failed, and a person answers by ticking boxes and closing it. A unit is
-  never filed twice for the same inputs. The command reaches GitHub through the GitHub CLI, `gh`
-  2.48 or later, as the person running it. The "Passes and reviews" page of the docs describes it,
-  and how the review repo was set up.
-- `seqforge review read <kind>` reads people's answers back from a kind's closed issues in the
-  review repo. An issue closed as completed stores the answer that its ticks make, and one closed
-  as not planned stores a drop with the reasons ticked, each with the GitHub login of the person
-  who closed it. The reviews go into the kind's file in the review clone, which the command commits
-  alone and pushes. Ticks that make no answer, or an answer that fails one of the kind's checks,
-  store nothing: the issue gets a comment that says why and is reopened, and the command exits 4.
-  It works while a pass is running.
+  registered yet. The new "Passes" page of the docs describes it.
 - `seqforge pass status <kind>` reports where a kind's task stands: how many units have each
   ending, a person's review included, and, for each pass, its models, store build, ceiling and
   spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
@@ -86,6 +72,12 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   Matching files to samples, the organism, cells versus nuclei and the chemistry hint are
   unchanged. `harvest extract` no longer prints `n_stored`, and each `fanned` row names its one
   `assertion_id` instead of `assertion_ids` and `materialized`.
+- `seqforge io attributes` is gone, and the wheel no longer ships NCBI's list of 960 sample
+  attribute names. `io records` keeps each sample attribute under the tag the submitter typed and
+  no longer renames it to NCBI's name, so it makes no separate BioSample request and costs one
+  request fewer for every 100 samples. A record attribute has no `harmonized` or `raw_name` field
+  any more; a record set written earlier with them still loads. The organism still comes from
+  each sample's taxonomy id.
 
 ### Fixed
 

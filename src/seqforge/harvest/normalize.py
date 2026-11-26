@@ -775,7 +775,7 @@ def declared_spans(text: str, records: Sequence[ArchiveRecord]) -> tuple[Declare
                         DeclaredSpan(
                             start=start,
                             end=end,
-                            attribute=attr.raw_name or attr.name,
+                            attribute=attr.name,
                             value=attr.value,
                         )
                     )
