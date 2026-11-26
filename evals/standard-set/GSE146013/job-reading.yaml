@@ -9,8 +9,8 @@ read:
 - full_text
 read_detail: The records of GSE146013 and their 24 sequenced samples; the full text of pmid:32549330.
 ontology_snapshot:
-  source: 'liulab-data ontology store: mondo-2026-11-03, ncbitaxon-2026-11-25, uberon-2026-11-05'
-  date: 2026-11-25
+  source: 'liulab-data ontology store: mondo-2026-11-03, ncbitaxon-2026-11-26, uberon-2026-11-05'
+  date: 2026-11-26
 passages:
   1:
     record: GSE146013

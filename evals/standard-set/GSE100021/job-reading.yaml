@@ -9,8 +9,8 @@ read:
 - full_text
 read_detail: The records of GSE100021 and their 8 sequenced samples; the full text of pmid:28645186.
 ontology_snapshot:
-  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01'
-  date: 2026-11-25
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01'
+  date: 2026-11-26
 passages:
   1:
     record: GSE100021

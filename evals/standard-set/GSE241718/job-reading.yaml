@@ -9,9 +9,9 @@ read:
 - full_text
 read_detail: The records of GSE241718, GSE241275 and their 8 sequenced samples; the full text of pmid:38997312.
 ontology_snapshot:
-  source: 'liulab-data ontology store: cl-2026-11-13, mmusdv-2025-01-23, ncbitaxon-2026-11-25, pato-2026-10-01,
+  source: 'liulab-data ontology store: cl-2026-11-13, mmusdv-2025-01-23, ncbitaxon-2026-11-26, pato-2026-10-01,
     uberon-2026-11-05'
-  date: 2026-11-25
+  date: 2026-11-26
 passages:
   1:
     paper: pmid:38997312

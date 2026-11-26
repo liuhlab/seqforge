@@ -9,9 +9,9 @@ read:
 - full_text
 read_detail: The records of GSE101112 and their 32 sequenced samples; the full text of pmid:31742554.
 ontology_snapshot:
-  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-25,
+  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, mmusdv-2025-01-23, ncbitaxon-2026-11-26,
     pato-2026-10-01'
-  date: 2026-11-25
+  date: 2026-11-26
 passages:
   1:
     record: each_sample
