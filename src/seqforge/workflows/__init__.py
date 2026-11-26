@@ -18,10 +18,11 @@ and stay findable. A bump changes only what the NEXT recipe records. The way to 
 behaviour is therefore to author a new recipe — composing the old one again does not silently
 re-stage the new bytes over the old, it refuses, because a pipeline directory is written once.
 
-That is the whole cost model, and it is the opposite of the one this log's older entries assumed
-(#447). They priced an edit as "one round of ``run_id`` invalidation", meaning every composed dataset
-re-keyed itself and reprocessed. Nothing ever did that. The real price of editing a shipped module is
-paid per pipeline that wants the edit, by whoever wants it, in a new recipe.
+That is the whole cost model, and it is the opposite of the one the older entries of
+``WORKFLOW_VERSION``'s history assumed (#447). They priced an edit as "one round of ``run_id``
+invalidation", meaning every composed dataset re-keyed itself and reprocessed. Nothing ever did
+that. The real price of editing a shipped module is paid per pipeline that wants the edit, by
+whoever wants it, in a new recipe.
 """
 
 from __future__ import annotations

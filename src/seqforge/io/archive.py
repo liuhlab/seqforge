@@ -13,7 +13,7 @@ never requested, and the BioSample attributes that carry ``strain``/``tissue``/`
 were fetched by zero lines of code anywhere in the repo. "We already have this and throw it away" was
 the comfortable assumption, and it was false.
 
-**Two calls, and each earns its place:**
+**Three calls, and each earns its place:**
 
 1. ``labdata.experiments_for`` expands *any* accession — GEO series, BioProject, study, run,
    BioSample — into the experiments underneath it, over NCBI Entrez. It replaced our own ENA/SOFT
@@ -26,6 +26,8 @@ the comfortable assumption, and it was false.
    are kept as the submitter typed them (``<TAG>dev_stage</TAG>``), with no BioSample request to
    rename them: what a sample was is a study reading's to say, and the one name read off a sample
    record, ``taxonomy_id``, comes from the package's own taxon.
+3. ``efetch db=bioproject`` adds the study facts the package does not carry: the data type and the
+   release and submission dates. A failure here keeps the record set, with the package's facts.
 
 ``efetch db=sra`` does **not** accept a study accession (``id=SRP502277`` -> "ID list is empty"),
 which is why step 1 is not optional. It does accept a list of experiment accessions, so the six

@@ -193,8 +193,8 @@ Every claim it returns carries a verbatim quote. Code — not the model — grep
 the normalized document, computes the offsets, and checks that the quote actually supports the value.
 A claim that fails either check is discarded.
 
-**What the model is asked.** From a paper: the chemistry, whether the input was cells or nuclei, the
-organism and the accessions. `--records` renders each experiment record as its own document, and its
+**What the model is asked.** From a paper: the chemistry, whether the input was cells or nuclei, and
+the organism. `--records` renders each experiment record as its own document, and its
 protocol paragraph is asked for the chemistry and nothing else. Sample and run records, and the study
 abstract, are asked nothing. What each sample was is not the compiler's question; a study reading
 answers it.
