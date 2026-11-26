@@ -478,7 +478,7 @@ def _jev(form: dict[str, Any]) -> dict[str, Any]:
 def read(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[tuple[Path, dict[str, Any], FakeGateway]]:
-    """One pass over five studies, written beside the set's own files."""
+    """One pass over every study of the store, written beside the set's own files."""
     here = tmp_path_factory.mktemp("reader")
     set_dir = here / "set"
     for key in SERIES:

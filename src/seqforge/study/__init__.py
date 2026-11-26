@@ -25,5 +25,6 @@ The two jobs, each a unit kind of the run engine, and what they read and ask:
   it.
 - :mod:`.lists` — the open lists a writing model drafts for a reading.
 - :mod:`.ontology_search` — the one door the reader asks for ontology terms through.
-- :mod:`.closed` — a closed question asked of Jev: yes or no, or one of a list.
+- :mod:`.closed` — a closed question asked of Jev: yes or no, or one of a list. Both jobs ask Jev
+  through it.
 """
