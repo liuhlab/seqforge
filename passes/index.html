@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://liuhlab.github.io/seqforge/passes-and-reviews/">
+        <link rel="canonical" href="https://liuhlab.github.io/seqforge/passes/">
       
       
         <link rel="prev" href="../hand-work-files/">
@@ -27,7 +27,7 @@
     
     
       
-        <title>Passes and reviews - seqforge</title>
+        <title>Passes - seqforge</title>
       
     
     
@@ -90,7 +90,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#passes-and-reviews" class="md-skip">
+        <a href="#passes" class="md-skip">
           Skip to content
         </a>
       
@@ -125,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Passes and reviews
+              Passes
             
           </span>
         </div>
@@ -537,7 +537,7 @@
   <span class="md-ellipsis">
     
   
-    Passes and reviews
+    Passes
   
 
     
@@ -555,7 +555,7 @@
   <span class="md-ellipsis">
     
   
-    Passes and reviews
+    Passes
   
 
     
@@ -657,39 +657,6 @@
     <span class="md-ellipsis">
       
         Send the hard units to a stronger model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#file-units-for-review" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        File units for review
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#read-reviews-back" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Read reviews back
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#set-up-the-review-repo" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Set up the review repo
       
     </span>
   </a>
@@ -1355,39 +1322,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#file-units-for-review" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        File units for review
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#read-reviews-back" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Read reviews back
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#set-up-the-review-repo" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Set up the review repo
-      
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1405,7 +1339,7 @@
 
 
   
-    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/passes-and-reviews.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/liuhlab/seqforge/edit/main/docs/passes.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1413,7 +1347,7 @@
   
 
 
-<h1 id="passes-and-reviews">Passes and reviews<a class="headerlink" href="#passes-and-reviews" title="Permanent link">&para;</a></h1>
+<h1 id="passes">Passes<a class="headerlink" href="#passes" title="Permanent link">&para;</a></h1>
 <p>Some of seqforge's work asks a language model the same kind of question many times: once for each
 GEO Series, about 200,000 of them. seqforge runs that work as <strong>passes</strong>. A pass runs one <strong>unit
 kind</strong> over a list of <strong>units</strong>, each named by a key, and records how each unit ended. The engine
@@ -1421,21 +1355,31 @@ behind it is the lab package <a href="https://liuhlab.github.io/liulab-llms/">li
 call through the lab gateway, caches every answer, stops at a dollar ceiling, and keeps the record
 in a <strong>task</strong> folder. seqforge names its kinds and starts their passes. The engine's words are
 defined in <a href="https://github.com/liuhlab/liulab-llms/blob/main/GLOSSARY.md">liulab-llms's glossary</a>.</p>
-<p>seqforge has one kind so far, <code>study-bounds</code>, which draws each study's bounds.
-<a href="../study-workflow/#1-bound-the-study">The study workflow</a> says how it is used.</p>
+<p>seqforge has two kinds:</p>
+<table>
+<thead>
+<tr>
+<th>Kind</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>study-bounds</code></td>
+<td>Draws each study's bounds. See <a href="../study-workflow/#1-bound-the-study">bound the study</a></td>
+</tr>
+<tr>
+<td><code>study-reading</code></td>
+<td>Reads what each sequenced sample of a study is. See <a href="../study-workflow/#3-read-the-study">read the study</a></td>
+</tr>
+</tbody>
+</table>
+<p>A kind's name is written once, in the kind table of <code>seqforge.passes.kinds</code>. A new kind is one
+module and one row there.</p>
 <h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">&para;</a></h2>
-<p>You need two things:</p>
-<ul>
-<li><strong>A tunnel to the lab gateway</strong>, and <code>LABLLM_GATEWAY</code> set to its local address, such as
-  <code>http://127.0.0.1:8000</code>. <a href="https://liuhlab.github.io/liulab-llms/reach-the-gateway/">Reach the lab gateway</a>
-  shows how to open one.</li>
-<li><strong>A local clone of the lab's review repo.</strong> Give it as <code>--reviews DIR</code>, or set
-  <code>SEQFORGE_REVIEWS</code> to it. A pass reads the reviews in its <code>reviews/</code> folder to learn which units
-  a person has already answered. Make the clone with <code>gh repo clone liuhlab/seqforge-review</code>.</li>
-</ul>
-<p>The review commands also need the GitHub CLI, <code>gh</code>, version 2.48 or later, logged in with
-<code>gh auth login</code>. They act on GitHub as you, and need no more than the <code>repo</code> scope that login gives
-by default.</p>
+<p>You need a tunnel to the lab gateway, and <code>LABLLM_GATEWAY</code> set to its local address, such as
+<code>http://127.0.0.1:8000</code>. <a href="https://liuhlab.github.io/liulab-llms/reach-the-gateway/">Reach the lab gateway</a>
+shows how to open one.</p>
 <h2 id="start-a-pass">Start a pass<a class="headerlink" href="#start-a-pass" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>&lt;kind&gt;<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">5</span>
 </code></pre></div>
@@ -1493,6 +1437,10 @@ ways:</p>
 <td>Run exactly these units, one key per line, in this order</td>
 </tr>
 <tr>
+<td><code>--studies DIR</code></td>
+<td>The folder of study folders that the pass works on. With no <code>--keys</code>, the pass runs the studies that the folder's <code>pick.yaml</code> lists. Default: the standard set, <code>evals/standard-set</code></td>
+</tr>
+<tr>
 <td><code>--only ENDINGS</code></td>
 <td>Run only the units whose current ending is one of these, such as <code>unsettled,refused</code></td>
 </tr>
@@ -1511,10 +1459,6 @@ ways:</p>
 <tr>
 <td><code>--task DIR</code></td>
 <td>The task folder. Default: <code>seqforge/passes/&lt;kind&gt;/</code> in the current folder</td>
-</tr>
-<tr>
-<td><code>--reviews DIR</code></td>
-<td>The review repo's clone, if <code>SEQFORGE_REVIEWS</code> does not name it</td>
 </tr>
 </tbody>
 </table>
@@ -1545,7 +1489,7 @@ ended so far, by ending, and the dollars spent. stdout carries one JSON object a
 </tr>
 <tr>
 <td><code>store_build</code></td>
-<td>The liulab-data store build the pass read, or <code>null</code> for a kind that reads no store</td>
+<td>The build of liulab-data's record store that the pass read, or <code>null</code> for a kind that reads no record store</td>
 </tr>
 <tr>
 <td><code>models</code></td>
@@ -1573,8 +1517,8 @@ ended so far, by ending, and the dollars spent. stdout carries one JSON object a
 </tr>
 </tbody>
 </table>
-<p>A kind that reads liulab-data's store opens it once, when the pass starts. The whole pass reads that
-one build, even if the store is refreshed while it runs.</p>
+<p>A kind opens each liulab-data store that it reads once, when the pass starts. The whole pass reads
+that one build of the record store, even if the store is refreshed while it runs.</p>
 <h3 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1590,7 +1534,7 @@ one build, even if the store is refreshed while it runs.</p>
 </tr>
 <tr>
 <td>2</td>
-<td>A setup it cannot use: an unknown kind, models that do not fill the kind's roles, a model or keys file it cannot read, no review clone, no gateway address, a model name the gateway rejects, or a task folder this liulab-llms cannot read. One line on stderr says which</td>
+<td>A setup it cannot use: an unknown kind, a store the kind reads that cannot be opened, models that do not fill the kind's roles, a model or keys file it cannot read, no <code>--keys</code> for a folder with no <code>pick.yaml</code>, no gateway address, a model name the gateway rejects, or a task folder this liulab-llms cannot read. One line on stderr says which</td>
 </tr>
 <tr>
 <td>3</td>
@@ -1605,9 +1549,10 @@ the gateway's cache at no cost, and <code>cache_hits</code> counts them. After a
 <h2 id="see-where-a-kind-stands">See where a kind stands<a class="headerlink" href="#see-where-a-kind-stands" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>status<span class="w"> </span>&lt;kind&gt;
 </code></pre></div>
-<p>This reads the kind's task and the review clone and prints one JSON object. It sends nothing to the
-gateway, so it works with the gateway down, and wherever the task folder is. It takes <code>--task DIR</code>
-and <code>--reviews DIR</code> as <code>pass start</code> does.</p>
+<p>This reads the kind's task and prints one JSON object. It sends nothing to the gateway, and it opens
+none of the stores the kind reads, so it works with the gateway down, and wherever the task folder
+is. It takes no hold on the task, so it also works while a pass runs. It takes <code>--task DIR</code> as
+<code>pass start</code> does.</p>
 <table>
 <thead>
 <tr>
@@ -1629,11 +1574,21 @@ and <code>--reviews DIR</code> as <code>pass start</code> does.</p>
 <td>Each unit's current ending: settled, unsettled, refused or dropped, a person's review included. Then the units whose latest outcome is unfinished or held. A unit settled once and unfinished in a later pass counts under both</td>
 </tr>
 <tr>
+<td><code>not_done</code></td>
+<td>Each unit whose latest outcome is unfinished or held, in key order: its <code>key</code>, that <code>ending</code>, the outcome's <code>reason</code>, and the <code>pass</code> it came from</td>
+</tr>
+<tr>
 <td><code>passes</code></td>
 <td>Every pass of the kind, oldest first</td>
 </tr>
 </tbody>
 </table>
+<p><code>not_done</code> lists every such unit, with no cap. A held study's <code>reason</code> says what it lacks, such as
+its bounds file. To see only the held units, filter the list with the JSON tool <code>jq</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>status<span class="w"> </span>study-reading<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.not_done[] | select(.ending == &quot;held&quot;)&#39;</span>
+</code></pre></div>
+<p>A refused or unsettled unit is not in <code>not_done</code>. <code>study write-bounds</code> and <code>study write-reading</code>
+list each of those, with each refused study's reason.</p>
 <p>Each pass gives its <code>pass_id</code>, <code>label</code>, <code>kind_version</code>, <code>models</code>, <code>store_build</code>, <code>ceiling_usd</code>,
 <code>stopped</code>, its <code>counts</code>, and what it spent: <code>spent_usd</code>, <code>first_cost_usd</code>, <code>requests</code> and
 <code>cache_hits</code>. <code>ended</code> is <code>false</code> for a pass that was killed before it ended.</p>
@@ -1656,230 +1611,22 @@ pass. An answer from the cache counts, and a held unit or one the pass never sta
 </tr>
 <tr>
 <td>2</td>
-<td>An unknown kind, no review clone, or a folder that holds no task. One line on stderr says which</td>
+<td>An unknown kind, a folder that holds no task, or a task that a pass stopped in the middle of a write. One line on stderr says which. For the last, run the pass again with <code>pass start</code>, which repairs the task. It also runs every unit not yet answered, so it can spend up to its <code>--ceiling-usd</code></td>
 </tr>
 <tr>
 <td>3</td>
-<td>A running pass holds the task, and <code>message</code> names it. That pass's stderr is the live view</td>
+<td>A pass's write kept the read waiting, and <code>message</code> says so. Run it again</td>
 </tr>
 </tbody>
 </table>
 <h2 id="send-the-hard-units-to-a-stronger-model">Send the hard units to a stronger model<a class="headerlink" href="#send-the-hard-units-to-a-stronger-model" title="Permanent link">&para;</a></h2>
 <p>After a pass, rerun only the units that did not settle, on a stronger model:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>&lt;kind&gt;<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">5</span><span class="w"> </span>--only<span class="w"> </span>unsettled,refused<span class="w"> </span>--model<span class="w"> </span><span class="nv">writer</span><span class="o">=</span>deepseek/deepseek-v4-pro
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>&lt;kind&gt;<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">5</span><span class="w"> </span>--only<span class="w"> </span>unsettled,refused<span class="w"> </span>--model<span class="w"> </span><span class="nv">writer</span><span class="o">=</span>deepseek/deepseek-v4-pro
 </code></pre></div>
-<p>A unit a person has already reviewed is left out, as long as its inputs have not changed since the
-review.</p>
-<h2 id="file-units-for-review">File units for review<a class="headerlink" href="#file-units-for-review" title="Permanent link">&para;</a></h2>
-<p>A unit that ends unsettled or refused waits in its kind's <strong>review queue</strong> until a person answers
-it. People answer in the lab's private review repo, one GitHub issue for each unit:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>seqforge<span class="w"> </span>review<span class="w"> </span>file<span class="w"> </span>&lt;kind&gt;
-</code></pre></div>
-<p>This files five units from the queue, in the kind's own review order. Each new issue asks a person
-for a few minutes, so keep the number small. <code>--count</code> sets a different number.</p>
-<p>A unit is never filed twice for the same inputs, whether its first issue is still open or closed.
-When a unit's inputs change, a pass answers it again, and it can then be filed again. A unit whose
-inputs changed after its latest pass waits: it is filed once a pass has answered the new inputs.
-The command holds the task until it has filed everything, so a second <code>review file</code> on the same
-task folder exits 3. Two commands on different task folders, such as on two machines, are not kept
-apart and can file the same unit twice.</p>
-<p>Each issue shows:</p>
-<ul>
-<li>the unit's records, with links</li>
-<li>each pass's answer, with the models that gave it and its stamp</li>
-<li>each check that the answer failed, with the check's message</li>
-<li>the boxes to tick: one answer to start from, which is a pass's answer or one that the kind's
-  code offers; the kind's questions about single items; and the reasons to drop the unit</li>
-</ul>
-<p>To answer, tick the boxes, then close the issue. Close it as completed to keep your answer, or as
-not planned to drop the unit with the reasons you ticked. A hidden line at the top of the issue
-holds the kind, the unit's key, its inputs and the answers you can start from. Do not edit it.</p>
-<p>Each issue has the label <code>review:&lt;kind&gt;</code>, and a label <code>check:&lt;name&gt;</code> for each check that its
-answer failed. Filter the issue list by a label to see one kind or one check together. The command
-makes each label that the repo does not have yet.</p>
-<p>The options:</p>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>What it does</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--count</code></td>
-<td>How many units to file. Default 5</td>
-</tr>
-<tr>
-<td><code>--task DIR</code></td>
-<td>The task folder. Default: <code>seqforge/passes/&lt;kind&gt;/</code> in the current folder</td>
-</tr>
-<tr>
-<td><code>--reviews DIR</code></td>
-<td>The review repo's clone, if <code>SEQFORGE_REVIEWS</code> does not name it. The issues go to the GitHub repo that its <code>origin</code> names</td>
-</tr>
-</tbody>
-</table>
-<p>stdout carries one JSON object: <code>kind</code>, <code>task</code>, <code>filed</code>, which lists each filed unit's <code>key</code> and
-the issue's <code>url</code>, and <code>unfiled</code>, the number of units in the queue that are still not filed.</p>
-<table>
-<thead>
-<tr>
-<th>Exit</th>
-<th>When</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0</td>
-<td>It filed what it could, up to <code>--count</code></td>
-</tr>
-<tr>
-<td>2</td>
-<td>A setup it cannot use: an unknown kind, no review clone, no task in the folder, no <code>gh</code>, or a clone whose <code>origin</code> is not on GitHub. One line on stderr says which</td>
-</tr>
-<tr>
-<td>3</td>
-<td>Another process holds the task, such as a running pass or another <code>review file</code>, and <code>message</code> names it. Or a GitHub call failed: <code>stopped</code> is <code>github_failed</code>, and <code>filed</code> lists what was filed before it. Run the command again to file the rest</td>
-</tr>
-</tbody>
-</table>
-<p>For the <code>study-reading</code> kind, <code>review file</code> and <code>review read</code> also need liulab-data's ontology
-store, because they build the kind, and building it opens the store. A unit's inputs include the
-names of the store's snapshots, so a review made before a store update stops holding after it.</p>
-<h2 id="read-reviews-back">Read reviews back<a class="headerlink" href="#read-reviews-back" title="Permanent link">&para;</a></h2>
-<p>Once people have closed issues, read their answers back:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>seqforge<span class="w"> </span>review<span class="w"> </span><span class="nb">read</span><span class="w"> </span>&lt;kind&gt;
-</code></pre></div>
-<p>This reads each closed issue of the kind that has not been read back yet:</p>
-<ul>
-<li>An issue closed as completed stores the answer that its ticks make. The review records the GitHub
-  login of the person who closed the issue, and the pass whose answer they started from.</li>
-<li>An issue closed as not planned stores a drop, with the reasons ticked as its note.</li>
-</ul>
-<p>Each review goes into the kind's file in the <code>reviews/</code> folder of the clone. From then on the unit
-counts as settled or dropped, and a pass leaves it out while its inputs stay the same. The command
-does not open the task, so it works while a pass runs.</p>
-<p>If the ticks make no answer, or the answer fails one of the kind's checks, nothing is stored. The
-same is true if a ticked box's hidden marker was edited and cannot be read. The command adds a
-comment to the issue that says why, reopens it, and goes on to the next issue. Fix the ticks, then
-close the issue again.</p>
-<p>If the unit's inputs changed after the issue was filed, its answer is for inputs that the unit no
-longer has, so nothing is stored. The command says so in a comment, adds the label
-<code>inputs-changed</code>, and leaves the issue closed. A pass answers the new inputs, and the unit is filed
-again if it still needs a person.</p>
-<p>If the unit's inputs are missing for now, the unit is held. The command stores nothing, and it
-does not comment on the issue, label it or reopen it. It lists the unit under <code>held</code>, and the next
-run reads the issue again.</p>
-<p>Each issue is read back only once. After storing, the command commits the kind's review file, and
-nothing else in the clone, then pushes it. If another clone pushed first, the command pulls, and
-git's union merge keeps the lines from both. If the push still fails, the reviews stay committed in
-the clone, and the next run pushes them.</p>
-<p>The options:</p>
-<table>
-<thead>
-<tr>
-<th>Option</th>
-<th>What it does</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--reviews DIR</code></td>
-<td>The review repo's clone, if <code>SEQFORGE_REVIEWS</code> does not name it. The reviews are stored, committed and pushed there. The issues are read from the GitHub repo that its <code>origin</code> names</td>
-</tr>
-</tbody>
-</table>
-<p>stdout carries one JSON object:</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Value</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>kind</code></td>
-<td>The kind</td>
-</tr>
-<tr>
-<td><code>answered</code></td>
-<td>Each stored answer: the unit's <code>key</code>, the issue's <code>url</code>, <code>who</code> closed it, and <code>accepted_pass</code>, the pass whose answer they started from, or <code>null</code> for an answer the kind's code offered</td>
-</tr>
-<tr>
-<td><code>dropped</code></td>
-<td>Each stored drop: <code>key</code>, <code>url</code>, <code>who</code> and <code>note</code></td>
-</tr>
-<tr>
-<td><code>reopened</code></td>
-<td>Each reopened issue: <code>key</code>, <code>url</code>, and the <code>reason</code> that its comment gives</td>
-</tr>
-<tr>
-<td><code>inputs_changed</code></td>
-<td>Each issue left closed because its unit's inputs changed: <code>key</code> and <code>url</code></td>
-</tr>
-<tr>
-<td><code>held</code></td>
-<td>Each issue left for a later run because its unit's inputs are missing for now: <code>key</code> and <code>url</code></td>
-</tr>
-<tr>
-<td><code>pushed</code></td>
-<td><code>true</code> if it pushed, <code>false</code> if the push failed, or <code>null</code> if there was nothing to push</td>
-</tr>
-<tr>
-<td><code>stopped</code>, <code>message</code></td>
-<td>Only on exit 3: <code>github_failed</code> or <code>git_failed</code>, and the message from GitHub or git</td>
-</tr>
-</tbody>
-</table>
-<table>
-<thead>
-<tr>
-<th>Exit</th>
-<th>When</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0</td>
-<td>It read back each closed issue that it could, and reopened none</td>
-</tr>
-<tr>
-<td>2</td>
-<td>A setup it cannot use: an unknown kind, no review clone, no <code>gh</code>, a clone whose <code>origin</code> is not on GitHub, or a kind that reads liulab-data's store when the store cannot be opened. One line on stderr says which</td>
-</tr>
-<tr>
-<td>3</td>
-<td>A GitHub call or a git step failed. The reviews stored before it are committed in the clone. Run the command again to read the rest and push. Exit 3 wins over exit 4</td>
-</tr>
-<tr>
-<td>4</td>
-<td>It reopened at least one issue, so a person has to answer it again</td>
-</tr>
-</tbody>
-</table>
-<h2 id="set-up-the-review-repo">Set up the review repo<a class="headerlink" href="#set-up-the-review-repo" title="Permanent link">&para;</a></h2>
-<p>The lab set up the review repo once, with <code>gh</code>. These are the steps, for the record or for a new
-copy:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>gh<span class="w"> </span>repo<span class="w"> </span>create<span class="w"> </span>liuhlab/seqforge-review<span class="w"> </span>--private<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>--description<span class="w"> </span><span class="s2">&quot;Reviews of seqforge units: one issue per unit, answered by ticking boxes and closing&quot;</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>gh<span class="w"> </span>repo<span class="w"> </span>clone<span class="w"> </span>liuhlab/seqforge-review
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="nb">cd</span><span class="w"> </span>seqforge-review
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>reviews
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;*.jsonl merge=union\n&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>reviews/.gitattributes
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Write a short README.md that says what the repo is for, then:</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>git<span class="w"> </span>add<span class="w"> </span>README.md<span class="w"> </span>reviews/.gitattributes
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;Set up the review repo&quot;</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>git<span class="w"> </span>branch<span class="w"> </span>-M<span class="w"> </span>main
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>main
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>gh<span class="w"> </span>label<span class="w"> </span>create<span class="w"> </span>hand-check<span class="w"> </span>--repo<span class="w"> </span>liuhlab/seqforge-review<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">  </span>--description<span class="w"> </span><span class="s2">&quot;The benchmark&#39;s hand-check of a settled unit&quot;</span>
-</code></pre></div>
-<p>The <code>reviews/</code> folder holds one review file for each kind, one line for each review. Each person's
-clone adds lines to the same files, so <code>merge=union</code> tells git to keep the lines from both sides of
-a merge, not to stop on a conflict. The <code>hand-check</code> label is for the benchmark's own check of
-settled units. The review commands make every other label when they first need it.</p>
+<p>A unit that a person's review holds is left out, as long as its inputs have not changed since the
+review. liulab-llms reads a task's reviews from the <code>reviews/</code> folder inside the task folder. No
+seqforge command writes there: the folder holds only the reviews saved with liulab-llms's own
+<code>Reviews.save</code>, and a task with no such folder has no reviews.</p>
 
 
 

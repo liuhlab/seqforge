@@ -684,14 +684,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../passes-and-reviews/" class="md-nav__link">
+      <a href="../passes/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Passes and reviews
+    Passes
   
 
     
@@ -1426,9 +1426,11 @@ Series links to papers and to other Series that do not all belong to the same st
 <li><a href="../formats/reading/"><code>reading.yaml</code></a> holds the <strong>study reading</strong>: what was done to each sample, and how the samples
   relate. There is one reading per study.</li>
 </ul>
-<p>The chain is built and checked on the <strong>standard set</strong>, a fixed list of 50 small GEO studies. For
-those 50, both files sit in the study's folder, <code>evals/standard-set/&lt;ID&gt;/</code>. <code>&lt;ID&gt;</code> is the Series
-the study was picked by, such as <code>GSE100021</code>.</p>
+<p>Each study's files sit in its <strong>study folder</strong>, <code>&lt;folder&gt;/&lt;ID&gt;/</code>. <code>&lt;ID&gt;</code> is the Series the study
+was picked by, such as <code>GSE100021</code>, and <code>&lt;folder&gt;</code> is a folder of study folders. Both jobs run on
+the folder that <code>pass start --studies &lt;folder&gt;</code> names. The chain is built and checked on the
+<strong>standard set</strong>, a fixed list of 50 small GEO studies in <code>evals/standard-set/</code>, which is the
+folder when <code>--studies</code> names none.</p>
 <p>The work is planned in stages, and one step is not built yet: stage 6 runs the whole chain once
 with no person involved. That step already has its name, its input and its output below.</p>
 <h2 id="the-steps-in-order">The steps in order<a class="headerlink" href="#the-steps-in-order" title="Permanent link">&para;</a></h2>
@@ -1516,11 +1518,17 @@ small plain file: the question, the study, the answer, who gave it and when.</p>
 <h2 id="1-bound-the-study">1. Bound the study<a class="headerlink" href="#1-bound-the-study" title="Permanent link">&para;</a></h2>
 <p>Bounding is drawing a study from its linked records. The bounding job runs a pass of the
 <code>study-bounds</code> kind, which asks a model the same kind of question once for each study and keeps
-each answer in the pass's task folder. <a href="../passes-and-reviews/">Passes and reviews</a> describes passes.
-A study is named by the GEO Series it starts from. With no <code>--keys</code> file, the pass runs the 50
-studies of the standard set.</p>
+each answer in the pass's task folder. <a href="../passes/">Passes</a> describes passes.
+A study is named by the GEO Series it starts from. With no <code>--keys</code> file, the pass runs the
+studies that the folder's <code>pick.yaml</code> lists: the 50 of the standard set by default. A folder with
+no <code>pick.yaml</code> needs a <code>--keys</code> file, and the pass exits 2 without one.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-bounds<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">0</span>.1
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-bounds<span class="w"> </span>--out<span class="w"> </span>evals/standard-set<span class="w"> </span>--name<span class="w"> </span>job-bounds.yaml
+</code></pre></div>
+<p>In another folder, give the same folder to both commands. The bounding job's file is then the
+<code>bounds.yaml</code> that the reader reads:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-bounds<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">0</span>.1<span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--keys<span class="w"> </span>&lt;keys-file&gt;
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-bounds<span class="w"> </span>--out<span class="w"> </span>&lt;folder&gt;
 </code></pre></div>
 <p><strong>What it reads.</strong> The job reads liulab-data, the lab package that stores the archive records and
 the papers, from <code>LABDATA_STORE</code> and <code>LABDATA_PAPERS</code>. For each study it gathers the <strong>linked
@@ -1531,14 +1539,18 @@ and so does a paper that only a BioProject links.</p>
 <p><strong>How it decides.</strong> Code keeps the starting Series, or each sub-Series when the study starts from a
 SuperSeries, and it leaves every SuperSeries out. Jev, a model that answers yes/no questions with a
 probability, is asked about each other Series and each paper twice: once as written, once reversed.
-Jev reads the records and each paper's title, journal, date and abstract, and never a full paper. A
-record is in the study when Jev's answer as written is more likely yes than no. Each claim is
-<code>inferred</code>, and its text gives Jev's p(yes) to each of the two questions. A kept paper has no
-probability in the file, so the task keeps it.</p>
+Jev reads the records and each paper's title, journal, date and abstract, and never a full paper.
+An answer is yes when Jev's p(yes) is above 0.5, and no when it is below 0.5. At exactly 0.5 it is
+neither. A record is in the study when Jev's answer as written is yes. The two answers agree when
+one is yes and the other no. Each claim is <code>inferred</code>, and its text gives Jev's p(yes) to each of
+the two questions. A kept paper has no probability in the file, so the task keeps it.</p>
 <p><strong>What it writes.</strong> <code>seqforge study write-bounds --out &lt;folder&gt;</code> writes each study's answer as
-<code>&lt;folder&gt;/&lt;ID&gt;/bounds.yaml</code>, or under the name that <code>--name</code> gives. It never overwrites a file. For
-the standard set, the job's file is <code>job-bounds.yaml</code>, beside the set's own <code>bounds.yaml</code>. Each
-study ends in one of three ways:</p>
+<code>&lt;folder&gt;/&lt;ID&gt;/bounds.yaml</code>, or under the name that <code>--name</code> gives. It never overwrites a file.
+Run it once the pass has ended. While a pass runs it does not refuse: it writes the answers that
+the task holds so far, so a study that the pass has not reached gets an earlier pass's answer, if
+one gave it. To take the new answer, delete that file and run the command again. For the standard
+set, the job's file is <code>job-bounds.yaml</code>, beside the set's own <code>bounds.yaml</code>. Each study ends in
+one of three ways:</p>
 <table>
 <thead>
 <tr>
@@ -1555,12 +1567,12 @@ study ends in one of three ways:</p>
 </tr>
 <tr>
 <td>Unsettled</td>
-<td>Jev's two answers disagree on a record</td>
+<td>Jev's two answers do not agree on a record</td>
 <td>Written, with each probability</td>
 </tr>
 <tr>
 <td>Refused</td>
-<td>The group holds more than 50 Series, or the bounds fail the format check</td>
+<td>The group holds more than 50 Series, Jev gives no answer about a record, or the bounds fail the format check</td>
 <td>None. <code>write-bounds</code> prints the reason, such as <code>group too large</code></td>
 </tr>
 </tbody>
@@ -1580,17 +1592,24 @@ problem it names the field and the reason. It exits 0 for an accepted file, 3 fo
 and 2 for a file that it cannot read.</p>
 <p>The check asks only whether the file is in the current format. It does not judge whether the
 bounds are right. The bounding job never writes a file that the check rejects: it ends the study
-refused. The reader reads each study's bounds file as it is.</p>
+refused, and <code>write-bounds</code> checks the exact text it writes, with each model named, before the file
+appears. The reader reads each study's bounds file through the same check. It holds a study whose
+file is missing or rejected, and the reason names each problem. <code>seqforge pass status study-reading</code>
+lists each held study under <code>not_done</code>, with that reason.</p>
 <h2 id="3-read-the-study">3. Read the study<a class="headerlink" href="#3-read-the-study" title="Permanent link">&para;</a></h2>
 <p>The reader writes one study's <strong>study reading</strong>: what each sequenced sample is, and which labels
 the study varied. It runs a pass of the <code>study-reading</code> kind, one study per unit, and keeps each
-answer in the pass's task folder. With no <code>--keys</code> file, the pass runs the 50 studies of the
-standard set.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-reading<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">2</span><span class="w"> </span>--units-at-once<span class="w"> </span><span class="m">2</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-reading<span class="w"> </span>--out<span class="w"> </span>evals/standard-set<span class="w"> </span>--name<span class="w"> </span>job-reading.yaml
+answer in the pass's task folder. It runs on the folder that <code>--studies</code> names, the standard set
+by default, and it takes its units from that folder's pick as the bounding job does.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-reading<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">2</span><span class="w"> </span>--units-at-once<span class="w"> </span><span class="m">2</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-reading<span class="w"> </span>--out<span class="w"> </span>evals/standard-set<span class="w"> </span>--name<span class="w"> </span>job-reading.yaml
 </code></pre></div>
 <p>With <code>--units-at-once 2</code>, at most eight model requests are in flight at once.</p>
-<p><strong>What it reads.</strong> The reader reads the study's own <code>bounds.yaml</code>, and liulab-data from
+<p>In another folder, the reader reads the <code>bounds.yaml</code> that <code>write-bounds</code> wrote there:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>start<span class="w"> </span>study-reading<span class="w"> </span>--ceiling-usd<span class="w"> </span><span class="m">2</span><span class="w"> </span>--studies<span class="w"> </span>&lt;folder&gt;<span class="w"> </span>--keys<span class="w"> </span>&lt;keys-file&gt;
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>seqforge<span class="w"> </span>study<span class="w"> </span>write-reading<span class="w"> </span>--out<span class="w"> </span>&lt;folder&gt;
+</code></pre></div>
+<p><strong>What it reads.</strong> The reader reads the study's <code>bounds.yaml</code> in the folder, and liulab-data from
 <code>LABDATA_STORE</code> and <code>LABDATA_PAPERS</code>: the records of the Series that the bounds keep, the sequenced
 samples of those Series, and the bounds' papers. It reads a paper's full text where the paper store
 holds one, and the abstract where it does not. Only a sequenced sample gets a row, so a microarray
@@ -1602,13 +1621,15 @@ only such a file gives is <code>unknown</code>.</p>
    <strong>factors</strong>, which are the labels that the study varied on purpose, with their levels. It also
    lists every value that each label takes, each with a quote. It does not say which sample has
    which value. An answer that cannot be used is asked for once more. The request sends no JSON
-   schema, because the gateway refuses a DeepSeek schema with thinking on. Code takes the JSON
-   object out of the reply's text instead.</li>
+   schema, because the gateway refuses a DeepSeek schema with thinking on. Code reads the JSON
+   object out of the reply's text instead: the whole reply is JSON, or it holds exactly one fenced
+   block. Any other reply cannot be used.</li>
 <li>Jev, a model that answers closed questions with a probability, answers every closed question. It
    says whether each factor was varied on purpose, which level is the baseline, and whether the
    levels are in order. Then, for each sample, it picks the sample's level on each factor and its
-   value on each label from the lists. Some questions are asked twice: plain and negated, or with
-   the options in order and reversed.</li>
+   value on each label from the lists. Some questions are asked twice: whether a factor was varied,
+   plain and negated, and its baseline and each sample's level, with the options in order and
+   reversed. Each sample's label values are asked once, because only its level is compared.</li>
 <li>Code looks for every quote in its record, character for character, or in its paper once each
    run of white space is one space. Jev judges whether each found passage backs its claim, or says
    otherwise. A claim is <code>quoted</code> only from a found passage that backs it. Otherwise it is
@@ -1637,8 +1658,10 @@ labels get no id. The reading's <code>ontology_snapshot</code> names each snapsh
 such as <code>liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, uberon-2026-11-05</code>. Its date
 is the UTC day the pass opened the store, because the store names its snapshots by UTC day.</p>
 <p><strong>What it writes.</strong> <code>seqforge study write-reading --out &lt;folder&gt;</code> writes each study's answer as
-<code>&lt;folder&gt;/&lt;ID&gt;/reading.yaml</code>, or under the name that <code>--name</code> gives. It never overwrites a file.
-For the standard set, the job's file is <code>job-reading.yaml</code>, beside the five worked examples. Each
+<code>&lt;folder&gt;/&lt;ID&gt;/reading.yaml</code>, or under the name that <code>--name</code> gives. It never overwrites a file,
+and it writes no file whose exact text the format check rejects: it writes the others and exits 3,
+as <code>write-bounds</code> does. Like <code>write-bounds</code>, it does not refuse while a pass runs, so run it once
+the pass has ended. For the standard set, the job's file is <code>job-reading.yaml</code>, beside the five worked examples. Each
 study ends in one of three ways:</p>
 <table>
 <thead>
@@ -1656,7 +1679,7 @@ study ends in one of three ways:</p>
 </tr>
 <tr>
 <td>Unsettled</td>
-<td>Jev's two answers disagree on whether a factor was varied on purpose, on its baseline, or on any sample's level</td>
+<td>Jev's two answers do not agree on whether a factor was varied on purpose, on its baseline, or on any sample's level. A missing answer, or a probability of exactly 0.5, never agrees. Or Jev leaves unanswered a question it is asked once: a sample's label value or a label with no listed value, whose claim is then <code>unknown</code> with no probability, where the material came from, whether a factor's levels are ordered, a passage check, a tie or a term pick</td>
 <td>Written, with each probability</td>
 </tr>
 <tr>
@@ -1716,7 +1739,7 @@ Series in GEO. The Series are drawn from liulab-data's store, and the 50 studies
 set are kept out. The chain bounds and reads every study with no person involved.</p>
 <p>For each study the run writes a <code>bounds.yaml</code> and a <code>reading.yaml</code>, or it lists the study with the
 reason it stopped. Every study ends as settled, unsettled or refused, as
-<a href="../passes-and-reviews/#start-a-pass">Passes and reviews</a> defines those endings. No study is sent
+<a href="../passes/#start-a-pass">Passes</a> defines those endings. No study is sent
 to a person.</p>
 <h2 id="files-that-exist-today">Files that exist today<a class="headerlink" href="#files-that-exist-today" title="Permanent link">&para;</a></h2>
 <p><a href="../hand-work-files/">Files from the hand work</a> lists every bounds file, reading and verdict made

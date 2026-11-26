@@ -719,14 +719,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../passes-and-reviews/" class="md-nav__link">
+      <a href="../../passes/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Passes and reviews
+    Passes
   
 
     
@@ -1540,7 +1540,7 @@ want to know <em>why</em>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;records&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;seqforge/records/PRJNA1027859.json&quot;</span><span class="p">,</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;query&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PRJNA1027859&quot;</span><span class="p">,</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ncbi-sra+biosample&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;source&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ncbi-sra&quot;</span><span class="p">,</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;n&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;project&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;sample&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;experiment&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;run&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="p">}</span>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
 </code></pre></div>
@@ -1617,8 +1617,8 @@ seqforge is a verifier.</p>
 <p>Every claim it returns carries a verbatim quote. Code — not the model — greps that quote back into
 the normalized document, computes the offsets, and checks that the quote actually supports the value.
 A claim that fails either check is discarded.</p>
-<p><strong>What the model is asked.</strong> From a paper: the chemistry, whether the input was cells or nuclei, the
-organism and the accessions. <code>--records</code> renders each experiment record as its own document, and its
+<p><strong>What the model is asked.</strong> From a paper: the chemistry, whether the input was cells or nuclei, and
+the organism. <code>--records</code> renders each experiment record as its own document, and its
 protocol paragraph is asked for the chemistry and nothing else. Sample and run records, and the study
 abstract, are asked nothing. What each sample was is not the compiler's question; a study reading
 answers it.</p>

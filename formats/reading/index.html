@@ -521,14 +521,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../passes-and-reviews/" class="md-nav__link">
+      <a href="../../passes/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Passes and reviews
+    Passes
   
 
     
@@ -1616,7 +1616,7 @@ sure the model is. In the example, <code>tissue: {text: liver, ...}</code> is on
 </tr>
 <tr>
 <td><code>value</code></td>
-<td>For an age, a dose or a duration: the number, or a range as <code>[low, high]</code>. YAML reads <code>1.7e12</code> as text, so write <code>1.7e+12</code>.</td>
+<td>For an age, a dose, a duration or a label of the study's own: the number, or a range as <code>[low, high]</code>. YAML reads <code>1.7e12</code> as text, so write <code>1.7e+12</code>.</td>
 </tr>
 <tr>
 <td><code>unit</code></td>
@@ -1816,6 +1816,18 @@ the two input rows replace the shared <code>target</code> and the shared <code>c
 </ul>
 <p>A row or <code>shared</code> may hold more labels than the 18. Such a label is an attribute of the study's
 own, such as <code>time_of_day</code> in the example or a harvest time. Its claim has the same form.</p>
+<p>The rules for a claim's <code>term</code> and <code>value</code>, by its label:</p>
+<ul>
+<li>A <code>sex</code> term is one of the four words <code>female</code>, <code>male</code>, <code>hermaphrodite</code> and <code>mixed</code>.</li>
+<li>Any other term is an id from the vocabulary that the table above names for the label and the
+  sample's species, such as <code>UBERON:0002107</code> for a mouse tissue and <code>WBbt:0005772</code> for a worm
+  tissue. A shared claim must fit the species of each sample that it stands for. On <code>disease</code>,
+  <code>PATO:0000461</code> for healthy is allowed too.</li>
+<li>A label for which the table names no vocabulary takes no term. These are <code>target</code>,
+  <code>control_type</code>, <code>genotype</code>, <code>strain</code>, <code>age</code>, <code>dose</code> and <code>duration</code>, a rat's <code>development_stage</code>,
+  and a label of the study's own.</li>
+<li>Only <code>age</code>, <code>dose</code>, <code>duration</code> and a label of the study's own take a <code>value</code>.</li>
+</ul>
 <h2 id="factors">Factors<a class="headerlink" href="#factors" title="Permanent link">&para;</a></h2>
 <p>A <strong>factor</strong> is a label that the study varied on purpose, such as the treatment in a drug study or
 the age in an aging study. <code>factors</code> is keyed by that label. A sample's value is written once, in
