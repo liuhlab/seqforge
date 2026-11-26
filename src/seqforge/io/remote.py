@@ -133,16 +133,16 @@ class RemoteError(RuntimeError):
 def import_labdata() -> Any:
     """liulab-data, or a refusal that says how to get it.
 
-    liulab-data is a pixi dependency and not a wheel one, so an installed copy of seqforge can lack
-    it. Every verb that reaches NCBI through it refuses with this one remedy instead of a traceback.
+    Every verb that reaches NCBI through it refuses with :mod:`seqforge.liulab_data`'s remedy
+    instead of a traceback.
     """
+    from ..liulab_data import LiulabDataMissing, needed
+
     try:
-        import labdata
-    except ImportError as exc:
-        raise RemoteError(
-            f"liulab-data is not importable ({exc}). Run seqforge from liulab-runtime, which ships "
-            "it, or install it: pip install git+https://github.com/liuhlab/liulab-data.git"
-        ) from exc
+        with needed():
+            import labdata
+    except LiulabDataMissing as exc:
+        raise RemoteError(str(exc)) from exc
     return labdata
 
 
