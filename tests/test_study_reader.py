@@ -443,14 +443,11 @@ def read(
         monkeypatch.setattr(
             "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
         )
-        monkeypatch.delenv("SEQFORGE_REVIEWS", raising=False)
         monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
         monkeypatch.chdir(here)
-        clone = ["--reviews", str(here / "clone")]
-        (here / "clone" / "reviews").mkdir(parents=True)
         (here / "keys.txt").write_text("\n".join(SERIES) + "\n")
         started = runner.invoke(
-            app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt", *clone]
+            app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt"]
         )
         assert started.exit_code == 0, started.output
         write = [
@@ -460,7 +457,6 @@ def read(
             str(set_dir),
             "--name",
             "job-reading.yaml",
-            *clone,
         ]
         written = runner.invoke(app, write)
         assert written.exit_code == 0, written.output
@@ -672,14 +668,12 @@ def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
     (tmp_path / "empty").mkdir()
     monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "empty"))
     monkeypatch.chdir(tmp_path)
-    (tmp_path / "clone" / "reviews").mkdir(parents=True)
     (tmp_path / "keys.txt").write_text("GSE10\n")
 
     started = runner.invoke(
         app,
         [
             *("pass", "start", reader.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"),
-            *("--reviews", str(tmp_path / "clone")),
         ],
     )
 

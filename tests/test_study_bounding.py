@@ -134,13 +134,10 @@ def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict
         monkeypatch.setattr(
             "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
         )
-        monkeypatch.delenv("SEQFORGE_REVIEWS", raising=False)
         monkeypatch.chdir(here)
-        clone = ["--reviews", str(here / "clone")]
-        (here / "clone" / "reviews").mkdir(parents=True)
         (here / "keys.txt").write_text("GSE10\nGSE20\nGSE30\n")
         started = runner.invoke(
-            app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt", *clone]
+            app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt"]
         )
         assert started.exit_code == 0, started.output
         counts = json.loads(started.stdout)["counts"]
@@ -150,7 +147,7 @@ def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict
         (set_dir / "GSE10").mkdir(parents=True)
         (set_dir / "GSE10" / "bounds.yaml").write_text("the standard set's own\n")
         write = ["study", "write-bounds", "--out", str(set_dir), "--name", "job-bounds.yaml"]
-        written, again = runner.invoke(app, [*write, *clone]), runner.invoke(app, [*write, *clone])
+        written, again = runner.invoke(app, write), runner.invoke(app, write)
         assert (written.exit_code, again.exit_code) == (0, 0), written.output
         yield set_dir, json.loads(written.stdout), json.loads(again.stdout)
 
