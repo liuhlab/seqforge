@@ -48,6 +48,7 @@ The options:
 | `--ceiling-usd` | The most the pass may spend, in dollars. Required: it has no default |
 | `--model ROLE=PROVIDER/NAME[,KEY=VALUE...]` | The model for one role, such as `writer=deepseek/deepseek-v4-flash,thinking=off`. Repeat it for more roles. The keys are `thinking` (`on` or `off`), `effort`, `temperature` and `max-output-tokens`. A role you do not name takes the kind's default model |
 | `--keys FILE` | Run exactly these units, one key per line, in this order |
+| `--studies DIR` | The folder of study folders that the pass works on. With no `--keys`, the pass runs the studies that the folder's `pick.yaml` lists. Default: the standard set, `evals/standard-set` |
 | `--only ENDINGS` | Run only the units whose current ending is one of these, such as `unsettled,refused` |
 | `--units-at-once` | How many units run at once. Default 32 |
 | `--off-peak-only` | Send calls only outside the model's peak hours |
@@ -83,7 +84,7 @@ that one build of the record store, even if the store is refreshed while it runs
 | Exit | When |
 | --- | --- |
 | 0 | The pass reached the end of its units, whatever the counts |
-| 2 | A setup it cannot use: an unknown kind, a store the kind reads that cannot be opened, models that do not fill the kind's roles, a model or keys file it cannot read, no gateway address, a model name the gateway rejects, or a task folder this liulab-llms cannot read. One line on stderr says which |
+| 2 | A setup it cannot use: an unknown kind, a store the kind reads that cannot be opened, models that do not fill the kind's roles, a model or keys file it cannot read, no `--keys` for a folder with no `pick.yaml`, no gateway address, a model name the gateway rejects, or a task folder this liulab-llms cannot read. One line on stderr says which |
 | 3 | The pass stopped: at its ceiling, at a provider's balance or cap, or because a provider or the gateway was unavailable. Or another process holds the task, and `message` names it |
 
 ## Resume a pass

@@ -12,6 +12,7 @@ from __future__ import annotations
 import importlib
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from . import SetupRefused
@@ -43,16 +44,17 @@ class Kind:
     """A seqforge unit kind: liulab-llms's kind plus what seqforge decides around it.
 
     ``build`` makes the liulab-llms ``UnitKind``, named ``name``, once when a pass starts. It is
-    where the kind receives its setup: it opens every store the kind reads, so each unit of the
-    pass reads what was open then, and it raises :class:`SetupRefused`, naming the store, for one
-    it cannot open. ``default_keys`` gives the units a pass covers when it names none, in the order
-    they should start. ``default_models`` fills every role a pass does not name.
+    where the kind receives its setup: the folder of study folders the pass names, and every store
+    the kind reads, which it opens then, so each unit of the pass reads what was open then. It
+    raises :class:`SetupRefused`, naming the store, for one it cannot open. ``default_keys`` gives
+    the units a pass over that folder covers when it names none, in the order they should start.
+    ``default_models`` fills every role a pass does not name.
     """
 
     name: str
-    build: Callable[[], Built]
+    build: Callable[[Path], Built]
     default_models: Mapping[str, Model]
-    default_keys: Callable[[], Iterable[str]]
+    default_keys: Callable[[Path], Iterable[str]]
 
 
 #: Every seqforge kind, by the name a person types: the module that defines it as its ``KIND``.

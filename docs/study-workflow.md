@@ -13,9 +13,11 @@ This page gives the chain of steps that takes one study from its database record
 - [`reading.yaml`](formats/reading.md) holds the **study reading**: what was done to each sample, and how the samples
   relate. There is one reading per study.
 
-The chain is built and checked on the **standard set**, a fixed list of 50 small GEO studies. For
-those 50, both files sit in the study's folder, `evals/standard-set/<ID>/`. `<ID>` is the Series
-the study was picked by, such as `GSE100021`.
+Each study's files sit in its **study folder**, `<folder>/<ID>/`. `<ID>` is the Series the study
+was picked by, such as `GSE100021`, and `<folder>` is a folder of study folders. Both jobs run on
+the folder that `pass start --studies <folder>` names. The chain is built and checked on the
+**standard set**, a fixed list of 50 small GEO studies in `evals/standard-set/`, which is the
+folder when `--studies` names none.
 
 The work is planned in stages, and one step is not built yet: stage 6 runs the whole chain once
 with no person involved. That step already has its name, its input and its output below.
@@ -63,12 +65,21 @@ small plain file: the question, the study, the answer, who gave it and when.
 Bounding is drawing a study from its linked records. The bounding job runs a pass of the
 `study-bounds` kind, which asks a model the same kind of question once for each study and keeps
 each answer in the pass's task folder. [Passes](passes.md) describes passes.
-A study is named by the GEO Series it starts from. With no `--keys` file, the pass runs the 50
-studies of the standard set.
+A study is named by the GEO Series it starts from. With no `--keys` file, the pass runs the
+studies that the folder's `pick.yaml` lists: the 50 of the standard set by default. A folder with
+no `pick.yaml` needs a `--keys` file, and the pass exits 2 without one.
 
 ```bash
 seqforge pass start study-bounds --ceiling-usd 0.1
 seqforge study write-bounds --out evals/standard-set --name job-bounds.yaml
+```
+
+In another folder, give the same folder to both commands. The bounding job's file is then the
+`bounds.yaml` that the reader reads:
+
+```bash
+seqforge pass start study-bounds --ceiling-usd 0.1 --studies <folder> --keys <keys-file>
+seqforge study write-bounds --out <folder>
 ```
 
 **What it reads.** The job reads liulab-data, the lab package that stores the archive records and
@@ -118,14 +129,15 @@ and 2 for a file that it cannot read.
 The check asks only whether the file is in the current format. It does not judge whether the
 bounds are right. The bounding job never writes a file that the check rejects: it ends the study
 refused, and `write-bounds` checks the exact text it writes, with each model named, before the file
-appears. The reader reads each study's bounds file as it is.
+appears. The reader reads each study's bounds file through the same check. It holds a study whose
+file is missing or rejected, and the reason names each problem.
 
 ## 3. Read the study
 
 The reader writes one study's **study reading**: what each sequenced sample is, and which labels
 the study varied. It runs a pass of the `study-reading` kind, one study per unit, and keeps each
-answer in the pass's task folder. With no `--keys` file, the pass runs the 50 studies of the
-standard set.
+answer in the pass's task folder. It runs on the folder that `--studies` names, the standard set
+by default, and it takes its units from that folder's pick as the bounding job does.
 
 ```bash
 seqforge pass start study-reading --ceiling-usd 2 --units-at-once 2
@@ -134,7 +146,14 @@ seqforge study write-reading --out evals/standard-set --name job-reading.yaml
 
 With `--units-at-once 2`, at most eight model requests are in flight at once.
 
-**What it reads.** The reader reads the study's own `bounds.yaml`, and liulab-data from
+In another folder, the reader reads the `bounds.yaml` that `write-bounds` wrote there:
+
+```bash
+seqforge pass start study-reading --ceiling-usd 2 --studies <folder> --keys <keys-file>
+seqforge study write-reading --out <folder>
+```
+
+**What it reads.** The reader reads the study's `bounds.yaml` in the folder, and liulab-data from
 `LABDATA_STORE` and `LABDATA_PAPERS`: the records of the Series that the bounds keep, the sequenced
 samples of those Series, and the bounds' papers. It reads a paper's full text where the paper store
 holds one, and the abstract where it does not. Only a sequenced sample gets a row, so a microarray

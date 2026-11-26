@@ -15,8 +15,11 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from xml.etree import ElementTree
+
+if TYPE_CHECKING:
+    from .bounds import Bounds
 
 #: The Series fields a model reads, in this order.
 SERIES_FIELDS = (
@@ -69,14 +72,14 @@ def _values(record: Any, name: str) -> list[str]:
     return [str(value) for value in record.field(name) if str(value).strip()]
 
 
-def read_sources(store: Any, papers: Any | None, bounds: Mapping[str, Any]) -> dict[str, Any]:
+def read_sources(store: Any, papers: Any | None, bounds: Bounds) -> dict[str, Any]:
     """The sources of the study ``bounds`` draws, as plain data.
 
     ``store`` is liulab-data's record store and ``papers`` its paper reader, or ``None`` when no
     paper store is set up. A Series the store does not hold is kept, marked not held; a sample the
     store does not hold, or one that is not sequenced, is counted under ``left_out``.
     """
-    wanted = [str(claim["id"]) for claim in bounds["series"]]
+    wanted = [claim.id for claim in bounds.series]
     opened = store.open_many(wanted)
     series: list[dict[str, Any]] = []
     sample_ids: list[str] = []
@@ -105,10 +108,10 @@ def read_sources(store: Any, papers: Any | None, bounds: Mapping[str, Any]) -> d
             left_out.append({"id": gsm, "why": f"Sample_type {kind}: not sequenced"})
             continue
         samples.append({"id": gsm, "fields": fields})
-    pmids = [str(p).split(":")[-1] for p in bounds.get("papers") or []]
+    pmids = [p.split(":")[-1] for p in bounds.papers]
     details = papers.papers(pmids) if papers is not None and pmids else {}
     return {
-        "id": str(bounds["study"]),
+        "id": bounds.study,
         "series": series,
         "samples": samples,
         "left_out": left_out,
