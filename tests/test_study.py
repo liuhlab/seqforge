@@ -1,7 +1,7 @@
 """The format checks of a study's files and the relations of a reading, through ``seqforge study``.
 
 Every file here is written by hand in the test. The repo's own 50 bounds files are checked where the
-standard set is listed, in ``test_standard_set.py``.
+standard set is listed, in ``test_study_folder.py``.
 """
 
 from __future__ import annotations

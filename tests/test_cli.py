@@ -1756,7 +1756,7 @@ _STOPS = {
 
 
 @pytest.mark.parametrize("stop", [*_STOPS, "rejected"])
-def test_a_stop_ends_harvest_and_run_with_exit_3_and_a_rejection_with_exit_2(
+def test_a_stop_ends_harvest_and_run_with_exit_3_and_a_rejection_ends_them_and_eval_run_with_2(
     stop: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The four stops end `harvest extract` and `run` with exit 3, the reason and a Blocker; a request
