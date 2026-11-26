@@ -22,7 +22,6 @@ import pytest
 import yaml
 from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
 from labdata.store.model import Link, Record
-from labllm import Rejected
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
@@ -374,10 +373,6 @@ TRUTH = {
 
 
 def _writer(form: dict[str, Any]) -> str:
-    # The gateway's rule, which its fake does not keep: a DeepSeek schema is a strict function
-    # call, and a strict function call with thinking on is refused before any paid call.
-    if form["provider"] == "deepseek" and form["settings"]["thinking"] and form.get("schema"):
-        raise Rejected("DeepSeek strict function calls need thinking off")
     user = form["messages"][-1]["content"]
     study = re.search(r"=== GEO Series (GSE\d+) ===", user)
     assert study is not None
