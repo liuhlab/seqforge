@@ -28,6 +28,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -106,6 +107,15 @@ def _replica(pipeline_dir: Path, plan: ComposePlan) -> Path:
     return scratch
 
 
+def run_snakemake(args: Sequence[str]) -> subprocess.CompletedProcess[str]:
+    """Start ``snakemake <args>`` as its own process, both streams captured.
+
+    The one place this gate starts the program, so a test can put a plan taken in its own process
+    in its place: the gate reads only what comes back, the exit status and the two streams.
+    """
+    return subprocess.run(["snakemake", *args], capture_output=True, text=True, timeout=300)
+
+
 def wiring_gate(pipeline_dir: Path, plan: ComposePlan) -> GateVerdict:
     """`snakemake -n -p` over a throwaway replica. ``skip`` only if snakemake is absent.
 
@@ -126,21 +136,8 @@ def wiring_gate(pipeline_dir: Path, plan: ComposePlan) -> GateVerdict:
     # the composer's output runs.
     wrapper = CompiledPipeline(scratch).snakefile
     try:
-        proc = subprocess.run(
-            [
-                "snakemake",
-                "-d",
-                str(scratch),
-                "-s",
-                str(wrapper),
-                "-n",
-                "-p",
-                "--cores",
-                _PLANNING_CORES,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=300,
+        proc = run_snakemake(
+            ["-d", str(scratch), "-s", str(wrapper), "-n", "-p", "--cores", _PLANNING_CORES]
         )
         if proc.returncode != 0:
             # BOTH streams, stderr first, and that order is measured rather than assumed: snakemake 8
