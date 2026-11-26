@@ -1,13 +1,15 @@
 """A folder of study folders: what each holds, which studies it lists, how a job's file is written.
 
-A study folder is named by the study's id. The standard set, kept under ``evals/standard-set/``,
-is one folder of them, and the default while no other is named. Its 50 studies' own files were
-drawn once, by commands since retired; a study swapped into the set is drawn by the bounding job,
-:mod:`seqforge.study.bounding`.
+A study folder is named by the study's id. A person names the folder when a pass starts, and the
+standard set, kept under ``evals/standard-set/``, is the default while no other is named. Its 50
+studies' own files were drawn once, by commands since retired; a study swapped into the set is
+drawn by the bounding job, :mod:`seqforge.study.bounding`. A folder's pick lists its studies; a
+folder with no pick has its studies named by the pass.
 
 A job's pass keeps each study's answer in its task. :func:`write_files` turns each current answer
 into ``<out>/<key>/<name>`` with the job's own ``render``, checks the exact text it would write,
-and says how each study ended. The bounding job and the reading job both write through it.
+and says how each study ended. The bounding job and the reading job both write through it, and the
+reading job reads each study's bounds file with :func:`bounds_in`.
 """
 
 from __future__ import annotations
@@ -19,6 +21,8 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from ..passes import SetupRefused
+from .bounds import Bounds, read_bounds
 from .claims import load
 
 if TYPE_CHECKING:
@@ -45,6 +49,41 @@ def pick_entries(folder: Path) -> dict[str, dict[str, Any]]:
     """The picked studies by id, in the pick's order. Spares are not studies until one is swapped in."""
     pick = yaml.safe_load((folder / PICK).read_text(encoding="utf-8"))
     return {str(entry["id"]): entry for entry in pick["studies"]}
+
+
+def picked(folder: Path) -> list[str]:
+    """The studies a pass over ``folder`` covers when it names none: its pick's, in order.
+
+    Refuses the setup for a folder with no pick, whose studies only the pass can name.
+    """
+    if not (folder / PICK).is_file():
+        raise SetupRefused(f"{folder} has no {PICK}: name the studies with --keys FILE")
+    return list(pick_entries(folder))
+
+
+def bounds_in(folder: Path, key: str) -> Bounds:
+    """Study ``key``'s bounds, read from its bounds file in ``folder`` through the format check.
+
+    Holds the unit when the file is missing or cannot be read, and when the check finds a problem
+    in it, naming each one.
+    """
+    from labllm import Held
+
+    path = folder / key / BOUNDS
+    if not path.is_file():
+        raise Held(f"no bounds file for {key} at {path}")
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise Held(f"cannot read {path}: {exc}") from exc
+    data, problems = load(text)
+    bounds = None
+    if not problems:
+        bounds, problems = read_bounds(data)
+    if bounds is None or problems:
+        said = "; ".join(f"{p['field']}: {p['reason']}" for p in problems)
+        raise Held(f"{path} fails the bounds format check: {said}")
+    return bounds
 
 
 def file_text(content: Any) -> str:

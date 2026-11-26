@@ -92,12 +92,21 @@ def _between_fields(bounds: Bounds) -> Iterator[tuple[str, str]]:
         )
 
 
-def check_bounds(data: object) -> list[dict[str, str]]:
-    """What is wrong with one bounds file's content, each as ``{"field", "reason"}``; none if valid."""
+def read_bounds(data: object) -> tuple[Bounds | None, list[dict[str, str]]]:
+    """One bounds file's content as bounds, and what is wrong with it.
+
+    The bounds are ``None`` when the content is not a bounds file in this format at all. Use them
+    only when the problems are empty.
+    """
     if problems := format_problems(data, FORMAT):
-        return problems
+        return None, problems
     try:
         bounds = Bounds.model_validate(data)
     except ValidationError as exc:
-        return validation_problems(exc)
-    return [{"field": field, "reason": reason} for field, reason in _between_fields(bounds)]
+        return None, validation_problems(exc)
+    return bounds, [{"field": field, "reason": reason} for field, reason in _between_fields(bounds)]
+
+
+def check_bounds(data: object) -> list[dict[str, str]]:
+    """What is wrong with one bounds file's content, each as ``{"field", "reason"}``; none if valid."""
+    return read_bounds(data)[1]

@@ -22,12 +22,13 @@ import pytest
 import yaml
 from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
 from labdata.store.model import Link, Record
-from labllm import Rejected
+from labllm import Rejected, Task
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
 from seqforge.cli import app
-from seqforge.study import closed, reader
+from seqforge.passes.status import read_only_kind
+from seqforge.study import bounding, closed, reader
 from seqforge.study.lists import guide_text
 from seqforge.study.ontology_search import StoreSearch
 from seqforge.study.reading import check_reading, read_reading
@@ -108,6 +109,8 @@ ARTICLE = (
     b"</body></article>"
 )
 ABSTRACT = "Livers of young and old mice. The old mice were 22 months of age."
+#: The papers each Series links: GSE10 links the one paper.
+PAPER_OF = {"GSE10": ["PMID:100"]}
 
 
 class Store:
@@ -115,24 +118,31 @@ class Store:
 
     settings: ClassVar[dict[str, str]] = {}
 
+    def links(self, accessions: Iterable[str], relation: str | None = None) -> dict[str, Any]:
+        """Each record's links, as the bounding job follows them from either end."""
+        return {
+            a: [k for k in self._links(a) if relation in (None, k.relation)] for a in accessions
+        }
+
+    def _links(self, accession: str) -> list[Link]:
+        if accession in SERIES:
+            paper = [Link("PubMed", p, "SOFT", True) for p in PAPER_OF.get(accession, [])]
+            return [*(Link("sample", s, "SOFT", True) for s in SAMPLES[accession]), *paper]
+        return [
+            Link("PubMed of", s, "SOFT", False) for s, ps in PAPER_OF.items() if accession in ps
+        ]
+
     def open_many(self, accessions: Iterable[str]) -> dict[str, Record]:
         day = dt.date(2026, 1, 1)
         out = {}
         for a in accessions:
-            if a in SERIES:
-                fields, links = (
-                    SERIES[a],
-                    tuple(Link("sample", s, "SOFT", True) for s in SAMPLES[a]),
-                )
-            else:
-                fields = next(s[a] for s in SAMPLES.values() if a in s)
-                links = ()
+            fields = SERIES[a] if a in SERIES else next(s[a] for s in SAMPLES.values() if a in s)
             pairs = tuple(
                 (name, v)
                 for name, vs in fields.items()
                 for v in ([vs] if isinstance(vs, str) else vs)
             )
-            out[a] = Record(a, "GEO", None, day, day, day, pairs, "", day, links)
+            out[a] = Record(a, "GEO", None, day, day, day, pairs, "", day, tuple(self._links(a)))
         return out
 
 
@@ -149,7 +159,8 @@ class Papers:
     """liulab-data's paper reader: one paper, with its abstract and its article XML."""
 
     def papers(self, pmids: Iterable[str]) -> dict[str, Any]:
-        info = dataclasses.make_dataclass("Info", ["title", "abstract"])("Aging liver", ABSTRACT)
+        made = dataclasses.make_dataclass("Info", ["title", "abstract", "published"])
+        info = made("Aging liver", ABSTRACT, None)
         paper = dataclasses.make_dataclass("Paper", ["info", "files"])
         return {p: paper(info, (_File("xml", Path("article.xml")),)) for p in pmids}
 
@@ -427,37 +438,58 @@ def _jev(form: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-@pytest.fixture(scope="module")
-def read(
-    tmp_path_factory: pytest.TempPathFactory,
-) -> Iterator[tuple[Path, dict[str, Any], FakeGateway]]:
-    """One pass over five studies, written beside the set's own files."""
-    here = tmp_path_factory.mktemp("reader")
-    set_dir = here / "set"
-    for key in SERIES:
-        (set_dir / key).mkdir(parents=True)
-        papers = ["pmid:100"] if key == "GSE10" else []
-        bounds = {"study": key, "series": [{"id": key}], "papers": papers}
-        (set_dir / key / "bounds.yaml").write_text(yaml.safe_dump(bounds))
-    (set_dir / "GSE10" / "reading.yaml").write_text("the standard set's own\n")
-    ontologies = build_tiny_store(here / "ontologies", VOCABULARIES)
+def _serve(monkeypatch: pytest.MonkeyPatch, here: Path) -> FakeGateway:
+    """The stores, the ontology store and the fake gateway behind the commands, run from ``here``."""
     fake = FakeGateway(
         lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
         prices={closed.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
     )
+    _stores(monkeypatch)
+    monkeypatch.setattr(
+        "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
+    )
+    ontologies = build_tiny_store(here / "ontologies", VOCABULARIES)
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
+    monkeypatch.chdir(here)
+    return fake
+
+
+def _bounds(key: str) -> str:
+    """A bounds file the format check accepts: the one Series, and the papers it links."""
+    bounds = {
+        "format": 1,
+        "study": key,
+        "models": {"bounds": None, "probabilities": None},
+        "series": [{"id": key, "inferred": "the Series the study was picked by", "p": None}],
+        "papers": [p.lower() for p in PAPER_OF.get(key, [])],
+        "left_out": [],
+        "reason": "The study is its one Series.",
+        "passages": {},
+    }
+    return yaml.safe_dump(bounds)
+
+
+@pytest.fixture(scope="module")
+def read(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Iterator[tuple[Path, dict[str, Any], FakeGateway]]:
+    """One pass over the studies of a folder, written beside the folder's own files."""
+    here = tmp_path_factory.mktemp("reader")
+    set_dir = here / "set"
+    for key in SERIES:
+        (set_dir / key).mkdir(parents=True)
+        (set_dir / key / "bounds.yaml").write_text(_bounds(key))
+    (set_dir / "GSE10" / "reading.yaml").write_text("the standard set's own\n")
     with pytest.MonkeyPatch.context() as monkeypatch:
-        _stores(monkeypatch)
-        # Until a pass names its folder of study folders, the kind reads the standard set's.
-        monkeypatch.setattr(reader, "default_set_dir", lambda: set_dir)
-        monkeypatch.setattr(
-            "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
-        )
-        monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
-        monkeypatch.chdir(here)
+        fake = _serve(monkeypatch, here)
         (here / "keys.txt").write_text("\n".join(SERIES) + "\n")
         PINNED_ON.append(dt.datetime.now(dt.UTC).date())
         started = runner.invoke(
-            app, ["pass", "start", reader.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"]
+            app,
+            [
+                *("pass", "start", reader.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"),
+                *("--studies", str(set_dir)),
+            ],
         )
         assert started.exit_code == 0, started.output
         write = [
@@ -661,6 +693,68 @@ def test_a_term_is_looked_up_in_the_vocabulary_of_each_samples_species(
     }
 
 
+def _start(kind: str, studies: Path, *more: str) -> Any:
+    """``seqforge pass start <kind>`` on the folder of study folders ``studies``, with ``more``."""
+    argv = ["pass", "start", kind, "--ceiling-usd", "1", "--studies", str(studies), *more]
+    return runner.invoke(app, argv)
+
+
+def test_both_jobs_run_on_a_folder_that_is_not_the_standard_set_and_join_through_its_bounds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fresh folder holds no pick, so a pass that names no units refuses and says how to name
+    them. Then the four commands run in order with the default file names, and the reading job
+    reads the bounds the bounding job wrote there: the paper Jev kept, GSE10's, is read in full."""
+    studies = tmp_path / "studies"
+    studies.mkdir()
+    _serve(monkeypatch, tmp_path)
+    (tmp_path / "keys.txt").write_text("GSE10\n")
+
+    unnamed = _start(bounding.KIND_NAME, studies)
+    assert unnamed.exit_code == 2
+    assert "--keys" in unnamed.stderr
+    for done in (
+        _start(bounding.KIND_NAME, studies, "--keys", "keys.txt"),
+        runner.invoke(app, ["study", "write-bounds", "--out", str(studies)]),
+        _start(reader.KIND_NAME, studies, "--keys", "keys.txt"),
+        runner.invoke(app, ["study", "write-reading", "--out", str(studies)]),
+    ):
+        assert done.exit_code == 0, done.output
+    bounds = yaml.safe_load((studies / "GSE10" / "bounds.yaml").read_text())
+    reading = yaml.safe_load((studies / "GSE10" / "reading.yaml").read_text())
+
+    assert bounds["papers"] == ["pmid:100"]
+    assert check_reading(reading) == []
+    assert reading["read"] == ["records", "abstract", "full_text"]
+
+
+def test_a_study_whose_bounds_file_is_missing_or_fails_its_check_is_held_with_the_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GSE10's bounds file has three fields and no format number, which the format check rejects;
+    GSE20 has no bounds file. Each study is held before a model is asked, and its reason names
+    the check's problems or the missing file."""
+    studies = tmp_path / "studies"
+    (studies / "GSE10").mkdir(parents=True)
+    three = {"study": "GSE10", "series": [{"id": "GSE10"}], "papers": []}
+    (studies / "GSE10" / "bounds.yaml").write_text(yaml.safe_dump(three))
+    fake = _serve(monkeypatch, tmp_path)
+    (tmp_path / "keys.txt").write_text("GSE10\nGSE20\n")
+
+    started = _start(reader.KIND_NAME, studies, "--keys", "keys.txt")
+    assert started.exit_code == 0, started.output
+    task = Path(json.loads(started.stdout)["task"])
+    with Task(task, gateway=fake.client(repo="seqforge"), reviews=task / "reviews") as opened:
+        kind = read_only_kind(reader.KIND_NAME)
+        held = {key: opened.outcomes(kind, key)[-1] for key in ("GSE10", "GSE20")}
+
+    assert json.loads(started.stdout)["counts"]["held"] == 2
+    assert fake.record == []
+    assert {outcome.ending for outcome in held.values()} == {"held"}
+    assert "format: expected 1, missing" in str(held["GSE10"].reason)
+    assert "no bounds file" in str(held["GSE20"].reason)
+
+
 @pytest.mark.parametrize(
     ("unopened", "said"),
     [
@@ -734,17 +828,16 @@ def test_the_store_search_pins_its_snapshots_on_the_utc_day_and_a_units_tag_name
 
     assert search.date == utc.date()
 
-    set_dir = tmp_path / "set"
-    (set_dir / "GSE10").mkdir(parents=True)
-    bounds = {"study": "GSE10", "series": [{"id": "GSE10"}], "papers": []}
-    (set_dir / "GSE10" / "bounds.yaml").write_text(yaml.safe_dump(bounds))
+    studies = tmp_path / "studies"
+    (studies / "GSE20").mkdir(parents=True)
+    (studies / "GSE20" / "bounds.yaml").write_text(_bounds("GSE20"))
     monkeypatch.setenv("LABDATA_ONTOLOGIES", str(store))
 
     def tag() -> str:
         pinned = StoreSearch()
         try:
-            kind = reader.reading_kind(Store(), None, set_dir=set_dir, search=pinned)
-            return kind.load("GSE10").tag
+            kind = reader.reading_kind(Store(), None, folder=studies, search=pinned)
+            return kind.load("GSE20").tag
         finally:
             pinned.close()
 
