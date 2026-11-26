@@ -12,7 +12,9 @@ import datetime as dt
 import gc
 import io
 import json
+import os
 import re
+import socket
 import time
 import types
 from collections.abc import Iterable, Iterator
@@ -23,6 +25,7 @@ import pytest
 import yaml
 from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
 from labdata.store.model import Link, Record
+from labllm import Task
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
@@ -812,21 +815,32 @@ def test_both_jobs_run_on_a_folder_that_is_not_the_standard_set_and_join_through
 ) -> None:
     """A fresh folder holds no pick, so a pass that names no units refuses and says how to name
     them. Then the four commands run in order with the default file names, and the reading job
-    reads the bounds the bounding job wrote there: the paper Jev kept, GSE10's, is read in full."""
+    reads the bounds the bounding job wrote there: the paper Jev kept, GSE10's, is read in full.
+    Each write run while a pass holds its task exits 3, names the holder and writes no file: a
+    file once written is never replaced, so it would keep an earlier pass's answer."""
     studies = tmp_path / "studies"
     studies.mkdir()
-    _serve(monkeypatch, tmp_path)
+    fake = _serve(monkeypatch, tmp_path)
     (tmp_path / "keys.txt").write_text("GSE10\n")
 
     unnamed = _start(bounding.KIND_NAME, studies)
     assert unnamed.exit_code == 2
     assert "--keys" in unnamed.stderr
-    for done in (
-        _start(bounding.KIND_NAME, studies, "--keys", "keys.txt"),
-        runner.invoke(app, ["study", "write-bounds", "--out", str(studies)]),
-        _start(reader.KIND_NAME, studies, "--keys", "keys.txt"),
-        runner.invoke(app, ["study", "write-reading", "--out", str(studies)]),
+    for kind, write, file in (
+        (bounding.KIND_NAME, "write-bounds", "bounds.yaml"),
+        (reader.KIND_NAME, "write-reading", "reading.yaml"),
     ):
+        started = _start(kind, studies, "--keys", "keys.txt")
+        assert started.exit_code == 0, started.output
+        argv = ["study", write, "--out", str(studies)]
+        task = Path("seqforge", "passes", kind)
+        with Task(task, gateway=fake.client(), reviews=task / "reviews"):
+            held = runner.invoke(app, argv)
+        assert held.exit_code == 3, held.output
+        assert json.loads(held.stdout)["stopped"] == "task_in_use"
+        assert f"process {os.getpid()} on {socket.gethostname()}" in held.stdout
+        assert not (studies / "GSE10" / file).exists()
+        done = runner.invoke(app, argv)
         assert done.exit_code == 0, done.output
     bounds = yaml.safe_load((studies / "GSE10" / "bounds.yaml").read_text())
     reading = yaml.safe_load((studies / "GSE10" / "reading.yaml").read_text())

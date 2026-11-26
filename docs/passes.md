@@ -120,7 +120,8 @@ seqforge pass status study-reading | jq '.not_done[] | select(.ending == "held")
 ```
 
 A refused or unsettled unit is not in `not_done`. `study write-bounds` and `study write-reading`
-list each of those, with each refused study's reason.
+list each of those, with each refused study's reason. Unlike `pass status`, they refuse while a
+pass holds the task, and exit 3 with `stopped: task_in_use`.
 
 Each pass gives its `pass_id`, `label`, `kind_version`, `models`, `store_build`, `ceiling_usd`,
 `stopped`, its `counts`, and what it spent: `spent_usd`, `first_cost_usd`, `requests` and

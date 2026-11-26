@@ -3,7 +3,7 @@
 Every one of them names a kind and opens the kind's task. :func:`for_kind` finds those, runs the
 command's body on them, and gives the command's output for the two ways a body ends early: a setup
 it cannot use exits 2 with its one-line reason, and a task another process holds or is writing
-exits 3 with liulab-llms's message. So a body only raises.
+exits 3 with a message naming the holder or the wait. So a body only raises.
 """
 
 from __future__ import annotations
@@ -79,8 +79,8 @@ def for_kind(
         )
         return _StageOut(said, 2, err=True)
     except TaskInUse as exc:
-        # Raised only by opening the task to run a pass, or by a pass whose hold another process
-        # took over.
+        # Raised only by opening the task to run a pass, by a pass whose hold another process
+        # took over, or by a study write that found a pass holding the task.
         held = {"kind": name, "task": str(folder), "stopped": "task_in_use"}
         return _StageOut({**held, "message": str(exc)}, 3)
     except TaskBusy as exc:
