@@ -127,9 +127,10 @@ def test_fetch_records_composes_labdatas_hop_with_the_efetch_parse_path(
     """labdata resolves the experiments; the committed pilot XML drives the rest, unchanged."""
     _patch_labdata(monkeypatch, lambda acc: [_FakeExperiment("SRX24283130")])
 
+    # The two replies the fetch asks for. A request to any other database is a `KeyError` here: the
+    # SRA package already carries each sample's attributes and its taxon, so nothing else is asked.
     fixtures = {
         "sra": (FIXTURES / "PRJNA1027859.sra.xml").read_text(),
-        "biosample": (FIXTURES / "PRJNA1027859.biosample.xml").read_text(),
         "bioproject": (FIXTURES / "PRJNA1027859.bioproject.xml").read_text(),
     }
 
@@ -146,14 +147,24 @@ def test_fetch_records_composes_labdatas_hop_with_the_efetch_parse_path(
     assert record_set.at("experiment")
     runs = record_set.at("run")
     assert runs
-    # And the BioSample harmonization still lands: the pilot's two strains reach the records under
-    # NCBI's own harmonized `strain` key (this is exactly what the merge step exists to do).
-    samples = record_set.at("sample")
-    assert samples
-    strains = {
-        attr.value for sample in samples for attr in sample.attributes if attr.name == "strain"
-    }
-    assert {"CQ757", "CQ758"} <= strains
+    # A sample keeps the taxon its record declares, then each tag and value as the submitter typed
+    # them. Read off the committed package by eye: `BioSampleModel` is no curated name, and it stays.
+    sample = record_set.by_accession("SAMN40935621")
+    assert sample is not None
+    assert [(attr.name, attr.value) for attr in sample.attributes] == [
+        ("taxonomy_id", "6239"),
+        ("BioSampleModel", "Model organism or animal"),
+        ("collection_date", "2023-04-27"),
+        ("dev_stage", "Adult Day 1"),
+        ("geo_loc_name", "not applicable"),
+        ("sex", "hermaphrodite"),
+        ("strain", "CQ758"),
+        ("tissue", "Neurons"),
+    ]
+    assert all(
+        ("taxonomy_id", "6239") in [(a.name, a.value) for a in s.attributes]
+        for s in record_set.at("sample")
+    )
 
 
 # ------------------------------------------------------------ the lab's store, before the network
@@ -176,18 +187,13 @@ def _serve_live(
 
 
 def _synthetic_deposit(n: int) -> dict[str, str]:
-    """``n`` experiments, one sample each, under one study: the three replies, as ``efetch`` gives them."""
+    """``n`` experiments, one sample each, under one study: the two replies, as ``efetch`` gives them."""
     pairs = [(f"SRX{i:07d}", f"SAMN{i:07d}") for i in range(n)]
-    samples = "".join(f'<BioSample accession="{s}"/>' for _, s in pairs)
     project = (
         '<RecordSet><DocumentSummary><Project><ProjectID><ArchiveID accession="PRJNA9999999"/>'
         "</ProjectID></Project></DocumentSummary></RecordSet>"
     )
-    return {
-        "sra": _package_set(pairs),
-        "biosample": f"<BioSampleSet>{samples}</BioSampleSet>",
-        "bioproject": project,
-    }
+    return {"sra": _package_set(pairs), "bioproject": project}
 
 
 @pytest.mark.parametrize(
@@ -214,13 +220,10 @@ def test_a_stored_deposit_reads_as_the_live_record_set_with_one_raw_call_per_lev
 
     assert archive.fetch_records(deposit) == live
     assert calls == []
-    assert len(store.raw_calls) == 3  # experiments, then their samples, then their study
+    assert len(store.raw_calls) == 2  # the experiments, then their study
 
 
-@pytest.mark.parametrize(
-    "lacks",
-    ["the deposit", "the SRA package", "a BioSample", "the BioProject"],
-)
+@pytest.mark.parametrize("lacks", ["the deposit", "the SRA package", "the BioProject"])
 def test_a_store_that_lacks_any_level_sends_the_whole_fetch_to_ncbi(
     stored_pilot: StubStore, monkeypatch: pytest.MonkeyPatch, lacks: str
 ) -> None:
@@ -231,13 +234,13 @@ def test_a_store_that_lacks_any_level_sends_the_whole_fetch_to_ncbi(
     if lacks == "the deposit":
         stored_pilot.experiments.clear()
     else:
-        prefix = {"the SRA package": "SRX", "a BioSample": "SAMN", "the BioProject": "PRJ"}[lacks]
+        prefix = {"the SRA package": "SRX", "the BioProject": "PRJ"}[lacks]
         del stored_pilot.texts[next(a for a in stored_pilot.texts if a.startswith(prefix))]
     calls = _serve_live(monkeypatch, deposit, PILOT_XML)
 
     record_set = archive.fetch_records(deposit)
 
-    assert [db for db, _ in calls] == ["sra", "biosample", "bioproject"]
+    assert [db for db, _ in calls] == ["sra", "bioproject"]
     assert record_set.at("experiment")
 
 
@@ -293,9 +296,9 @@ def _paged_archive(
 ) -> list[tuple[str, list[str]]]:
     """Serve ``pairs`` as an archive that answers exactly the ids each request asks for.
 
-    Returns the call log, so a test can see how many pages the fetch actually took. The biosample and
-    bioproject replies are empty on purpose: they only ever *add* attributes, and this is about how
-    many records come back.
+    Returns the call log, so a test can see how many pages the fetch actually took. The bioproject
+    reply is empty on purpose: it only ever *adds* attributes, and this is about how many records
+    come back.
     """
     _patch_labdata(monkeypatch, lambda acc: [_FakeExperiment(exp) for exp, _ in pairs])
     calls: list[tuple[str, list[str]]] = []
@@ -334,19 +337,15 @@ def test_a_sample_whose_experiments_straddle_a_page_boundary_is_one_record(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """A sample repeats in every page holding one of its experiments, and pages split on experiment
-    count, so a sample with several experiments lands in two of them. The duplicate reaches the
-    biosample request too, where it spends an id slot on an attribute set already asked for.
+    count, so a sample with several experiments lands in two of them.
     """
     per_sample = 60  # so SAMN0000001's experiments (60-119) fall either side of the 100 boundary
     pairs = [(f"SRX{i:07d}", f"SAMN{i // per_sample:07d}") for i in range(2 * archive._BATCH + 50)]
-    calls = _paged_archive(monkeypatch, pairs)
+    _paged_archive(monkeypatch, pairs)
 
     record_set = archive.fetch_records("PRJNA9999999")
 
     assert [r.accession for r in record_set.at("sample")] == [f"SAMN{i:07d}" for i in range(5)]
-    asked = [ids for db, ids in calls if db == "biosample"]
-    assert asked
-    assert all(len(ids) == len(set(ids)) for ids in asked)
 
 
 @pytest.mark.parametrize("short_replies", [1, _MAX_RETRIES + 1])

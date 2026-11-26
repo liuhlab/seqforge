@@ -1,8 +1,0 @@
-model: deepseek/deepseek-v4-flash
-pass: bounds-draft/2026.11.1/EX04
-when: 2026-11-19T09:03:30Z
-bounds:
-  series: [GSE9990041, GSE9990042, GSE9990043]
-  papers: ["99900041"]
-  reason: The SuperSeries GSE9990040 groups exactly these three sub-Series, and all three cite the same paper.
-  split_samples: null

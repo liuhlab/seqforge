@@ -17,20 +17,17 @@ semantics, libyaml underneath. What the two do not share is what they may *decla
   purpose — those files are written by us and are already on disk, so tightening them here would
   refuse caches nobody can re-type.
 - **``user``** is structure and nothing else: ``level``, ``id``, ``parent``, ``filenames``. Every
-  other key is refused at parse, and ``attributes`` / ``free_text`` are refused loudest. The one
-  *value* constrained here is the ``id``, because it is the only one that leaves as something other
-  than data: a hand-written id is a grouping key, and a grouping key becomes a filename
+  other key is refused at parse — ``free_text`` like any unknown key, and ``attributes`` loudest. The
+  one *value* constrained here is the ``id``, because it is the only one that leaves as something
+  other than data: a hand-written id is a grouping key, and a grouping key becomes a filename
   (:data:`_TYPEABLE_ID`).
 
-**Why that strictness is load-bearing and not tidiness.** The metadata resolver grants a record's
-typed slot the ``asserted`` basis, on one sentence: a record's typed slot for a sample is a
-declaration *about that sample*. That is true of an archive and false of a line a human typed into a
-YAML file this morning. Let one attribute through and it silently outranks a harvested claim that
-carries a quote which greps back and entails its value — and ``experiment`` is inside
-``dataset_hash``, which is never rewritten, so the wrong value is permanent. A lab that does know its
-genotypes writes them into a README and harvests them; that path exists and it keeps the span
-(ADR-0034). So a loader that accepts an attribute has not widened a schema, it has broken what
-``asserted`` means, and this module is where that is stopped.
+**Why that strictness is load-bearing and not tidiness.** A record's typed slot is believed for
+where it sits: true of an archive, which transcribed what a submitter deposited, and false of a line
+a human typed into a YAML file this morning, which has no document to grep and no span to verify.
+Prose on a hand-written record is no better a home, because nothing reads it: harvest asks no sample
+or run record anything. What a sample was belongs in a study reading, and every refusal here says so
+(ADR-0034).
 
 **Every refusal is a ``Blocker``, never a traceback.** A ``--records`` file is user input, and user
 input that cannot be used is the exact shape this compiler already has an exit code for. Callers
@@ -59,7 +56,6 @@ from .models.records import (
     USER_SOURCE,
     ArchiveRecord,
     ArchiveRecordSet,
-    FreeText,
     RecordLevel,
     SubmittedFile,
 )
@@ -72,10 +68,9 @@ if TYPE_CHECKING:
 #: forge the signature the staleness check reads.
 _USER_SET_KEYS = ("source", "query", "records")
 
-#: The only keys a ``source: user`` record may carry. ``free_text`` joined the four structural keys
-#: when the prose half was separated from the typed half: it is the one key here that says anything
-#: about what a sample WAS, and it says it in a form that still has to be quoted to be believed.
-_USER_RECORD_KEYS = ("level", "id", "parent", "filenames", "free_text")
+#: The only keys a ``source: user`` record may carry: the four that say which files form which
+#: sample, each one read by the join. Nothing here says what a sample WAS.
+_USER_RECORD_KEYS = ("level", "id", "parent", "filenames")
 
 #: The two levels the join reads. ``experiment`` and ``project`` are archive levels: nothing walks an
 #: experiment except to map down to a sample, and asking a human to type a level nothing reads is
@@ -83,16 +78,8 @@ _USER_RECORD_KEYS = ("level", "id", "parent", "filenames", "free_text")
 _USER_LEVELS = ("run", "sample")
 
 #: The key whose refusal is the whole point of the dialect. Named separately from "unknown key" so
-#: the message can say *why* rather than "not one of five".
-#:
-#: ``free_text`` used to sit here beside ``attributes`` and no longer does, and the line between them
-#: is the line between a slot and a sentence. An ``attributes`` entry reaches ``asserted`` by being
-#: typed — a record's typed slot is believed because of WHERE it was written. Prose reaches nothing by being written: it
-#: becomes a document, and a claim only leaves it carrying a quote that greps back and a value that
-#: quote entails. That is the same bar a README clears, and a README is the path the refusal here has
-#: always pointed at — same author, same morning, same freedom to edit it afterwards. What changes by
-#: letting the prose hang off a record instead of a file is not how hard it is to believe; it is only
-#: which sample it is about, which is the one thing a dataset-level document can never say.
+#: the message can say *why* rather than "not one of four": an archive record's typed slot is
+#: believed because of WHERE it was written, and a hand-written one would borrow that standing.
 _FACT_KEYS = ("attributes",)
 
 #: What a hand-written id may be made of: an ASCII letter or digit, then any of letters, digits, dot,
@@ -126,13 +113,11 @@ _FACT_KEYS = ("attributes",)
 #: work that is finished.
 _TYPEABLE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
-#: What a fact-key refusal tells the author to do instead. One sentence, because there is one answer:
-#: the path that keeps a span already exists.
-_HARVEST_INSTEAD = (
+#: What a refusal of a key about the sample tells the author to do instead. One answer, because there
+#: is one place what a sample was is written: the study reading.
+_READING_INSTEAD = (
     "Delete it. The manifest records which files form each sample, not what the sample was; that "
-    "belongs in a study reading. To keep the words beside the record, put them on it as "
-    "`free_text: [{label: ..., text: ...}]`, or in a README. What this file may never do is state "
-    "the value itself."
+    "belongs in a study reading, and this file has no place for it, typed or in prose."
 )
 
 
@@ -289,92 +274,6 @@ def _pydantic_lines(exc: Any) -> list[str]:
     ]
 
 
-def _user_free_text(
-    item: Mapping[str, Any], ref: str, named: str, blockers: list[Blocker]
-) -> tuple[list[FreeText], bool]:
-    """The prose a record carries, validated into ``FreeText`` — or refusals saying why it is not.
-
-    **``label`` is required here and optional nowhere else**, and that asymmetry is the point. On an
-    archive record the label is the archive's own field name (``sample_alias``, ``design_description``)
-    and code fills it in; here nobody is upstream to supply one, and a reader of the finished manifest
-    has to be able to tell a fact that came from a directory name from one somebody measured at the
-    bench. Both are legitimate and they are not equally strong, so the file that carries the prose is
-    where the difference has to be recorded — after harvest it is only ever a quote, and a quote does
-    not say where its document came from.
-
-    Nothing here reads the text. Whether it says anything, and whether what it says is true of the
-    sample, is settled downstream by a quote that greps back and a value that quote entails.
-    """
-    raw = item.get("free_text")
-    if raw is None:
-        return [], True
-    if not isinstance(raw, list) or not raw:
-        blockers.append(
-            _refusal(
-                "blk-record-set-free-text",
-                kind="field",
-                ref=f"{ref}.free_text",
-                message=(
-                    f"`{named}`: `free_text` must be a non-empty list of `{{label, text}}` entries."
-                ),
-                remedy=(
-                    "Write it as a YAML list — `free_text: [{label: directory_name, text: "
-                    "day13_CF_26}]` — or delete the key. An empty list declares a document with "
-                    "nothing in it, which harvest would read and find no claim in."
-                ),
-            )
-        )
-        return [], False
-
-    out: list[FreeText] = []
-    ok = True
-    for i, entry in enumerate(raw):
-        where = f"{ref}.free_text[{i}]"
-        if not isinstance(entry, Mapping):
-            ok = False
-            blockers.append(
-                _refusal(
-                    "blk-record-set-free-text",
-                    kind="field",
-                    ref=where,
-                    message=f"`{named}`: {where} is a {type(entry).__name__}, not a mapping.",
-                    remedy="Each entry is `{label: <where the prose came from>, text: <the prose>}`.",
-                )
-            )
-            continue
-        stray = sorted(k for k in entry if k not in ("label", "text"))
-        label, text = entry.get("label"), entry.get("text")
-        bad = [
-            name
-            for name, value in (("label", label), ("text", text))
-            if not isinstance(value, str) or not value.strip()
-        ]
-        if stray or bad:
-            ok = False
-            blockers.append(
-                _refusal(
-                    "blk-record-set-free-text",
-                    kind="field",
-                    ref=where,
-                    message=(
-                        f"`{named}`: {where} carries {_quoted(stray)} and is missing or empties "
-                        f"{_quoted(bad)}."
-                        if stray
-                        else f"`{named}`: {where} is missing or empties {_quoted(bad)}."
-                    ),
-                    remedy=(
-                        "An entry carries exactly `label` and `text`, both non-empty. `label` says "
-                        "WHERE the prose came from — `directory_name`, `filename`, `bench_note` — "
-                        "so a reader of the manifest can weigh a claim by its origin."
-                    ),
-                    evidence=[*stray, *bad],
-                )
-            )
-            continue
-        out.append(FreeText(label=str(label), text=str(text)))
-    return out, ok
-
-
 def _load_user(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
     """The strict dialect. Collects EVERY refusal before raising, so one edit fixes the whole file."""
     blockers: list[Blocker] = []
@@ -460,13 +359,12 @@ def _load_user(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
                     kind="field",
                     ref=f"{ref}.{facts[0]}",
                     message=(
-                        f"{ref} declares {_quoted(facts)}. A `source: user` record set may say what "
-                        f"a sample was, but only in prose that still has to be quoted — never in a "
-                        f"typed slot. A value typed here is believed because of WHERE it sits: it "
-                        f"has no document to grep and no span to verify, and the manifest no longer "
-                        f"carries what a sample was."
+                        f"{ref} declares {_quoted(facts)}. A `source: user` record set says which "
+                        f"files form each sample, never what a sample was. A value typed here would "
+                        f"be believed because of WHERE it sits, with no document to grep and no "
+                        f"span to verify, and the manifest no longer carries what a sample was."
                     ),
-                    remedy=_HARVEST_INSTEAD,
+                    remedy=_READING_INSTEAD,
                     evidence=facts,
                 )
             )
@@ -484,7 +382,7 @@ def _load_user(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
                     ),
                     remedy=(
                         f"Delete {_quoted(stray)}. If it was meant to say what the sample IS, "
-                        f"{_spliced(_HARVEST_INSTEAD)}"
+                        f"{_spliced(_READING_INSTEAD)}"
                     ),
                     evidence=stray,
                 )
@@ -667,9 +565,6 @@ def _load_user(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
             else:
                 parents.append((ref, named, parent))
 
-        prose, prose_ok = _user_free_text(item, ref, named, blockers)
-        ok = ok and prose_ok
-
         if ok:
             built.append(
                 ArchiveRecord(
@@ -677,7 +572,6 @@ def _load_user(payload: Mapping[str, Any], path: Path) -> ArchiveRecordSet:
                     accession=str(ident),
                     parent=parent if isinstance(parent, str) else None,
                     submitted_files=[SubmittedFile(filename=n) for n in names],
-                    free_text=prose,
                 )
             )
 
@@ -803,7 +697,7 @@ def _quoted(items: Sequence[str]) -> str:
 def _spliced(sentence: str) -> str:
     """A standalone sentence, joined onto the end of another: its first letter lowered, nothing else.
 
-    :data:`_HARVEST_INSTEAD` opens one remedy and finishes another, and the only difference between
+    :data:`_READING_INSTEAD` opens one remedy and finishes another, and the only difference between
     the two uses is the case of one character. Reaching into the constant by index at the call site
     states a fact about that string's first byte in a place that cannot say why it is being stated —
     and it silently stops being right the day the sentence is reworded to open with an acronym.
@@ -936,7 +830,7 @@ def draft_record_set(fastq_dir: Path) -> str:
         "#",
         "# It declares STRUCTURE ONLY. There is no place here for a strain, a tissue or a genotype:",
         "# a line typed here has no document to grep and no span to verify, and the manifest does not",
-        "# carry what a sample was. Prose about a sample may sit on its record as `free_text`.",
+        "# carry what a sample was. That belongs in a study reading.",
         "#",
         _scan_line(notes),
         yaml.safe_dump({"source": USER_SOURCE, "query": query}, sort_keys=False).rstrip("\n"),

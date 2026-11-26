@@ -27,11 +27,10 @@ from typing import Any
 from labllm import Held, Inputs, Outcome, Role, Task, Unit, UnitKind
 
 from ..passes.kinds import Kind, register
-from ..standard_set import default_set_dir, pick_entries
 from .bounds import FORMAT, check_bounds
 from .closed import ASKINGS_SCHEMA, JEV, YES, Answer, Asking, Askings, YesNo, ask, disagreeing
+from .folder import default_set_dir, model_name, pick_entries, write_files
 from .group import SERIES, group_text, linked_series, paper_reader, read_group
-from .publish import model_name, write_files
 
 KIND_NAME = "study-bounds"
 #: Raise it when a question, the answer's shape or a rule of placing changes.
@@ -218,9 +217,10 @@ def write_bounds(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str, 
     """Write ``<out>/<key>/<name>`` for each study with an answer, and say how each study ended.
 
     A refused study gets no file, and its reason instead; a file already on disk is never
-    overwritten. See :func:`.publish.write_files`.
+    overwritten, and a file the format check rejects is not written. See
+    :func:`.folder.write_files`.
     """
-    return write_files(task, kind, out, name, bounds_file)
+    return write_files(task, kind, out, name, bounds_file, check_bounds)
 
 
 KIND = register(

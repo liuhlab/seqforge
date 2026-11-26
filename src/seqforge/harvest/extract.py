@@ -89,7 +89,10 @@ if TYPE_CHECKING:
 #: 2026.11.0 — the nine `experiment.samples.*` attributes left the ask, and with them the tissue rule
 #: in the values block and each attribute's NCBI definition in the per-document ask. Every remaining
 #: field is unchanged; a record document is now asked the chemistry or nothing.
-EXTRACT_PROMPT_VERSION = "2026.11.0"
+#: 2026.11.1 — `experiment.accessions` left the ask, and its rule left the values block. No code read
+#: an accession claim: the manifest's accession list is filled from the record set, and the
+#: wrong-paper guard finds accessions in a document's text with its own pattern.
+EXTRACT_PROMPT_VERSION = "2026.11.1"
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as
@@ -123,8 +126,6 @@ Values:
   STARsolo feature or an analysis mode — "single nuclei" is an input material, not `GeneFull`. Omit if
   the document does not say.
 - `experiment.organism`: the scientific name as written (e.g. "Caenorhabditis elegans").
-- `experiment.accessions`: only an explicit database accession (GEO/SRA/ENA/BioProject, e.g.
-  "GSE110823", "PRJNA1027859"). A reference genome or assembly name is NOT an accession.
 - `processing.quantification`: the STARsolo feature the document NAMES, exactly, as one of: Gene, SJ,
   GeneFull, GeneFull_ExonOverIntron, GeneFull_Ex50pAS, Velocyto. Emit one assertion per feature named.
   Only extract this when the document names the feature; a document describing the BIOLOGY ("single

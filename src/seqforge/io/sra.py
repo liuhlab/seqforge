@@ -47,6 +47,7 @@ from .remote import (
     _uri_basename,
     dropped_reads,
     fastq_targets_meta,
+    import_labdata,
     resolve_accession,
     retry_delay,
 )
@@ -163,7 +164,7 @@ def _stream_run(run_accession: str, *, n_spots: int) -> Any:
     the SRA path, and a transient failure is retried with backoff before becoming a loud
     :class:`RemoteError`. Technical reads are kept — a chemistry fingerprint needs the barcode read.
     """
-    import labdata
+    labdata = import_labdata()
     from labdata.exceptions import LabdataError
 
     attempt = 0
