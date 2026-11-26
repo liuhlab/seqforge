@@ -28,7 +28,7 @@ times and nothing could be tuned in one place. What lives here:
 * :data:`composed_plate` — one ``smartseq3`` plate, composed under the real wiring gate and planned
   once, for the three-part plate gate; it carries both the gate's verdict and the plan text, because
   the gate discards the text. :data:`composed_plate_se` is the same thing for the mate-less
-  placement. Both run snakemake, so both NAMES are in :data:`_SPAWNS_SNAKEMAKE` beside ``dry_run``.
+  placement. Both run snakemake, so both NAMES are in :data:`_NEEDS_SNAKEMAKE` beside ``dry_run``.
 * :func:`gate_that_must_not_run` — un-stub the gate for the one test that proves it is NOT reached.
   Not ``external``: it spawns nothing, and a counter makes that a mechanism rather than a promise.
 * :func:`pytest_cmdline_main` — a bare ``pytest`` runs the whole suite ACROSS CORES, because
@@ -244,12 +244,6 @@ def liulab_data(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
     covers the session-scoped composed-plate fixtures too, which compose under the real gate and
     are built before any function-scoped fixture applies. The autouse stub below replaces this
     wrapper wholesale for every test that did not ask to spawn, so nothing is staged for them.
-
-    And the gate plans inside the worker, by :func:`_snakemake_in_this_worker` in the place of the
-    one call that starts the program. No start of ``snakemake`` fits a test's time limit on every
-    machine, and the gate reads the same three things back either way: the exit status and both
-    streams. The one test that proves the program's own command line takes
-    :func:`snakemake_program`.
     """
     from seqforge.compose import gates
 
@@ -263,9 +257,24 @@ def liulab_data(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
     patch = pytest.MonkeyPatch()
     patch.setenv("LIULAB_DATA", str(root))
     patch.setattr(gates, "wiring_gate", staged)
-    patch.setattr(gates, "run_snakemake", _snakemake_in_this_worker)
     yield root
     patch.undo()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _gate_plans_in_this_worker() -> Iterator[None]:
+    """The product's gate plans inside the worker, for the session and every test in it.
+
+    :func:`_snakemake_in_this_worker` stands in for the one call that starts the program. No start
+    of ``snakemake`` fits a test's time limit on every machine, and the gate reads the same three
+    things back either way: the exit status and both streams. Session-scoped for the reason
+    :func:`liulab_data` is: the composed-plate fixtures run the real gate before any
+    function-scoped fixture applies. The one test that proves the program's own command line takes
+    :func:`snakemake_program`, which puts the real start back for that test alone.
+    """
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr("seqforge.compose.gates.run_snakemake", _snakemake_in_this_worker)
+        yield
 
 
 def _samtools_from_pysam(
@@ -373,18 +382,18 @@ def stage_reference(pipeline_dir: Path) -> None:
 #: Fixture names that mean "do not stub ``wiring_gate`` for this test".
 _UNSTUBS_THE_GATE = frozenset({"real_wiring_gate", "gate_that_must_not_run", "snakemake_program"})
 
-#: Fixture names that mean "this test runs ``snakemake``" — which is what ``external`` is ABOUT.
+#: Fixture names that mean "this test needs ``snakemake``" — which is what ``external`` is ABOUT.
 #: The two sets are deliberately different; see :func:`pytest_collection_modifyitems`.
 #:
-#: The name says "spawns", and only ``snakemake_program`` still does, in a test marked ``slow``:
+#: Needs, not starts: only ``snakemake_program`` starts the program, in a test marked ``slow``, and
 #: every other plan, the product gate's included, is taken inside the worker
-#: (:func:`_snakemake_in_this_worker`). The marker is about NEEDING snakemake, and a machine without
-#: it can do neither, so the set is the same whichever way a fixture runs it.
+#: (:func:`_snakemake_in_this_worker`). A machine without snakemake can do neither, so the set is
+#: the same whichever way a fixture runs it.
 #:
 #: ``composed_plate`` and its single-end sibling are here for the same reason ``dry_run`` is: each is
 #: a *product* of a ``snakemake -n -p``, and a fixture that takes one has to be visible to the marker
 #: whether the test reading it thinks of itself as a snakemake test or not.
-_SPAWNS_SNAKEMAKE = frozenset(
+_NEEDS_SNAKEMAKE = frozenset(
     {"real_wiring_gate", "snakemake_program", "dry_run", "composed_plate", "composed_plate_se"}
 )
 
@@ -524,7 +533,8 @@ def stored_pilot(monkeypatch: pytest.MonkeyPatch) -> StubStore:
 
 @pytest.fixture
 def real_wiring_gate() -> None:
-    """Opt back in: the product's gate runs, and plans in the worker (see :func:`liulab_data`)."""
+    """Opt back in: the product's gate runs, and plans in the worker (see
+    :func:`_gate_plans_in_this_worker`)."""
     return None
 
 
@@ -621,7 +631,7 @@ def snakemake_dry_run(
     The one planner. It is a module-level function rather than only a fixture body because two
     fixtures want it — the per-test :func:`dry_run` and the session-scoped :func:`composed_plate` —
     and a second copy of the argv is the copy that comes to disagree about which flags a plan is
-    taken under. Both fixture NAMES are in :data:`_SPAWNS_SNAKEMAKE`, so the marker still follows
+    taken under. Both fixture NAMES are in :data:`_NEEDS_SNAKEMAKE`, so the marker still follows
     the fixture and never this function.
 
     **The plan is taken inside the test worker**, by :func:`_snakemake_in_this_worker`, and not by
@@ -838,14 +848,14 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     test ids: a hand-maintained list of external tests goes stale silently, and the staleness shows up
     as ``test-fast`` quietly running snakemake where nobody meant it to.
 
-    ``_SPAWNS_SNAKEMAKE`` is deliberately not ``_UNSTUBS_THE_GATE``. Keying on "asked for the real
+    ``_NEEDS_SNAKEMAKE`` is deliberately not ``_UNSTUBS_THE_GATE``. Keying on "asked for the real
     gate" was close enough to be wrong in both directions: ``_dry_run`` spawned ``snakemake`` with no
     fixture at all (so ``test-fast`` hard-failed on a machine without it, which is the exact thing
     ``test-fast`` exists to avoid), while a test that un-stubs the gate only to prove it is never
     called was dropped from ``test-fast`` for a subprocess it does not run.
     """
     for item in items:
-        if _SPAWNS_SNAKEMAKE & set(getattr(item, "fixturenames", ())):
+        if _NEEDS_SNAKEMAKE & set(getattr(item, "fixturenames", ())):
             item.add_marker(pytest.mark.external)
 
 
@@ -872,7 +882,7 @@ def pytest_collection_finish(session: pytest.Session) -> None:
         return
     for name in _COLD_IMPORTS:
         importlib.import_module(name)
-    if any(_SPAWNS_SNAKEMAKE & set(getattr(item, "fixturenames", ())) for item in session.items):
+    if any(_NEEDS_SNAKEMAKE & set(getattr(item, "fixturenames", ())) for item in session.items):
         importlib.import_module("snakemake.cli")
 
 
