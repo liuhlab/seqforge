@@ -55,8 +55,8 @@ def _valid_manifest() -> m.DatasetManifest:
             rung=3,
         ),
         assay=[
-            m.AssayLabel(chemistry="10x-3p-gex-v3", curie="EFO:0009922", name="10x 3' v3"),
-            m.AssayLabel(chemistry="10x-3p-gex-v3.1", curie="EFO:0022980", name="10x 3' v3.1"),
+            m.AssayLabel(chemistry="10x-3p-gex-v3", curie="EFO:0009922"),
+            m.AssayLabel(chemistry="10x-3p-gex-v3.1", curie="EFO:0022980"),
         ],
         read_layout=read_layout,
         onlists=[
@@ -164,7 +164,6 @@ def test_the_assay_cannot_disagree_with_the_chemistry_it_names() -> None:
     man = _valid_manifest()
     assert [a.chemistry for a in man.library.assay] == man.library.chemistry.value
     assert [a.curie for a in man.library.assay] == ["EFO:0009922", "EFO:0022980"]
-    assert [a.name for a in man.library.assay] == ["10x 3' v3", "10x 3' v3.1"]
 
 
 def test_one_decision_carries_exactly_one_confidence() -> None:

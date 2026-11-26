@@ -60,8 +60,8 @@ because it exists. There is no `kb confusability` verb.
 
 ## Look up every value; write none from memory
 
-- **EFO CURIEs**: verify against live EFO (EBI OLS). A recalled CURIE is usually plausible and
-  wrong.
+- **EFO CURIEs**: verify against liulab-data's ontology store (`labdata ontology lookup ID`,
+  or `labdata ontology search efo TEXT`). A recalled CURIE is usually plausible and wrong.
 - **Read structure, linkers, offsets**: from the primary paper's oligo tables or scg_lib_structs.
   **Pin the kit version.**
 - **`soloStrand`**: derive it from oligo orientation and cite the derivation; never pattern-match

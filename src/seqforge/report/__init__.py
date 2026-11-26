@@ -15,7 +15,7 @@ slot into ``panels.py`` as one more fragment without changing the shell.
 from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH; bump when the report's layout or projection changes (stamped in the footer, folded into no cache key). History: `docs/research/report-version-history-2026-11-25.md`.
-REPORT_VERSION = "2026.11.0"
+REPORT_VERSION = "2026.11.1"
 
 from .collect import collect_report  # noqa: E402
 from .render import render_html  # noqa: E402
