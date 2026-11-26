@@ -1,8 +1,0 @@
-model: deepseek/deepseek-v4-flash
-pass: bounds-draft/2026.11.1/EX02
-when: 2026-11-19T09:02:40Z
-bounds:
-  series: [GSE9990021, GSE9990023]
-  papers: ["99900021", "99900023"]
-  reason: The abstract names GSE9990021, and GSE9990023 is linked to the same paper in GEO.
-  split_samples: null
