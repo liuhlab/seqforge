@@ -442,14 +442,14 @@ def _writer(form: dict[str, Any]) -> str:
     return json.dumps(LISTS[key])
 
 
-def _p_yes(asked: str) -> float:
-    """Jev's p(yes), by what the question is about."""
+def _p_yes(asked: str) -> float | None:
+    """Jev's p(yes), by what the question is about; ``None`` leaves it out."""
     if varied := re.match(r"Did the study vary (\w+) on purpose", asked):
         return VARIED.get(varied.group(1), (0.9, 0.1))[0]
     if negated := re.match(r"Is (\w+) \(values: .* only a description", asked, re.DOTALL):
         return VARIED.get(negated.group(1), (0.9, 0.1))[1]
     if ordered := re.match(r"Do the levels of (\w+) ", asked):
-        return 0.9 if ordered.group(1) == "age" else 0.1
+        return {"age": 0.9, "diet": None}.get(ordered.group(1), 0.1)
     return 0.9
 
 
@@ -481,7 +481,8 @@ def _jev(form: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for name, question in form["questions"].items():
         if question["type"] == "noul":
-            out[name] = {"noul": _p_yes(question["instructions"])}
+            if (p := _p_yes(question["instructions"])) is not None:
+                out[name] = {"noul": p}
         elif picked := _choose(question["instructions"], question["criteria"], sample):
             out[name] = {"choice": picked[0], "probabilities": {picked[0]: picked[1]}}
     return out
@@ -682,14 +683,15 @@ def test_a_question_jev_leaves_unanswered_is_an_unknown_claim_and_leaves_the_stu
 ) -> None:
     """Jev leaves GSM93's diet unanswered, in both askings. Its claim is unknown with no
     probability, and two missing answers do not agree: the study is unsettled, naming the sample.
-    GSM92's tissue, left unanswered in the one asking read, is named too."""
+    GSM92's tissue and whether the diet's levels are ordered, each asked once and left unanswered,
+    are named too."""
     set_dir, said, _ = read
     reading = _reading(set_dir, "GSE90")
 
     assert said["GSE90"]["ending"] == "unsettled"
     assert "GSM93: level of diet" in said["GSE90"]["checks_failed"][0]
     left = said["GSE90"]["checks_failed"][1]
-    assert left == "all_answered: Jev left unanswered GSM92: value of tissue"
+    assert left == "all_answered: Jev left unanswered factor diet: ordered; GSM92: value of tissue"
     assert reading["samples"]["GSM93"]["diet"] == {
         "unknown": "what was read does not say its diet",
         "p": None,

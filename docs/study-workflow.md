@@ -212,7 +212,7 @@ study ends in one of three ways:
 | Ending | When | File |
 | --- | --- | --- |
 | Settled | Jev's two answers agree on every question asked twice | Written |
-| Unsettled | Jev's two answers do not agree on whether a factor was varied on purpose, on its baseline, or on any sample's level. A missing answer, or a probability of exactly 0.5, never agrees. Jev leaves unanswered a sample's label value, a label with no listed value, or where the material came from, so the claim is `unknown` with no probability | Written, with each probability |
+| Unsettled | Jev's two answers do not agree on whether a factor was varied on purpose, on its baseline, or on any sample's level. A missing answer, or a probability of exactly 0.5, never agrees. Or Jev leaves unanswered a question it is asked once: a sample's label value or a label with no listed value, whose claim is then `unknown` with no probability, where the material came from, whether a factor's levels are ordered, a passage check, a tie or a term pick | Written, with each probability |
 | Refused | The writer's answer cannot be used after one retry, or the reading fails the format check | None. `write-reading` prints the reason |
 
 ## 4. Check the reading

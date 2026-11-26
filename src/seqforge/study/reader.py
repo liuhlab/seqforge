@@ -142,6 +142,11 @@ def _yes(answer: Answer | None) -> TypeGuard[Answer]:
     return answer is not None and answer.option is YES
 
 
+def _left(askings: Mapping[str, Asking], answers: Mapping[str, Answer | None]) -> list[str]:
+    """What each asked question Jev left unanswered is about, in the order asked."""
+    return [a.closed_question.about for n, a in askings.items() if answers[n] is None]
+
+
 def _listed(answer: Answer | None) -> tuple[Option, float] | None:
     """The listed level, value or term Jev picked, and its probability.
 
@@ -183,7 +188,8 @@ class _Factor:
     """A listed factor as the chain carries it: the writer's list and Jev's answers.
 
     ``varied`` holds both askings of whether it was varied on purpose, ``reference`` both of its
-    baseline, and ``ordered`` the one answer on whether its levels run along a scale.
+    baseline, and ``ordered`` the one answer on whether its levels run along a scale, which
+    ``ordered_about`` names.
     """
 
     label: str
@@ -193,6 +199,7 @@ class _Factor:
     varied: Askings = field(init=False)
     reference: Askings = field(init=False)
     ordered: Answer | None = None
+    ordered_about: str = ""
 
     @property
     def baseline(self) -> str | None:
@@ -298,8 +305,8 @@ def _ask_study(u: Unit, text: str, lists: _Lists) -> tuple[dict[str, Answer | No
     """Jev's answers about the study: each factor, each label with no value, the donors.
 
     Each factor keeps its own answers; every answer also comes back under its asking's name. Also
-    returns what each question asked once and written as a claim is about, where Jev left it
-    unanswered: a label with no value, and the donors.
+    returns what each question asked once is about, where Jev left it unanswered: a label with no
+    value, and the donors. A factor's ordered question counts only once the factor is kept.
     """
     askings: dict[str, Asking] = {}
     for i, f in enumerate(lists.factors):
@@ -368,6 +375,7 @@ def _ask_study(u: Unit, text: str, lists: _Lists) -> tuple[dict[str, Answer | No
             answers[f"f{i}_baseline_reversed"],
         )
         f.ordered = answers[f"f{i}_ordered"]
+        f.ordered_about = askings[f"f{i}_ordered"].closed_question.about
     unanswered = [
         askings[n].closed_question.about
         for n in askings
@@ -500,12 +508,14 @@ def _check_passages(
     sources: Mapping[str, Any],
     claims: Mapping[str, tuple[str, Value | FactorList]],
     ties: list[Any],
+    unanswered: list[str],
 ) -> tuple[dict[str, _Backing], dict[tuple[str, str], _Tie], _Passages, dict[str, int]]:
     """Find each claim's quotes, and ask Jev whether each found passage backs or contradicts it.
 
     ``claims`` maps a claim's key to what it says and the listed value or factor behind it. Returns
     each claim's backing, each listed tie of a control to a pull-down whose quote was found with
-    Jev's p for it, the passages, and counts of what was not found.
+    Jev's p for it, the passages, and counts of what was not found. What each check Jev left
+    unanswered is about goes on ``unanswered``.
     """
     passages = _Passages()
     found: dict[str, list[tuple[str, int]]] = defaultdict(list)
@@ -573,6 +583,7 @@ def _check_passages(
         "Checking quoted passages against claims about a study's samples.\n\n" + text,
         questions,
     )
+    unanswered += _left(questions, answers)
     backing: dict[str, _Backing] = {}
     for key, (_, listed) in claims.items():
         b = _Backing(how=listed.how)
@@ -607,6 +618,7 @@ def _terms(
     ontology: Ontology,
     used: Mapping[tuple[str, str, str | None], Value],
     glossary: str,
+    unanswered: list[str],
 ) -> _Terms:
     """Each used value's term: the search's candidates for its search names, Jev's pick of them.
 
@@ -615,7 +627,8 @@ def _terms(
     is written only for a pick at least :data:`TERM_AT` sure; a treatment of several
     compounds gets a list, only when every compound got one. ``healthy`` maps to its PATO id when
     the store holds it, and ``adult`` to the species' adult stage when the search finds it by its
-    whole name. A vocabulary the store does not hold finds nothing, and is noted.
+    whole name. A vocabulary the store does not hold finds nothing, and is noted. What each pick
+    Jev left unanswered is about goes on ``unanswered``.
     """
     terms = _Terms()
     questions: dict[str, Asking] = {}
@@ -661,6 +674,7 @@ def _terms(
     answers = ask(
         u, JEV_ROLE, f"Ontology terms for the samples of a study.\n{glossary[:6000]}", questions
     )
+    unanswered += _left(questions, answers)
     picked: dict[tuple[str, str, str | None], dict[int, str]] = defaultdict(dict)
     for key, (which, n) in asked.items():
         if (pick := _listed(answers[key])) and pick[1] >= TERM_AT:
@@ -792,6 +806,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
         f.levels = [v for v, n in zip(f.levels, f.names, strict=True) if n in at]
         f.names = [n for n in f.names if n in at]
     covered = [f for f in kept if f.names]
+    unanswered += [f.ordered_about for f in covered if f.ordered is None]
 
     claims: dict[str, tuple[str, Value | FactorList]] = {}
     for f in covered:
@@ -823,8 +838,10 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
                 )
                 used.setdefault((label, value.text, vocabulary(label, taxid)), value)
     check_text = src.records_text(sources)[:40_000] + notes_text
-    backing, tied, passages, counts = _check_passages(u, check_text, sources, claims, lists.ties)
-    terms = _terms(u, context.ontology, used, glossary)
+    backing, tied, passages, counts = _check_passages(
+        u, check_text, sources, claims, lists.ties, unanswered
+    )
+    terms = _terms(u, context.ontology, used, glossary, unanswered)
 
     rows: dict[str, dict[str, Any]] = {g: {} for g in samples}
     groups = _biosamples(samples, tied)
@@ -941,9 +958,10 @@ def askings_agree(inputs: Inputs, answer: Any) -> str | None:
 def all_answered(inputs: Inputs, answer: Any) -> str | None:
     """Fail a reading where Jev left unanswered a question it reads one asking of.
 
-    Those are a label's value, a label with no listed value, and the donors. The claim is
-    ``unknown`` with no probability, and the study is unsettled, as it is when the two askings of a
-    question asked twice do not agree.
+    Those are a label's value, a label with no listed value, the donors, whether a kept factor's
+    levels are ordered, each passage check, each tie and each term pick. Each writes what it writes
+    for no answer, such as an ``unknown`` claim with no probability, and the study is unsettled, as
+    it is when the two askings of a question asked twice do not agree.
     """
     left = answer["unanswered"]
     if not left:
