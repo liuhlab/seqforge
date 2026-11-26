@@ -20,49 +20,8 @@ from importlib.resources import files
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-#: The labels the writer lists values for. Code writes the other three: biosample, donor, species.
-LABELS = (
-    "assay",
-    "target",
-    "control_type",
-    "sex",
-    "age",
-    "development_stage",
-    "tissue",
-    "cell_type",
-    "cell_line",
-    "disease",
-    "genotype",
-    "strain",
-    "treatment",
-    "dose",
-    "duration",
-)
-#: The labels code writes on its own, which are never a factor.
-CODE_LABELS = ("biosample", "donor", "species")
-#: The labels whose value may carry a number and a unit.
-NUMERIC = ("age", "dose", "duration")
-#: What each label holds, as the writer and Jev are told.
-MEANING = {
-    "assay": "the kind of sequencing experiment, such as RNA-Seq, ChIP-Seq or ATAC-seq",
-    "target": "what a pull-down enriches: a histone mark or a protein; na for an assay with no "
-    "pull-down and for a control library",
-    "control_type": "the kind of background-control library, such as input or IgG; na for every "
-    "other library",
-    "sex": "the sex: female, male, hermaphrodite or mixed",
-    "age": "the age, with a number and a unit",
-    "development_stage": "the stage of life, such as embryo, larval stage or adult",
-    "tissue": "the tissue or organ",
-    "cell_type": "the cell type",
-    "cell_line": "the cell line",
-    "disease": "the disease or disease model, or healthy",
-    "genotype": "the genotype",
-    "strain": "the strain",
-    "treatment": "what was applied to the sample: a drug, a diet, a vector, an infection or a "
-    "procedure",
-    "dose": "how much of the treatment",
-    "duration": "how long the treatment itself was applied",
-}
+from .labels import LABELS
+
 #: The guides by file, each with the library strategies that pick it, written as
 #: :func:`_strategy` folds them.
 GUIDES = {"pull-down.txt": ("chipseq", "chipexo", "cutrun", "cuttag")}
@@ -80,7 +39,7 @@ step decides that from your lists. Write only what the text supports.
 
 Every sequenced sample gets these labels:
 """
-    + "\n".join(f"- {label}: {meaning}" for label, meaning in MEANING.items())
+    + "\n".join(f"- {r.name}: {r.holds}" for r in LABELS if r.written_by == "writer")
     + """
 
 Points of meaning:

@@ -5,9 +5,8 @@ no ontology file and no ontology code. The reader hands a label's short text and
 :class:`OntologySearch` and gets back up to :data:`MOST_CANDIDATES` candidates, whole-text matches
 first, and the snapshot that answered; it names a code-mapped id, such as a species' taxonomy id,
 through the same store. :class:`StoreSearch` opens the store once, which pins each
-vocabulary's snapshot until it is closed, so one pass reads one set of snapshots.
-
-:func:`vocabulary` says which vocabulary a label's terms come from, for a sample of one species.
+vocabulary's snapshot until it is closed, so one pass reads one set of snapshots. Which vocabulary
+a label's terms come from is the label table's: :mod:`.labels`.
 """
 
 from __future__ import annotations
@@ -21,21 +20,6 @@ from typing import Any, Protocol
 MOST_CANDIDATES = 10
 #: What ``source`` in a reading's ``ontology_snapshot`` starts with, before the snapshots' names.
 STORE_SOURCE = "liulab-data ontology store"
-
-#: Each label whose terms a search finds, and its vocabulary. ``None`` means by species.
-_BY_LABEL = {
-    "assay": "efo",
-    "tissue": "uberon",
-    "cell_type": "cl",
-    "cell_line": "cellosaurus",
-    "disease": "mondo",
-    "treatment": "chebi",
-    "development_stage": None,
-}
-#: The stage list of each species that has one, by NCBI Taxonomy id. A rat stage has none.
-_STAGES = {"9606": "hsapdv", "10090": "mmusdv", "6239": "wbls", "7227": "fbdv"}
-#: *C. elegans* names its tissues in its own anatomy list.
-_WORM, _WORM_TISSUE = "6239", "wbbt"
 
 
 @dataclass(frozen=True)
@@ -137,16 +121,3 @@ class StoreSearch:
 def snapshot_source(snapshots: set[str]) -> str:
     """A reading's ``ontology_snapshot.source``: the store, and each snapshot its ids came from."""
     return f"{STORE_SOURCE}: {', '.join(sorted(snapshots))}"
-
-
-def vocabulary(label: str, taxid: str | None) -> str | None:
-    """The vocabulary a label's terms come from for a sample of species ``taxid``.
-
-    ``None`` when the label takes no searched term: one with no vocabulary, such as a genotype, a
-    stage of a species with no stage list, such as the rat, or a species, whose id is the record's.
-    """
-    if label == "development_stage":
-        return _STAGES.get(str(taxid))
-    if label == "tissue" and str(taxid) == _WORM:
-        return _WORM_TISSUE
-    return _BY_LABEL.get(label)
