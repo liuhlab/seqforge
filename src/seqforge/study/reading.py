@@ -18,6 +18,7 @@ valid one.
 from __future__ import annotations
 
 import datetime
+import functools
 from collections.abc import Iterator, Mapping
 from typing import Any, Literal
 
@@ -33,7 +34,7 @@ from .claims import (
     passage_problems,
     validation_problems,
 )
-from .labels import LABELS, label_row
+from .labels import LABELS, OWN, LabelRow, label_row
 
 #: The one format the check accepts. A change to the file's shape raises it, and rewrites every file.
 FORMAT = 2
@@ -127,11 +128,22 @@ def _label_problems(
     where: str, label: str, claim: SampleClaim, factors: dict[str, Factor]
 ) -> Iterator[tuple[str, str]]:
     """What is wrong with one written claim that depends on the label it is written under."""
-    named = label_row(label).id_alone
+    rules = label_row(label)
+    named = rules.id_alone
     if claim.value is not None and not _number_or_range(claim.value):
         yield f"{where}.value", "a value is a number, or a range as [low, high]"
+    # The table says which of its labels take a number; a label of the study's own may take one.
+    if claim.value is not None and rules is not OWN and not rules.number:
+        numbered = ", ".join(r.name for r in LABELS if r.number)
+        yield (
+            f"{where}.value",
+            f"{label} takes no number; a number is for {numbered} or a label of the study's own",
+        )
+    if rules.words and isinstance(claim.term, str) and claim.term not in rules.words:
+        *rest, last = rules.words
+        yield f"{where}.term", f"a {label} term is one of {', '.join(rest)} or {last}"
     if isinstance(claim.term, list):
-        if not label_row(label).many_terms:
+        if not rules.many_terms:
             yield f"{where}.term", "a list of terms is only for a treatment of several compounds"
         elif not claim.term:
             yield f"{where}.term", "an empty list names no term"
@@ -151,6 +163,71 @@ def _label_problems(
             yield f"{where}.level", f"{label} is not a factor, so its claims name no level"
         elif claim.level not in factors[label].levels:
             yield f"{where}.level", f"{claim.level} is not a level of the factor {label}"
+
+
+@functools.cache
+def _prefixes() -> Mapping[str, tuple[str, ...]] | None:
+    """The id prefixes of each vocabulary's own terms, as liulab-data keeps them; ``None`` without it.
+
+    liulab-data is a pixi dependency and not a wheel one, so an installed copy can lack it.
+    """
+    try:
+        from labdata.ontology.vocabularies import VOCABULARIES
+    except ImportError:
+        return None
+    return {v.name: v.prefixes for v in VOCABULARIES}
+
+
+def _term_problem(rules: LabelRow, term: str, taxid: str | None) -> str | None:
+    """Why ``term`` is no id from the vocabulary of ``rules``' label for species ``taxid``.
+
+    A species not known allows the label's vocabulary for any species. The ids code maps on its
+    own, such as the one for healthy, are allowed beside the vocabulary.
+    """
+    if term in rules.ids.values():
+        return None
+    prefixes = _prefixes()
+    if prefixes is None:
+        return (
+            "liulab-data is not importable, so the id cannot be checked against its vocabulary; "
+            "run seqforge from liulab-runtime, which ships it"
+        )
+    named = (
+        [rules.vocabulary_for(taxid)] if taxid else [rules.vocabulary, *rules.by_species.values()]
+    )
+    vocabularies = sorted({v for v in named if v is not None})
+    if any(term.startswith(p) for v in vocabularies for p in prefixes.get(v, ())):
+        return None
+    label = rules.name or "a label of the study's own"
+    if not vocabularies:
+        return f"{label} takes no ontology id"
+    return f"an id for {label} comes from {' or '.join(vocabularies)}"
+
+
+def _vocabulary_problems(reading: Reading) -> Iterator[tuple[str, str]]:
+    """A claim's term that is no id from its label's vocabulary for the species of its sample.
+
+    A shared claim is checked against the species of each sample it stands for, and named once.
+    """
+    seen: set[str] = set()
+    for sample, row in reading.rows().items():
+        species = row.get("species")
+        taxid = None
+        if species is not None and isinstance(species.term, str) and ":" in species.term:
+            taxid = species.term.partition(":")[2]
+        for label, claim in row.items():
+            rules = label_row(label)
+            if claim.term is None or rules.words:
+                continue
+            own = label in reading.samples[sample]
+            where = f"samples.{sample}.{label}.term" if own else f"shared.{label}.term"
+            if where in seen:
+                continue
+            for term in claim.term if isinstance(claim.term, list) else [claim.term]:
+                if (why := _term_problem(rules, term, taxid)) is not None:
+                    seen.add(where)
+                    yield where, why
+                    break
 
 
 def _against_problems(
@@ -202,6 +279,7 @@ def _between_fields(reading: Reading) -> Iterator[tuple[str, str]]:
         yield from _label_problems(where, label, claim, reading.factors)
     # An id is only as good as the ontology it was read from, so a file that writes one says which.
     # A term from a label's own words is no id.
+    yield from _vocabulary_problems(reading)
     ids = [where for where, label, claim in written if claim.term and not label_row(label).words]
     if ids and snapshot is None:
         yield (

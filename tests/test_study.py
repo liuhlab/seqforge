@@ -264,13 +264,18 @@ READING: dict[str, Any] = {
         "tissue": _said("liver", term="UBERON:0002107"),
         "cell_type": _gap("na"),
         "cell_line": _gap("na"),
-        "disease": {"text": "healthy", "inferred": "No disease is named.", "p": 0.8},
+        "disease": {
+            "text": "healthy",
+            "term": "PATO:0000461",
+            "inferred": "No disease is named.",
+            "p": 0.8,
+        },
         "genotype": _said("wild type", level="wt"),
         "strain": _gap("unknown"),
         "treatment": _said("bleomycin and DMSO", term=["CHEBI:22907", "CHEBI:28262"]),
         "dose": _said("per side"),
         "duration": _said("overnight"),
-        "diet": {"text": "standard chow", "quoted": [4], "p": 0.9},
+        "diet": {"text": "standard chow", "value": 5, "unit": "% fat", "quoted": [4], "p": 0.9},
     },
     "samples": {
         "GSM1": _material("B1"),
@@ -309,7 +314,8 @@ def _a_factor_one_row_writes(reading: dict[str, Any]) -> None:
 def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
     """Each of the four backings, a passage of each source, a label of the study's own, a range, a
     row that replaces a shared claim, a gap that names the passages it rests on, a claim that names
-    a passage against it, a treatment of two compounds, and a dose and a duration with no number."""
+    a passage against it, a treatment of two compounds, a dose and a duration with no number, a
+    number on the study's own label, and the id for healthy as a disease term."""
     code, said = _check(tmp_path, READING, "check-reading")
 
     assert (code, said["valid"], said["problems"]) == (0, True, [])
@@ -475,6 +481,24 @@ def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
             "samples.GSM2.batch",
             "missing",
             id="a factor on a label some samples lack",
+        ),
+        pytest.param(
+            _with({"text": "F", "term": "F", "quoted": [1], "p": 0.9}, "shared", "sex"),
+            "shared.sex.term",
+            "one of female, male, hermaphrodite or mixed",
+            id="a sex term that is not one of the four words",
+        ),
+        pytest.param(
+            _with("WBbt:0005772", "shared", "tissue", "term"),
+            "shared.tissue.term",
+            "comes from uberon",
+            id="a term from another species' vocabulary",
+        ),
+        pytest.param(
+            _with(3, "shared", "tissue", "value"),
+            "shared.tissue.value",
+            "tissue takes no number",
+            id="a number on a label that takes none",
         ),
     ],
 )
