@@ -26,7 +26,7 @@ from .bounds import Bounds, read_bounds
 from .claims import load
 
 if TYPE_CHECKING:
-    from labllm import Outcome, Task, UnitKind
+    from labllm import Outcome, TaskReader
 
 #: A study's own file, its bounds file and its reading file, in the study's folder.
 STUDY, BOUNDS, READING = "study.yaml", "bounds.yaml", "reading.yaml"
@@ -106,8 +106,8 @@ def model_name(outcome: Outcome, role: str | None) -> str | None:
 
 
 def write_files(
-    task: Task,
-    kind: UnitKind,
+    task: TaskReader,
+    kind: str,
     out: Path,
     name: str,
     render: Callable[[Outcome], dict[str, Any]],
@@ -115,7 +115,8 @@ def write_files(
 ) -> dict[str, dict[str, Any]]:
     """Write ``<out>/<key>/<name>`` for each unit with an answer, and say how each study ended.
 
-    A refused study gets no file, and its reason instead. ``render`` gives the file's content, each
+    The units are those of the kind named ``kind``. A refused study gets no file, and its reason
+    instead. ``render`` gives the file's content, each
     model already named as the pass's stamp records it, and ``check`` runs on the exact text that
     would be written: a text it rejects is not written, and its problems are said instead. A file
     already on disk is never overwritten: delete it by hand to take a newer answer. ``name`` is a

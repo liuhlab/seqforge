@@ -27,7 +27,7 @@ from ._common import _emit, _StageOut
 from .root import study_app
 
 if TYPE_CHECKING:
-    from labllm import Task, UnitKind
+    from labllm import TaskReader
 
 
 def _content(file: Path) -> tuple[object, list[dict[str, str]]]:
@@ -65,7 +65,7 @@ def _verdict(file: Path, accepted: int, problems: list[dict[str, str]], **more: 
 
 def _write(
     kind_name: str,
-    write: Callable[[Task, UnitKind, Path, str], dict[str, dict[str, object]]],
+    write: Callable[[TaskReader, str, Path, str], dict[str, dict[str, object]]],
     out: Path,
     name: str,
     task: Path | None,
@@ -73,17 +73,15 @@ def _write(
     """Write each study's file from a pass's answers, and print how each study ended.
 
     A text the format check rejects is a refusal, as check-bounds and check-reading make it: the
-    other files are still written, and the command exits 3.
+    other files are still written, and the command exits 3. The task is only read, with no hold,
+    so the files of the studies a running pass has answered can be written before it ends.
     """
     from ._kind_task import KindTask, for_kind
 
     def run(setup: KindTask) -> _StageOut:
-        from ..passes.status import read_only_kind
-
-        setup.require_task()
         try:
             with setup.read() as opened:
-                done = write(opened, read_only_kind(kind_name), out, name)
+                done = write(opened, kind_name, out, name)
         except (ValueError, LiulabDataMissing) as e:
             return _StageOut({"error": str(e)}, 2)
         said: dict[str, object] = {"kind": kind_name, "task": str(setup.folder), "out": str(out)}
@@ -113,9 +111,10 @@ def study_write_bounds(
 
     A refused study gets no file; the JSON gives its reason. The format check runs on the exact
     text to be written, and a text it rejects is not written. A file already there is never
-    overwritten. It reads the task only, so it works with the gateway down. Exit 0 with one object
-    per study; 2 for no task or a ``--name`` that is a path; 3 when a running pass holds the task,
-    or when the format check rejects a text, whose study the JSON names with its problems.
+    overwritten. It reads the task only, with no hold, so it works with the gateway down and while a
+    pass runs. Exit 0 with one object per study; 2 for no task, a task a pass stopped in the middle
+    of a write, or a ``--name`` that is a path; 3 when a pass's write kept the read waiting, or when
+    the format check rejects a text, whose study the JSON names with its problems.
     """
     from ..study.bounding import KIND_NAME, write_bounds
 
@@ -142,9 +141,8 @@ def study_write_reading(
 
     The same as write-bounds, for the reading pass: a refused study gets no file and the JSON
     gives its reason, and a file already there is never overwritten, so the standard set's own
-    readings stay as they are. Exit 0 with one object per study; 2 for no task, a ``--name`` that
-    is a path, or no liulab-data for the format check; 3 when a running pass holds the task, or
-    when the format check rejects a text.
+    readings stay as they are. Exit 0 with one object per study; 2 as for write-bounds, or for no
+    liulab-data for the format check; 3 as for write-bounds.
     """
     from ..study.reader import KIND_NAME, write_readings
 

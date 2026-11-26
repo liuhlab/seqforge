@@ -130,7 +130,8 @@ The check asks only whether the file is in the current format. It does not judge
 bounds are right. The bounding job never writes a file that the check rejects: it ends the study
 refused, and `write-bounds` checks the exact text it writes, with each model named, before the file
 appears. The reader reads each study's bounds file through the same check. It holds a study whose
-file is missing or rejected, and the reason names each problem.
+file is missing or rejected, and the reason names each problem. `seqforge pass status study-reading`
+lists each held study under `not_done`, with that reason.
 
 ## 3. Read the study
 

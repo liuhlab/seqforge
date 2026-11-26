@@ -46,7 +46,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeGuard, TypeVar
 
-from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
+from labllm import Held, Inputs, Model, Outcome, Role, TaskReader, Unit, UnitKind
 
 from ..passes import SetupRefused
 from ..passes.kinds import Built, Kind, name_of
@@ -1297,7 +1297,7 @@ def reading_file(outcome: Outcome) -> dict[str, Any]:
     return reading
 
 
-def write_readings(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str, dict[str, Any]]:
+def write_readings(task: TaskReader, kind: str, out: Path, name: str) -> dict[str, dict[str, Any]]:
     """Write ``<out>/<key>/<name>`` for each study with an answer, and say how each study ended.
 
     A refused study gets no file, and its reason instead; a file already on disk is never
