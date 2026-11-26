@@ -28,8 +28,8 @@ module, interface, depth, seam, adapter, leverage, locality — are fixed, and "
 - [Compose](./src/seqforge/compose/GLOSSARY.md) — covers `compose/`, `workflows/`, `report/`,
   `pipeline.py`, `workspace.py` and part of `manifest/`: the recipe, the compiled pipeline, and
   what it reported
-- [Study](./src/seqforge/study/GLOSSARY.md) — covers `study/`, `standard_set/`: a study's bounds and
-  its reading, and the fixed set of studies they are built on
+- [Study](./src/seqforge/study/GLOSSARY.md) — covers `study/`: a study's bounds and its reading,
+  and the fixed set of studies they are built on
 
 ## Folders that two or more contexts share
 

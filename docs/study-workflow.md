@@ -116,7 +116,8 @@ and 2 for a file that it cannot read.
 
 The check asks only whether the file is in the current format. It does not judge whether the
 bounds are right. The bounding job never writes a file that the check rejects: it ends the study
-refused. The reader reads each study's bounds file as it is.
+refused, and `write-bounds` checks the exact text it writes, with each model named, before the file
+appears. The reader reads each study's bounds file as it is.
 
 ## 3. Read the study
 
@@ -183,8 +184,8 @@ such as `liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, uberon-20
 is the UTC day the pass opened the store, because the store names its snapshots by UTC day.
 
 **What it writes.** `seqforge study write-reading --out <folder>` writes each study's answer as
-`<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file.
-For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
+`<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file,
+and it writes no file whose exact text the format check rejects. For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
 study ends in one of three ways:
 
 | Ending | When | File |

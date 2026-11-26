@@ -85,6 +85,9 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   any more; a record set written earlier with them still loads. The organism still comes from
   each sample's taxonomy id.
 - `seqforge io efo` is gone, and the wheel no longer ships seqforge's table of EFO names.
+- A hand-written record set (`source: user`) may no longer carry `free_text`. The loader refuses
+  it like any other unknown key, and the remedy says that what a sample was belongs in a study
+  reading. No model read that prose. A record set fetched by `io records` keeps its prose.
 
 ### Fixed
 

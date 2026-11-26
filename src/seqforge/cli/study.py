@@ -19,6 +19,7 @@ import typer
 
 from ..study import bounds, reading
 from ..study.claims import load
+from ..study.folder import BOUNDS, JOB_BOUNDS, JOB_READING, READING
 from ..study.relations import relations
 from ._common import _emit, _StageOut
 from .root import study_app
@@ -77,9 +78,9 @@ def study_write_bounds(
         ..., "--out", help="The folder of study folders, such as evals/standard-set."
     ),
     name: str = typer.Option(
-        "bounds.yaml",
+        BOUNDS,
         "--name",
-        help="The file's name in each study's folder; job-bounds.yaml for the standard set.",
+        help=f"The file's name in each study's folder; {JOB_BOUNDS} for the standard set.",
     ),
     task: Path | None = typer.Option(
         None,
@@ -89,7 +90,8 @@ def study_write_bounds(
 ) -> None:
     """Write ``<out>/<ID>/<name>`` from the bounding pass's answers, for each study that has none.
 
-    A refused study gets no file; the JSON gives its reason. A file already there is never
+    A refused study gets no file; the JSON gives its reason. The format check runs on the exact
+    text to be written, and a text it rejects is not written. A file already there is never
     overwritten. It reads the task only, so it works with the gateway down. Exit 0 with one object
     per study; 2 for no task or a ``--name`` that is a path; 3 when a running pass holds the task.
     """
@@ -104,9 +106,9 @@ def study_write_reading(
         ..., "--out", help="The folder of study folders, such as evals/standard-set."
     ),
     name: str = typer.Option(
-        "reading.yaml",
+        READING,
         "--name",
-        help="The file's name in each study's folder; job-reading.yaml for the standard set.",
+        help=f"The file's name in each study's folder; {JOB_READING} for the standard set.",
     ),
     task: Path | None = typer.Option(
         None,

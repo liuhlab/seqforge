@@ -410,7 +410,7 @@ def test_the_transcript_is_one_prompt_plus_a_pair_per_exchange(tmp_path: Path) -
     transcript = seam.transcript()
     assert transcript.n_exchanges == 4
     assert len(transcript.prompts) == 1, "the stable prefix is stored once, not four times"
-    system = transcript.prompt_for(transcript.exchanges[0])
+    system = transcript.prompts[transcript.exchanges[0].prompt_sha256]
     assert system == build_system_prompt(kb.load_all_specs(), llm_schema())
     # the volatile half is per document, and it is the document that varies
     assert [d.text in e.user for d, e in zip(docs, transcript.exchanges, strict=True)] == [True] * 4
@@ -804,7 +804,8 @@ def test_a_transcript_round_trips_through_its_file(tmp_path: Path) -> None:
     assert (replayed.ok, replayed.cached, replayed.cost_usd) == (True, True, 0.0)
     assert not stopped.ok
     assert (stopped.error or "").startswith("provider_exhausted")
-    assert back.prompt_for(stopped) == build_system_prompt(kb.load_all_specs(), llm_schema())
+    system = build_system_prompt(kb.load_all_specs(), llm_schema())
+    assert back.prompts[stopped.prompt_sha256] == system
 
 
 def test_the_transcript_file_holds_one_prompt_and_a_line_per_exchange(tmp_path: Path) -> None:
@@ -1018,8 +1019,8 @@ def test_the_width_of_a_request_is_the_output_budget_divided_by_its_ask() -> Non
 
     ``(32 000 - 1 000) / (n_asked x 62)`` — an output budget, less a fixed reservation for reasoning
     tokens that bill against that same ceiling, over the measured cost of serialising one draft. So
-    an experiment record's one-field ask comes out at 500, a dataset document's four at 125, and an
-    instruction document's six at 83.
+    an experiment record's one-field ask comes out at 500, a dataset document's three at 166, and an
+    instruction document's five at 100.
 
     Every one of them is above the single count of **8** that used to be applied to all of them
     alike: that number was worst-case-tuned against the widest ask, so the experiment request — the
@@ -1030,8 +1031,8 @@ def test_the_width_of_a_request_is_the_output_budget_divided_by_its_ask() -> Non
     from seqforge.harvest.plan import batch_width
 
     assert batch_width(fields_for("experiment", "reference")) == 500
-    assert batch_width(fields_for("dataset", "reference")) == 125
-    assert batch_width(fields_for("dataset", "instruction")) == 83
+    assert batch_width(fields_for("dataset", "reference")) == 166
+    assert batch_width(fields_for("dataset", "instruction")) == 100
 
     asks = _every_ask()
     assert all(batch_width(a) > 8 for a in asks), "no ask is still bounded by the count it replaced"
@@ -1091,9 +1092,9 @@ def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
 ) -> None:
     """The ceiling a width was divided out of is the ceiling the request actually asks for.
 
-    A full-width batch of the widest ask (an instruction document's six fields) is 83 x 6 x 62 =
-    30 876 output tokens of drafts, plus the 1 000 reserved for reasoning tokens — which bill against
-    this same ceiling — for 31 876, just under the 32 000 budget. Pinned at 8 000, the number this replaced, the same request would run
+    A full-width batch of the widest ask (an instruction document's five fields) is 100 x 5 x 62 =
+    31 000 output tokens of drafts, plus the 1 000 reserved for reasoning tokens — which bill against
+    this same ceiling — for 32 000, the whole budget and not a token over. Pinned at 8 000, the number this replaced, the same request would run
     out of ceiling about a quarter of the way through its own batch, truncate the JSON, and fail the
     shape gate wholesale.
 
@@ -1128,7 +1129,7 @@ def test_max_tokens_is_computed_from_the_batch_and_reserves_room_for_reasoning(
 
     ceilings = [form["settings"]["max_output_tokens"] for form in _sent(fake)]
     assert _widths(fake) == [width] + [1] * width, "the batch, then one request per document"
-    assert ceilings == [31_876] + [8000] * width
+    assert ceilings == [32_000] + [8000] * width
 
     from seqforge.harvest.plan import PER_DRAFT_TOKENS, REASONING_HEADROOM_TOKENS
 
