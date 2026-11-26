@@ -11,6 +11,7 @@ kind's module, and nothing here knows what a study is.
 - :mod:`.task` -- opening a kind's task.
 - :mod:`.model_text` -- the ``--model`` text, read into a model.
 - :mod:`.status` -- where a kind's task stands, read with no gateway.
+- :mod:`.progress` -- a pass's progress, written to stderr while it runs.
 
 The gateway client, the ceiling check and :class:`SetupRefused` are :mod:`seqforge.gateway`'s,
 which every command that calls a model shares.
