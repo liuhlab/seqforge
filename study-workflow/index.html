@@ -1546,11 +1546,10 @@ one is yes and the other no. Each claim is <code>inferred</code>, and its text g
 the two questions. A kept paper has no probability in the file, so the task keeps it.</p>
 <p><strong>What it writes.</strong> <code>seqforge study write-bounds --out &lt;folder&gt;</code> writes each study's answer as
 <code>&lt;folder&gt;/&lt;ID&gt;/bounds.yaml</code>, or under the name that <code>--name</code> gives. It never overwrites a file.
-Run it once the pass has ended. While a pass runs it does not refuse: it writes the answers that
-the task holds so far, so a study that the pass has not reached gets an earlier pass's answer, if
-one gave it. To take the new answer, delete that file and run the command again. For the standard
-set, the job's file is <code>job-bounds.yaml</code>, beside the set's own <code>bounds.yaml</code>. Each study ends in
-one of three ways:</p>
+So while a pass holds the task, it refuses and writes nothing: it exits 3 with
+<code>stopped: task_in_use</code> and names the process that holds the task. Run it again once the pass ends.
+For the standard set, the job's file is <code>job-bounds.yaml</code>, beside the set's own <code>bounds.yaml</code>. Each
+study ends in one of three ways:</p>
 <table>
 <thead>
 <tr>
@@ -1660,9 +1659,9 @@ is the UTC day the pass opened the store, because the store names its snapshots 
 <p><strong>What it writes.</strong> <code>seqforge study write-reading --out &lt;folder&gt;</code> writes each study's answer as
 <code>&lt;folder&gt;/&lt;ID&gt;/reading.yaml</code>, or under the name that <code>--name</code> gives. It never overwrites a file,
 and it writes no file whose exact text the format check rejects: it writes the others and exits 3,
-as <code>write-bounds</code> does. Like <code>write-bounds</code>, it does not refuse while a pass runs, so run it once
-the pass has ended. For the standard set, the job's file is <code>job-reading.yaml</code>, beside the five worked examples. Each
-study ends in one of three ways:</p>
+as <code>write-bounds</code> does. Like <code>write-bounds</code>, it refuses while a pass holds the task, so run it once
+the pass ends. For the standard set, the job's file is <code>job-reading.yaml</code>, beside the five worked
+examples. Each study ends in one of three ways:</p>
 <table>
 <thead>
 <tr>

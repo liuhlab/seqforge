@@ -1588,7 +1588,8 @@ its bounds file. To see only the held units, filter the list with the JSON tool 
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>seqforge<span class="w"> </span>pass<span class="w"> </span>status<span class="w"> </span>study-reading<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">&#39;.not_done[] | select(.ending == &quot;held&quot;)&#39;</span>
 </code></pre></div>
 <p>A refused or unsettled unit is not in <code>not_done</code>. <code>study write-bounds</code> and <code>study write-reading</code>
-list each of those, with each refused study's reason.</p>
+list each of those, with each refused study's reason. Unlike <code>pass status</code>, they refuse while a
+pass holds the task, and exit 3 with <code>stopped: task_in_use</code>.</p>
 <p>Each pass gives its <code>pass_id</code>, <code>label</code>, <code>kind_version</code>, <code>models</code>, <code>store_build</code>, <code>ceiling_usd</code>,
 <code>stopped</code>, its <code>counts</code>, and what it spent: <code>spent_usd</code>, <code>first_cost_usd</code>, <code>requests</code> and
 <code>cache_hits</code>. <code>ended</code> is <code>false</code> for a pass that was killed before it ended.</p>
