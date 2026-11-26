@@ -37,6 +37,7 @@ from . import (  # noqa: F401
     schema,
     standard_set,
     study,
+    workflows,
 )
 from .root import app
 
