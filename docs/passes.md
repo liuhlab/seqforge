@@ -135,7 +135,7 @@ pass. An answer from the cache counts, and a held unit or one the pass never sta
 | Exit | When |
 | --- | --- |
 | 0 | The report is on stdout |
-| 2 | An unknown kind, a folder that holds no task, or a task that a pass stopped in the middle of a write. One line on stderr says which. For the last, run the pass again with `pass start`, which repairs the task |
+| 2 | An unknown kind, a folder that holds no task, or a task that a pass stopped in the middle of a write. One line on stderr says which. For the last, run the pass again with `pass start`, which repairs the task. It also runs every unit not yet answered, so it can spend up to its `--ceiling-usd` |
 | 3 | A pass's write kept the read waiting, and `message` says so. Run it again |
 
 ## Send the hard units to a stronger model
