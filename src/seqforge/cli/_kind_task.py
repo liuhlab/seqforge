@@ -1,10 +1,9 @@
-"""What the pass and review commands share: the kind, the review clone, the task, and two exits.
+"""What the pass commands share: the kind, the task, and two exits.
 
-Every one of them names a kind and reads a local clone of the review repo; all but ``review read``
-open the kind's task. :func:`for_kind` finds those, runs the command's body on them, and gives the
-command's output for the two ways a body ends early: a setup it cannot use exits 2 with its
-one-line reason, and a task another process holds exits 3 with liulab-llms's message naming the
-holder. So a body only raises.
+Every one of them names a kind and opens the kind's task. :func:`for_kind` finds those, runs the
+command's body on them, and gives the command's output for the two ways a body ends early: a setup
+it cannot use exits 2 with its one-line reason, and a task another process holds exits 3 with
+liulab-llms's message naming the holder. So a body only raises.
 """
 
 from __future__ import annotations
@@ -19,24 +18,23 @@ from ..workspace import passes_dir
 from ._common import _StageOut
 
 if TYPE_CHECKING:
-    from labllm import Gateway, Inputs, Task, UnitKind
+    from labllm import Gateway, Task
 
     from ..passes.kinds import Kind
 
 
 @dataclass(frozen=True)
 class KindTask:
-    """A registered kind, the review files of its clone, and its task's folder (not yet opened)."""
+    """A registered kind and its task's folder (not yet opened)."""
 
     kind: Kind
-    reviews: Path
     folder: Path
 
     def open[T: Task](self, cls: type[T], *, gateway: Gateway) -> T:
         """Open the task, taking its hold; make it if it is missing."""
         from ..passes.task import open_task
 
-        return open_task(cls, self.folder, gateway=gateway, reviews=self.reviews)
+        return open_task(cls, self.folder, gateway=gateway)
 
     def require_task(self) -> None:
         """Refuse a folder that holds no task, for a command that only reads one."""
@@ -57,10 +55,9 @@ def for_kind(
     name: str,
     *,
     task: Path | None,
-    reviews: Path | None,
     body: Callable[[KindTask], _StageOut],
 ) -> _StageOut:
-    """Run ``body`` on the kind named ``name``, its clone's review files and its task's folder.
+    """Run ``body`` on the kind named ``name`` and its task's folder.
 
     The folder is ``task``, or ``seqforge/passes/<kind>/`` here. A :class:`SetupRefused` from the
     setup or the body is exit 2; liulab-llms's ``TaskInUse`` from the body is exit 3.
@@ -68,12 +65,11 @@ def for_kind(
     from labllm import TaskInUse
 
     from ..passes.kinds import kind_named
-    from ..passes.task import reviews_folder
 
     try:
         kind = kind_named(name)
         folder = task if task is not None else passes_dir(Path(), kind.name)
-        setup = KindTask(kind, reviews_folder(reviews), folder)
+        setup = KindTask(kind, folder)
         return body(setup)
     except SetupRefused as exc:
         return _StageOut(str(exc), 2, err=True)
@@ -81,13 +77,3 @@ def for_kind(
         # Raised only by opening the task, or by a pass whose hold another process took over.
         held = {"kind": name, "task": str(folder), "stopped": "task_in_use"}
         return _StageOut({**held, "message": str(exc)}, 3)
-
-
-def inputs_now(unit_kind: UnitKind, key: str) -> Inputs | None:
-    """The unit's inputs now, or None when liulab-llms holds it for want of them."""
-    from labllm import Held
-
-    try:
-        return unit_kind.load(key)
-    except Held:
-        return None

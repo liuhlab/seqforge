@@ -72,11 +72,7 @@ def _declares_single_cell(records: Sequence[ArchiveRecord] | None) -> bool:
     """Does any record's declared library source say the deposit is single-cell?
 
     Every level is scanned, not just ``experiment``: the attribute NAME is the archive-neutral thing,
-    and which level an archive hangs its library descriptor off is that archive's shape. Reading
-    ``attributes`` directly rather than through :meth:`ArchiveRecord.attribute` is likewise deliberate
-    — that accessor answers only for HARMONIZED names, the curated sample-attribute namespace a
-    manifest fact may come from, and a library descriptor is not one, so it would answer ``None`` on
-    every real record.
+    and which level an archive hangs its library descriptor off is that archive's shape.
     """
     return any(
         carries(attr.value, _SINGLE_CELL_FORM)

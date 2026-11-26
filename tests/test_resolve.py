@@ -2873,12 +2873,7 @@ def test_an_unverified_claim_steers_nothing(span_verified: bool, entailment_ok: 
 
 
 def _experiment_record(library_source: str | None) -> ArchiveRecord:
-    """One experiment record, carrying ``library_source`` only when the deposit declared one.
-
-    ``harmonized=False`` is not an oversight: ``io/archive.py`` files the library descriptor
-    unharmonized (the harmonized namespace is NCBI's curated *sample* attribute list), so a rule that
-    read it through ``ArchiveRecord.attribute`` would silently see nothing on every real record.
-    """
+    """One experiment record, carrying ``library_source`` only when the deposit declared one."""
     return ArchiveRecord(
         level="experiment",
         accession="SRX000001",

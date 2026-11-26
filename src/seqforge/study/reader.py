@@ -47,7 +47,6 @@ from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
 from ..passes import SetupRefused
 from ..passes.kinds import Kind, register
-from ..passes.review import ReviewForm
 from ..standard_set import BOUNDS, default_set_dir, pick_entries
 from . import sources as src
 from .claims import load
@@ -1237,26 +1236,6 @@ def write_readings(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str
     return write_files(task, kind, out, name, reading_file)
 
 
-def _records(inputs: Inputs) -> str:
-    """A unit's records for a review issue: links only, no record text."""
-    geo = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc="
-    sources = inputs.data["sources"]
-    lines = [f"- [{s['id']}]({geo}{s['id']})" for s in sources["series"]]
-    lines += [
-        f"- [{p['id']}](https://pubmed.ncbi.nlm.nih.gov/{p['id'].removeprefix('pmid:')}/)"
-        for p in sources["papers"]
-    ]
-    return "\n".join(lines)
-
-
-def _show(answer: Any) -> str:
-    reading = answer["reading"]
-    factors = ", ".join(
-        f"{label} ({', '.join(f['levels'])})" for label, f in reading["factors"].items()
-    )
-    return f"{len(reading['samples'])} samples. Factors: {factors or 'none'}."
-
-
 def _keys(store: Any) -> Iterable[str]:
     return list(pick_entries(default_set_dir()))
 
@@ -1267,9 +1246,6 @@ KIND = register(
         build=_build,
         default_models={WRITER_ROLE: WRITER, JEV_ROLE: JEV},
         default_keys=_keys,
-        review_form=ReviewForm(
-            records=_records, show=_show, drop_reasons=("no reading can be written", "other")
-        ),
         reads_store=True,
     )
 )

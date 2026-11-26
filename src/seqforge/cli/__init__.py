@@ -4,7 +4,7 @@ The CLI is the API: every skill action maps to a deterministic ``seqforge <verb>
 default) that runs with no LLM in the loop -- only ``harvest extract``, the opt-in
 ``resolve adjudicate`` and ``pass start``, which runs a unit kind's model work through the lab
 gateway, touch an LLM. Exit codes are uniform: ``0`` OK, ``1`` ERROR, ``2`` USAGE,
-``3`` BLOCKED (a Blocker; for a pass or review command, a stop to act on before rerunning it, or a
+``3`` BLOCKED (a Blocker; for a pass command, a stop to act on before rerunning it, or a
 task another process holds), ``4`` NEEDS_HUMAN (an open Conflict / question).
 
 Importing this package builds ``app``: :mod:`.root` defines the shared Typer instances, and importing
@@ -33,7 +33,6 @@ from . import (  # noqa: F401
     records,
     report,
     resolve,
-    review,
     run,
     schema,
     standard_set,

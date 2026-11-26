@@ -681,56 +681,6 @@ def io_records(
     )
 
 
-@io_app.command("attributes")
-def io_attributes(
-    name: str | None = typer.Argument(None, help="Show one attribute; omit to list them all."),
-    refresh: bool = typer.Option(
-        False, "--refresh", help="Re-fetch NCBI's list and rewrite the shipped vocabulary."
-    ),
-) -> None:
-    """NCBI's harmonized BioSample attribute names — what `io records` harmonizes a record's to.
-
-    960 curated names with NCBI's own definitions.
-    """
-    from ..io.attributes import (
-        ATTRIBUTES_URL,
-        get_attribute,
-        load_attributes,
-        parse_ncbi_attributes_xml,
-        source_provenance,
-        write_attributes,
-    )
-
-    if refresh:
-        from ..io.remote import _get
-
-        attrs = parse_ncbi_attributes_xml(_get(ATTRIBUTES_URL, timeout=120))
-        path = write_attributes(attrs, fetched=_today())
-        typer.echo(json.dumps({"wrote": str(path), "n": len(attrs)}, indent=2))
-        return
-
-    if name:
-        attr = get_attribute(name)
-        typer.echo(
-            json.dumps(
-                {
-                    "name": attr.name,
-                    "display": attr.display,
-                    "description": attr.description,
-                    "synonyms": list(attr.synonyms),
-                },
-                indent=2,
-            )
-        )
-        return
-    typer.echo(
-        json.dumps(
-            {**source_provenance(), "names": sorted(load_attributes())},
-            indent=2,
-        )
-    )
-
-
 @io_app.command("efo")
 def io_efo(
     refresh: bool = typer.Option(
