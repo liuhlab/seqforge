@@ -70,7 +70,11 @@ def _write(
     name: str,
     task: Path | None,
 ) -> None:
-    """Write each study's file from a pass's answers, and print how each study ended."""
+    """Write each study's file from a pass's answers, and print how each study ended.
+
+    A text the format check rejects is a refusal, as check-bounds and check-reading make it: the
+    other files are still written, and the command exits 3.
+    """
     from ._kind_task import KindTask, for_kind
 
     def run(setup: KindTask) -> _StageOut:
@@ -83,7 +87,8 @@ def _write(
         except (ValueError, LiulabDataMissing) as e:
             return _StageOut({"error": str(e)}, 2)
         said: dict[str, object] = {"kind": kind_name, "task": str(setup.folder), "out": str(out)}
-        return _StageOut({**said, "studies": done}, 0)
+        rejected = any("problems" in study for study in done.values())
+        return _StageOut({**said, "studies": done}, 3 if rejected else 0)
 
     _emit(for_kind(kind_name, task=task, body=run))
 
@@ -109,7 +114,8 @@ def study_write_bounds(
     A refused study gets no file; the JSON gives its reason. The format check runs on the exact
     text to be written, and a text it rejects is not written. A file already there is never
     overwritten. It reads the task only, so it works with the gateway down. Exit 0 with one object
-    per study; 2 for no task or a ``--name`` that is a path; 3 when a running pass holds the task.
+    per study; 2 for no task or a ``--name`` that is a path; 3 when a running pass holds the task,
+    or when the format check rejects a text, whose study the JSON names with its problems.
     """
     from ..study.bounding import KIND_NAME, write_bounds
 
@@ -137,7 +143,8 @@ def study_write_reading(
     The same as write-bounds, for the reading pass: a refused study gets no file and the JSON
     gives its reason, and a file already there is never overwritten, so the standard set's own
     readings stay as they are. Exit 0 with one object per study; 2 for no task, a ``--name`` that
-    is a path, or no liulab-data for the format check; 3 when a running pass holds the task.
+    is a path, or no liulab-data for the format check; 3 when a running pass holds the task, or
+    when the format check rejects a text.
     """
     from ..study.reader import KIND_NAME, write_readings
 

@@ -188,12 +188,13 @@ def _placed(bounds: dict[str, Any]) -> dict[str, Any]:
 
 
 def test_a_study_is_its_series_and_every_record_one_link_away_each_placed_by_jev(
-    drawn: tuple[Path, dict[str, Any], Any],
+    drawn: tuple[Path, dict[str, Any], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """One hop over the four kinds of link, and nothing that a reanalysis, a BioProject's own paper,
     a placeholder paper id or a second hop links. Code keeps the starting Series and leaves the
     SuperSeries out; Jev's answer as written places every other record, and gives its probability.
-    The job's file goes beside the standard set's own, which it never overwrites."""
+    The job's file goes beside the standard set's own, which it never overwrites. A text the format
+    check rejects is a refusal: it is not written, the others are, and the command exits 3."""
     set_dir, said, again = drawn
     bounds = yaml.safe_load((set_dir / "GSE10" / "job-bounds.yaml").read_text())
 
@@ -216,6 +217,17 @@ def test_a_study_is_its_series_and_every_record_one_link_away_each_placed_by_jev
     assert said["studies"]["GSE10"] == {"ending": "settled", "file": "written"}
     assert again["studies"]["GSE10"]["file"] == "kept the file on disk"
     assert (set_dir / "GSE10" / "bounds.yaml").read_text() == "the standard set's own\n"
+
+    rejected = [{"field": "study", "reason": "rejected"}]
+    monkeypatch.setattr(
+        bounding, "check_bounds", lambda d: rejected if d["study"] == "GSE10" else []
+    )
+    other = set_dir.parent / "other"
+    refused = runner.invoke(app, ["study", "write-bounds", "--out", str(other)])
+    assert (refused.exit_code, sorted(p.parent.name for p in other.glob("*/*"))) == (
+        3,
+        ["GSE20", "GSE90", "GSE91"],
+    ), refused.output
 
 
 def test_a_study_whose_two_answers_disagree_on_a_record_is_unsettled_and_still_written(

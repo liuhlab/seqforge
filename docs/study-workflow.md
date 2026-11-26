@@ -205,7 +205,8 @@ is the UTC day the pass opened the store, because the store names its snapshots 
 
 **What it writes.** `seqforge study write-reading --out <folder>` writes each study's answer as
 `<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file,
-and it writes no file whose exact text the format check rejects. For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
+and it writes no file whose exact text the format check rejects: it writes the others and exits 3,
+as `write-bounds` does. For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
 study ends in one of three ways:
 
 | Ending | When | File |
