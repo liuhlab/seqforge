@@ -1395,6 +1395,36 @@ def test_manifest_fill_on_a_three_run_dataset_keeps_every_file(tmp_path: Path) -
     assert manifest["experiment"]["project"] is None
 
 
+def test_manifest_fill_carries_the_assay_id_the_spec_declares_and_opens_no_ontology_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Smart-seq3's assay is its spec's first ontology id, written with no store to ask.
+
+    The name of a term is the ontology store's to give, and the report asks it. `manifest fill`
+    used to take the name from a table seqforge shipped, and it dropped every chemistry the table
+    had no name for, so a Smart-seq3 manifest carried no assay at all. The store's variable names a
+    folder that is no store here, so a fill that opened it would fail.
+    """
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "no-store"))
+    spec = kb.load_spec("smartseq3")
+    reads = kb.generate_reads(spec, n=(spec.min_input_reads or 0) + 1, seed=0)
+    paths = []
+    for read in spec.reads:
+        path = tmp_path / f"s_{read.id}.fastq.gz"
+        write_fastq_gz(path, reads[read.id])
+        paths.append(str(path))
+
+    filled = runner.invoke(
+        app,
+        ["manifest", "fill", *paths, "--assert-chemistry", "smartseq3", "--organism", "6239",
+         "-C", str(tmp_path)],
+    )  # fmt: skip
+    assert filled.exit_code == 0, filled.stdout
+
+    manifest = yaml.safe_load((tmp_path / "seqforge" / "manifest.yaml").read_text())
+    assert manifest["library"]["assay"] == [{"chemistry": "smartseq3", "curie": "EFO:0022488"}]
+
+
 def test_processing_new_takes_an_assembly_from_a_verified_instruction(
     tmp_path: Path, synth_10x_v3: SynthDataset
 ) -> None:

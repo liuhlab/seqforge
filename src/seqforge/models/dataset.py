@@ -152,31 +152,28 @@ INDEX_ROLE = "index"
 
 
 class AssayLabel(BaseModel):
-    """One chemistry, spelled three ways: our key, EFO's id, and EFO's words.
+    """One chemistry, spelled two ways: our key and its assay's ontology id.
 
     This exists because ``assay: EFO:0009922`` beside ``chemistry: [10x-3p-gex-v3,
     10x-3p-gex-v3.1]`` was two puzzles at once. *What is the difference between them?* — none, they
     are the same fact in two vocabularies. *Why is one a list and the other not?* — because the
     chemistry equivalence class has two members and the assay field could only hold one, so it
-    silently
-    dropped v3.1's CURIE.
+    silently dropped v3.1's CURIE.
 
     Making it a label per chemistry answers both and removes a third problem nobody had noticed: an
     assay CURIE that disagrees with the chemistry it names is now **inexpressible** rather than
     merely absent. There is nowhere to write it.
 
-    ``name`` is EFO's own label, generated into ``io/efo/labels.json`` from EBI's OLS4. Never typed
-    here: a label we maintain by hand is a label that drifts from the ontology it claims to quote.
+    It carries no name. What a term is called is liulab-data's ontology store's to say, and the
+    report asks it, so a manifest needs no store to be filled.
     """
 
     model_config = ConfigDict(frozen=True)
 
     #: The KB's primary key, e.g. ``10x-3p-gex-v3``.
     chemistry: ChemistryId
-    #: The controlled-vocabulary id, e.g. ``EFO:0009922``.
+    #: The first ontology id the chemistry's spec declares, e.g. ``EFO:0009922``.
     curie: AssayTerm
-    #: What EFO calls it, e.g. ``10x 3' v3``. The thing a human reads.
-    name: str
 
 
 class LibrarySection(BaseModel):

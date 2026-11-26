@@ -364,31 +364,25 @@ def fill_processing(
 
 
 def _assay_labels(chemistry: list[str], specs: dict[str, Spec] | None) -> list[AssayLabel]:
-    """The chemistry set, spelled in EFO. One label per member — including a benign twin.
+    """The chemistry set as assay ontology ids. One label per member — including a benign twin.
 
     This is where the pilot's ``assay: EFO:0009922`` beside ``chemistry: [v3, v3.1]`` came from: the
     assay field held one CURIE and the chemistry field held two ids, so v3.1's own term
     (``EFO:0022980``) was silently dropped and the two fields read as if they disagreed. They never
     did. They are the same answer, and now they are the same shape.
 
-    A member whose spec declares no CURIE, or whose CURIE has no shipped EFO label, is **skipped
-    rather than guessed at** — ``kb lint`` refuses both, so reaching that branch means a spec got in
-    without linting and a blank name would hide it.
+    Each label is the first id the member's spec declares, and nothing is looked up: what an id is
+    called is the ontology store's to say, and the report asks it. A member whose spec declares no
+    id gets no label.
     """
-    from ..io.efo import has_term, term
     from ..kb import load_all_specs
 
     all_specs = specs if specs is not None else load_all_specs()
-    out: list[AssayLabel] = []
-    for chem in chemistry:
-        s = all_specs.get(chem)
-        if s is None or not s.identity.assay_ontology:
-            continue
-        curie = s.identity.assay_ontology[0]
-        if not has_term(curie):
-            continue
-        out.append(AssayLabel(chemistry=chem, curie=curie, name=term(curie).name))
-    return out
+    return [
+        AssayLabel(chemistry=chem, curie=s.identity.assay_ontology[0])
+        for chem in chemistry
+        if (s := all_specs.get(chem)) is not None and s.identity.assay_ontology
+    ]
 
 
 def _build_read_layout(

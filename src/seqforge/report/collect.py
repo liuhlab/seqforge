@@ -188,10 +188,12 @@ def _collect_assay(
 
 def _chemistry(library: LibrarySection) -> ChemistryDecision:
     ev = library.chemistry
+    names = _assay_names({a.curie for a in library.assay})
     return ChemistryDecision(
         value=list(ev.value),
         assay_labels=[
-            AssayLabelView(chemistry=a.chemistry, curie=a.curie, name=a.name) for a in library.assay
+            AssayLabelView(chemistry=a.chemistry, curie=a.curie, name=names.get(a.curie))
+            for a in library.assay
         ],
         basis=ev.basis,
         confidence=ev.confidence,
@@ -200,6 +202,30 @@ def _chemistry(library: LibrarySection) -> ChemistryDecision:
         n_files=len(library.files),
         evidence_shas=list(ev.evidence),
     )
+
+
+def _assay_names(curies: set[str]) -> dict[str, str]:
+    """Each assay id's name in liulab-data's ontology store, opened as the reading job opens it.
+
+    Empty when there is no store to ask, or no liulab-data to ask it with. The page then shows each
+    id alone: a name is a courtesy to the reader and never a reason not to render.
+    """
+    if not curies:
+        return {}
+    try:
+        from labdata.exceptions import NotAStoreError, OntologyError, StoreNotConfiguredError
+
+        from ..study.ontology_search import StoreSearch
+    except ImportError:
+        return {}
+    try:
+        search = StoreSearch()
+    except (StoreNotConfiguredError, NotAStoreError, OntologyError):
+        return {}
+    try:
+        return {c: named.name for c in sorted(curies) if (named := search.lookup(c)) is not None}
+    finally:
+        search.close()
 
 
 def _reads(library: LibrarySection) -> list[ReadView]:

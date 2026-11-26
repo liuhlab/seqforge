@@ -4299,7 +4299,7 @@ def _hand_built_manifest(*, confidence: float | None, rung: int) -> m.DatasetMan
             confidence=confidence,
             rung=rung,
         ),
-        assay=[m.AssayLabel(chemistry="10x-3p-gex-v3", curie="EFO:0009922", name="10x 3' v3")],
+        assay=[m.AssayLabel(chemistry="10x-3p-gex-v3", curie="EFO:0009922")],
         read_layout=read_layout,
         onlists=[
             m.Onlist(

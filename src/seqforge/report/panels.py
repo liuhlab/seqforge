@@ -217,17 +217,23 @@ def overview_pane(assay: AssayReport) -> str:
 
     # chemistry, spelled human-first with the code as a quiet chip. The kit's name is the page's
     # second-biggest fact, so it is given weight and a hairline — never a hue: the colour law reserves
-    # colour for exceptions, and the winning kit is the norm.
+    # colour for exceptions, and the winning kit is the norm. With no ontology store to name the
+    # assay, its ontology id stands in the name's place.
     chem_name = chem.assay_labels[0].name if chem.assay_labels and chem.assay_labels[0].name else ""
     chem_id = chem.value[0] if chem.value else ""
     chem_line = ""
     if chem_id:
-        name_html = (
-            f'<span class="rounded border border-line px-2 py-0.5 text-sm font-bold">'
-            f"{esc(chem_name)}</span>"
-            if chem_name
-            else ""
-        )
+        if chem_name:
+            name_html = (
+                f'<span class="rounded border border-line px-2 py-0.5 text-sm font-bold">'
+                f"{esc(chem_name)}</span>"
+            )
+        elif chem.assay_labels:
+            name_html = (
+                f'<code class="font-mono text-xs text-dim">{esc(chem.assay_labels[0].curie)}</code>'
+            )
+        else:
+            name_html = ""
         more = (
             f'<span class="text-xs text-faint">+{len(chem.value) - 1} equivalent</span>'
             if len(chem.value) > 1
