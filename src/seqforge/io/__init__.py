@@ -43,15 +43,7 @@ from .remote import (
     resolve_accession,
 )
 
-#: CalVer YYYY.M.PATCH; bump when onlist packing / registry semantics change.
-#: 2026.8.0 — the SRA package parser reads what it had been dropping: per run, one **Submitted file**
-#: per uploaded original, carrying the provider md5, the declared size and the `sra-pub-src-*` URI
-#: beside the filename it already read (ADR-0033). A record set now also carries the version that
-#: wrote it, which is what lets an unstamped one say "written before this" rather than passing for a
-#: deposit that publishes no originals — so the stamp only means anything if this constant moves.
-#: 2026.11.0 — a record set holds every experiment the accession resolved to. NCBI can answer an SRA
-#: fetch with fewer packages than it was asked for and say nothing; the missing ones are now asked for
-#: again and refused if still absent, where a set stamped earlier may have kept the short reply.
+#: CalVer YYYY.M.PATCH; bump when onlist packing, registry semantics or what a record set holds change. History: `docs/research/io-version-history-2026-11-25.md`.
 IO_VERSION = "2026.11.0"
 
 __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetical

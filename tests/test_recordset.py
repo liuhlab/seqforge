@@ -429,8 +429,8 @@ def test_an_archive_cache_still_loads_unchanged(tmp_path: Path) -> None:
                 accession="SAMN37812345",
                 parent="PRJNA1027859",
                 attributes=[
-                    RecordAttribute(name="strain", value="CQ758", harmonized=True),
-                    RecordAttribute(name="odd_tag", value="enhanced beads", raw_name="Odd Tag"),
+                    RecordAttribute(name="strain", value="CQ758"),
+                    RecordAttribute(name="Odd Tag", value="enhanced beads"),
                 ],
                 free_text=[FreeText(label="sample_alias", text="daf-2 R3")],
             ),

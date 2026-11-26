@@ -470,12 +470,12 @@ class StubStore:
         return {a: types.SimpleNamespace(text=self.texts[a], content_hash="") for a in asked}
 
 
-def stub_store(deposit: str, sra: str, biosample: str, bioproject: str) -> StubStore:
-    """A store holding ``deposit`` as the three ``efetch`` replies, split into stored records.
+def stub_store(deposit: str, sra: str, bioproject: str) -> StubStore:
+    """A store holding ``deposit`` as the two ``efetch`` replies, split into stored records.
 
-    The split is the store's own: one ``EXPERIMENT_PACKAGE`` per experiment, one ``BioSample`` per
-    sample, and each BioProject in the bulk dump's ``<Package><Project>`` shape, which holds the same
-    children ``efetch`` puts under ``<DocumentSummary>``.
+    The split is the store's own: one ``EXPERIMENT_PACKAGE`` per experiment, and each BioProject in
+    the bulk dump's ``<Package><Project>`` shape, which holds the same children ``efetch`` puts under
+    ``<DocumentSummary>``.
     """
     from xml.etree import ElementTree
 
@@ -488,8 +488,6 @@ def stub_store(deposit: str, sra: str, biosample: str, bioproject: str) -> StubS
         accession = package.find("EXPERIMENT").get("accession")  # type: ignore[union-attr]
         experiments.append(str(accession))
         texts[str(accession)] = text(package)
-    for sample in ElementTree.fromstring(biosample).iter("BioSample"):
-        texts[str(sample.get("accession"))] = text(sample)
     for summary in ElementTree.fromstring(bioproject).iter("DocumentSummary"):
         accession = summary.find(".//ArchiveID").get("accession")  # type: ignore[union-attr]
         package = ElementTree.Element("Package")
@@ -499,10 +497,10 @@ def stub_store(deposit: str, sra: str, biosample: str, bioproject: str) -> StubS
     return StubStore(experiments={deposit: experiments}, texts=texts, raw_calls=[])
 
 
-#: The pilot deposit's three ``efetch`` replies, as committed.
+#: The pilot deposit's two ``efetch`` replies, as committed.
 PILOT_XML = {
     db: (Path(__file__).parent / "fixtures" / "archive" / f"PRJNA1027859.{db}.xml").read_text()
-    for db in ("sra", "biosample", "bioproject")
+    for db in ("sra", "bioproject")
 }
 
 
