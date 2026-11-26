@@ -1,6 +1,6 @@
 """Tests for ``resolve/provenance.py`` — the wrong-PDF guard (#51).
 
-Split out of test_records.py (#113): the provenance gate is a different module from the metadata
+Split out of test_resolve_records.py (#113): the provenance gate is a different module from the metadata
 resolver and had no mirror file of its own. The gate decides whether a staged document describes THIS
 dataset at all — the natural neighbour of the resolver it guards, but a distinct rung-1 target.
 
