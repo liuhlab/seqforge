@@ -87,7 +87,7 @@ if TYPE_CHECKING:
 KIND_NAME = name_of(__name__)
 #: Raise it when an instruction, a question, a guide, the answer's shape or a rule of writing the
 #: reading changes.
-KIND_VERSION = "2026.11.7"
+KIND_VERSION = "2026.11.8"
 #: The roles, and the models that fill them unless a pass names others: the writer, and
 #: :data:`.closed.JEV`.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
@@ -169,7 +169,7 @@ def _write_lists(u: Unit, user: str, system: str) -> tuple[Lists, int]:
     """The writer's lists, and how many answers it took. A second broken answer refuses the unit.
 
     No schema is sent: the gateway sends a DeepSeek schema as a strict function call, which needs
-    thinking off, and the writer thinks. :func:`.lists.parse_lists` takes the object out of the
+    thinking off, and the writer thinks. :func:`.lists.parse_lists` reads the object out of the
     reply's text.
     """
     reply = u.chat(WRITER_ROLE, system=system, user=user)

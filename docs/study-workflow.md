@@ -166,8 +166,9 @@ only such a file gives is `unknown`.
    **factors**, which are the labels that the study varied on purpose, with their levels. It also
    lists every value that each label takes, each with a quote. It does not say which sample has
    which value. An answer that cannot be used is asked for once more. The request sends no JSON
-   schema, because the gateway refuses a DeepSeek schema with thinking on. Code takes the JSON
-   object out of the reply's text instead.
+   schema, because the gateway refuses a DeepSeek schema with thinking on. Code reads the JSON
+   object out of the reply's text instead: the whole reply is JSON, or it holds exactly one fenced
+   block. Any other reply cannot be used.
 2. Jev, a model that answers closed questions with a probability, answers every closed question. It
    says whether each factor was varied on purpose, which level is the baseline, and whether the
    levels are in order. Then, for each sample, it picks the sample's level on each factor and its

@@ -30,6 +30,10 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   such as one for a model the gateway has no price for. `pass start` already did: the setup is
   wrong, and running the same command again meets the same refusal. The four commands build their
   gateway client, check `--ceiling-usd` and refuse a missing gateway address in one shared module.
+- Harvest and the study reading job read the JSON out of a reply sent with no schema by one rule,
+  liulab-llms's: the whole reply is JSON, or the reply holds exactly one fenced block. The reading
+  job used to take the first JSON object anywhere in the reply, so a writer's answer with an object
+  among prose and no fence is now asked for once more. Needs `liulab-llms>=2026.11.9`.
 - Python 3.13 is now the minimum supported version (`requires-python = ">=3.13"`). Every pixi
   environment already ran 3.13, so the old 3.12 floor had no test behind it.
 - The package version now comes from the git tag, through hatch-vcs. The release wheel is built
