@@ -13,7 +13,6 @@ from ..io.remote import NotYetImplemented, peek, resolve_accession
 from ..probe import DEFAULT_MAX_BYTES, DEFAULT_MAX_READS
 from ..workflows.cram import CramError, RecordSelection, bam_to_cram
 from ..workspace import records_dir
-from ._common import _today
 from .root import io_app, onlist_app
 
 
@@ -677,51 +676,6 @@ def io_records(
                 ],
             },
             indent=2,
-        )
-    )
-
-
-@io_app.command("efo")
-def io_efo(
-    refresh: bool = typer.Option(
-        False, "--refresh", help="Re-fetch labels for every CURIE the KB declares."
-    ),
-) -> None:
-    """The EFO labels behind `library.assay` — what `EFO:0009922` is actually called.
-
-    `assay: EFO:0009922` is good standardization and unreadable. The name comes from EFO via EBI's
-    OLS4, never from us: a label we maintain by hand drifts from the ontology it claims to quote.
-    `--refresh` re-fetches every CURIE the KB's specs declare, so adding a technology is: add the
-    spec, run this, commit.
-    """
-    import json as _json
-    import urllib.parse
-    import urllib.request
-
-    from ..io.efo import OLS4_TERMS, EfoTerm, iri_for, load_terms, parse_ols4_term, write_terms
-    from ..kb import load_all_specs
-
-    if not refresh:
-        typer.echo(
-            _json.dumps(
-                {c: {"name": t.name, "iri": t.iri} for c, t in sorted(load_terms().items())},
-                indent=2,
-            )
-        )
-        return
-
-    curies = sorted({c for spec in load_all_specs().values() for c in spec.identity.assay_ontology})
-    terms: dict[str, EfoTerm] = {}
-    for curie in curies:
-        # OLS4 wants the IRI **double**-URL-encoded in the path. A singly-encoded one 404s, which is
-        # the kind of thing that belongs in code rather than in someone's memory.
-        quoted = urllib.parse.quote(urllib.parse.quote(iri_for(curie), safe=""), safe="")
-        with urllib.request.urlopen(OLS4_TERMS + quoted, timeout=60) as response:
-            terms[curie] = parse_ols4_term(_json.load(response))
-    path = write_terms(terms, fetched=_today())
-    typer.echo(
-        _json.dumps(
-            {"wrote": str(path), "terms": {c: t.name for c, t in sorted(terms.items())}}, indent=2
         )
     )
 

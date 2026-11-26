@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class KindTask:
-    """A registered kind and its task's folder (not yet opened)."""
+    """A kind from the kind table, and its task's folder (not yet opened)."""
 
     kind: Kind
     folder: Path

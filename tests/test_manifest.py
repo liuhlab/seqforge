@@ -115,8 +115,6 @@ def test_fill_records_the_equivalence_class_and_byte_derived_roles(built_v3: Bui
     # `assay` and `chemistry` disagreed.
     assert [a.chemistry for a in manifest.library.assay] == ["10x-3p-gex-v3", "10x-3p-gex-v3.1"]
     assert [a.curie for a in manifest.library.assay] == ["EFO:0009922", "EFO:0022980"]
-    # ...and the name is a human's answer to "what IS EFO:0009922", straight from EFO.
-    assert [a.name for a in manifest.library.assay] == ["10x 3' v3", "10x 3' v3.1"]
     roles = {f.basename: (f.read_id if f.read_id else None) for f in manifest.library.files}
     assert roles == {"s_R1.fastq.gz": "R1", "s_R2.fastq.gz": "R2"}
     # Never the probe's absolute local path. One directory IS the root, so a flat dataset's URIs are

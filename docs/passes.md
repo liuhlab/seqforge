@@ -8,8 +8,15 @@ call through the lab gateway, caches every answer, stops at a dollar ceiling, an
 in a **task** folder. seqforge names its kinds and starts their passes. The engine's words are
 defined in [liulab-llms's glossary](https://github.com/liuhlab/liulab-llms/blob/main/GLOSSARY.md).
 
-seqforge has one kind so far, `study-bounds`, which draws each study's bounds.
-[The study workflow](study-workflow.md#1-bound-the-study) says how it is used.
+seqforge has two kinds:
+
+| Kind | What it does |
+| --- | --- |
+| `study-bounds` | Draws each study's bounds. See [bound the study](study-workflow.md#1-bound-the-study) |
+| `study-reading` | Reads what each sequenced sample of a study is. See [read the study](study-workflow.md#3-read-the-study) |
+
+A kind's name is written once, in the kind table of `seqforge.passes.kinds`. A new kind is one
+module and one row there.
 
 ## Before you start
 
@@ -60,7 +67,7 @@ ended so far, by ending, and the dollars spent. stdout carries one JSON object a
 | `kind`, `kind_version` | The kind, and its hand-set version |
 | `task` | The task folder |
 | `pass_id`, `label` | The pass's number in the task, and its label |
-| `store_build` | The liulab-data store build the pass read, or `null` for a kind that reads no store |
+| `store_build` | The build of liulab-data's record store that the pass read, or `null` for a kind that reads no record store |
 | `models` | Each role's full model value |
 | `keys` | How many units the pass was given |
 | `counts` | How many units ended each way: settled, unsettled, refused, unfinished and held, zeros included |
@@ -68,15 +75,15 @@ ended so far, by ending, and the dollars spent. stdout carries one JSON object a
 | `spent_usd`, `first_cost_usd` | What the pass spent, and what its answers cost when each was first paid, answers from the cache included |
 | `requests`, `cache_hits` | Requests sent to providers, and answers that came from the cache |
 
-A kind that reads liulab-data's store opens it once, when the pass starts. The whole pass reads that
-one build, even if the store is refreshed while it runs.
+A kind opens each liulab-data store that it reads once, when the pass starts. The whole pass reads
+that one build of the record store, even if the store is refreshed while it runs.
 
 ### Exit codes
 
 | Exit | When |
 | --- | --- |
 | 0 | The pass reached the end of its units, whatever the counts |
-| 2 | A setup it cannot use: an unknown kind, models that do not fill the kind's roles, a model or keys file it cannot read, no gateway address, a model name the gateway rejects, or a task folder this liulab-llms cannot read. One line on stderr says which |
+| 2 | A setup it cannot use: an unknown kind, a store the kind reads that cannot be opened, models that do not fill the kind's roles, a model or keys file it cannot read, no gateway address, a model name the gateway rejects, or a task folder this liulab-llms cannot read. One line on stderr says which |
 | 3 | The pass stopped: at its ceiling, at a provider's balance or cap, or because a provider or the gateway was unavailable. Or another process holds the task, and `message` names it |
 
 ## Resume a pass

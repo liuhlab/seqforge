@@ -127,6 +127,37 @@ def test_report_verb_writes_a_self_contained_html_page(own_workspace: Path) -> N
         assert f">{tab}</button>" in html
 
 
+@pytest.mark.parametrize("store", ["none", "tiny"])
+def test_the_report_names_the_assay_from_the_ontology_store_and_shows_its_id_without_one(
+    workspace: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, store: str
+) -> None:
+    """The manifest carries the assay's ontology id, and its name is liulab-data's store's to give.
+
+    With no store the page shows the id alone and still renders, because a name is a courtesy to
+    the reader and never a reason to refuse one. ``EFO:0008896`` is the bulk chemistry's id."""
+    from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
+
+    root = tmp_path / "ontologies"
+    root.mkdir()
+    if store == "tiny":
+        build_tiny_store(
+            root, [SnapshotData("efo", "3.96.0", [SourceTerm("EFO:0008896", "RNA-seq")])]
+        )
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(root))
+
+    out = tmp_path / "report.html"
+    result = runner.invoke(app, ["report", "-C", str(workspace), "-o", str(out), "--no-timestamp"])
+    assert result.exit_code == 0, result.stdout
+
+    hero = _pane(out.read_text(), "overview")
+    named = '<span class="rounded border border-line px-2 py-0.5 text-sm font-bold">RNA-seq</span>'
+    if store == "tiny":
+        assert named in hero
+    else:
+        assert named not in hero
+        assert "EFO:0008896" in hero
+
+
 def test_report_makes_no_external_network_reference(workspace: Path) -> None:
     """The whole point is that it opens offline. No src/href/@import may point off-host; a data: URI
     (an embedded artifact download) is inline bytes, not a fetch, so it is explicitly allowed."""

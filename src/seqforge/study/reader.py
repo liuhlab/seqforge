@@ -1,9 +1,10 @@
 """The reading job's kind: a writer lists a study's values, Jev picks each sample's, and code writes the reading.
 
-Importing this module registers the kind, so ``seqforge pass start study-reading`` runs it on the
-run engine. One unit is one study, keyed by the GEO Series it was picked by, and read from the
-standard set's own bounds file: the records of the Series it keeps, their sequenced samples, and
-its papers, each in full where the paper store holds the full text and by its abstract otherwise.
+The kind table lists this module as ``study-reading``, so ``seqforge pass start study-reading`` runs
+its kind on the run engine. One unit is one study, keyed by the GEO Series it was picked by, and
+read from the standard set's own bounds file: the records of the Series it keeps, their sequenced
+samples, and its papers, each in full where the paper store holds the full text and by its
+abstract otherwise.
 
 The chain, for one study:
 
@@ -37,7 +38,7 @@ import datetime
 import hashlib
 import threading
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -46,8 +47,9 @@ import yaml
 from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
 from ..passes import SetupRefused
-from ..passes.kinds import Kind, register
+from ..passes.kinds import Built, Kind, name_of
 from . import sources as src
+from .closed import JEV
 from .folder import (
     BOUNDS,
     default_set_dir,
@@ -57,7 +59,7 @@ from .folder import (
     text_problems,
     write_files,
 )
-from .group import SERIES, paper_reader
+from .group import SERIES, paper_reader, record_store
 from .lists import (
     CODE_LABELS,
     LABELS,
@@ -83,13 +85,13 @@ from .ontology_search import (
 )
 from .reading import FORMAT, check_reading
 
-KIND_NAME = "study-reading"
+KIND_NAME = name_of(__name__)
 #: Raise it when an instruction, a question, a guide or a rule of writing the reading changes.
 KIND_VERSION = "2026.11.5"
-#: The roles, and the models that fill them unless a pass names others.
+#: The roles, and the models that fill them unless a pass names others: the writer, and
+#: :data:`.closed.JEV`.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
 WRITER = Model("deepseek", "deepseek-flash", thinking=True, max_output_tokens=40000)
-JEV = Model("typesafe", "jev-1.14.0")
 #: A yes/no answer is yes when Jev's p(yes) is at least this.
 YES = 0.5
 #: A searched term is written only when Jev's pick of it has at least this probability.
@@ -1205,21 +1207,25 @@ def reading_kind(
     )
 
 
-def _build(store: Any) -> UnitKind:
-    """The kind over the pass's record store, liulab-data's paper store and its ontology store.
+def _build() -> Built:
+    """The kind over liulab-data's record store, paper store and ontology store.
 
-    The ontology store is opened once for the pass. Refuses the setup when it cannot be opened,
-    rather than read with no search.
+    Each store is opened once for the pass, and the ontology store is closed when the pass is over.
+    Refuses the setup when one cannot be opened, the ontology store included, rather than read
+    with no search.
     """
     from labdata.exceptions import NotAStoreError, OntologyError, StoreNotConfiguredError
 
+    store, build = record_store()
+    papers = paper_reader()
     try:
         search = StoreSearch()
     except (StoreNotConfiguredError, NotAStoreError, OntologyError) as exc:
         raise SetupRefused(
             f"kind {KIND_NAME!r} searches liulab-data's ontology store: {exc}"
         ) from exc
-    return reading_kind(store, paper_reader(), set_dir=default_set_dir(), search=search)
+    kind = reading_kind(store, papers, set_dir=default_set_dir(), search=search)
+    return Built(kind, store_build=build, close=search.close)
 
 
 def reading_file(outcome: Outcome) -> dict[str, Any]:
@@ -1241,16 +1247,9 @@ def write_readings(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str
     return write_files(task, kind, out, name, reading_file, check_reading)
 
 
-def _keys(store: Any) -> Iterable[str]:
-    return list(pick_entries(default_set_dir()))
-
-
-KIND = register(
-    Kind(
-        name=KIND_NAME,
-        build=_build,
-        default_models={WRITER_ROLE: WRITER, JEV_ROLE: JEV},
-        default_keys=_keys,
-        reads_store=True,
-    )
+KIND = Kind(
+    name=KIND_NAME,
+    build=_build,
+    default_models={WRITER_ROLE: WRITER, JEV_ROLE: JEV},
+    default_keys=lambda: list(pick_entries(default_set_dir())),
 )

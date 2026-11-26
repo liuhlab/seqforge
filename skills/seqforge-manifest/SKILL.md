@@ -76,7 +76,7 @@ document, asked for the chemistry.
 ## One decision, one confidence
 
 `library` holds exactly one `Evidenced` field: `chemistry`. Everything else there follows from it —
-`assay` is the same answer in EFO's vocabulary (one label per chemistry, with EFO's own name),
+`assay` is the same answer in EFO's vocabulary (one ontology id per chemistry; the report names it),
 `read_layout` is the KB's structure filled in with measured lengths, `files[].read_id` is the other
 half of the same joint optimization. They used to each carry a copy of the same number.
 

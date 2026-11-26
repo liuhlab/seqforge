@@ -81,10 +81,11 @@ and so does a paper that only a BioProject links.
 **How it decides.** Code keeps the starting Series, or each sub-Series when the study starts from a
 SuperSeries, and it leaves every SuperSeries out. Jev, a model that answers yes/no questions with a
 probability, is asked about each other Series and each paper twice: once as written, once reversed.
-Jev reads the records and each paper's title, journal, date and abstract, and never a full paper. A
-record is in the study when Jev's answer as written is more likely yes than no. Each claim is
-`inferred`, and its text gives Jev's p(yes) to each of the two questions. A kept paper has no
-probability in the file, so the task keeps it.
+Jev reads the records and each paper's title, journal, date and abstract, and never a full paper.
+An answer is yes when Jev's p(yes) is above 0.5, and no when it is below 0.5. At exactly 0.5 it is
+neither. A record is in the study when Jev's answer as written is yes. The two answers agree when
+one is yes and the other no. Each claim is `inferred`, and its text gives Jev's p(yes) to each of
+the two questions. A kept paper has no probability in the file, so the task keeps it.
 
 **What it writes.** `seqforge study write-bounds --out <folder>` writes each study's answer as
 `<folder>/<ID>/bounds.yaml`, or under the name that `--name` gives. It never overwrites a file. For
@@ -94,8 +95,8 @@ study ends in one of three ways:
 | Ending | When | File |
 | --- | --- | --- |
 | Settled | Jev's two answers agree on every record | Written |
-| Unsettled | Jev's two answers disagree on a record | Written, with each probability |
-| Refused | The group holds more than 50 Series, or the bounds fail the format check | None. `write-bounds` prints the reason, such as `group too large` |
+| Unsettled | Jev's two answers do not agree on a record | Written, with each probability |
+| Refused | The group holds more than 50 Series, Jev gives no answer about a record, or the bounds fail the format check | None. `write-bounds` prints the reason, such as `group too large` |
 
 ### How the standard set got its bounds
 

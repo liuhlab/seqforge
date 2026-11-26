@@ -37,7 +37,7 @@ module, interface, depth, seam, adapter, leverage, locality — are fixed, and "
 module is split, uses one context's words:
 
 - `io/` — Probe's words in `sra.py`, `benchmark.py`, and `peek` and `probe_remote` in `remote.py`.
-  Resolve's words in `archive.py`, `taxonomy.py`, and `resolve_accession` in `remote.py`. The Knowledge base's words in `onlist.py` and `efo.py`.
+  Resolve's words in `archive.py`, `taxonomy.py`, and `resolve_accession` in `remote.py`. The Knowledge base's words in `onlist.py`.
 - `manifest/` — Resolve's words for the dataset manifest: `fill_manifest` in `fill.py` and
   `validate_manifest` in `validate.py`. Compose's words for the recipe and for the hashes that pair
   it with a manifest: `policy.py`, `instruct.py`, `hash.py`, `fill_processing` in `fill.py` and

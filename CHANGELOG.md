@@ -64,6 +64,12 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   row has `cost_usd` and `cached`. Each exchange in `transcript.jsonl` has `cost_usd` and `cached`
   too. The eval report shows dollars in place of token counts.
 - The Anthropic and OpenAI client libraries are no longer dependencies.
+- The manifest's `library.assay` holds, for each chemistry, its id and the first ontology id its
+  spec declares, and no name. Every chemistry now gets one; Smart-seq3, BD Rhapsody, the 10x 5'
+  chemistries, GEM-X and multiome ATAC used to get none. `manifest fill` opens no ontology store.
+  A manifest filled now has a different dataset hash from one filled before. The report takes the
+  assay's name from liulab-data's ontology store; with no store, or no liulab-data, it shows the
+  ontology id.
 
 ### Removed
 
@@ -82,6 +88,7 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   request fewer for every 100 samples. A record attribute has no `harmonized` or `raw_name` field
   any more; a record set written earlier with them still loads. The organism still comes from
   each sample's taxonomy id.
+- `seqforge io efo` is gone, and the wheel no longer ships seqforge's table of EFO names.
 - A hand-written record set (`source: user`) may no longer carry `free_text`. The loader refuses
   it like any other unknown key, and the remedy says that what a sample was belongs in a study
   reading. No model read that prose. A record set fetched by `io records` keeps its prose.

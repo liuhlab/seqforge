@@ -9,6 +9,7 @@ resumes: every unit already answered replays from the gateway's cache at no cost
 
 from __future__ import annotations
 
+from contextlib import closing
 from pathlib import Path
 
 import typer
@@ -24,7 +25,7 @@ from .root import pass_app
 
 @pass_app.command("start")
 def pass_start(
-    kind: str = typer.Argument(..., help="The registered seqforge kind to run."),
+    kind: str = typer.Argument(..., help="The seqforge kind to run."),
     ceiling_usd: float = typer.Option(
         ...,
         "--ceiling-usd",
@@ -105,7 +106,6 @@ def _pass_start(
     from ..passes.model_text import parse_models
     from ..passes.progress import run_with_progress
     from ..passes.status import pass_json
-    from ..passes.task import store_for
 
     def run(setup: KindTask) -> _StageOut:
         kind = setup.kind
@@ -116,8 +116,8 @@ def _pass_start(
         endings = None if only is None else _parse_endings(only)
         check_ceiling(ceiling_usd)
         client = make_gateway()
-        store, build = store_for(kind)
-        unit_kind = kind.unit_kind(store)
+        built = kind.build()
+        unit_kind = built.unit_kind
         models = {**kind.default_models, **named}
         if extra := sorted(set(models) - set(unit_kind.roles)):
             raise SetupRefused(
@@ -127,13 +127,14 @@ def _pass_start(
         if unfilled := sorted(set(unit_kind.roles) - set(models)):
             raise SetupRefused(f"no model for role {', '.join(unfilled)}: name one with --model")
 
-        with setup.open(Task, gateway=client) as opened:
+        # Once the pass is over and its task closed, the build releases what it opened.
+        with closing(built), setup.open(Task, gateway=client) as opened:
             if file_keys is not None:
                 keys = file_keys
             elif endings is not None:
                 keys = opened.keys(unit_kind, endings=endings)
             else:
-                keys = list(kind.default_keys(store))
+                keys = list(kind.default_keys())
             result = run_with_progress(
                 opened,
                 unit_kind,
@@ -143,7 +144,7 @@ def _pass_start(
                 label=label or kind.name,
                 off_peak_only=off_peak_only,
                 units_at_once=units_at_once,
-                note=build,
+                note=built.store_build,
             )
             (record,) = [p for p in opened.passes(unit_kind) if p.pass_id == result.pass_id]
         if result.stopped == Rejected.reason:
@@ -164,7 +165,7 @@ def _pass_start(
 
 @pass_app.command("status")
 def pass_status(
-    kind: str = typer.Argument(..., help="The registered seqforge kind whose task to read."),
+    kind: str = typer.Argument(..., help="The seqforge kind whose task to read."),
     task: Path | None = typer.Option(
         None, "--task", help="The task's folder. Default: seqforge/passes/<kind>/ here."
     ),

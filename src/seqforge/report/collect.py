@@ -188,10 +188,12 @@ def _collect_assay(
 
 def _chemistry(library: LibrarySection) -> ChemistryDecision:
     ev = library.chemistry
+    names = _assay_names({a.curie for a in library.assay})
     return ChemistryDecision(
         value=list(ev.value),
         assay_labels=[
-            AssayLabelView(chemistry=a.chemistry, curie=a.curie, name=a.name) for a in library.assay
+            AssayLabelView(chemistry=a.chemistry, curie=a.curie, name=names.get(a.curie))
+            for a in library.assay
         ],
         basis=ev.basis,
         confidence=ev.confidence,
@@ -200,6 +202,36 @@ def _chemistry(library: LibrarySection) -> ChemistryDecision:
         n_files=len(library.files),
         evidence_shas=list(ev.evidence),
     )
+
+
+def _assay_names(curies: set[str]) -> dict[str, str]:
+    """Each assay id's name in liulab-data's ontology store.
+
+    The store is found through ``LABDATA_ONTOLOGIES`` or its per-user pointer. Empty when there is
+    no store to ask, or no liulab-data to ask it with. The page then shows each id alone: a name is
+    a courtesy to the reader and never a reason not to render. An id the store does not hold, or
+    holds as retired, gets no name either.
+    """
+    if not curies:
+        return {}
+    try:
+        from labdata.exceptions import NotAStoreError, OntologyError, StoreNotConfiguredError
+        from labdata.ontology import open_ontology_store
+    except ImportError:
+        return {}
+    try:
+        store = open_ontology_store()
+    except (StoreNotConfiguredError, NotAStoreError, OntologyError):
+        return {}
+    try:
+        names: dict[str, str] = {}
+        for curie in sorted(curies):
+            term = store.lookup(curie)
+            if term is not None and term.name is not None and not term.obsolete:
+                names[curie] = term.name
+        return names
+    finally:
+        store.close()
 
 
 def _reads(library: LibrarySection) -> list[ReadView]:

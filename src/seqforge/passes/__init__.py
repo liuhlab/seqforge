@@ -7,8 +7,8 @@ and starts their passes; it does no model work of its own and defines none of th
 liulab-llms's glossary's. It sits outside the five bounded contexts: until the study context exists,
 nothing here knows what a study is.
 
-- :mod:`.kinds` -- the registry of seqforge kinds, by name.
-- :mod:`.task` -- opening a kind's task, and the store a pass reads.
+- :mod:`.kinds` -- the table of seqforge's kinds, by name, and what a kind is.
+- :mod:`.task` -- opening a kind's task.
 - :mod:`.model_text` -- the ``--model`` text, read into a model.
 - :mod:`.status` -- where a kind's task stands, read with no gateway.
 
