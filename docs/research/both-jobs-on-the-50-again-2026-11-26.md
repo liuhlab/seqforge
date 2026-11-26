@@ -136,6 +136,11 @@ One unsettled study stayed unsettled on another sample. GSE97461 disagreed on GS
 (`na` at 0.53, then `unknown` at 0.40). The cause is the same second asking. The other 10 unsettled
 studies disagree on exactly the questions that the note of 2026-11-24 lists.
 
+Both moves go against the reason that [#685](https://github.com/liuhlab/seqforge/issues/685) gave
+for the change: that dropping questions from a request does not change Jev's answers to the rest.
+This run cannot tell whether Jev's answer to a question depends on the other questions in its
+request, or is only a fresh answer, not from the cache, to a request whose text changed.
+
 ### Files whose content changed
 
 Every one of the 50 files names `ncbitaxon-2026-11-26` in its `ontology_snapshot`, and its `date` is
