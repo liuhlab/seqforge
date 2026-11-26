@@ -30,7 +30,7 @@ from labllm import Held, Inputs, Outcome, Role, Task, Unit, UnitKind
 from ..passes.kinds import Built, Kind, name_of
 from .bounds import FORMAT, check_bounds
 from .closed import ASKINGS_SCHEMA, JEV, YES, Answer, Asking, Askings, YesNo, ask, disagreeing
-from .folder import model_name, picked, write_files
+from .folder import model_name, picked_studies, write_files
 from .group import SERIES, group_text, linked_series, paper_reader, read_group, record_store
 
 KIND_NAME = name_of(__name__)
@@ -232,5 +232,5 @@ KIND = Kind(
     name=KIND_NAME,
     build=_build,
     default_models={ROLE: JEV},
-    default_keys=picked,
+    default_keys=picked_studies,
 )

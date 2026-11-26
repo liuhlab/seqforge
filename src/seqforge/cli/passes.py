@@ -9,7 +9,6 @@ resumes: every unit already answered replays from the gateway's cache at no cost
 
 from __future__ import annotations
 
-import math
 from contextlib import closing
 from pathlib import Path
 
@@ -112,9 +111,9 @@ def _pass_start(
     task: Path | None,
 ) -> _StageOut:
     """The body of ``pass start``: every setup refusal first, then the hold, then the pass."""
-    from labllm import GatewayUnreachable, Rejected, Task
+    from labllm import Rejected, Task
 
-    from ..passes import gateway
+    from ..gateway import check_ceiling, make_gateway
     from ..passes.model_text import parse_models
     from ..passes.progress import run_with_progress
     from ..passes.status import pass_json
@@ -133,12 +132,8 @@ def _pass_start(
             keys = _read_keys(keys_file)
         elif endings is None:
             keys = list(kind.default_keys(folder))
-        if not math.isfinite(ceiling_usd) or ceiling_usd < 0:
-            raise SetupRefused(f"--ceiling-usd must be a number of dollars, not {ceiling_usd}")
-        try:
-            client = gateway.make_gateway()
-        except GatewayUnreachable as exc:
-            raise SetupRefused(f"no gateway address: {exc}") from exc
+        check_ceiling(ceiling_usd)
+        client = make_gateway()
         built = kind.build(folder)
         unit_kind = built.unit_kind
         models = {**kind.default_models, **named}

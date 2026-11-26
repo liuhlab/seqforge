@@ -256,11 +256,10 @@ class ExtractionPlan:
     system_prompt_chars: int = 0
     #: Exemplar ``doc_sha256`` -> the group of near-identical records whose prose it carries. Their
     #: full renderings are never sent — a reduced member's *difference* is, and a withheld member's
-    #: nothing — but they are still RENDERED, because rendering is free and because a fanned Assertion
-    #: *cites* one of them: a span citation is checkable only while the exact text survives, so
-    #: ``harvest extract`` writes these to ``documents/`` beside the ones it paid for and names them in
-    #: ``document_subjects`` — without which ``resolve`` would drop every fanned claim for having no
-    #: subject (ADR-0031).
+    #: nothing — but they are still RENDERED, because rendering is free and because a fan report
+    #: names their records: a quote holds of a member only while its exact text survives to grep, so
+    #: ``harvest extract`` writes these to ``documents/`` beside the ones it paid for and gives each a
+    #: scope in ``document_subjects`` (ADR-0031).
     collapsed: dict[str, CollapsedGroup] = field(default_factory=dict)
 
     @property

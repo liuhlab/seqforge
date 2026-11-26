@@ -14,11 +14,12 @@ The chain, for one study:
    name a pull-down library strategy also gets that assay's guide, and its writer lists which
    control goes with which pull-down. An answer that cannot be used is asked for once more.
 2. **Jev**, a model that answers closed questions with probabilities, answers every closed
-   question: whether each listed factor was varied on purpose (asked plain and negated), its
-   baseline (the options in order and reversed), whether its levels are ordered, what a label with
-   no listed value is, and where the libraries' material came from. Then, for each sample, its
-   level on each factor and its value on each label, asked twice, the options in order and
-   reversed.
+   question, each asked as :mod:`.closed` asks one: whether each listed factor was varied on
+   purpose (asked plain and negated), its baseline (the options in order and reversed), whether
+   its levels are ordered, what a label with no listed value is, and where the libraries' material
+   came from. Then, for each sample, its level on each factor and its value on each label, asked
+   twice, the options in order and reversed. A question Jev leaves unanswered makes its claim
+   ``unknown``, with no probability.
 3. **Code** finds every quote in its record or paper; Jev judges whether each found passage backs
    its claim, or speaks against it, and checks each listed tie of a control to a pull-down.
 4. **liulab-data's ontology search** gives candidates for each value's search name, and Jev picks
@@ -27,8 +28,9 @@ The chain, for one study:
 5. **Code** writes the reading, drops a factor level no sample is at, and runs the format check.
 
 A unit ends **refused** when the writer's answer cannot be used after one retry or the reading
-fails the format check, **unsettled** when Jev's two askings disagree on whether a factor was
-varied on purpose, on its baseline or on any sample's level, and **settled** otherwise.
+fails the format check, **unsettled** when Jev's two askings do not agree on whether a factor was
+varied on purpose, on its baseline or on any sample's level (an asking left unanswered never
+agrees), and **settled** otherwise.
 :func:`write_readings` writes each answer as a reading file.
 """
 
@@ -39,17 +41,29 @@ import hashlib
 import threading
 from collections import defaultdict
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeGuard
 
 from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
 from ..passes import SetupRefused
 from ..passes.kinds import Built, Kind, name_of
 from . import sources as src
-from .closed import JEV
-from .folder import bounds_in, file_text, model_name, picked, text_problems, write_files
+from .closed import (
+    ASKINGS_SCHEMA,
+    JEV,
+    YES,
+    Answer,
+    Asking,
+    Askings,
+    Choice,
+    Option,
+    YesNo,
+    ask,
+    disagreeing,
+)
+from .folder import bounds_in, file_text, model_name, picked_studies, text_problems, write_files
 from .group import SERIES, paper_reader, record_store
 from .lists import (
     CODE_LABELS,
@@ -77,14 +91,13 @@ from .ontology_search import (
 from .reading import FORMAT, check_reading
 
 KIND_NAME = name_of(__name__)
-#: Raise it when an instruction, a question, a guide or a rule of writing the reading changes.
-KIND_VERSION = "2026.11.5"
+#: Raise it when an instruction, a question, a guide, the answer's shape or a rule of writing the
+#: reading changes.
+KIND_VERSION = "2026.11.6"
 #: The roles, and the models that fill them unless a pass names others: the writer, and
 #: :data:`.closed.JEV`.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
 WRITER = Model("deepseek", "deepseek-flash", thinking=True, max_output_tokens=40000)
-#: A yes/no answer is yes when Jev's p(yes) is at least this.
-YES = 0.5
 #: A searched term is written only when Jev's pick of it has at least this probability.
 TERM_AT = 0.8
 #: The most values of one label Jev chooses among. A study whose writer lists more for one label
@@ -114,25 +127,11 @@ _NA_EXAMPLE = {
     "strain": "a species with no strains, such as human",
 }
 
-_P = {"type": "number", "minimum": 0, "maximum": 1}
 ANSWER_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "reading": {"type": "object"},
-        "askings": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "about": {"type": "string"},
-                    "how": {"enum": ["negated", "reversed"]},
-                    "first": {},
-                    "second": {},
-                },
-                "required": ["about", "how", "first", "second"],
-                "additionalProperties": False,
-            },
-        },
+        "askings": ASKINGS_SCHEMA,
         "notes": {"type": "object"},
     },
     "required": ["reading", "askings", "notes"],
@@ -142,43 +141,36 @@ ANSWER_SCHEMA: dict[str, Any] = {
 
 # ---------------------------------------------------------------- Jev's answers
 
-
-def _p(answer: Any) -> float | None:
-    """A yes/no answer's p(yes), or ``None`` when Jev gave none."""
-    value = (answer or {}).get("noul") if isinstance(answer, Mapping) else None
-    return float(value) if isinstance(value, int | float) else None
-
-
-def _pick(answer: Any) -> tuple[str | None, float | None]:
-    """A choice answer's pick and its probability, or ``(None, None)`` when Jev gave none."""
-    if not isinstance(answer, Mapping):
-        return None, None
-    choice = answer.get("choice")
-    p = (answer.get("probabilities") or {}).get(choice)
-    return (str(choice) if choice is not None else None), (
-        float(p) if isinstance(p, int | float) else None
-    )
+#: The option a choice offers for a label that does not apply.
+_NA = "na"
+#: Where each library's material came from, asked once of every study.
+_DONOR = Choice(
+    "donor",
+    "Where did each sequenced library's material come from?",
+    (
+        Option("one_each", "each library from its own individual animal or person"),
+        Option("shared", "some libraries share one individual"),
+        Option("pool", "each library pools many individuals"),
+        Option("cell_line", "a cell line or a culture, no individual"),
+        Option("cannot_tell", "the text does not say"),
+    ),
+)
 
 
-def _ask(u: Unit, description: str, questions: Mapping[str, Any]) -> dict[str, Any]:
-    """Jev's answers to ``questions``, by name; none asked, no call."""
-    if not questions:
-        return {}
-    answers = u.jev(JEV_ROLE, description=description, questions=questions).answers
-    return dict(answers) if isinstance(answers, Mapping) else {}
+def _yes(answer: Answer | None) -> TypeGuard[Answer]:
+    """Whether Jev's answer to a yes/no question is yes."""
+    return answer is not None and answer.option is YES
 
 
-def _choice(instructions: str, options: Mapping[str, str], *, reverse: bool = False) -> Any:
-    items = list(options.items())
-    return {
-        "type": "choice",
-        "instructions": instructions,
-        "criteria": dict(reversed(items) if reverse else items),
-    }
+def _listed(answer: Answer | None) -> tuple[Option, float] | None:
+    """The listed level, value or term Jev picked, and its probability.
 
-
-def _noul(instructions: str) -> dict[str, str]:
-    return {"type": "noul", "instructions": instructions}
+    ``None`` when Jev picked an option that lists nothing (na, unknown, no reference, none of the
+    terms) or gave no answer.
+    """
+    if answer is None or answer.option is None or answer.option.value is None:
+        return None
+    return answer.option, answer.p
 
 
 def _r(p: float | None) -> float | None:
@@ -208,17 +200,26 @@ def _write_lists(u: Unit, user: str, system: str) -> tuple[Lists, int]:
 
 @dataclass
 class _Factor:
-    """A listed factor as the chain carries it: the writer's list and Jev's answers."""
+    """A listed factor as the chain carries it: the writer's list and Jev's answers.
+
+    ``varied`` holds both askings of whether it was varied on purpose, ``reference`` both of its
+    baseline, and ``ordered`` the one answer on whether its levels run along a scale.
+    """
 
     label: str
     listed: FactorList
     levels: list[Value]
     names: list[str]
-    p_varied: float | None = None
-    p_varied_negated: float | None = None
-    baseline: str | None = None
-    baseline_reversed: str | None = None
-    p_ordered: float | None = None
+    varied: Askings = field(init=False)
+    reference: Askings = field(init=False)
+    ordered: Answer | None = None
+
+    @property
+    def baseline(self) -> str | None:
+        """The level Jev's first asking names the reference, while it is still a level."""
+        picked = _listed(self.reference.first)
+        name = picked[0].name if picked else None
+        return name if name in self.names else None
 
 
 @dataclass
@@ -311,91 +312,93 @@ def _glossary(lists: _Lists, kept: list[_Factor]) -> str:
 # ---------------------------------------------------------------- Jev, the study
 
 
-def _ask_study(u: Unit, text: str, lists: _Lists) -> dict[str, Any]:
-    """Jev's answers about the study: each factor, each label with no value, the donors."""
-    questions: dict[str, Any] = {}
+def _ask_study(u: Unit, text: str, lists: _Lists) -> dict[str, Answer | None]:
+    """Jev's answers about the study: each factor, each label with no value, the donors.
+
+    Each factor keeps its own answers; every answer also comes back under its asking's name.
+    """
+    askings: dict[str, Asking] = {}
     for i, f in enumerate(lists.factors):
         levels = "; ".join(f"{n} ({v.text})" for n, v in zip(f.names, f.levels, strict=True))
         levels = levels[:1500]
-        questions[f"f{i}_varied"] = _noul(
+        varied = YesNo(
+            f"factor {f.label}: varied on purpose",
             f"Did the study vary {f.label} on purpose between its sequenced samples, to compare "
-            f"these levels: {levels}?"
-        )
-        questions[f"f{i}_varied_negated"] = _noul(
+            f"these levels: {levels}?",
             f"Is {f.label} (values: {levels}) only a description, a replicate or batch label, or "
             "a restatement of another factor, rather than something the study varied on purpose "
-            "to compare?"
+            "to compare?",
         )
-        options = {f"L{j}": name for j, name in enumerate(f.names)}
-        options["no_reference"] = (
-            "the study compares the levels with each other; none is a reference"
-        )
-        asked = (
+        reference = Choice(
+            f"factor {f.label}: baseline",
             f"Which level of {f.label} is the reference the study compares the others with, such "
-            "as untreated, wild type, control, young or time zero?"
+            "as untreated, wild type, control, young or time zero?",
+            (
+                *(
+                    Option(f"L{j}", name, name=name, value=level)
+                    for j, (name, level) in enumerate(zip(f.names, f.levels, strict=True))
+                ),
+                Option(
+                    "no_reference",
+                    "the study compares the levels with each other; none is a reference",
+                ),
+            ),
         )
-        questions[f"f{i}_baseline"] = _choice(asked, options)
-        questions[f"f{i}_baseline_reversed"] = _choice(asked, options, reverse=True)
-        questions[f"f{i}_ordered"] = _noul(
+        ordered = YesNo(
+            f"factor {f.label}: ordered",
             f"Do the levels of {f.label} ({levels}) run along a scale, such as a time course, a "
-            "dose series or a series of ages?"
+            "dose series or a series of ages?",
         )
+        askings[f"f{i}_varied"] = varied.first
+        askings[f"f{i}_varied_negated"] = varied.second
+        askings[f"f{i}_baseline"] = reference.first
+        askings[f"f{i}_baseline_reversed"] = reference.second
+        askings[f"f{i}_ordered"] = ordered.first
     for label, listed in lists.labels.items():
         if listed.values or label in {f.label for f in lists.factors}:
             continue
         example = _NA_EXAMPLE.get(label)
         meaning = MEANING.get(label, "a label of the study's own")
-        questions[f"gap_{label}"] = _choice(
+        askings[f"gap_{label}"] = Choice(
+            f"{label}: no listed value",
             f"For the samples of this study, what about their {label.replace('_', ' ')} "
             f"({meaning})?",
-            {
-                "na": "it does not apply to these samples" + (f": {example}" if example else ""),
-                "unknown": "it applies, but nothing in the text says it",
-            },
-        )
-    questions["donor"] = _choice(
-        "Where did each sequenced library's material come from?",
-        {
-            "one_each": "each library from its own individual animal or person",
-            "shared": "some libraries share one individual",
-            "pool": "each library pools many individuals",
-            "cell_line": "a cell line or a culture, no individual",
-            "cannot_tell": "the text does not say",
-        },
-    )
-    answers = _ask(u, text, questions)
+            (
+                Option(
+                    _NA, "it does not apply to these samples" + (f": {example}" if example else "")
+                ),
+                Option("unknown", "it applies, but nothing in the text says it"),
+            ),
+        ).first
+    askings["donor"] = _DONOR.first
+    answers = ask(u, JEV_ROLE, text, askings)
     for i, f in enumerate(lists.factors):
-        f.p_varied = _p(answers.get(f"f{i}_varied"))
-        f.p_varied_negated = _p(answers.get(f"f{i}_varied_negated"))
-        f.baseline = _level(f, _pick(answers.get(f"f{i}_baseline"))[0])
-        f.baseline_reversed = _level(f, _pick(answers.get(f"f{i}_baseline_reversed"))[0])
-        f.p_ordered = _p(answers.get(f"f{i}_ordered"))
+        f.varied = Askings(
+            askings[f"f{i}_varied"].question,
+            answers[f"f{i}_varied"],
+            answers[f"f{i}_varied_negated"],
+        )
+        f.reference = Askings(
+            askings[f"f{i}_baseline"].question,
+            answers[f"f{i}_baseline"],
+            answers[f"f{i}_baseline_reversed"],
+        )
+        f.ordered = answers[f"f{i}_ordered"]
     return answers
-
-
-def _level(factor: _Factor, choice: str | None) -> str | None:
-    """The level a choice names, or ``None`` for no reference or no answer."""
-    if (
-        choice
-        and choice.startswith("L")
-        and choice[1:].isdigit()
-        and int(choice[1:]) < len(factor.names)
-    ):
-        return factor.names[int(choice[1:])]
-    return None
 
 
 def _kept(lists: _Lists) -> list[_Factor]:
     """The factors Jev says were varied on purpose; of two on one label, the surer one.
 
-    A listed factor Jev does not keep stays a label: its levels become the label's values.
+    A factor is kept when Jev's answer to the question as written is yes. A listed factor Jev does
+    not keep stays a label: its levels become the label's values.
     """
-    by_label: dict[str, _Factor] = {}
+    by_label: dict[str, tuple[_Factor, float]] = {}
     for f in lists.factors:
-        surer = f.label not in by_label or (f.p_varied or 0) > (by_label[f.label].p_varied or 0)
-        if f.p_varied is not None and f.p_varied >= YES and surer:
-            by_label[f.label] = f
-    kept = list(by_label.values())
+        said = f.varied.first
+        if _yes(said) and said.p > by_label.get(f.label, (f, 0.0))[1]:
+            by_label[f.label] = (f, said.p)
+    kept = [f for f, _ in by_label.values()]
     for f in lists.factors:
         if f not in kept and f.label not in by_label:
             have = {v.text for v in lists.labels[f.label].values}
@@ -406,28 +409,42 @@ def _kept(lists: _Lists) -> list[_Factor]:
 # ---------------------------------------------------------------- Jev, each sample
 
 
-def _sample_questions(
-    kept: list[_Factor], labels: Mapping[str, Label], *, reverse: bool
-) -> dict[str, Any]:
-    questions: dict[str, Any] = {}
+def _sample_questions(kept: list[_Factor], labels: Mapping[str, Label]) -> dict[str, Choice]:
+    """The choices Jev is asked about each sample, by name: its level and its label values."""
+    questions: dict[str, Choice] = {}
     for i, f in enumerate(kept):
-        options = {f"L{j}": f"`sample` has {f.label} = {v.text}" for j, v in enumerate(f.levels)}
-        options["unknown"] = f"`sample`'s text does not say its {f.label}"
-        options["na"] = f"{f.label} does not apply to `sample`"
-        questions[f"lvl{i}"] = _choice(
-            f"Which {f.label} does `sample` have?", options, reverse=reverse
+        questions[f"lvl{i}"] = Choice(
+            f"level of {f.label}",
+            f"Which {f.label} does `sample` have?",
+            (
+                *(
+                    Option(f"L{j}", f"`sample` has {f.label} = {v.text}", name=name, value=v)
+                    for j, (name, v) in enumerate(zip(f.names, f.levels, strict=True))
+                ),
+                Option("unknown", f"`sample`'s text does not say its {f.label}"),
+                Option(_NA, f"{f.label} does not apply to `sample`"),
+            ),
         )
     for label, listed in labels.items():
         if not listed.values:
             continue
         words = label.replace("_", " ")
-        options = {f"v{j}": f"{words} is {v.text}" for j, v in enumerate(listed.values)}
-        options["unknown"] = f"`sample`'s text and the listed words do not say its {words}"
         example = _NA_EXAMPLE.get(label)
-        options["na"] = f"{words} does not apply to `sample`" + (f" ({example})" if example else "")
         meaning = MEANING.get(label, "a label of the study's own")
-        questions[f"lab_{label}"] = _choice(
-            f"What is the {words} of `sample` ({meaning})?", options, reverse=reverse
+        questions[f"lab_{label}"] = Choice(
+            f"value of {label}",
+            f"What is the {words} of `sample` ({meaning})?",
+            (
+                *(
+                    Option(f"v{j}", f"{words} is {v.text}", value=v)
+                    for j, v in enumerate(listed.values)
+                ),
+                Option("unknown", f"`sample`'s text and the listed words do not say its {words}"),
+                Option(
+                    _NA,
+                    f"{words} does not apply to `sample`" + (f" ({example})" if example else ""),
+                ),
+            ),
         )
     return questions
 
@@ -473,14 +490,19 @@ class _Backing:
 
 @dataclass(frozen=True)
 class _Tie:
-    """Jev's p that a control and a pull-down share their material, and the passage cited."""
+    """Jev's answer on whether a control and a pull-down share material, and the passage cited."""
 
-    p: float | None
+    answer: Answer | None
     passage: int
 
     @property
+    def p(self) -> float | None:
+        """Jev's p(yes) that the two share their material, or ``None`` for no answer."""
+        return None if self.answer is None else self.answer.p_yes
+
+    @property
     def kept(self) -> bool:
-        return self.p is not None and self.p >= YES
+        return _yes(self.answer)
 
 
 def _check_passages(
@@ -499,7 +521,7 @@ def _check_passages(
     passages = _Passages()
     found: dict[str, list[tuple[str, int]]] = defaultdict(list)
     counts = {"quotes": 0, "not_found": 0}
-    questions: dict[str, Any] = {}
+    questions: dict[str, Asking] = {}
     roles: dict[str, str] = {}
     for key, (said, listed) in claims.items():
         for role, quote in [("backs", listed.quote)] + [("against", q) for q in listed.against]:
@@ -516,7 +538,8 @@ def _check_passages(
             shown = where.passage["quote"][:600]
             source = where.passage.get("paper") or where.passage.get("record")
             place = where.passage.get("section") or where.passage.get("field")
-            questions[name] = _noul(
+            questions[name] = YesNo(
+                f"passage {n} {role} {key}",
                 f'Passage from {source}, {place}: "{shown}"\nClaim: {said}.\n'
                 + (
                     "Does the passage say so? Yes if it states it or clearly implies it; no if it "
@@ -524,8 +547,8 @@ def _check_passages(
                     if role == "backs"
                     else "Does the passage say something different from the claim, so that the "
                     "two disagree? No if it agrees or is about something else."
-                )
-            )
+                ),
+            ).first
             roles[name] = role
     tie_names: dict[tuple[str, str], tuple[str, int]] = {}
     titles = {s["id"]: " ".join(s["fields"]["Sample_title"]) for s in sources["samples"]}
@@ -547,21 +570,25 @@ def _check_passages(
         for pulldown in tie.pulldowns:
             name = f"t{len(tie_names)}"
             tie_names[(tie.control, pulldown)] = (name, passages.number(where.passage))
-            questions[name] = _noul(
+            questions[name] = YesNo(
+                f"tie of {tie.control} to {pulldown}",
                 f'Were control library {tie.control} ("{titles[tie.control]}") and pull-down '
                 f'library {pulldown} ("{titles[pulldown]}") made from the same material, such as '
                 f'one chromatin preparation? The words cited for the tie, "{where.passage["quote"][:300]}", '
                 f"are in the {place} of {held_by}. Answer no unless the text says or clearly "
-                "implies it."
-            )
-    answers = _ask(
-        u, "Checking quoted passages against claims about a study's samples.\n\n" + text, questions
+                "implies it.",
+            ).first
+    answers = ask(
+        u,
+        JEV_ROLE,
+        "Checking quoted passages against claims about a study's samples.\n\n" + text,
+        questions,
     )
     backing: dict[str, _Backing] = {}
     for key, (_, listed) in claims.items():
         b = _Backing(how=listed.how)
         for name, n in found[key]:
-            yes = (_p(answers.get(name)) or 0.0) >= YES
+            yes = _yes(answers[name])
             if roles.get(name) == "backs":
                 (b.quoted if yes else b.see).append(n)
             elif yes:
@@ -569,7 +596,7 @@ def _check_passages(
         b.quoted, b.see, b.against = (list(dict.fromkeys(x)) for x in (b.quoted, b.see, b.against))
         b.see = [n for n in b.see if n not in b.quoted]
         backing[key] = b
-    tied = {pair: _Tie(_p(answers.get(name)), n) for pair, (name, n) in tie_names.items()}
+    tied = {pair: _Tie(answers[name], n) for pair, (name, n) in tie_names.items()}
     return backing, tied, passages, counts
 
 
@@ -602,9 +629,8 @@ def _terms(
     whole name. A vocabulary the store does not hold finds nothing, and is noted.
     """
     terms = _Terms()
-    questions: dict[str, Any] = {}
+    questions: dict[str, Asking] = {}
     asked: dict[str, tuple[tuple[str, str, str | None], int, str | None]] = {}
-    candidates: dict[str, tuple[Candidate, ...]] = {}
     wanted: dict[tuple[str, str, str | None], int] = {}
     for (label, text, vocab), value in used.items():
         if label == "disease" and text.strip().lower() == "healthy":
@@ -630,21 +656,27 @@ def _terms(
             if not found.candidates:
                 continue
             key = f"o{len(questions)}"
-            options = {f"c{j}": f"{c.id} {c.name}" for j, c in enumerate(found.candidates[:10])}
-            options["none"] = "none of these terms names it"
-            questions[key] = _choice(
+            questions[key] = Choice(
+                f"term for the {label} {name!r}",
                 f'Which ontology term names the {label.replace("_", " ")} "{name}" (the text: "{text}")?',
-                options,
-            )
+                (
+                    *(
+                        Option(f"c{j}", f"{c.id} {c.name}", value=c)
+                        for j, c in enumerate(found.candidates[:10])
+                    ),
+                    Option("none", "none of these terms names it"),
+                ),
+            ).first
             asked[key] = ((label, text, vocab), n, found.snapshot)
-            candidates[key] = found.candidates
-    answers = _ask(u, f"Ontology terms for the samples of a study.\n{glossary[:6000]}", questions)
+    answers = ask(
+        u, JEV_ROLE, f"Ontology terms for the samples of a study.\n{glossary[:6000]}", questions
+    )
     picked: dict[tuple[str, str, str | None], dict[int, str]] = defaultdict(dict)
     for key, (which, n, snapshot) in asked.items():
-        choice, p = _pick(answers.get(key))
-        if choice and choice.startswith("c") and p is not None and p >= TERM_AT and snapshot:
-            picked[which][n] = candidates[key][int(choice[1:])].id
-            terms.snapshots[picked[which][n]] = snapshot
+        if (pick := _listed(answers[key])) and pick[1] >= TERM_AT and snapshot:
+            candidate: Candidate = pick[0].value
+            picked[which][n] = candidate.id
+            terms.snapshots[candidate.id] = snapshot
     for which, ids in picked.items():
         if len(ids) == wanted[which]:
             ordered = [ids[n] for n in sorted(ids)]
@@ -697,33 +729,25 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
             f"more values listed than Jev chooses among ({MOST_VALUES}) for: {said}",
         )
     glossary = _glossary(lists, kept)
-    first = _sample_questions(kept, lists.labels, reverse=False)
-    second = _sample_questions(kept, lists.labels, reverse=True)
+    questions = _sample_questions(kept, lists.labels)
     by_id = {s["id"]: s for s in sources["samples"]}
 
-    def ask_sample(job: tuple[str, bool]) -> dict[str, Any]:
-        gsm, reverse = job
+    def ask_sample(job: tuple[str, bool]) -> dict[str, Answer | None]:
+        gsm, second = job
         text = (src.sample_text(sources, by_id[gsm]) + "\n\n" + glossary)[:_SAMPLE_CAP] + notes_text
-        return _ask(u, text, second if reverse else first)
+        askings = {n: q.second if second else q.first for n, q in questions.items()}
+        return ask(u, JEV_ROLE, text, askings)
 
-    jobs = [(g, reverse) for g in samples for reverse in (False, True)]
+    jobs = [(g, second) for g in samples for second in (False, True)]
     answered = dict(zip(jobs, u.each(ask_sample, jobs, at_once=AT_ONCE), strict=True))
-    picks = {g: {q: _pick(answered[(g, False)].get(q)) for q in first} for g in samples}
-    again = {g: {q: _pick(answered[(g, True)].get(q)) for q in first} for g in samples}
-    askings = _askings(lists, kept, samples, picks, again)
+    picks = {g: answered[(g, False)] for g in samples}
+    askings = _askings(lists, kept, samples, questions, answered)
 
     # A level no sample is at is dropped, and a factor with no level left is not a factor.
     for i, f in enumerate(kept):
-        at = {int(c[1:]) for g in samples if (c := picks[g][f"lvl{i}"][0]) and c.startswith("L")}
-        f.levels = [v for j, v in enumerate(f.levels) if j in at]
-        old = f.names
-        f.names = [n for j, n in enumerate(old) if j in at]
-        for g in samples:
-            c, p = picks[g][f"lvl{i}"]
-            if c and c.startswith("L"):
-                picks[g][f"lvl{i}"] = (f"L{f.names.index(old[int(c[1:])])}", p)
-        f.baseline = f.baseline if f.baseline in f.names else None
-        f.baseline_reversed = f.baseline_reversed if f.baseline_reversed in f.names else None
+        at = {pick[0].name for g in samples if (pick := _listed(picks[g][f"lvl{i}"]))}
+        f.levels = [v for v, n in zip(f.levels, f.names, strict=True) if n in at]
+        f.names = [n for n in f.names if n in at]
     covered = [f for f in kept if f.names]
 
     claims: dict[str, tuple[str, Value | FactorList]] = {}
@@ -741,16 +765,14 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
     for g in samples:
         taxid = src.taxonomy(by_id[g])[1]
         for i, f in enumerate(kept):
-            c = picks[g][f"lvl{i}"][0]
-            if c and c.startswith("L") and f.names:
-                level = f.levels[int(c[1:])]
-                used.setdefault((f.label, level.text, vocabulary(f.label, taxid)), level)
-        for label, listed_label in lists.labels.items():
-            c = picks[g].get(f"lab_{label}", (None, None))[0]
-            if c and c.startswith("v"):
-                value = listed_label.values[int(c[1:])]
+            if pick := _listed(picks[g][f"lvl{i}"]):
+                at_level: Value = pick[0].value
+                used.setdefault((f.label, at_level.text, vocabulary(f.label, taxid)), at_level)
+        for label in lists.labels:
+            if pick := _listed(picks[g].get(f"lab_{label}")):
+                option, value = pick[0], pick[0].value
                 claims.setdefault(
-                    f"value:{label}:{c}",
+                    f"value:{label}:{option.key}",
                     (
                         f"{label.replace('_', ' ')} is {value.text} for the samples this passage describes",
                         value,
@@ -762,49 +784,43 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
     terms = _terms(u, context.search, used, glossary)
 
     rows: dict[str, dict[str, Any]] = {g: {} for g in samples}
-    donor_kind, p_donor = _pick(study.get("donor"))
     groups = _biosamples(samples, tied)
     for g in samples:
         taxid = src.taxonomy(by_id[g])[1]
-        rows[g].update(_material(g, groups, donor_kind, p_donor))
+        rows[g].update(_material(g, groups, study["donor"]))
         rows[g]["species"] = _species(sources, by_id[g], passages, context.search, terms)
         for i, f in enumerate(kept):
-            c, p = picks[g][f"lvl{i}"]
-            if c and c.startswith("L") and f.names:
-                j = int(c[1:])
-                key = f"level:{f.label}:{f.names[j]}"
+            answer = picks[g][f"lvl{i}"]
+            if pick := _listed(answer):
+                option, p = pick
+                key = f"level:{f.label}:{option.name}"
                 rows[g][f.label] = _value_claim(
-                    f.label, f.levels[j], backing[key], terms, taxid, p, level=f.names[j]
+                    f.label, option.value, backing[key], terms, taxid, p, level=option.name
                 )
             else:
-                rows[g][f.label] = _gap(f.label, "na" if c == "na" else "unknown", None, p)
+                rows[g][f.label] = _gap(f.label, answer)
         for label, listed_label in lists.labels.items():
             if label in {f.label for f in kept}:
                 continue
-            if listed_label.values:
-                c, p = picks[g].get(f"lab_{label}", (None, None))
-                if c and c.startswith("v"):
-                    value = listed_label.values[int(c[1:])]
-                    rows[g][label] = _value_claim(
-                        label, value, backing[f"value:{label}:{c}"], terms, taxid, p
-                    )
-                else:
-                    gap = listed_label.gap.why if listed_label.gap else None
-                    rows[g][label] = _gap(label, "na" if c == "na" else "unknown", gap, p)
+            gap = listed_label.gap.why if listed_label.gap else None
+            if not listed_label.values:
+                rows[g][label] = _gap(label, study.get(f"gap_{label}"), gap)
+            elif pick := _listed(picks[g].get(f"lab_{label}")):
+                option, p = pick
+                key = f"value:{label}:{option.key}"
+                rows[g][label] = _value_claim(label, option.value, backing[key], terms, taxid, p)
             else:
-                c, p = _pick(study.get(f"gap_{label}"))
-                gap = listed_label.gap.why if listed_label.gap else None
-                rows[g][label] = _gap(label, "na" if c == "na" else "unknown", gap, p)
+                rows[g][label] = _gap(label, picks[g].get(f"lab_{label}"), gap)
 
     factors = {}
     for f in covered:
         factor: dict[str, Any] = {
             "levels": f.names,
             "baseline": f.baseline,
-            "ordered": f.p_ordered is not None and f.p_ordered >= YES,
+            "ordered": _yes(f.ordered),
         }
         factor.update(backing[f"factor:{f.label}"].marks())
-        factor["p"] = _r(f.p_varied)
+        factor["p"] = _r(f.varied.first.p_yes if f.varied.first else None)
         factors[f.label] = factor
     shared = _share(rows)
     reading: dict[str, Any] = {
@@ -846,69 +862,34 @@ def _askings(
     lists: _Lists,
     kept: list[_Factor],
     samples: list[str],
-    picks: Mapping[str, Mapping[str, tuple[str | None, float | None]]],
-    again: Mapping[str, Mapping[str, tuple[str | None, float | None]]],
+    questions: Mapping[str, Choice],
+    answered: Mapping[tuple[str, bool], Mapping[str, Answer | None]],
 ) -> list[dict[str, Any]]:
-    """Both answers to every question Jev was asked twice that can make a reading unsettled."""
-    out: list[dict[str, Any]] = []
-    for f in lists.factors:
-        out.append(
-            {
-                "about": f"factor {f.label}: varied on purpose",
-                "how": "negated",
-                "first": f.p_varied,
-                "second": f.p_varied_negated,
-            }
-        )
+    """Both askings of every question Jev was asked twice that can make a reading unsettled.
+
+    ``answered`` holds each sample's answers by its key and whether they answer the second asking.
+    """
+    out = [f.varied.saved() for f in lists.factors]
     for i, f in enumerate(kept):
-        out.append(
-            {
-                "about": f"factor {f.label}: baseline",
-                "how": "reversed",
-                "first": f.baseline,
-                "second": f.baseline_reversed,
-            }
-        )
+        out.append(f.reference.saved())
+        level = questions[f"lvl{i}"]
         for g in samples:
-            first, second = picks[g][f"lvl{i}"][0], again[g][f"lvl{i}"][0]
-            out.append(
-                {
-                    "about": f"{g}: level of {f.label}",
-                    "how": "reversed",
-                    "first": _name(f, first),
-                    "second": _name(f, second),
-                }
-            )
+            asked = replace(level, about=f"{g}: {level.about}")
+            first, second = answered[(g, False)][f"lvl{i}"], answered[(g, True)][f"lvl{i}"]
+            out.append(Askings(asked, first, second).saved())
     return out
 
 
-def _name(f: _Factor, choice: str | None) -> str | None:
-    if choice and choice.startswith("L"):
-        return f.names[int(choice[1:])] if f.names else None
-    return choice
-
-
 def askings_agree(inputs: Inputs, answer: Any) -> str | None:
-    """Fail a reading where Jev's two askings of one question disagree.
+    """Fail a reading where Jev's two askings of one question do not agree.
 
-    A question asked plain and negated disagrees when both answers say yes, or both say no; one
-    asked with its options in order and reversed disagrees when the two picks differ.
+    :func:`.closed.disagreeing` decides: an asking Jev left unanswered never agrees.
     """
-    split = []
-    for a in answer["askings"]:
-        if a["how"] == "negated":
-            if (
-                a["first"] is not None
-                and a["second"] is not None
-                and (a["first"] >= YES) == (a["second"] >= YES)
-            ):
-                split.append(a["about"])
-        elif a["first"] != a["second"]:
-            split.append(a["about"])
+    split = disagreeing(answer["askings"])
     if not split:
         return None
     shown = "; ".join(split[:5]) + (f"; and {len(split) - 5} more" if len(split) > 5 else "")
-    return f"Jev's two askings disagree on {shown}"
+    return f"Jev's two askings do not agree on {shown}"
 
 
 def _biosamples(
@@ -942,10 +923,14 @@ def _biosamples(
 def _material(
     g: str,
     groups: Mapping[str, tuple[str, list[str], float | None, list[int]]],
-    donor_kind: str | None,
-    p_donor: float | None,
+    said: Answer | None,
 ) -> dict[str, Any]:
-    """A sample's biosample and donor claims."""
+    """A sample's biosample and donor claims.
+
+    ``said`` is Jev's answer on where the material of the study's libraries came from.
+    """
+    donor_kind = said.option.key if said and said.option else None
+    p_donor = said.p if said else None
     bid, members, p_tie, see = groups[g]
     if len(members) > 1:
         biosample: dict[str, Any] = {
@@ -1045,14 +1030,19 @@ def _value_claim(
     return claim
 
 
-def _gap(label: str, kind: str, why: str | None, p: float | None) -> dict[str, Any]:
+def _gap(label: str, said: Answer | None, why: str | None = None) -> dict[str, Any]:
+    """A claim with no listed value: ``na`` when Jev's answer is na, and ``unknown`` otherwise.
+
+    With no answer from Jev, the claim has no probability.
+    """
     words = label.replace("_", " ")
-    if kind == "na":
+    p = None if said is None else _r(said.p)
+    if said is not None and said.option is not None and said.option.key == _NA:
         return {
             "na": why or _NA_EXAMPLE.get(label) or f"{words} does not apply to this sample",
-            "p": _r(p),
+            "p": p,
         }
-    return {"unknown": why or f"what was read does not say its {words}", "p": _r(p)}
+    return {"unknown": why or f"what was read does not say its {words}", "p": p}
 
 
 def _share(rows: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -1239,5 +1229,5 @@ KIND = Kind(
     name=KIND_NAME,
     build=_build,
     default_models={WRITER_ROLE: WRITER, JEV_ROLE: JEV},
-    default_keys=picked,
+    default_keys=picked_studies,
 )

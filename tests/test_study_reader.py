@@ -22,10 +22,11 @@ import pytest
 import yaml
 from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
 from labdata.store.model import Link, Record
-from labllm import Rejected, Task
+from labllm import Task
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
+import gateway_kit
 from seqforge.cli import app
 from seqforge.passes.status import read_only_kind
 from seqforge.study import bounding, closed, reader
@@ -69,6 +70,8 @@ SERIES = {
     },
     "GSE60": {"Series_title": "Liver of 26 mouse strains"},
     "GSE70": {"Series_title": "Intestine of a mouse and a worm"},
+    "GSE80": {"Series_title": "Liver of wild type and knockout mice"},
+    "GSE90": {"Series_title": "Liver of fed and fasted mice"},
 }
 SAMPLES = {
     "GSE10": {
@@ -101,6 +104,15 @@ SAMPLES = {
             "Sample_organism_ch1": [],
             "Sample_taxid_ch1": "6239",
         },
+    },
+    "GSE80": {
+        "GSM81": _sample("liver wild type", "liver", "RNA-Seq", "genotype: wild type"),
+        "GSM82": _sample("liver knockout", "liver", "RNA-Seq", "genotype: knockout"),
+    },
+    "GSE90": {
+        "GSM91": _sample("liver fed", "liver", "RNA-Seq", "diet: fed"),
+        "GSM92": _sample("liver fasted 1", "liver", "RNA-Seq", "diet: fasted"),
+        "GSM93": _sample("liver fasted 2", "liver", "RNA-Seq", "diet: fasted"),
     },
 }
 #: The one paper: an abstract, and a full text whose white space differs from the writer's quote.
@@ -361,6 +373,29 @@ LISTS: dict[str, dict[str, Any]] = {
             "development_stage": _values({"text": "adult"}),
         },
     },
+    "GSE80": {
+        "factors": [
+            {
+                "label": "genotype",
+                "baseline": "wild type",
+                "levels": [
+                    {"name": "wild type", "text": "wild type"},
+                    {"name": "knockout", "text": "knockout"},
+                ],
+            }
+        ],
+        "labels": {"tissue": _values({"text": "liver"})},
+    },
+    "GSE90": {
+        "factors": [
+            {
+                "label": "diet",
+                "baseline": "fed",
+                "levels": [{"name": "fed", "text": "fed"}, {"name": "fasted", "text": "fasted"}],
+            }
+        ],
+        "labels": {"tissue": _values({"text": "liver"})},
+    },
 }
 
 #: Each sample's value texts, as Jev picks them; a label it has none of is na.
@@ -380,14 +415,23 @@ TRUTH = {
     "GSM61": frozenset({"strain 0"}),
     "GSM71": frozenset({"intestine", "adult"}),
     "GSM72": frozenset({"intestine"}),
+    "GSM81": frozenset({"wild type", "liver"}),
+    "GSM82": frozenset({"knockout", "liver"}),
+    "GSM91": frozenset({"fed", "liver"}),
+    "GSM92": frozenset({"fasted", "liver"}),
+    "GSM93": frozenset({"fasted", "liver"}),
 }
+#: Jev's p(yes) that the study varied a factor on purpose, asked plain and then negated, by the
+#: factor's label; any other factor gets 0.9 and 0.1. Jev says yes to both askings about the GSE50
+#: treatment, and exactly 0.5 to the plain asking about the GSE80 genotype.
+VARIED = {"treatment": (0.9, 0.8), "genotype": (0.5, 0.1)}
+#: The level of each factor Jev calls a study's reference.
+BASELINES = ("young", "vehicle", "wild type", "fed")
+#: The samples whose level Jev leaves unanswered, in both askings.
+NO_LEVEL = ("GSM93",)
 
 
 def _writer(form: dict[str, Any]) -> str:
-    # The gateway's rule, which its fake does not keep: a DeepSeek schema is a strict function
-    # call, and a strict function call with thinking on is refused before any paid call.
-    if form["provider"] == "deepseek" and form["settings"]["thinking"] and form.get("schema"):
-        raise Rejected("DeepSeek strict function calls need thinking off")
     user = form["messages"][-1]["content"]
     study = re.search(r"=== GEO Series (GSE\d+) ===", user)
     assert study is not None
@@ -399,26 +443,31 @@ def _writer(form: dict[str, Any]) -> str:
     return json.dumps(LISTS[key])
 
 
-def _noul(name: str, question: dict[str, Any]) -> float:
-    if name.endswith("_varied_negated"):
-        # Jev says yes to both askings about the GSE50 treatment: the two disagree.
-        return 0.8 if "treatment" in question["instructions"] else 0.1
-    if name.endswith("_ordered"):
-        return 0.9 if " age " in question["instructions"] else 0.1
+def _p_yes(asked: str) -> float:
+    """Jev's p(yes), by what the question is about."""
+    if varied := re.match(r"Did the study vary (\w+) on purpose", asked):
+        return VARIED.get(varied.group(1), (0.9, 0.1))[0]
+    if negated := re.match(r"Is (\w+) \(values: .* only a description", asked, re.DOTALL):
+        return VARIED.get(negated.group(1), (0.9, 0.1))[1]
+    if ordered := re.match(r"Do the levels of (\w+) ", asked):
+        return 0.9 if ordered.group(1) == "age" else 0.1
     return 0.9
 
 
-def _choose(name: str, question: dict[str, Any], sample: str | None) -> tuple[str, float]:
-    options: dict[str, str] = question["criteria"]
-    if name.endswith(("_baseline", "_baseline_reversed")):
-        return next(k for k, v in options.items() if v in ("young", "vehicle")), 0.9
-    if name.startswith("gap_"):
+def _choose(asked: str, options: dict[str, str], sample: str | None) -> tuple[str, float] | None:
+    """Jev's pick and its probability, by what the question is about; ``None`` leaves it out."""
+    if "is the reference" in asked:
+        return next(k for k, v in options.items() if v in BASELINES), 0.9
+    if " what about their " in asked:
         return "na", 0.9
-    if name == "donor":
+    if asked.startswith("Where did each"):
         return "one_each", 0.8
-    if name.startswith("o"):
-        return "c0", 0.95 if options["c0"].startswith(("UBERON", "WBbt")) else 0.6
+    if asked.startswith("Which ontology term"):
+        first = next(iter(options))
+        return first, 0.95 if options[first].startswith(("UBERON", "WBbt")) else 0.6
     assert sample is not None
+    if sample in NO_LEVEL and re.match(r"Which \w+ does `sample` have\?", asked):
+        return None
     for k, text in options.items():
         if any(text.endswith((f"= {v}", f" is {v}")) for v in TRUTH[sample]):
             return k, 0.9
@@ -431,22 +480,19 @@ def _jev(form: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for name, question in form["questions"].items():
         if question["type"] == "noul":
-            out[name] = {"noul": _noul(name, question)}
-        else:
-            choice, p = _choose(name, question, sample)
-            out[name] = {"choice": choice, "probabilities": {choice: p}}
+            out[name] = {"noul": _p_yes(question["instructions"])}
+        elif picked := _choose(question["instructions"], question["criteria"], sample):
+            out[name] = {"choice": picked[0], "probabilities": {picked[0]: picked[1]}}
     return out
 
 
 def _serve(monkeypatch: pytest.MonkeyPatch, here: Path) -> FakeGateway:
     """The stores, the ontology store and the fake gateway behind the commands, run from ``here``."""
-    fake = FakeGateway(
+    _stores(monkeypatch)
+    fake = gateway_kit.install(
+        monkeypatch,
         lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
         prices={closed.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
-    )
-    _stores(monkeypatch)
-    monkeypatch.setattr(
-        "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
     )
     ontologies = build_tiny_store(here / "ontologies", VOCABULARIES)
     monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
@@ -473,7 +519,7 @@ def _bounds(key: str) -> str:
 def read(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[tuple[Path, dict[str, Any], FakeGateway]]:
-    """One pass over the studies of a folder, written beside the folder's own files."""
+    """One pass over every study of the store, written beside the folder's own files."""
     here = tmp_path_factory.mktemp("reader")
     set_dir = here / "set"
     for key in SERIES:
@@ -612,6 +658,37 @@ def test_a_study_whose_two_askings_disagree_is_unsettled_and_still_written(
     assert reading["ontology_snapshot"] == {
         "source": "liulab-data ontology store: ncbitaxon-2026-11-22",
         "date": PINNED_ON[0],
+    }
+
+
+def test_a_probability_of_exactly_one_half_is_neither_yes_nor_no_and_leaves_the_study_unsettled(
+    read: tuple[Path, dict[str, Any], FakeGateway],
+) -> None:
+    """Jev's p(yes) that GSE80 varied its genotype on purpose is exactly 0.5, and its p(yes) to
+    the negated question is 0.1. At 0.5 Jev leans neither way, so the two askings do not agree:
+    the study is unsettled. The genotype is not kept as a factor, so it stays a label."""
+    set_dir, said, _ = read
+    reading = _reading(set_dir, "GSE80")
+
+    assert said["GSE80"]["ending"] == "unsettled"
+    assert "factor genotype: varied on purpose" in said["GSE80"]["checks_failed"][0]
+    assert reading["factors"] == {}
+    assert _claim(reading, "GSM82", "genotype")["text"] == "knockout"
+
+
+def test_a_question_jev_leaves_unanswered_is_an_unknown_claim_and_leaves_the_study_unsettled(
+    read: tuple[Path, dict[str, Any], FakeGateway],
+) -> None:
+    """Jev leaves GSM93's diet unanswered, in both askings. Its claim is unknown with no
+    probability, and two missing answers do not agree: the study is unsettled, naming the sample."""
+    set_dir, said, _ = read
+    reading = _reading(set_dir, "GSE90")
+
+    assert said["GSE90"]["ending"] == "unsettled"
+    assert "GSM93: level of diet" in said["GSE90"]["checks_failed"][0]
+    assert reading["samples"]["GSM93"]["diet"] == {
+        "unknown": "what was read does not say its diet",
+        "p": None,
     }
 
 
@@ -777,7 +854,7 @@ def test_the_reading_pass_refuses_to_start_without_a_store_it_reads(
         raise NotAStoreError(f"{tmp_path / 'empty'} is not a paper store")
 
     papers = types.SimpleNamespace(reader=Papers())
-    fake = FakeGateway(lambda form: "{}", prices={})
+    fake = gateway_kit.install(monkeypatch, lambda form: "{}", prices={})
     (tmp_path / "empty").mkdir()
     if unopened != "record":  # the suite's own stub leaves no record store set up
         monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
@@ -786,7 +863,6 @@ def test_the_reading_pass_refuses_to_start_without_a_store_it_reads(
         "open_paper_store",
         no_paper_store if unopened == "paper" else lambda root=None: papers,
     )
-    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="s"))
     monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "empty"))
     monkeypatch.chdir(tmp_path)
     (tmp_path / "keys.txt").write_text("GSE10\n")

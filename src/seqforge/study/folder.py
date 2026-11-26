@@ -51,7 +51,7 @@ def pick_entries(folder: Path) -> dict[str, dict[str, Any]]:
     return {str(entry["id"]): entry for entry in pick["studies"]}
 
 
-def picked(folder: Path) -> list[str]:
+def picked_studies(folder: Path) -> list[str]:
     """The studies a pass over ``folder`` covers when it names none: its pick's, in order.
 
     Refuses the setup for a folder with no pick, whose studies only the pass can name.

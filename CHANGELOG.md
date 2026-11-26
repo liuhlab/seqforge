@@ -15,8 +15,9 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   with the count of each ending and the dollars spent, and exits 0 at the end of its units, 3 when
   it stops, and 2 for a setup it cannot use. A model name the gateway rejects, such as a misspelled
   one, is such a setup: the gateway's message goes to stderr. Rerunning the same command resumes
-  it, and every unit answered before comes back from the gateway's cache at no cost. No kind is
-  registered yet. The new "Passes" page of the docs describes it.
+  it, and every unit answered before comes back from the gateway's cache at no cost. Two kinds
+  are registered, `study-bounds` and `study-reading`. The new "Passes" page of the docs
+  describes it.
 - `seqforge pass status <kind>` reports where a kind's task stands: how many units have each
   ending, a person's review included, and, for each pass, its models, store build, ceiling and
   spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
@@ -25,6 +26,10 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
 
 ### Changed
 
+- `harvest extract`, `run` and `eval run` now exit 2, not 1, for a request the gateway rejects,
+  such as one for a model the gateway has no price for. `pass start` already did: the setup is
+  wrong, and running the same command again meets the same refusal. The four commands build their
+  gateway client, check `--ceiling-usd` and refuse a missing gateway address in one shared module.
 - Python 3.13 is now the minimum supported version (`requires-python = ">=3.13"`). Every pixi
   environment already ran 3.13, so the old 3.12 floor had no test behind it.
 - The package version now comes from the git tag, through hatch-vcs. The release wheel is built

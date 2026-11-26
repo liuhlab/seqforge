@@ -144,14 +144,14 @@ seqforge pass start study-reading --ceiling-usd 2 --units-at-once 2
 seqforge study write-reading --out evals/standard-set --name job-reading.yaml
 ```
 
+With `--units-at-once 2`, at most eight model requests are in flight at once.
+
 In another folder, the reader reads the `bounds.yaml` that `write-bounds` wrote there:
 
 ```bash
 seqforge pass start study-reading --ceiling-usd 2 --studies <folder> --keys <keys-file>
 seqforge study write-reading --out <folder>
 ```
-
-With `--units-at-once 2`, at most eight model requests are in flight at once.
 
 **What it reads.** The reader reads the study's `bounds.yaml` in the folder, and liulab-data from
 `LABDATA_STORE` and `LABDATA_PAPERS`: the records of the Series that the bounds keep, the sequenced
@@ -211,7 +211,7 @@ study ends in one of three ways:
 | Ending | When | File |
 | --- | --- | --- |
 | Settled | Jev's two answers agree on every question asked twice | Written |
-| Unsettled | Jev's two answers disagree on whether a factor was varied on purpose, on its baseline, or on any sample's level | Written, with each probability |
+| Unsettled | Jev's two answers do not agree on whether a factor was varied on purpose, on its baseline, or on any sample's level. A missing answer, or a probability of exactly 0.5, never agrees | Written, with each probability |
 | Refused | The writer's answer cannot be used after one retry, or the reading fails the format check | None. `write-reading` prints the reason |
 
 ## 4. Check the reading
