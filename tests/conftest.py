@@ -917,7 +917,7 @@ def range_server(
     not know the length. That is the one shape in which the total is genuinely unavailable, so it is
     the only way to reach the caller's fall back to bytes-read; a numeric total can never exercise it.
 
-    It lives here, not in ``test_remote.py``, because ``test_observation_sources.py`` also needs it
+    It lives here, not in ``test_io_remote.py``, because ``test_observation_sources.py`` also needs it
     and a test file importing another test file's private helper is a seam being routed around.
     """
 

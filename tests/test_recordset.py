@@ -6,7 +6,7 @@ back — permanently inside the dataset hash, and nothing downstream notices. Th
 tested for the opposite property: a cache ``io records`` wrote must load unchanged.
 
 The draft's no-op guarantee and its CLI refusals live in ``tests/test_cli.py``; what a loaded set
-does to a resolution lives in ``tests/test_records.py``.
+does to a resolution lives in ``tests/test_resolve_records.py``.
 """
 
 from __future__ import annotations

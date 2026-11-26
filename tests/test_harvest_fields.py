@@ -7,7 +7,7 @@ that vocabulary directly.
 The boundary against the two neighbouring files is the *subject*, not the import. A test that drives
 ``verify_drafts`` and happens to read ``PERMITTED_FIELDS`` as its oracle belongs in
 ``test_harvest.py``, because a defect in ``verify`` is what turns it red; the same goes for
-``test_prompt_names_only_permitted_fields`` in ``test_extract.py``, whose subject is the prompt. Only
+``test_prompt_names_only_permitted_fields`` in ``test_harvest_extract.py``, whose subject is the prompt. Only
 tests that go red when *this table* changes live here.
 """
 

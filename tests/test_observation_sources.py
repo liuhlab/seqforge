@@ -9,8 +9,8 @@
 | `io.sra.probe_sra` | a re-serialized spot stream | the ENA md5, else a synthetic whole-run address |
 | `fingerprint.probed_from_fingerprint` | a head-slice | a **pin** — the identity of a file it is not reading |
 
-Nothing asserted that they agree. `test_probe.py` covers the local path, `test_remote.py` and
-`test_sra.py` each cover their own, and `test_fingerprint.py` compares two paths *against each other*
+Nothing asserted that they agree. `test_probe.py` covers the local path, `test_io_remote.py` and
+`test_io_sra.py` each cover their own, and `test_fingerprint.py` compares two paths *against each other*
 -- so all four could drift together, or one could drift alone, without a red test. "A URL resolves to
 a library exactly as a local file does" is the claim `probe_remote`'s docstring makes and this is the
 only place it is checked.
@@ -114,7 +114,7 @@ def _write_local(path: Path, records: list[tuple[str, str, str]]) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# the SRA stream seam, faked exactly as tests/test_sra.py fakes it
+# the SRA stream seam, faked exactly as tests/test_io_sra.py fakes it
 # --------------------------------------------------------------------------- #
 
 

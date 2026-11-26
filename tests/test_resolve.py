@@ -5,7 +5,7 @@ One file per package, so an agent editing ``resolve/`` knows which file to run. 
 beside ``test_resolve``) named after the issue that added them, so "where are the tests for
 ``escalate.py``?" had no answer short of grepping all six.
 
-The other resolver — records + prose, "which sample is each file" — is ``test_records.py``. The two
+The other resolver — records + prose, "which sample is each file" — is ``test_resolve_records.py``. The two
 are siblings, and they part on disagreement (see ``resolve/records.py``); they do not share a file.
 """
 
@@ -1069,7 +1069,7 @@ def test_chemistry_of_sha_maps_each_file_to_its_runs_chemistry(two_chemistry_mul
 
 def _metadata_over(**samples: list[str]) -> MetadataResolution:
     """A `MetadataResolution` carrying just the sample -> files map, which is all `reduce_dataset`
-    reads. Built by hand rather than resolved: the join is `test_records.py`'s subject, and what is
+    reads. Built by hand rather than resolved: the join is `test_resolve_records.py`'s subject, and what is
     under test here is which gate a given map opens."""
     return MetadataResolution(
         samples=[
