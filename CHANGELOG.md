@@ -23,10 +23,13 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
   Its `not_done` list names each unit whose latest outcome is unfinished or held, with the reason
   and the pass, such as a study held for a missing bounds file. It reads the task folder only and
-  takes no hold, so it works with the gateway down and while a pass runs. `study write-bounds`
-  and `study write-reading` take no hold either, so they do not refuse while a pass runs: they
-  write the answers recorded so far and never replace a file. Run them once the pass has ended.
-- seqforge now depends on liulab-llms (2026.11.9 or later), from PyPI.
+  takes no hold, so it works with the gateway down and while a pass runs.
+- `seqforge study write-bounds` and `seqforge study write-reading` refuse a task that a pass
+  holds. They exit 3 with `stopped: task_in_use`, name the holder and the time it took the hold,
+  and write no file. A file once written is never replaced, so a write during a pass would keep
+  an earlier pass's answer for each study the pass has not reached. Run the command again once the
+  pass ends.
+- seqforge now depends on liulab-llms (2026.11.10 or later), from PyPI.
 
 ### Changed
 
@@ -37,7 +40,7 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
 - Harvest and the study reading job read the JSON out of a reply sent with no schema by one rule,
   liulab-llms's: the whole reply is JSON, or the reply holds exactly one fenced block. The reading
   job used to take the first JSON object anywhere in the reply, so a writer's answer with an object
-  among prose and no fence is now asked for once more. Needs `liulab-llms>=2026.11.9`.
+  among prose and no fence is now asked for once more. Needs `liulab-llms>=2026.11.10`.
 - The study reading job asks Jev each sample's label values once. The second asking, with the
   options reversed, holds only the sample's level on each factor, the one answer it compares, so
   each second request is shorter. How a study ends does not change.
@@ -109,7 +112,8 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
 
 - `seqforge eval run --trials N` now asks the model for a fresh answer on each trial, by sending
   trial k as replicate k. Through the lab gateway, trials 2 to N used to get trial 1's cached reply,
-  so stability always read 1. Needs `liulab-llms>=2026.11.9`; the compiler's own calls are unchanged.
+  so stability always read 1. Needs `liulab-llms>=2026.11.10`; the compiler's own calls are
+  unchanged.
 - Scoring reads against a shipped barcode onlist no longer converts the whole onlist to a wider
   integer type on every lookup. Each lookup against the 6.8 million barcodes of `3M-february-2018`
   took about 9 ms and now takes about 0.04 ms; the result is the same.
