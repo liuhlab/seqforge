@@ -230,9 +230,7 @@ def test_the_ids_a_human_would_actually_type_still_load(tmp_path: Path, ident: s
         pytest.param("sample_id", "plateA", id="sample_id"),
         # Prose on a hand-written record reaches no model and no claim, so it is one more key the
         # file has no use for — refused like any other, and pointed where what a sample was lives.
-        pytest.param(
-            "free_text", [{"label": "note", "text": "daf-2 replicate 3"}], id="free_text"
-        ),
+        pytest.param("free_text", [{"label": "note", "text": "daf-2 replicate 3"}], id="free_text"),
     ],
 )
 def test_an_unknown_key_on_a_record_is_refused(tmp_path: Path, key: str, value: Any) -> None:
