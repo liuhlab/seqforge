@@ -18,15 +18,15 @@ runner = CliRunner()
 @pytest.mark.repo
 def test_the_standard_set_lists_fifty_studies_each_with_identifiers_reason_and_bounds() -> None:
     """The repo's own set, through the listing command: every study still in the pick is drawn, and
-    nothing else is. A study added or dropped without the pick, a direction split that drifted, a
+    nothing else is, in the pick's order. A study added or dropped without the pick, a direction split that drifted, a
     study file missing what later stages read, or a bounds file or a worked reading that is not in
     the current format goes red here."""
-    from seqforge.standard_set import default_set_dir, pick_entries
+    from seqforge.study.folder import default_set_dir, pick_entries
 
     listed = {s["id"]: s for s in json.loads(runner.invoke(app, ["standard-set", "list"]).stdout)}
     picked = pick_entries(default_set_dir())
 
-    assert sorted(listed) == sorted(picked)
+    assert list(listed) == list(picked), "the listing reads the pick, in the pick's order"
     by_direction = [s["direction"] for s in listed.values()]
     assert {d: by_direction.count(d) for d in set(by_direction)} == {
         "aging": 17,
