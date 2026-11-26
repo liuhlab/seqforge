@@ -430,7 +430,7 @@ def test_verify_still_accepts_every_permitted_field(tmp_path: Path) -> None:
 
 
 # The allowlist's own truth table -- an exact match, not a prefix rule -- lives in
-# `tests/test_fields.py`, beside the vocabulary it reads. What stays here is `verify` consulting it.
+# `tests/test_harvest_fields.py`, beside the vocabulary it reads. What stays here is `verify` consulting it.
 
 
 # ---------- doc role: only a document you hand us may steer the pipeline ----------
