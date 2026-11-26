@@ -8,7 +8,6 @@ from pathlib import Path
 import typer
 
 from ..harvest.seam import DEFAULT_CEILING_USD
-from .harvest import bad_ceiling
 from .root import eval_app
 
 
@@ -126,7 +125,6 @@ def eval_run(
     ceiling_usd: float = typer.Option(
         DEFAULT_CEILING_USD,
         "--ceiling-usd",
-        min=0,
         help="The most each case may spend, in dollars. A case whose calls stop (this ceiling, "
         "the provider's balance, the provider or the gateway down) is blocked, not graded, and "
         "the run exits 3.",
@@ -150,18 +148,19 @@ def eval_run(
 
     Each case's calls go through one liulab-llms meter at `$LABLLM_GATEWAY`, under `--ceiling-usd`.
     A case whose calls stop is reported with a `Blocker` instead of a grade and the run exits 3.
-    `--no-llm` reaches no gateway.
+    `--no-llm` reaches no gateway. Exit 2 for a setup it cannot use: a bad option, no gateway
+    address, or a request the gateway rejects.
 
     It writes a run directory under `-C`: `report.json`, and one `transcripts/<case>.jsonl` per case
     that reached a model. **Stdout is unchanged in shape** and gains the paths, not the contents — a
     thousand-exchange transcript cannot ride on a stream that IS the result object. `seqforge eval
     report <that directory>` renders it.
     """
-    from labllm import GatewayUnreachable, Rejected
+    from labllm import Rejected
 
     from ..evals import CaseError, Grade, load_cases, run_cases
+    from ..gateway import SetupRefused, check_ceiling, make_gateway
     from ..harvest import harvest_model
-    from ..passes import gateway as gateway_module
     from ..workspace import EVAL_REPORT_FILENAME, eval_dir
 
     try:
@@ -173,24 +172,14 @@ def eval_run(
         typer.echo("no cases found", err=True)
         raise typer.Exit(2)
 
-    if refused := bad_ceiling(ceiling_usd):
-        typer.echo(refused, err=True)
-        raise typer.Exit(2)
     try:
+        check_ceiling(ceiling_usd)
         chosen = harvest_model(provider, model)
-    except ValueError as exc:
+        # Built only for `--llm`, so `--no-llm` reaches no gateway.
+        client = make_gateway() if llm else None
+    except (SetupRefused, ValueError) as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(2) from exc
-
-    client = None
-    if llm:
-        # Built only for `--llm`, so `--no-llm` reaches no gateway.
-        try:
-            client = gateway_module.make_gateway()
-        except GatewayUnreachable as exc:
-            # No usable gateway address is a setup the command cannot use, as for `pass start`.
-            typer.echo(f"no gateway address: {exc}", err=True)
-            raise typer.Exit(2) from exc
     try:
         report, runs = run_cases(
             cases,
@@ -203,9 +192,9 @@ def eval_run(
             workspace=workspace,
         )
     except Rejected as exc:
-        # A request the gateway rejects as malformed or unauthorized is a bug, not a stop.
+        # A request the gateway rejects is a setup to fix, as in `harvest extract`: not a stop.
         typer.echo(json.dumps({"error": "rejected", "detail": str(exc)}, indent=2), err=True)
-        raise typer.Exit(1) from exc
+        raise typer.Exit(2) from exc
     rendered = json.dumps(report.model_dump(mode="json"), indent=2)
     # The same bytes to both, which is the point of the file: CI used to `tee` stdout into a path it
     # invented, so the artifact existed only as long as the shell line that made it. The verb owns

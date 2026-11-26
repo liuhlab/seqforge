@@ -25,6 +25,7 @@ from labllm import Rejected
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
+import gateway_kit
 from seqforge.cli import app
 from seqforge.passes.kinds import KINDS
 from seqforge.study import reader
@@ -434,15 +435,13 @@ def read(
         return reader.reading_kind(Store(), Papers(), set_dir=set_dir, search=OPENED[-1])
 
     kind = dataclasses.replace(reader.KIND, build=build, reads_store=False)
-    fake = FakeGateway(
-        lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
-        prices={reader.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
-    )
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setitem(KINDS, kind.name, kind)
-        monkeypatch.setattr(
-            "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
+        fake = gateway_kit.install(
+            monkeypatch,
+            lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
+            prices={reader.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
         )
+        monkeypatch.setitem(KINDS, kind.name, kind)
         monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
         monkeypatch.chdir(here)
         (here / "keys.txt").write_text("\n".join(SERIES) + "\n")
@@ -660,11 +659,10 @@ def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
     variable, rather than read with no search."""
     import labdata
 
-    fake = FakeGateway(lambda form: "{}", prices={})
+    fake = gateway_kit.install(monkeypatch, lambda form: "{}", prices={})
     # The module's pass holds its own build of the kind until the module ends: run the real one.
     monkeypatch.setitem(KINDS, reader.KIND_NAME, reader.KIND)
     monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
-    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="s"))
     (tmp_path / "empty").mkdir()
     monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "empty"))
     monkeypatch.chdir(tmp_path)

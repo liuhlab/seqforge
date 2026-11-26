@@ -244,7 +244,7 @@ def run_case(
     Deterministic cases ignore ``trials`` (re-running identical bytes measures nothing).
 
     An ``llm`` case's calls go through one liulab-llms meter on ``gateway`` (the one
-    :func:`seqforge.passes.gateway.make_gateway` builds when none is given), labelled by the case and
+    :func:`seqforge.gateway.make_gateway` builds when none is given), labelled by the case and
     spanning its trials, to ``model`` (harvest's default when none is given). ``ceiling_usd`` is
     **per case**, because a case is a dataset and the ceiling bounds a dataset. A corpus-wide one
     would stop the whole run at the first expensive case and never grade the thirteen behind it,
@@ -297,9 +297,9 @@ def run_case(
         # cases x N exchanges of held text is memory nothing will ever read.
         seam: ModelSeam | None = None
         if use_llm:
-            from ..passes import gateway as gateway_module
+            from ..gateway import make_gateway
 
-            client = gateway if gateway is not None else gateway_module.make_gateway()
+            client = gateway if gateway is not None else make_gateway()
             seam = ModelSeam(
                 client.meter(case.id, ceiling_usd=ceiling_usd),
                 model or harvest_model(),

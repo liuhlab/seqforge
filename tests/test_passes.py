@@ -22,6 +22,7 @@ from labllm import Reviews, Task
 from labllm.testing import FakeGateway
 from typer.testing import CliRunner
 
+import gateway_kit
 from conftest import StubStore
 from passes_kit import (
     ECHO_PRICES,
@@ -32,7 +33,6 @@ from passes_kit import (
     echo_writer,
 )
 from seqforge.cli import app
-from seqforge.passes import gateway
 from seqforge.passes.kinds import KINDS, Kind
 
 runner = CliRunner()
@@ -69,11 +69,7 @@ def _serve(
     monkeypatch: pytest.MonkeyPatch, provider: Callable[[dict[str, Any]], str]
 ) -> FakeGateway:
     """liulab-llms's fake gateway, with ``provider`` playing the provider, behind the commands."""
-    fake = FakeGateway(provider, prices=ECHO_PRICES)
-    monkeypatch.setattr(
-        "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
-    )
-    return fake
+    return gateway_kit.install(monkeypatch, provider, prices=ECHO_PRICES)
 
 
 @pytest.fixture
@@ -208,18 +204,11 @@ def test_keys_file_runs_exactly_its_keys_in_its_order(
     assert [x.tag for x in echo_gateway.record] == ["u3", "u1"]
 
 
-def _no_gateway_address(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", _REAL_MAKE_GATEWAY)
-    monkeypatch.delenv("LABLLM_GATEWAY", raising=False)
-
-
 def _state_file_of_another_layout(monkeypatch: pytest.MonkeyPatch) -> None:
     TASK.mkdir(parents=True)
     (TASK / "state.sqlite").write_text("a file liulab-llms did not write")
 
 
-#: The real gateway seam, before a test's fixture replaces it with the fake's client.
-_REAL_MAKE_GATEWAY = gateway.make_gateway
 _SET_UP = ["echo", "--ceiling-usd", "1"]
 
 
@@ -236,7 +225,7 @@ _SET_UP = ["echo", "--ceiling-usd", "1"]
         pytest.param(
             [*_SET_UP, "--keys", "absent.txt"], None, "cannot read the keys file", id="keys-file"
         ),
-        pytest.param(_SET_UP, _no_gateway_address, "LABLLM_GATEWAY", id="no-gateway"),
+        pytest.param(_SET_UP, gateway_kit.without_address, "LABLLM_GATEWAY", id="no-gateway"),
         pytest.param(
             _SET_UP, _state_file_of_another_layout, "not a task's state file", id="layout"
         ),
@@ -431,7 +420,7 @@ def _gateway_refusing_connections(monkeypatch: pytest.MonkeyPatch, fake: FakeGat
 
 
 def _gateway_address_unset(monkeypatch: pytest.MonkeyPatch, fake: FakeGateway) -> None:
-    _no_gateway_address(monkeypatch)
+    gateway_kit.without_address(monkeypatch)
 
 
 @pytest.mark.parametrize("gateway_down", [_gateway_refusing_connections, _gateway_address_unset])

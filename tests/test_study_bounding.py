@@ -11,16 +11,17 @@ import datetime as dt
 import json
 import threading
 import types
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
 from labdata.store.model import RELATIONS, Link, Record
-from labllm.testing import FakeGateway, Price
+from labllm.testing import Price
 from typer.testing import CliRunner
 
+import gateway_kit
 from seqforge.cli import app
 from seqforge.passes.kinds import KINDS
 from seqforge.study import bounding
@@ -101,7 +102,7 @@ class Papers:
         }
 
 
-def _jev() -> FakeGateway:
+def _jev() -> Callable[[dict[str, Any]], dict[str, Any]]:
     """Plays Jev. The job asks a study's questions as written first, then reversed."""
     asked: set[str] = set()
     lock = threading.Lock()
@@ -117,7 +118,7 @@ def _jev() -> FakeGateway:
             out[name] = {"noul": JEV[record][reverse]}
         return out
 
-    return FakeGateway(answer, prices={bounding.JEV.name: Price(0.0, 0.0)})
+    return answer
 
 
 @pytest.fixture(scope="module")
@@ -128,12 +129,10 @@ def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict
         build=lambda store: bounding.bounds_kind(Store(), Papers()),
         reads_store=False,
     )
-    fake, here = _jev(), tmp_path_factory.mktemp("bounding")
+    here = tmp_path_factory.mktemp("bounding")
     with pytest.MonkeyPatch.context() as monkeypatch:
+        gateway_kit.install(monkeypatch, _jev(), prices={bounding.JEV.name: Price(0.0, 0.0)})
         monkeypatch.setitem(KINDS, kind.name, kind)
-        monkeypatch.setattr(
-            "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
-        )
         monkeypatch.chdir(here)
         (here / "keys.txt").write_text("GSE10\nGSE20\nGSE30\n")
         started = runner.invoke(
