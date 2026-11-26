@@ -31,7 +31,6 @@ from seqforge.cli import app
 from seqforge.passes.status import read_only_kind
 from seqforge.study import bounding, closed, reader
 from seqforge.study.lists import guide_text
-from seqforge.study.ontology_search import StoreSearch
 from seqforge.study.reading import check_reading, read_reading
 from seqforge.study.relations import relations
 
@@ -879,14 +878,14 @@ def test_the_reading_pass_refuses_to_start_without_a_store_it_reads(
     assert fake.record == []
 
 
-def test_the_store_search_pins_its_snapshots_on_the_utc_day_and_a_units_tag_names_them(
+def test_the_ontology_store_pins_its_snapshots_on_the_utc_day_and_a_units_tag_names_them(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The store's snapshots are named by UTC day, so the day a reading says they were pinned is
     the UTC day too, wherever the pass runs: here in a zone whose own date is another day.
 
     A store update changes no record yet can change a reading's terms, so a unit's inputs tag
-    names every snapshot the search pinned: a review of the old reading stops holding."""
+    names every snapshot the store pinned: a review of the old reading stops holding."""
     store = build_tiny_store(tmp_path / "store", VOCABULARIES)
     utc = dt.datetime.now(dt.UTC)
     # Twelve hours behind UTC is yesterday before noon UTC; fourteen ahead is tomorrow after it.
@@ -897,12 +896,12 @@ def test_the_store_search_pins_its_snapshots_on_the_utc_day_and_a_units_tag_name
             clock.setenv("LABDATA_ONTOLOGIES", str(store))
             time.tzset()
             assert dt.date.today() != utc.date()
-            search = StoreSearch()
+            ontology = reader.Ontology()
     finally:
         time.tzset()
-    search.close()
+    ontology.close()
 
-    assert search.date == utc.date()
+    assert ontology.date == utc.date()
 
     studies = tmp_path / "studies"
     (studies / "GSE20").mkdir(parents=True)
@@ -910,9 +909,9 @@ def test_the_store_search_pins_its_snapshots_on_the_utc_day_and_a_units_tag_name
     monkeypatch.setenv("LABDATA_ONTOLOGIES", str(store))
 
     def tag() -> str:
-        pinned = StoreSearch()
+        pinned = reader.Ontology()
         try:
-            kind = reader.reading_kind(Store(), None, folder=studies, search=pinned)
+            kind = reader.reading_kind(Store(), None, folder=studies, ontology=pinned)
             return kind.load("GSE20").tag
         finally:
             pinned.close()

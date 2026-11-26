@@ -40,10 +40,11 @@ import datetime
 import hashlib
 import threading
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any, TypeGuard
+from typing import TYPE_CHECKING, Any, TypeGuard, TypeVar
 
 from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
@@ -78,13 +79,10 @@ from .lists import (
     parse_lists,
     snake,
 )
-from .ontology_search import (
-    Candidate,
-    OntologySearch,
-    StoreSearch,
-    snapshot_source,
-)
 from .reading import FORMAT, check_reading
+
+if TYPE_CHECKING:
+    from labdata.ontology import Candidate, OntologyStore, Term
 
 KIND_NAME = name_of(__name__)
 #: Raise it when an instruction, a question, a guide, the answer's shape or a rule of writing the
@@ -102,6 +100,10 @@ TERM_AT = 0.8
 MOST_VALUES = 25
 #: The Jev requests one study sends at once.
 AT_ONCE = 4
+#: The most candidates one ontology search returns.
+MOST_CANDIDATES = 10
+#: What ``source`` in a reading's ``ontology_snapshot`` starts with, before the snapshots' names.
+STORE_SOURCE = "liulab-data ontology store"
 #: The most characters of a description Jev reads, for the study and for one sample.
 _STUDY_CAP, _SAMPLE_CAP = 90_000, 20_000
 ANSWER_SCHEMA: dict[str, Any] = {
@@ -594,7 +596,7 @@ class _Terms:
 
 def _terms(
     u: Unit,
-    search: OntologySearch,
+    ontology: Ontology,
     used: Mapping[tuple[str, str, str | None], Value],
     glossary: str,
 ) -> _Terms:
@@ -609,31 +611,31 @@ def _terms(
     """
     terms = _Terms()
     questions: dict[str, Asking] = {}
-    asked: dict[str, tuple[tuple[str, str, str | None], int, str | None]] = {}
+    asked: dict[str, tuple[tuple[str, str, str | None], int]] = {}
     wanted: dict[tuple[str, str, str | None], int] = {}
     for (label, text, vocab), value in used.items():
         rules, folded = label_row(label), text.strip().lower()
         if folded in rules.ids:
-            if (named := search.lookup(rules.ids[folded])) is not None:
+            if (named := _live(ontology, rules.ids[folded])) is not None:
                 terms.by_text[(label, text, vocab)] = named.id
                 terms.snapshots[named.id] = named.snapshot
             continue
         if vocab is None:
             continue
         if folded in rules.named_by:
-            if (whole := _whole_name(search, vocab, rules.named_by[folded])) is not None:
-                terms.by_text[(label, text, vocab)] = whole[0].id
-                terms.snapshots[whole[0].id] = whole[1]
+            if (whole := _whole_name(ontology, vocab, rules.named_by[folded])) is not None:
+                terms.by_text[(label, text, vocab)] = whole.id
+                terms.snapshots[whole.id] = whole.snapshot
             continue
         names = value.search if isinstance(value.search, list) else [value.search or text]
         names = [n for n in names if n and n.strip()][: 10 if rules.many_terms else 1]
         wanted[(label, text, vocab)] = len(names)
         for n, name in enumerate(names):
-            found = search.search(name.strip(), vocab)
+            found = _search(ontology, name.strip(), vocab)
             terms.searched += 1
-            if found.snapshot is None:
+            if vocab not in ontology.snapshots:
                 terms.not_held.add(vocab)
-            if not found.candidates:
+            if not found:
                 continue
             key = f"o{len(questions)}"
             questions[key] = Choice(
@@ -641,22 +643,22 @@ def _terms(
                 f'Which ontology term names the {label.replace("_", " ")} "{name}" (the text: "{text}")?',
                 (
                     *(
-                        Option(f"c{j}", f"{c.id} {c.name}", value=c)
-                        for j, c in enumerate(found.candidates[:10])
+                        Option(f"c{j}", f"{c.id} {c.name or c.text}", value=c)
+                        for j, c in enumerate(found[:10])
                     ),
                     Option("none", "none of these terms names it"),
                 ),
             ).first
-            asked[key] = ((label, text, vocab), n, found.snapshot)
+            asked[key] = ((label, text, vocab), n)
     answers = ask(
         u, JEV_ROLE, f"Ontology terms for the samples of a study.\n{glossary[:6000]}", questions
     )
     picked: dict[tuple[str, str, str | None], dict[int, str]] = defaultdict(dict)
-    for key, (which, n, snapshot) in asked.items():
-        if (pick := _listed(answers[key])) and pick[1] >= TERM_AT and snapshot:
+    for key, (which, n) in asked.items():
+        if (pick := _listed(answers[key])) and pick[1] >= TERM_AT:
             candidate: Candidate = pick[0].value
             picked[which][n] = candidate.id
-            terms.snapshots[candidate.id] = snapshot
+            terms.snapshots[candidate.id] = candidate.snapshot
     for which, ids in picked.items():
         if len(ids) == wanted[which]:
             ordered = [ids[n] for n in sorted(ids)]
@@ -666,16 +668,66 @@ def _terms(
     return terms
 
 
-def _whole_name(
-    search: OntologySearch, vocab: str, names: tuple[str, ...]
-) -> tuple[Candidate, str] | None:
-    """The first candidate whose whole text is one of ``names``, tried in order, and its snapshot."""
+def _whole_name(ontology: Ontology, vocab: str, names: tuple[str, ...]) -> Candidate | None:
+    """The first candidate whose whole text is one of ``names``, tried in order."""
     for name in names:
-        found = search.search(name, vocab)
-        for candidate in found.candidates:
-            if candidate.matched.strip().lower() == name and found.snapshot:
-                return candidate, found.snapshot
+        for candidate in _search(ontology, name, vocab):
+            if candidate.text.strip().lower() == name:
+                return candidate
     return None
+
+
+# ---------------------------------------------------------------- the ontology store
+
+_T = TypeVar("_T")
+
+
+class Ontology:
+    """liulab-data's ontology store, opened once and pinned until :meth:`close`.
+
+    The store is found through ``LABDATA_ONTOLOGIES`` or its per-user pointer; liulab-data's own
+    error, which names the variable, is raised when none can be opened. ``date`` is the UTC day it
+    was opened, because the store names its snapshots by UTC day, and ``snapshots`` maps each
+    vocabulary it holds to its pinned snapshot.
+
+    An open store answers only on the thread that opened it, and a pass reads several units at
+    once on threads of its own, so one thread of this object's opens the store and asks it every
+    question. Each search takes milliseconds, so the units queueing for it cost little.
+    """
+
+    def __init__(self) -> None:
+        from labdata.ontology import open_ontology_store
+
+        self.date = datetime.datetime.now(datetime.UTC).date()
+        self._owner = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ontology-store")
+        try:
+            self._store: OntologyStore = self._owner.submit(open_ontology_store).result()
+        except BaseException:
+            self._owner.shutdown()
+            raise
+        self.snapshots = self._store.snapshots
+
+    def on_its_thread(self, ask: Callable[[OntologyStore], _T]) -> _T:
+        """What ``ask`` returns when it asks the store, on the thread that opened it."""
+        return self._owner.submit(ask, self._store).result()
+
+    def close(self) -> None:
+        """Release the snapshots and the thread that read them."""
+        self.on_its_thread(lambda store: store.close())
+        self._owner.shutdown()
+
+
+def _search(ontology: Ontology, text: str, vocab: str) -> list[Candidate]:
+    """The store's candidates for ``text``, whole-text matches first; none for an unheld vocabulary."""
+    if vocab not in ontology.snapshots:
+        return []
+    return ontology.on_its_thread(lambda store: store.search(text, vocab, limit=MOST_CANDIDATES))
+
+
+def _live(ontology: Ontology, id: str) -> Term | None:
+    """The live term ``id`` names; ``None`` for an id no snapshot holds or one retired."""
+    term = ontology.on_its_thread(lambda store: store.lookup(id))
+    return None if term is None or term.name is None or term.obsolete else term
 
 
 # ---------------------------------------------------------------- the reading
@@ -683,9 +735,9 @@ def _whole_name(
 
 @dataclass(frozen=True)
 class _Context:
-    """What the kind's build fixes for every unit: the one open ontology search."""
+    """What the kind's build fixes for every unit: the one open ontology store."""
 
-    search: OntologySearch
+    ontology: Ontology
 
 
 def _read(u: Unit, context: _Context) -> dict[str, Any]:
@@ -764,14 +816,14 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
                 used.setdefault((label, value.text, vocabulary(label, taxid)), value)
     check_text = src.records_text(sources)[:40_000] + notes_text
     backing, tied, passages, counts = _check_passages(u, check_text, sources, claims, lists.ties)
-    terms = _terms(u, context.search, used, glossary)
+    terms = _terms(u, context.ontology, used, glossary)
 
     rows: dict[str, dict[str, Any]] = {g: {} for g in samples}
     groups = _biosamples(samples, tied)
     for g in samples:
         taxid = src.taxonomy(by_id[g])[1]
         rows[g].update(_material(g, groups, study["donor"]))
-        rows[g]["species"] = _species(sources, by_id[g], passages, context.search, terms)
+        rows[g]["species"] = _species(sources, by_id[g], passages, context.ontology, terms)
         for i, f in enumerate(kept):
             answer = picks[g][f"lvl{i}"]
             if pick := _listed(answer):
@@ -813,7 +865,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
         "read": _read_what(sources),
         "read_detail": _read_detail(sources),
     }
-    if snapshot := _snapshot(rows, shared, terms, context.search.date):
+    if snapshot := _snapshot(rows, shared, terms, context.ontology.date):
         reading["ontology_snapshot"] = snapshot
     reading |= {
         "passages": passages.by_number,
@@ -950,7 +1002,7 @@ def _species(
     sources: Mapping[str, Any],
     sample: Mapping[str, Any],
     passages: _Passages,
-    search: OntologySearch,
+    ontology: Ontology,
     terms: _Terms,
 ) -> dict[str, Any]:
     """A sample's species, from its own record: the organism as written, the taxonomy id as term.
@@ -959,7 +1011,7 @@ def _species(
     record that writes no organism takes the taxonomy's name for it.
     """
     name, taxid = src.taxonomy(sample)
-    named = search.lookup(taxid) if taxid else None
+    named = _live(ontology, taxid) if taxid else None
     if named is not None:
         terms.snapshots[named.id] = named.snapshot
     if not name:
@@ -1069,7 +1121,7 @@ def _snapshot(
     if not ids:
         return None
     return {
-        "source": snapshot_source({terms.snapshots[i] for i in ids}),
+        "source": f"{STORE_SOURCE}: {', '.join(sorted({terms.snapshots[i] for i in ids}))}",
         "date": opened.isoformat(),
     }
 
@@ -1125,16 +1177,16 @@ def reading_kind(
     papers: Any | None,
     *,
     folder: Path,
-    search: OntologySearch,
+    ontology: Ontology,
 ) -> UnitKind:
-    """The liulab-llms kind over liulab-data's record store, paper reader and ontology search.
+    """The liulab-llms kind over liulab-data's record store, paper reader and ontology store.
 
-    The paper reader may be ``None``. One ontology search serves the whole pass. Each study is read
+    The paper reader may be ``None``. One open ontology store serves the whole pass. Each study is read
     from its bounds file in ``folder``, and held when the file is missing or fails its check.
     """
     # A pass loads several units at once, and the stores' readers are not made for two threads.
     one_at_a_time = threading.Lock()
-    context = _Context(search)
+    context = _Context(ontology)
 
     def load_unit(key: str) -> Inputs:
         if not SERIES.fullmatch(key):
@@ -1150,7 +1202,7 @@ def reading_kind(
         text = src.records_text(sources) + "\n\n" + src.papers_text(sources, full=True)
         # A store update can change a reading's terms with no record changed, so the tag names
         # every snapshot pinned: which ones a study will search is not known until it is read.
-        identity = "\n".join([text, *guides, *search.snapshots])
+        identity = "\n".join([text, *guides, *sorted(ontology.snapshots.values())])
         tag = hashlib.sha256(identity.encode()).hexdigest()[:16]
         return Inputs({"sources": sources, "guides": guides, "writer_text": text}, tag=tag)
 
@@ -1182,13 +1234,15 @@ def _build(folder: Path) -> Built:
     store, build = record_store()
     papers = paper_reader()
     try:
-        search = StoreSearch()
+        ontology = Ontology()
     except (StoreNotConfiguredError, NotAStoreError, OntologyError) as exc:
         raise SetupRefused(
             f"kind {KIND_NAME!r} searches liulab-data's ontology store: {exc}"
         ) from exc
-    kind = reading_kind(store, papers, folder=folder, search=search)
-    return Built(kind, store_build=build, close=search.close)
+    kind = reading_kind(store, papers, folder=folder, ontology=ontology)
+    # The ontology store stays open for the life of the pass, so every unit reads the snapshots
+    # it pinned; the pass closes it when it ends.
+    return Built(kind, store_build=build, close=ontology.close)
 
 
 def reading_file(outcome: Outcome) -> dict[str, Any]:
