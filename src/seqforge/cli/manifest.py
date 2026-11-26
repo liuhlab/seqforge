@@ -69,7 +69,8 @@ def manifest_fill(
         None,
         "--assertions",
         help="Span-verified assertions from `harvest extract` (seqforge/assertions.json): the "
-        "chemistry hint, the organism, cells versus nuclei. Without this, prose contributes nothing.",
+        "chemistry hint, and the check that a staged document describes these reads. Without this, "
+        "prose contributes nothing.",
     ),
     assert_chemistry: str | None = typer.Option(
         None,
@@ -253,8 +254,8 @@ def _fill_manifest_pipeline(
 
     organism_taxid: int | None = None
     if organism is not None:
-        # A name, or a taxid typed by hand. `harvest` extracts `experiment.organism` as a NAME with a
-        # verified span -- the model already does its job -- so the join it needed was a lookup table.
+        # A name, or a taxid typed by hand, made a taxid by `io.taxonomy`. A harvested
+        # `experiment.organism` never fills this: it only checks a staged document against the records.
         try:
             organism_taxid = _resolve_organism(organism, offline=offline)
         except TaxonomyUnavailable as exc:

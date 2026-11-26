@@ -149,7 +149,7 @@ def star_index():
 # `ordered_fastqs`: a Snakefile is not importable, so a closure written inside one can never be
 # unit-tested, only run. Every one of those five now has a test.
 #
-# `required_config` follows the reads rather than the file: `workflows/__init__.py::argv_keys_read_by`
+# `required_config` follows the reads rather than the file: `workflows/module.py::argv_keys_read_by`
 # walks the renderer's AST for the `solo[...]` subscripts that used to be scanned out of this source,
 # which sees BOTH geometry branches where a scan could only ever see the one it took.
 
@@ -343,7 +343,7 @@ rule starsolo_count:
     # BOTH numbers are functions of snakemake's 1-based `attempt`: attempt 1 is `config["mem_mb"]`
     # exactly, so nothing changes for a sample that fits, and a sample killed for overrunning it gets
     # 2x and then 3x rather than failing identically twice. `config["mem_mb"]` still appears here as
-    # a literal subscript on purpose -- `workflows/__init__.py::keys_read_by` SCANS this source to
+    # a literal subscript on purpose -- `workflows/module.py::keys_read_by` SCANS this source to
     # compute `required_config`, and a key the scanner cannot see is a key the composer is not
     # obliged to emit, i.e. a KeyError on a compute node long after compose exited 0.
     #

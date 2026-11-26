@@ -397,13 +397,14 @@ def _harvest_extract_pipeline(
 
     assert extractor is not None
     report = verify_drafts(all_drafts, normalized, extractor=extractor)
-    # ...and only THEN fan. A claim is extended to the records the collapse folded away exactly when
-    # it has already survived every tripwire in `verify_drafts` — the field allowlist, the grep, the
-    # typed-column refusal and entailment — so a fan can never launder a claim past a check, and the
-    # per-member offsets are recomputed against each member's own text (`find_span`), never copied.
+    # ...and only THEN fan. The fan reports which records the collapse folded away a claim holds of,
+    # and only for a claim that has already survived every tripwire in `verify_drafts` — the field
+    # allowlist, the grep, the typed-column refusal and entailment — so a fan can never launder a
+    # claim past a check. It adds no assertion: the quote is grepped in each member's own text
+    # (`find_span`), and the claim still cites the document the model read.
     fan = fan_claims(report.assertions, plan)
-    # Every document the plan RENDERED, not only the ones it paid for: a fanned assertion cites a
-    # document that was never sent, so its subject must reach `resolve` and its bytes must reach disk.
+    # Every document the plan RENDERED, not only the ones it paid for: the fan names records whose
+    # documents were never sent, so their bytes must reach disk, each with its scope.
     every = plan.all_documents
     instruction_docs = frozenset(d.doc_sha256 for d in normalized if d.role == "instruction")
     # An OBJECT, not a bare list, and the `instruction_docs` key is the reason. Which documents were

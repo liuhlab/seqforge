@@ -15,8 +15,9 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   with the count of each ending and the dollars spent, and exits 0 at the end of its units, 3 when
   it stops, and 2 for a setup it cannot use. A model name the gateway rejects, such as a misspelled
   one, is such a setup: the gateway's message goes to stderr. Rerunning the same command resumes
-  it, and every unit answered before comes back from the gateway's cache at no cost. No kind is
-  registered yet. The new "Passes" page of the docs describes it.
+  it, and every unit answered before comes back from the gateway's cache at no cost. Two kinds
+  are registered, `study-bounds` and `study-reading`. The new "Passes" page of the docs
+  describes it.
 - `seqforge pass status <kind>` reports where a kind's task stands: how many units have each
   ending, a person's review included, and, for each pass, its models, store build, ceiling and
   spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
