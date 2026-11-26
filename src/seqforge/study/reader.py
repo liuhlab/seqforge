@@ -47,9 +47,16 @@ from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
 from ..passes import SetupRefused
 from ..passes.kinds import Kind, register
-from ..standard_set import BOUNDS, default_set_dir, pick_entries
 from . import sources as src
-from .claims import load
+from .folder import (
+    BOUNDS,
+    default_set_dir,
+    file_text,
+    model_name,
+    pick_entries,
+    text_problems,
+    write_files,
+)
 from .group import SERIES, paper_reader
 from .lists import (
     CODE_LABELS,
@@ -74,7 +81,6 @@ from .ontology_search import (
     snapshot_source,
     vocabulary,
 )
-from .publish import model_name, write_files
 from .reading import FORMAT, check_reading
 
 KIND_NAME = "study-reading"
@@ -1140,9 +1146,7 @@ def file_form(reading: Mapping[str, Any]) -> dict[str, Any]:
 
 def reading_problems(reading: Mapping[str, Any]) -> list[dict[str, str]]:
     """What the format check finds wrong with ``reading``, read back from the file it would be."""
-    text = yaml.safe_dump(file_form(reading), sort_keys=False, width=100, allow_unicode=True)
-    data, problems = load(text)
-    return problems or check_reading(data)
+    return text_problems(file_text(file_form(reading)), check_reading)
 
 
 # ---------------------------------------------------------------- the kind
@@ -1231,9 +1235,10 @@ def write_readings(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str
     """Write ``<out>/<key>/<name>`` for each study with an answer, and say how each study ended.
 
     A refused study gets no file, and its reason instead; a file already on disk is never
-    overwritten. See :func:`.publish.write_files`.
+    overwritten, and a file the format check rejects is not written. See
+    :func:`.folder.write_files`.
     """
-    return write_files(task, kind, out, name, reading_file)
+    return write_files(task, kind, out, name, reading_file, check_reading)
 
 
 def _keys(store: Any) -> Iterable[str]:
