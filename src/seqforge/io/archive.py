@@ -17,7 +17,7 @@ the comfortable assumption, and it was false.
 
 1. ``labdata.experiments_for`` expands *any* accession — GEO series, BioProject, study, run,
    BioSample — into the experiments underneath it, over NCBI Entrez. It replaced our own ENA/SOFT
-   routing because its ``elink`` route traverses a GEO *SuperSeries* (which owns no runs of its own)
+   routing, here and in ``io resolve``, because its ``elink`` route traverses a GEO *SuperSeries* (which owns no runs of its own)
    and a BioProject umbrella transitively — the recursion our SOFT parser missed, which lost a whole
    SuperSeries dataset while reporting success.
 2. NCBI's ``efetch db=sra`` returns one ``EXPERIMENT_PACKAGE`` per experiment, and a package is the
@@ -59,7 +59,7 @@ from ..models.records import (
     SubmittedFile,
 )
 from . import IO_VERSION
-from .remote import _MAX_RETRIES, RemoteError, _get, retry_delay
+from .remote import _MAX_RETRIES, RemoteError, _get, import_labdata, retry_delay
 
 #: A ``LabdataError`` message that names a TRANSIENT NCBI failure (a 5xx, a 429/rate-limit, a timeout)
 #: — worth a backoff-and-retry. Everything else (a malformed accession, a record with no SRA data) is
@@ -357,20 +357,21 @@ def parse_bioproject_set(xml: str) -> dict[str, list[RecordAttribute]]:
     return out
 
 
-def _experiments_for(accession: str) -> list[str]:
-    """Any accession -> the SRA experiment accessions under it, via ``labdata``.
+def experiments_under(accession: str) -> list[Any]:
+    """Any accession -> liulab-data's SRA experiments under it, each with its study and runs.
 
-    Delegated to :func:`labdata.experiments_for`, whose Entrez ``elink`` route traverses a GEO
-    *SuperSeries* (which owns no runs of its own) and a BioProject umbrella transitively — the case
-    our own GEO/SOFT recursion missed, silently losing the whole dataset while reporting success.
-    ``labdata`` is a lab package that ships with ``liulab-genome`` in ``liulab-runtime``, so
-    depending on it adds no environment the cluster does not already have.
+    The one answer to "which runs are under this accession", for ``io records`` and ``io resolve``
+    alike. Delegated to :func:`labdata.experiments_for`, whose Entrez ``elink`` route traverses a
+    GEO *SuperSeries* (which owns no runs of its own) and a BioProject umbrella transitively — the
+    case our own GEO/SOFT recursion missed, silently losing the whole dataset while reporting
+    success. ``labdata`` is a lab package that ships with ``liulab-genome`` in ``liulab-runtime``,
+    so depending on it adds no environment the cluster does not already have.
 
     ``labdata`` raises on a malformed accession or a failed request and returns an empty list for a
     record with no SRA data; both become a loud :class:`RemoteError` here, because an accession that
     was *given* and resolves to nothing is a refusal, not a silent omission from a permanent manifest.
     """
-    import labdata
+    labdata = import_labdata()
     from labdata.exceptions import LabdataError
 
     # Retry a TRANSIENT labdata failure (intermittent eutils 5xx/429) with backoff, exactly as
@@ -388,13 +389,17 @@ def _experiments_for(accession: str) -> list[str]:
                 attempt += 1
                 continue
             raise RemoteError(f"{accession}: could not resolve experiments: {exc}") from exc
-    accessions = sorted({e.accession for e in experiments})
-    if not accessions:
+    if not experiments:
         raise RemoteError(
             f"{accession}: no experiments found. It may be unreleased (status=hup), or a record "
             "that carries no raw SRA data."
         )
-    return accessions
+    return list(experiments)
+
+
+def _experiments_for(accession: str) -> list[str]:
+    """Any accession -> the SRA experiment accessions under it, sorted (:func:`experiments_under`)."""
+    return sorted({e.accession for e in experiments_under(accession)})
 
 
 def _sra_packages(experiments: list[str]) -> list[ArchiveRecord]:
@@ -483,7 +488,7 @@ def stored_records(accession: str) -> ArchiveRecordSet:
     :class:`RemoteError` when the configured root is not a store, since that is a broken setup a live
     fetch would hide.
     """
-    import labdata
+    labdata = import_labdata()
     from labdata.exceptions import (
         LabdataError,
         NotAStoreError,
