@@ -18,12 +18,12 @@ valid one.
 from __future__ import annotations
 
 import datetime
-import functools
 from collections.abc import Iterator, Mapping
 from typing import Any, Literal
 
 from pydantic import Field, PositiveInt, StrictBool, ValidationError
 
+from ..liulab_data import needed
 from .claims import (
     MARKS,
     Claim,
@@ -154,10 +154,10 @@ def _label_problems(
     elif not ((claim.text or "").strip() or claim.value is not None or (named and claim.id)):
         what = "text, value or id" if named else "text or value"
         yield where, f"a quoted or inferred claim says something: {what}"
-    if label == "species" and not claim.says:
-        yield where, "species is quoted or inferred, never unknown or na"
-    if label == "biosample" and not claim.id:
-        yield f"{where}.id", "missing: a biosample claim carries the id of the material"
+    if rules.always_known and not claim.says:
+        yield where, f"{label} is quoted or inferred, never unknown or na"
+    if rules.id_names and not claim.id:
+        yield f"{where}.id", f"missing: a {label} claim carries the id of {rules.id_names}"
     if claim.level is not None:
         if label not in factors:
             yield f"{where}.level", f"{label} is not a factor, so its claims name no level"
@@ -165,16 +165,14 @@ def _label_problems(
             yield f"{where}.level", f"{claim.level} is not a level of the factor {label}"
 
 
-@functools.cache
-def _prefixes() -> Mapping[str, tuple[str, ...]] | None:
-    """The id prefixes of each vocabulary's own terms, as liulab-data keeps them; ``None`` without it.
+def _prefixes() -> Mapping[str, tuple[str, ...]]:
+    """The id prefixes of each vocabulary's own terms, as liulab-data keeps them.
 
-    liulab-data is a pixi dependency and not a wheel one, so an installed copy can lack it.
+    Raises :class:`.liulab_data.LiulabDataMissing` without liulab-data: an id it cannot judge is
+    no reason to call the file invalid, so the check cannot run.
     """
-    try:
+    with needed():
         from labdata.ontology.vocabularies import VOCABULARIES
-    except ImportError:
-        return None
     return {v.name: v.prefixes for v in VOCABULARIES}
 
 
@@ -187,11 +185,6 @@ def _term_problem(rules: LabelRow, term: str, taxid: str | None) -> str | None:
     if term in rules.ids.values():
         return None
     prefixes = _prefixes()
-    if prefixes is None:
-        return (
-            "liulab-data is not importable, so the id cannot be checked against its vocabulary; "
-            "run seqforge from liulab-runtime, which ships it"
-        )
     named = (
         [rules.vocabulary_for(taxid)] if taxid else [rules.vocabulary, *rules.by_species.values()]
     )

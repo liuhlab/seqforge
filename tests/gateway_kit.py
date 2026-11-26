@@ -3,8 +3,9 @@
 :func:`fake` builds it, under the one rule of the real gateway's that its fake does not keep yet.
 Every command that calls a model builds its client with :func:`seqforge.gateway.make_gateway`;
 :func:`install` replaces that with a client of a :func:`fake`, for the harvest, `run`, `eval run`,
-study and pass tests alike, and :func:`without_address` puts the real one back with no gateway
-address set. No test builds a fake gateway or replaces the client any other way.
+study and pass tests alike, :func:`without_address` puts the real one back with no gateway
+address set, and :func:`forbidden` fails the test as soon as a command builds a client. No test
+builds a fake gateway or replaces the client any other way.
 """
 
 from __future__ import annotations
@@ -43,6 +44,15 @@ def without_address(monkeypatch: pytest.MonkeyPatch) -> None:
     """The real client builder behind every command, with ``$LABLLM_GATEWAY`` unset."""
     monkeypatch.setattr(gateway, "make_gateway", _MAKE_GATEWAY)
     monkeypatch.delenv("LABLLM_GATEWAY", raising=False)
+
+
+def forbidden(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fail the test the moment a command builds a gateway client, before any request."""
+
+    def make_gateway() -> object:
+        raise AssertionError("a gateway client was built")
+
+    monkeypatch.setattr(gateway, "make_gateway", make_gateway)
 
 
 def _keeping_the_rule(provider: Callable[[dict[str, Any]], Any]) -> Callable[[dict[str, Any]], Any]:

@@ -1,7 +1,7 @@
 """The format checks of a study's files and the relations of a reading, through ``seqforge study``.
 
 Every file here is written by hand in the test. The repo's own 50 bounds files are checked where the
-standard set is listed, in ``test_standard_set.py``.
+standard set is listed, in ``test_study_folder.py``.
 """
 
 from __future__ import annotations
@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import datetime
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -617,6 +618,22 @@ def test_a_factor_with_no_baseline_contrasts_each_pair_of_its_levels_once(tmp_pa
         (None, ["young", "old"]),
         (None, ["middle", "old"]),
     ]
+
+
+def test_a_reading_check_without_liulab_data_refuses_to_run_and_names_the_remedy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """liulab-data holds each vocabulary's id prefixes, and an installed copy of seqforge can lack
+    it. The check then cannot judge an id: it refuses the run as a setup it cannot use, and names
+    the remedy, rather than reject a file that is valid."""
+    monkeypatch.setitem(sys.modules, "labdata.ontology.vocabularies", None)
+    path = tmp_path / "reading.yaml"
+    path.write_text(yaml.safe_dump(READING, sort_keys=False))
+
+    result = runner.invoke(app, ["study", "check-reading", str(path)])
+
+    assert result.exit_code == 2
+    assert "liulab-runtime" in result.output
 
 
 def test_a_file_that_is_not_text_cannot_be_read(tmp_path: Path) -> None:

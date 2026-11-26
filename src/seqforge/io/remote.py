@@ -133,16 +133,16 @@ class RemoteError(RuntimeError):
 def import_labdata() -> Any:
     """liulab-data, or a refusal that says how to get it.
 
-    liulab-data is a pixi dependency and not a wheel one, so an installed copy of seqforge can lack
-    it. Every verb that reaches NCBI through it refuses with this one remedy instead of a traceback.
+    Every verb that reaches NCBI through it refuses with :mod:`seqforge.liulab_data`'s remedy
+    instead of a traceback.
     """
+    from ..liulab_data import LiulabDataMissing, needed
+
     try:
-        import labdata
-    except ImportError as exc:
-        raise RemoteError(
-            f"liulab-data is not importable ({exc}). Run seqforge from liulab-runtime, which ships "
-            "it, or install it: pip install git+https://github.com/liuhlab/liulab-data.git"
-        ) from exc
+        with needed():
+            import labdata
+    except LiulabDataMissing as exc:
+        raise RemoteError(str(exc)) from exc
     return labdata
 
 
@@ -449,9 +449,10 @@ def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, 
     ENA rejects a GEO accession outright, so liulab-data names the runs under one first, the same
     answer ``io records`` gets: it follows a SuperSeries down and a SubSeries to its own runs. ENA is
     then asked once per study for the FASTQ links and sizes, and only the accession's own runs are
-    kept, since a study can hold runs of other GEO records. `studies` reports which studies. This
-    reports declared facts and abstains loudly; it never guesses a chemistry — that is resolve's job,
-    from bytes.
+    kept, since a study can hold runs of other GEO records. `studies` reports which studies, and
+    `runs_not_in_ena` the accession's runs that ENA's report lacks, so none is dropped silently.
+    This reports declared facts and abstains loudly; it never guesses a chemistry — that is
+    resolve's job, from bytes.
     """
     acc = accession.strip()
     kind = classify_accession(acc)
@@ -462,6 +463,7 @@ def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, 
         )
 
     studies: list[str] = []
+    not_in_ena: list[str] = []
     if kind in ("geo_series", "geo_sample"):
         from .archive import experiments_under  # archive builds on this module
 
@@ -469,6 +471,7 @@ def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, 
         studies = sorted({e.study for e in experiments if e.study})
         wanted = {run.accession for e in experiments for run in e.runs}
         runs = [r for s in studies for r in ena_filereport(s) if r.get("run_accession") in wanted]
+        not_in_ena = sorted(wanted - {r.get("run_accession") for r in runs})
     else:
         runs = ena_filereport(acc)
 
@@ -488,6 +491,7 @@ def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, 
         "kind": kind,
         "studies": studies,
         "n_runs": len(entries),
+        "runs_not_in_ena": not_in_ena,
         "n_runs_missing_technical_read": sum(1 for e in entries if e.get("technical_read_dropped")),
         "runs": entries,
     }

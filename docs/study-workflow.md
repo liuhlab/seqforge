@@ -205,13 +205,14 @@ is the UTC day the pass opened the store, because the store names its snapshots 
 
 **What it writes.** `seqforge study write-reading --out <folder>` writes each study's answer as
 `<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file,
-and it writes no file whose exact text the format check rejects. For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
+and it writes no file whose exact text the format check rejects: it writes the others and exits 3,
+as `write-bounds` does. For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
 study ends in one of three ways:
 
 | Ending | When | File |
 | --- | --- | --- |
 | Settled | Jev's two answers agree on every question asked twice | Written |
-| Unsettled | Jev's two answers do not agree on whether a factor was varied on purpose, on its baseline, or on any sample's level. A missing answer, or a probability of exactly 0.5, never agrees | Written, with each probability |
+| Unsettled | Jev's two answers do not agree on whether a factor was varied on purpose, on its baseline, or on any sample's level. A missing answer, or a probability of exactly 0.5, never agrees. Or Jev leaves unanswered a question it is asked once: a sample's label value or a label with no listed value, whose claim is then `unknown` with no probability, where the material came from, whether a factor's levels are ordered, a passage check, a tie or a term pick | Written, with each probability |
 | Refused | The writer's answer cannot be used after one retry, or the reading fails the format check | None. `write-reading` prints the reason |
 
 ## 4. Check the reading

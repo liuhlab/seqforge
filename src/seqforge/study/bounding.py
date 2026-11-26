@@ -8,7 +8,7 @@ holds it.
 Code keeps the starting Series in the study, or each sub-Series when it starts from a SuperSeries,
 and leaves every SuperSeries out. Jev, a model that answers yes/no questions with a probability, is
 asked about every other Series and every paper of the group twice, as a closed question of
-:mod:`.closed`: as written, then reversed. A record is in the study when Jev's answer to the
+:mod:`.closed`: as written, then negated. A record is in the study when Jev's answer to the
 question as written is yes. The answer is the bounds file and Jev's two answers for each record
 asked, saved as every job saves them, since the file has no place for a kept paper's probability.
 
@@ -50,7 +50,7 @@ ANSWER_SCHEMA: dict[str, Any] = {
 
 
 def _question(record: str, target: str) -> YesNo:
-    """Jev's question about ``record``, as written and reversed. ``target`` names the study."""
+    """Jev's question about ``record``, as written and negated. ``target`` names the study."""
     if record.startswith("GSE"):
         return YesNo(
             record,
@@ -80,7 +80,7 @@ def _name(record: str) -> str:
 def _ask(u: Unit, text: str, askings: dict[str, Asking]) -> dict[str, Answer]:
     """Jev's answer to each asking, in one call. A question left unanswered refuses."""
     answers = ask(u, ROLE, text, askings)
-    if missing := [askings[n].question.about for n, a in answers.items() if a is None]:
+    if missing := [askings[n].closed_question.about for n, a in answers.items() if a is None]:
         u.refuse("jev_answered", f"Jev gave no answer about {', '.join(missing)}")
     return {n: a for n, a in answers.items() if a is not None}
 

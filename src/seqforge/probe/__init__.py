@@ -14,7 +14,8 @@ interpretation belongs to ``resolve``.
 
 from __future__ import annotations
 
-#: CalVer YYYY.M.PATCH; bump when probe output semantics change (folded into the Observation cache key). History: `docs/research/probe-version-history-2026-11-25.md`.
+#: CalVer YYYY.M.PATCH; bump when probe output semantics change (folded into the Observation cache
+#: key). History: `docs/research/probe-version-history-2026-11-25.md`.
 PROBE_VERSION = "2026.8.1"
 
 #: Default bounded-read budget: 2_000 reads, ~100x cheaper than the old arbitrary 200_000.

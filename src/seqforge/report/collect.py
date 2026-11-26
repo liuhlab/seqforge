@@ -25,6 +25,7 @@ from typing import Any, NamedTuple
 
 import yaml
 
+from ..liulab_data import LiulabDataMissing, needed
 from ..models.dataset import DatasetManifest, LibrarySection
 from ..models.processing import ProcessingManifest
 from ..pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME, CompiledPipeline
@@ -215,9 +216,10 @@ def _assay_names(curies: set[str]) -> dict[str, str]:
     if not curies:
         return {}
     try:
-        from labdata.exceptions import NotAStoreError, OntologyError, StoreNotConfiguredError
-        from labdata.ontology import open_ontology_store
-    except ImportError:
+        with needed():
+            from labdata.exceptions import NotAStoreError, OntologyError, StoreNotConfiguredError
+            from labdata.ontology import open_ontology_store
+    except LiulabDataMissing:
         return {}
     try:
         store = open_ontology_store()

@@ -17,6 +17,7 @@ import yaml
 from genome import GeneCategoryNotDeclaredError, NoGeneCategoriesError
 from typer.testing import CliRunner, Result
 
+import gateway_kit
 import harvest_kit
 from conftest import (
     SrcTrees,
@@ -1699,9 +1700,8 @@ def _prose_docs_apart(tmp_path: Path, n: int) -> list[str]:
 
 
 def _no_gateway(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Put a gateway that refuses every connection behind the commands: the command under test must
-    not need one, and one that sends a request stops at exit 3 with `gateway_unreachable`."""
-    harvest_kit.install(monkeypatch).refuse_connections()
+    """Make building a gateway client fail the test: the command under test must not need one."""
+    gateway_kit.forbidden(monkeypatch)
 
 
 def _paired_reads(tmp_path: Path) -> list[str]:
@@ -1756,7 +1756,7 @@ _STOPS = {
 
 
 @pytest.mark.parametrize("stop", [*_STOPS, "rejected"])
-def test_a_stop_ends_harvest_and_run_with_exit_3_and_a_rejection_with_exit_2(
+def test_a_stop_ends_harvest_and_run_with_exit_3_and_a_rejection_ends_them_and_eval_run_with_2(
     stop: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The four stops end `harvest extract` and `run` with exit 3, the reason and a Blocker; a request

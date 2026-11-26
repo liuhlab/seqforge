@@ -18,10 +18,11 @@ and stay findable. A bump changes only what the NEXT recipe records. The way to 
 behaviour is therefore to author a new recipe — composing the old one again does not silently
 re-stage the new bytes over the old, it refuses, because a pipeline directory is written once.
 
-That is the whole cost model, and it is the opposite of the one this log's older entries assumed
-(#447). They priced an edit as "one round of ``run_id`` invalidation", meaning every composed dataset
-re-keyed itself and reprocessed. Nothing ever did that. The real price of editing a shipped module is
-paid per pipeline that wants the edit, by whoever wants it, in a new recipe.
+That is the whole cost model, and it is the opposite of the one the older entries of
+``WORKFLOW_VERSION``'s history assumed (#447). They priced an edit as "one round of ``run_id``
+invalidation", meaning every composed dataset re-keyed itself and reprocessed. Nothing ever did
+that. The real price of editing a shipped module is paid per pipeline that wants the edit, by
+whoever wants it, in a new recipe.
 """
 
 from __future__ import annotations
@@ -46,7 +47,8 @@ from .module import (
 if TYPE_CHECKING:
     from ..kb.schema import Spec
 
-#: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change. History: `docs/research/workflows-version-history-2026-11-25.md`.
+#: CalVer YYYY.M.PATCH; bump when any shipped module's rules/params change.
+#: History: `docs/research/workflows-version-history-2026-11-25.md`.
 WORKFLOW_VERSION = "2026.8.25"
 
 MODULES: dict[str, WorkflowModule] = {

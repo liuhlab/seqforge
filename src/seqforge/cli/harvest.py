@@ -154,7 +154,6 @@ def harvest_extract(
     ceiling_usd: float = typer.Option(
         DEFAULT_CEILING_USD,
         "--ceiling-usd",
-        min=0,
         help="The most this run may spend, in dollars. The gateway refuses a request that would "
         "cross it, and harvest stops with exit 3.",
     ),
@@ -226,10 +225,10 @@ def _harvest_extract_pipeline(
     The one LLM stage, and the one place ``run`` cannot be fully deterministic — hence ``--no-llm``,
     which is the caller choosing not to enter here at all. Every exit is a ``_StageOut``: exit 1 if a
     reply cannot be used, exit 2 for a setup it cannot use (a bad option, no gateway address, a
-    request the gateway rejects), exit 3 with a ``Blocker`` when the calls stop, exit 4 if a claim fails the span tripwire (a rejected claim
-    needs a human, not a silent drop). On success it still writes ``assertions.json``, the
-    transcript and the rendered documents to disk, because a span citation is only checkable while
-    the exact text survives.
+    request the gateway rejects), exit 3 with a ``Blocker`` when the calls stop, exit 4 if a claim
+    fails the span tripwire (a rejected claim needs a human, not a silent drop). On success it still
+    writes ``assertions.json``, the transcript and the rendered documents to disk, because a span
+    citation is only checkable while the exact text survives.
 
     ``dry_run`` returns the plan and stops **before** a gateway client is even built: "what will
     this dataset cost" must be answerable on a machine that cannot reach the gateway.
