@@ -14,51 +14,7 @@ slot into ``panels.py`` as one more fragment without changing the shell.
 
 from __future__ import annotations
 
-#: CalVer YYYY.M.PATCH; bumped when the report's layout or projection changes. Not folded into any
-#: content-addressed cache key — the report is a rebuildable view, not an input to anything. It is
-#: stamped in the footer, which is the whole reason it is worth bumping: a page found on a shared
-#: drive months later has to be able to say which design drew it.
-#:
-#: 2026.8.3 — **the Results table is reachable**. It pages, the way Samples already did: a bar under
-#: it says which rows are showing, offers 25/50/100/All, and steps. On the in-house aging plate that
-#: table is 784 rows deep, and reaching row 400 meant scrolling past 399. And it **sorts** — a caret
-#: beside every column's label, including the sample column, cycling highest-first, lowest-first and
-#: back to the order the run arrived in. That last one is the point of three states rather than two:
-#: a reader who has finished asking which wells are worst can put the plate back. The sort reads the
-#: numbers behind the cells rather than the printed ones — at the precision those cells can show, so
-#: an exact count keeps every digit — orders every row and then lets the pager take the first page of
-#: it, and sends a sample that never reported a metric to the end of that column either way —
-#: a gap is not a large number or a small one. Sample names sort the way a human counts, so ``day3``
-#: comes before ``day11``. Nothing is hidden that was not already there: every row still ships in the
-#: page, ``All`` puts the whole grid back, and a table that fits on one screenful renders no bar at
-#: all. The page also stops policing its own weight: a fixed byte budget for an artifact whose size is
-#: one row per sample was a number that had never been checked against a plate, and the report is read
-#: by people, not shipped anywhere.
-#:
-#: 2026.8.2 — **the cross-check**. Results gains an alert block between the run state and the metrics
-#: table: the compiler joins what it decided to what came back and says which DECISION looks wrong,
-#: naming the manifest or recipe field and the value it currently carries. Advisory and non-mutating
-#: — nothing here writes an artifact or moves an exit code — and absent entirely on a healthy run, so
-#: seeing one means something. No new hue: severity wears the verdict pair the page already spends
-#: its colour budget on (`likely` -> `bad`, `possible` -> `warn`), with the same `!`/`!!` mark.
-#:
-#: 2026.8.1 — **the design system**. The 559-line hand-written stylesheet is gone; the page is drawn
-#: by a vendored, purged Tailwind build over the token layer it now shares with ``seqforge eval
-#: report``, plus one small first-party component layer. Colour marks exceptions only — a metric
-#: that is within range, a step that went fine and a number nobody could set a bar for all carry no
-#: tint, and the two hues that remain are a measured contrast pair rather than an eyeballed one.
-#: Results leads with one sample-by-metric table behind a single fold instead of a wall of per-sample
-#: tiles; Samples and Evidence share one grid vocabulary; Flow and Pipeline are hairline cards. Every
-#: panel is the same box in the same column, and the page is ~26 % smaller.
-#:
-#: 2026.8.0 — a **Results** tab: a completeness strip for the pipeline itself (distinct from the
-#: header's compile verdict — "we produced a Snakefile" and "that Snakefile finished" are two facts),
-#: a General-Statistics table tinted by each metric's own verdict, a per-sample headline strip, and
-#: hand-built inline-SVG knee plots. The tab is omitted from the strip entirely when no assay has
-#: results, so a compiled-but-not-yet-run workspace renders exactly the page it rendered before.
-#: 2026.11.0 — the Samples tab lists each sample and its files and nothing else: the sample-attribute
-#: columns, their provenance marks and legend are gone, because the manifest no longer carries sample
-#: attributes. The Flow tab's sample step says how files were matched to samples instead.
+#: CalVer YYYY.M.PATCH; bump when the report's layout or projection changes (stamped in the footer, folded into no cache key). History: `docs/research/report-version-history-2026-11-25.md`.
 REPORT_VERSION = "2026.11.0"
 
 from .collect import collect_report  # noqa: E402
