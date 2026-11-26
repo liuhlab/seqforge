@@ -13,6 +13,7 @@ import io
 import json
 import re
 import time
+import types
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any, ClassVar
@@ -26,7 +27,6 @@ from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
 from seqforge.cli import app
-from seqforge.passes.kinds import KINDS
 from seqforge.study import reader
 from seqforge.study.lists import guide_text
 from seqforge.study.ontology_search import StoreSearch
@@ -154,8 +154,21 @@ class Papers:
         return {p: paper(info, (_File("xml", Path("article.xml")),)) for p in pmids}
 
 
-#: The ontology search the module's pass opened, which pins the store's snapshots for the pass.
-OPENED: list[StoreSearch] = []
+#: The UTC day the module's pass started, the day its ontology search pins the store's snapshots.
+PINNED_ON: list[dt.date] = []
+
+
+def _stores(monkeypatch: pytest.MonkeyPatch) -> None:
+    """liulab-data's record store and paper store, as the kind opens them, played by the two above."""
+    import labdata
+    import labdata.papers
+
+    monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
+    monkeypatch.setattr(
+        labdata.papers, "open_paper_store", lambda root=None: types.SimpleNamespace(reader=Papers())
+    )
+
+
 #: The ontology store: a few terms of each vocabulary the studies need. ChEBI is not held.
 VOCABULARIES = [
     SnapshotData(
@@ -428,26 +441,23 @@ def read(
         (set_dir / key / "bounds.yaml").write_text(yaml.safe_dump(bounds))
     (set_dir / "GSE10" / "reading.yaml").write_text("the standard set's own\n")
     ontologies = build_tiny_store(here / "ontologies", VOCABULARIES)
-
-    def build(store: Any) -> Any:
-        OPENED.append(StoreSearch())
-        return reader.reading_kind(Store(), Papers(), set_dir=set_dir, search=OPENED[-1])
-
-    kind = dataclasses.replace(reader.KIND, build=build, reads_store=False)
     fake = FakeGateway(
         lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
         prices={reader.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
     )
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setitem(KINDS, kind.name, kind)
+        _stores(monkeypatch)
+        # Until a pass names its folder of study folders, the kind reads the standard set's.
+        monkeypatch.setattr(reader, "default_set_dir", lambda: set_dir)
         monkeypatch.setattr(
             "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
         )
         monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
         monkeypatch.chdir(here)
         (here / "keys.txt").write_text("\n".join(SERIES) + "\n")
+        PINNED_ON.append(dt.datetime.now(dt.UTC).date())
         started = runner.invoke(
-            app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt"]
+            app, ["pass", "start", reader.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"]
         )
         assert started.exit_code == 0, started.output
         write = [
@@ -461,8 +471,6 @@ def read(
         written = runner.invoke(app, write)
         assert written.exit_code == 0, written.output
         yield set_dir, json.loads(written.stdout)["studies"], fake
-    for search in OPENED:
-        search.close()
 
 
 def _reading(set_dir: Path, key: str) -> dict[str, Any]:
@@ -552,7 +560,7 @@ def test_a_claim_is_quoted_only_from_a_passage_code_found_and_terms_come_from_a_
     assert reading["ontology_snapshot"] == {
         "source": "liulab-data ontology store: ncbitaxon-2026-11-22, pato-2026-10-01, "
         "uberon-2026-11-05",
-        "date": OPENED[-1].date,
+        "date": PINNED_ON[0],
     }
 
 
@@ -571,7 +579,7 @@ def test_a_study_whose_two_askings_disagree_is_unsettled_and_still_written(
     assert reading["factors"]["treatment"]["baseline"] == "vehicle"
     assert reading["ontology_snapshot"] == {
         "source": "liulab-data ontology store: ncbitaxon-2026-11-22",
-        "date": OPENED[-1].date,
+        "date": PINNED_ON[0],
     }
 
 
@@ -653,19 +661,38 @@ def test_a_term_is_looked_up_in_the_vocabulary_of_each_samples_species(
     }
 
 
-def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    ("unopened", "said"),
+    [
+        ("record", "liulab-data's record store"),
+        ("paper", "liulab-data's paper store"),
+        ("ontology", "LABDATA_ONTOLOGIES"),
+    ],
+)
+def test_the_reading_pass_refuses_to_start_without_a_store_it_reads(
+    unopened: str, said: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The ontology store's variable names a folder that is no store: the pass exits 2 naming the
-    variable, rather than read with no search."""
+    """A store the kind reads cannot be opened: no record store is set up, the paper store set up
+    is not a store, or the ontology store's variable names a folder that is no store. The pass
+    exits 2 naming that store, rather than read without it."""
     import labdata
+    import labdata.papers
+    from labdata.exceptions import NotAStoreError
 
+    def no_paper_store(root: Any = None) -> Any:
+        raise NotAStoreError(f"{tmp_path / 'empty'} is not a paper store")
+
+    papers = types.SimpleNamespace(reader=Papers())
     fake = FakeGateway(lambda form: "{}", prices={})
-    # The module's pass holds its own build of the kind until the module ends: run the real one.
-    monkeypatch.setitem(KINDS, reader.KIND_NAME, reader.KIND)
-    monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
-    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="s"))
     (tmp_path / "empty").mkdir()
+    if unopened != "record":  # the suite's own stub leaves no record store set up
+        monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
+    monkeypatch.setattr(
+        labdata.papers,
+        "open_paper_store",
+        no_paper_store if unopened == "paper" else lambda root=None: papers,
+    )
+    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="s"))
     monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "empty"))
     monkeypatch.chdir(tmp_path)
     (tmp_path / "keys.txt").write_text("GSE10\n")
@@ -678,7 +705,7 @@ def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
     )
 
     assert started.exit_code == 2, started.output
-    assert "LABDATA_ONTOLOGIES" in started.stderr
+    assert said in started.stderr
     assert fake.record == []
 
 

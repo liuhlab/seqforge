@@ -22,7 +22,7 @@ from labllm import Reviews, Task
 from labllm.testing import FakeGateway
 from typer.testing import CliRunner
 
-from conftest import StubStore
+import passes_kit
 from passes_kit import (
     ECHO_PRICES,
     ECHO_STRONG,
@@ -33,7 +33,7 @@ from passes_kit import (
 )
 from seqforge.cli import app
 from seqforge.passes import gateway
-from seqforge.passes.kinds import KINDS, Kind
+from seqforge.passes.kinds import KIND_MODULES
 
 runner = CliRunner()
 
@@ -53,16 +53,9 @@ def seqforge(*argv: str) -> tuple[int, dict[str, Any]]:
 
 
 @pytest.fixture
-def echo_kind(monkeypatch: pytest.MonkeyPatch) -> Kind:
-    """The echo kind, registered under ``echo`` for this test only."""
-    kind = Kind(
-        name="echo",
-        build=lambda store: echo_unit_kind(ECHO_TEXTS),
-        default_models={"writer": ECHO_WEAK},
-        default_keys=lambda store: list(ECHO_TEXTS),
-    )
-    monkeypatch.setitem(KINDS, kind.name, kind)
-    return kind
+def echo_kind(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The echo kind, listed in the kind table under ``echo`` for this test only."""
+    monkeypatch.setitem(KIND_MODULES, "echo", passes_kit.__name__)
 
 
 def _serve(
@@ -273,45 +266,6 @@ def test_a_setup_the_pass_cannot_use_exits_2_with_a_one_line_reason(
         assert all(line.startswith("echo: ") for line in progress), result.stderr
 
 
-def test_a_kind_that_reads_the_store_reads_one_build_and_names_it(
-    echo_gateway: FakeGateway, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    import labdata
-
-    # The store is refreshed as soon as the pass has opened it: every later open reads build b2.
-    first = StubStore({}, {"u1": "alpha", "u2": "beta"}, [], settings={"build": "b1"})
-    refreshed = StubStore({}, {"u1": "omega", "u3": "psi"}, [], settings={"build": "b2"})
-    opens = iter([first])
-    monkeypatch.setattr(labdata, "open_store", lambda root=None: next(opens, refreshed))
-
-    def texts(store: Any) -> dict[str, str]:
-        return dict(store.texts)
-
-    kind = Kind(
-        name="stored-echo",
-        build=lambda store: echo_unit_kind(texts(store), name="stored-echo"),
-        default_models={"writer": ECHO_WEAK},
-        default_keys=lambda store: sorted(texts(store)),
-        reads_store=True,
-    )
-    monkeypatch.setitem(KINDS, kind.name, kind)
-
-    code, out = seqforge("pass", "start", "stored-echo", "--ceiling-usd", "1")
-
-    assert code == 0
-    assert out["store_build"] == "b1"
-    asked = sorted(x.form["messages"][-1]["content"] for x in echo_gateway.record if x.form)
-    assert asked == ["alpha", "beta"]
-
-    # The build is kept with the pass, and status reads it back with no store to open.
-    def no_store(root: Any = None) -> Any:
-        raise AssertionError("pass status opened the store")
-
-    monkeypatch.setattr(labdata, "open_store", no_store)
-    code, out = seqforge("pass", "status", "stored-echo")
-    assert (code, out["passes"][0]["store_build"]) == (0, "b1")
-
-
 # `seqforge pass status`: what a task holds, read back with no gateway.
 
 #: How long the provider takes to answer each text, in seconds on the fake gateway's clock.
@@ -482,6 +436,18 @@ def test_a_task_another_process_holds_exits_3_naming_the_holder(
     assert out["stopped"] == "task_in_use"
     assert f"process {os.getpid()} on {socket.gethostname()}" in out["message"]
     assert len(echo_gateway.record) == sent
+
+
+@pytest.mark.parametrize("name", sorted(KIND_MODULES))
+def test_every_kind_in_the_table_loads_under_its_listed_name(name: str) -> None:
+    """The kind table is the one place a kind's name is written, and every command finds its kind
+    there. A module moved or renamed without its row, or a kind that calls itself by another name,
+    fails here and not when a pass starts: the command loads the kind and looks for its task under
+    the kind's own name."""
+    result = runner.invoke(app, ["pass", "status", name])
+
+    assert result.exit_code == 2, result.stdout + result.stderr
+    assert f"no task in {Path('seqforge', 'passes', name)}:" in result.stderr
 
 
 @pytest.mark.parametrize("argv", _READS_TASK)

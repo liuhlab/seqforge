@@ -1,8 +1,9 @@
 """The bounding job's kind: Jev places each record of a study's linked group, and code writes bounds.
 
-Importing this module registers the kind, so ``seqforge pass start study-bounds`` runs it on the run
-engine. One unit is one study, keyed by the GEO Series it starts from. Its inputs are the text Jev is
-shown, so a changed record or paper changes only the units whose group holds it.
+The kind table lists this module as ``study-bounds``, so ``seqforge pass start study-bounds`` runs
+its kind on the run engine. One unit is one study, keyed by the GEO Series it starts from. Its
+inputs are the text Jev is shown, so a changed record or paper changes only the units whose group
+holds it.
 
 Code keeps the starting Series in the study, or each sub-Series when it starts from a SuperSeries,
 and leaves every SuperSeries out. Jev, a model that answers yes/no questions with a probability, is
@@ -25,13 +26,13 @@ from typing import Any
 
 from labllm import Held, Inputs, Model, Outcome, Role, Task, Unit, UnitKind
 
-from ..passes.kinds import Kind, register
+from ..passes.kinds import Built, Kind, name_of
 from ..standard_set import default_set_dir, pick_entries
 from .bounds import FORMAT, check_bounds
-from .group import SERIES, group_text, linked_series, paper_reader, read_group
+from .group import SERIES, group_text, linked_series, paper_reader, read_group, record_store
 from .publish import model_name, write_files
 
-KIND_NAME = "study-bounds"
+KIND_NAME = name_of(__name__)
 #: Raise it when a question, the answer's shape or a rule of placing changes.
 KIND_VERSION = "2026.11.1"
 #: The most Series a linked group may hold. A larger group is refused before its records are read.
@@ -218,9 +219,10 @@ def _tag(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()[:16]
 
 
-def _build(store: Any) -> UnitKind:
-    """The kind over the record store the pass opened, and liulab-data's paper store."""
-    return bounds_kind(store, paper_reader())
+def _build() -> Built:
+    """The kind over liulab-data's record store and paper store, each opened once for the pass."""
+    store, build = record_store()
+    return Built(bounds_kind(store, paper_reader()), store_build=build)
 
 
 def bounds_file(outcome: Outcome) -> dict[str, Any]:
@@ -239,12 +241,9 @@ def write_bounds(task: Task, kind: UnitKind, out: Path, name: str) -> dict[str, 
     return write_files(task, kind, out, name, bounds_file)
 
 
-KIND = register(
-    Kind(
-        name=KIND_NAME,
-        build=_build,
-        default_models={ROLE: JEV},
-        default_keys=lambda store: list(pick_entries(default_set_dir())),
-        reads_store=True,
-    )
+KIND = Kind(
+    name=KIND_NAME,
+    build=_build,
+    default_models={ROLE: JEV},
+    default_keys=lambda: list(pick_entries(default_set_dir())),
 )
