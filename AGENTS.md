@@ -86,7 +86,8 @@ test was considered and declined, and is the fallback if the bar drifts.
 
 - **Tests: run the narrowest thing that can go red, then stop.** Four rungs, and the last one is
   reading rather than running. **While editing** — the narrowest selector that can go red and
-  nothing else: `pixi run -e test pytest tests/test_<package>.py -k <expr>` (files are `test_<package>.py`, or `test_<package>_<module>.py` when a package has several tests). A
+  nothing else: `pixi run -e test pytest tests/test_<package>.py -k <expr>` (files are `test_<package>.py`, or
+  `test_<package>_<module>.py` when a package has several tests). A
   run naming a selector stays serial, which is why it costs a second or two. **After a red run** —
   `pixi run test-failed`, which re-runs only what failed, serially, and stops at the first one. Its
   cache is local, so a failure only CI has seen is not in it: run the test CI named, and the verb
