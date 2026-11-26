@@ -87,7 +87,7 @@ if TYPE_CHECKING:
 KIND_NAME = name_of(__name__)
 #: Raise it when an instruction, a question, a guide, the answer's shape or a rule of writing the
 #: reading changes.
-KIND_VERSION = "2026.11.6"
+KIND_VERSION = "2026.11.7"
 #: The roles, and the models that fill them unless a pass names others: the writer, and
 #: :data:`.closed.JEV`.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
@@ -111,9 +111,10 @@ ANSWER_SCHEMA: dict[str, Any] = {
     "properties": {
         "reading": {"type": "object"},
         "askings": ASKINGS_SCHEMA,
+        "unanswered": {"type": "array", "items": {"type": "string"}},
         "notes": {"type": "object"},
     },
-    "required": ["reading", "askings", "notes"],
+    "required": ["reading", "askings", "unanswered", "notes"],
     "additionalProperties": False,
 }
 
@@ -293,10 +294,12 @@ def _glossary(lists: _Lists, kept: list[_Factor]) -> str:
 # ---------------------------------------------------------------- Jev, the study
 
 
-def _ask_study(u: Unit, text: str, lists: _Lists) -> dict[str, Answer | None]:
+def _ask_study(u: Unit, text: str, lists: _Lists) -> tuple[dict[str, Answer | None], list[str]]:
     """Jev's answers about the study: each factor, each label with no value, the donors.
 
-    Each factor keeps its own answers; every answer also comes back under its asking's name.
+    Each factor keeps its own answers; every answer also comes back under its asking's name. Also
+    returns what each question asked once and written as a claim is about, where Jev left it
+    unanswered: a label with no value, and the donors.
     """
     askings: dict[str, Asking] = {}
     for i, f in enumerate(lists.factors):
@@ -365,7 +368,12 @@ def _ask_study(u: Unit, text: str, lists: _Lists) -> dict[str, Answer | None]:
             answers[f"f{i}_baseline_reversed"],
         )
         f.ordered = answers[f"f{i}_ordered"]
-    return answers
+    unanswered = [
+        askings[n].question.about
+        for n in askings
+        if (n.startswith("gap_") or n == "donor") and answers[n] is None
+    ]
+    return answers, unanswered
 
 
 def _kept(lists: _Lists) -> list[_Factor]:
@@ -753,7 +761,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
     study_text = (src.records_text(sources) + "\n\n" + src.papers_text(sources, full=False))[
         :_STUDY_CAP
     ] + notes_text
-    study = _ask_study(u, study_text, lists)
+    study, unanswered = _ask_study(u, study_text, lists)
     kept = _kept(lists)
     if crowded := {
         k: len(v.values) for k, v in lists.labels.items() if len(v.values) > MOST_VALUES
@@ -846,6 +854,8 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
                 rows[g][label] = _value_claim(label, option.value, backing[key], terms, taxid, p)
             else:
                 rows[g][label] = _gap(label, picks[g].get(f"lab_{label}"), gap)
+                if f"lab_{label}" in picks[g] and picks[g][f"lab_{label}"] is None:
+                    unanswered.append(f"{g}: {questions[f'lab_{label}'].about}")
 
     factors = {}
     for f in covered:
@@ -878,6 +888,7 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
     return {
         "reading": reading,
         "askings": askings,
+        "unanswered": unanswered,
         "notes": {
             "guides": guides,
             "writer_answers": attempts,
@@ -925,6 +936,20 @@ def askings_agree(inputs: Inputs, answer: Any) -> str | None:
         return None
     shown = "; ".join(split[:5]) + (f"; and {len(split) - 5} more" if len(split) > 5 else "")
     return f"Jev's two askings do not agree on {shown}"
+
+
+def all_answered(inputs: Inputs, answer: Any) -> str | None:
+    """Fail a reading where Jev left unanswered a question it reads one asking of.
+
+    Those are a label's value, a label with no listed value, and the donors. The claim is
+    ``unknown`` with no probability, and the study is unsettled, as it is when the two askings of a
+    question asked twice do not agree.
+    """
+    left = answer["unanswered"]
+    if not left:
+        return None
+    shown = "; ".join(left[:5]) + (f"; and {len(left) - 5} more" if len(left) > 5 else "")
+    return f"Jev left unanswered {shown}"
 
 
 def _biosamples(
@@ -1218,7 +1243,7 @@ def reading_kind(
         load=load_unit,
         run=lambda u: _read(u, context),
         answer_schema=ANSWER_SCHEMA,
-        answer_checks=(askings_agree,),
+        answer_checks=(askings_agree, all_answered),
     )
 
 

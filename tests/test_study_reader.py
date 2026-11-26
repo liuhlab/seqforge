@@ -426,8 +426,8 @@ TRUTH = {
 VARIED = {"treatment": (0.9, 0.8), "genotype": (0.5, 0.1)}
 #: The level of each factor Jev calls a study's reference.
 BASELINES = ("young", "vehicle", "wild type", "fed")
-#: The samples whose level Jev leaves unanswered, in both askings.
-NO_LEVEL = ("GSM93",)
+#: The samples whose level Jev leaves unanswered, in both askings, and whose tissue.
+NO_LEVEL, NO_TISSUE = ("GSM93",), ("GSM92",)
 
 
 def _writer(form: dict[str, Any]) -> str:
@@ -466,6 +466,8 @@ def _choose(asked: str, options: dict[str, str], sample: str | None) -> tuple[st
         return first, 0.95 if options[first].startswith(("UBERON", "WBbt")) else 0.6
     assert sample is not None
     if sample in NO_LEVEL and re.match(r"Which \w+ does `sample` have\?", asked):
+        return None
+    if sample in NO_TISSUE and asked.startswith("What is the tissue of `sample`"):
         return None
     for k, text in options.items():
         if any(text.endswith((f"= {v}", f" is {v}")) for v in TRUTH[sample]):
@@ -679,12 +681,15 @@ def test_a_question_jev_leaves_unanswered_is_an_unknown_claim_and_leaves_the_stu
     read: tuple[Path, dict[str, Any], FakeGateway],
 ) -> None:
     """Jev leaves GSM93's diet unanswered, in both askings. Its claim is unknown with no
-    probability, and two missing answers do not agree: the study is unsettled, naming the sample."""
+    probability, and two missing answers do not agree: the study is unsettled, naming the sample.
+    GSM92's tissue, left unanswered in the one asking read, is named too."""
     set_dir, said, _ = read
     reading = _reading(set_dir, "GSE90")
 
     assert said["GSE90"]["ending"] == "unsettled"
     assert "GSM93: level of diet" in said["GSE90"]["checks_failed"][0]
+    left = said["GSE90"]["checks_failed"][1]
+    assert left == "all_answered: Jev left unanswered GSM92: value of tissue"
     assert reading["samples"]["GSM93"]["diet"] == {
         "unknown": "what was read does not say its diet",
         "p": None,
