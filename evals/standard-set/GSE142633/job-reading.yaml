@@ -7,9 +7,9 @@ read:
 - records
 read_detail: The records of GSE142633 and their 13 sequenced samples; no paper.
 ontology_snapshot:
-  source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25,
+  source: 'liulab-data ontology store: efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-26,
     pato-2026-10-01, uberon-2026-11-05'
-  date: 2026-11-25
+  date: 2026-11-26
 passages:
   1:
     record: GSE142633
@@ -180,7 +180,8 @@ samples:
     disease:
       text: healthy
       term: PATO:0000461
-      quoted:
+      inferred: Wild-type samples have no disease model.
+      see:
       - 8
       p: 1.0
     strain:
@@ -214,7 +215,8 @@ samples:
     disease:
       text: healthy
       term: PATO:0000461
-      quoted:
+      inferred: Wild-type samples have no disease model.
+      see:
       - 8
       p: 1.0
     strain:
@@ -248,7 +250,8 @@ samples:
     disease:
       text: healthy
       term: PATO:0000461
-      quoted:
+      inferred: Wild-type samples have no disease model.
+      see:
       - 8
       p: 1.0
     strain:
@@ -282,7 +285,8 @@ samples:
     disease:
       text: healthy
       term: PATO:0000461
-      quoted:
+      inferred: Wild-type samples have no disease model.
+      see:
       - 8
       p: 1.0
     strain:
@@ -418,7 +422,8 @@ samples:
     disease:
       text: healthy
       term: PATO:0000461
-      quoted:
+      inferred: Wild-type samples have no disease model.
+      see:
       - 8
       p: 1.0
     strain:
@@ -452,7 +457,8 @@ samples:
     disease:
       text: healthy
       term: PATO:0000461
-      quoted:
+      inferred: Wild-type samples have no disease model.
+      see:
       - 8
       p: 1.0
     strain:
@@ -486,7 +492,8 @@ samples:
     disease:
       text: healthy
       term: PATO:0000461
-      quoted:
+      inferred: Wild-type samples have no disease model.
+      see:
       - 8
       p: 1.0
     strain:

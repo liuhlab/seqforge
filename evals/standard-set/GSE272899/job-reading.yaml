@@ -9,8 +9,8 @@ read:
 read_detail: The records of GSE272899 and their 9 sequenced samples; the abstract of pmid:39386655.
 ontology_snapshot:
   source: 'liulab-data ontology store: chebi-257, cl-2026-11-13, efo-3.96.0, mmusdv-2025-01-23, mondo-2026-11-03,
-    ncbitaxon-2026-11-25'
-  date: 2026-11-25
+    ncbitaxon-2026-11-26'
+  date: 2026-11-26
 passages:
   1:
     record: each_sample

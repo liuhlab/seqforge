@@ -9,9 +9,9 @@ read:
 - full_text
 read_detail: The records of GSE288182 and their 9 sequenced samples; the full text of pmid:42210397.
 ontology_snapshot:
-  source: 'liulab-data ontology store: mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-25, pato-2026-10-01,
+  source: 'liulab-data ontology store: mmusdv-2025-01-23, mondo-2026-11-03, ncbitaxon-2026-11-26, pato-2026-10-01,
     uberon-2026-11-05'
-  date: 2026-11-25
+  date: 2026-11-26
 passages:
   1:
     record:

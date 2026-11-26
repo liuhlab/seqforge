@@ -9,9 +9,9 @@ read:
 - full_text
 read_detail: The records of GSE126954 and their 8 sequenced samples; the full text of pmid:31488706.
 ontology_snapshot:
-  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01,
+  source: 'liulab-data ontology store: cl-2026-11-13, efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01,
     wbbt-2025-08-19, wbls-2026-04-16'
-  date: 2026-11-25
+  date: 2026-11-26
 passages:
   1:
     record:
@@ -122,7 +122,7 @@ factors:
     - embryo
     - L2
     baseline: null
-    ordered: true
+    ordered: false
     inferred: embryo atlas plus re-analyzed L2 sample
     p: 0.55
   age:
