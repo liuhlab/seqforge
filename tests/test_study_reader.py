@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import dataclasses
 import datetime as dt
+import gc
 import io
 import json
 import re
 import time
+import types
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any, ClassVar
@@ -21,15 +23,13 @@ import pytest
 import yaml
 from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
 from labdata.store.model import Link, Record
-from labllm import Rejected
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
+import gateway_kit
 from seqforge.cli import app
-from seqforge.passes.kinds import KINDS
-from seqforge.study import reader
+from seqforge.study import bounding, closed, reader
 from seqforge.study.lists import guide_text
-from seqforge.study.ontology_search import StoreSearch
 from seqforge.study.reading import check_reading, read_reading
 from seqforge.study.relations import relations
 
@@ -68,6 +68,8 @@ SERIES = {
     },
     "GSE60": {"Series_title": "Liver of 26 mouse strains"},
     "GSE70": {"Series_title": "Intestine of a mouse and a worm"},
+    "GSE80": {"Series_title": "Liver of wild type and knockout mice"},
+    "GSE90": {"Series_title": "Liver of fed and fasted mice"},
 }
 SAMPLES = {
     "GSE10": {
@@ -101,6 +103,15 @@ SAMPLES = {
             "Sample_taxid_ch1": "6239",
         },
     },
+    "GSE80": {
+        "GSM81": _sample("liver wild type", "liver", "RNA-Seq", "genotype: wild type"),
+        "GSM82": _sample("liver knockout", "liver", "RNA-Seq", "genotype: knockout"),
+    },
+    "GSE90": {
+        "GSM91": _sample("liver fed", "liver", "RNA-Seq", "diet: fed"),
+        "GSM92": _sample("liver fasted 1", "liver", "RNA-Seq", "diet: fasted"),
+        "GSM93": _sample("liver fasted 2", "liver", "RNA-Seq", "diet: fasted"),
+    },
 }
 #: The one paper: an abstract, and a full text whose white space differs from the writer's quote.
 ARTICLE = (
@@ -108,6 +119,8 @@ ARTICLE = (
     b"</body></article>"
 )
 ABSTRACT = "Livers of young and old mice. The old mice were 22 months of age."
+#: The papers each Series links: GSE10 links the one paper.
+PAPER_OF = {"GSE10": ["PMID:100"]}
 
 
 class Store:
@@ -115,24 +128,31 @@ class Store:
 
     settings: ClassVar[dict[str, str]] = {}
 
+    def links(self, accessions: Iterable[str], relation: str | None = None) -> dict[str, Any]:
+        """Each record's links, as the bounding job follows them from either end."""
+        return {
+            a: [k for k in self._links(a) if relation in (None, k.relation)] for a in accessions
+        }
+
+    def _links(self, accession: str) -> list[Link]:
+        if accession in SERIES:
+            paper = [Link("PubMed", p, "SOFT", True) for p in PAPER_OF.get(accession, [])]
+            return [*(Link("sample", s, "SOFT", True) for s in SAMPLES[accession]), *paper]
+        return [
+            Link("PubMed of", s, "SOFT", False) for s, ps in PAPER_OF.items() if accession in ps
+        ]
+
     def open_many(self, accessions: Iterable[str]) -> dict[str, Record]:
         day = dt.date(2026, 1, 1)
         out = {}
         for a in accessions:
-            if a in SERIES:
-                fields, links = (
-                    SERIES[a],
-                    tuple(Link("sample", s, "SOFT", True) for s in SAMPLES[a]),
-                )
-            else:
-                fields = next(s[a] for s in SAMPLES.values() if a in s)
-                links = ()
+            fields = SERIES[a] if a in SERIES else next(s[a] for s in SAMPLES.values() if a in s)
             pairs = tuple(
                 (name, v)
                 for name, vs in fields.items()
                 for v in ([vs] if isinstance(vs, str) else vs)
             )
-            out[a] = Record(a, "GEO", None, day, day, day, pairs, "", day, links)
+            out[a] = Record(a, "GEO", None, day, day, day, pairs, "", day, tuple(self._links(a)))
         return out
 
 
@@ -149,13 +169,27 @@ class Papers:
     """liulab-data's paper reader: one paper, with its abstract and its article XML."""
 
     def papers(self, pmids: Iterable[str]) -> dict[str, Any]:
-        info = dataclasses.make_dataclass("Info", ["title", "abstract"])("Aging liver", ABSTRACT)
+        made = dataclasses.make_dataclass("Info", ["title", "abstract", "published"])
+        info = made("Aging liver", ABSTRACT, None)
         paper = dataclasses.make_dataclass("Paper", ["info", "files"])
         return {p: paper(info, (_File("xml", Path("article.xml")),)) for p in pmids}
 
 
-#: The ontology search the module's pass opened, which pins the store's snapshots for the pass.
-OPENED: list[StoreSearch] = []
+#: The UTC day the module's pass started, the day its ontology search pins the store's snapshots.
+PINNED_ON: list[dt.date] = []
+
+
+def _stores(monkeypatch: pytest.MonkeyPatch) -> None:
+    """liulab-data's record store and paper store, as the kind opens them, played by the two above."""
+    import labdata
+    import labdata.papers
+
+    monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
+    monkeypatch.setattr(
+        labdata.papers, "open_paper_store", lambda root=None: types.SimpleNamespace(reader=Papers())
+    )
+
+
 #: The ontology store: a few terms of each vocabulary the studies need. ChEBI is not held.
 VOCABULARIES = [
     SnapshotData(
@@ -337,6 +371,29 @@ LISTS: dict[str, dict[str, Any]] = {
             "development_stage": _values({"text": "adult"}),
         },
     },
+    "GSE80": {
+        "factors": [
+            {
+                "label": "genotype",
+                "baseline": "wild type",
+                "levels": [
+                    {"name": "wild type", "text": "wild type"},
+                    {"name": "knockout", "text": "knockout"},
+                ],
+            }
+        ],
+        "labels": {"tissue": _values({"text": "liver"})},
+    },
+    "GSE90": {
+        "factors": [
+            {
+                "label": "diet",
+                "baseline": "fed",
+                "levels": [{"name": "fed", "text": "fed"}, {"name": "fasted", "text": "fasted"}],
+            }
+        ],
+        "labels": {"tissue": _values({"text": "liver"})},
+    },
 }
 
 #: Each sample's value texts, as Jev picks them; a label it has none of is na.
@@ -356,45 +413,65 @@ TRUTH = {
     "GSM61": frozenset({"strain 0"}),
     "GSM71": frozenset({"intestine", "adult"}),
     "GSM72": frozenset({"intestine"}),
+    "GSM81": frozenset({"wild type", "liver"}),
+    "GSM82": frozenset({"knockout", "liver"}),
+    "GSM91": frozenset({"fed", "liver"}),
+    "GSM92": frozenset({"fasted", "liver"}),
+    "GSM93": frozenset({"fasted", "liver"}),
 }
+#: Jev's p(yes) that the study varied a factor on purpose, asked plain and then negated, by the
+#: factor's label; any other factor gets 0.9 and 0.1. Jev says yes to both askings about the GSE50
+#: treatment, and exactly 0.5 to the plain asking about the GSE80 genotype.
+VARIED = {"treatment": (0.9, 0.8), "genotype": (0.5, 0.1)}
+#: The level of each factor Jev calls a study's reference.
+BASELINES = ("young", "vehicle", "wild type", "fed")
+#: The samples whose level Jev answers with an option it was not offered, in both askings, and
+#: whose tissue it leaves out. Jev's second asking of a sample holds only its levels, and a reply
+#: with no answer in it is an outage the engine retries, not an answer.
+NO_LEVEL, NO_TISSUE = ("GSM93",), ("GSM92",)
 
 
 def _writer(form: dict[str, Any]) -> str:
-    # The gateway's rule, which its fake does not keep: a DeepSeek schema is a strict function
-    # call, and a strict function call with thinking on is refused before any paid call.
-    if form["provider"] == "deepseek" and form["settings"]["thinking"] and form.get("schema"):
-        raise Rejected("DeepSeek strict function calls need thinking off")
     user = form["messages"][-1]["content"]
     study = re.search(r"=== GEO Series (GSE\d+) ===", user)
     assert study is not None
     key = study.group(1)
-    if key == "GSE30" or (key == "GSE40" and "could not be used" not in user):
+    if key == "GSE30":
         return "{the writer's answer, cut off"
-    if key == "GSE10":
+    if key == "GSE40" and "could not be used" not in user:
+        return f"Here are the lists:\n{json.dumps(LISTS[key])}\nDone."
+    if key == "GSE40":
         return f"Here are the lists {{as asked}}:\n```json\n{json.dumps(LISTS[key])}\n```\nDone."
     return json.dumps(LISTS[key])
 
 
-def _noul(name: str, question: dict[str, Any]) -> float:
-    if name.endswith("_varied_negated"):
-        # Jev says yes to both askings about the GSE50 treatment: the two disagree.
-        return 0.8 if "treatment" in question["instructions"] else 0.1
-    if name.endswith("_ordered"):
-        return 0.9 if " age " in question["instructions"] else 0.1
+def _p_yes(asked: str) -> float | None:
+    """Jev's p(yes), by what the question is about; ``None`` leaves it out."""
+    if varied := re.match(r"Did the study vary (\w+) on purpose", asked):
+        return VARIED.get(varied.group(1), (0.9, 0.1))[0]
+    if negated := re.match(r"Is (\w+) \(values: .* only a description", asked, re.DOTALL):
+        return VARIED.get(negated.group(1), (0.9, 0.1))[1]
+    if ordered := re.match(r"Do the levels of (\w+) ", asked):
+        return {"age": 0.9, "diet": None}.get(ordered.group(1), 0.1)
     return 0.9
 
 
-def _choose(name: str, question: dict[str, Any], sample: str | None) -> tuple[str, float]:
-    options: dict[str, str] = question["criteria"]
-    if name.endswith(("_baseline", "_baseline_reversed")):
-        return next(k for k, v in options.items() if v in ("young", "vehicle")), 0.9
-    if name.startswith("gap_"):
+def _choose(asked: str, options: dict[str, str], sample: str | None) -> tuple[str, float] | None:
+    """Jev's pick and its probability, by what the question is about; ``None`` leaves it out."""
+    if "is the reference" in asked:
+        return next(k for k, v in options.items() if v in BASELINES), 0.9
+    if " what about their " in asked:
         return "na", 0.9
-    if name == "donor":
+    if asked.startswith("Where did each"):
         return "one_each", 0.8
-    if name.startswith("o"):
-        return "c0", 0.95 if options["c0"].startswith(("UBERON", "WBbt")) else 0.6
+    if asked.startswith("Which ontology term"):
+        first = next(iter(options))
+        return first, 0.95 if options[first].startswith(("UBERON", "WBbt")) else 0.6
     assert sample is not None
+    if sample in NO_LEVEL and re.match(r"Which \w+ does `sample` have\?", asked):
+        return "a level not offered", 0.9
+    if sample in NO_TISSUE and asked.startswith("What is the tissue of `sample`"):
+        return None
     for k, text in options.items():
         if any(text.endswith((f"= {v}", f" is {v}")) for v in TRUTH[sample]):
             return k, 0.9
@@ -407,50 +484,63 @@ def _jev(form: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for name, question in form["questions"].items():
         if question["type"] == "noul":
-            out[name] = {"noul": _noul(name, question)}
-        else:
-            choice, p = _choose(name, question, sample)
-            out[name] = {"choice": choice, "probabilities": {choice: p}}
+            if (p := _p_yes(question["instructions"])) is not None:
+                out[name] = {"noul": p}
+        elif picked := _choose(question["instructions"], question["criteria"], sample):
+            out[name] = {"choice": picked[0], "probabilities": {picked[0]: picked[1]}}
     return out
+
+
+def _serve(monkeypatch: pytest.MonkeyPatch, here: Path) -> FakeGateway:
+    """The stores, the ontology store and the fake gateway behind the commands, run from ``here``."""
+    _stores(monkeypatch)
+    fake = gateway_kit.install(
+        monkeypatch,
+        lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
+        prices={closed.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
+    )
+    ontologies = build_tiny_store(here / "ontologies", VOCABULARIES)
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
+    monkeypatch.chdir(here)
+    return fake
+
+
+def _bounds(key: str) -> str:
+    """A bounds file the format check accepts: the one Series, and the papers it links."""
+    bounds = {
+        "format": 1,
+        "study": key,
+        "models": {"bounds": None, "probabilities": None},
+        "series": [{"id": key, "inferred": "the Series the study was picked by", "p": None}],
+        "papers": [p.lower() for p in PAPER_OF.get(key, [])],
+        "left_out": [],
+        "reason": "The study is its one Series.",
+        "passages": {},
+    }
+    return yaml.safe_dump(bounds)
 
 
 @pytest.fixture(scope="module")
 def read(
     tmp_path_factory: pytest.TempPathFactory,
 ) -> Iterator[tuple[Path, dict[str, Any], FakeGateway]]:
-    """One pass over five studies, written beside the set's own files."""
+    """One pass over every study of the store, written beside the folder's own files."""
     here = tmp_path_factory.mktemp("reader")
     set_dir = here / "set"
     for key in SERIES:
         (set_dir / key).mkdir(parents=True)
-        papers = ["pmid:100"] if key == "GSE10" else []
-        bounds = {"study": key, "series": [{"id": key}], "papers": papers}
-        (set_dir / key / "bounds.yaml").write_text(yaml.safe_dump(bounds))
+        (set_dir / key / "bounds.yaml").write_text(_bounds(key))
     (set_dir / "GSE10" / "reading.yaml").write_text("the standard set's own\n")
-    ontologies = build_tiny_store(here / "ontologies", VOCABULARIES)
-
-    def build(store: Any) -> Any:
-        OPENED.append(StoreSearch())
-        return reader.reading_kind(Store(), Papers(), set_dir=set_dir, search=OPENED[-1])
-
-    kind = dataclasses.replace(reader.KIND, build=build, reads_store=False)
-    fake = FakeGateway(
-        lambda form: _writer(form) if form["route"] == "chat" else _jev(form),
-        prices={reader.JEV.name: Price(0.0, 0.0), reader.WRITER.name: Price(0.0, 0.0)},
-    )
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setitem(KINDS, kind.name, kind)
-        monkeypatch.setattr(
-            "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
-        )
-        monkeypatch.delenv("SEQFORGE_REVIEWS", raising=False)
-        monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
-        monkeypatch.chdir(here)
-        clone = ["--reviews", str(here / "clone")]
-        (here / "clone" / "reviews").mkdir(parents=True)
+        fake = _serve(monkeypatch, here)
         (here / "keys.txt").write_text("\n".join(SERIES) + "\n")
+        PINNED_ON.append(dt.datetime.now(dt.UTC).date())
         started = runner.invoke(
-            app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt", *clone]
+            app,
+            [
+                *("pass", "start", reader.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"),
+                *("--studies", str(set_dir)),
+            ],
         )
         assert started.exit_code == 0, started.output
         write = [
@@ -460,13 +550,10 @@ def read(
             str(set_dir),
             "--name",
             "job-reading.yaml",
-            *clone,
         ]
         written = runner.invoke(app, write)
         assert written.exit_code == 0, written.output
         yield set_dir, json.loads(written.stdout)["studies"], fake
-    for search in OPENED:
-        search.close()
 
 
 def _reading(set_dir: Path, key: str) -> dict[str, Any]:
@@ -496,9 +583,24 @@ def test_a_study_is_read_into_a_reading_that_passes_the_check_beside_the_sets_ow
 ) -> None:
     """The writer lists, Jev picks, code writes a file the format check accepts, beside the set's
     own reading and never over it. Only sequenced samples get a row; a factor level no sample is at
-    is dropped; the models are named as the pass ran them."""
-    set_dir, said, _ = read
+    is dropped; the models are named as the pass ran them. Jev is asked about each sample twice:
+    the first asking carries its level and label questions, and the second, with the options
+    reversed, its level questions only, because only the level is compared."""
+    set_dir, said, fake = read
     reading = _reading(set_dir, "GSE10")
+    carried = []
+    for form in _sent(fake):
+        named = (
+            re.match(r"`sample` is (GSM1\d)\.", form["description"])
+            if form["route"] != "chat"
+            else None
+        )
+        if named:
+            asked = form["questions"].values()
+            second = all(next(iter(q["criteria"])) == "na" for q in asked)
+            level = re.compile(r"Which \w+ does `sample` have\?")
+            kinds = {"level" if level.match(q["instructions"]) else "label" for q in asked}
+            carried.append((named.group(1), second, sorted(kinds)))
 
     assert said["GSE10"] == {"ending": "settled", "file": "written"}
     assert (set_dir / "GSE10" / "reading.yaml").read_text() == "the standard set's own\n"
@@ -515,6 +617,11 @@ def test_a_study_is_read_into_a_reading_that_passes_the_check_beside_the_sets_ow
         "probabilities": "typesafe/jev-1.14.0",
     }
     assert reading["read"] == ["records", "abstract", "full_text"]
+    assert sorted(carried) == [
+        (g, second, ["level"] if second else ["label", "level"])
+        for g in ("GSM11", "GSM12", "GSM13")
+        for second in (False, True)
+    ]
 
 
 def test_a_claim_is_quoted_only_from_a_passage_code_found_and_terms_come_from_a_clear_pick(
@@ -556,7 +663,7 @@ def test_a_claim_is_quoted_only_from_a_passage_code_found_and_terms_come_from_a_
     assert reading["ontology_snapshot"] == {
         "source": "liulab-data ontology store: ncbitaxon-2026-11-22, pato-2026-10-01, "
         "uberon-2026-11-05",
-        "date": OPENED[-1].date,
+        "date": PINNED_ON[0],
     }
 
 
@@ -575,17 +682,54 @@ def test_a_study_whose_two_askings_disagree_is_unsettled_and_still_written(
     assert reading["factors"]["treatment"]["baseline"] == "vehicle"
     assert reading["ontology_snapshot"] == {
         "source": "liulab-data ontology store: ncbitaxon-2026-11-22",
-        "date": OPENED[-1].date,
+        "date": PINNED_ON[0],
+    }
+
+
+def test_a_probability_of_exactly_one_half_is_neither_yes_nor_no_and_leaves_the_study_unsettled(
+    read: tuple[Path, dict[str, Any], FakeGateway],
+) -> None:
+    """Jev's p(yes) that GSE80 varied its genotype on purpose is exactly 0.5, and its p(yes) to
+    the negated question is 0.1. At 0.5 Jev leans neither way, so the two askings do not agree:
+    the study is unsettled. The genotype is not kept as a factor, so it stays a label."""
+    set_dir, said, _ = read
+    reading = _reading(set_dir, "GSE80")
+
+    assert said["GSE80"]["ending"] == "unsettled"
+    assert "factor genotype: varied on purpose" in said["GSE80"]["checks_failed"][0]
+    assert reading["factors"] == {}
+    assert _claim(reading, "GSM82", "genotype")["text"] == "knockout"
+
+
+def test_a_question_jev_leaves_unanswered_is_an_unknown_claim_and_leaves_the_study_unsettled(
+    read: tuple[Path, dict[str, Any], FakeGateway],
+) -> None:
+    """Jev answers GSM93's diet with an option it was not offered, in both askings, so neither is
+    an answer. Its claim is unknown with no probability, and two missing answers do not agree: the
+    study is unsettled, naming the sample.
+    GSM92's tissue and whether the diet's levels are ordered, each asked once and left unanswered,
+    are named too."""
+    set_dir, said, _ = read
+    reading = _reading(set_dir, "GSE90")
+
+    assert said["GSE90"]["ending"] == "unsettled"
+    assert "GSM93: level of diet" in said["GSE90"]["checks_failed"][0]
+    left = said["GSE90"]["checks_failed"][1]
+    assert left == "all_answered: Jev left unanswered factor diet: ordered; GSM92: value of tissue"
+    assert reading["samples"]["GSM93"]["diet"] == {
+        "unknown": "what was read does not say its diet",
+        "p": None,
     }
 
 
 def test_a_broken_writer_answer_is_asked_for_once_more_and_a_second_refuses(
     read: tuple[Path, dict[str, Any], FakeGateway],
 ) -> None:
-    """GSE40's first answer is cut off and its second is whole: it is read. GSE30's writer is cut
-    off twice: the study is refused with the reason, and no file is written. The writer thinks and
-    sends no schema, which the gateway refuses for DeepSeek with thinking on, so its object is
-    taken out of the reply's text: GSE10's, in a code fence among prose, is read the first time."""
+    """The writer thinks and is sent no schema, so its JSON is read out of the reply's text by the
+    one rule: the whole reply, or its one fenced block. GSE40's first answer sets the object among
+    prose with no fence, which the rule does not read; its second fences it among prose, and it is
+    read. GSE30's writer is cut off twice: the study is refused with the reason, and no file is
+    written."""
     set_dir, said, fake = read
     asked = [_first_id(f["messages"][-1]["content"]) for f in _sent(fake) if f["route"] == "chat"]
 
@@ -657,45 +801,149 @@ def test_a_term_is_looked_up_in_the_vocabulary_of_each_samples_species(
     }
 
 
-def test_the_reading_pass_refuses_to_start_without_the_ontology_store(
+def _start(kind: str, studies: Path, *more: str) -> Any:
+    """``seqforge pass start <kind>`` on the folder of study folders ``studies``, with ``more``."""
+    argv = ["pass", "start", kind, "--ceiling-usd", "1", "--studies", str(studies), *more]
+    return runner.invoke(app, argv)
+
+
+def test_both_jobs_run_on_a_folder_that_is_not_the_standard_set_and_join_through_its_bounds(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The ontology store's variable names a folder that is no store: the pass exits 2 naming the
-    variable, rather than read with no search."""
-    import labdata
-
-    fake = FakeGateway(lambda form: "{}", prices={})
-    # The module's pass holds its own build of the kind until the module ends: run the real one.
-    monkeypatch.setitem(KINDS, reader.KIND_NAME, reader.KIND)
-    monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
-    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="s"))
-    (tmp_path / "empty").mkdir()
-    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "empty"))
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "clone" / "reviews").mkdir(parents=True)
+    """A fresh folder holds no pick, so a pass that names no units refuses and says how to name
+    them. Then the four commands run in order with the default file names, and the reading job
+    reads the bounds the bounding job wrote there: the paper Jev kept, GSE10's, is read in full."""
+    studies = tmp_path / "studies"
+    studies.mkdir()
+    _serve(monkeypatch, tmp_path)
     (tmp_path / "keys.txt").write_text("GSE10\n")
+
+    unnamed = _start(bounding.KIND_NAME, studies)
+    assert unnamed.exit_code == 2
+    assert "--keys" in unnamed.stderr
+    for done in (
+        _start(bounding.KIND_NAME, studies, "--keys", "keys.txt"),
+        runner.invoke(app, ["study", "write-bounds", "--out", str(studies)]),
+        _start(reader.KIND_NAME, studies, "--keys", "keys.txt"),
+        runner.invoke(app, ["study", "write-reading", "--out", str(studies)]),
+    ):
+        assert done.exit_code == 0, done.output
+    bounds = yaml.safe_load((studies / "GSE10" / "bounds.yaml").read_text())
+    reading = yaml.safe_load((studies / "GSE10" / "reading.yaml").read_text())
+
+    assert bounds["papers"] == ["pmid:100"]
+    assert check_reading(reading) == []
+    assert reading["read"] == ["records", "abstract", "full_text"]
+
+
+def test_a_study_held_for_its_bounds_or_its_paper_store_is_named_with_the_reason_by_pass_status(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GSE10's bounds file names its paper, and no paper store is set up; GSE20 has no bounds file;
+    GSE30's has three fields and no format number, which the format check rejects. Each study is
+    held before a model is asked. `pass status` names each with the reason, reading the task alone:
+    no store opens and no gateway client is built."""
+    import labdata
+    import labdata.papers
+    from labdata.exceptions import StoreNotConfiguredError
+
+    studies = tmp_path / "studies"
+    for key in ("GSE10", "GSE30"):
+        (studies / key).mkdir(parents=True)
+    (studies / "GSE10" / "bounds.yaml").write_text(_bounds("GSE10"))
+    three = {"study": "GSE30", "series": [{"id": "GSE30"}], "papers": []}
+    (studies / "GSE30" / "bounds.yaml").write_text(yaml.safe_dump(three))
+    fake = _serve(monkeypatch, tmp_path)
+
+    def no_store(root: Any = None) -> Any:
+        raise StoreNotConfiguredError("no store is set up")
+
+    monkeypatch.setattr(labdata.papers, "open_paper_store", no_store)
+    (tmp_path / "keys.txt").write_text("GSE10\nGSE20\nGSE30\n")
+
+    started = _start(reader.KIND_NAME, studies, "--keys", "keys.txt")
+    assert started.exit_code == 0, started.output
+    monkeypatch.setattr(labdata, "open_store", no_store)
+    monkeypatch.delenv("LABDATA_ONTOLOGIES")
+    gateway_kit.forbidden(monkeypatch)
+    status = runner.invoke(app, ["pass", "status", reader.KIND_NAME])
+
+    assert status.exit_code == 0, status.output
+    assert json.loads(started.stdout)["counts"]["held"] == 3
+    assert fake.record == []
+    held = {unit.pop("key"): unit for unit in json.loads(status.stdout)["not_done"]}
+    assert {(unit["ending"], unit["pass"]) for unit in held.values()} == {("held", 1)}
+    assert "no paper store is configured" in held["GSE10"]["reason"]
+    assert "no bounds file for GSE20" in held["GSE20"]["reason"]
+    assert "format: expected 1, missing" in held["GSE30"]["reason"]
+
+
+@pytest.mark.parametrize(
+    ("unopened", "said"),
+    [
+        ("record", "liulab-data's record store"),
+        ("paper", "liulab-data's paper store"),
+        ("ontology", "LABDATA_ONTOLOGIES"),
+        # Every store opens, and the setup is refused after: what the build opened is closed.
+        (None, "no role reader"),
+    ],
+)
+def test_the_reading_pass_refuses_to_start_without_a_store_it_reads(
+    unopened: str | None, said: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A store the kind reads cannot be opened: no record store is set up, the paper store set up
+    is not a store, or the ontology store's variable names a folder that is no store. The pass
+    exits 2 naming that store, rather than read without it. A setup refused once every store is
+    open, such as a model for a role the kind lacks, leaves no store open: the suite fails a test
+    on the warning an unclosed one raises."""
+    import labdata
+    import labdata.papers
+    from labdata.exceptions import NotAStoreError
+
+    def no_paper_store(root: Any = None) -> Any:
+        raise NotAStoreError(f"{tmp_path / 'empty'} is not a paper store")
+
+    papers = types.SimpleNamespace(reader=Papers())
+    fake = gateway_kit.install(monkeypatch, lambda form: "{}", prices={})
+    (tmp_path / "empty").mkdir()
+    if unopened != "record":  # the suite's own stub leaves no record store set up
+        monkeypatch.setattr(labdata, "open_store", lambda root=None: Store())
+    monkeypatch.setattr(
+        labdata.papers,
+        "open_paper_store",
+        no_paper_store if unopened == "paper" else lambda root=None: papers,
+    )
+    ontologies = tmp_path / "empty"
+    if unopened is None:
+        ontologies = build_tiny_store(tmp_path / "ontologies", VOCABULARIES)
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(ontologies))
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "keys.txt").write_text("GSE10\n")
+    role = ["--model", "reader=test/echo-weak"] if unopened is None else []
 
     started = runner.invoke(
         app,
         [
             *("pass", "start", reader.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"),
-            *("--reviews", str(tmp_path / "clone")),
+            *role,
         ],
     )
+    # A store left open is found when it is collected: here, so this test is the one that fails.
+    gc.collect()
 
     assert started.exit_code == 2, started.output
-    assert "LABDATA_ONTOLOGIES" in started.stderr
+    assert said in started.stderr
     assert fake.record == []
 
 
-def test_the_store_search_pins_its_snapshots_on_the_utc_day_and_a_units_tag_names_them(
+def test_the_ontology_store_pins_its_snapshots_on_the_utc_day_and_a_units_tag_names_them(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The store's snapshots are named by UTC day, so the day a reading says they were pinned is
     the UTC day too, wherever the pass runs: here in a zone whose own date is another day.
 
     A store update changes no record yet can change a reading's terms, so a unit's inputs tag
-    names every snapshot the search pinned: a review of the old reading stops holding."""
+    names every snapshot the store pinned: a review of the old reading stops holding."""
     store = build_tiny_store(tmp_path / "store", VOCABULARIES)
     utc = dt.datetime.now(dt.UTC)
     # Twelve hours behind UTC is yesterday before noon UTC; fourteen ahead is tomorrow after it.
@@ -706,24 +954,23 @@ def test_the_store_search_pins_its_snapshots_on_the_utc_day_and_a_units_tag_name
             clock.setenv("LABDATA_ONTOLOGIES", str(store))
             time.tzset()
             assert dt.date.today() != utc.date()
-            search = StoreSearch()
+            ontology = reader.Ontology()
     finally:
         time.tzset()
-    search.close()
+    ontology.close()
 
-    assert search.date == utc.date()
+    assert ontology.date == utc.date()
 
-    set_dir = tmp_path / "set"
-    (set_dir / "GSE10").mkdir(parents=True)
-    bounds = {"study": "GSE10", "series": [{"id": "GSE10"}], "papers": []}
-    (set_dir / "GSE10" / "bounds.yaml").write_text(yaml.safe_dump(bounds))
+    studies = tmp_path / "studies"
+    (studies / "GSE20").mkdir(parents=True)
+    (studies / "GSE20" / "bounds.yaml").write_text(_bounds("GSE20"))
     monkeypatch.setenv("LABDATA_ONTOLOGIES", str(store))
 
     def tag() -> str:
-        pinned = StoreSearch()
+        pinned = reader.Ontology()
         try:
-            kind = reader.reading_kind(Store(), None, set_dir=set_dir, search=pinned)
-            return kind.load("GSE10").tag
+            kind = reader.reading_kind(Store(), None, folder=studies, ontology=pinned)
+            return kind.load("GSE20").tag
         finally:
             pinned.close()
 

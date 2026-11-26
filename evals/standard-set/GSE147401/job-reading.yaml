@@ -9,8 +9,8 @@ read:
 - full_text
 read_detail: The records of GSE147401 and their 30 sequenced samples; the full text of pmid:34519784.
 ontology_snapshot:
-  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, pato-2026-10-01, wbbt-2025-08-19'
-  date: 2026-11-25
+  source: 'liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-26, pato-2026-10-01, wbbt-2025-08-19'
+  date: 2026-11-26
 passages:
   1:
     record: GSE147401
@@ -1059,10 +1059,8 @@ samples:
   GSM4430047:
     biosample:
       id: B10
-      inferred: Jev judged the tie the writer listed between this library and another
-      see:
-      - 13
-      p: 0.5
+      inferred: no text read ties this library's material to another's
+      p: null
     genotype:
       text: glp-4(bn2); oef-1(vr25)
       level: glp4_oef1
@@ -1308,11 +1306,9 @@ samples:
       p: 0.99
   GSM4430053:
     biosample:
-      id: B10
-      inferred: Jev judged the tie the writer listed between this library and another
-      see:
-      - 13
-      p: 0.5
+      id: B16
+      inferred: no text read ties this library's material to another's
+      p: null
     genotype:
       text: glp-4(bn2); oef-1(vr25)
       level: glp4_oef1
@@ -1351,7 +1347,7 @@ samples:
       p: 0.99
   GSM4430054:
     biosample:
-      id: B16
+      id: B17
       inferred: no text read ties this library's material to another's
       p: null
     genotype:
@@ -1389,7 +1385,7 @@ samples:
       p: 0.99
   GSM4430055:
     biosample:
-      id: B17
+      id: B18
       inferred: no text read ties this library's material to another's
       p: null
     genotype:
@@ -1427,7 +1423,7 @@ samples:
       p: 1.0
   GSM4430056:
     biosample:
-      id: B18
+      id: B19
       inferred: no text read ties this library's material to another's
       p: null
     genotype:
@@ -1463,7 +1459,7 @@ samples:
       p: 0.71
   GSM4430057:
     biosample:
-      id: B19
+      id: B20
       inferred: no text read ties this library's material to another's
       p: null
     genotype:
@@ -1501,7 +1497,7 @@ samples:
       p: 0.99
   GSM4430058:
     biosample:
-      id: B20
+      id: B21
       inferred: no text read ties this library's material to another's
       p: null
     genotype:
@@ -1539,7 +1535,7 @@ samples:
       p: 1.0
   GSM4430059:
     biosample:
-      id: B21
+      id: B22
       inferred: no text read ties this library's material to another's
       p: null
     genotype:

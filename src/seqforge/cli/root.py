@@ -25,7 +25,11 @@ app.add_typer(schema_app, name="schema")
 kb_app = typer.Typer(help="The executable, self-testing knowledge base.")
 app.add_typer(kb_app, name="kb")
 
-io_app = typer.Typer(help="The network + onlist surface (pooch-cached, sha256-verified).")
+io_app = typer.Typer(
+    help="The network + onlist surface (pooch-cached, sha256-verified), and the steps a compiled "
+    "pipeline runs after alignment: h5ad, qc-bundle, fragments, fragments-qc, cram, umi-extract, "
+    "umi-count, split-chimera."
+)
 app.add_typer(io_app, name="io")
 
 onlist_app = typer.Typer(help="Barcode-whitelist (onlist) registry.")
@@ -56,10 +60,7 @@ app.add_typer(harvest_app, name="harvest")
 eval_app = typer.Typer(help="The evals harness: measure what unit tests cannot.")
 app.add_typer(eval_app, name="eval")
 
-# A rough first version: the format of the study files is provisional.
-standard_set_app = typer.Typer(
-    help="The standard set of studies under evals/: list them. Provisional."
-)
+standard_set_app = typer.Typer(help="The standard set of studies under evals/: list them.")
 app.add_typer(standard_set_app, name="standard-set")
 
 study_app = typer.Typer(
@@ -83,11 +84,6 @@ pass_app = typer.Typer(
     help="Passes of a seqforge unit kind over its units, through the lab gateway (liulab-llms)."
 )
 app.add_typer(pass_app, name="pass")
-
-review_app = typer.Typer(
-    help="A kind's review queue as issues in the lab's private review repo, answered by ticking."
-)
-app.add_typer(review_app, name="review")
 
 
 @app.command()

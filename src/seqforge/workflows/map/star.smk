@@ -267,7 +267,7 @@ rule star_count:
     container: config["container"]
     threads: config["threads"]
     # `retries:` and `resources:` are ONE mechanism, so they are read together. `config["mem_mb"]`
-    # appears as a literal subscript deliberately -- `workflows/__init__.py::keys_read_by` SCANS this
+    # appears as a literal subscript deliberately -- `workflows/module.py::keys_read_by` SCANS this
     # source to compute `required_config`, and a key the scanner cannot see is a key the composer is
     # not obliged to emit, i.e. a KeyError on a compute node long after compose exited 0.
     #

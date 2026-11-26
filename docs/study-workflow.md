@@ -13,9 +13,11 @@ This page gives the chain of steps that takes one study from its database record
 - [`reading.yaml`](formats/reading.md) holds the **study reading**: what was done to each sample, and how the samples
   relate. There is one reading per study.
 
-The chain is built and checked on the **standard set**, a fixed list of 50 small GEO studies. For
-those 50, both files sit in the study's folder, `evals/standard-set/<ID>/`. `<ID>` is the Series
-the study was picked by, such as `GSE100021`.
+Each study's files sit in its **study folder**, `<folder>/<ID>/`. `<ID>` is the Series the study
+was picked by, such as `GSE100021`, and `<folder>` is a folder of study folders. Both jobs run on
+the folder that `pass start --studies <folder>` names. The chain is built and checked on the
+**standard set**, a fixed list of 50 small GEO studies in `evals/standard-set/`, which is the
+folder when `--studies` names none.
 
 The work is planned in stages, and one step is not built yet: stage 6 runs the whole chain once
 with no person involved. That step already has its name, its input and its output below.
@@ -62,13 +64,22 @@ small plain file: the question, the study, the answer, who gave it and when.
 
 Bounding is drawing a study from its linked records. The bounding job runs a pass of the
 `study-bounds` kind, which asks a model the same kind of question once for each study and keeps
-each answer in the pass's task folder. [Passes and reviews](passes-and-reviews.md) describes passes.
-A study is named by the GEO Series it starts from. With no `--keys` file, the pass runs the 50
-studies of the standard set.
+each answer in the pass's task folder. [Passes](passes.md) describes passes.
+A study is named by the GEO Series it starts from. With no `--keys` file, the pass runs the
+studies that the folder's `pick.yaml` lists: the 50 of the standard set by default. A folder with
+no `pick.yaml` needs a `--keys` file, and the pass exits 2 without one.
 
 ```bash
 seqforge pass start study-bounds --ceiling-usd 0.1
 seqforge study write-bounds --out evals/standard-set --name job-bounds.yaml
+```
+
+In another folder, give the same folder to both commands. The bounding job's file is then the
+`bounds.yaml` that the reader reads:
+
+```bash
+seqforge pass start study-bounds --ceiling-usd 0.1 --studies <folder> --keys <keys-file>
+seqforge study write-bounds --out <folder>
 ```
 
 **What it reads.** The job reads liulab-data, the lab package that stores the archive records and
@@ -81,21 +92,25 @@ and so does a paper that only a BioProject links.
 **How it decides.** Code keeps the starting Series, or each sub-Series when the study starts from a
 SuperSeries, and it leaves every SuperSeries out. Jev, a model that answers yes/no questions with a
 probability, is asked about each other Series and each paper twice: once as written, once reversed.
-Jev reads the records and each paper's title, journal, date and abstract, and never a full paper. A
-record is in the study when Jev's answer as written is more likely yes than no. Each claim is
-`inferred`, and its text gives Jev's p(yes) to each of the two questions. A kept paper has no
-probability in the file, so the task keeps it.
+Jev reads the records and each paper's title, journal, date and abstract, and never a full paper.
+An answer is yes when Jev's p(yes) is above 0.5, and no when it is below 0.5. At exactly 0.5 it is
+neither. A record is in the study when Jev's answer as written is yes. The two answers agree when
+one is yes and the other no. Each claim is `inferred`, and its text gives Jev's p(yes) to each of
+the two questions. A kept paper has no probability in the file, so the task keeps it.
 
 **What it writes.** `seqforge study write-bounds --out <folder>` writes each study's answer as
-`<folder>/<ID>/bounds.yaml`, or under the name that `--name` gives. It never overwrites a file. For
-the standard set, the job's file is `job-bounds.yaml`, beside the set's own `bounds.yaml`. Each
-study ends in one of three ways:
+`<folder>/<ID>/bounds.yaml`, or under the name that `--name` gives. It never overwrites a file.
+Run it once the pass has ended. While a pass runs it does not refuse: it writes the answers that
+the task holds so far, so a study that the pass has not reached gets an earlier pass's answer, if
+one gave it. To take the new answer, delete that file and run the command again. For the standard
+set, the job's file is `job-bounds.yaml`, beside the set's own `bounds.yaml`. Each study ends in
+one of three ways:
 
 | Ending | When | File |
 | --- | --- | --- |
 | Settled | Jev's two answers agree on every record | Written |
-| Unsettled | Jev's two answers disagree on a record | Written, with each probability |
-| Refused | The group holds more than 50 Series, or the bounds fail the format check | None. `write-bounds` prints the reason, such as `group too large` |
+| Unsettled | Jev's two answers do not agree on a record | Written, with each probability |
+| Refused | The group holds more than 50 Series, Jev gives no answer about a record, or the bounds fail the format check | None. `write-bounds` prints the reason, such as `group too large` |
 
 ### How the standard set got its bounds
 
@@ -116,14 +131,17 @@ and 2 for a file that it cannot read.
 
 The check asks only whether the file is in the current format. It does not judge whether the
 bounds are right. The bounding job never writes a file that the check rejects: it ends the study
-refused. The reader reads each study's bounds file as it is.
+refused, and `write-bounds` checks the exact text it writes, with each model named, before the file
+appears. The reader reads each study's bounds file through the same check. It holds a study whose
+file is missing or rejected, and the reason names each problem. `seqforge pass status study-reading`
+lists each held study under `not_done`, with that reason.
 
 ## 3. Read the study
 
 The reader writes one study's **study reading**: what each sequenced sample is, and which labels
 the study varied. It runs a pass of the `study-reading` kind, one study per unit, and keeps each
-answer in the pass's task folder. With no `--keys` file, the pass runs the 50 studies of the
-standard set.
+answer in the pass's task folder. It runs on the folder that `--studies` names, the standard set
+by default, and it takes its units from that folder's pick as the bounding job does.
 
 ```bash
 seqforge pass start study-reading --ceiling-usd 2 --units-at-once 2
@@ -132,7 +150,14 @@ seqforge study write-reading --out evals/standard-set --name job-reading.yaml
 
 With `--units-at-once 2`, at most eight model requests are in flight at once.
 
-**What it reads.** The reader reads the study's own `bounds.yaml`, and liulab-data from
+In another folder, the reader reads the `bounds.yaml` that `write-bounds` wrote there:
+
+```bash
+seqforge pass start study-reading --ceiling-usd 2 --studies <folder> --keys <keys-file>
+seqforge study write-reading --out <folder>
+```
+
+**What it reads.** The reader reads the study's `bounds.yaml` in the folder, and liulab-data from
 `LABDATA_STORE` and `LABDATA_PAPERS`: the records of the Series that the bounds keep, the sequenced
 samples of those Series, and the bounds' papers. It reads a paper's full text where the paper store
 holds one, and the abstract where it does not. Only a sequenced sample gets a row, so a microarray
@@ -145,13 +170,15 @@ only such a file gives is `unknown`.
    **factors**, which are the labels that the study varied on purpose, with their levels. It also
    lists every value that each label takes, each with a quote. It does not say which sample has
    which value. An answer that cannot be used is asked for once more. The request sends no JSON
-   schema, because the gateway refuses a DeepSeek schema with thinking on. Code takes the JSON
-   object out of the reply's text instead.
+   schema, because the gateway refuses a DeepSeek schema with thinking on. Code reads the JSON
+   object out of the reply's text instead: the whole reply is JSON, or it holds exactly one fenced
+   block. Any other reply cannot be used.
 2. Jev, a model that answers closed questions with a probability, answers every closed question. It
    says whether each factor was varied on purpose, which level is the baseline, and whether the
    levels are in order. Then, for each sample, it picks the sample's level on each factor and its
-   value on each label from the lists. Some questions are asked twice: plain and negated, or with
-   the options in order and reversed.
+   value on each label from the lists. Some questions are asked twice: whether a factor was varied,
+   plain and negated, and its baseline and each sample's level, with the options in order and
+   reversed. Each sample's label values are asked once, because only its level is compared.
 3. Code looks for every quote in its record, character for character, or in its paper once each
    run of white space is one space. Jev judges whether each found passage backs its claim, or says
    otherwise. A claim is `quoted` only from a found passage that backs it. Otherwise it is
@@ -183,14 +210,16 @@ such as `liulab-data ontology store: efo-3.96.0, ncbitaxon-2026-11-25, uberon-20
 is the UTC day the pass opened the store, because the store names its snapshots by UTC day.
 
 **What it writes.** `seqforge study write-reading --out <folder>` writes each study's answer as
-`<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file.
-For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
+`<folder>/<ID>/reading.yaml`, or under the name that `--name` gives. It never overwrites a file,
+and it writes no file whose exact text the format check rejects: it writes the others and exits 3,
+as `write-bounds` does. Like `write-bounds`, it does not refuse while a pass runs, so run it once
+the pass has ended. For the standard set, the job's file is `job-reading.yaml`, beside the five worked examples. Each
 study ends in one of three ways:
 
 | Ending | When | File |
 | --- | --- | --- |
 | Settled | Jev's two answers agree on every question asked twice | Written |
-| Unsettled | Jev's two answers disagree on whether a factor was varied on purpose, on its baseline, or on any sample's level | Written, with each probability |
+| Unsettled | Jev's two answers do not agree on whether a factor was varied on purpose, on its baseline, or on any sample's level. A missing answer, or a probability of exactly 0.5, never agrees. Or Jev leaves unanswered a question it is asked once: a sample's label value or a label with no listed value, whose claim is then `unknown` with no probability, where the material came from, whether a factor's levels are ordered, a passage check, a tie or a term pick | Written, with each probability |
 | Refused | The writer's answer cannot be used after one retry, or the reading fails the format check | None. `write-reading` prints the reason |
 
 ## 4. Check the reading
@@ -230,7 +259,7 @@ set are kept out. The chain bounds and reads every study with no person involved
 
 For each study the run writes a `bounds.yaml` and a `reading.yaml`, or it lists the study with the
 reason it stopped. Every study ends as settled, unsettled or refused, as
-[Passes and reviews](passes-and-reviews.md#start-a-pass) defines those endings. No study is sent
+[Passes](passes.md#start-a-pass) defines those endings. No study is sent
 to a person.
 
 ## Files that exist today

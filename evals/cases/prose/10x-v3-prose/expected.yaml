@@ -7,10 +7,6 @@ description: >-
   from a quote about cycle counts), and WBcel235 (an assembly, not an organism, though it entails one
   to anyone with background knowledge — which the prompt forbids the extractor from using: extract
   only what the document explicitly states, never infer, never complete a pattern).
-
-  forbidden_fields is the real assertion. The document never gives an accession, so silence is the
-  correct answer, and only forbidden_fields rewards it — measuring recall alone would train the
-  prompt to guess.
 fields:
   library.chemistry: 10x-3p-gex-v3
 assertions:
@@ -18,5 +14,3 @@ assertions:
     value: 10x-3p-gex-v3
   - field: experiment.organism
     value: Caenorhabditis elegans
-forbidden_fields:
-  - experiment.accessions

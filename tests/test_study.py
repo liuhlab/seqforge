@@ -1,7 +1,7 @@
 """The format checks of a study's files and the relations of a reading, through ``seqforge study``.
 
 Every file here is written by hand in the test. The repo's own 50 bounds files are checked where the
-standard set is listed, in ``test_standard_set.py``.
+standard set is listed, in ``test_study_folder.py``.
 """
 
 from __future__ import annotations
@@ -9,6 +9,7 @@ from __future__ import annotations
 import copy
 import datetime
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -264,13 +265,18 @@ READING: dict[str, Any] = {
         "tissue": _said("liver", term="UBERON:0002107"),
         "cell_type": _gap("na"),
         "cell_line": _gap("na"),
-        "disease": {"text": "healthy", "inferred": "No disease is named.", "p": 0.8},
+        "disease": {
+            "text": "healthy",
+            "term": "PATO:0000461",
+            "inferred": "No disease is named.",
+            "p": 0.8,
+        },
         "genotype": _said("wild type", level="wt"),
         "strain": _gap("unknown"),
         "treatment": _said("bleomycin and DMSO", term=["CHEBI:22907", "CHEBI:28262"]),
         "dose": _said("per side"),
         "duration": _said("overnight"),
-        "diet": {"text": "standard chow", "quoted": [4], "p": 0.9},
+        "diet": {"text": "standard chow", "value": 5, "unit": "% fat", "quoted": [4], "p": 0.9},
     },
     "samples": {
         "GSM1": _material("B1"),
@@ -309,7 +315,8 @@ def _a_factor_one_row_writes(reading: dict[str, Any]) -> None:
 def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
     """Each of the four backings, a passage of each source, a label of the study's own, a range, a
     row that replaces a shared claim, a gap that names the passages it rests on, a claim that names
-    a passage against it, a treatment of two compounds, and a dose and a duration with no number."""
+    a passage against it, a treatment of two compounds, a dose and a duration with no number, a
+    number on the study's own label, and the id for healthy as a disease term."""
     code, said = _check(tmp_path, READING, "check-reading")
 
     assert (code, said["valid"], said["problems"]) == (0, True, [])
@@ -476,6 +483,24 @@ def test_a_reading_in_the_current_format_is_accepted(tmp_path: Path) -> None:
             "missing",
             id="a factor on a label some samples lack",
         ),
+        pytest.param(
+            _with({"text": "F", "term": "F", "quoted": [1], "p": 0.9}, "shared", "sex"),
+            "shared.sex.term",
+            "one of female, male, hermaphrodite or mixed",
+            id="a sex term that is not one of the four words",
+        ),
+        pytest.param(
+            _with("WBbt:0005772", "shared", "tissue", "term"),
+            "shared.tissue.term",
+            "comes from uberon",
+            id="a term from another species' vocabulary",
+        ),
+        pytest.param(
+            _with(3, "shared", "tissue", "value"),
+            "shared.tissue.value",
+            "tissue takes no number",
+            id="a number on a label that takes none",
+        ),
     ],
 )
 def test_a_broken_reading_is_rejected_with_the_field_and_the_reason(
@@ -593,6 +618,22 @@ def test_a_factor_with_no_baseline_contrasts_each_pair_of_its_levels_once(tmp_pa
         (None, ["young", "old"]),
         (None, ["middle", "old"]),
     ]
+
+
+def test_a_reading_check_without_liulab_data_refuses_to_run_and_names_the_remedy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """liulab-data holds each vocabulary's id prefixes, and an installed copy of seqforge can lack
+    it. The check then cannot judge an id: it refuses the run as a setup it cannot use, and names
+    the remedy, rather than reject a file that is valid."""
+    monkeypatch.setitem(sys.modules, "labdata.ontology.vocabularies", None)
+    path = tmp_path / "reading.yaml"
+    path.write_text(yaml.safe_dump(READING, sort_keys=False))
+
+    result = runner.invoke(app, ["study", "check-reading", str(path)])
+
+    assert result.exit_code == 2
+    assert "liulab-runtime" in result.output
 
 
 def test_a_file_that_is_not_text_cannot_be_read(tmp_path: Path) -> None:

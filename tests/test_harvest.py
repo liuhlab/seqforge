@@ -429,8 +429,8 @@ def test_verify_still_accepts_every_permitted_field(tmp_path: Path) -> None:
     assert report.n_accepted == 1, report.rejected
 
 
-# The allowlist's own truth table -- `is_permitted` as an exact match, not a prefix rule -- lives in
-# `tests/test_fields.py`, beside the vocabulary it reads. What stays here is `verify` consulting it.
+# The allowlist's own truth table -- an exact match, not a prefix rule -- lives in
+# `tests/test_harvest_fields.py`, beside the vocabulary it reads. What stays here is `verify` consulting it.
 
 
 # ---------- doc role: only a document you hand us may steer the pipeline ----------
@@ -569,7 +569,7 @@ def test_a_span_carries_the_physical_page_it_was_found_on(tmp_path: Path) -> Non
     pdf = _pdf(
         tmp_path,
         [
-            "Methods. The data were deposited as PRJNA1027859 on submission.",
+            "Methods. Libraries were prepared with the Chromium Single Cell 3' v3 kit.",
             "Results. The organism profiled was Caenorhabditis elegans throughout.",
         ],
     )
@@ -577,9 +577,9 @@ def test_a_span_carries_the_physical_page_it_was_found_on(tmp_path: Path) -> Non
     assert len(nd.pages) == 2
     drafts = [
         AssertionDraft(
-            field="experiment.accessions",
-            value="PRJNA1027859",
-            span=SourceSpan(doc_sha256=nd.doc_sha256, quote="deposited as PRJNA1027859"),
+            field="library.chemistry",
+            value="10x-3p-gex-v3",
+            span=SourceSpan(doc_sha256=nd.doc_sha256, quote="Chromium Single Cell 3' v3"),
             llm_confidence=0.9,
         ),
         AssertionDraft(
@@ -591,7 +591,7 @@ def test_a_span_carries_the_physical_page_it_was_found_on(tmp_path: Path) -> Non
     ]
     report = verify_drafts(drafts, [nd], extractor=EXTRACTOR)
     by_field = {a.field: a for a in report.assertions}
-    assert by_field["experiment.accessions"].span.page == 1  # page 1's accession
+    assert by_field["library.chemistry"].span.page == 1  # page 1's chemistry
     assert by_field["experiment.organism"].span.page == 2  # page 2's organism
 
 

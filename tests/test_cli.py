@@ -17,6 +17,7 @@ import yaml
 from genome import GeneCategoryNotDeclaredError, NoGeneCategoriesError
 from typer.testing import CliRunner, Result
 
+import gateway_kit
 import harvest_kit
 from conftest import (
     SrcTrees,
@@ -1395,6 +1396,36 @@ def test_manifest_fill_on_a_three_run_dataset_keeps_every_file(tmp_path: Path) -
     assert manifest["experiment"]["project"] is None
 
 
+def test_manifest_fill_carries_the_assay_id_the_spec_declares_and_opens_no_ontology_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Smart-seq3's assay is its spec's first ontology id, written with no store to ask.
+
+    The name of a term is the ontology store's to give, and the report asks it. `manifest fill`
+    used to take the name from a table seqforge shipped, and it dropped every chemistry the table
+    had no name for, so a Smart-seq3 manifest carried no assay at all. The store's variable names a
+    folder that is no store here, so a fill that opened it would fail.
+    """
+    monkeypatch.setenv("LABDATA_ONTOLOGIES", str(tmp_path / "no-store"))
+    spec = kb.load_spec("smartseq3")
+    reads = kb.generate_reads(spec, n=(spec.min_input_reads or 0) + 1, seed=0)
+    paths = []
+    for read in spec.reads:
+        path = tmp_path / f"s_{read.id}.fastq.gz"
+        write_fastq_gz(path, reads[read.id])
+        paths.append(str(path))
+
+    filled = runner.invoke(
+        app,
+        ["manifest", "fill", *paths, "--assert-chemistry", "smartseq3", "--organism", "6239",
+         "-C", str(tmp_path)],
+    )  # fmt: skip
+    assert filled.exit_code == 0, filled.stdout
+
+    manifest = yaml.safe_load((tmp_path / "seqforge" / "manifest.yaml").read_text())
+    assert manifest["library"]["assay"] == [{"chemistry": "smartseq3", "curie": "EFO:0022488"}]
+
+
 def test_processing_new_takes_an_assembly_from_a_verified_instruction(
     tmp_path: Path, synth_10x_v3: SynthDataset
 ) -> None:
@@ -1670,11 +1701,7 @@ def _prose_docs_apart(tmp_path: Path, n: int) -> list[str]:
 
 def _no_gateway(monkeypatch: pytest.MonkeyPatch) -> None:
     """Make building a gateway client fail the test: the command under test must not need one."""
-
-    def make_gateway() -> object:
-        raise AssertionError("a gateway client was built")
-
-    monkeypatch.setattr("seqforge.passes.gateway.make_gateway", make_gateway)
+    gateway_kit.forbidden(monkeypatch)
 
 
 def _paired_reads(tmp_path: Path) -> list[str]:
@@ -1729,11 +1756,12 @@ _STOPS = {
 
 
 @pytest.mark.parametrize("stop", [*_STOPS, "rejected"])
-def test_a_stop_ends_harvest_and_run_with_exit_3_and_a_rejection_with_exit_1(
+def test_a_stop_ends_harvest_and_run_with_exit_3_and_a_rejection_ends_them_and_eval_run_with_2(
     stop: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The four stops end `harvest extract` and `run` with exit 3, the reason and a Blocker; a request
-    the provider rejects as malformed or unauthorized is a bug, and surfaces as an error."""
+    the provider rejects as malformed or unauthorized is a setup to fix, and exits 2 there and in
+    `eval run`, as in `pass start`."""
     from labllm import ProviderExhausted, ProviderUnavailable, Rejected
 
     behaviour, options, reason = _STOPS.get(stop, ("rejected", [], "rejected"))
@@ -1748,17 +1776,23 @@ def test_a_stop_ends_harvest_and_run_with_exit_3_and_a_rejection_with_exit_1(
         return harvest_kit.NOTHING
 
     docs = _prose_docs(tmp_path, 2)
-    for argv in (
+    commands = [
         ["harvest", "extract", *docs, *options, "-C", str(tmp_path / "h")],
         ["run", *_paired_reads(tmp_path), "--doc", docs[0], "--organism", "559292", "--offline",
          *options, "-C", str(tmp_path / "r")],
-    ):  # fmt: skip
+    ]  # fmt: skip
+    if stop == "rejected":
+        commands.append(
+            ["eval", "run", "--llm", "--case", "chemistry-unstated-trap", "-C", str(tmp_path / "e")]
+        )
+    for argv in commands:
         fake = harvest_kit.install(monkeypatch, provider)
         if behaviour == "refuse":
             fake.refuse_connections()
         result = runner.invoke(app, argv)
         if stop == "rejected":
-            assert result.exit_code == 1, result.output
+            assert result.exit_code == 2, result.output
+            assert "401: the key is not authorized" in result.output
             continue
         assert result.exit_code == 3, result.output
         payload = json.loads(result.stdout)
@@ -2691,10 +2725,11 @@ def _one_submitted_run() -> object:
     The values are ADR-0033's own worked example, so a reader can put the printed JSON next to the
     `<SRAFile>` element it came from.
     """
+    from seqforge.io.archive import SOURCE
     from seqforge.models.records import ArchiveRecord, ArchiveRecordSet, SubmittedFile
 
     return ArchiveRecordSet(
-        source="ncbi-sra+biosample",
+        source=SOURCE,
         query="SRR19886090",
         records=[
             ArchiveRecord(
@@ -2741,7 +2776,7 @@ def test_io_records_prints_each_submitted_files_md5_size_and_uri(
     ]
 
 
-@pytest.mark.parametrize("lacks", ["a BioSample", "the whole store"])
+@pytest.mark.parametrize("lacks", ["an SRA package", "the whole store"])
 @pytest.mark.parametrize("verb", ["run", "manifest fill"])
 def test_offline_an_accession_reads_the_labs_store_and_refuses_one_it_lacks(
     stored_pilot: StubStore,
@@ -2776,7 +2811,7 @@ def test_offline_an_accession_reads_the_labs_store_and_refuses_one_it_lacks(
         monkeypatch.setattr(labdata, "open_store", unconfigured)
         lacking = "no labdata store is configured"
     else:
-        lacking = next(a for a in stored_pilot.texts if a.startswith("SAMN"))
+        lacking = next(a for a in stored_pilot.texts if a.startswith("SRX"))
         del stored_pilot.texts[lacking]
     with pytest.raises(RemoteError, match=lacking):
         load("PRJNA1027859")

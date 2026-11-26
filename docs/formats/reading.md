@@ -167,7 +167,7 @@ sure the model is. In the example, `tissue: {text: liver, ...}` is one claim.
 | --- | --- |
 | `text` | The value, in the source's own words. |
 | `term` | An ontology id for the value, such as `UBERON:0002107`. Written only when the match is clear. On `treatment` only, a list of ids when one sample got several compounds. |
-| `value` | For an age, a dose or a duration: the number, or a range as `[low, high]`. YAML reads `1.7e12` as text, so write `1.7e+12`. |
+| `value` | For an age, a dose, a duration or a label of the study's own: the number, or a range as `[low, high]`. YAML reads `1.7e12` as text, so write `1.7e+12`. |
 | `unit` | The unit of `value`, as one word: `month`, `day`, `hour`. |
 | `level` | On a label that is a factor: the name of the sample's level. See [Factors](#factors). |
 | `id` | On `biosample` and `donor`: a short name made up in the file, such as `B1`. |
@@ -289,6 +289,18 @@ Four points of meaning matter when you write or read these labels. The check doe
 
 A row or `shared` may hold more labels than the 18. Such a label is an attribute of the study's
 own, such as `time_of_day` in the example or a harvest time. Its claim has the same form.
+
+The rules for a claim's `term` and `value`, by its label:
+
+- A `sex` term is one of the four words `female`, `male`, `hermaphrodite` and `mixed`.
+- Any other term is an id from the vocabulary that the table above names for the label and the
+  sample's species, such as `UBERON:0002107` for a mouse tissue and `WBbt:0005772` for a worm
+  tissue. A shared claim must fit the species of each sample that it stands for. On `disease`,
+  `PATO:0000461` for healthy is allowed too.
+- A label for which the table names no vocabulary takes no term. These are `target`,
+  `control_type`, `genotype`, `strain`, `age`, `dose` and `duration`, a rat's `development_stage`,
+  and a label of the study's own.
+- Only `age`, `dose`, `duration` and a label of the study's own take a `value`.
 
 ## Factors
 

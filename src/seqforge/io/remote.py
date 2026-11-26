@@ -58,10 +58,6 @@ ENA_FILEREPORT = "https://www.ebi.ac.uk/ena/portal/api/filereport"
 #: place that exposes reads-per-spot and per-read length, i.e. the only way to see a dropped read.
 NCBI_RUN_NEW = "https://trace.ncbi.nlm.nih.gov/Traces/sra-db-be/run_new"
 
-#: GEO SOFT. Preferred over eutils for GSE->SRP: no rate limit (eutils is 3/sec keyless, by IP), and
-#: it is the only source that reveals SuperSeries membership.
-GEO_ACC = "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi"
-
 #: SRA Data Locator. GET/POST **form-encoded, not JSON**; `version` is in the path, not a param. To
 #: request originals, OMIT `filetype` — there is no `filetype=src`, and `filetype=all` returns
 #: nothing (`all`/`any` are client-side sentinels sra-tools strips). Errors arrive as HTTP 200 with a
@@ -103,14 +99,6 @@ _ACCESSION_KINDS: tuple[tuple[str, str], ...] = (
     (r"^[EDS]RA\d{6,}$", "submission"),
 )
 
-_SRP_IN_SOFT = re.compile(r"term=([EDSR]RP\d+)")
-_SUPERSERIES_OF = re.compile(r"^!Series_relation = SuperSeries of: (GSE\d+)", re.MULTILINE)
-#: Anchored on the relation line, not on the bare accession: a GEO record carries other URLs
-#: (`!Series_supplementary_file`), and only this line declares where the raw data was deposited.
-_BIOPROJECT_IN_SOFT = re.compile(
-    r"^!Series_relation = BioProject:\s*\S*/(PRJ[A-Z]{2}\d+)", re.MULTILINE
-)
-
 _DEFAULT_TIMEOUT = 30
 
 #: Transient HTTP statuses worth a retry rather than a hard abort. 429 is NCBI eutils' rate-limit reply
@@ -140,6 +128,22 @@ class NotYetImplemented(RuntimeError):
 
 class RemoteError(RuntimeError):
     """The network surface failed, or an accession is unknown. Never a silent empty result."""
+
+
+def import_labdata() -> Any:
+    """liulab-data, or a refusal that says how to get it.
+
+    Every verb that reaches NCBI through it refuses with :mod:`seqforge.liulab_data`'s remedy
+    instead of a traceback.
+    """
+    from ..liulab_data import LiulabDataMissing, needed
+
+    try:
+        with needed():
+            import labdata
+    except LiulabDataMissing as exc:
+        raise RemoteError(str(exc)) from exc
+    return labdata
 
 
 def classify_accession(accession: str) -> str:
@@ -184,74 +188,6 @@ def _get(url: str, params: dict[str, str] | None = None, timeout: int = _DEFAULT
             attempt += 1
             continue
         raise RemoteError(f"GET {url} -> HTTP {response.status_code}: {response.text[:200]}")
-
-
-def parse_soft_srp(soft: str) -> list[str]:
-    """SRP study accessions declared in a GEO SOFT record."""
-    return sorted(set(_SRP_IN_SOFT.findall(soft)))
-
-
-def parse_soft_superseries(soft: str) -> list[str]:
-    """Sub-series of a SuperSeries.
-
-    **A SuperSeries owns no runs.** eutils and runinfo both return zero for one, silently — so a
-    resolver that does not recurse loses the whole dataset while reporting success. That is the worst
-    kind of wrong, and it is why SuperSeries membership is parsed explicitly instead of trusted away.
-    """
-    return sorted(set(_SUPERSERIES_OF.findall(soft)))
-
-
-def parse_soft_bioproject(soft: str) -> list[str]:
-    """BioProject accessions declared in a GEO SOFT record.
-
-    The only route to a SubSeries' runs: its brief record declares no SRA study and has no sub-series
-    to walk, so this URL is the only thing in it that points at raw data (#238).
-    """
-    return sorted(set(_BIOPROJECT_IN_SOFT.findall(soft)))
-
-
-def geo_soft(accession: str) -> str:
-    """Fetch a brief GEO SOFT record."""
-    return _get(GEO_ACC, {"acc": accession, "targ": "self", "form": "text", "view": "brief"})
-
-
-def geo_to_studies(accession: str, *, _depth: int = 0) -> list[str]:
-    """GSE -> the accessions ENA can expand into the runs of THAT GEO accession.
-
-    **A GEO accession resolves to the runs of that accession.** That is a decision, not something
-    stumbled into (#238), and it is what orders the three declarations a record can carry:
-
-    1. a plain series names its study outright (``SRA: …term=SRP…``);
-    2. a SuperSeries owns no runs of its own, so it recurses down to its sub-series — eutils and
-       runinfo both return zero for one, silently;
-    3. a SubSeries declares neither. Its brief record carries only ``SubSeries of:`` and a BioProject
-       URL, so that BioProject is followed. Walking *up* to the SuperSeries and back down would
-       return the sibling sub-series' runs as well, which is not the accession that was asked for:
-       GSE207085's own BioProject is PRJNA853582 (1440 runs), its siblings' are PRJNA853580 and
-       PRJNA853581.
-
-    The BioProject is tried last for the same reason: a SuperSeries declares an umbrella one spanning
-    every sub-series, so preferring it would answer with the union whichever member was named.
-    """
-    if _depth > 3:
-        raise RemoteError(f"{accession}: SuperSeries nesting too deep; refusing to recurse further")
-    soft = geo_soft(accession)
-    studies = parse_soft_srp(soft)
-    if studies:
-        return studies
-    subs = parse_soft_superseries(soft)
-    if subs:
-        found: list[str] = []
-        for sub in subs:
-            found.extend(geo_to_studies(sub, _depth=_depth + 1))
-        return sorted(set(found))
-    projects = parse_soft_bioproject(soft)
-    if projects:
-        return projects
-    raise RemoteError(
-        f"{accession}: no SRA study, sub-series or BioProject in the GEO record. It may be "
-        "unreleased (status=hup), or carry no raw data."
-    )
 
 
 def parse_filereport(tsv: str) -> list[dict[str, str]]:
@@ -510,9 +446,12 @@ def _annotate(run: dict[str, str]) -> dict[str, Any]:
 def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, Any]:
     """Expand any accession into runs + declared metadata + a dropped-technical-read verdict.
 
-    GEO is resolved to something ENA accepts first (it rejects GSE outright) — a study, its
-    sub-series' studies, or the declared BioProject, whichever the record carries; `studies` reports
-    which. This reports declared facts and abstains loudly; it never guesses a chemistry — that is
+    ENA rejects a GEO accession outright, so liulab-data names the runs under one first, the same
+    answer ``io records`` gets: it follows a SuperSeries down and a SubSeries to its own runs. ENA is
+    then asked once per study for the FASTQ links and sizes, and only the accession's own runs are
+    kept, since a study can hold runs of other GEO records. `studies` reports which studies, and
+    `runs_not_in_ena` the accession's runs that ENA's report lacks, so none is dropped silently.
+    This reports declared facts and abstains loudly; it never guesses a chemistry — that is
     resolve's job, from bytes.
     """
     acc = accession.strip()
@@ -524,16 +463,22 @@ def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, 
         )
 
     studies: list[str] = []
+    not_in_ena: list[str] = []
     if kind in ("geo_series", "geo_sample"):
-        studies = geo_to_studies(acc)
-        runs = [r for s in studies for r in ena_filereport(s)]
+        from .archive import experiments_under  # archive builds on this module
+
+        experiments = experiments_under(acc)
+        studies = sorted({e.study for e in experiments if e.study})
+        wanted = {run.accession for e in experiments for run in e.runs}
+        runs = [r for s in studies for r in ena_filereport(s) if r.get("run_accession") in wanted]
+        not_in_ena = sorted(wanted - {r.get("run_accession") for r in runs})
     else:
         runs = ena_filereport(acc)
 
     if not runs:
         raise RemoteError(
-            f"{acc}: ENA returned no runs. It may be unreleased (status=hup), or a SuperSeries whose "
-            "sub-series must be resolved individually."
+            f"{acc}: ENA returned no runs. It may be unreleased (status=hup), or not yet mirrored "
+            "by ENA."
         )
 
     entries = (
@@ -546,6 +491,7 @@ def resolve_accession(accession: str, *, check_reads: bool = True) -> dict[str, 
         "kind": kind,
         "studies": studies,
         "n_runs": len(entries),
+        "runs_not_in_ena": not_in_ena,
         "n_runs_missing_technical_read": sum(1 for e in entries if e.get("technical_read_dropped")),
         "runs": entries,
     }

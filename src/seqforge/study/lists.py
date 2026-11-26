@@ -13,56 +13,15 @@ records name one of its library strategies: :func:`guides_for` picks them.
 
 from __future__ import annotations
 
-import json
 import re
 from collections.abc import Iterable
 from importlib.resources import files
 
+from labllm import ReplyNotJson, reply_json
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-#: The labels the writer lists values for. Code writes the other three: biosample, donor, species.
-LABELS = (
-    "assay",
-    "target",
-    "control_type",
-    "sex",
-    "age",
-    "development_stage",
-    "tissue",
-    "cell_type",
-    "cell_line",
-    "disease",
-    "genotype",
-    "strain",
-    "treatment",
-    "dose",
-    "duration",
-)
-#: The labels code writes on its own, which are never a factor.
-CODE_LABELS = ("biosample", "donor", "species")
-#: The labels whose value may carry a number and a unit.
-NUMERIC = ("age", "dose", "duration")
-#: What each label holds, as the writer and Jev are told.
-MEANING = {
-    "assay": "the kind of sequencing experiment, such as RNA-Seq, ChIP-Seq or ATAC-seq",
-    "target": "what a pull-down enriches: a histone mark or a protein; na for an assay with no "
-    "pull-down and for a control library",
-    "control_type": "the kind of background-control library, such as input or IgG; na for every "
-    "other library",
-    "sex": "the sex: female, male, hermaphrodite or mixed",
-    "age": "the age, with a number and a unit",
-    "development_stage": "the stage of life, such as embryo, larval stage or adult",
-    "tissue": "the tissue or organ",
-    "cell_type": "the cell type",
-    "cell_line": "the cell line",
-    "disease": "the disease or disease model, or healthy",
-    "genotype": "the genotype",
-    "strain": "the strain",
-    "treatment": "what was applied to the sample: a drug, a diet, a vector, an infection or a "
-    "procedure",
-    "dose": "how much of the treatment",
-    "duration": "how long the treatment itself was applied",
-}
+from .labels import LABELS
+
 #: The guides by file, each with the library strategies that pick it, written as
 #: :func:`_strategy` folds them.
 GUIDES = {"pull-down.txt": ("chipseq", "chipexo", "cutrun", "cuttag")}
@@ -80,7 +39,7 @@ step decides that from your lists. Write only what the text supports.
 
 Every sequenced sample gets these labels:
 """
-    + "\n".join(f"- {label}: {meaning}" for label, meaning in MEANING.items())
+    + "\n".join(f"- {r.name}: {r.holds}" for r in LABELS if r.written_by == "writer")
     + """
 
 Points of meaning:
@@ -252,35 +211,17 @@ def snake(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
-def _json_object(text: str) -> object:
-    """The JSON the text is, or else the first JSON object in it, read from its opening brace.
-
-    Raises the error of reading the whole text when no brace opens an object.
-    """
-    try:
-        return json.loads(text)
-    except ValueError as whole:
-        decoder = json.JSONDecoder()
-        for at in (m.start() for m in re.finditer(r"\{", text)):
-            try:
-                data, _ = decoder.raw_decode(text, at)
-            except ValueError:
-                continue
-            if isinstance(data, dict):
-                return data
-        raise whole
-
-
 def parse_lists(text: str) -> tuple[Lists | None, str | None]:
     """The writer's answer as lists, or ``None`` and why it cannot be used.
 
-    The writer answers in text, with no schema, so the object is taken out of it: a code fence or
-    prose around it is no fault. An answer is broken when it holds no JSON object, does not have
-    the shape the instructions give, or names one level of a factor twice.
+    The writer answers in text, with no schema, so its JSON is read by liulab-llms's one rule for
+    such a reply: the whole text, or the one fenced block it holds. An answer is broken when that
+    rule reads no JSON object, when the object does not have the shape the instructions give, or
+    when it names one level of a factor twice.
     """
     try:
-        data = _json_object(text)
-    except (TypeError, ValueError) as exc:
+        data = reply_json(text)
+    except ReplyNotJson as exc:
         return None, f"not JSON: {exc}"
     if not isinstance(data, dict):
         return None, "not a JSON object"

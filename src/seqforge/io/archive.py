@@ -2,7 +2,7 @@
 
 This is a **transcriber**, not a resolver. It turns an accession into
 :class:`~seqforge.models.records.ArchiveRecordSet` — project, sample, experiment, run — and stops.
-It decides nothing, harmonizes only where NCBI itself harmonized, and never touches a byte of FASTQ.
+It decides nothing, renames nothing, and never touches a byte of FASTQ.
 What the records *mean* is :mod:`seqforge.resolve.records`'s job.
 
 **Why this had to exist at all.** ``io/remote.py`` already asks ENA for a couple of dozen fields, and
@@ -17,23 +17,24 @@ the comfortable assumption, and it was false.
 
 1. ``labdata.experiments_for`` expands *any* accession — GEO series, BioProject, study, run,
    BioSample — into the experiments underneath it, over NCBI Entrez. It replaced our own ENA/SOFT
-   routing because its ``elink`` route traverses a GEO *SuperSeries* (which owns no runs of its own)
-   and a BioProject umbrella transitively — the recursion our SOFT parser missed, which lost a whole
-   SuperSeries dataset while reporting success.
+   routing, here and in ``io resolve``, because its ``elink`` route traverses a GEO *SuperSeries*
+   (which owns no runs of its own) and a BioProject umbrella transitively — the recursion our SOFT
+   parser missed, which lost a whole SuperSeries dataset while reporting success.
 2. NCBI's ``efetch db=sra`` returns one ``EXPERIMENT_PACKAGE`` per experiment, and a package is the
    whole hierarchy in one object: STUDY (title, abstract, centre), EXPERIMENT (the protocol prose),
-   SAMPLE (alias + attributes), RUN (accession, alias, submitted files). Everything but one thing.
-3. That one thing is ``harmonized_name``. The SRA package gives a sample attribute as the submitter
-   typed it (``<TAG>dev_stage</TAG>``); ``efetch db=biosample`` gives NCBI's own harmonization of the
-   same attribute (``harmonized_name="dev_stage"``). We want NCBI's, because the alternative is us
-   guessing at someone else's vocabulary.
+   SAMPLE (alias, taxon, attributes), RUN (accession, alias, submitted files). A sample's attributes
+   are kept as the submitter typed them (``<TAG>dev_stage</TAG>``), with no BioSample request to
+   rename them: what a sample was is a study reading's to say, and the one name read off a sample
+   record, ``taxonomy_id``, comes from the package's own taxon.
+3. ``efetch db=bioproject`` adds the study facts the package does not carry: the data type and the
+   release and submission dates. A failure here keeps the record set, with the package's facts.
 
 ``efetch db=sra`` does **not** accept a study accession (``id=SRP502277`` -> "ID list is empty"),
 which is why step 1 is not optional. It does accept a list of experiment accessions, so the six
 packages arrive in one request.
 
 **The lab's store first.** When a labdata store is configured and holds the whole deposit, the same
-three kinds of text come from it, as NCBI served them, through the same parsers, with no network
+two kinds of text come from it, as NCBI served them, through the same parsers, with no network
 call (:func:`stored_records`). A store that lacks any record of the deposit sends the whole fetch to
 NCBI, so a record set is never part stored and part live.
 
@@ -60,8 +61,7 @@ from ..models.records import (
     SubmittedFile,
 )
 from . import IO_VERSION
-from .attributes import harmonize
-from .remote import _MAX_RETRIES, RemoteError, _get, retry_delay
+from .remote import _MAX_RETRIES, RemoteError, _get, import_labdata, retry_delay
 
 #: A ``LabdataError`` message that names a TRANSIENT NCBI failure (a 5xx, a 429/rate-limit, a timeout)
 #: — worth a backoff-and-retry. Everything else (a malformed accession, a record with no SRA data) is
@@ -71,7 +71,7 @@ _TRANSIENT_LABDATA = re.compile(
     r"\b(?:429|50[0234]|rate.?limit|timed?.?out|temporarily|connection)\b", re.I
 )
 
-#: NCBI E-utilities. ``efetch db=sra`` takes experiment accessions; ``db=biosample`` takes SAMN ids.
+#: NCBI E-utilities. ``efetch db=sra`` takes experiment accessions; ``db=bioproject`` takes PRJ ids.
 EUTILS_EFETCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
 #: How many ids to put in one efetch. NCBI asks for POST above ~200; we stay well under and page.
@@ -81,7 +81,7 @@ _BATCH = 100
 #: those four words is a copy that can drift from the one the models enforce.
 _LEVELS: tuple[str, ...] = get_args(RecordLevel)
 
-SOURCE = "ncbi-sra+biosample"
+SOURCE = "ncbi-sra"
 
 
 def _efetch(db: str, ids: list[str], **params: str) -> str:
@@ -300,96 +300,26 @@ def _submitted_files(run: ElementTree.Element) -> list[SubmittedFile]:
 def _taxonomy(taxid: str) -> list[RecordAttribute]:
     """The organism the record declares, as a taxid.
 
-    ``harmonized=False``: NCBI has no harmonized *attribute* called ``taxonomy_id`` — the organism
-    lives in the record's structure, not in its attribute list. Recording it here keeps every declared
-    fact about a sample in one place while keeping it out of the sample-attribute key space, which the
-    960-name vocabulary owns. ``resolve`` reads it by name to fill ``experiment.organism``, which
-    until now had to be typed on the command line and cited nothing.
+    The organism lives in the record's structure, not in its attribute list. Recording it as an
+    attribute keeps every declared fact about a sample in one place, and ``resolve`` reads it by name
+    to fill ``experiment.organism``, which until now had to be typed on the command line and cited
+    nothing.
     """
     return [RecordAttribute(name="taxonomy_id", value=taxid)] if taxid.isdigit() else []
 
 
 def _sample_attributes(sample: ElementTree.Element) -> list[RecordAttribute]:
-    """SRA's ``<SAMPLE_ATTRIBUTE><TAG>`` pairs, harmonized against NCBI's vocabulary where possible.
+    """SRA's ``<SAMPLE_ATTRIBUTE><TAG>`` pairs, each tag and value as the submitter typed them.
 
-    This is the fallback path. When a BioSample record is reachable, :func:`merge_biosample_attributes`
-    overwrites these with NCBI's *own* harmonization, which is authoritative in a way our synonym
-    lookup is not. Applying the fallback first keeps a sample whose BioSample is unreachable (or which
-    never had one) from silently having no attributes at all.
+    Sorted by tag, so the order the archive served them in does not reach a cached record set.
     """
     out: list[RecordAttribute] = []
     for attr in sample.findall(".//SAMPLE_ATTRIBUTE"):
         tag = " ".join((attr.findtext("TAG") or "").split())
         value = " ".join((attr.findtext("VALUE") or "").split())
-        if not tag or not value:
-            continue
-        name = harmonize(tag)
-        out.append(
-            RecordAttribute(
-                name=name or tag,
-                value=value,
-                harmonized=name is not None,
-                raw_name=tag if name and name != tag else None,
-            )
-        )
+        if tag and value:
+            out.append(RecordAttribute(name=tag, value=value))
     return sorted(out, key=lambda a: a.name)
-
-
-def parse_biosample_set(xml: str) -> dict[str, list[RecordAttribute]]:
-    """``efetch db=biosample`` XML -> BioSample accession -> attributes, using NCBI's harmonization.
-
-    ``harmonized_name`` is NCBI's answer to "what is this attribute really called", computed by the
-    people who own the vocabulary. Where it is absent the submitter invented the tag, and it is kept
-    unharmonized rather than guessed at.
-    """
-    try:
-        root = ElementTree.fromstring(xml)
-    except ElementTree.ParseError as exc:
-        raise RemoteError(f"efetch db=biosample returned unparsable XML: {exc}") from exc
-
-    out: dict[str, list[RecordAttribute]] = {}
-    for bs in root.findall(".//BioSample"):
-        acc = bs.get("accession")
-        if not acc:
-            continue
-        attrs: list[RecordAttribute] = []
-        for attr in bs.findall(".//Attribute"):
-            value = " ".join((attr.text or "").split())
-            if not value:
-                continue
-            raw = attr.get("attribute_name") or ""
-            harmonized = attr.get("harmonized_name")
-            attrs.append(
-                RecordAttribute(
-                    name=harmonized or raw,
-                    value=value,
-                    harmonized=bool(harmonized),
-                    raw_name=raw if harmonized and raw != harmonized else None,
-                )
-            )
-        organism = bs.find(".//Description/Organism")
-        if organism is not None and (organism.get("taxonomy_id") or "").isdigit():
-            attrs.extend(_taxonomy(str(organism.get("taxonomy_id"))))
-        owner = _text(bs.find("Owner"), "Name")
-        if owner:
-            attrs.append(RecordAttribute(name="center_name", value=owner))
-        package = _text(bs, "Package")
-        if package:
-            # recorded, never enforced — see io/attributes.py for why narrowing by package is wrong
-            attrs.append(RecordAttribute(name="biosample_package", value=package))
-        out[acc] = sorted(attrs, key=lambda a: a.name)
-    return out
-
-
-def merge_biosample_attributes(
-    records: list[ArchiveRecord], by_accession: dict[str, list[RecordAttribute]]
-) -> list[ArchiveRecord]:
-    """Replace a sample record's SRA-derived attributes with NCBI's harmonized ones where we have them."""
-    out: list[ArchiveRecord] = []
-    for rec in records:
-        attrs = by_accession.get(rec.accession) if rec.level == "sample" else None
-        out.append(rec.model_copy(update={"attributes": attrs}) if attrs else rec)
-    return out
 
 
 def parse_bioproject_set(xml: str) -> dict[str, list[RecordAttribute]]:
@@ -429,20 +359,21 @@ def parse_bioproject_set(xml: str) -> dict[str, list[RecordAttribute]]:
     return out
 
 
-def _experiments_for(accession: str) -> list[str]:
-    """Any accession -> the SRA experiment accessions under it, via ``labdata``.
+def experiments_under(accession: str) -> list[Any]:
+    """Any accession -> liulab-data's SRA experiments under it, each with its study and runs.
 
-    Delegated to :func:`labdata.experiments_for`, whose Entrez ``elink`` route traverses a GEO
-    *SuperSeries* (which owns no runs of its own) and a BioProject umbrella transitively — the case
-    our own GEO/SOFT recursion missed, silently losing the whole dataset while reporting success.
-    ``labdata`` is a lab package that ships with ``liulab-genome`` in ``liulab-runtime``, so
-    depending on it adds no environment the cluster does not already have.
+    The one answer to "which runs are under this accession", for ``io records`` and ``io resolve``
+    alike. Delegated to :func:`labdata.experiments_for`, whose Entrez ``elink`` route traverses a
+    GEO *SuperSeries* (which owns no runs of its own) and a BioProject umbrella transitively — the
+    case our own GEO/SOFT recursion missed, silently losing the whole dataset while reporting
+    success. ``labdata`` is a lab package that ships with ``liulab-genome`` in ``liulab-runtime``,
+    so depending on it adds no environment the cluster does not already have.
 
     ``labdata`` raises on a malformed accession or a failed request and returns an empty list for a
     record with no SRA data; both become a loud :class:`RemoteError` here, because an accession that
     was *given* and resolves to nothing is a refusal, not a silent omission from a permanent manifest.
     """
-    import labdata
+    labdata = import_labdata()
     from labdata.exceptions import LabdataError
 
     # Retry a TRANSIENT labdata failure (intermittent eutils 5xx/429) with backoff, exactly as
@@ -460,13 +391,17 @@ def _experiments_for(accession: str) -> list[str]:
                 attempt += 1
                 continue
             raise RemoteError(f"{accession}: could not resolve experiments: {exc}") from exc
-    accessions = sorted({e.accession for e in experiments})
-    if not accessions:
+    if not experiments:
         raise RemoteError(
             f"{accession}: no experiments found. It may be unreleased (status=hup), or a record "
             "that carries no raw SRA data."
         )
-    return accessions
+    return list(experiments)
+
+
+def _experiments_for(accession: str) -> list[str]:
+    """Any accession -> the SRA experiment accessions under it, sorted (:func:`experiments_under`)."""
+    return sorted({e.accession for e in experiments_under(accession)})
 
 
 def _sra_packages(experiments: list[str]) -> list[ArchiveRecord]:
@@ -518,15 +453,14 @@ def _ids(records: list[ArchiveRecord], level: RecordLevel, prefix: str) -> list[
 def _record_set(
     accession: str,
     packages: list[ArchiveRecord],
-    harmonized: dict[str, list[RecordAttribute]],
     project_facts: dict[str, list[RecordAttribute]],
 ) -> ArchiveRecordSet:
-    """The deduplicated packages, with NCBI's harmonized sample attributes and the study's facts."""
+    """The deduplicated packages, with the study's facts added to its project record."""
     packages = [
         r.model_copy(update={"attributes": [*r.attributes, *project_facts[r.accession]]})
         if r.level == "project" and r.accession in project_facts
         else r
-        for r in merge_biosample_attributes(packages, harmonized)
+        for r in packages
     ]
     # Stamped with the version that transcribed it, so a set read back later says how much of the
     # archive we were asking for at the time: a run declaring no submitted files is a deposit that
@@ -547,7 +481,7 @@ def _joined(root: str, texts: Mapping[str, Any]) -> str:
 def stored_records(accession: str) -> ArchiveRecordSet:
     """``accession``'s record set from the lab's labdata store, with no network call.
 
-    The store keeps each record's text as NCBI served it, so the same three parsers read it. One
+    The store keeps each record's text as NCBI served it, so the same two parsers read it. One
     store handle serves the whole walk, so a store refreshed mid-walk cannot mix two builds, and each
     level is one ``raw`` call for the whole deposit. Never ``partial``: a deposit the store holds
     only in part is a deposit it does not hold.
@@ -556,7 +490,7 @@ def stored_records(accession: str) -> ArchiveRecordSet:
     :class:`RemoteError` when the configured root is not a store, since that is a broken setup a live
     fetch would hide.
     """
-    import labdata
+    labdata = import_labdata()
     from labdata.exceptions import (
         LabdataError,
         NotAStoreError,
@@ -582,19 +516,13 @@ def stored_records(accession: str) -> ArchiveRecordSet:
         packages = one_record_per_accession(
             parse_sra_package_set(_joined("EXPERIMENT_PACKAGE_SET", store.raw(experiments)))
         )
-        biosamples = _ids(packages, "sample", "SAM")
-        harmonized = (
-            parse_biosample_set(_joined("BioSampleSet", store.raw(biosamples)))
-            if biosamples
-            else {}
-        )
         projects = _ids(packages, "project", "PRJ")
         facts = parse_bioproject_set(_joined("RecordSet", store.raw(projects))) if projects else {}
     except (NotMirrored, NotFound) as exc:
         raise NotStored(f"{accession}: the labdata store lacks it: {exc}{_OFFLINE_REMEDY}") from exc
     except LabdataError as exc:
         raise RemoteError(f"{accession}: the labdata store could not read it: {exc}") from exc
-    return _record_set(accession, packages, harmonized, facts)
+    return _record_set(accession, packages, facts)
 
 
 def fetch_records(accession: str) -> ArchiveRecordSet:
@@ -618,23 +546,15 @@ def fetch_records(accession: str) -> ArchiveRecordSet:
     # Only here does the whole record set exist. Every request carries the study above the experiments
     # it asked for, and a sample above every experiment of its own, so a study repeats once per
     # request and a sample repeats in each request holding one of its experiments; the per-reply dedup
-    # cannot see either. Deduplicating before the two enrichment fetches below also keeps a repeated
-    # sample from spending a second id slot on attributes already being asked for.
+    # cannot see either.
     packages = one_record_per_accession(packages)
-
-    harmonized: dict[str, list[RecordAttribute]] = {}
-    biosamples = _ids(packages, "sample", "SAM")
-    for i in range(0, len(biosamples), _BATCH):
-        harmonized.update(
-            parse_biosample_set(_efetch("biosample", biosamples[i : i + _BATCH], rettype="full"))
-        )
 
     projects = _ids(packages, "project", "PRJ")
     try:
         facts = parse_bioproject_set(_efetch("bioproject", projects)) if projects else {}
     except RemoteError:
         facts = {}  # the study facts we already have came from the SRA package; this only adds
-    return _record_set(accession, packages, harmonized, facts)
+    return _record_set(accession, packages, facts)
 
 
 __all__ = [
@@ -642,10 +562,8 @@ __all__ = [
     "SOURCE",
     "NotStored",
     "fetch_records",
-    "merge_biosample_attributes",
     "one_record_per_accession",
     "parse_bioproject_set",
-    "parse_biosample_set",
     "parse_sra_package_set",
     "stored_records",
 ]

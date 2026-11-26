@@ -4,7 +4,8 @@ A study starts from one GEO Series. Its **linked group** is that Series, every S
 from it, and every paper any of them links. :func:`linked_series` gathers the group's Series,
 :func:`read_group` reads the group as plain data, and :func:`group_text` renders what the model is
 shown: the records and each paper's abstract. Record and paper text is only ever passed on: the
-repo keeps identifiers.
+repo keeps identifiers. :func:`record_store` and :func:`paper_reader` open the two stores, once for
+a pass.
 """
 
 from __future__ import annotations
@@ -13,6 +14,8 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable, Mapping
 from typing import Any
+
+from ..passes import SetupRefused
 
 #: The Series fields the model sees, in this order, each with its label.
 _SERIES_FIELDS = (
@@ -84,11 +87,11 @@ def linked_series(store: Any, start: str) -> list[str]:
 def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict[str, Any]:
     """One study's linked group: its Series with their samples, and the papers they link.
 
-    ``entry`` names the study's ``id`` and its ``linked_series``, and may name ``pmids`` of its
-    own. ``store`` is liulab-data's record store and ``papers`` its paper reader, or ``None`` when
-    no paper store is configured. A linked Series the store does not hold is kept, marked not held.
-    A paper lists every Series it links, those outside the group included, since a paper shared
-    with another Series is the main sign of a re-cite.
+    ``entry`` names the study's ``id`` and its ``linked_series``. ``store`` is liulab-data's record
+    store and ``papers`` its paper reader, or ``None`` when no paper store is configured. A linked
+    Series the store does not hold is kept, marked not held. A paper lists every Series it links,
+    those outside the group included, since a paper shared with another Series is the main sign of
+    a re-cite.
     """
     wanted = [str(gse) for gse in entry["linked_series"]]
     opened = store.open_many(wanted)
@@ -106,10 +109,8 @@ def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict
             {
                 "id": gse,
                 "held": True,
-                "record": record,
                 "fields": {label: _fields(record, name) for name, label in _SERIES_FIELDS},
                 "superseries_of": _far_ends(record, "SuperSeries of"),
-                "bioprojects": _far_ends(record, "BioProject"),
                 "pmids": [p[5:] for p in _papers(record.links) if p.startswith("PMID:")],
                 "samples": [
                     _sample(samples[s]) for s in sample_ids[gse] if not _is_error(samples[s])
@@ -117,12 +118,7 @@ def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict
             }
         )
 
-    pmids = list(
-        dict.fromkeys(
-            [str(p) for p in entry.get("pmids") or []]
-            + [p for s in series for p in s.get("pmids", [])]
-        )
-    )
+    pmids = list(dict.fromkeys(p for s in series for p in s.get("pmids", [])))
     details = papers.papers(pmids) if papers is not None and pmids else {}
     links = store.links([f"PMID:{p}" for p in pmids], "PubMed of") if pmids else {}
     paper_rows = []
@@ -133,7 +129,6 @@ def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict
             {
                 "id": paper_id(pmid),
                 "pmid": pmid,
-                "paper": paper,
                 "title": getattr(info, "title", None),
                 "journal": getattr(info, "journal", None),
                 "published": str(info.published) if info and info.published else None,
@@ -146,13 +141,7 @@ def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict
                 ),
             }
         )
-    supers = [s["id"] for s in series if s.get("superseries_of")]
-    return {
-        "id": str(entry["id"]),
-        "series": series,
-        "papers": paper_rows,
-        "superseries": supers[0] if supers else None,
-    }
+    return {"id": str(entry["id"]), "series": series, "papers": paper_rows}
 
 
 def _is_error(record: object) -> bool:
@@ -162,7 +151,6 @@ def _is_error(record: object) -> bool:
 def _sample(record: Any) -> dict[str, Any]:
     return {
         "id": record.accession,
-        "record": record,
         "title": " ".join(_fields(record, "Sample_title")),
         "source": " ".join(_fields(record, "Sample_source_name_ch1")),
         "characteristics": _fields(record, "Sample_characteristics_ch1"),
@@ -211,25 +199,35 @@ def group_text(group: Mapping[str, Any]) -> str:
     return "\n".join(out).rstrip() + "\n"
 
 
+def record_store() -> tuple[Any, str | None]:
+    """liulab-data's record store, opened once for a pass, and the build it reads.
+
+    Opening pins one build for as long as the store lives, so a store refreshed mid-pass cannot mix
+    two builds into one pass. Refuses the setup, naming the store, when it cannot be opened.
+    """
+    import labdata
+    from labdata.exceptions import NotAStoreError, StoreNotConfiguredError
+
+    try:
+        store = labdata.open_store()
+    except (StoreNotConfiguredError, NotAStoreError) as exc:
+        raise SetupRefused(f"cannot open liulab-data's record store: {exc}") from exc
+    build = store.settings.get("build")
+    return store, None if build is None else str(build)
+
+
 def paper_reader() -> Any | None:
     """liulab-data's paper reader, from ``LABDATA_PAPERS``; ``None`` when no paper store is set up.
 
-    So a study with no paper can still be read.
+    So a study with no paper can still be read. A paper store that is set up but cannot be opened
+    refuses the setup, naming the store.
     """
-    from labdata.exceptions import StoreNotConfiguredError
+    from labdata.exceptions import NotAStoreError, StoreNotConfiguredError
     from labdata.papers import open_paper_store
 
     try:
         return open_paper_store().reader
     except StoreNotConfiguredError:
         return None
-
-
-def open_sources() -> tuple[Any, Any | None]:
-    """liulab-data's record store and paper reader, from ``LABDATA_STORE`` and ``LABDATA_PAPERS``.
-
-    A record store that cannot be opened raises liulab-data's own error.
-    """
-    import labdata
-
-    return labdata.open_store(), paper_reader()
+    except NotAStoreError as exc:
+        raise SetupRefused(f"cannot open liulab-data's paper store: {exc}") from exc

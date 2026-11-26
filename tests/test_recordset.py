@@ -6,7 +6,7 @@ back — permanently inside the dataset hash, and nothing downstream notices. Th
 tested for the opposite property: a cache ``io records`` wrote must load unchanged.
 
 The draft's no-op guarantee and its CLI refusals live in ``tests/test_cli.py``; what a loaded set
-does to a resolution lives in ``tests/test_records.py``.
+does to a resolution lives in ``tests/test_resolve_records.py``.
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 import yaml
 
+from seqforge.io.archive import SOURCE
 from seqforge.models.blocker import BlockerCode
 from seqforge.models.records import (
     ArchiveRecord,
@@ -83,11 +84,6 @@ def test_a_fact_typed_into_a_user_set_is_refused_and_the_same_set_without_it_loa
 ) -> None:
     """A typed slot would be granted the standing an archive's has — no quote, no span, permanent.
 
-    `free_text` was parametrized alongside `attributes` here until ADR-0047, and the split is not a
-    softening: prose is believed for nothing until a quote greps back into it, while a slot is
-    believed for where it sits. `test_prose_is_admitted_where_a_typed_fact_is_not` holds that
-    contrast; this one is now about the half that stayed refused.
-
     Both halves in one test on purpose: an over-strict loader that refused the clean set too would
     pass a refusal-only test while making the feature unusable.
     """
@@ -105,41 +101,6 @@ def test_a_fact_typed_into_a_user_set_is_refused_and_the_same_set_without_it_loa
     assert "study reading" in blocker.remedy
     assert caught.value.report.ok is False
     assert caught.value.report.blockers == caught.value.blockers
-
-
-def test_prose_is_admitted_where_a_typed_fact_is_not(tmp_path: Path) -> None:
-    """The other half of the split, and the reason the loader is not simply more permissive.
-
-    What lands on the record is text. It reaches a manifest only as a claim whose quote greps back
-    into that text and whose value the quote entails, so the record still states no fact — it states
-    where a fact may be read from, for one sample rather than for the whole pile.
-    """
-    payload = _two_runs()
-    payload["records"][1]["free_text"] = [{"label": "note", "text": "daf-2 replicate 3"}]
-    loaded = load_record_set(_write(tmp_path, payload))
-
-    run = loaded.at("run")[1]
-    assert run.free_text[0].label == "note"
-    assert run.free_text[0].text == "daf-2 replicate 3"
-    assert run.attributes == [], "prose must not become a typed slot on the way through the loader"
-
-
-def test_prose_without_a_label_is_refused(tmp_path: Path) -> None:
-    """`label` is optional on an archive record and required here, because nobody is upstream.
-
-    On a fetched record the archive's own field name fills it. A hand-written one has no such author,
-    and after harvest a value carries only its quote — which does not say where its document came
-    from. So a manifest reader could not tell a filename convention from a bench measurement, and
-    ADR-0047 buys its `asserted` grade partly on being able to.
-    """
-    payload = _two_runs()
-    payload["records"][1]["free_text"] = [{"text": "daf-2 replicate 3"}]
-    with pytest.raises(RecordSetError) as caught:
-        load_record_set(_write(tmp_path, payload))
-
-    (blocker,) = caught.value.blockers
-    assert "label" in blocker.evidence
-    assert blocker.remedy
 
 
 @pytest.mark.parametrize("level", ["experiment", "project"])
@@ -264,15 +225,25 @@ def test_the_ids_a_human_would_actually_type_still_load(tmp_path: Path, ident: s
     ]
 
 
-def test_an_unknown_key_on_a_record_is_refused(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        pytest.param("sample_id", "plateA", id="sample_id"),
+        # Prose on a hand-written record reaches no model and no claim, so it is one more key the
+        # file has no use for — refused like any other, and pointed where what a sample was lives.
+        pytest.param("free_text", [{"label": "note", "text": "daf-2 replicate 3"}], id="free_text"),
+    ],
+)
+def test_an_unknown_key_on_a_record_is_refused(tmp_path: Path, key: str, value: Any) -> None:
     payload = _two_runs()
-    payload["records"][0]["sample_id"] = "plateA"
+    payload["records"][0][key] = value
     with pytest.raises(RecordSetError) as caught:
         load_record_set(_write(tmp_path, payload))
 
     (blocker,) = caught.value.blockers
     assert blocker.id == "blk-record-set-unknown-key"
-    assert blocker.evidence == ["sample_id"]
+    assert blocker.evidence == [key]
+    assert "study reading" in blocker.remedy
 
 
 def test_an_unknown_key_on_the_set_is_refused(tmp_path: Path) -> None:
@@ -419,7 +390,7 @@ def test_an_archive_cache_still_loads_unchanged(tmp_path: Path) -> None:
     four levels, a writer stamp — and a round trip is the assertion: a dropped key is an inequality.
     """
     original = ArchiveRecordSet(
-        source="ncbi-sra+biosample",
+        source=SOURCE,
         query="PRJNA1027859",
         io_version="2026.7.1",
         records=[
@@ -429,8 +400,8 @@ def test_an_archive_cache_still_loads_unchanged(tmp_path: Path) -> None:
                 accession="SAMN37812345",
                 parent="PRJNA1027859",
                 attributes=[
-                    RecordAttribute(name="strain", value="CQ758", harmonized=True),
-                    RecordAttribute(name="odd_tag", value="enhanced beads", raw_name="Odd Tag"),
+                    RecordAttribute(name="strain", value="CQ758"),
+                    RecordAttribute(name="Odd Tag", value="enhanced beads"),
                 ],
                 free_text=[FreeText(label="sample_alias", text="daf-2 R3")],
             ),

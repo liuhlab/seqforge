@@ -50,7 +50,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, computed_field
 
-from conftest import _SPAWNS_SNAKEMAKE, SrcTrees, _src_root
+from conftest import _NEEDS_SNAKEMAKE, SrcTrees, _src_root
 from seqforge.pipeline import CONFIG_NAME, SNAKEFILE_NAME, UNITS_TSV_NAME
 from seqforge.workspace import PIPELINE_DIRNAME
 
@@ -360,7 +360,7 @@ def _is_external(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     """Does the ``external`` marker reach this test — by EITHER of the two routes the suite gives it?
 
     Written down as a decorator, or derived at collection time from a fixture the test takes: the
-    session hook marks anything whose fixtures spawn a subprocess, and most of the suite's external
+    session hook marks anything whose fixtures need snakemake, and most of the suite's external
     tests carry no decorator at all. A guard reading only decorators would report every one of them
     as an offence on its first run, and a guard that cries wolf gets deleted.
 
@@ -373,7 +373,7 @@ def _is_external(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         if isinstance(marker, ast.Attribute) and marker.attr == "external":
             return True
     taken = {a.arg for a in (*fn.args.posonlyargs, *fn.args.args, *fn.args.kwonlyargs)}
-    return bool(taken & _SPAWNS_SNAKEMAKE)
+    return bool(taken & _NEEDS_SNAKEMAKE)
 
 
 def _binary_gates(

@@ -69,7 +69,8 @@ def manifest_fill(
         None,
         "--assertions",
         help="Span-verified assertions from `harvest extract` (seqforge/assertions.json): the "
-        "chemistry hint, the organism, cells versus nuclei. Without this, prose contributes nothing.",
+        "chemistry hint, and the check that a staged document describes these reads. Without this, "
+        "prose contributes nothing.",
     ),
     assert_chemistry: str | None = typer.Option(
         None,
@@ -253,8 +254,8 @@ def _fill_manifest_pipeline(
 
     organism_taxid: int | None = None
     if organism is not None:
-        # A name, or a taxid typed by hand. `harvest` extracts `experiment.organism` as a NAME with a
-        # verified span -- the model already does its job -- so the join it needed was a lookup table.
+        # A name, or a taxid typed by hand, made a taxid by `io.taxonomy`. A harvested
+        # `experiment.organism` never fills this: it only checks a staged document against the records.
         try:
             organism_taxid = _resolve_organism(organism, offline=offline)
         except TaxonomyUnavailable as exc:
@@ -559,7 +560,7 @@ def _load_records(
     would bake the omission in.
     """
     from ..io import IO_VERSION
-    from ..io.archive import fetch_records, stored_records
+    from ..io.archive import SOURCE, fetch_records, stored_records
     from ..models.records import ArchiveRecordSet
     from ..recordset import load_record_set
 
@@ -581,7 +582,7 @@ def _load_records(
     # and an unstamped set means "written before submitted files existed" — so without this the
     # freshest possible fetch reads as the stalest possible cache. Same carry as `cli/run.py`'s merge.
     return ArchiveRecordSet(
-        source="ncbi-sra+biosample",
+        source=SOURCE,
         query=", ".join(accessions),
         records=merged,
         io_version=IO_VERSION,
@@ -632,9 +633,7 @@ def _assertions_and_subjects(path: Path | None) -> tuple[list[Assertion], list[A
         )
     parsed = [Assertion.model_validate(a) for a in payload.get("assertions", ())]
     subjects = [
-        DocumentSubject(
-            doc_sha256=str(d["doc_sha256"]), scope=str(d["scope"]), subject=d.get("subject")
-        )
+        DocumentSubject(doc_sha256=str(d["doc_sha256"]), scope=str(d["scope"]))
         for d in payload.get("document_subjects", ())
     ]
     return parsed, subjects

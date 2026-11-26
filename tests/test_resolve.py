@@ -5,7 +5,7 @@ One file per package, so an agent editing ``resolve/`` knows which file to run. 
 beside ``test_resolve``) named after the issue that added them, so "where are the tests for
 ``escalate.py``?" had no answer short of grepping all six.
 
-The other resolver — records + prose, "which sample is each file" — is ``test_records.py``. The two
+The other resolver — records + prose, "which sample is each file" — is ``test_resolve_records.py``. The two
 are siblings, and they part on disagreement (see ``resolve/records.py``); they do not share a file.
 """
 
@@ -1069,7 +1069,7 @@ def test_chemistry_of_sha_maps_each_file_to_its_runs_chemistry(two_chemistry_mul
 
 def _metadata_over(**samples: list[str]) -> MetadataResolution:
     """A `MetadataResolution` carrying just the sample -> files map, which is all `reduce_dataset`
-    reads. Built by hand rather than resolved: the join is `test_records.py`'s subject, and what is
+    reads. Built by hand rather than resolved: the join is `test_resolve_records.py`'s subject, and what is
     under test here is which gate a given map opens."""
     return MetadataResolution(
         samples=[
@@ -2873,12 +2873,7 @@ def test_an_unverified_claim_steers_nothing(span_verified: bool, entailment_ok: 
 
 
 def _experiment_record(library_source: str | None) -> ArchiveRecord:
-    """One experiment record, carrying ``library_source`` only when the deposit declared one.
-
-    ``harmonized=False`` is not an oversight: ``io/archive.py`` files the library descriptor
-    unharmonized (the harmonized namespace is NCBI's curated *sample* attribute list), so a rule that
-    read it through ``ArchiveRecord.attribute`` would silently see nothing on every real record.
-    """
+    """One experiment record, carrying ``library_source`` only when the deposit declared one."""
     return ArchiveRecord(
         level="experiment",
         accession="SRX000001",
@@ -4304,7 +4299,7 @@ def _hand_built_manifest(*, confidence: float | None, rung: int) -> m.DatasetMan
             confidence=confidence,
             rung=rung,
         ),
-        assay=[m.AssayLabel(chemistry="10x-3p-gex-v3", curie="EFO:0009922", name="10x 3' v3")],
+        assay=[m.AssayLabel(chemistry="10x-3p-gex-v3", curie="EFO:0009922")],
         read_layout=read_layout,
         onlists=[
             m.Onlist(

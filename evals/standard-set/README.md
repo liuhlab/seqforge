@@ -1,10 +1,10 @@
 # The standard set
 
-**Provisional.** The standard set is the 50 small GEO studies that later work is built and checked
-on: 17 on aging, 17 on neurodegeneration and 16 on *C. elegans*. A study's **bounds** say which GEO
-Series and which papers belong to it. Each study's bounds are in a file of their own, in a
-[written format](../../docs/formats/bounds.md) that a command checks. The format of the other
-files can still change.
+The standard set is the 50 small GEO studies that later work is built and checked on: 17 on
+aging, 17 on neurodegeneration and 16 on *C. elegans*. A study's **bounds** say which GEO Series
+and which papers belong to it. Each study's bounds are in a file of their own, in a
+[written format](../../docs/formats/bounds.md) that a command checks. A study's reading has a
+[written format](../../docs/formats/reading.md) of its own.
 
 This folder holds:
 
@@ -40,8 +40,8 @@ What the links between records showed is written up in
 ## Draw a study
 
 The bounding job draws a study. It reads
-liulab-data's stores, so set `LABDATA_STORE` and `LABDATA_PAPERS`. It also needs the lab gateway
-and a clone of the review repo: see [Passes and reviews](../../docs/passes-and-reviews.md).
+liulab-data's stores, so set `LABDATA_STORE` and `LABDATA_PAPERS`. It also needs the lab gateway:
+see [Passes](../../docs/passes.md).
 
 ```bash
 seqforge pass start study-bounds --ceiling-usd 0.1
@@ -66,7 +66,7 @@ became the study's and the draft was kept.
 ## Read a study
 
 The reading job writes each study's reading from the study's own `bounds.yaml`, with the same
-stores, gateway and review clone as the bounding job.
+stores and gateway as the bounding job.
 
 ```bash
 seqforge pass start study-reading --ceiling-usd 2 --units-at-once 2
@@ -79,8 +79,10 @@ examples, and never over a file.
 
 ## Look at the studies
 
-To look at the drawn studies, build the reading page:
-[`prototypes/standard_set_page/`](../../prototypes/standard_set_page/).
+A prototype page draws one picture per study, the paper beside its GEO datasets. It is kept on the
+tag
+[`archive/prototype-standard-set-page`](https://github.com/liuhlab/seqforge/tree/archive/prototype-standard-set-page/prototypes/standard_set_page),
+and its README there says how to build it.
 
 ## One folder per study
 
@@ -104,14 +106,14 @@ dose and time series), GSE235532 (pull-down libraries with their input controls)
 assays) and GSE241718 (one paper over two Series). A model wrote each and a second model pass
 checked it against the records. No person has checked them. Where the second pass disagrees, the
 reading is left as written and the disagreement is in the verdict. The format is on the
-[study reading](../../docs/formats/reading.md) page, and
-[`prototypes/study_reading_page/`](../../prototypes/study_reading_page/) builds a page to look at
-them.
+[study reading](../../docs/formats/reading.md) page. A prototype page to look at them is kept on the
+tag
+[`archive/prototype-study-reading-page`](https://github.com/liuhlab/seqforge/tree/archive/prototype-study-reading-page/prototypes/study_reading_page).
 
 No file is overwritten after it is written, with one exception. Each of the 50 `study.yaml` files
 was rewritten once to move its bounds out into `bounds.yaml`, so that the bounds
-exist in one place. The page that shows the studies is view-only: a correction file is written
-only when a person actually corrects a study.
+exist in one place. The archived pages were view-only: a correction file is written only when a
+person actually corrects a study.
 
 ## `bounds.yaml`
 

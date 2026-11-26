@@ -1,11 +1,16 @@
-"""``io`` — the only network + onlist surface (pooch-cached, sha256-verified).
+"""``io`` — the network and onlist surface (pooch-cached, sha256-verified).
 
-Milestone 0 ships the **onlist registry** (``resolve``'s Tier B needs it): width-generic packed
-whitelists, a hit-rate test (forward + reverse-complement + offset scan), set-intersection for the
-confusability check, and a synthetic-onlist path for the pilot fixtures. The remote surface is live:
-``resolve_accession`` (accession -> run inventory), ``peek`` (bounded range-read diagnostic), and
-``probe_remote`` (range-read -> :class:`~seqforge.models.observation.Observation`, so a library is
-fingerprinted straight from a URL with no local file, issue #39) — see :mod:`seqforge.io.remote`.
+- :mod:`.onlist` — the **onlist registry** (``resolve``'s Tier B needs it): width-generic packed
+  whitelists, a hit-rate test (forward + reverse-complement + offset scan), set-intersection for the
+  confusability check, and a synthetic-onlist path for the pilot fixtures.
+- :mod:`.remote` — ``resolve_accession`` (accession -> run inventory), ``peek`` (bounded range-read
+  diagnostic), and ``probe_remote`` (range-read -> :class:`~seqforge.models.observation.Observation`,
+  so a library is fingerprinted straight from a URL with no local file).
+- :mod:`.sra` — ``io probe-sra``: fingerprint an SRA run from its first spots, with no download.
+- :mod:`.archive` — ``io records``: what a public archive declares about a dataset, at all four
+  levels.
+- :mod:`.taxonomy` — an organism name -> its NCBI taxid, with a round-trip check.
+- :mod:`.benchmark` — pull and publish the benchmark corpus's fingerprint packages.
 """
 
 from __future__ import annotations
@@ -43,16 +48,9 @@ from .remote import (
     resolve_accession,
 )
 
-#: CalVer YYYY.M.PATCH; bump when onlist packing / registry semantics change.
-#: 2026.8.0 — the SRA package parser reads what it had been dropping: per run, one **Submitted file**
-#: per uploaded original, carrying the provider md5, the declared size and the `sra-pub-src-*` URI
-#: beside the filename it already read (ADR-0033). A record set now also carries the version that
-#: wrote it, which is what lets an unstamped one say "written before this" rather than passing for a
-#: deposit that publishes no originals — so the stamp only means anything if this constant moves.
-#: 2026.11.0 — a record set holds every experiment the accession resolved to. NCBI can answer an SRA
-#: fetch with fewer packages than it was asked for and say nothing; the missing ones are now asked for
-#: again and refused if still absent, where a set stamped earlier may have kept the short reply.
-IO_VERSION = "2026.11.0"
+#: CalVer YYYY.M.PATCH; bump when onlist packing, registry semantics or what a record set holds
+#: change. History: `docs/research/io-version-history-2026-11-25.md`.
+IO_VERSION = "2026.11.1"
 
 __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetical
     "IO_VERSION",

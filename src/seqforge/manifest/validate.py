@@ -95,8 +95,8 @@ def validate_manifest(
 ) -> ValidationReport:
     """Validate a manifest's cross-section integrity. Any Blocker => not compilable.
 
-    ``warnings`` seeds the report's advisory notes — the metadata resolver's non-blocking
-    sample-attribute decisions (kept-by-precedence or left-null) arrive here — and never touch ``ok``.
+    ``warnings`` seeds the report's advisory notes — the metadata resolver's notes on the join of
+    files to samples arrive here — and never touch ``ok``.
     Only an ``open`` conflict or a Blocker makes a manifest non-compilable.
     """
     blockers: list[Blocker] = []

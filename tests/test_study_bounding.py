@@ -6,24 +6,24 @@ read from either end as the real store reads them. No test reads a real store or
 
 from __future__ import annotations
 
-import dataclasses
 import datetime as dt
 import json
+import re
 import threading
 import types
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 import yaml
 from labdata.store.model import RELATIONS, Link, Record
-from labllm.testing import FakeGateway, Price
+from labllm.testing import Price
 from typer.testing import CliRunner
 
+import gateway_kit
 from seqforge.cli import app
-from seqforge.passes.kinds import KINDS
-from seqforge.study import bounding
+from seqforge.study import bounding, closed
 from seqforge.study.bounds import check_bounds
 
 runner = CliRunner()
@@ -54,10 +54,16 @@ LINKS = [
     ("GSE20", "PMID:401", "PubMed", "SOFT"),
     # GSE30: a paper that 51 other Series link too.
     *((f"GSE{n}", "PMID:500", "PubMed", "SOFT") for n in range(30, 82)),
+    # GSE90 and GSE91: one paper each. GSE92: two papers.
+    ("GSE90", "PMID:900", "PubMed", "SOFT"),
+    ("GSE91", "PMID:910", "PubMed", "SOFT"),
+    ("GSE92", "PMID:920", "PubMed", "SOFT"),
+    ("GSE92", "PMID:921", "PubMed", "SOFT"),
 ]
 
-#: Jev's p(yes) for each record, to the question as written and to it reversed.
-JEV = {
+#: Jev's p(yes) for each record, to the question as written and to it reversed; ``None`` leaves
+#: the question unanswered.
+JEV: dict[str, tuple[float | None, float | None]] = {
     "GSE11": (0.9, 0.1),
     "GSE12": (0.8, 0.2),
     "GSE13": (0.2, 0.9),
@@ -66,11 +72,20 @@ JEV = {
     "pmid:200": (0.1, 0.8),
     "pmid:400": (0.9, 0.1),
     "pmid:401": (0.7, 0.6),  # yes as written, and yes reversed: the two disagree
+    "pmid:900": (0.5, 0.8),  # neither as written
+    "pmid:910": (0.2, 0.5),  # neither reversed
+    "pmid:920": (0.9, None),  # no answer reversed
+    "pmid:921": (0.9, 0.1),
 }
+#: A record as a question names it.
+RECORD = re.compile(r"GSE\d+|pmid:\d+")
 
 
 class Store:
     """liulab-data's record store, as the job reads it: links from either end, and records."""
+
+    #: The store's marker, whose ``build`` names the build a pass reads.
+    settings: ClassVar[dict[str, str]] = {"build": "b1"}
 
     def links(self, accessions: str | Iterable[str], relation: str | None = None) -> Any:
         wanted = [accessions] if isinstance(accessions, str) else list(accessions)
@@ -101,8 +116,9 @@ class Papers:
         }
 
 
-def _jev() -> FakeGateway:
-    """Plays Jev. The job asks a study's questions as written first, then reversed."""
+def _jev() -> Callable[[dict[str, Any]], dict[str, Any]]:
+    """Plays Jev, answering each question by the record it asks about. The job asks a study's
+    questions as written first, then reversed."""
     asked: set[str] = set()
     lock = threading.Lock()
 
@@ -111,46 +127,55 @@ def _jev() -> FakeGateway:
             reverse = form["description"] in asked
             asked.add(form["description"])
         out = {}
-        for name in form["questions"]:
-            kind, _, number = name.partition("_")
-            record = number if kind == "s" else f"pmid:{number}"
-            out[name] = {"noul": JEV[record][reverse]}
+        for name, question in form["questions"].items():
+            record = next(r for r in RECORD.findall(question["instructions"]) if r in JEV)
+            if (p := JEV[record][reverse]) is not None:
+                out[name] = {"noul": p}
         return out
 
-    return FakeGateway(answer, prices={bounding.JEV.name: Price(0.0, 0.0)})
+    return answer
 
 
 @pytest.fixture(scope="module")
 def drawn(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Path, dict[str, Any], Any]]:
-    """One pass over GSE10, GSE20 and GSE30, written twice beside the standard set's own files."""
-    kind = dataclasses.replace(
-        bounding.KIND,
-        build=lambda store: bounding.bounds_kind(Store(), Papers()),
-        reads_store=False,
-    )
-    fake, here = _jev(), tmp_path_factory.mktemp("bounding")
+    """One pass over six studies, written twice beside the standard set's own files.
+
+    The record store can be opened once: a second open, by the pass or by a unit, fails the pass."""
+    import labdata
+    import labdata.papers
+
+    opened: list[Store] = []
+
+    def open_once(root: Any = None) -> Store:
+        assert not opened, "the record store was opened twice in one pass"
+        opened.append(Store())
+        return opened[-1]
+
+    here = tmp_path_factory.mktemp("bounding")
     with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setitem(KINDS, kind.name, kind)
+        monkeypatch.setattr(labdata, "open_store", open_once)
         monkeypatch.setattr(
-            "seqforge.passes.gateway.make_gateway", lambda: fake.client(repo="seqforge")
+            labdata.papers,
+            "open_paper_store",
+            lambda root=None: types.SimpleNamespace(reader=Papers()),
         )
-        monkeypatch.delenv("SEQFORGE_REVIEWS", raising=False)
+        gateway_kit.install(monkeypatch, _jev(), prices={closed.JEV.name: Price(0.0, 0.0)})
         monkeypatch.chdir(here)
-        clone = ["--reviews", str(here / "clone")]
-        (here / "clone" / "reviews").mkdir(parents=True)
-        (here / "keys.txt").write_text("GSE10\nGSE20\nGSE30\n")
+        (here / "keys.txt").write_text("GSE10\nGSE20\nGSE30\nGSE90\nGSE91\nGSE92\n")
         started = runner.invoke(
-            app, ["pass", "start", kind.name, "--ceiling-usd", "1", "--keys", "keys.txt", *clone]
+            app, ["pass", "start", bounding.KIND_NAME, "--ceiling-usd", "1", "--keys", "keys.txt"]
         )
         assert started.exit_code == 0, started.output
-        counts = json.loads(started.stdout)["counts"]
-        assert (counts["settled"], counts["unsettled"], counts["refused"]) == (1, 1, 1)
+        ran = json.loads(started.stdout)
+        counts = ran["counts"]
+        assert (counts["settled"], counts["unsettled"], counts["refused"]) == (1, 3, 2)
+        assert ran["store_build"] == "b1"
 
         set_dir = here / "set"
         (set_dir / "GSE10").mkdir(parents=True)
         (set_dir / "GSE10" / "bounds.yaml").write_text("the standard set's own\n")
         write = ["study", "write-bounds", "--out", str(set_dir), "--name", "job-bounds.yaml"]
-        written, again = runner.invoke(app, [*write, *clone]), runner.invoke(app, [*write, *clone])
+        written, again = runner.invoke(app, write), runner.invoke(app, write)
         assert (written.exit_code, again.exit_code) == (0, 0), written.output
         yield set_dir, json.loads(written.stdout), json.loads(again.stdout)
 
@@ -163,12 +188,13 @@ def _placed(bounds: dict[str, Any]) -> dict[str, Any]:
 
 
 def test_a_study_is_its_series_and_every_record_one_link_away_each_placed_by_jev(
-    drawn: tuple[Path, dict[str, Any], Any],
+    drawn: tuple[Path, dict[str, Any], Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """One hop over the four kinds of link, and nothing that a reanalysis, a BioProject's own paper,
     a placeholder paper id or a second hop links. Code keeps the starting Series and leaves the
     SuperSeries out; Jev's answer as written places every other record, and gives its probability.
-    The job's file goes beside the standard set's own, which it never overwrites."""
+    The job's file goes beside the standard set's own, which it never overwrites. A text the format
+    check rejects is a refusal: it is not written, the others are, and the command exits 3."""
     set_dir, said, again = drawn
     bounds = yaml.safe_load((set_dir / "GSE10" / "job-bounds.yaml").read_text())
 
@@ -192,6 +218,17 @@ def test_a_study_is_its_series_and_every_record_one_link_away_each_placed_by_jev
     assert again["studies"]["GSE10"]["file"] == "kept the file on disk"
     assert (set_dir / "GSE10" / "bounds.yaml").read_text() == "the standard set's own\n"
 
+    rejected = [{"field": "study", "reason": "rejected"}]
+    monkeypatch.setattr(
+        bounding, "check_bounds", lambda d: rejected if d["study"] == "GSE10" else []
+    )
+    other = set_dir.parent / "other"
+    refused = runner.invoke(app, ["study", "write-bounds", "--out", str(other)])
+    assert (refused.exit_code, sorted(p.parent.name for p in other.glob("*/*"))) == (
+        3,
+        ["GSE20", "GSE90", "GSE91"],
+    ), refused.output
+
 
 def test_a_study_whose_two_answers_disagree_on_a_record_is_unsettled_and_still_written(
     drawn: tuple[Path, dict[str, Any], Any],
@@ -206,6 +243,23 @@ def test_a_study_whose_two_answers_disagree_on_a_record_is_unsettled_and_still_w
     assert bounds["papers"] == ["pmid:400", "pmid:401"]
 
 
+def test_a_pass_reads_one_build_of_the_record_store_and_status_names_it_with_no_store(
+    drawn: tuple[Path, dict[str, Any], Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The kind opened the record store once, when the pass built it, so every unit read one build.
+    The pass keeps that build, and status reads it back without opening the store."""
+    import labdata
+
+    def no_store(root: Any = None) -> Any:
+        raise AssertionError("pass status opened the record store")
+
+    monkeypatch.setattr(labdata, "open_store", no_store)
+    status = runner.invoke(app, ["pass", "status", bounding.KIND_NAME])
+
+    assert status.exit_code == 0, status.output
+    assert [p["store_build"] for p in json.loads(status.stdout)["passes"]] == ["b1"]
+
+
 def test_a_group_of_more_than_fifty_series_is_refused_and_written_nowhere(
     drawn: tuple[Path, dict[str, Any], Any],
 ) -> None:
@@ -215,3 +269,32 @@ def test_a_group_of_more_than_fifty_series_is_refused_and_written_nowhere(
 
     assert said["studies"]["GSE30"] == {"ending": "refused", "reason": "group too large: 52 Series"}
     assert not (set_dir / "GSE30").exists()
+
+
+@pytest.mark.parametrize(("study", "paper"), [("GSE90", "pmid:900"), ("GSE91", "pmid:910")])
+def test_a_probability_of_exactly_one_half_on_either_asking_leaves_the_study_unsettled(
+    drawn: tuple[Path, dict[str, Any], Any], study: str, paper: str
+) -> None:
+    """Jev's p(yes) of exactly 0.5 is neither yes nor no, so the two askings do not lean the same
+    way: as written for GSE90's paper, reversed for GSE91's. The paper is not placed in the study,
+    and the file is still written."""
+    set_dir, said, _ = drawn
+    bounds = yaml.safe_load((set_dir / study / "job-bounds.yaml").read_text())
+
+    assert said["studies"][study]["ending"] == "unsettled"
+    assert paper in said["studies"][study]["checks_failed"][0]
+    assert bounds["papers"] == []
+
+
+def test_a_study_where_jev_leaves_a_question_unanswered_is_refused_and_written_nowhere(
+    drawn: tuple[Path, dict[str, Any], Any],
+) -> None:
+    """Jev answers one of GSE92's papers as written and leaves it out reversed: no record is
+    placed without both answers, so the study ends refused, naming the paper."""
+    set_dir, said, _ = drawn
+
+    assert said["studies"]["GSE92"] == {
+        "ending": "refused",
+        "reason": "Jev gave no answer about pmid:920",
+    }
+    assert not (set_dir / "GSE92").exists()

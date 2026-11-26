@@ -17,13 +17,15 @@ enforced there, not in the prompt. A prompt asks; only code refuses.
 from __future__ import annotations
 
 #: CalVer YYYY.M.PATCH; bumped when harvest semantics change. Folded into artifact cache keys.
+#: 2026.11.1: accession numbers are no longer asked, and a draft that offers one is refused as a
+#: field that is not permitted; a cached harvest from before still holds such claims.
 #: 2026.11.0: the nine sample attributes are no longer asked, so sample and run records leave the send
 #: list and no claim names an ``experiment.samples.*`` field; a cached harvest from before still holds
 #: them. What a sample was is a study reading's to say now.
 #: 2026.8.0: near-identical archive records collapse at plan time, so the send list itself moved — a
 #: cached harvest computed before the collapse asked documents this one folds away, and its claims
 #: were never fanned to the records their quotes grep into.
-HARVEST_VERSION = "2026.11.0"
+HARVEST_VERSION = "2026.11.1"
 
 from .extract import (  # noqa: E402
     EXTRACT_PROMPT_VERSION,
@@ -40,7 +42,6 @@ from .fields import (  # noqa: E402
     DEFAULT_FIELDS,
     PERMITTED_FIELDS,
     DocScope,
-    is_permitted,
 )
 from .normalize import (  # noqa: E402
     DEFAULT_PDF_BACKEND,
@@ -131,7 +132,6 @@ __all__ = [  # noqa: RUF022 - grouped by concept under comments, not alphabetica
     "EXTRACT_PROMPT_VERSION",
     "DEFAULT_FIELDS",
     "PERMITTED_FIELDS",
-    "is_permitted",
     "DocScope",
     "extract_drafts",
     "document_sha256_in",

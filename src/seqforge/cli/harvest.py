@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import json
-import math
 from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -19,14 +18,6 @@ from ..manifest import instructions_from_assertions
 from ..workspace import documents_dir, logs_dir, readable
 from ._common import _emit, _StageOut
 from .root import harvest_app
-
-
-def bad_ceiling(ceiling_usd: float) -> str | None:
-    """Why ``--ceiling-usd`` cannot be used, or ``None``: it is a number of dollars, zero or more."""
-    if math.isfinite(ceiling_usd) and ceiling_usd >= 0:
-        return None
-    return f"--ceiling-usd must be a number of dollars, not {ceiling_usd}"
-
 
 if TYPE_CHECKING:
     from ..harvest.fields import DocRole
@@ -163,7 +154,6 @@ def harvest_extract(
     ceiling_usd: float = typer.Option(
         DEFAULT_CEILING_USD,
         "--ceiling-usd",
-        min=0,
         help="The most this run may spend, in dollars. The gateway refuses a request that would "
         "cross it, and harvest stops with exit 3.",
     ),
@@ -187,9 +177,10 @@ def harvest_extract(
 
     The model only proposes `{field, value, quote}`; code computes the offsets and decides what
     survives — which is what makes the model swappable. Every request goes through the lab gateway
-    at `$LABLLM_GATEWAY`, under one meter labelled by the dataset. Exit 1 if a reply cannot be used,
-    2 for a bad option, 3 when the calls stop (ceiling reached, provider balance used up, provider
-    unavailable, gateway unreachable), 4 if any claim fails verification.
+    at `$LABLLM_GATEWAY`, under one meter labelled by the dataset. Exit 1 if a reply cannot be used;
+    2 for a setup it cannot use (a bad option, no gateway address, a request the gateway rejects);
+    3 when the calls stop (ceiling reached, provider balance used up, provider unavailable, gateway
+    unreachable); 4 if any claim fails verification.
 
     **`--records` adds the experiments' protocol paragraphs.** Each archive record is rendered as its
     own document and asked only what a record at that level can answer: an experiment's protocol
@@ -233,17 +224,18 @@ def _harvest_extract_pipeline(
 
     The one LLM stage, and the one place ``run`` cannot be fully deterministic — hence ``--no-llm``,
     which is the caller choosing not to enter here at all. Every exit is a ``_StageOut``: exit 1 if a
-    reply cannot be used or the gateway rejects a request, exit 2 for a bad option, exit 3 with a
-    ``Blocker`` when the calls stop, exit 4 if a claim fails the span tripwire (a rejected claim
-    needs a human, not a silent drop). On success it still writes ``assertions.json``, the
-    transcript and the rendered documents to disk, because a span citation is only checkable while
-    the exact text survives.
+    reply cannot be used, exit 2 for a setup it cannot use (a bad option, no gateway address, a
+    request the gateway rejects), exit 3 with a ``Blocker`` when the calls stop, exit 4 if a claim
+    fails the span tripwire (a rejected claim needs a human, not a silent drop). On success it still
+    writes ``assertions.json``, the transcript and the rendered documents to disk, because a span
+    citation is only checkable while the exact text survives.
 
     ``dry_run`` returns the plan and stops **before** a gateway client is even built: "what will
     this dataset cost" must be answerable on a machine that cannot reach the gateway.
     """
-    from labllm import GatewayUnreachable, Rejected, Stopped
+    from labllm import Rejected, Stopped
 
+    from ..gateway import SetupRefused, check_ceiling, make_gateway
     from ..harvest import (
         ExtractUnavailable,
         ModelSeam,
@@ -259,14 +251,12 @@ def _harvest_extract_pipeline(
         verify_drafts,
     )
     from ..kb import load_all_specs
-    from ..passes import gateway
     from ..recordset import RecordSetError, load_record_set
 
-    if refused := bad_ceiling(ceiling_usd):
-        return _StageOut(refused, 2, err=True)
     try:
+        check_ceiling(ceiling_usd)
         chosen = harvest_model(provider, model)
-    except ValueError as exc:
+    except (SetupRefused, ValueError) as exc:
         return _StageOut(str(exc), 2, err=True)
     specs = load_all_specs()
     roled = _roled(docs, instruction)
@@ -329,11 +319,9 @@ def _harvest_extract_pipeline(
     usage_records: list[dict[str, object]] = []
 
     try:
-        client = gateway.make_gateway()
-    except GatewayUnreachable as exc:
-        # No usable gateway address is a setup this command cannot use, as `pass start` treats it:
-        # nothing was sent, so there is nothing to stop.
-        return _StageOut(f"no gateway address: {exc}", 2, err=True)
+        client = make_gateway()
+    except SetupRefused as exc:
+        return _StageOut(str(exc), 2, err=True)
     # One meter per invocation, labelled by the dataset: its ceiling is this run's, and the
     # gateway's record groups this run's calls under it.
     seam = ModelSeam(client.meter(dataset_ref, ceiling_usd=ceiling_usd), chosen)
@@ -358,9 +346,9 @@ def _harvest_extract_pipeline(
             3,
         )
     except Rejected as exc:
-        # A request the provider or the gateway rejects as malformed or unauthorized is a bug,
-        # here or in the gateway's settings: an error, not a stop to rerun past.
-        return _StageOut({"error": "rejected", "detail": str(exc)}, 1, err=True)
+        # A request the provider or the gateway rejects (malformed, unauthorized, or for a model it
+        # has no price for) is a setup to fix, as in `pass start`: rerunning would only meet it again.
+        return _StageOut({"error": "rejected", "detail": str(exc)}, 2, err=True)
     except ExtractUnavailable as exc:
         return _StageOut({"error": "llm_unavailable", "detail": str(exc)}, 1, err=True)
 
@@ -408,13 +396,14 @@ def _harvest_extract_pipeline(
 
     assert extractor is not None
     report = verify_drafts(all_drafts, normalized, extractor=extractor)
-    # ...and only THEN fan. A claim is extended to the records the collapse folded away exactly when
-    # it has already survived every tripwire in `verify_drafts` — the field allowlist, the grep, the
-    # typed-column refusal and entailment — so a fan can never launder a claim past a check, and the
-    # per-member offsets are recomputed against each member's own text (`find_span`), never copied.
+    # ...and only THEN fan. The fan reports which records the collapse folded away a claim holds of,
+    # and only for a claim that has already survived every tripwire in `verify_drafts` — the field
+    # allowlist, the grep, the typed-column refusal and entailment — so a fan can never launder a
+    # claim past a check. It adds no assertion: the quote is grepped in each member's own text
+    # (`find_span`), and the claim still cites the document the model read.
     fan = fan_claims(report.assertions, plan)
-    # Every document the plan RENDERED, not only the ones it paid for: a fanned assertion cites a
-    # document that was never sent, so its subject must reach `resolve` and its bytes must reach disk.
+    # Every document the plan RENDERED, not only the ones it paid for: the fan names records whose
+    # documents were never sent, so their bytes must reach disk, each with its scope.
     every = plan.all_documents
     instruction_docs = frozenset(d.doc_sha256 for d in normalized if d.role == "instruction")
     # An OBJECT, not a bare list, and the `instruction_docs` key is the reason. Which documents were

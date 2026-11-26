@@ -1,0 +1,152 @@
+# Passes
+
+Some of seqforge's work asks a language model the same kind of question many times: once for each
+GEO Series, about 200,000 of them. seqforge runs that work as **passes**. A pass runs one **unit
+kind** over a list of **units**, each named by a key, and records how each unit ended. The engine
+behind it is the lab package [liulab-llms](https://liuhlab.github.io/liulab-llms/). It sends every
+call through the lab gateway, caches every answer, stops at a dollar ceiling, and keeps the record
+in a **task** folder. seqforge names its kinds and starts their passes. The engine's words are
+defined in [liulab-llms's glossary](https://github.com/liuhlab/liulab-llms/blob/main/GLOSSARY.md).
+
+seqforge has two kinds:
+
+| Kind | What it does |
+| --- | --- |
+| `study-bounds` | Draws each study's bounds. See [bound the study](study-workflow.md#1-bound-the-study) |
+| `study-reading` | Reads what each sequenced sample of a study is. See [read the study](study-workflow.md#3-read-the-study) |
+
+A kind's name is written once, in the kind table of `seqforge.passes.kinds`. A new kind is one
+module and one row there.
+
+## Before you start
+
+You need a tunnel to the lab gateway, and `LABLLM_GATEWAY` set to its local address, such as
+`http://127.0.0.1:8000`. [Reach the lab gateway](https://liuhlab.github.io/liulab-llms/reach-the-gateway/)
+shows how to open one.
+
+## Start a pass
+
+```bash
+seqforge pass start <kind> --ceiling-usd 5
+```
+
+This runs the kind over its default units, in the kind's own order. Each unit ends in one of five
+ways:
+
+| Ending | What it means |
+| --- | --- |
+| settled | The answer passed every check |
+| unsettled | The answer failed a check, and a person or a stronger model should look |
+| refused | The kind's code declined to answer the unit |
+| unfinished | The pass stopped, or the unit's code failed, before it ended |
+| held | An input the unit needs is missing |
+
+The options:
+
+| Option | What it does |
+| --- | --- |
+| `--ceiling-usd` | The most the pass may spend, in dollars. Required: it has no default |
+| `--model ROLE=PROVIDER/NAME[,KEY=VALUE...]` | The model for one role, such as `writer=deepseek/deepseek-v4-flash,thinking=off`. Repeat it for more roles. The keys are `thinking` (`on` or `off`), `effort`, `temperature` and `max-output-tokens`. A role you do not name takes the kind's default model |
+| `--keys FILE` | Run exactly these units, one key per line, in this order |
+| `--studies DIR` | The folder of study folders that the pass works on. With no `--keys`, the pass runs the studies that the folder's `pick.yaml` lists. Default: the standard set, `evals/standard-set` |
+| `--only ENDINGS` | Run only the units whose current ending is one of these, such as `unsettled,refused` |
+| `--units-at-once` | How many units run at once. Default 32 |
+| `--off-peak-only` | Send calls only outside the model's peak hours |
+| `--label` | The pass's name in the gateway's record. Default: the kind's name |
+| `--task DIR` | The task folder. Default: `seqforge/passes/<kind>/` in the current folder |
+
+The gateway has no model aliases, so `PROVIDER/NAME` is the provider's exact model name. A `--model`
+value is the whole model: a setting you leave out takes liulab-llms's default, not the kind's.
+
+### What it prints
+
+While the pass runs, a progress line goes to stderr at most every 30 seconds. It gives the units
+ended so far, by ending, and the dollars spent. stdout carries one JSON object and nothing else:
+
+| Field | Value |
+| --- | --- |
+| `kind`, `kind_version` | The kind, and its hand-set version |
+| `task` | The task folder |
+| `pass_id`, `label` | The pass's number in the task, and its label |
+| `store_build` | The build of liulab-data's record store that the pass read, or `null` for a kind that reads no record store |
+| `models` | Each role's full model value |
+| `keys` | How many units the pass was given |
+| `counts` | How many units ended each way: settled, unsettled, refused, unfinished and held, zeros included |
+| `stopped`, `message` | Why the pass stopped, and the gateway's message about it; both `null` when it reached its end |
+| `spent_usd`, `first_cost_usd` | What the pass spent, and what its answers cost when each was first paid, answers from the cache included |
+| `requests`, `cache_hits` | Requests sent to providers, and answers that came from the cache |
+
+A kind opens each liulab-data store that it reads once, when the pass starts. The whole pass reads
+that one build of the record store, even if the store is refreshed while it runs.
+
+### Exit codes
+
+| Exit | When |
+| --- | --- |
+| 0 | The pass reached the end of its units, whatever the counts |
+| 2 | A setup it cannot use: an unknown kind, a store the kind reads that cannot be opened, models that do not fill the kind's roles, a model or keys file it cannot read, no `--keys` for a folder with no `pick.yaml`, no gateway address, a model name the gateway rejects, or a task folder this liulab-llms cannot read. One line on stderr says which |
+| 3 | The pass stopped: at its ceiling, at a provider's balance or cap, or because a provider or the gateway was unavailable. Or another process holds the task, and `message` names it |
+
+## Resume a pass
+
+Run the same command again. There is no resume option. Every unit answered before comes back from
+the gateway's cache at no cost, and `cache_hits` counts them. After a stop at the ceiling, raise
+`--ceiling-usd` and run it again.
+
+## See where a kind stands
+
+```bash
+seqforge pass status <kind>
+```
+
+This reads the kind's task and prints one JSON object. It sends nothing to the gateway, and it opens
+none of the stores the kind reads, so it works with the gateway down, and wherever the task folder
+is. It takes no hold on the task, so it also works while a pass runs. It takes `--task DIR` as
+`pass start` does.
+
+| Field | Value |
+| --- | --- |
+| `kind`, `task` | The kind, and the task folder |
+| `units` | How many units any pass of the kind has recorded |
+| `counts` | Each unit's current ending: settled, unsettled, refused or dropped, a person's review included. Then the units whose latest outcome is unfinished or held. A unit settled once and unfinished in a later pass counts under both |
+| `not_done` | Each unit whose latest outcome is unfinished or held, in key order: its `key`, that `ending`, the outcome's `reason`, and the `pass` it came from |
+| `passes` | Every pass of the kind, oldest first |
+
+`not_done` lists every such unit, with no cap. A held study's `reason` says what it lacks, such as
+its bounds file. To see only the held units, filter the list with the JSON tool `jq`:
+
+```bash
+seqforge pass status study-reading | jq '.not_done[] | select(.ending == "held")'
+```
+
+A refused or unsettled unit is not in `not_done`. `study write-bounds` and `study write-reading`
+list each of those, with each refused study's reason.
+
+Each pass gives its `pass_id`, `label`, `kind_version`, `models`, `store_build`, `ceiling_usd`,
+`stopped`, its `counts`, and what it spent: `spent_usd`, `first_cost_usd`, `requests` and
+`cache_hits`. `ended` is `false` for a pass that was killed before it ended.
+
+Each pass's `per_unit` gives its cost and time per unit, over the units that called a model in that
+pass. An answer from the cache counts, and a held unit or one the pass never started does not.
+`units` says how many there were. For each of `spent_usd` (dollars paid now), `first_cost_usd`
+(dollars when each answer was first paid), `requests` and `seconds`, it gives the `total`, the
+`median` and the 90th percentile (`p90`).
+
+| Exit | When |
+| --- | --- |
+| 0 | The report is on stdout |
+| 2 | An unknown kind, a folder that holds no task, or a task that a pass stopped in the middle of a write. One line on stderr says which. For the last, run the pass again with `pass start`, which repairs the task. It also runs every unit not yet answered, so it can spend up to its `--ceiling-usd` |
+| 3 | A pass's write kept the read waiting, and `message` says so. Run it again |
+
+## Send the hard units to a stronger model
+
+After a pass, rerun only the units that did not settle, on a stronger model:
+
+```bash
+seqforge pass start <kind> --ceiling-usd 5 --only unsettled,refused --model writer=deepseek/deepseek-v4-pro
+```
+
+A unit that a person's review holds is left out, as long as its inputs have not changed since the
+review. liulab-llms reads a task's reviews from the `reviews/` folder inside the task folder. No
+seqforge command writes there: the folder holds only the reviews saved with liulab-llms's own
+`Reviews.save`, and a task with no such folder has no reviews.

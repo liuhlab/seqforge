@@ -9,7 +9,7 @@ resumes: every unit already answered replays from the gateway's cache at no cost
 
 from __future__ import annotations
 
-import math
+from contextlib import closing
 from pathlib import Path
 
 import typer
@@ -25,7 +25,7 @@ from .root import pass_app
 
 @pass_app.command("start")
 def pass_start(
-    kind: str = typer.Argument(..., help="The registered seqforge kind to run."),
+    kind: str = typer.Argument(..., help="The seqforge kind to run."),
     ceiling_usd: float = typer.Option(
         ...,
         "--ceiling-usd",
@@ -43,6 +43,14 @@ def pass_start(
     ),
     keys_file: Path | None = typer.Option(
         None, "--keys", help="Run exactly these units, one key per line, in this order."
+    ),
+    studies: Path | None = typer.Option(
+        None,
+        "--studies",
+        help=(
+            "The folder of study folders the pass works on; with no --keys, it runs the studies "
+            "the folder's pick.yaml lists. Default: the standard set, evals/standard-set."
+        ),
     ),
     only: str | None = typer.Option(
         None,
@@ -62,19 +70,14 @@ def pass_start(
     task: Path | None = typer.Option(
         None, "--task", help="The task's folder. Default: seqforge/passes/<kind>/ here."
     ),
-    reviews: Path | None = typer.Option(
-        None,
-        "--reviews",
-        envvar="SEQFORGE_REVIEWS",
-        help="A local clone of the review repo, whose reviews/ say which units a review holds.",
-    ),
 ) -> None:
     """Run one pass of a seqforge kind over its units, and print its JSON.
 
-    The units are the kind's default keys, or `--keys FILE`, or `--only ENDINGS`. Exit 0 when the
-    pass reached the end of its keys, whatever its counts; 3 when it stopped -- at its ceiling, a
-    provider's balance or cap, a provider or the gateway unavailable -- or another process holds the
-    task; 2 for a setup it cannot use, a model name the gateway rejects included. Rerun the same
+    The units are the kind's default keys, the studies the pick of the `--studies` folder lists, or
+    `--keys FILE`, or `--only ENDINGS`. Exit 0 when the pass reached the end of its keys, whatever
+    its counts; 3 when it stopped -- at its ceiling, a provider's balance or cap, a provider or the
+    gateway unavailable -- or another process holds the task; 2 for a setup it cannot use, a model
+    name the gateway rejects or a folder with no pick and no `--keys` included. Rerun the same
     command to resume: units already answered replay from the gateway's cache at no cost. Progress
     goes to stderr; stdout carries only JSON.
     """
@@ -84,12 +87,12 @@ def pass_start(
             ceiling_usd=ceiling_usd,
             model=model,
             keys_file=keys_file,
+            studies=studies,
             only=only,
             units_at_once=units_at_once,
             off_peak_only=off_peak_only,
             label=label,
             task=task,
-            reviews=reviews,
         )
     )
 
@@ -100,65 +103,68 @@ def _pass_start(
     ceiling_usd: float,
     model: list[str],
     keys_file: Path | None,
+    studies: Path | None,
     only: str | None,
     units_at_once: int,
     off_peak_only: bool,
     label: str | None,
     task: Path | None,
-    reviews: Path | None,
 ) -> _StageOut:
     """The body of ``pass start``: every setup refusal first, then the hold, then the pass."""
-    from labllm import GatewayUnreachable, Rejected, Task
+    from labllm import Rejected, Task
 
-    from ..passes import gateway
+    from ..gateway import check_ceiling, make_gateway
     from ..passes.model_text import parse_models
     from ..passes.progress import run_with_progress
     from ..passes.status import pass_json
-    from ..passes.task import store_for
+    from ..study.folder import default_set_dir
 
     def run(setup: KindTask) -> _StageOut:
         kind = setup.kind
         named = parse_models(model)
         if keys_file is not None and only is not None:
             raise SetupRefused("give --keys FILE or --only ENDINGS, not both")
-        file_keys = None if keys_file is None else _read_keys(keys_file)
+        folder = default_set_dir() if studies is None else studies
         endings = None if only is None else _parse_endings(only)
-        if not math.isfinite(ceiling_usd) or ceiling_usd < 0:
-            raise SetupRefused(f"--ceiling-usd must be a number of dollars, not {ceiling_usd}")
-        try:
-            client = gateway.make_gateway()
-        except GatewayUnreachable as exc:
-            raise SetupRefused(f"no gateway address: {exc}") from exc
-        store, build = store_for(kind)
-        unit_kind = kind.unit_kind(store)
-        models = {**kind.default_models, **named}
-        if extra := sorted(set(models) - set(unit_kind.roles)):
-            raise SetupRefused(
-                f"kind {kind.name!r} has no role {', '.join(extra)}; "
-                f"its roles are {', '.join(sorted(unit_kind.roles))}"
-            )
-        if unfilled := sorted(set(unit_kind.roles) - set(models)):
-            raise SetupRefused(f"no model for role {', '.join(unfilled)}: name one with --model")
-
-        with setup.open(Task, gateway=client) as opened:
-            if file_keys is not None:
-                keys = file_keys
-            elif endings is not None:
-                keys = opened.keys(unit_kind, endings=endings)
-            else:
-                keys = list(kind.default_keys(store))
-            result = run_with_progress(
-                opened,
-                unit_kind,
-                keys,
-                models=models,
-                ceiling_usd=ceiling_usd,
-                label=label or kind.name,
-                off_peak_only=off_peak_only,
-                units_at_once=units_at_once,
-                note=build,
-            )
-            (record,) = [p for p in opened.passes(unit_kind) if p.pass_id == result.pass_id]
+        # The units --only names are read from the task, once it is open; the others are known now.
+        keys: list[str] | None = None
+        if keys_file is not None:
+            keys = _read_keys(keys_file)
+        elif endings is None:
+            keys = list(kind.default_keys(folder))
+        check_ceiling(ceiling_usd)
+        client = make_gateway()
+        built = kind.build(folder)
+        # Whatever ends the pass from here, a refused setup included, the build releases what it
+        # opened, once the task is closed.
+        with closing(built):
+            unit_kind = built.unit_kind
+            models = {**kind.default_models, **named}
+            # The roles are the built kind's, so they are checked after the build opened its stores.
+            if extra := sorted(set(models) - set(unit_kind.roles)):
+                raise SetupRefused(
+                    f"kind {kind.name!r} has no role {', '.join(extra)}; "
+                    f"its roles are {', '.join(sorted(unit_kind.roles))}"
+                )
+            if unfilled := sorted(set(unit_kind.roles) - set(models)):
+                raise SetupRefused(
+                    f"no model for role {', '.join(unfilled)}: name one with --model"
+                )
+            with setup.open(Task, gateway=client) as opened:
+                if keys is None:
+                    keys = opened.keys(unit_kind, endings=endings)
+                result = run_with_progress(
+                    opened,
+                    unit_kind,
+                    keys,
+                    models=models,
+                    ceiling_usd=ceiling_usd,
+                    label=label or kind.name,
+                    off_peak_only=off_peak_only,
+                    units_at_once=units_at_once,
+                    note=built.store_build,
+                )
+                (record,) = [p for p in opened.passes(unit_kind) if p.pass_id == result.pass_id]
         if result.stopped == Rejected.reason:
             # The gateway refused a request outright, such as one for a model it has no price for:
             # the setup is wrong, and rerunning the same command would only meet it again.
@@ -172,41 +178,36 @@ def _pass_start(
         }
         return _StageOut(payload, 0 if result.stopped is None else 3)
 
-    return for_kind(name, task=task, reviews=reviews, body=run)
+    return for_kind(name, task=task, body=run)
 
 
 @pass_app.command("status")
 def pass_status(
-    kind: str = typer.Argument(..., help="The registered seqforge kind whose task to read."),
+    kind: str = typer.Argument(..., help="The seqforge kind whose task to read."),
     task: Path | None = typer.Option(
         None, "--task", help="The task's folder. Default: seqforge/passes/<kind>/ here."
     ),
-    reviews: Path | None = typer.Option(
-        None,
-        "--reviews",
-        envvar="SEQFORGE_REVIEWS",
-        help="A local clone of the review repo, whose reviews/ give a person's endings.",
-    ),
 ) -> None:
-    """Report where a kind's task stands, and what each of its passes cost per unit, as JSON.
+    """Report where a kind's task stands, what each pass cost per unit, and each unit not done.
 
-    It reads the task's state and the reviews only, so it works with the gateway down. Exit 0 with
-    the report; 2 for an unknown kind, no review clone, or a folder that holds no task; 3 when a
-    running pass holds the task, whose stderr is then the live view.
+    It prints one JSON object. It reads the task's state and its reviews only, and takes no hold,
+    so it works with the gateway down and while a pass runs. `not_done` names each unit whose
+    latest outcome is unfinished or held, with that outcome's reason and its pass. Exit 0 with the
+    report; 2 for an unknown kind, a folder that holds no task, or a task a pass stopped in the
+    middle of a write; 3 when a pass's write kept the read waiting, so a rerun reads.
     """
-    _emit(_pass_status(name=kind, task=task, reviews=reviews))
+    _emit(_pass_status(name=kind, task=task))
 
 
-def _pass_status(*, name: str, task: Path | None, reviews: Path | None) -> _StageOut:
-    from ..passes.status import read_only_kind, task_status
+def _pass_status(*, name: str, task: Path | None) -> _StageOut:
+    from ..passes.status import task_status
 
     def run(setup: KindTask) -> _StageOut:
-        setup.require_task()
         with setup.read() as opened:
-            report = task_status(opened, read_only_kind(setup.kind.name))
+            report = task_status(opened, setup.kind.name)
         return _StageOut({"kind": setup.kind.name, "task": str(setup.folder), **report}, 0)
 
-    return for_kind(name, task=task, reviews=reviews, body=run)
+    return for_kind(name, task=task, body=run)
 
 
 def _read_keys(path: Path) -> list[str]:
@@ -226,7 +227,7 @@ def _read_keys(path: Path) -> list[str]:
 
 def _parse_endings(text: str) -> list[str]:
     """``unsettled,refused`` -> the endings; each must be one liulab-llms keeps a current one of."""
-    from labllm.state import ENDINGS
+    from labllm import ENDINGS
 
     endings = [e.strip() for e in text.split(",") if e.strip()]
     if not endings or set(endings) - set(ENDINGS):

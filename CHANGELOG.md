@@ -15,30 +15,32 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   with the count of each ending and the dollars spent, and exits 0 at the end of its units, 3 when
   it stops, and 2 for a setup it cannot use. A model name the gateway rejects, such as a misspelled
   one, is such a setup: the gateway's message goes to stderr. Rerunning the same command resumes
-  it, and every unit answered before comes back from the gateway's cache at no cost. No kind is
-  registered yet. The new "Passes and reviews" page of the docs describes it.
-- `seqforge review file <kind>` files a small sample of a kind's review queue, the units that
-  ended unsettled or refused, as issues in the lab's private review repo: five by default, more
-  with `--count`, in the kind's own review order. Each issue shows the unit's records, each pass's
-  answer and the checks it failed, and a person answers by ticking boxes and closing it. A unit is
-  never filed twice for the same inputs. The command reaches GitHub through the GitHub CLI, `gh`
-  2.48 or later, as the person running it. The "Passes and reviews" page of the docs describes it,
-  and how the review repo was set up.
-- `seqforge review read <kind>` reads people's answers back from a kind's closed issues in the
-  review repo. An issue closed as completed stores the answer that its ticks make, and one closed
-  as not planned stores a drop with the reasons ticked, each with the GitHub login of the person
-  who closed it. The reviews go into the kind's file in the review clone, which the command commits
-  alone and pushes. Ticks that make no answer, or an answer that fails one of the kind's checks,
-  store nothing: the issue gets a comment that says why and is reopened, and the command exits 4.
-  It works while a pass is running.
+  it, and every unit answered before comes back from the gateway's cache at no cost. Two kinds
+  are registered, `study-bounds` and `study-reading`. The new "Passes" page of the docs
+  describes it.
 - `seqforge pass status <kind>` reports where a kind's task stands: how many units have each
   ending, a person's review included, and, for each pass, its models, store build, ceiling and
   spend, with the total, median and 90th percentile of its dollars, requests and seconds per unit.
-  It reads the task folder only, so it works with the gateway down.
-- seqforge now depends on liulab-llms (2026.11.2 or later), from PyPI.
+  Its `not_done` list names each unit whose latest outcome is unfinished or held, with the reason
+  and the pass, such as a study held for a missing bounds file. It reads the task folder only and
+  takes no hold, so it works with the gateway down and while a pass runs. `study write-bounds`
+  and `study write-reading` take no hold either, so they do not refuse while a pass runs: they
+  write the answers recorded so far and never replace a file. Run them once the pass has ended.
+- seqforge now depends on liulab-llms (2026.11.9 or later), from PyPI.
 
 ### Changed
 
+- `harvest extract`, `run` and `eval run` now exit 2, not 1, for a request the gateway rejects,
+  such as one for a model the gateway has no price for. `pass start` already did: the setup is
+  wrong, and running the same command again meets the same refusal. The four commands build their
+  gateway client, check `--ceiling-usd` and refuse a missing gateway address in one shared module.
+- Harvest and the study reading job read the JSON out of a reply sent with no schema by one rule,
+  liulab-llms's: the whole reply is JSON, or the reply holds exactly one fenced block. The reading
+  job used to take the first JSON object anywhere in the reply, so a writer's answer with an object
+  among prose and no fence is now asked for once more. Needs `liulab-llms>=2026.11.9`.
+- The study reading job asks Jev each sample's label values once. The second asking, with the
+  options reversed, holds only the sample's level on each factor, the one answer it compares, so
+  each second request is shorter. How a study ends does not change.
 - Python 3.13 is now the minimum supported version (`requires-python = ">=3.13"`). Every pixi
   environment already ran 3.13, so the old 3.12 floor had no test behind it.
 - The package version now comes from the git tag, through hatch-vcs. The release wheel is built
@@ -74,6 +76,12 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   row has `cost_usd` and `cached`. Each exchange in `transcript.jsonl` has `cost_usd` and `cached`
   too. The eval report shows dollars in place of token counts.
 - The Anthropic and OpenAI client libraries are no longer dependencies.
+- The manifest's `library.assay` holds, for each chemistry, its id and the first ontology id its
+  spec declares, and no name. Every chemistry now gets one; Smart-seq3, BD Rhapsody, the 10x 5'
+  chemistries, GEM-X and multiome ATAC used to get none. `manifest fill` opens no ontology store.
+  A manifest filled now has a different dataset hash from one filled before. The report takes the
+  assay's name from liulab-data's ontology store; with no store, or no liulab-data, it shows the
+  ontology id.
 
 ### Removed
 
@@ -86,12 +94,22 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   Matching files to samples, the organism, cells versus nuclei and the chemistry hint are
   unchanged. `harvest extract` no longer prints `n_stored`, and each `fanned` row names its one
   `assertion_id` instead of `assertion_ids` and `materialized`.
+- `seqforge io attributes` is gone, and the wheel no longer ships NCBI's list of 960 sample
+  attribute names. `io records` keeps each sample attribute under the tag the submitter typed and
+  no longer renames it to NCBI's name, so it makes no separate BioSample request and costs one
+  request fewer for every 100 samples. A record attribute has no `harmonized` or `raw_name` field
+  any more; a record set written earlier with them still loads. The organism still comes from
+  each sample's taxonomy id.
+- `seqforge io efo` is gone, and the wheel no longer ships seqforge's table of EFO names.
+- A hand-written record set (`source: user`) may no longer carry `free_text`. The loader refuses
+  it like any other unknown key, and the remedy says that what a sample was belongs in a study
+  reading. No model read that prose. A record set fetched by `io records` keeps its prose.
 
 ### Fixed
 
 - `seqforge eval run --trials N` now asks the model for a fresh answer on each trial, by sending
   trial k as replicate k. Through the lab gateway, trials 2 to N used to get trial 1's cached reply,
-  so stability always read 1. Needs `liulab-llms>=2026.11.4`; the compiler's own calls are unchanged.
+  so stability always read 1. Needs `liulab-llms>=2026.11.9`; the compiler's own calls are unchanged.
 - Scoring reads against a shipped barcode onlist no longer converts the whole onlist to a wider
   integer type on every lookup. Each lookup against the 6.8 million barcodes of `3M-february-2018`
   took about 9 ms and now takes about 0.04 ms; the result is the same.

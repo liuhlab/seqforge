@@ -11,20 +11,23 @@ checks read the one file and nothing else: no store, no network, no model, and t
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import typer
 
+from ..liulab_data import LiulabDataMissing
 from ..study import bounds, reading
 from ..study.claims import load
+from ..study.folder import BOUNDS, JOB_BOUNDS, JOB_READING, READING
 from ..study.relations import relations
 from ._common import _emit, _StageOut
 from .root import study_app
 
 if TYPE_CHECKING:
-    from labllm import Task, UnitKind
+    from labllm import TaskReader
 
 
 def _content(file: Path) -> tuple[object, list[dict[str, str]]]:
@@ -40,6 +43,20 @@ def _content(file: Path) -> tuple[object, list[dict[str, str]]]:
     return load(text)
 
 
+@contextmanager
+def _needs_liulab_data() -> Iterator[None]:
+    """Refuse the run, exit 2, when the reading check needs liulab-data and it is not there.
+
+    The check judges each ontology id by liulab-data's vocabularies: without them it cannot say
+    whether a file is valid, so it says nothing of the file.
+    """
+    try:
+        yield
+    except LiulabDataMissing as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2) from exc
+
+
 def _verdict(file: Path, accepted: int, problems: list[dict[str, str]], **more: object) -> None:
     """Print the one JSON object every command here prints, and exit 0 if valid, 3 if rejected."""
     said = {"file": str(file), "format": accepted, "valid": not problems, "problems": problems}
@@ -48,28 +65,32 @@ def _verdict(file: Path, accepted: int, problems: list[dict[str, str]], **more: 
 
 def _write(
     kind_name: str,
-    write: Callable[[Task, UnitKind, Path, str], dict[str, dict[str, object]]],
+    write: Callable[[TaskReader, str, Path, str], dict[str, dict[str, object]]],
     out: Path,
     name: str,
     task: Path | None,
-    reviews: Path | None,
 ) -> None:
-    """Write each study's file from a pass's answers, and print how each study ended."""
+    """Write each study's file from a pass's answers, and print how each study ended.
+
+    A text the format check rejects is a refusal, as check-bounds and check-reading make it: the
+    other files are still written, and the command exits 3. The task is only read, with no hold,
+    and liulab-llms gives a read no way to tell that a pass holds the task, so nothing refuses a
+    write while a pass runs. That write takes the answers recorded so far, and a file once written
+    is never replaced.
+    """
     from ._kind_task import KindTask, for_kind
 
     def run(setup: KindTask) -> _StageOut:
-        from ..passes.status import read_only_kind
-
-        setup.require_task()
         try:
             with setup.read() as opened:
-                done = write(opened, read_only_kind(kind_name), out, name)
-        except ValueError as e:
+                done = write(opened, kind_name, out, name)
+        except (ValueError, LiulabDataMissing) as e:
             return _StageOut({"error": str(e)}, 2)
         said: dict[str, object] = {"kind": kind_name, "task": str(setup.folder), "out": str(out)}
-        return _StageOut({**said, "studies": done}, 0)
+        rejected = any("problems" in study for study in done.values())
+        return _StageOut({**said, "studies": done}, 3 if rejected else 0)
 
-    _emit(for_kind(kind_name, task=task, reviews=reviews, body=run))
+    _emit(for_kind(kind_name, task=task, body=run))
 
 
 @study_app.command("write-bounds")
@@ -78,29 +99,31 @@ def study_write_bounds(
         ..., "--out", help="The folder of study folders, such as evals/standard-set."
     ),
     name: str = typer.Option(
-        "bounds.yaml",
+        BOUNDS,
         "--name",
-        help="The file's name in each study's folder; job-bounds.yaml for the standard set.",
+        help=f"The file's name in each study's folder; {JOB_BOUNDS} for the standard set.",
     ),
     task: Path | None = typer.Option(
         None,
         "--task",
         help="The bounding pass's task folder. Default: seqforge/passes/<kind>/ here.",
     ),
-    reviews: Path | None = typer.Option(
-        None, "--reviews", envvar="SEQFORGE_REVIEWS", help="A local clone of the review repo."
-    ),
 ) -> None:
     """Write ``<out>/<ID>/<name>`` from the bounding pass's answers, for each study that has none.
 
-    A refused study gets no file; the JSON gives its reason. A file already there is never
-    overwritten. It reads the task only, so it works with the gateway down. Exit 0 with one object
-    per study; 2 for no task, no review clone or a ``--name`` that is a path; 3 when a running pass
-    holds the task.
+    A refused study gets no file; the JSON gives its reason. The format check runs on the exact
+    text to be written, and a text it rejects is not written. A file already there is never
+    overwritten. It reads the task only, with no hold, so it works with the gateway down. Run it once
+    the pass has ended: while a pass runs it does not refuse, and it writes the answers recorded so
+    far, so a study the pass has not reached gets an earlier pass's answer, and the new one needs
+    that file deleted by hand and the command run again. Exit 0 with one object per study; 2 for no
+    task, a task a pass stopped in the middle of a write, or a ``--name`` that is a path; 3 when a
+    pass's write kept the read waiting, or when the format check rejects a text, whose study the
+    JSON names with its problems.
     """
     from ..study.bounding import KIND_NAME, write_bounds
 
-    _write(KIND_NAME, write_bounds, out, name, task, reviews)
+    _write(KIND_NAME, write_bounds, out, name, task)
 
 
 @study_app.command("write-reading")
@@ -109,29 +132,27 @@ def study_write_reading(
         ..., "--out", help="The folder of study folders, such as evals/standard-set."
     ),
     name: str = typer.Option(
-        "reading.yaml",
+        READING,
         "--name",
-        help="The file's name in each study's folder; job-reading.yaml for the standard set.",
+        help=f"The file's name in each study's folder; {JOB_READING} for the standard set.",
     ),
     task: Path | None = typer.Option(
         None,
         "--task",
         help="The reading pass's task folder. Default: seqforge/passes/<kind>/ here.",
     ),
-    reviews: Path | None = typer.Option(
-        None, "--reviews", envvar="SEQFORGE_REVIEWS", help="A local clone of the review repo."
-    ),
 ) -> None:
     """Write ``<out>/<ID>/<name>`` from the reading pass's answers, for each study that has none.
 
     The same as write-bounds, for the reading pass: a refused study gets no file and the JSON
     gives its reason, and a file already there is never overwritten, so the standard set's own
-    readings stay as they are. Exit 0 with one object per study; 2 for no task, no review clone or
-    a ``--name`` that is a path; 3 when a running pass holds the task.
+    readings stay as they are. Run it once the pass has ended, for the reason write-bounds gives:
+    while a pass runs it writes the answers so far. Exit 0 with one object per study; 2 as for
+    write-bounds, or for no liulab-data for the format check; 3 as for write-bounds.
     """
     from ..study.reader import KIND_NAME, write_readings
 
-    _write(KIND_NAME, write_readings, out, name, task, reviews)
+    _write(KIND_NAME, write_readings, out, name, task)
 
 
 @study_app.command("check-bounds")
@@ -154,11 +175,14 @@ def study_check_reading(
 ) -> None:
     """Check one reading file against the current format.
 
-    Prints the same JSON object as check-bounds, with the same exit codes. The check reads the
-    file alone, so it does not look for a quote in the record it names.
+    Prints the same JSON object as check-bounds, with the same exit codes, and exits 2 too, printing
+    no verdict, when liulab-data is not installed: its vocabularies judge each ontology id. The
+    check reads the file alone, so it does not look for a quote in the record it names.
     """
     data, problems = _content(file)
-    _verdict(file, reading.FORMAT, problems or reading.check_reading(data))
+    with _needs_liulab_data():
+        problems = problems or reading.check_reading(data)
+    _verdict(file, reading.FORMAT, problems)
 
 
 @study_app.command("relations")
@@ -174,7 +198,8 @@ def study_relations(
     data, problems = _content(file)
     read = None
     if not problems:
-        read, problems = reading.read_reading(data)
+        with _needs_liulab_data():
+            read, problems = reading.read_reading(data)
     if read is None or problems:
         _verdict(file, reading.FORMAT, problems)
         return

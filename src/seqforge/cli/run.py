@@ -73,7 +73,7 @@ def _run_records_stage(
     import hashlib
 
     from ..io import IO_VERSION
-    from ..io.archive import fetch_records, stored_records
+    from ..io.archive import SOURCE, fetch_records, stored_records
     from ..models.records import ArchiveRecordSet
     from ..recordset import load_record_set
 
@@ -101,7 +101,7 @@ def _run_records_stage(
     # the question, and a fresh fetch must never look like one.
     if len(accession) == 1:
         return ArchiveRecordSet(
-            source="ncbi-sra+biosample",
+            source=SOURCE,
             query=accession[0],
             records=merged,
             io_version=IO_VERSION,
@@ -109,7 +109,7 @@ def _run_records_stage(
     # Two accessions render one dataset: harvest needs them in a single document set, so write a
     # combined file keyed by the accession list (the per-accession caches stay, for `io records`).
     combined = ArchiveRecordSet(
-        source="ncbi-sra+biosample",
+        source=SOURCE,
         query=", ".join(accession),
         records=merged,
         io_version=IO_VERSION,
@@ -332,7 +332,6 @@ def run_cmd(
     ceiling_usd: float = typer.Option(
         DEFAULT_CEILING_USD,
         "--ceiling-usd",
-        min=0,
         help="The most the harvest stage may spend, in dollars. Reaching it halts the run with "
         "exit 3.",
     ),
@@ -389,8 +388,15 @@ def run_cmd(
     --no-llm each give a quieter, still-true manifest. `harvest extract` is the sole LLM touchpoint and
     calls the lab gateway at $LABLLM_GATEWAY, which is why --no-llm exists: it reaches no gateway.
     """
+    from ..gateway import SetupRefused, check_ceiling
     from ..io.remote import RemoteError
     from ..recordset import RecordSetError
+
+    try:
+        check_ceiling(ceiling_usd)
+    except SetupRefused as exc:
+        typer.echo(json.dumps({"error": "bad_option", "detail": str(exc)}, indent=2), err=True)
+        raise typer.Exit(2) from exc
 
     # A fingerprint package stands in for the raw FASTQs: unpack it, take its slices as `files`, and
     # carry a pinned probe map so resolve reproduces the full-file verdict (and hash) from the slices.

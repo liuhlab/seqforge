@@ -1,4 +1,4 @@
-"""A heterogeneous project partitions into one manifest per assay (Phase 4).
+"""A heterogeneous project partitions into one manifest per assay.
 
 Drives the real ``_fill_manifest_pipeline`` on a synthetic 2-chemistry dataset: a v3 run and a bulk
 run, no archive records, so each run is its own sample. Different samples with different chemistries

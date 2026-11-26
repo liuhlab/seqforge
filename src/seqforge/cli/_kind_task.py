@@ -1,10 +1,9 @@
-"""What the pass and review commands share: the kind, the review clone, the task, and two exits.
+"""What the pass commands share: the kind, the task, and two exits.
 
-Every one of them names a kind and reads a local clone of the review repo; all but ``review read``
-open the kind's task. :func:`for_kind` finds those, runs the command's body on them, and gives the
-command's output for the two ways a body ends early: a setup it cannot use exits 2 with its
-one-line reason, and a task another process holds exits 3 with liulab-llms's message naming the
-holder. So a body only raises.
+Every one of them names a kind and opens the kind's task. :func:`for_kind` finds those, runs the
+command's body on them, and gives the command's output for the two ways a body ends early: a setup
+it cannot use exits 2 with its one-line reason, and a task another process holds or is writing
+exits 3 with liulab-llms's message. So a body only raises.
 """
 
 from __future__ import annotations
@@ -19,75 +18,72 @@ from ..workspace import passes_dir
 from ._common import _StageOut
 
 if TYPE_CHECKING:
-    from labllm import Gateway, Inputs, Task, UnitKind
+    from labllm import Gateway, Task, TaskReader
 
     from ..passes.kinds import Kind
 
 
 @dataclass(frozen=True)
 class KindTask:
-    """A registered kind, the review files of its clone, and its task's folder (not yet opened)."""
+    """A kind from the kind table, and its task's folder (not yet opened)."""
 
     kind: Kind
-    reviews: Path
     folder: Path
 
     def open[T: Task](self, cls: type[T], *, gateway: Gateway) -> T:
         """Open the task, taking its hold; make it if it is missing."""
         from ..passes.task import open_task
 
-        return open_task(cls, self.folder, gateway=gateway, reviews=self.reviews)
+        return open_task(cls, self.folder, gateway=gateway)
 
-    def require_task(self) -> None:
-        """Refuse a folder that holds no task, for a command that only reads one."""
-        from ..passes.task import require_task
+    def read(self) -> TaskReader:
+        """Open the task only to read it: it reads with the gateway down and while a pass holds it.
 
-        require_task(self.folder, self.kind.name)
+        Refuses a folder that holds no task, and makes none.
+        """
+        from ..passes.task import read_task
 
-    def read(self) -> Task:
-        """Open the task to read it, with no gateway, so it reads the same with the gateway down."""
-        from labllm import Task
-
-        from ..passes import gateway
-
-        return self.open(Task, gateway=gateway.offline_gateway())
+        return read_task(self.folder, self.kind.name)
 
 
 def for_kind(
     name: str,
     *,
     task: Path | None,
-    reviews: Path | None,
     body: Callable[[KindTask], _StageOut],
 ) -> _StageOut:
-    """Run ``body`` on the kind named ``name``, its clone's review files and its task's folder.
+    """Run ``body`` on the kind named ``name`` and its task's folder.
 
     The folder is ``task``, or ``seqforge/passes/<kind>/`` here. A :class:`SetupRefused` from the
-    setup or the body is exit 2; liulab-llms's ``TaskInUse`` from the body is exit 3.
+    setup or the body is exit 2, and so is a task that a pass stopped in the middle of a write,
+    which a read cannot use until a pass opens it again. liulab-llms's ``TaskInUse`` from the body
+    is exit 3, and so is its ``TaskBusy``: a pass's write kept a read waiting, and a rerun reads.
     """
-    from labllm import TaskInUse
+    from labllm import TaskBusy, TaskInUse, TaskNeedsRepair
 
     from ..passes.kinds import kind_named
-    from ..passes.task import reviews_folder
 
     try:
         kind = kind_named(name)
         folder = task if task is not None else passes_dir(Path(), kind.name)
-        setup = KindTask(kind, reviews_folder(reviews), folder)
+        setup = KindTask(kind, folder)
         return body(setup)
     except SetupRefused as exc:
         return _StageOut(str(exc), 2, err=True)
+    except TaskNeedsRepair:
+        # Waiting never clears it; a writing open, which every pass makes, repairs the task.
+        said = (
+            f"a pass on {folder} stopped in the middle of a write, and a read cannot undo it: "
+            f"run the pass again with seqforge pass start {name}, which repairs the task; it also "
+            "runs every unit not yet answered, so it can spend up to its --ceiling-usd"
+        )
+        return _StageOut(said, 2, err=True)
     except TaskInUse as exc:
-        # Raised only by opening the task, or by a pass whose hold another process took over.
+        # Raised only by opening the task to run a pass, or by a pass whose hold another process
+        # took over.
         held = {"kind": name, "task": str(folder), "stopped": "task_in_use"}
         return _StageOut({**held, "message": str(exc)}, 3)
-
-
-def inputs_now(unit_kind: UnitKind, key: str) -> Inputs | None:
-    """The unit's inputs now, or None when liulab-llms holds it for want of them."""
-    from labllm import Held
-
-    try:
-        return unit_kind.load(key)
-    except Held:
-        return None
+    except TaskBusy as exc:
+        # Raised only by a read: a pass's write kept it waiting.
+        held = {"kind": name, "task": str(folder), "stopped": "task_busy"}
+        return _StageOut({**held, "message": str(exc)}, 3)

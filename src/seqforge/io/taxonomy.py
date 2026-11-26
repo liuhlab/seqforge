@@ -41,9 +41,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from pathlib import Path
 
-from ..workspace import cache_dir
 from .remote import _MAX_RETRIES, _RETRY_STATUS, retry_delay
 
 _EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
@@ -191,13 +189,3 @@ def resolve(name: str, *, offline: bool = False, timeout: float = 20.0, verify: 
                 f"at a rate that merely looks mediocre, and nothing downstream would object."
             )
     return taxid
-
-
-def seed_names() -> dict[str, int]:
-    """The offline table, for tests and `io taxon list`."""
-    return dict(_SEED)
-
-
-def cache_path(workspace: str | Path) -> Path:
-    """Where a resolved lookup is cached in a workspace, so a second run is offline and instant."""
-    return cache_dir(workspace) / "taxonomy.json"

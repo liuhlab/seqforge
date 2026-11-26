@@ -89,7 +89,10 @@ if TYPE_CHECKING:
 #: 2026.11.0 — the nine `experiment.samples.*` attributes left the ask, and with them the tissue rule
 #: in the values block and each attribute's NCBI definition in the per-document ask. Every remaining
 #: field is unchanged; a record document is now asked the chemistry or nothing.
-EXTRACT_PROMPT_VERSION = "2026.11.0"
+#: 2026.11.1 — `experiment.accessions` left the ask, and its rule left the values block. No code read
+#: an accession claim: the manifest's accession list is filled from the record set, and the
+#: wrong-paper guard finds accessions in a document's text with its own pattern.
+EXTRACT_PROMPT_VERSION = "2026.11.1"
 
 _INSTRUCTIONS = """\
 You extract factual claims from a scientific methods document into structured assertions, returned as
@@ -123,8 +126,6 @@ Values:
   STARsolo feature or an analysis mode — "single nuclei" is an input material, not `GeneFull`. Omit if
   the document does not say.
 - `experiment.organism`: the scientific name as written (e.g. "Caenorhabditis elegans").
-- `experiment.accessions`: only an explicit database accession (GEO/SRA/ENA/BioProject, e.g.
-  "GSE110823", "PRJNA1027859"). A reference genome or assembly name is NOT an accession.
 - `processing.quantification`: the STARsolo feature the document NAMES, exactly, as one of: Gene, SJ,
   GeneFull, GeneFull_ExonOverIntron, GeneFull_Ex50pAS, Velocyto. Emit one assertion per feature named.
   Only extract this when the document names the feature; a document describing the BIOLOGY ("single
@@ -370,25 +371,6 @@ def extract_drafts(
     return extract_batch([doc], specs, seam=seam, fields=fields, max_tokens=max_tokens)[0]
 
 
-def _reply_json(text: str) -> Any:
-    """The JSON the reply is, or else the JSON its one code fence holds.
-
-    A model that thinks is sent no schema, so only the prompt keeps it from fencing its JSON among
-    prose. One fence, opened and closed, is unambiguous. With any other count of fence markers the
-    whole reply's error stands: a reply cut off inside a fence, or one that fences an example
-    beside its answer, fails as not JSON rather than having one object picked out of it. The
-    Transcript keeps the reply verbatim, so how often a model fences is a grep away.
-    """
-    try:
-        return json.loads(text)
-    except ValueError:
-        parts = text.split("```")
-        if len(parts) != 3:
-            raise
-    _language, _, fenced = parts[1].partition("\n")
-    return json.loads(fenced)
-
-
 def _parsed_drafts(text: str, provider_name: str) -> list[Any]:
     """THE gate: the response's top-level shape, or a wholesale refusal. Returns the raw draft list.
 
@@ -404,10 +386,17 @@ def _parsed_drafts(text: str, provider_name: str) -> list[Any]:
     no second one: a batch that fails here fails exactly as a single document does, and what its
     caller then does about it — re-ask each document alone — is a recovery policy, not another
     verdict about the response.
+
+    The JSON is read by liulab-llms's one rule for a reply sent with no schema: the whole text, or
+    the one fenced block it holds. A reply cut off inside a fence, or one that fences an example
+    beside its answer, fails here as not JSON rather than having one object picked out of it. The
+    Transcript keeps the reply verbatim, so how often a model fences is a grep away.
     """
+    from labllm import ReplyNotJson, reply_json
+
     try:
-        raw = _reply_json(text)
-    except ValueError as exc:
+        raw = reply_json(text)
+    except ReplyNotJson as exc:
         raise ExtractUnavailable(
             f"{provider_name} returned output that is not valid JSON: {exc}"
         ) from exc
