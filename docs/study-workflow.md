@@ -130,7 +130,8 @@ The check asks only whether the file is in the current format. It does not judge
 bounds are right. The bounding job never writes a file that the check rejects: it ends the study
 refused, and `write-bounds` checks the exact text it writes, with each model named, before the file
 appears. The reader reads each study's bounds file through the same check. It holds a study whose
-file is missing or rejected, and the reason names each problem.
+file is missing or rejected, and the reason names each problem. `seqforge pass status study-reading`
+lists each held study under `not_done`, with that reason.
 
 ## 3. Read the study
 
@@ -172,8 +173,9 @@ only such a file gives is `unknown`.
 2. Jev, a model that answers closed questions with a probability, answers every closed question. It
    says whether each factor was varied on purpose, which level is the baseline, and whether the
    levels are in order. Then, for each sample, it picks the sample's level on each factor and its
-   value on each label from the lists. Some questions are asked twice: plain and negated, or with
-   the options in order and reversed.
+   value on each label from the lists. Some questions are asked twice: whether a factor was varied,
+   plain and negated, and its baseline and each sample's level, with the options in order and
+   reversed. Each sample's label values are asked once, because only its level is compared.
 3. Code looks for every quote in its record, character for character, or in its paper once each
    run of white space is one space. Jev judges whether each found passage backs its claim, or says
    otherwise. A claim is `quoted` only from a found passage that backs it. Otherwise it is

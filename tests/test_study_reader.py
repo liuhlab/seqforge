@@ -23,13 +23,11 @@ import pytest
 import yaml
 from labdata.ontology import SnapshotData, SourceTerm, build_tiny_store
 from labdata.store.model import Link, Record
-from labllm import Task
 from labllm.testing import FakeGateway, Price
 from typer.testing import CliRunner
 
 import gateway_kit
 from seqforge.cli import app
-from seqforge.passes.status import read_only_kind
 from seqforge.study import bounding, closed, reader
 from seqforge.study.lists import guide_text
 from seqforge.study.reading import check_reading, read_reading
@@ -427,7 +425,9 @@ TRUTH = {
 VARIED = {"treatment": (0.9, 0.8), "genotype": (0.5, 0.1)}
 #: The level of each factor Jev calls a study's reference.
 BASELINES = ("young", "vehicle", "wild type", "fed")
-#: The samples whose level Jev leaves unanswered, in both askings, and whose tissue.
+#: The samples whose level Jev answers with an option it was not offered, in both askings, and
+#: whose tissue it leaves out. Jev's second asking of a sample holds only its levels, and a reply
+#: with no answer in it is an outage the engine retries, not an answer.
 NO_LEVEL, NO_TISSUE = ("GSM93",), ("GSM92",)
 
 
@@ -469,7 +469,7 @@ def _choose(asked: str, options: dict[str, str], sample: str | None) -> tuple[st
         return first, 0.95 if options[first].startswith(("UBERON", "WBbt")) else 0.6
     assert sample is not None
     if sample in NO_LEVEL and re.match(r"Which \w+ does `sample` have\?", asked):
-        return None
+        return "a level not offered", 0.9
     if sample in NO_TISSUE and asked.startswith("What is the tissue of `sample`"):
         return None
     for k, text in options.items():
@@ -583,9 +583,20 @@ def test_a_study_is_read_into_a_reading_that_passes_the_check_beside_the_sets_ow
 ) -> None:
     """The writer lists, Jev picks, code writes a file the format check accepts, beside the set's
     own reading and never over it. Only sequenced samples get a row; a factor level no sample is at
-    is dropped; the models are named as the pass ran them."""
-    set_dir, said, _ = read
+    is dropped; the models are named as the pass ran them. Jev is asked about each sample twice:
+    the first asking carries its level and label questions, and the second, with the options
+    reversed, its level questions only, because only the level is compared."""
+    set_dir, said, fake = read
     reading = _reading(set_dir, "GSE10")
+    carried = []
+    for form in _sent(fake):
+        named = form["route"] != "chat" and re.match(r"`sample` is (GSM1\d)\.", form["description"])
+        if named:
+            asked = form["questions"].values()
+            second = all(next(iter(q["criteria"])) == "na" for q in asked)
+            level = re.compile(r"Which \w+ does `sample` have\?")
+            kinds = {"level" if level.match(q["instructions"]) else "label" for q in asked}
+            carried.append((named.group(1), second, sorted(kinds)))
 
     assert said["GSE10"] == {"ending": "settled", "file": "written"}
     assert (set_dir / "GSE10" / "reading.yaml").read_text() == "the standard set's own\n"
@@ -602,6 +613,11 @@ def test_a_study_is_read_into_a_reading_that_passes_the_check_beside_the_sets_ow
         "probabilities": "typesafe/jev-1.14.0",
     }
     assert reading["read"] == ["records", "abstract", "full_text"]
+    assert sorted(carried) == [
+        (g, second, ["level"] if second else ["label", "level"])
+        for g in ("GSM11", "GSM12", "GSM13")
+        for second in (False, True)
+    ]
 
 
 def test_a_claim_is_quoted_only_from_a_passage_code_found_and_terms_come_from_a_clear_pick(
@@ -684,8 +700,9 @@ def test_a_probability_of_exactly_one_half_is_neither_yes_nor_no_and_leaves_the_
 def test_a_question_jev_leaves_unanswered_is_an_unknown_claim_and_leaves_the_study_unsettled(
     read: tuple[Path, dict[str, Any], FakeGateway],
 ) -> None:
-    """Jev leaves GSM93's diet unanswered, in both askings. Its claim is unknown with no
-    probability, and two missing answers do not agree: the study is unsettled, naming the sample.
+    """Jev answers GSM93's diet with an option it was not offered, in both askings, so neither is
+    an answer. Its claim is unknown with no probability, and two missing answers do not agree: the
+    study is unsettled, naming the sample.
     GSM92's tissue and whether the diet's levels are ordered, each asked once and left unanswered,
     are named too."""
     set_dir, said, _ = read
@@ -815,31 +832,46 @@ def test_both_jobs_run_on_a_folder_that_is_not_the_standard_set_and_join_through
     assert reading["read"] == ["records", "abstract", "full_text"]
 
 
-def test_a_study_whose_bounds_file_is_missing_or_fails_its_check_is_held_with_the_reason(
+def test_a_study_held_for_its_bounds_or_its_paper_store_is_named_with_the_reason_by_pass_status(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """GSE10's bounds file has three fields and no format number, which the format check rejects;
-    GSE20 has no bounds file. Each study is held before a model is asked, and its reason names
-    the check's problems or the missing file."""
+    """GSE10's bounds file names its paper, and no paper store is set up; GSE20 has no bounds file;
+    GSE30's has three fields and no format number, which the format check rejects. Each study is
+    held before a model is asked. `pass status` names each with the reason, reading the task alone:
+    no store opens and no gateway client is built."""
+    import labdata
+    import labdata.papers
+    from labdata.exceptions import StoreNotConfiguredError
+
     studies = tmp_path / "studies"
-    (studies / "GSE10").mkdir(parents=True)
-    three = {"study": "GSE10", "series": [{"id": "GSE10"}], "papers": []}
-    (studies / "GSE10" / "bounds.yaml").write_text(yaml.safe_dump(three))
+    for key in ("GSE10", "GSE30"):
+        (studies / key).mkdir(parents=True)
+    (studies / "GSE10" / "bounds.yaml").write_text(_bounds("GSE10"))
+    three = {"study": "GSE30", "series": [{"id": "GSE30"}], "papers": []}
+    (studies / "GSE30" / "bounds.yaml").write_text(yaml.safe_dump(three))
     fake = _serve(monkeypatch, tmp_path)
-    (tmp_path / "keys.txt").write_text("GSE10\nGSE20\n")
+
+    def no_store(root: Any = None) -> Any:
+        raise StoreNotConfiguredError("no store is set up")
+
+    monkeypatch.setattr(labdata.papers, "open_paper_store", no_store)
+    (tmp_path / "keys.txt").write_text("GSE10\nGSE20\nGSE30\n")
 
     started = _start(reader.KIND_NAME, studies, "--keys", "keys.txt")
     assert started.exit_code == 0, started.output
-    task = Path(json.loads(started.stdout)["task"])
-    with Task(task, gateway=fake.client(repo="seqforge"), reviews=task / "reviews") as opened:
-        kind = read_only_kind(reader.KIND_NAME)
-        held = {key: opened.outcomes(kind, key)[-1] for key in ("GSE10", "GSE20")}
+    monkeypatch.setattr(labdata, "open_store", no_store)
+    monkeypatch.delenv("LABDATA_ONTOLOGIES")
+    gateway_kit.forbidden(monkeypatch)
+    status = runner.invoke(app, ["pass", "status", reader.KIND_NAME])
 
-    assert json.loads(started.stdout)["counts"]["held"] == 2
+    assert status.exit_code == 0, status.output
+    assert json.loads(started.stdout)["counts"]["held"] == 3
     assert fake.record == []
-    assert {outcome.ending for outcome in held.values()} == {"held"}
-    assert "format: expected 1, missing" in str(held["GSE10"].reason)
-    assert "no bounds file" in str(held["GSE20"].reason)
+    held = {unit.pop("key"): unit for unit in json.loads(status.stdout)["not_done"]}
+    assert {(unit["ending"], unit["pass"]) for unit in held.values()} == {("held", 1)}
+    assert "no paper store is configured" in held["GSE10"]["reason"]
+    assert "no bounds file for GSE20" in held["GSE20"]["reason"]
+    assert "format: expected 1, missing" in held["GSE30"]["reason"]
 
 
 @pytest.mark.parametrize(
