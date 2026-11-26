@@ -74,6 +74,7 @@ if TYPE_CHECKING:  # the count-matrix narrowing needs the names, not the import 
 from seqforge import __version__, kb
 from seqforge.compose import core as compose_core
 from seqforge.compose.core import ComposePlan
+from seqforge.compose.gates import run_snakemake as _start_snakemake
 from seqforge.io import OnlistRegistry
 from seqforge.manifest import ExperimentInputs, ProcessingInputs, fill_manifest, fill_processing
 from seqforge.manifest.hash import dataset_content_hash
@@ -243,6 +244,12 @@ def liulab_data(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
     covers the session-scoped composed-plate fixtures too, which compose under the real gate and
     are built before any function-scoped fixture applies. The autouse stub below replaces this
     wrapper wholesale for every test that did not ask to spawn, so nothing is staged for them.
+
+    And the gate plans inside the worker, by :func:`_snakemake_in_this_worker` in the place of the
+    one call that starts the program. No start of ``snakemake`` fits a test's time limit on every
+    machine, and the gate reads the same three things back either way: the exit status and both
+    streams. The one test that proves the program's own command line takes
+    :func:`snakemake_program`.
     """
     from seqforge.compose import gates
 
@@ -256,6 +263,7 @@ def liulab_data(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Path]:
     patch = pytest.MonkeyPatch()
     patch.setenv("LIULAB_DATA", str(root))
     patch.setattr(gates, "wiring_gate", staged)
+    patch.setattr(gates, "run_snakemake", _snakemake_in_this_worker)
     yield root
     patch.undo()
 
@@ -363,21 +371,21 @@ def stage_reference(pipeline_dir: Path) -> None:
 
 
 #: Fixture names that mean "do not stub ``wiring_gate`` for this test".
-_UNSTUBS_THE_GATE = frozenset({"real_wiring_gate", "gate_that_must_not_run"})
+_UNSTUBS_THE_GATE = frozenset({"real_wiring_gate", "gate_that_must_not_run", "snakemake_program"})
 
 #: Fixture names that mean "this test runs ``snakemake``" — which is what ``external`` is ABOUT.
 #: The two sets are deliberately different; see :func:`pytest_collection_modifyitems`.
 #:
-#: The name says "spawns", and only ``real_wiring_gate`` still does: the product's gate starts the
-#: command, while a plan a test reads is taken inside the worker (:func:`snakemake_dry_run`). The
-#: marker is about NEEDING snakemake, and a machine without it can do neither, so the set is the
-#: same whichever way a fixture runs it.
+#: The name says "spawns", and only ``snakemake_program`` still does, in a test marked ``slow``:
+#: every other plan, the product gate's included, is taken inside the worker
+#: (:func:`_snakemake_in_this_worker`). The marker is about NEEDING snakemake, and a machine without
+#: it can do neither, so the set is the same whichever way a fixture runs it.
 #:
 #: ``composed_plate`` and its single-end sibling are here for the same reason ``dry_run`` is: each is
 #: a *product* of a ``snakemake -n -p``, and a fixture that takes one has to be visible to the marker
 #: whether the test reading it thinks of itself as a snakemake test or not.
 _SPAWNS_SNAKEMAKE = frozenset(
-    {"real_wiring_gate", "dry_run", "composed_plate", "composed_plate_se"}
+    {"real_wiring_gate", "snakemake_program", "dry_run", "composed_plate", "composed_plate_se"}
 )
 
 
@@ -516,8 +524,24 @@ def stored_pilot(monkeypatch: pytest.MonkeyPatch) -> StubStore:
 
 @pytest.fixture
 def real_wiring_gate() -> None:
-    """Opt back in. Marks a test as one that pays ~1.5s of ``snakemake -n -p`` deliberately."""
+    """Opt back in: the product's gate runs, and plans in the worker (see :func:`liulab_data`)."""
     return None
+
+
+@pytest.fixture
+def snakemake_program(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The product's gate, starting the ``snakemake`` program as it does outside this suite.
+
+    The one way a test starts the program, for the one test that proves the gate's command line.
+    No start fits the per-test limit on every machine, so that test must be marked ``slow``, and
+    this fails any test that is not.
+    """
+    if not request.node.get_closest_marker("slow"):
+        pytest.fail(
+            "a test that starts the `snakemake` program must be marked `slow`: no start of it fits "
+            "the per-test time limit on every machine"
+        )
+    monkeypatch.setattr("seqforge.compose.gates.run_snakemake", _start_snakemake)
 
 
 @pytest.fixture
@@ -603,8 +627,8 @@ def snakemake_dry_run(
     **The plan is taken inside the test worker**, by :func:`_snakemake_in_this_worker`, and not by
     starting the ``snakemake`` command. Starting it cost every plan a fresh interpreter and
     snakemake's import, which was about half of a test's time limit before any planning began; a
-    worker now imports snakemake once. The command itself stays covered by the product's own gate,
-    which still starts it, through the tests that take ``real_wiring_gate``.
+    worker now imports snakemake once. The product's gate plans the same way here, and the command
+    itself is covered by the one ``slow`` test that takes :func:`snakemake_program`.
 
     Pass ``plan`` to run against a throwaway ``_replica`` (source inputs stood in, tree removed
     afterwards) — the gate's own arrangement. Omit it to run against ``directory`` exactly as the
@@ -825,20 +849,29 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             item.add_marker(pytest.mark.external)
 
 
+#: Libraries whose first import, in a fresh environment, takes a large share of one test's time
+#: limit: the BAM reader, the two PDF readers and the workbook reader. The code imports each where
+#: it reads a file, so whichever test a worker ran first would pay it.
+_COLD_IMPORTS = ("pysam", "pymupdf", "openpyxl", "pypdf")
+
+
 def pytest_collection_finish(session: pytest.Session) -> None:
-    """Import snakemake once the selection is known, where no test's time limit pays for it.
+    """Import the slow-to-import libraries once the selection is known, where no test's limit pays.
 
     A plan is taken inside the worker (:func:`_snakemake_in_this_worker`), so a worker imports
     snakemake once and not once per plan. Left to the first plan, that one import would be charged
     to whichever test a worker happened to be handed first, and it is a large share of what one
     test is allowed. Paid here it is what importing ``seqforge`` at the top of this file already
-    is: a cost of starting the process, which ``suite_budget`` counts and no single test owns.
+    is: a cost of starting the process, which ``suite_budget`` counts and no single test owns. The
+    same holds for :data:`_COLD_IMPORTS`.
 
-    Only when a selected test runs snakemake, so the lanes that drop the externals never import
-    it, and never for ``--collect-only``, which plans nothing.
+    Snakemake only when a selected test runs it, so the lanes that drop the externals never import
+    it, and nothing for ``--collect-only``, which runs no test.
     """
     if session.config.option.collectonly:
         return
+    for name in _COLD_IMPORTS:
+        importlib.import_module(name)
     if any(_SPAWNS_SNAKEMAKE & set(getattr(item, "fixturenames", ())) for item in session.items):
         importlib.import_module("snakemake.cli")
 
@@ -1383,9 +1416,8 @@ def composed_plate(
     single plan in the suite, and paying it per assertion is exactly the waste that once put ~41 of
     them in a compose test file.
 
-    **It composes under the REAL wiring gate, and that second plan is deliberate** (the gate spawns
-    the ``snakemake`` command, measured at 2.2s for the whole compose; the plan below is taken in
-    the worker). ``wiring_gate`` returns a four-character verdict while discarding the plan text,
+    **It composes under the REAL wiring gate, and that second plan is deliberate** (both are taken
+    in the worker). ``wiring_gate`` returns a four-character verdict while discarding the plan text,
     so the two cannot be one run — and the verdict is what ADR-0035's universal is stated in. Both shapes ``_role_placement`` can emit for a
     ``umi_tagged`` layout have to reach ``"pass"``: this fixture is the ``{umi_cdna, cdna}`` half, and
     :data:`synth_plate_se` composed the same way is the ``{umi_cdna}`` half. Nothing stubs the gate
