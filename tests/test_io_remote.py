@@ -183,7 +183,8 @@ def test_io_resolve_returns_the_runs_of_a_subseries(monkeypatch: pytest.MonkeyPa
 
     GSE207085 is a SubSeries: its GEO record names no SRA study, and `io resolve` once refused it
     while `io records` worked. ENA is asked once per study for the FASTQ links, and a run of the
-    same study outside the accession is not one of its runs.
+    same study outside the accession is not one of its runs. A run of the accession that ENA's
+    report lacks is named, not dropped in silence.
     """
     import labdata
 
@@ -191,6 +192,7 @@ def test_io_resolve_returns_the_runs_of_a_subseries(monkeypatch: pytest.MonkeyPa
         "GSE207085": [
             _Experiment("SRX15929663", "SRP383998", [_Run("SRR19886100")]),
             _Experiment("SRX15929662", "SRP383998", [_Run("SRR19886101")]),
+            _Experiment("SRX15929661", "SRP383998", [_Run("SRR19886102")]),
         ]
     }
     monkeypatch.setattr(labdata, "experiments_for", lambda acc: experiments[acc], raising=False)
@@ -216,6 +218,7 @@ def test_io_resolve_returns_the_runs_of_a_subseries(monkeypatch: pytest.MonkeyPa
     assert payload["studies"] == ["SRP383998"]
     assert [r["run_accession"] for r in payload["runs"]] == ["SRR19886100", "SRR19886101"]
     assert payload["runs"][0]["fastq_urls"] == ["https://ftp.x/SRR19886100.fq.gz"]
+    assert payload["runs_not_in_ena"] == ["SRR19886102"]
     assert asked == ["SRP383998"]
 
 
