@@ -136,7 +136,7 @@ class ArchiveRecordSet(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    #: Which archive, and how. e.g. ``ncbi-sra+biosample``.
+    #: Which archive, and how. e.g. ``ncbi-sra``.
     source: str
     #: What was asked for. The accession a human typed.
     query: str

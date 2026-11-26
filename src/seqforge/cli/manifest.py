@@ -559,7 +559,7 @@ def _load_records(
     would bake the omission in.
     """
     from ..io import IO_VERSION
-    from ..io.archive import fetch_records, stored_records
+    from ..io.archive import SOURCE, fetch_records, stored_records
     from ..models.records import ArchiveRecordSet
     from ..recordset import load_record_set
 
@@ -581,7 +581,7 @@ def _load_records(
     # and an unstamped set means "written before submitted files existed" — so without this the
     # freshest possible fetch reads as the stalest possible cache. Same carry as `cli/run.py`'s merge.
     return ArchiveRecordSet(
-        source="ncbi-sra+biosample",
+        source=SOURCE,
         query=", ".join(accessions),
         records=merged,
         io_version=IO_VERSION,

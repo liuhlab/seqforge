@@ -73,7 +73,7 @@ def _run_records_stage(
     import hashlib
 
     from ..io import IO_VERSION
-    from ..io.archive import fetch_records, stored_records
+    from ..io.archive import SOURCE, fetch_records, stored_records
     from ..models.records import ArchiveRecordSet
     from ..recordset import load_record_set
 
@@ -101,7 +101,7 @@ def _run_records_stage(
     # the question, and a fresh fetch must never look like one.
     if len(accession) == 1:
         return ArchiveRecordSet(
-            source="ncbi-sra+biosample",
+            source=SOURCE,
             query=accession[0],
             records=merged,
             io_version=IO_VERSION,
@@ -109,7 +109,7 @@ def _run_records_stage(
     # Two accessions render one dataset: harvest needs them in a single document set, so write a
     # combined file keyed by the accession list (the per-accession caches stay, for `io records`).
     combined = ArchiveRecordSet(
-        source="ncbi-sra+biosample",
+        source=SOURCE,
         query=", ".join(accession),
         records=merged,
         io_version=IO_VERSION,
