@@ -17,9 +17,9 @@ The chain, for one study:
    question, each asked as :mod:`.closed` asks one: whether each listed factor was varied on
    purpose (asked plain and negated), its baseline (the options in order and reversed), whether
    its levels are ordered, what a label with no listed value is, and where the libraries' material
-   came from. Then, for each sample, its level on each factor and its value on each label, asked
-   twice, the options in order and reversed. A question Jev leaves unanswered makes its claim
-   ``unknown``, with no probability.
+   came from. Then, for each sample, its level on each factor, asked twice, the options in order
+   and reversed, and its value on each label, asked once with the first asking. A question Jev
+   leaves unanswered makes its claim ``unknown``, with no probability.
 3. **Code** finds every quote in its record or paper; Jev judges whether each found passage backs
    its claim, or speaks against it, and checks each listed tie of a control to a pull-down.
 4. **liulab-data's ontology search** gives candidates for each value's search name, and Jev picks
@@ -87,7 +87,7 @@ if TYPE_CHECKING:
 KIND_NAME = name_of(__name__)
 #: Raise it when an instruction, a question, a guide, the answer's shape or a rule of writing the
 #: reading changes.
-KIND_VERSION = "2026.11.8"
+KIND_VERSION = "2026.11.9"
 #: The roles, and the models that fill them unless a pass names others: the writer, and
 #: :data:`.closed.JEV`.
 WRITER_ROLE, JEV_ROLE = "writer", "jev"
@@ -406,11 +406,13 @@ def _kept(lists: _Lists) -> list[_Factor]:
 # ---------------------------------------------------------------- Jev, each sample
 
 
-def _sample_questions(kept: list[_Factor], labels: Mapping[str, Label]) -> dict[str, Choice]:
-    """The choices Jev is asked about each sample, by name: its level and its label values."""
-    questions: dict[str, Choice] = {}
+def _sample_questions(
+    kept: list[_Factor], labels: Mapping[str, Label]
+) -> tuple[dict[str, Choice], dict[str, Choice]]:
+    """The choices Jev is asked about each sample, by name: its levels, then its label values."""
+    levels: dict[str, Choice] = {}
     for i, f in enumerate(kept):
-        questions[f"lvl{i}"] = Choice(
+        levels[f"lvl{i}"] = Choice(
             f"level of {f.label}",
             f"Which {f.label} does `sample` have?",
             (
@@ -422,13 +424,14 @@ def _sample_questions(kept: list[_Factor], labels: Mapping[str, Label]) -> dict[
                 Option(_NA, f"{f.label} does not apply to `sample`"),
             ),
         )
+    values: dict[str, Choice] = {}
     for label, listed in labels.items():
         if not listed.values:
             continue
         words = label.replace("_", " ")
         example = label_row(label).na
         meaning = label_row(label).holds
-        questions[f"lab_{label}"] = Choice(
+        values[f"lab_{label}"] = Choice(
             f"value of {label}",
             f"What is the {words} of `sample` ({meaning})?",
             (
@@ -443,7 +446,7 @@ def _sample_questions(kept: list[_Factor], labels: Mapping[str, Label]) -> dict[
                 ),
             ),
         )
-    return questions
+    return levels, values
 
 
 # ---------------------------------------------------------------- passages
@@ -786,13 +789,16 @@ def _read(u: Unit, context: _Context) -> dict[str, Any]:
             f"more values listed than Jev chooses among ({MOST_VALUES}) for: {said}",
         )
     glossary = _glossary(lists, kept)
-    questions = _sample_questions(kept, lists.labels)
+    levels, values = _sample_questions(kept, lists.labels)
+    questions = levels | values
     by_id = {s["id"]: s for s in sources["samples"]}
 
     def ask_sample(job: tuple[str, bool]) -> dict[str, Answer | None]:
         gsm, second = job
         text = (src.sample_text(sources, by_id[gsm]) + "\n\n" + glossary)[:_SAMPLE_CAP] + notes_text
-        askings = {n: q.second if second else q.first for n, q in questions.items()}
+        # Only a sample's levels are compared between its askings, so only they are asked again.
+        asked = levels if second else questions
+        askings = {n: q.second if second else q.first for n, q in asked.items()}
         return ask(u, JEV_ROLE, text, askings)
 
     jobs = [(g, second) for g in samples for second in (False, True)]
