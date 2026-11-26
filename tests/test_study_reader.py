@@ -436,9 +436,11 @@ def _writer(form: dict[str, Any]) -> str:
     study = re.search(r"=== GEO Series (GSE\d+) ===", user)
     assert study is not None
     key = study.group(1)
-    if key == "GSE30" or (key == "GSE40" and "could not be used" not in user):
+    if key == "GSE30":
         return "{the writer's answer, cut off"
-    if key == "GSE10":
+    if key == "GSE40" and "could not be used" not in user:
+        return f"Here are the lists:\n{json.dumps(LISTS[key])}\nDone."
+    if key == "GSE40":
         return f"Here are the lists {{as asked}}:\n```json\n{json.dumps(LISTS[key])}\n```\nDone."
     return json.dumps(LISTS[key])
 
@@ -702,10 +704,11 @@ def test_a_question_jev_leaves_unanswered_is_an_unknown_claim_and_leaves_the_stu
 def test_a_broken_writer_answer_is_asked_for_once_more_and_a_second_refuses(
     read: tuple[Path, dict[str, Any], FakeGateway],
 ) -> None:
-    """GSE40's first answer is cut off and its second is whole: it is read. GSE30's writer is cut
-    off twice: the study is refused with the reason, and no file is written. The writer thinks and
-    sends no schema, which the gateway refuses for DeepSeek with thinking on, so its object is
-    taken out of the reply's text: GSE10's, in a code fence among prose, is read the first time."""
+    """The writer thinks and is sent no schema, so its JSON is read out of the reply's text by the
+    one rule: the whole reply, or its one fenced block. GSE40's first answer sets the object among
+    prose with no fence, which the rule does not read; its second fences it among prose, and it is
+    read. GSE30's writer is cut off twice: the study is refused with the reason, and no file is
+    written."""
     set_dir, said, fake = read
     asked = [_first_id(f["messages"][-1]["content"]) for f in _sent(fake) if f["route"] == "chat"]
 

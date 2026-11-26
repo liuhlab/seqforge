@@ -249,36 +249,31 @@ def test_extract_rejects_a_broken_top_level_shape_wholesale(tmp_path: Path) -> N
         pytest.param([], [], 0, id="a-document-that-supports-nothing"),
     ],
 )
-def test_a_bare_array_or_a_fenced_object_is_the_same_batch_under_a_different_envelope(
+def test_a_bare_array_is_the_same_batch_under_a_different_envelope(
     drafts: list[dict[str, Any]], values: list[str], n_rejected: int, tmp_path: Path
 ) -> None:
-    """A model that returns the drafts array without wrapping it has still returned the batch, and so
-    has one that wraps the object in a code fence among prose.
+    """A model that returns the drafts array without wrapping it has still returned the batch.
 
     The elements are byte-identical either way and each one still faces
     `AssertionDraft.model_validate` alone, so refusing the document over the absent key would
     discard a whole document's worth of valid extraction for one missing token — the same defect
     `test_extract_drops_one_malformed_draft_and_keeps_the_rest` closed one layer down, and measurably
-    live on the weaker json-object models (#190). The fence is the default model's to add, since it
-    is sent no schema. Unwrapping changes the envelope and nothing else: the per-draft gate is still
-    the gate, and `[]` is still the common, correct answer that an envelope may not turn into a lost
-    document.
+    live on the weaker json-object models (#190). Unwrapping changes the envelope and nothing else:
+    the per-draft gate is still the gate, and `[]` is still the common, correct answer that an
+    envelope may not turn into a lost document.
     """
     doc = _doc(tmp_path)
     wrapped = extract_drafts(
         doc, kb.load_all_specs(), seam=_answering(json.dumps({"drafts": drafts}))[1]
     )
     bare = extract_drafts(doc, kb.load_all_specs(), seam=_answering(json.dumps(drafts))[1])
-    fence = f"Here are the drafts:\n```json\n{json.dumps({'drafts': drafts})}\n```\nDone."
-    fenced = extract_drafts(doc, kb.load_all_specs(), seam=_answering(fence)[1])
 
-    for other in (bare, fenced):
-        assert [d.value for d in other.drafts] == [d.value for d in wrapped.drafts] == values
-        assert len(other.rejected) == len(wrapped.rejected) == n_rejected
-        assert other.drafts == wrapped.drafts
-        assert other.rejected == wrapped.rejected
-        assert other.answered
-        assert other.failure is None
+    assert [d.value for d in bare.drafts] == [d.value for d in wrapped.drafts] == values
+    assert len(bare.rejected) == len(wrapped.rejected) == n_rejected
+    assert bare.drafts == wrapped.drafts
+    assert bare.rejected == wrapped.rejected
+    assert bare.answered
+    assert bare.failure is None
     assert wrapped.answered
 
 
@@ -1313,7 +1308,6 @@ def test_a_draft_for_a_document_the_request_never_carried_refuses_the_whole_batc
 
 
 _BATCH_FAILURES = [
-    pytest.param("not json at all", id="an-unusable-envelope"),
     pytest.param(json.dumps({"notes": []}), id="an-envelope-with-no-drafts"),
     pytest.param(
         f"An example:\n```json\n{harvest_kit.NOTHING}\n```\nMy answer:\n```json\n" + '{"drafts": [',
@@ -1336,12 +1330,21 @@ def test_a_batch_failure_falls_back_to_per_document_calls_and_loses_nothing(
 
     A provider's own failure is not a batch failure: the gateway retries it, and what outlasts the
     retries is a stop, which no fallback re-asks (:func:`test_partial_does_not_swallow_a_stop`).
+
+    The default model is sent no schema, so each document asked alone answers as it does: its JSON
+    fenced among prose, which the one rule for such a reply reads.
     """
     from seqforge.harvest import extract_planned, plan_extraction
 
     docs, answers = _species_docs(tmp_path)
     plan = plan_extraction(documents=docs)
-    fake, seam = _over(_AnswersEveryDocument(answers, batch_failure=failure))
+    every = _AnswersEveryDocument(answers, batch_failure=failure)
+
+    def fenced_alone(form: dict[str, Any]) -> str:
+        reply = every(form)
+        return reply if len(_shas_in(_user(form))) > 1 else f"Drafts:\n```json\n{reply}\n```"
+
+    fake, seam = _over(fenced_alone)
 
     outcomes = extract_planned(plan, kb.load_all_specs(), seam=seam)
 

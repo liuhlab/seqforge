@@ -13,11 +13,11 @@ records name one of its library strategies: :func:`guides_for` picks them.
 
 from __future__ import annotations
 
-import json
 import re
 from collections.abc import Iterable
 from importlib.resources import files
 
+from labllm import ReplyNotJson, reply_json
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from .labels import LABELS
@@ -211,35 +211,17 @@ def snake(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
 
 
-def _json_object(text: str) -> object:
-    """The JSON the text is, or else the first JSON object in it, read from its opening brace.
-
-    Raises the error of reading the whole text when no brace opens an object.
-    """
-    try:
-        return json.loads(text)
-    except ValueError as whole:
-        decoder = json.JSONDecoder()
-        for at in (m.start() for m in re.finditer(r"\{", text)):
-            try:
-                data, _ = decoder.raw_decode(text, at)
-            except ValueError:
-                continue
-            if isinstance(data, dict):
-                return data
-        raise whole
-
-
 def parse_lists(text: str) -> tuple[Lists | None, str | None]:
     """The writer's answer as lists, or ``None`` and why it cannot be used.
 
-    The writer answers in text, with no schema, so the object is taken out of it: a code fence or
-    prose around it is no fault. An answer is broken when it holds no JSON object, does not have
-    the shape the instructions give, or names one level of a factor twice.
+    The writer answers in text, with no schema, so its JSON is read by liulab-llms's one rule for
+    such a reply: the whole text, or the one fenced block it holds. An answer is broken when that
+    rule reads no JSON object, when the object does not have the shape the instructions give, or
+    when it names one level of a factor twice.
     """
     try:
-        data = _json_object(text)
-    except (TypeError, ValueError) as exc:
+        data = reply_json(text)
+    except ReplyNotJson as exc:
         return None, f"not JSON: {exc}"
     if not isinstance(data, dict):
         return None, "not a JSON object"

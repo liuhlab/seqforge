@@ -371,25 +371,6 @@ def extract_drafts(
     return extract_batch([doc], specs, seam=seam, fields=fields, max_tokens=max_tokens)[0]
 
 
-def _reply_json(text: str) -> Any:
-    """The JSON the reply is, or else the JSON its one code fence holds.
-
-    A model that thinks is sent no schema, so only the prompt keeps it from fencing its JSON among
-    prose. One fence, opened and closed, is unambiguous. With any other count of fence markers the
-    whole reply's error stands: a reply cut off inside a fence, or one that fences an example
-    beside its answer, fails as not JSON rather than having one object picked out of it. The
-    Transcript keeps the reply verbatim, so how often a model fences is a grep away.
-    """
-    try:
-        return json.loads(text)
-    except ValueError:
-        parts = text.split("```")
-        if len(parts) != 3:
-            raise
-    _language, _, fenced = parts[1].partition("\n")
-    return json.loads(fenced)
-
-
 def _parsed_drafts(text: str, provider_name: str) -> list[Any]:
     """THE gate: the response's top-level shape, or a wholesale refusal. Returns the raw draft list.
 
@@ -405,10 +386,17 @@ def _parsed_drafts(text: str, provider_name: str) -> list[Any]:
     no second one: a batch that fails here fails exactly as a single document does, and what its
     caller then does about it — re-ask each document alone — is a recovery policy, not another
     verdict about the response.
+
+    The JSON is read by liulab-llms's one rule for a reply sent with no schema: the whole text, or
+    the one fenced block it holds. A reply cut off inside a fence, or one that fences an example
+    beside its answer, fails here as not JSON rather than having one object picked out of it. The
+    Transcript keeps the reply verbatim, so how often a model fences is a grep away.
     """
+    from labllm import ReplyNotJson, reply_json
+
     try:
-        raw = _reply_json(text)
-    except ValueError as exc:
+        raw = reply_json(text)
+    except ReplyNotJson as exc:
         raise ExtractUnavailable(
             f"{provider_name} returned output that is not valid JSON: {exc}"
         ) from exc
