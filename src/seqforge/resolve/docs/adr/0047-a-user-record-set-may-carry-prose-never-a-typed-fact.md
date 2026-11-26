@@ -21,4 +21,5 @@ careless one.
 
 **Status.** Amended 2026-11-21 — no sample or run document is asked anything since the sample
 attributes left the compiler, so prose on a hand-written record reaches no claim. The loader still
-accepts it.
+accepts it. Superseded 2026-11-26 — the loader refuses `free_text` on a hand-written record like any
+unknown key, and points at the study reading for what a sample was; ADR-0034 stands.

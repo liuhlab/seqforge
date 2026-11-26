@@ -87,11 +87,11 @@ def linked_series(store: Any, start: str) -> list[str]:
 def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict[str, Any]:
     """One study's linked group: its Series with their samples, and the papers they link.
 
-    ``entry`` names the study's ``id`` and its ``linked_series``, and may name ``pmids`` of its
-    own. ``store`` is liulab-data's record store and ``papers`` its paper reader, or ``None`` when
-    no paper store is configured. A linked Series the store does not hold is kept, marked not held.
-    A paper lists every Series it links, those outside the group included, since a paper shared
-    with another Series is the main sign of a re-cite.
+    ``entry`` names the study's ``id`` and its ``linked_series``. ``store`` is liulab-data's record
+    store and ``papers`` its paper reader, or ``None`` when no paper store is configured. A linked
+    Series the store does not hold is kept, marked not held. A paper lists every Series it links,
+    those outside the group included, since a paper shared with another Series is the main sign of
+    a re-cite.
     """
     wanted = [str(gse) for gse in entry["linked_series"]]
     opened = store.open_many(wanted)
@@ -109,10 +109,8 @@ def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict
             {
                 "id": gse,
                 "held": True,
-                "record": record,
                 "fields": {label: _fields(record, name) for name, label in _SERIES_FIELDS},
                 "superseries_of": _far_ends(record, "SuperSeries of"),
-                "bioprojects": _far_ends(record, "BioProject"),
                 "pmids": [p[5:] for p in _papers(record.links) if p.startswith("PMID:")],
                 "samples": [
                     _sample(samples[s]) for s in sample_ids[gse] if not _is_error(samples[s])
@@ -120,12 +118,7 @@ def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict
             }
         )
 
-    pmids = list(
-        dict.fromkeys(
-            [str(p) for p in entry.get("pmids") or []]
-            + [p for s in series for p in s.get("pmids", [])]
-        )
-    )
+    pmids = list(dict.fromkeys(p for s in series for p in s.get("pmids", [])))
     details = papers.papers(pmids) if papers is not None and pmids else {}
     links = store.links([f"PMID:{p}" for p in pmids], "PubMed of") if pmids else {}
     paper_rows = []
@@ -136,7 +129,6 @@ def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict
             {
                 "id": paper_id(pmid),
                 "pmid": pmid,
-                "paper": paper,
                 "title": getattr(info, "title", None),
                 "journal": getattr(info, "journal", None),
                 "published": str(info.published) if info and info.published else None,
@@ -149,13 +141,7 @@ def read_group(store: Any, papers: Any | None, entry: Mapping[str, Any]) -> dict
                 ),
             }
         )
-    supers = [s["id"] for s in series if s.get("superseries_of")]
-    return {
-        "id": str(entry["id"]),
-        "series": series,
-        "papers": paper_rows,
-        "superseries": supers[0] if supers else None,
-    }
+    return {"id": str(entry["id"]), "series": series, "papers": paper_rows}
 
 
 def _is_error(record: object) -> bool:
@@ -165,7 +151,6 @@ def _is_error(record: object) -> bool:
 def _sample(record: Any) -> dict[str, Any]:
     return {
         "id": record.accession,
-        "record": record,
         "title": " ".join(_fields(record, "Sample_title")),
         "source": " ".join(_fields(record, "Sample_source_name_ch1")),
         "characteristics": _fields(record, "Sample_characteristics_ch1"),
@@ -246,13 +231,3 @@ def paper_reader() -> Any | None:
         return None
     except NotAStoreError as exc:
         raise SetupRefused(f"cannot open liulab-data's paper store: {exc}") from exc
-
-
-def open_sources() -> tuple[Any, Any | None]:
-    """liulab-data's record store and paper reader, from ``LABDATA_STORE`` and ``LABDATA_PAPERS``.
-
-    A record store that cannot be opened raises liulab-data's own error.
-    """
-    import labdata
-
-    return labdata.open_store(), paper_reader()

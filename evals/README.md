@@ -176,7 +176,7 @@ conflict:                               # outcome: ask
 assertions:                             # harvest ground truth (only checked under --llm)
   - {field: experiment.organism, value: Caenorhabditis elegans}
 forbidden_fields:                       # fields the prose does NOT state — silence is correct
-  - experiment.accessions
+  - library.chemistry
 ```
 
 `forbidden_fields` is not an afterthought. Rewarding recall alone trains the prompt to guess; these

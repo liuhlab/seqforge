@@ -72,6 +72,15 @@ release's git tag (`v2026.7.1` is version `2026.7.1`), which hatch-vcs reads at 
   Matching files to samples, the organism, cells versus nuclei and the chemistry hint are
   unchanged. `harvest extract` no longer prints `n_stored`, and each `fanned` row names its one
   `assertion_id` instead of `assertion_ids` and `materialized`.
+- `seqforge io attributes` is gone, and the wheel no longer ships NCBI's list of 960 sample
+  attribute names. `io records` keeps each sample attribute under the tag the submitter typed and
+  no longer renames it to NCBI's name, so it makes no separate BioSample request and costs one
+  request fewer for every 100 samples. A record attribute has no `harmonized` or `raw_name` field
+  any more; a record set written earlier with them still loads. The organism still comes from
+  each sample's taxonomy id.
+- A hand-written record set (`source: user`) may no longer carry `free_text`. The loader refuses
+  it like any other unknown key, and the remedy says that what a sample was belongs in a study
+  reading. No model read that prose. A record set fetched by `io records` keeps its prose.
 
 ### Fixed
 

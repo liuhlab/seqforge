@@ -63,7 +63,6 @@ DEFAULT_FIELDS: tuple[str, ...] = (
     # are computed regardless. See `manifest.policy.resolve_features`.
     "library.prep_type",
     "experiment.organism",
-    "experiment.accessions",
 )
 
 #: Manifest paths asked ONLY of a document handed to us under ``--instruction``.
@@ -115,16 +114,6 @@ def permitted_for(field: str, scope: DocScope, role: DocRole) -> bool:
     return field in frozenset(fields_for(scope, role))
 
 
-def fields_for_role(role: DocRole) -> tuple[str, ...]:
-    """Back-compat shim: the dataset-scoped ask. A document with no record behind it is dataset-wide."""
-    return fields_for("dataset", role)
-
-
-def is_permitted(field: str) -> bool:
-    """Is ``field`` a manifest path the LLM is allowed to assert at all, from any document?"""
-    return field in PERMITTED_FIELDS
-
-
 def describe_asked(fields: tuple[str, ...]) -> str:
     """The ask as the prompt states it: one field path per line."""
     return "\n".join(f"- {f}" for f in fields)
@@ -138,7 +127,5 @@ __all__ = [
     "DocScope",
     "describe_asked",
     "fields_for",
-    "fields_for_role",
-    "is_permitted",
     "permitted_for",
 ]

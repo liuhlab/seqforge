@@ -59,21 +59,12 @@ class FreeText(BaseModel):
 
 
 class RecordAttribute(BaseModel):
-    """One structured key/value a record declares.
-
-    ``harmonized`` records whether ``name`` is one of NCBI's 960 curated attribute names or the
-    submitter's own invention. Both are kept: an unharmonized attribute is a real thing the submitter
-    said, and dropping it would lose information, while promoting it into the controlled key space
-    would be a guess. Only a harmonized attribute may become a manifest sample fact.
-    """
+    """One structured key/value a record declares, under the name the record gives it."""
 
     model_config = ConfigDict(frozen=True)
 
     name: str
     value: str
-    harmonized: bool = False
-    #: The submitter's raw tag, when it differs from ``name``. Provenance for the harmonization.
-    raw_name: str | None = None
 
 
 class SubmittedFile(BaseModel):
@@ -127,13 +118,6 @@ class ArchiveRecord(BaseModel):
     def filenames(self) -> list[str]:
         """The submitted names, derived. Stored nowhere, so it cannot disagree with the files."""
         return [f.filename for f in self.submitted_files]
-
-    def attribute(self, name: str) -> str | None:
-        """The value of a harmonized attribute, or ``None``. Never raises — absence is normal."""
-        for attr in self.attributes:
-            if attr.name == name and attr.harmonized:
-                return attr.value
-        return None
 
     def text(self, label: str) -> str | None:
         """The free text under ``label``, or ``None``. Never raises — absence is normal."""
